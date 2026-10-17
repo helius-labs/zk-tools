@@ -6,7 +6,8 @@
     nonstandard_style,
     rust_2018_idioms
 )]
-#![forbid(unsafe_code)]
+// Denied, not forbidden: mont_arm64 allows it for its inline assembly.
+#![deny(unsafe_code)]
 
 //! This library implements the BN254 curve that was sampled as part of the [\[BCTV14\]](https://eprint.iacr.org/2013/879.pdf) paper .
 //! The name denotes that it is a Barreto--Naehrig curve of embedding degree 12,
@@ -50,3 +51,5 @@ pub mod constraints;
 // Only wasm multiplies through mont29 (fields/fq.rs, fields/fr.rs).
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 mod mont29;
+#[cfg(target_arch = "aarch64")]
+mod mont_arm64;

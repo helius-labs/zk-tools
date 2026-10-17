@@ -8,7 +8,7 @@ use std::{env, fs, path::Path, time::Instant};
 
 use ark_bn254::{Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::{AffineRepr, CurveGroup};
-use ark_ff::{BigInteger, PrimeField, UniformRand};
+use ark_ff::{BigInteger, Field, PrimeField, UniformRand};
 use ringil_core::{decode_g1, decode_g2, Key};
 
 fn read(dir: &Path, name: &str) -> Vec<u8> {
@@ -17,6 +17,9 @@ fn read(dir: &Path, name: &str) -> Vec<u8> {
 
 fn main() {
     let dir = env::args().nth(1).expect("the dump directory");
+    if dir == "field" {
+        return field();
+    }
     let dir = Path::new(&dir);
     let rounds: usize = env::args().nth(2).map(|v| v.parse().unwrap()).unwrap_or(5);
     let head = read(dir, "head");
@@ -96,4 +99,33 @@ fn assemble(
         out.extend_from_slice(&v.into_bigint().to_bytes_be());
     }
     out
+}
+
+/// Nanoseconds per Fq multiplication, squaring, and Fq2 multiplication on
+/// one thread: a dependent chain of ten million.
+fn field() {
+    use ark_bn254::{Fq, Fq2};
+    let mut rng = rand::rngs::OsRng;
+    let (a, b) = (Fq::rand(&mut rng), Fq::rand(&mut rng));
+    let n = 10_000_000u32;
+    let started = Instant::now();
+    let mut x = a;
+    for _ in 0..n {
+        x *= b;
+    }
+    let mul = started.elapsed().as_nanos() as f64 / n as f64;
+    let started = Instant::now();
+    let mut y = a;
+    for _ in 0..n {
+        y.square_in_place();
+    }
+    let square = started.elapsed().as_nanos() as f64 / n as f64;
+    let (a2, b2) = (Fq2::rand(&mut rng), Fq2::rand(&mut rng));
+    let started = Instant::now();
+    let mut z = a2;
+    for _ in 0..n {
+        z *= b2;
+    }
+    let mul2 = started.elapsed().as_nanos() as f64 / n as f64;
+    println!("RINGIL field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} {}", (x + y).0 .0[0] ^ z.c0.0 .0[0]);
 }

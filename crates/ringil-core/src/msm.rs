@@ -28,8 +28,14 @@ where
         1024..=4095 => 9,
         4096..=16383 => 10,
         16384..=65535 => 12,
-        65536..=262143 => 14,
+        // 15 is the most i16 digits hold: a signed digit reaches 2^(width-1).
         _ => 15,
+    };
+    // Experiment: RINGIL_MSM_WIDTH overrides the width past 2^16 points.
+    #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
+    let width = match std::env::var("RINGIL_MSM_WIDTH") {
+        Ok(value) if bases.len() >= 65536 => value.parse().unwrap(),
+        _ => width,
     };
     // Leave room for the final carry when recoding into signed digits.
     let count = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(width);
@@ -37,6 +43,7 @@ where
     let mask = radix - 1;
     // Preserve indexed writes into one allocation. Collecting a flattened
     // parallel iterator creates temporary vectors and contends on the WASM heap.
+    debug_assert!(width <= 15, "signed digits of this width overflow i16");
     let mut digits = vec![0i16; scalars.len() * count];
     digits
         .par_chunks_mut(count)

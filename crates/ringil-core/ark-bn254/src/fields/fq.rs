@@ -16,6 +16,16 @@ impl MontConfig<4> for FqConfig {
     const GENERATOR: Fq = Fq::new_unchecked(OriginalFqConfig::GENERATOR.0);
     const TWO_ADIC_ROOT_OF_UNITY: Fq =
         Fq::new_unchecked(OriginalFqConfig::TWO_ADIC_ROOT_OF_UNITY.0);
+    #[cfg(target_arch = "aarch64")]
+    #[inline(always)]
+    fn mul_assign(a: &mut Fq, b: &Fq) {
+        a.0 = crate::mont_arm64::multiply(a.0, b.0, Self::MODULUS, Self::INV)
+    }
+    #[cfg(target_arch = "aarch64")]
+    #[inline(always)]
+    fn square_in_place(a: &mut Fq) {
+        a.0 = crate::mont_arm64::multiply(a.0, a.0, Self::MODULUS, Self::INV)
+    }
     #[cfg(target_arch = "wasm32")]
     #[inline(always)]
     fn mul_assign(a: &mut Fq, b: &Fq) {
