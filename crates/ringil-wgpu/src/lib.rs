@@ -103,13 +103,16 @@ const SHARD: usize = 32;
 const REDUCE_BLOCK: usize = 64;
 
 fn width_for(n: usize) -> usize {
-    match n {
+    let width = match n {
         0..=1023 => 7,
         1024..=4095 => 9,
         4096..=16383 => 10,
         16384..=65535 => 12,
         _ => 15,
-    }
+    };
+    // As the Metal driver's: capped at 13 bits (RINGIL_GPU_WIDTH overrides).
+    let cap = std::env::var("RINGIL_GPU_WIDTH").ok().and_then(|v| v.parse::<usize>().ok()).unwrap_or(13).clamp(7, 15);
+    width.min(cap)
 }
 
 /// Stage times of one MSM, in milliseconds.
