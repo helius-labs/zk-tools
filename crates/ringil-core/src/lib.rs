@@ -336,14 +336,14 @@ impl Key {
     }
 }
 
-fn msm_g1(bases: &[G1Affine], scalars: &[Fr]) -> G1Projective {
+pub fn msm_g1(bases: &[G1Affine], scalars: &[Fr]) -> G1Projective {
     if bases.is_empty() {
         G1Projective::ZERO
     } else {
         msm::msm(bases, scalars)
     }
 }
-fn msm_g2(bases: &[G2Affine], scalars: &[Fr]) -> G2Projective {
+pub fn msm_g2(bases: &[G2Affine], scalars: &[Fr]) -> G2Projective {
     if bases.is_empty() {
         G2Projective::ZERO
     } else {

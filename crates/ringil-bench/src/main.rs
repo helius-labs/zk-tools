@@ -20,6 +20,9 @@ fn main() {
     if dir == "field" {
         return field();
     }
+    if dir == "gpu" {
+        return gpu(Path::new(&env::args().nth(2).expect("the dump directory")));
+    }
     let dir = Path::new(&dir);
     let rounds: usize = env::args().nth(2).map(|v| v.parse().unwrap()).unwrap_or(5);
     let head = read(dir, "head");
@@ -128,4 +131,49 @@ fn field() {
     }
     let mul2 = started.elapsed().as_nanos() as f64 / n as f64;
     println!("RINGIL field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} {}", (x + y).0 .0[0] ^ z.c0.0 .0[0]);
+}
+
+/// The G1 MSMs of a dumped shape's Z and B vectors with random scalars, on
+/// the CPU (RAYON_NUM_THREADS) and on the GPU, checked against each other.
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+fn gpu(dir: &Path) {
+    let mut rng = rand::rngs::OsRng;
+    for name in ["b", "z"] {
+        let bases = decode_g1(&read(dir, name));
+        let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+        let started = Instant::now();
+        let (msm, compile_ms) = ringil_metal::G1Msm::new(&bases).expect("gpu msm");
+        let upload_ms = started.elapsed().as_secs_f64() * 1000.0 - compile_ms;
+        let started = Instant::now();
+        let cpu = ringil_core::msm_g1(&bases, &scalars);
+        let cpu_ms = started.elapsed().as_secs_f64() * 1000.0;
+        // Warm, then timed.
+        let _ = msm.msm(&scalars);
+        let mut best: Option<(ringil_metal::Timings, f64)> = None;
+        let mut result = cpu;
+        for _ in 0..3 {
+            let started = Instant::now();
+            let (point, timings) = msm.msm(&scalars);
+            let total = started.elapsed().as_secs_f64() * 1000.0;
+            result = point;
+            if best.is_none_or(|(_, t)| total < t) {
+                best = Some((timings, total));
+            }
+        }
+        let (t, total) = best.unwrap();
+        assert_eq!(result.into_affine(), cpu.into_affine(), "{name}: the GPU MSM differs from the CPU");
+        println!(
+            "RINGIL gpu {name} points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} accumulate_ms={:.0} reduce_ms={:.0} combine_ms={:.1}",
+            bases.len(),
+            msm.device_name(),
+            t.sort_ms,
+            t.accumulate_ms,
+            t.reduce_ms,
+            t.combine_ms
+        );
+    }
+}
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+fn gpu(_: &Path) {
+    panic!("the GPU bench needs Metal");
 }

@@ -1,0 +1,15 @@
+[package]
+name = "ringil-metal"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Multi-scalar multiplication on Apple GPUs for ringil: the host sorts the buckets, Metal sums and reduces them"
+
+[dependencies]
+ark-bn254 = { path = "../ringil-core/ark-bn254" }
+ark-ec = "0.5"
+ark-ff = "0.5"
+rayon = "1.10"
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
+metal = "0.33"
