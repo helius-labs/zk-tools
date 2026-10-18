@@ -347,9 +347,14 @@ fn upload_g2(gpu: &mut Option<GpuBuilder>, bases: Vec<G2Affine>) -> Result<Vec<G
     selftest::full_g2(&bases);
     match gpu {
         Some(builder) => {
-            // The CPU keeps the points after those the GPU took.
+            // The CPU keeps the points after those the GPU took; in a
+            // browser it keeps them all, for solve_parts on the CPU.
             let cut = builder.g2(&bases).map_err(|_| "the GPU could not take the key")?;
-            Ok(if cut == 0 { bases } else { bases[cut..].to_vec() })
+            if cfg!(target_arch = "wasm32") || cut == 0 {
+                Ok(bases)
+            } else {
+                Ok(bases[cut..].to_vec())
+            }
         }
         None => Ok(bases),
     }
@@ -676,7 +681,7 @@ impl Key {
         let pk = gpu.k.lock().unwrap().start(sk);
         let pb2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap().start(&sb[..cut]));
         // The CPU's share of G2 while the GPU works.
-        let cpu_b2 = (cut < sb.len()).then(|| msm_g2(&self.b2, &sb[cut..]));
+        let cpu_b2 = (cut < sb.len()).then(|| msm_g2(&self.b2[cut..], &sb[cut..]));
         Ok(wasm_bindgen_futures::future_to_promise(async move {
             let fail = |e: String| JsValue::from(JsError::new(&e));
             let h = match h_from_cpu {
@@ -702,6 +707,9 @@ impl Key {
                 (None, Some(c)) => c,
                 (None, None) => G2Projective::ZERO,
             };
+            // A test build's fault (RINGIL_WEB_FAULT) checks that the host
+            // catches a GPU that miscomputes.
+            let ar = if option_env!("RINGIL_WEB_FAULT").is_some() { ar + <G1Projective as ark_ec::PrimeGroup>::generator() } else { ar };
             let mut out = Vec::with_capacity(384);
             for p in [ar, bs1, kr, hz] {
                 output_g1(&mut out, p)
