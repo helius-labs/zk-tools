@@ -82,6 +82,11 @@ pub(crate) fn completed(command: &metal::CommandBufferRef) -> Result<(), String>
     }
 }
 
+/// What the Metal device has allocated for this process, in bytes.
+pub fn allocated_bytes() -> u64 {
+    Device::system_default().map_or(0, |device| device.current_allocated_size())
+}
+
 /// A Metal object held across threads: Metal's objects are thread-safe,
 /// metal-rs just does not say so.
 struct Shared<T>(T);
@@ -241,8 +246,9 @@ pub struct Msm<C: Curve> {
     chunk_windows: usize,
     /// Per chunk and level: shard starts, counts and destinations.
     levels: Vec<Vec<[Buffer; 3]>>,
-    tree: [Buffer; 2],
-    buckets: Buffer,
+    /// The shard trees and the buckets, shared with the key's other MSMs.
+    scratch: std::sync::Arc<Scratch>,
+    bucket_bytes: usize,
     sums: Buffer,
     /// Host copies of the bucket runs, for planning the levels.
     counts: Vec<u32>,
@@ -254,10 +260,45 @@ fn shared(device: &Device, bytes: usize) -> Buffer {
     device.new_buffer(bytes.max(16) as u64, MTLResourceOptions::StorageModeShared)
 }
 
+/// Buffers a key's MSMs share: the shard trees and the buckets. The host
+/// never writes them and command buffers on the one queue use them in
+/// turn, so one set per key does instead of one per MSM (four G1 MSMs'
+/// trees were 512 MB at the widest key, too much for a 4 GB phone).
+pub struct Scratch(std::sync::Mutex<ScratchBuffers>);
+struct ScratchBuffers {
+    tree: [Buffer; 2],
+    buckets: Buffer,
+}
+impl Scratch {
+    pub fn new() -> Result<std::sync::Arc<Self>, String> {
+        let device = Device::system_default().ok_or("no Metal device")?;
+        let buffers = ScratchBuffers { tree: [shared(&device, 16), shared(&device, 16)], buckets: shared(&device, 16) };
+        Ok(std::sync::Arc::new(Self(std::sync::Mutex::new(buffers))))
+    }
+    /// Room for an MSM's trees and buckets. A command buffer in flight keeps
+    /// the buffers it was encoded with, so growing them is safe.
+    fn reserve(&self, device: &Device, tree_bytes: usize, bucket_bytes: usize) {
+        let mut buffers = self.0.lock().unwrap();
+        for tree in buffers.tree.iter_mut() {
+            if (tree.length() as usize) < tree_bytes {
+                *tree = shared(device, tree_bytes);
+            }
+        }
+        if (buffers.buckets.length() as usize) < bucket_bytes {
+            buffers.buckets = shared(device, bucket_bytes);
+        }
+    }
+}
+
 impl<C: Curve> Msm<C> {
     /// Compiles the kernels and uploads the bases; `compile_ms` is how long
     /// the shader compilation took.
     pub fn new(bases: &[C::Affine]) -> Result<(Self, f64), String> {
+        Self::new_in(bases, Scratch::new()?)
+    }
+
+    /// As `new`, with the trees and buckets shared with other MSMs.
+    pub fn new_in(bases: &[C::Affine], scratch: std::sync::Arc<Scratch>) -> Result<(Self, f64), String> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
         let library = library(&device, C::G2)?;
@@ -291,6 +332,7 @@ impl<C: Curve> Msm<C> {
         let per_window = n.div_ceil(FIRST_SHARD) + half;
         let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
+        scratch.reserve(&device, most * C::XYZZ_BYTES, buckets * C::XYZZ_BYTES);
         Ok((
             Self {
                 width,
@@ -300,8 +342,8 @@ impl<C: Curve> Msm<C> {
                 queue: queue(&device),
                 sorted: shared(&device, n * windows * 4),
                 levels: Vec::new(),
-                tree: [shared(&device, most * C::XYZZ_BYTES), shared(&device, most * C::XYZZ_BYTES)],
-                buckets: shared(&device, buckets * C::XYZZ_BYTES),
+                scratch,
+                bucket_bytes: buckets * C::XYZZ_BYTES,
                 sums: shared(&device, windows * C::XYZZ_BYTES),
                 counts: vec![0; buckets],
                 starts: vec![0; buckets],
@@ -358,9 +400,10 @@ impl<C: Curve> Msm<C> {
             .collect();
         let sort_ms = elapsed(started);
         let command = self.queue.new_command_buffer();
+        let scratch = self.scratch.0.lock().unwrap();
         // Empty buckets stay at infinity.
         let blit = command.new_blit_command_encoder();
-        blit.fill_buffer(&self.buckets, metal::NSRange::new(0, self.buckets.length()), 0);
+        blit.fill_buffer(&scratch.buckets, metal::NSRange::new(0, self.bucket_bytes as u64), 0);
         blit.end_encoding();
         let encoder = command.new_compute_command_encoder();
         // Chunks run in order and share the trees; the dispatches of one
@@ -374,13 +417,13 @@ impl<C: Curve> Msm<C> {
                     encoder.set_buffer(0, Some(&self.bases), 0);
                     encoder.set_buffer(1, Some(&self.sorted), 0);
                 } else {
-                    encoder.set_buffer(0, Some(&self.tree[(level - 1) % 2]), 0);
+                    encoder.set_buffer(0, Some(&scratch.tree[(level - 1) % 2]), 0);
                 }
                 let [start, count, dst] = &self.levels[chunk][level];
                 encoder.set_buffer(2, Some(start), 0);
                 encoder.set_buffer(3, Some(count), 0);
                 encoder.set_buffer(4, Some(dst), 0);
-                let out = if level == last { &self.buckets } else { &self.tree[level % 2] };
+                let out = if level == last { &scratch.buckets } else { &scratch.tree[level % 2] };
                 encoder.set_buffer(5, Some(out), 0);
                 let n = *shards as u32;
                 encoder.set_bytes(6, 4, &n as *const u32 as *const c_void);
@@ -397,7 +440,7 @@ impl<C: Curve> Msm<C> {
         let leaf = self.half / threads;
         let args = [self.half as u32, leaf as u32, leaf.trailing_zeros(), 0u32];
         encoder.set_compute_pipeline_state(&self.reduce);
-        encoder.set_buffer(0, Some(&self.buckets), 0);
+        encoder.set_buffer(0, Some(&scratch.buckets), 0);
         encoder.set_buffer(1, Some(&self.sums), 0);
         encoder.set_bytes(2, 16, args.as_ptr() as *const c_void);
         encoder.dispatch_thread_groups(MTLSize::new(self.windows as u64, 1, 1), MTLSize::new(threads as u64, 1, 1));

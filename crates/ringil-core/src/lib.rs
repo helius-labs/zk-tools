@@ -219,6 +219,8 @@ struct GpuBuilder {
     quotient: ringil_metal::Quotient,
     g1: [Option<ringil_metal::G1Msm>; 4],
     b2: Option<ringil_metal::G2Msm>,
+    /// The trees and buckets all the key's MSMs share.
+    scratch: std::sync::Arc<ringil_metal::Scratch>,
 }
 #[cfg(gpu)]
 impl GpuBuilder {
@@ -230,10 +232,11 @@ impl GpuBuilder {
         let started = std::time::Instant::now();
         let (roots, inverse_roots, forward, reverse) = plan.tables()?;
         let quotient = ringil_metal::Quotient::new(plan.size(), &roots, &inverse_roots, &forward, &reverse).ok()?.0;
-        Some(Self { started, quotient, g1: [None, None, None, None], b2: None })
+        let scratch = ringil_metal::Scratch::new().ok()?;
+        Some(Self { started, quotient, g1: [None, None, None, None], b2: None, scratch })
     }
     fn g1(&mut self, which: usize, bases: &[G1Affine]) -> Result<(), String> {
-        self.g1[which] = Some(ringil_metal::G1Msm::new(bases)?.0);
+        self.g1[which] = Some(ringil_metal::G1Msm::new_in(bases, self.scratch.clone())?.0);
         Ok(())
     }
     /// Whether the GPU took G2: a Mac's does, a phone's leaves it to the CPU.
@@ -241,12 +244,14 @@ impl GpuBuilder {
         if !g2_on_gpu() {
             return Ok(false);
         }
-        self.b2 = Some(ringil_metal::G2Msm::new(bases)?.0);
+        self.b2 = Some(ringil_metal::G2Msm::new_in(bases, self.scratch.clone())?.0);
         Ok(true)
     }
     fn finish(self) -> Gpu {
         let [a, b, k, z] = self.g1.map(|msm| std::sync::Mutex::new(msm.expect("every G1 vector uploaded")));
         trace("gpu-upload", self.started);
+        #[cfg(feature = "trace")]
+        log::info!("RINGIL_TRACE gpu-allocated {} MB", ringil_metal::allocated_bytes() >> 20);
         Gpu { a, b, k, z, b2: self.b2.map(std::sync::Mutex::new), quotient: std::sync::Mutex::new(self.quotient) }
     }
 }
