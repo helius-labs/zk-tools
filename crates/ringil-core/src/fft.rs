@@ -109,9 +109,11 @@ impl Plan {
             });
             out
         };
+        let started = std::time::Instant::now();
         let n_inv = Fr::from(n as u64).inverse().unwrap();
         let mut forward_weights = powers(coset, n);
         let mut reverse_weights = powers(coset.inverse().unwrap(), n);
+        let started = super::trace("plan-weights", started);
         for v in &mut forward_weights {
             *v *= n_inv;
         }
@@ -119,6 +121,7 @@ impl Plan {
         for v in &mut reverse_weights {
             *v *= reverse_scale;
         }
+        let started = super::trace("plan-scale", started);
         let log = n.trailing_zeros();
         for i in 0..n {
             let j = i.reverse_bits() >> (usize::BITS - log);
@@ -127,14 +130,13 @@ impl Plan {
                 reverse_weights.swap(i, j);
             }
         }
-        Self {
-            n,
-            roots: Twiddles::new(powers(generator, n / 2)),
-            inverse_roots: Twiddles::new(powers(generator.inverse().unwrap(), n / 2)),
-            forward_weights: quads(&forward_weights),
-            reverse_weights: quads(&reverse_weights),
-            small: None,
-        }
+        let started = super::trace("plan-bitrev", started);
+        let roots = Twiddles::new(powers(generator, n / 2));
+        let inverse_roots = Twiddles::new(powers(generator.inverse().unwrap(), n / 2));
+        let started = super::trace("plan-roots", started);
+        let (forward_weights, reverse_weights) = (quads(&forward_weights), quads(&reverse_weights));
+        super::trace("plan-quads", started);
+        Self { n, roots, inverse_roots, forward_weights, reverse_weights, small: None }
     }
     /// The tables a GPU transform needs: the first n/2 powers of the
     /// generator and of its inverse, and both bit-reversed weight vectors.

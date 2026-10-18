@@ -57,6 +57,13 @@ fn main() {
     let key_ms = started.elapsed().as_millis();
     let started = Instant::now();
     assert!(key.set_solver(&read(dir, "program"), &read(dir, "coefficients")), "solver plan");
+    // Experiment: RINGIL_SOLVER_IMAGE=1 reloads the solver from its image,
+    // as a host that cached it would.
+    if std::env::var("RINGIL_SOLVER_IMAGE").is_ok_and(|v| v == "1") {
+        let image = key.solver_image().expect("solver image");
+        eprintln!("TRACE solver-image-bytes {}", image.len());
+        assert!(key.set_solver_image(&image), "solver image");
+    }
     let plan_ms = started.elapsed().as_millis();
     let witness = read(dir, "witness");
 

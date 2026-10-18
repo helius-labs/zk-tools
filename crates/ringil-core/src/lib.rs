@@ -323,15 +323,19 @@ impl Key {
         let den = (params[1].pow([n as u64]) - Fr::ONE)
             .inverse()
             .ok_or("invalid quotient denominator")?;
+        let started = std::time::Instant::now();
         let plan = fft::Plan::new(n, params[0], params[1], den);
+        trace("plan", started);
         let lengths = [a.len() / 64, b.len() / 64, k.len() / 64];
         // One vector at a time: decoded, handed to the GPU, dropped. A GPU
         // that cannot take the key (it failed to build a kernel, it ran out
         // of memory) is let go, and the key is decoded again for the CPU.
+        let started = std::time::Instant::now();
         #[cfg(gpu_any)]
         let mut gpu = GpuBuilder::open(&plan);
         #[cfg(not(gpu_any))]
         let mut gpu: Option<()> = None;
+        trace("gpu-open", started);
         #[cfg(not(gpu_any))]
         let (upload_g1, upload_g2) = (|_: &mut Option<()>, _: usize, v| Ok::<_, &'static str>(v), |_: &mut Option<()>, v| Ok::<_, &'static str>(v));
         #[cfg(not(target_arch = "wasm32"))]
@@ -339,15 +343,23 @@ impl Key {
         #[cfg(target_arch = "wasm32")]
         let head = |_: usize| 0;
         let decode = |gpu: &mut Option<_>| -> Result<_, &'static str> {
+            let started = std::time::Instant::now();
             let a = g1s(a);
             let a_head = a[..head(a.len())].to_vec();
+            let started = trace("decode-a", started);
             let a = upload_g1(gpu, 0, a)?;
+            let started = trace("upload-a", started);
             let b = upload_g1(gpu, 1, g1s(b))?;
+            let started = trace("decode+upload-b", started);
             let k = upload_g1(gpu, 2, g1s(k))?;
+            let started = trace("decode+upload-k", started);
             let z = upload_g1(gpu, 3, g1s(z))?;
+            let started = trace("decode+upload-z", started);
             let b2 = g2s(b2);
             let b2_head = b2[..head(b2.len())].to_vec();
+            let started = trace("decode-b2", started);
             let b2 = upload_g2(gpu, b2)?;
+            trace("upload-b2", started);
             Ok((a, b, k, z, b2, a_head, b2_head))
         };
         #[cfg(not(target_arch = "wasm32"))]
@@ -420,7 +432,10 @@ impl Key {
         if !self.commitments.is_empty() {
             return false;
         }
-        if let Ok(plan) = solver::Plan::new(program, coefficients) {
+        let started = std::time::Instant::now();
+        let parsed = solver::Plan::new(program, coefficients);
+        trace("solver-plan", started);
+        if let Ok(plan) = parsed {
             if plan.matches(self.lengths[0], self.lengths[1], self.lengths[2], self.domain.size()) {
                 self.solver = Some(plan);
                 return true;
@@ -436,11 +451,14 @@ impl Key {
     // A solver from solver_image's bytes, if they are an image of this
     // kernel's version for a key of these dimensions.
     pub fn set_solver_image(&mut self, image: &[u8]) -> bool {
+        let started = std::time::Instant::now();
         self.solver = None;
         if !self.commitments.is_empty() {
             return false;
         }
-        if let Ok(plan) = solver::Plan::from_image(image) {
+        let parsed = solver::Plan::from_image(image);
+        trace("solver-image", started);
+        if let Ok(plan) = parsed {
             if plan.matches(self.lengths[0], self.lengths[1], self.lengths[2], self.domain.size()) {
                 self.solver = Some(plan);
                 return true;
