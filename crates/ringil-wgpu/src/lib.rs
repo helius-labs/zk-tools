@@ -107,8 +107,8 @@ pub type G2Msm = Msm<ark_bn254::G2Projective>;
 const WORKGROUP: u32 = 64;
 const FIRST_SHARD: usize = 32;
 const SHARD: usize = 32;
-/// Buckets per thread in the first reduction stage.
-/// Threads per window in the reduction (as ringil-metal's, measured best).
+/// Threads per window in the reduction, measured best (with 256 and 128
+/// close); RINGIL_REDUCE_PER_WINDOW overrides natively.
 const REDUCE_THREADS_PER_WINDOW: usize = 512;
 
 fn width_for(n: usize) -> usize {
@@ -328,7 +328,9 @@ impl<C: Curve> Msm<C> {
         let per_window = n.div_ceil(FIRST_SHARD) + half;
         let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
-        let per_window = half.min(REDUCE_THREADS_PER_WINDOW);
+        let per_window = half
+            .min(std::env::var("RINGIL_REDUCE_PER_WINDOW").ok().and_then(|v| v.parse().ok()).unwrap_or(REDUCE_THREADS_PER_WINDOW))
+            .max(WORKGROUP as usize);
         let reduce_shape = [half / per_window, per_window];
         let partials = windows * per_window / WORKGROUP as usize;
         let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
