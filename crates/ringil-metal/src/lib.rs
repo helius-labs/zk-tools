@@ -331,8 +331,11 @@ impl<C: Curve> Msm<C> {
             }
         }
         // One threadgroup per window, a thread per `leaf` buckets, at least
-        // a full SIMD group.
-        let threads = self.half.min(MOST_REDUCE_THREADS).max(32);
+        // a full SIMD group and no more than the kernel's registers allow on
+        // this GPU (a power of two, since `leaf` is a shift).
+        let allowed = self.reduce.max_total_threads_per_threadgroup() as usize;
+        let allowed = 1usize << (usize::BITS - 1 - allowed.max(1).leading_zeros());
+        let threads = self.half.min(MOST_REDUCE_THREADS).min(allowed).max(32);
         let leaf = self.half / threads;
         let args = [self.half as u32, leaf as u32, leaf.trailing_zeros(), 0u32];
         encoder.set_compute_pipeline_state(&self.reduce);
