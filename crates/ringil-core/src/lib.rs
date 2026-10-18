@@ -12,6 +12,8 @@ pub use wasm_bindgen_rayon::init_thread_pool;
 mod decompress;
 pub mod fft;
 mod msm;
+#[cfg(not(target_arch = "wasm32"))]
+mod selftest;
 mod simd;
 mod solver;
 pub mod groth16;
@@ -246,6 +248,9 @@ impl GpuBuilder {
 pub struct Key {
     #[cfg(gpu_any)]
     gpu: Option<Gpu>,
+    /// Whether the GPU's quotient agreed with the CPU's at load.
+    #[cfg(gpu_any)]
+    gpu_quotient: bool,
     /// The A, B and K vectors' lengths: the vectors themselves are empty
     /// when a GPU holds them.
     lengths: [usize; 3],
@@ -311,25 +316,56 @@ impl Key {
         let mut gpu: Option<()> = None;
         #[cfg(not(gpu_any))]
         let (upload_g1, upload_g2) = (|_: &mut Option<()>, _: usize, v| Ok::<_, &'static str>(v), |_: &mut Option<()>, v| Ok::<_, &'static str>(v));
+        #[cfg(not(target_arch = "wasm32"))]
+        let head = |n: usize| n.min(selftest::HEAD);
+        #[cfg(target_arch = "wasm32")]
+        let head = |_: usize| 0;
         let decode = |gpu: &mut Option<_>| -> Result<_, &'static str> {
-            let a = upload_g1(gpu, 0, g1s(a))?;
+            let a = g1s(a);
+            let a_head = a[..head(a.len())].to_vec();
+            let a = upload_g1(gpu, 0, a)?;
             let b = upload_g1(gpu, 1, g1s(b))?;
             let k = upload_g1(gpu, 2, g1s(k))?;
             let z = upload_g1(gpu, 3, g1s(z))?;
-            let b2 = upload_g2(gpu, g2s(b2))?;
-            Ok((a, b, k, z, b2))
+            let b2 = g2s(b2);
+            let b2_head = b2[..head(b2.len())].to_vec();
+            let b2 = upload_g2(gpu, b2)?;
+            Ok((a, b, k, z, b2, a_head, b2_head))
         };
-        let (a, b, k, z, b2) = match decode(&mut gpu) {
-            Ok(vectors) => vectors,
-            Err(_) if gpu.is_some() => {
-                gpu = None;
-                decode(&mut gpu)?
+        #[cfg(not(target_arch = "wasm32"))]
+        selftest::field();
+        #[cfg(gpu_any)]
+        let mut gpu_quotient = true;
+        #[cfg(gpu_any)]
+        let mut built_gpu: Option<Gpu> = None;
+        let (a, b, k, z, b2) = loop {
+            match decode(&mut gpu) {
+                Ok((a, b, k, z, b2, a_head, b2_head)) => {
+                    // A GPU whose MSM disagrees with the CPU is let go, and the
+                    // key is decoded again for the CPU; a quotient that
+                    // disagrees stays on the CPU.
+                    #[cfg(gpu_any)]
+                    if let Some(builder) = gpu.take() {
+                        let mut finished = builder.finish();
+                        let verdict = selftest::gpu(&mut finished, &plan, &a_head, &b2_head, lengths[0], lengths[1]);
+                        if !verdict.msm {
+                            continue;
+                        }
+                        gpu_quotient = verdict.quotient;
+                        built_gpu = Some(finished);
+                    }
+                    let _ = (a_head, b2_head);
+                    break (a, b, k, z, b2);
+                }
+                Err(_) if gpu.is_some() => gpu = None,
+                Err(e) => return Err(e),
             }
-            Err(e) => return Err(e),
         };
         Ok(Self {
             #[cfg(gpu_any)]
-            gpu: gpu.map(GpuBuilder::finish),
+            gpu: built_gpu,
+            #[cfg(gpu_any)]
+            gpu_quotient,
             lengths,
             a,
             b,
@@ -511,7 +547,7 @@ impl Key {
                     })
                 });
                 let started = std::time::Instant::now();
-                let h = if std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0") {
+                let h = if !self.gpu_quotient || std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0") {
                     self.quotient(a, b, c)
                 } else {
                     gpu.quotient.lock().unwrap().quotient(&a, &b, &c)
@@ -552,7 +588,7 @@ impl Key {
                     let (kr, t) = mk.finish(pk);
                     gpu_trace("k", t.sort_ms, t.gpu_ms);
                     let started = std::time::Instant::now();
-                    let h = gpu.quotient.lock().unwrap().quotient(&a, &b, &c);
+                    let h = if self.gpu_quotient { gpu.quotient.lock().unwrap().quotient(&a, &b, &c) } else { self.quotient(a, b, c) };
                     trace("quotient", started);
                     (ar, bs1, kr, h)
                 });

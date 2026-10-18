@@ -42,6 +42,8 @@ impl Quotient {
         assert!(n.is_power_of_two() && n >= 8);
         let device = &gpu.device;
         let started = Instant::now();
+        let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
+        let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("ringil quotient"),
             source: wgpu::ShaderSource::Wgsl(FR_SHADER.into()),
@@ -57,13 +59,17 @@ impl Quotient {
             })
         };
         let (dif, dit, scale, pointwise) = (pipeline("fr_dif_stage"), pipeline("fr_dit_stage"), pipeline("fr_scale"), pipeline("fr_pointwise"));
+        for scope in [internal, validation] {
+            if let Some(e) = pollster::block_on(scope.pop()) {
+                return Err(format!("kernels: {e}"));
+            }
+        }
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
+        let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let upload = |label: &str, values: &[Fr]| {
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some(label),
-                contents: fr_bytes(values),
-                usage: wgpu::BufferUsages::STORAGE,
-            })
+            let buffer = storage(device, label, values.len() * 32);
+            gpu.queue.write_buffer(&buffer, 0, fr_bytes(values));
+            buffer
         };
         let log_n = n.trailing_zeros();
         let stages = (0..log_n)
@@ -75,8 +81,7 @@ impl Quotient {
                 })
             })
             .collect();
-        Ok((
-            Self {
+        let quotient = Self {
                 dif,
                 dit,
                 scale,
@@ -101,9 +106,11 @@ impl Quotient {
                     usage: wgpu::BufferUsages::UNIFORM,
                 }),
                 gpu,
-            },
-            compile_ms,
-        ))
+            };
+        if let Some(e) = pollster::block_on(memory.pop()) {
+            return Err(format!("buffers: {e}"));
+        }
+        Ok((quotient, compile_ms))
     }
 
     /// The quotient's coefficients times the denominator, bit-reversed, the

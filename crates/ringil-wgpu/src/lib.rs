@@ -207,6 +207,10 @@ impl<C: Curve> Msm<C> {
     pub fn new(gpu: std::sync::Arc<Gpu>, bases: &[C::Affine]) -> Result<(Self, f64), String> {
         let device = &gpu.device;
         let started = Instant::now();
+        // A driver that cannot build a kernel (a phone's refused to link one)
+        // or a key that does not fit are errors here, not a lost device.
+        let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
+        let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("ringil msm"),
             source: wgpu::ShaderSource::Wgsl(C::SHADER.into()),
@@ -222,6 +226,11 @@ impl<C: Curve> Msm<C> {
             })
         };
         let [first, tree_pipeline, reduce_blocks, reduce_windows] = C::ENTRIES.map(pipeline);
+        for scope in [internal, validation] {
+            if let Some(e) = pollster::block_on(scope.pop()) {
+                return Err(format!("kernels: {e}"));
+            }
+        }
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         let mut raw = Vec::with_capacity(bases.len() * C::AFFINE_BYTES);
         for p in bases {
@@ -236,13 +245,10 @@ impl<C: Curve> Msm<C> {
         let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
         let blocks = half.div_ceil(REDUCE_BLOCK);
-        let bases_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("bases"),
-            contents: &raw,
-            usage: wgpu::BufferUsages::STORAGE,
-        });
-        Ok((
-            Self {
+        let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+        let bases_buffer = storage(device, "bases", raw.len());
+        gpu.queue.write_buffer(&bases_buffer, 0, &raw);
+        let msm = Self {
                 width,
                 half,
                 windows,
@@ -271,9 +277,11 @@ impl<C: Curve> Msm<C> {
                 most,
                 gpu,
                 _curve: std::marker::PhantomData,
-            },
-            compile_ms,
-        ))
+            };
+        if let Some(e) = pollster::block_on(memory.pop()) {
+            return Err(format!("buffers: {e}"));
+        }
+        Ok((msm, compile_ms))
     }
 
     pub fn msm(&mut self, scalars: &[Fr]) -> (C, Timings) {
