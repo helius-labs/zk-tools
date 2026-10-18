@@ -155,8 +155,8 @@ struct ReduceArgs {
       uint lane [[thread_index_in_simdgroup]],                                  \
       uint simd [[simdgroup_index_in_threadgroup]],                             \
       uint simds [[simdgroups_per_threadgroup]]) {                              \
-    threadgroup xyzz_t<E> shared_s[8];                                          \
-    threadgroup xyzz_t<E> shared_v[8];                                          \
+    threadgroup xyzz_t<E> shared_s[32];                                         \
+    threadgroup xyzz_t<E> shared_v[32];                                         \
     reduce<E>(buckets, sums, a.half_buckets, a.leaf, a.leaf_log, window, index, \
               lane, simd, simds, shared_s, shared_v);                           \
   }

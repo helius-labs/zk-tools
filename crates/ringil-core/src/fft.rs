@@ -131,6 +131,24 @@ impl Plan {
             small: None,
         }
     }
+    /// The tables a GPU transform needs: the first n/2 powers of the
+    /// generator and of its inverse, and both bit-reversed weight vectors.
+    /// None below eight elements.
+    pub fn tables(&self) -> Option<(Vec<Fr>, Vec<Fr>, Vec<Fr>, Vec<Fr>)> {
+        if self.small.is_some() {
+            return None;
+        }
+        Some((
+            scalars(&self.roots.layers[0], self.n / 2),
+            scalars(&self.inverse_roots.layers[0], self.n / 2),
+            scalars(&self.forward_weights, self.n),
+            scalars(&self.reverse_weights, self.n),
+        ))
+    }
+    pub fn size(&self) -> usize {
+        self.n
+    }
+
     /// The coset evaluations of the polynomial with these domain evaluations.
     pub fn transform(&self, mut values: Vec<Fr>) -> Vec<Quad> {
         assert!(values.len() <= self.n);

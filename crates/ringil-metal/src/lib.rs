@@ -15,30 +15,42 @@ use metal::{
 };
 use rayon::prelude::*;
 
-const SHADER: &str = concat!(
+pub mod quotient;
+pub use quotient::Quotient;
+
+pub(crate) const SHADER: &str = concat!(
     include_str!("../shaders/field.metal"),
     "\n",
     include_str!("../shaders/curve.metal"),
     "\n",
     include_str!("../shaders/buckets.metal"),
+    "\n",
+    include_str!("../shaders/quotient.metal"),
 );
 const WIDTH: usize = 15;
 const HALF: usize = 1 << (WIDTH - 1);
 const WINDOWS: usize = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(WIDTH);
-const REDUCE_THREADS: usize = 256;
+const REDUCE_THREADS: usize = 1024;
 /// Shard length. Witness scalars put most points in a few buckets, whose
 /// long runs are what the shards split; long shards there starve the GPU of
 /// threads (128 over base points left 24x2's G2 MSM at 227 ms, 32 at 151).
 const FIRST_SHARD: usize = 32;
 const SHARD: usize = 32;
 
-/// Stage times of one MSM, in milliseconds.
+/// Stage times of one MSM, in milliseconds: the host sort and planning,
+/// the GPU from submission to completion, the host combination.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Timings {
     pub sort_ms: f64,
-    pub accumulate_ms: f64,
-    pub reduce_ms: f64,
+    pub gpu_ms: f64,
     pub combine_ms: f64,
+}
+
+/// An MSM submitted to the GPU and not yet collected.
+pub struct Pending {
+    command: metal::CommandBuffer,
+    submitted: Instant,
+    timings: Timings,
 }
 
 /// A curve the shaders have kernels for, with its point encodings.
@@ -191,37 +203,41 @@ impl<C: Curve> Msm<C> {
     }
 
     pub fn msm(&mut self, scalars: &[Fr]) -> (C, Timings) {
+        let pending = self.start(scalars);
+        self.finish(pending)
+    }
+
+    /// Sorts, plans and submits the GPU work, without waiting: the host can
+    /// sort the next MSM while this one runs.
+    pub fn start(&mut self, scalars: &[Fr]) -> Pending {
         assert_eq!(scalars.len(), self.n);
         let started = Instant::now();
         self.sort(scalars);
-        self.finish(started)
+        self.submit(started)
     }
 
     /// The MSM over the scalars another MSM of the same length just sorted
     /// (G1 B and G2 B share theirs): its sorted runs, no sort.
-    pub fn msm_sorted_as<D: Curve>(&mut self, other: &Msm<D>) -> (C, Timings) {
+    pub fn start_sorted_as<D: Curve>(&mut self, other: &Msm<D>) -> Pending {
         assert_eq!(other.n, self.n);
         let started = Instant::now();
         self.sorted = other.sorted.clone();
         self.counts.clone_from(&other.counts);
         self.starts.clone_from(&other.starts);
-        self.finish(started)
+        self.submit(started)
     }
 
-    fn finish(&mut self, started: Instant) -> (C, Timings) {
-        let mut timings = Timings::default();
+    fn submit(&mut self, started: Instant) -> Pending {
         let levels = self.plan();
-        timings.sort_ms = elapsed(started);
-
-        let started = Instant::now();
+        let sort_ms = elapsed(started);
         let command = self.queue.new_command_buffer();
         // Empty buckets stay at infinity.
         let blit = command.new_blit_command_encoder();
         blit.fill_buffer(&self.buckets, metal::NSRange::new(0, self.buckets.length()), 0);
         blit.end_encoding();
+        let encoder = command.new_compute_command_encoder();
         let last = levels.len() - 1;
         for (level, shards) in levels.iter().enumerate() {
-            let encoder = command.new_compute_command_encoder();
             let pipeline = if level == 0 { &self.first } else { &self.tree_pipeline };
             encoder.set_compute_pipeline_state(pipeline);
             if level == 0 {
@@ -240,27 +256,28 @@ impl<C: Curve> Msm<C> {
             encoder.set_bytes(6, 4, &n as *const u32 as *const c_void);
             let group = pipeline.thread_execution_width().min(n as u64).max(1);
             encoder.dispatch_threads(MTLSize::new(n as u64, 1, 1), MTLSize::new(group, 1, 1));
-            encoder.end_encoding();
         }
-        command.commit();
-        command.wait_until_completed();
-        timings.accumulate_ms = elapsed(started);
-
-        let started = Instant::now();
         let leaf = HALF / REDUCE_THREADS;
         let args = [HALF as u32, leaf as u32, leaf.trailing_zeros(), 0u32];
-        self.run(|encoder| {
-            encoder.set_compute_pipeline_state(&self.reduce);
-            encoder.set_buffer(0, Some(&self.buckets), 0);
-            encoder.set_buffer(1, Some(&self.sums), 0);
-            encoder.set_bytes(2, 16, args.as_ptr() as *const c_void);
-            encoder.dispatch_thread_groups(
-                MTLSize::new(WINDOWS as u64, 1, 1),
-                MTLSize::new(REDUCE_THREADS as u64, 1, 1),
-            );
-        });
-        timings.reduce_ms = elapsed(started);
+        encoder.set_compute_pipeline_state(&self.reduce);
+        encoder.set_buffer(0, Some(&self.buckets), 0);
+        encoder.set_buffer(1, Some(&self.sums), 0);
+        encoder.set_bytes(2, 16, args.as_ptr() as *const c_void);
+        encoder.dispatch_thread_groups(MTLSize::new(WINDOWS as u64, 1, 1), MTLSize::new(REDUCE_THREADS as u64, 1, 1));
+        encoder.end_encoding();
+        command.commit();
+        Pending {
+            command: command.to_owned(),
+            submitted: Instant::now(),
+            timings: Timings { sort_ms, ..Timings::default() },
+        }
+    }
 
+    /// Waits for a submitted MSM and combines its window sums.
+    pub fn finish(&mut self, pending: Pending) -> (C, Timings) {
+        let mut timings = pending.timings;
+        pending.command.wait_until_completed();
+        timings.gpu_ms = elapsed(pending.submitted);
         let started = Instant::now();
         let sums = self.sums.contents() as *const u8;
         let mut result = C::ZERO;

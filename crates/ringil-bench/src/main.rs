@@ -190,12 +190,11 @@ fn gpu_one<C: ringil_metal::Curve>(name: &str, bases: &[C::Affine], scalars: &[F
         let (t, total) = best.unwrap();
         assert_eq!(result.into_affine(), cpu.into_affine(), "{name}: the GPU MSM differs from the CPU");
         println!(
-            "RINGIL gpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} accumulate_ms={:.0} reduce_ms={:.0} combine_ms={:.1}",
+            "RINGIL gpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} device_ms={:.0} combine_ms={:.1}",
             bases.len(),
             msm.device_name(),
             t.sort_ms,
-            t.accumulate_ms,
-            t.reduce_ms,
+            t.gpu_ms,
             t.combine_ms
         );
     }
