@@ -64,9 +64,7 @@ where
                 *digit = (value as i32 - (carry * radix) as i32) as i16;
             }
         });
-    let sums: Vec<Projective<P>> = (0..count)
-        .into_par_iter()
-        .map(|i| {
+    let window_sum = |i: usize| -> Projective<P> {
             let bucket_count = (radix / 2) as usize;
             let mut counts = vec![0usize; bucket_count];
             for (base, digits) in bases.iter().zip(digits.chunks(count)) {
@@ -90,7 +88,17 @@ where
                 }
             }
             sum_buckets(&mut points, &starts, &mut counts)
-        })
+    };
+    // Each window sorts a copy of its points: all windows at once held up to
+    // `count` copies (hundreds of MB for G2 on a wide key, counted against a
+    // phone's memory limit). They go RINGIL_MSM_WINDOWS at a time (default:
+    // all, as measured best on a Mac; phones set fewer); each window's bucket
+    // groups still run in parallel.
+    let at_once = std::env::var("RINGIL_MSM_WINDOWS").ok().and_then(|v| v.parse().ok()).unwrap_or(count).max(1);
+    let windows: Vec<usize> = (0..count).collect();
+    let sums: Vec<Projective<P>> = windows
+        .chunks(at_once)
+        .flat_map(|chunk| chunk.par_iter().map(|&i| window_sum(i)).collect::<Vec<_>>())
         .collect();
     let mut result = Projective::<P>::ZERO;
     for sum in sums.iter().rev() {

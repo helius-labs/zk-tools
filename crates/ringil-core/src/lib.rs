@@ -440,6 +440,14 @@ impl Key {
                 Err(e) => return Err(e),
             }
         };
+        // The GPU holds the quotient's tables: the CPU's go, unless the CPU
+        // is to compute the quotient.
+        #[cfg(gpu_any)]
+        let mut plan = plan;
+        #[cfg(gpu_any)]
+        if built_gpu.is_some() && gpu_quotient && !std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0") {
+            plan.release_tables();
+        }
         Ok(Self {
             #[cfg(gpu_any)]
             gpu: built_gpu,

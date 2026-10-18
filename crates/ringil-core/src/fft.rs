@@ -20,6 +20,11 @@ const TASK: usize = 256;
 // below eight elements, which only tests use, go through arkworks.
 pub struct Plan {
     n: usize,
+    /// The generator, coset generator and denominator the tables come from,
+    /// to rebuild them after `release_tables`.
+    params: (Fr, Fr, Fr),
+    /// Whether the tables were released: a GPU holds its own copy.
+    released: bool,
     roots: Twiddles,
     inverse_roots: Twiddles,
     forward_weights: Vec<Quad>,
@@ -91,6 +96,8 @@ impl Plan {
             let coset_domain = domain.get_coset(coset).unwrap();
             return Self {
                 n,
+                params: (generator, coset, den),
+                released: false,
                 roots: Twiddles::empty(),
                 inverse_roots: Twiddles::empty(),
                 forward_weights: Vec::new(),
@@ -136,7 +143,19 @@ impl Plan {
         let started = super::trace("plan-roots", started);
         let (forward_weights, reverse_weights) = (quads(&forward_weights), quads(&reverse_weights));
         super::trace("plan-quads", started);
-        Self { n, roots, inverse_roots, forward_weights, reverse_weights, small: None }
+        Self { n, params: (generator, coset, den), released: false, roots, inverse_roots, forward_weights, reverse_weights, small: None }
+    }
+    /// Drops the CPU tables once a GPU holds its own (160 MB at 2^20, which
+    /// a phone counts against its memory limit); a CPU quotient after this
+    /// rebuilds them for the one call.
+    pub fn release_tables(&mut self) {
+        if self.small.is_none() {
+            self.roots = Twiddles::empty();
+            self.inverse_roots = Twiddles::empty();
+            self.forward_weights = Vec::new();
+            self.reverse_weights = Vec::new();
+            self.released = true;
+        }
     }
     /// The tables a GPU transform needs: the first n/2 powers of the
     /// generator and of its inverse, and both bit-reversed weight vectors.
@@ -175,6 +194,10 @@ impl Plan {
     /// gnark's Z key, the first n - 1, from the domain evaluations a, b, c
     /// (padded to n).
     pub fn quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
+        if self.released {
+            let (generator, coset, den) = self.params;
+            return Self::new(self.n, generator, coset, den).quotient(a, b, c);
+        }
         let (mut a, (b, c)) = rayon::join(
             || self.transform(a),
             || rayon::join(|| self.transform(b), || self.transform(c)),
