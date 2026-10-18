@@ -123,9 +123,9 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
 }
 
 /// A GPU G1 MSM over the whole vector with random scalars against the CPU's
-/// (trace builds: a wrong proof on a Galaxy A56 at the widest key passed
-/// every head check).
-#[cfg(gpu_any)]
+/// (the fullcheck feature: a wrong proof on a Galaxy A56 at the widest key
+/// passed every head check).
+#[cfg(all(gpu_any, feature = "fullcheck"))]
 pub(crate) fn full_g1(name: &str, bases: &[G1Affine], mut gpu: impl FnMut(&[Fr]) -> Result<G1Projective, String>) -> bool {
     let started = std::time::Instant::now();
     let mut rng = rand::thread_rng();
@@ -136,6 +136,7 @@ pub(crate) fn full_g1(name: &str, bases: &[G1Affine], mut gpu: impl FnMut(&[Fr])
 }
 
 /// The CPU G2 MSM over the whole vector against arkworks'.
+#[cfg(feature = "fullcheck")]
 pub(crate) fn full_g2(bases: &[G2Affine]) -> bool {
     let started = std::time::Instant::now();
     let mut rng = rand::thread_rng();

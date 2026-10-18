@@ -23,6 +23,9 @@ wasm-bindgen-rayon = { version = "1.3", features = ["no-bundler"] }
 [features]
 # Prints each proof stage's time to stderr (native only).
 trace = []
+# With trace: every MSM checked over its whole vector at key load (seconds and
+# hundreds of MB per load; for finding a wrong kernel).
+fullcheck = ["trace"]
 # The MSMs on an Apple GPU (macOS, iOS); RINGIL_GPU=0 keeps them on the CPU.
 metal = ["dep:ringil-metal"]
 # The MSMs and the quotient through wgpu (Vulkan, WebGPU, Metal); G2 stays on the CPU.

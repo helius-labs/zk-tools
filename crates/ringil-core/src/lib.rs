@@ -185,7 +185,7 @@ fn upload_g1(gpu: &mut Option<GpuBuilder>, which: usize, bases: Vec<G1Affine>) -
     match gpu {
         Some(builder) => {
             builder.g1(which, &bases).map_err(|_| "the GPU could not take the key")?;
-            #[cfg(feature = "trace")]
+            #[cfg(feature = "fullcheck")]
             {
                 let msm = builder.g1[which].as_mut().expect("uploaded");
                 selftest::full_g1(["a", "b", "k", "z"][which], &bases, |scalars| msm.msm(scalars).map(|r| r.0));
@@ -197,7 +197,7 @@ fn upload_g1(gpu: &mut Option<GpuBuilder>, which: usize, bases: Vec<G1Affine>) -
 }
 #[cfg(gpu_any)]
 fn upload_g2(gpu: &mut Option<GpuBuilder>, bases: Vec<G2Affine>) -> Result<Vec<G2Affine>, &'static str> {
-    #[cfg(feature = "trace")]
+    #[cfg(feature = "fullcheck")]
     selftest::full_g2(&bases);
     match gpu {
         Some(builder) => {
