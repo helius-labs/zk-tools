@@ -10,7 +10,7 @@
 use ark_bn254::Fr;
 use ark_ec::{
     short_weierstrass::{Affine, Projective, SWCurveConfig},
-    AdditiveGroup, AffineRepr, VariableBaseMSM,
+    AdditiveGroup, VariableBaseMSM,
 };
 use ark_ff::{BigInt, Field, PrimeField};
 use rayon::prelude::*;
@@ -130,7 +130,7 @@ fn window<P: SWCurveConfig>(bases: &[Affine<P>], digits: &[i16], width: usize) -
         w.add(bucket, point);
         if w.batch.len() == size {
             w.execute();
-            w.from_queue();
+            w.take_from_queue();
         }
     }
     w.execute();
@@ -255,7 +255,7 @@ impl<P: SWCurveConfig> Window<P> {
 
     /// The queued points whose buckets are free again, newest first, into
     /// the next batch.
-    fn from_queue(&mut self) {
+    fn take_from_queue(&mut self) {
         while let Some(&(bucket, point)) = self.queue.last() {
             if self.busy(bucket as usize) {
                 return;
