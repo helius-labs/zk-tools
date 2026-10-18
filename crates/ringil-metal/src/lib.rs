@@ -1,4 +1,4 @@
-//! A G1 MSM on an Apple GPU. The host recodes the scalars into signed
+//! G1 and G2 MSMs on an Apple GPU. The host recodes the scalars into signed
 //! 15-bit digits and counting-sorts the (base, window) pairs into bucket
 //! runs, in parallel over windows; the GPU sums each run into its bucket
 //! and reduces each window to its weighted sum; the host combines the
@@ -7,7 +7,7 @@
 //! shader's.
 use std::{ffi::c_void, time::Instant};
 
-use ark_bn254::{Fq, Fr, G1Affine, G1Projective};
+use ark_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::{AdditiveGroup, CurveGroup};
 use ark_ff::{BigInt, PrimeField, Zero};
 use metal::{
@@ -36,7 +36,74 @@ pub struct Timings {
     pub combine_ms: f64,
 }
 
-pub struct G1Msm {
+/// A curve the shaders have kernels for, with its point encodings.
+pub trait Curve: CurveGroup {
+    const AFFINE_BYTES: usize;
+    const XYZZ_BYTES: usize;
+    const ACCUMULATE: &'static str;
+    const REDUCE: &'static str;
+    /// The affine point as the kernel holds it, the identity as zeros.
+    fn encode(point: &Self::Affine, out: &mut Vec<u8>);
+    /// An xyzz point (x, y, zz, zzz) as arkworks' Jacobian (x zz, y zzz, zz).
+    fn xyzz_to_projective(bytes: &[u8]) -> Self;
+}
+
+fn fq_bytes(v: &Fq, out: &mut Vec<u8>) {
+    for w in v.0 .0 {
+        out.extend_from_slice(&w.to_le_bytes());
+    }
+}
+
+impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
+    const AFFINE_BYTES: usize = 64;
+    const XYZZ_BYTES: usize = 128;
+    const ACCUMULATE: &'static str = "accumulate_g1";
+    const REDUCE: &'static str = "reduce_g1";
+    fn encode(point: &G1Affine, out: &mut Vec<u8>) {
+        if point.infinity {
+            out.extend_from_slice(&[0u8; 64]);
+        } else {
+            fq_bytes(&point.x, out);
+            fq_bytes(&point.y, out);
+        }
+    }
+    fn xyzz_to_projective(bytes: &[u8]) -> Self {
+        let (x, y, zz, zzz) = (fq(&bytes[..32]), fq(&bytes[32..64]), fq(&bytes[64..96]), fq(&bytes[96..128]));
+        if zz.is_zero() {
+            return Self::ZERO;
+        }
+        Self::new_unchecked(x * zz, y * zzz, zz)
+    }
+}
+
+impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g2::Config> {
+    const AFFINE_BYTES: usize = 128;
+    const XYZZ_BYTES: usize = 256;
+    const ACCUMULATE: &'static str = "accumulate_g2";
+    const REDUCE: &'static str = "reduce_g2";
+    fn encode(point: &G2Affine, out: &mut Vec<u8>) {
+        if point.infinity {
+            out.extend_from_slice(&[0u8; 128]);
+        } else {
+            for v in [point.x.c0, point.x.c1, point.y.c0, point.y.c1] {
+                fq_bytes(&v, out);
+            }
+        }
+    }
+    fn xyzz_to_projective(bytes: &[u8]) -> Self {
+        let fq2 = |at: usize| Fq2::new(fq(&bytes[at..at + 32]), fq(&bytes[at + 32..at + 64]));
+        let (x, y, zz, zzz) = (fq2(0), fq2(64), fq2(128), fq2(192));
+        if zz.is_zero() {
+            return Self::ZERO;
+        }
+        Self::new_unchecked(x * zz, y * zzz, zz)
+    }
+}
+
+pub type G1Msm = Msm<G1Projective>;
+pub type G2Msm = Msm<G2Projective>;
+
+pub struct Msm<C: Curve> {
     device: Device,
     queue: CommandQueue,
     accumulate: ComputePipelineState,
@@ -48,16 +115,17 @@ pub struct G1Msm {
     counts: Buffer,
     buckets: Buffer,
     sums: Buffer,
+    _curve: std::marker::PhantomData<C>,
 }
 
 fn shared(device: &Device, bytes: usize) -> Buffer {
     device.new_buffer(bytes.max(16) as u64, MTLResourceOptions::StorageModeShared)
 }
 
-impl G1Msm {
+impl<C: Curve> Msm<C> {
     /// Compiles the kernels and uploads the bases; `compile_ms` is how long
     /// the shader compilation took.
-    pub fn new(bases: &[G1Affine]) -> Result<(Self, f64), String> {
+    pub fn new(bases: &[C::Affine]) -> Result<(Self, f64), String> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
         let library = device
@@ -69,22 +137,12 @@ impl G1Msm {
                 .new_compute_pipeline_state_with_function(&function)
                 .map_err(|e| format!("{name}: {e}"))
         };
-        let accumulate = pipeline("accumulate_g1")?;
-        let reduce = pipeline("reduce_g1")?;
+        let accumulate = pipeline(C::ACCUMULATE)?;
+        let reduce = pipeline(C::REDUCE)?;
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
-        // Affine points as the kernel holds them: x, y, four limbs each, the
-        // identity (0, 0).
-        let mut raw = Vec::with_capacity(bases.len() * 64);
+        let mut raw = Vec::with_capacity(bases.len() * C::AFFINE_BYTES);
         for p in bases {
-            if p.infinity {
-                raw.extend_from_slice(&[0u8; 64]);
-            } else {
-                for v in [p.x, p.y] {
-                    for w in v.0 .0 {
-                        raw.extend_from_slice(&w.to_le_bytes());
-                    }
-                }
-            }
+            C::encode(p, &mut raw);
         }
         let bases_buffer = device.new_buffer_with_data(
             raw.as_ptr() as *const c_void,
@@ -99,8 +157,9 @@ impl G1Msm {
                 sorted: shared(&device, n * WINDOWS * 4),
                 starts: shared(&device, buckets * 4),
                 counts: shared(&device, buckets * 4),
-                buckets: shared(&device, buckets * 128),
-                sums: shared(&device, WINDOWS * 128),
+                buckets: shared(&device, buckets * C::XYZZ_BYTES),
+                sums: shared(&device, WINDOWS * C::XYZZ_BYTES),
+                _curve: std::marker::PhantomData,
                 accumulate,
                 reduce,
                 bases: bases_buffer,
@@ -111,7 +170,7 @@ impl G1Msm {
         ))
     }
 
-    pub fn msm(&self, scalars: &[Fr]) -> (G1Projective, Timings) {
+    pub fn msm(&self, scalars: &[Fr]) -> (C, Timings) {
         assert_eq!(scalars.len(), self.n);
         let mut timings = Timings::default();
         let started = Instant::now();
@@ -150,15 +209,15 @@ impl G1Msm {
 
         let started = Instant::now();
         let sums = self.sums.contents() as *const u8;
-        let mut result = G1Projective::ZERO;
+        let mut result = C::ZERO;
         for window in (0..WINDOWS).rev() {
             for _ in 0..WIDTH {
                 result.double_in_place();
             }
-            // SAFETY: `sums` holds WINDOWS xyzz points of 128 bytes, written
-            // by the completed reduce dispatch.
-            let point = unsafe { std::slice::from_raw_parts(sums.add(window * 128), 128) };
-            result += xyzz_to_projective(point);
+            // SAFETY: `sums` holds WINDOWS xyzz points, written by the
+            // completed reduce dispatch.
+            let point = unsafe { std::slice::from_raw_parts(sums.add(window * C::XYZZ_BYTES), C::XYZZ_BYTES) };
+            result += C::xyzz_to_projective(point);
         }
         timings.combine_ms = elapsed(started);
         (result, timings)
@@ -248,16 +307,3 @@ fn fq(bytes: &[u8]) -> Fq {
     })))
 }
 
-/// An xyzz point (x, y, zz, zzz) to arkworks' Jacobian (x zz, y zzz, zz).
-fn xyzz_to_projective(bytes: &[u8]) -> G1Projective {
-    let (x, y, zz, zzz) = (fq(&bytes[..32]), fq(&bytes[32..64]), fq(&bytes[64..96]), fq(&bytes[96..128]));
-    if zz.is_zero() {
-        return G1Projective::ZERO;
-    }
-    G1Projective::new_unchecked(x * zz, y * zzz, zz)
-}
-
-/// The kernel's result as affine, for checks.
-pub fn affine(p: G1Projective) -> G1Affine {
-    p.into_affine()
-}

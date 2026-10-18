@@ -138,22 +138,35 @@ fn field() {
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 fn gpu(dir: &Path) {
     let mut rng = rand::rngs::OsRng;
-    for name in ["b", "z"] {
-        let bases = decode_g1(&read(dir, name));
-        let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+    for name in ["b", "z", "b2"] {
+        if name == "b2" {
+            let bases = decode_g2(&read(dir, name));
+            let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+            gpu_one(name, &bases, &scalars, ringil_core::msm_g2);
+        } else {
+            let bases = decode_g1(&read(dir, name));
+            let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+            gpu_one(name, &bases, &scalars, ringil_core::msm_g1);
+        }
+    }
+}
+
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+fn gpu_one<C: ringil_metal::Curve>(name: &str, bases: &[C::Affine], scalars: &[Fr], cpu_msm: fn(&[C::Affine], &[Fr]) -> C) {
+    {
         let started = Instant::now();
-        let (msm, compile_ms) = ringil_metal::G1Msm::new(&bases).expect("gpu msm");
+        let (msm, compile_ms) = ringil_metal::Msm::<C>::new(bases).expect("gpu msm");
         let upload_ms = started.elapsed().as_secs_f64() * 1000.0 - compile_ms;
         let started = Instant::now();
-        let cpu = ringil_core::msm_g1(&bases, &scalars);
+        let cpu = cpu_msm(bases, scalars);
         let cpu_ms = started.elapsed().as_secs_f64() * 1000.0;
         // Warm, then timed.
-        let _ = msm.msm(&scalars);
+        let _ = msm.msm(scalars);
         let mut best: Option<(ringil_metal::Timings, f64)> = None;
         let mut result = cpu;
         for _ in 0..3 {
             let started = Instant::now();
-            let (point, timings) = msm.msm(&scalars);
+            let (point, timings) = msm.msm(scalars);
             let total = started.elapsed().as_secs_f64() * 1000.0;
             result = point;
             if best.is_none_or(|(_, t)| total < t) {
