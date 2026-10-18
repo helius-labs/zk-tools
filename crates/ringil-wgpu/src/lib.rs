@@ -10,7 +10,6 @@ use ark_bn254::{Fq, Fq2, Fr, G1Affine, G2Affine};
 use ark_ec::{AdditiveGroup, CurveGroup};
 use ark_ff::{BigInt, PrimeField, Zero};
 use rayon::prelude::*;
-use wgpu::util::DeviceExt;
 
 pub mod quotient;
 pub use quotient::Quotient;

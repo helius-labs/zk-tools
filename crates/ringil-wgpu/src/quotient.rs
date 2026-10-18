@@ -5,9 +5,8 @@
 use std::{sync::Arc, time::Instant};
 
 use ark_bn254::Fr;
-use wgpu::util::DeviceExt;
 
-use crate::{bytemuck_cast, storage, Gpu};
+use crate::{storage, Gpu};
 
 const FR_SHADER: &str = concat!(include_str!("../shaders/fr.wgsl"), "\n", include_str!("../shaders/quotient.wgsl"));
 const WORKGROUP: u32 = 64;
