@@ -76,6 +76,11 @@ pub fn scalars(quads: &[Quad], n: usize) -> Vec<Fr> {
     values
 }
 
+/// The quotient's denominator for a coset: 1 / (coset^n - 1).
+pub fn denominator(n: usize, coset: Fr) -> Option<Fr> {
+    (coset.pow([n as u64]) - Fr::ONE).inverse()
+}
+
 impl Plan {
     pub fn new(n: usize, generator: Fr, coset: Fr, den: Fr) -> Self {
         assert!(n.is_power_of_two());
@@ -163,6 +168,22 @@ impl Plan {
         scale(&mut values, &self.forward_weights);
         dit(&mut values, &self.roots, 0);
         values
+    }
+    /// The quotient's coefficients times the denominator, bit-reversed as
+    /// gnark's Z key, the first n - 1, from the domain evaluations a, b, c
+    /// (padded to n).
+    pub fn quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
+        let (mut a, (b, c)) = rayon::join(
+            || self.transform(a),
+            || rayon::join(|| self.transform(b), || self.transform(c)),
+        );
+        a.par_iter_mut()
+            .zip(&b)
+            .zip(&c)
+            .for_each(|((a, b), c)| *a = a.mul(b).sub(c));
+        let mut h = self.finish(a);
+        h.pop();
+        h
     }
     /// The quotient's coefficients, times the denominator, in bit-reversed
     /// order, from its coset evaluations.

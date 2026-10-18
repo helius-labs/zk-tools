@@ -10,7 +10,7 @@ use rayon::prelude::*;
 use wasm_bindgen::prelude::*;
 pub use wasm_bindgen_rayon::init_thread_pool;
 mod decompress;
-mod fft;
+pub mod fft;
 mod msm;
 mod simd;
 mod solver;
@@ -425,20 +425,7 @@ impl Key {
         out
     }
     fn quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
-        let transform = |values| self.plan.transform(values);
-        let (mut a, (b, c)) = rayon::join(
-            || transform(a),
-            || rayon::join(|| transform(b), || transform(c)),
-        );
-        a.par_iter_mut()
-            .zip(&b)
-            .zip(&c)
-            .for_each(|((a, b), c)| *a = a.mul(b).sub(c));
-        // The plan applies the quotient denominator and leaves coefficients
-        // in the bit-reversed order of gnark's Z key.
-        let mut h = self.plan.finish(a);
-        h.pop();
-        h
+        self.plan.quotient(a, b, c)
     }
 }
 

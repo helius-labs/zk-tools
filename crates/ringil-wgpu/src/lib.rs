@@ -12,6 +12,9 @@ use ark_ff::{BigInt, PrimeField, Zero};
 use rayon::prelude::*;
 use wgpu::util::DeviceExt;
 
+pub mod quotient;
+pub use quotient::Quotient;
+
 const G1_SHADER: &str = concat!(
     include_str!("../shaders/field.wgsl"),
     "\n",
@@ -168,7 +171,7 @@ pub struct Msm<C: Curve> {
     most: usize,
 }
 
-fn storage(device: &wgpu::Device, label: &str, bytes: usize) -> wgpu::Buffer {
+pub(crate) fn storage(device: &wgpu::Device, label: &str, bytes: usize) -> wgpu::Buffer {
     device.create_buffer(&wgpu::BufferDescriptor {
         label: Some(label),
         size: bytes.max(16) as u64,
@@ -185,7 +188,7 @@ fn uniform(device: &wgpu::Device, values: [u32; 4]) -> wgpu::Buffer {
     })
 }
 
-fn bytemuck_cast(values: &[u32]) -> &[u8] {
+pub(crate) fn bytemuck_cast(values: &[u32]) -> &[u8] {
     // SAFETY: u32 has no padding; the slice's bytes are what the GPU reads.
     unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, values.len() * 4) }
 }

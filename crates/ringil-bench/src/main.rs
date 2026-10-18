@@ -26,6 +26,9 @@ fn main() {
     if dir == "wgpu" {
         return wgpu_bench(Path::new(&env::args().nth(2).expect("the dump directory")));
     }
+    if dir == "wgpu-quotient" {
+        return wgpu_quotient(Path::new(&env::args().nth(2).expect("the dump directory")));
+    }
     let dir = Path::new(&dir);
     let rounds: usize = env::args().nth(2).map(|v| v.parse().unwrap()).unwrap_or(5);
     let head = read(dir, "head");
@@ -225,5 +228,42 @@ fn wgpu_one<C: ringil_wgpu::Curve>(
         t.sort_ms,
         t.gpu_ms,
         t.combine_ms
+    );
+}
+
+/// The quotient of random evaluations through wgpu against the CPU plan's,
+/// on the dumped shape's domain.
+fn wgpu_quotient(dir: &Path) {
+    let head = read(dir, "head");
+    let params = ringil_core::decode_frs(&head[540..604]);
+    let (generator, coset) = (params[0], params[1]);
+    let n = read(dir, "z").len() / 64 + 1;
+    let den = ringil_core::fft::denominator(n, coset).expect("denominator");
+    let plan = ringil_core::fft::Plan::new(n, generator, coset, den);
+    let (roots, inverse_roots, forward, reverse) = plan.tables().expect("tables");
+    let gpu = std::sync::Arc::new(ringil_wgpu::Gpu::new().expect("wgpu"));
+    let started = Instant::now();
+    let (mut quotient, compile_ms) = ringil_wgpu::Quotient::new(gpu.clone(), n, &roots, &inverse_roots, &forward, &reverse).expect("quotient");
+    let upload_ms = started.elapsed().as_secs_f64() * 1000.0 - compile_ms;
+    let mut rng = rand::rngs::OsRng;
+    let m = n - n / 16;
+    let (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>) = (
+        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
+        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
+        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
+    );
+    let started = Instant::now();
+    let expected = plan.quotient(a.clone(), b.clone(), c.clone());
+    let cpu_ms = started.elapsed().as_secs_f64() * 1000.0;
+    let _ = quotient.quotient(&a, &b, &c);
+    let started = Instant::now();
+    let actual = quotient.quotient(&a, &b, &c);
+    let gpu_ms = started.elapsed().as_secs_f64() * 1000.0;
+    assert_eq!(actual.len(), expected.len());
+    let first_mismatch = actual.iter().zip(&expected).position(|(x, y)| x != y);
+    assert!(first_mismatch.is_none(), "the wgpu quotient differs from the CPU plan at {first_mismatch:?}");
+    println!(
+        "RINGIL wgpu-quotient n={n} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={gpu_ms:.0} exact=true",
+        gpu.name
     );
 }
