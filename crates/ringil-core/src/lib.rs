@@ -8,6 +8,14 @@ use ark_ff::{BigInt, Field};
 use ark_poly::{EvaluationDomain, Radix2EvaluationDomain};
 use rayon::prelude::*;
 use wasm_bindgen::prelude::*;
+
+/// The clock: std's natively, the page's in a browser, where std has none.
+pub(crate) mod time {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub use std::time::Instant;
+    #[cfg(target_arch = "wasm32")]
+    pub use web_time::Instant;
+}
 pub use wasm_bindgen_rayon::init_thread_pool;
 mod decompress;
 pub mod fft;
@@ -20,12 +28,12 @@ pub mod groth16;
 
 // Stage times as RINGIL_TRACE log lines (`--features trace`): the native
 // bench prints them, a phone's bench puts them in the device log.
-fn trace(label: &str, started: std::time::Instant) -> std::time::Instant {
+fn trace(label: &str, started: crate::time::Instant) -> crate::time::Instant {
     #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
     log::info!("RINGIL_TRACE {label} {:.1} ms{}", started.elapsed().as_secs_f64() * 1000.0, footprint_note());
     #[cfg(not(all(feature = "trace", not(target_arch = "wasm32"))))]
     let _ = (label, started);
-    std::time::Instant::now()
+    crate::time::Instant::now()
 }
 /// The process's physical footprint, as a trace line's suffix (Apple; what
 /// iOS's memory limit counts), and its peak so far.
@@ -47,6 +55,36 @@ fn footprint_note() -> String {
 }
 
 pub use decompress::{decompress_g1, decompress_g2};
+
+/// A key's GPU. In a browser its WebGPU objects belong to the worker's
+/// thread, and the key, shared with the thread pool by the CPU path, must
+/// be Send and Sync.
+#[cfg(gpu_any)]
+#[derive(Clone)]
+struct GpuHold(std::sync::Arc<Gpu>);
+// SAFETY: in a browser only the worker's thread touches the GPU objects
+// (solve_parts_gpu and the key's construction and drop, all on that
+// thread); the pool's threads get the key for its CPU vectors alone.
+#[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
+unsafe impl Send for GpuHold {}
+#[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
+unsafe impl Sync for GpuHold {}
+#[cfg(gpu_any)]
+impl std::ops::Deref for GpuHold {
+    type Target = Gpu;
+    fn deref(&self) -> &Gpu {
+        &self.0
+    }
+}
+
+/// The self-test's verdict in a browser, where it does not run.
+#[cfg(all(gpu_any, target_arch = "wasm32"))]
+mod selftest_web {
+    pub struct Verdict {
+        pub msm: bool,
+        pub quotient: bool,
+    }
+}
 
 fn words(data: &[u8]) -> BigInt<4> {
     BigInt(core::array::from_fn(|i| {
@@ -197,11 +235,32 @@ fn g2_gpu_share() -> f64 {
 #[cfg(gpu_wgpu)]
 const WGPU_G2_SHARE: f64 = 0.25;
 
+#[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
+thread_local! {
+    /// The page's WebGPU device, once init_gpu has it.
+    static WEB_GPU: std::cell::RefCell<Option<std::sync::Arc<ringil_wgpu::Gpu>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// Requests the page's WebGPU device for the keys built after it: their
+/// MSMs and quotient go to the GPU through solve_parts_gpu. False without
+/// WebGPU (the keys then prove on the CPU).
+#[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
+#[wasm_bindgen]
+pub async fn init_gpu() -> bool {
+    match ringil_wgpu::Gpu::request().await {
+        Ok(gpu) => {
+            WEB_GPU.with(|device| *device.borrow_mut() = Some(std::sync::Arc::new(gpu)));
+            true
+        }
+        Err(_) => false,
+    }
+}
+
 /// A GPU taking the key's vectors one at a time, so that the key keeps no
 /// copy of what the GPU holds.
 #[cfg(gpu_wgpu)]
 struct GpuBuilder {
-    started: std::time::Instant,
+    started: crate::time::Instant,
     gpu: std::sync::Arc<ringil_wgpu::Gpu>,
     quotient: ringil_wgpu::Quotient,
     g1: [Option<ringil_wgpu::G1Msm>; 4],
@@ -219,8 +278,13 @@ impl GpuBuilder {
         if wanted.as_deref() == Some("0") || (cfg!(target_os = "android") && wanted.as_deref() != Some("1")) {
             return None;
         }
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
+        #[cfg(not(target_arch = "wasm32"))]
         let gpu = std::sync::Arc::new(ringil_wgpu::Gpu::new().ok()?);
+        // In a browser the device is requested ahead, asynchronously
+        // (init_gpu); building on it is synchronous.
+        #[cfg(target_arch = "wasm32")]
+        let gpu = WEB_GPU.with(|device| device.borrow().clone())?;
         let (roots, inverse_roots, forward, reverse) = plan.tables()?;
         let quotient = ringil_wgpu::Quotient::new(gpu.clone(), plan.size(), &roots, &inverse_roots, &forward, &reverse).ok()?.0;
         Some(Self { started, gpu, quotient, g1: [None, None, None, None], b2: None, b2_cut: 0 })
@@ -259,6 +323,10 @@ fn upload_g1(gpu: &mut Option<GpuBuilder>, which: usize, bases: Vec<G1Affine>) -
                 let msm = builder.g1[which].as_mut().expect("uploaded");
                 selftest::full_g1(["a", "b", "k", "z"][which], &bases, |scalars| msm.msm(scalars).map(|r| r.0));
             }
+            // In a browser the CPU keeps its copy: solve_parts proves there.
+            #[cfg(target_arch = "wasm32")]
+            return Ok(bases);
+            #[allow(unreachable_code)]
             Ok(Vec::new())
         }
         None => Ok(bases),
@@ -289,7 +357,7 @@ fn gpu_trace(name: &str, sort_ms: f64, gpu_ms: f64) {
 /// copy of what the GPU holds: a phone has no room for two.
 #[cfg(gpu)]
 struct GpuBuilder {
-    started: std::time::Instant,
+    started: crate::time::Instant,
     quotient: ringil_metal::Quotient,
     g1: [Option<ringil_metal::G1Msm>; 4],
     b2: Option<ringil_metal::G2Msm>,
@@ -304,7 +372,7 @@ impl GpuBuilder {
         if std::env::var("RINGIL_GPU").is_ok_and(|v| v == "0") {
             return None;
         }
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         let (roots, inverse_roots, forward, reverse) = plan.tables()?;
         let quotient = ringil_metal::Quotient::new(plan.size(), &roots, &inverse_roots, &forward, &reverse).ok()?.0;
         let scratch = ringil_metal::Scratch::new().ok()?;
@@ -337,7 +405,7 @@ impl GpuBuilder {
 #[wasm_bindgen]
 pub struct Key {
     #[cfg(gpu_any)]
-    gpu: Option<Gpu>,
+    gpu: Option<GpuHold>,
     /// Whether the GPU's quotient agreed with the CPU's at load.
     #[cfg(gpu_any)]
     gpu_quotient: bool,
@@ -398,14 +466,14 @@ impl Key {
         let den = (params[1].pow([n as u64]) - Fr::ONE)
             .inverse()
             .ok_or("invalid quotient denominator")?;
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         let plan = fft::Plan::new(n, params[0], params[1], den);
         trace("plan", started);
         let lengths = [a.len() / 64, b.len() / 64, k.len() / 64];
         // One vector at a time: decoded, handed to the GPU, dropped. A GPU
         // that cannot take the key (it failed to build a kernel, it ran out
         // of memory) is let go, and the key is decoded again for the CPU.
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         #[cfg(gpu_any)]
         let mut gpu = GpuBuilder::open(&plan);
         #[cfg(not(gpu_any))]
@@ -418,7 +486,7 @@ impl Key {
         #[cfg(target_arch = "wasm32")]
         let head = |_: usize| 0;
         let decode = |gpu: &mut Option<_>| -> Result<_, &'static str> {
-            let started = std::time::Instant::now();
+            let started = crate::time::Instant::now();
             let a = g1s(a);
             let a_head = a[..head(a.len())].to_vec();
             let started = trace("decode-a", started);
@@ -452,7 +520,13 @@ impl Key {
                     #[cfg(gpu_any)]
                     if let Some(builder) = gpu.take() {
                         let mut finished = builder.finish();
+                        #[cfg(not(target_arch = "wasm32"))]
                         let verdict = selftest::gpu(&mut finished, &plan, &a_head, &b2_head, lengths[0], lengths[1]);
+                        #[cfg(target_arch = "wasm32")]
+                        let verdict = {
+                            let _ = &mut finished;
+                            selftest_web::Verdict { msm: true, quotient: true }
+                        };
                         if !verdict.msm {
                             drop(finished);
                             // With Metal, once more with the shaders compiled at
@@ -460,7 +534,7 @@ impl Key {
                             // level's compiler at fault.
                             #[cfg(gpu)]
                             if ringil_metal::prefer_smaller_code() {
-                                trace("gpu-retry-smaller-code", std::time::Instant::now());
+                                trace("gpu-retry-smaller-code", crate::time::Instant::now());
                                 gpu = GpuBuilder::open(&plan);
                             }
                             continue;
@@ -485,7 +559,7 @@ impl Key {
         }
         Ok(Self {
             #[cfg(gpu_any)]
-            gpu: built_gpu,
+            gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
             #[cfg(gpu_any)]
             gpu_quotient,
             #[cfg(feature = "trace")]
@@ -517,7 +591,7 @@ impl Key {
         if !self.commitments.is_empty() {
             return false;
         }
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         let parsed = solver::Plan::new(program, coefficients);
         trace("solver-plan", started);
         if let Ok(plan) = parsed {
@@ -536,7 +610,7 @@ impl Key {
     // A solver from solver_image's bytes, if they are an image of this
     // kernel's version for a key of these dimensions.
     pub fn set_solver_image(&mut self, image: &[u8]) -> bool {
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         self.solver = None;
         if !self.commitments.is_empty() {
             return false;
@@ -558,13 +632,82 @@ impl Key {
     pub fn solve_parts(&self, witness: &[u8]) -> Result<Vec<u8>, JsError> {
         self.solve(witness).map_err(|error| JsError::new(&error))
     }
+    /// Whether the key holds the page's GPU: solve_parts_gpu proves with it.
+    pub fn has_gpu(&self) -> bool {
+        #[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
+        return self.gpu.is_some();
+        #[allow(unreachable_code)]
+        false
+    }
+    /// solve_parts with the GPU, in a browser: a Promise of the parts. The
+    /// solve, the GPU's submissions and the CPU's share of the G2 MSM run
+    /// now; the GPU's results are awaited, the quotient's first so that Z's
+    /// MSM follows the others.
+    #[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
+    pub fn solve_parts_gpu(&self, witness: &[u8]) -> Result<js_sys::Promise, JsError> {
+        let gpu = self.gpu.clone().ok_or_else(|| JsError::new("the key has no GPU"))?;
+        let plan = self.solver.as_ref().ok_or_else(|| JsError::new("no prepared solver"))?;
+        if !witness.len().is_multiple_of(32) {
+            return Err(JsError::new("invalid witness encoding"));
+        }
+        let solution = plan.solve(&frs(witness)).map_err(|e| JsError::new(&e))?;
+        let sa: Vec<_> = plan.a_indices.iter().map(|i| solution.w[*i]).collect();
+        let sb: Vec<_> = plan.b_indices.iter().map(|i| solution.w[*i]).collect();
+        let sk = &solution.w[plan.n_public..];
+        let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
+        let (a, b, c) = (solution.a, solution.b, solution.c);
+        let (h_from_cpu, quotient_on_gpu) = if self.gpu_quotient {
+            gpu.quotient.lock().unwrap().start(&a, &b, &c);
+            (None, true)
+        } else {
+            (Some(self.quotient(a, b, c)), false)
+        };
+        let pa = gpu.a.lock().unwrap().start(&sa);
+        let pb = gpu.b.lock().unwrap().start(&sb);
+        let pk = gpu.k.lock().unwrap().start(sk);
+        let pb2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap().start(&sb[..cut]));
+        // The CPU's share of G2 while the GPU works.
+        let cpu_b2 = (cut < sb.len()).then(|| msm_g2(&self.b2, &sb[cut..]));
+        Ok(wasm_bindgen_futures::future_to_promise(async move {
+            let fail = |e: String| JsValue::from(JsError::new(&e));
+            let h = match h_from_cpu {
+                Some(h) => h,
+                None => {
+                    debug_assert!(quotient_on_gpu);
+                    let mut quotient = gpu.quotient.lock().unwrap();
+                    quotient.finish_async().await.map_err(fail)?
+                }
+            };
+            let pz = gpu.z.lock().unwrap().start(&h);
+            let (ar, _) = gpu.a.lock().unwrap().finish_async(pa).await.map_err(fail)?;
+            let (bs1, _) = gpu.b.lock().unwrap().finish_async(pb).await.map_err(fail)?;
+            let (kr, _) = gpu.k.lock().unwrap().finish_async(pk).await.map_err(fail)?;
+            let gpu_b2 = match (&gpu.b2, pb2) {
+                (Some(b2), Some(pb2)) => Some(b2.lock().unwrap().finish_async(pb2).await.map_err(fail)?.0),
+                _ => None,
+            };
+            let (hz, _) = gpu.z.lock().unwrap().finish_async(pz).await.map_err(fail)?;
+            let bs2 = match (gpu_b2, cpu_b2) {
+                (Some(g), Some(c)) => g + c,
+                (Some(g), None) => g,
+                (None, Some(c)) => c,
+                (None, None) => G2Projective::ZERO,
+            };
+            let mut out = Vec::with_capacity(384);
+            for p in [ar, bs1, kr, hz] {
+                output_g1(&mut out, p)
+            }
+            output_g2(&mut out, bs2);
+            Ok(js_sys::Uint8Array::from(out.as_slice()).into())
+        }))
+    }
     /// `solve_parts` for hosts outside JavaScript, with a plain error.
     pub fn solve(&self, witness: &[u8]) -> Result<Vec<u8>, String> {
         let plan = self.solver.as_ref().ok_or("no prepared solver")?;
         if !witness.len().is_multiple_of(32) {
             return Err("invalid witness encoding".into());
         }
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         let solution = plan.solve(&frs(witness))?;
         trace("solve", started);
         let sa: Vec<_> = plan.a_indices.iter().map(|i| solution.w[*i]).collect();
@@ -639,7 +782,7 @@ impl Key {
             // thread of their own so that their waits hold no rayon worker,
             // while the GPU also takes the quotient and the pool computes
             // G2 when it is not on the GPU; Z's MSM follows the quotient.
-            let started = std::time::Instant::now();
+            let started = crate::time::Instant::now();
             // The sorts run on the pool, so a CPU G2 MSM starts only once
             // they are done: otherwise it starves them for its whole run.
             let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
@@ -684,13 +827,13 @@ impl Key {
                 let cpu_b2 = (cut < sb.len()).then(|| {
                     scope.spawn(move || {
                         let _ = sorted_rx.recv();
-                        let started = std::time::Instant::now();
+                        let started = crate::time::Instant::now();
                         let bs2 = msm_g2(&self.b2, &sb[cut..]);
                         trace("cpu-msm-b2", started);
                         bs2
                     })
                 });
-                let started = std::time::Instant::now();
+                let started = crate::time::Instant::now();
                 let h = if !self.gpu_quotient || std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0") {
                     self.quotient(a, b, c)
                 } else {
@@ -730,18 +873,18 @@ impl Key {
             output_g2(&mut out, bs2);
             return Ok(out);
         }
-        #[cfg(gpu_wgpu)]
+        #[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
         if let Some(gpu) = &self.gpu {
             // On a thread of their own: the quotient on the GPU first, then
             // every MSM sorted and queued (Z's too, now that its scalars are
             // out, and the GPU's share of G2), then collected; the pool
             // computes the CPU's share of G2 once the sorts are done.
-            let started = std::time::Instant::now();
+            let started = crate::time::Instant::now();
             let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
             let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
             let ((ar, bs1, kr, hz, gpu_b2), cpu_b2) = std::thread::scope(|scope| -> Result<_, String> {
                 let gpu_work = scope.spawn(move || -> Result<_, String> {
-                    let started = std::time::Instant::now();
+                    let started = crate::time::Instant::now();
                     let h = if self.gpu_quotient { gpu.quotient.lock().unwrap().quotient(&a, &b, &c)? } else { self.quotient(a, b, c) };
                     trace("quotient", started);
                     let (mut ma, mut mb, mut mk, mut mz) = (gpu.a.lock().unwrap(), gpu.b.lock().unwrap(), gpu.k.lock().unwrap(), gpu.z.lock().unwrap());
@@ -769,7 +912,7 @@ impl Key {
                     Ok((ar, bs1, kr, hz, gpu_b2))
                 });
                 let _ = sorted_rx.recv();
-                let started = std::time::Instant::now();
+                let started = crate::time::Instant::now();
                 let cpu_b2 = (cut < sb.len()).then(|| msm_g2(&self.b2, &sb[cut..]));
                 trace("cpu-msm-b2", started);
                 Ok((gpu_work.join().expect("gpu work")?, cpu_b2))
@@ -788,7 +931,7 @@ impl Key {
             output_g2(&mut out, bs2);
             return Ok(out);
         }
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         let h = self.quotient(a, b, c);
         let started = trace("quotient", started);
         let ((ar, bs1), (kr, (hz, bs2))) = rayon::join(
@@ -806,11 +949,11 @@ impl Key {
         #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
         if std::env::var("RINGIL_TRACE_MSMS").is_ok_and(|v| v == "1") {
             for (label, bases, scalars) in [("msm-a", &self.a, sa), ("msm-b", &self.b, sb), ("msm-k", &self.k, sk), ("msm-z", &self.z, &h[..])] {
-                let started = std::time::Instant::now();
+                let started = crate::time::Instant::now();
                 let _ = msm_g1(bases, scalars);
                 trace(label, started);
             }
-            let started = std::time::Instant::now();
+            let started = crate::time::Instant::now();
             let _ = msm_g2(&self.b2, sb);
             trace("msm-b2", started);
         }

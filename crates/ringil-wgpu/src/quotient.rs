@@ -2,7 +2,8 @@
 //! inverse DIF, scale, forward DIT per vector, the pointwise product, and
 //! the inverse DIF with the denominator's weights, in radix-2 stages over
 //! global memory.
-use std::{sync::Arc, time::Instant};
+use std::{sync::Arc};
+use crate::time::Instant;
 
 use ark_bn254::Fr;
 
@@ -66,7 +67,7 @@ impl Quotient {
         }
         let [dif, dit, scale, pointwise]: [wgpu::ComputePipeline; 4] = pipelines.try_into().ok().expect("four kernels");
         for scope in [internal, validation] {
-            if let Some(e) = pollster::block_on(scope.pop()) {
+            if let Some(e) = crate::popped(scope) {
                 return Err(format!("kernels: {e}"));
             }
         }
@@ -108,7 +109,7 @@ impl Quotient {
                 whole: crate::uniform(&gpu, [n as u32, 0, 0, 0]),
                 gpu,
             };
-        if let Some(e) = pollster::block_on(memory.pop()) {
+        if let Some(e) = crate::popped(memory) {
             return Err(format!("buffers: {e}"));
         }
         if quotient.gpu.failed() {
@@ -119,7 +120,14 @@ impl Quotient {
 
     /// The quotient's coefficients times the denominator, bit-reversed, the
     /// first n - 1, from evaluations of a, b and c (padded with zeros to n).
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn quotient(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> Result<Vec<Fr>, String> {
+        self.start(a, b, c);
+        pollster::block_on(self.finish_async())
+    }
+
+    /// Submits the quotient's transforms; `finish_async` collects them.
+    pub fn start(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) {
         let n = self.n;
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let zero = Fr::from(0u64);
@@ -157,13 +165,13 @@ impl Quotient {
         self.scale_by(&mut encoder, 0, &self.reverse_weights);
         encoder.copy_buffer_to_buffer(&self.abc, 0, &self.staging, 0, (n * 32) as u64);
         queue.submit([encoder.finish()]);
-        let slice = self.staging.slice(..);
-        slice.map_async(wgpu::MapMode::Read, |_| {});
-        device.poll(wgpu::PollType::wait_indefinitely()).map_err(|e| format!("gpu: {e}"))?;
-        if self.gpu.failed() {
-            return Err("the device reported an error".into());
-        }
-        let data = slice.get_mapped_range().map_err(|e| format!("quotient: {e}"))?.to_vec();
+    }
+
+    /// The submitted quotient, the first n - 1 coefficients.
+    pub async fn finish_async(&mut self) -> Result<Vec<Fr>, String> {
+        let n = self.n;
+        crate::mapped(&self.gpu, &self.staging).await?;
+        let data = self.staging.slice(..).get_mapped_range().map_err(|e| format!("quotient: {e}"))?.to_vec();
         self.staging.unmap();
         // SAFETY: n Fr in the kernel's encoding, four u64 limbs each.
         let values: &[Fr] = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const Fr, n) };

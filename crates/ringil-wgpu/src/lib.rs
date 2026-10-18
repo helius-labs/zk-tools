@@ -4,7 +4,15 @@
 //! GPU sums each run in shards, level by level, reduces each window in two
 //! stages, and the host combines the windows. Native hosts wait on the
 //! device; the browser's asynchronous path is to come.
-use std::time::Instant;
+use crate::time::Instant;
+
+/// The clock: std's natively, the page's in a browser, where std has none.
+pub(crate) mod time {
+    #[cfg(not(target_arch = "wasm32"))]
+    pub use std::time::Instant;
+    #[cfg(target_arch = "wasm32")]
+    pub use web_time::Instant;
+}
 
 use ark_bn254::{Fq, Fq2, Fr, G1Affine, G2Affine};
 use ark_ec::{AdditiveGroup, CurveGroup};
@@ -139,21 +147,61 @@ pub struct Gpu {
     failed: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
+/// An error scope's verdict: waited for natively; on the web, where nothing
+/// may block, left to the device's uncaptured-error flag.
+pub(crate) fn popped(scope: wgpu::ErrorScopeGuard) -> Option<wgpu::Error> {
+    #[cfg(not(target_arch = "wasm32"))]
+    return pollster::block_on(scope.pop());
+    #[cfg(target_arch = "wasm32")]
+    {
+        drop(scope);
+        None
+    }
+}
+
+/// Waits for a buffer's read mapping: natively by polling the device, on
+/// the web by yielding to the page until the browser maps it.
+pub(crate) async fn mapped(gpu: &Gpu, buffer: &wgpu::Buffer) -> Result<(), String> {
+    let (tx, rx) = futures_channel::oneshot::channel();
+    buffer.slice(..).map_async(wgpu::MapMode::Read, move |result| {
+        let _ = tx.send(result);
+    });
+    #[cfg(not(target_arch = "wasm32"))]
+    gpu.device.poll(wgpu::PollType::wait_indefinitely()).map_err(|e| format!("gpu: {e}"))?;
+    rx.await.map_err(|_| "the mapping was dropped".to_string())?.map_err(|e| format!("map: {e}"))?;
+    if gpu.failed() {
+        buffer.unmap();
+        return Err("the device reported an error".into());
+    }
+    Ok(())
+}
+
 impl Gpu {
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn new() -> Result<Self, String> {
+        pollster::block_on(Self::request())
+    }
+
+    /// The high-performance adapter's device with all its limits (a wide
+    /// key's buffers pass WebGPU's defaults).
+    pub async fn request() -> Result<Self, String> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::HighPerformance,
-            ..Default::default()
-        }))
-        .map_err(|e| format!("no adapter: {e}"))?;
+        let adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::HighPerformance,
+                ..Default::default()
+            })
+            .await
+            .map_err(|e| format!("no adapter: {e}"))?;
         let info = adapter.get_info();
-        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("ringil"),
-            required_limits: adapter.limits(),
-            ..Default::default()
-        }))
-        .map_err(|e| format!("no device: {e}"))?;
+        let (device, queue) = adapter
+            .request_device(&wgpu::DeviceDescriptor {
+                label: Some("ringil"),
+                required_limits: adapter.limits(),
+                ..Default::default()
+            })
+            .await
+            .map_err(|e| format!("no device: {e}"))?;
         let failed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let flag = failed.clone();
         device.on_uncaptured_error(std::sync::Arc::new(move |e| {
@@ -258,7 +306,7 @@ impl<C: Curve> Msm<C> {
         }
         let [first, tree_pipeline, reduce_blocks, reduce_windows]: [wgpu::ComputePipeline; 4] = pipelines.try_into().ok().expect("four kernels");
         for scope in [internal, validation] {
-            if let Some(e) = pollster::block_on(scope.pop()) {
+            if let Some(e) = popped(scope) {
                 return Err(format!("kernels: {e}"));
             }
         }
@@ -312,7 +360,7 @@ impl<C: Curve> Msm<C> {
                 gpu,
                 _curve: std::marker::PhantomData,
             };
-        if let Some(e) = pollster::block_on(memory.pop()) {
+        if let Some(e) = popped(memory) {
             return Err(format!("buffers: {e}"));
         }
         if msm.gpu.failed() {
@@ -321,6 +369,7 @@ impl<C: Curve> Msm<C> {
         Ok((msm, compile_ms))
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn msm(&mut self, scalars: &[Fr]) -> Result<(C, Timings), String> {
         let pending = self.start(scalars);
         self.finish(pending)
@@ -411,18 +460,19 @@ impl<C: Curve> Msm<C> {
         }
         encoder.copy_buffer_to_buffer(&self.sums, 0, &self.staging, 0, (self.windows * C::XYZZ_BYTES) as u64);
         queue.submit([encoder.finish()]);
-        let slice = self.staging.slice(..);
-        slice.map_async(wgpu::MapMode::Read, |_| {});
         Pending { submitted: started, timings }
     }
 
     /// Waits for a submitted MSM and combines its window sums.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn finish(&mut self, pending: Pending) -> Result<(C, Timings), String> {
+        pollster::block_on(self.finish_async(pending))
+    }
+
+    /// As `finish`, yielding while the GPU works: the browser's way.
+    pub async fn finish_async(&mut self, pending: Pending) -> Result<(C, Timings), String> {
         let mut timings = pending.timings;
-        self.gpu.device.poll(wgpu::PollType::wait_indefinitely()).map_err(|e| format!("gpu: {e}"))?;
-        if self.gpu.failed() {
-            return Err("the device reported an error".into());
-        }
+        mapped(&self.gpu, &self.staging).await?;
         let data = self.staging.slice(..).get_mapped_range().map_err(|e| format!("sums: {e}"))?.to_vec();
         self.staging.unmap();
         timings.gpu_ms = pending.submitted.elapsed().as_secs_f64() * 1000.0;

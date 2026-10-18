@@ -116,7 +116,7 @@ impl Plan {
             });
             out
         };
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         let n_inv = Fr::from(n as u64).inverse().unwrap();
         let mut forward_weights = powers(coset, n);
         let mut reverse_weights = powers(coset.inverse().unwrap(), n);

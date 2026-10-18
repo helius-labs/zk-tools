@@ -14,7 +14,7 @@ pub(crate) struct Verdict {
     pub quotient: bool,
 }
 
-fn report(unit: &str, ok: bool, started: std::time::Instant) -> bool {
+fn report(unit: &str, ok: bool, started: crate::time::Instant) -> bool {
     log::info!(
         "RINGIL_TRACE selftest {unit} {} {:.1} ms",
         if ok { "ok" } else { "MISMATCH" },
@@ -26,7 +26,7 @@ fn report(unit: &str, ok: bool, started: std::time::Instant) -> bool {
 /// The base field multiply (an assembly routine on AArch64) against a
 /// plain CIOS multiply in u128 arithmetic.
 pub(crate) fn field() -> bool {
-    let started = std::time::Instant::now();
+    let started = crate::time::Instant::now();
     let mut rng = rand::thread_rng();
     let ok = (0..4096).all(|_| {
         let (a, b) = (Fq::rand(&mut rng), Fq::rand(&mut rng));
@@ -83,7 +83,7 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
     // reduction), one bucket of 64 equal digits (shards and their tree),
     // and random scalars over the head (every window and sign).
     let g1 = |name: &str, scalars: &[Fr]| {
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         let cpu = msm_g1(&a_head[..head], &scalars[..head]);
         let got = gpu.a.lock().unwrap().msm(scalars);
         report(name, got.is_ok_and(|(got, _)| got == cpu), started)
@@ -97,14 +97,14 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
     #[cfg_attr(not(gpu), allow(unused_mut))]
     let mut msm = g1("gpu-msm-g1-one", &one) & g1("gpu-msm-g1-bucket", &bucket) & g1("gpu-msm-g1-random", &scalars[..n_a]);
 
-    let started = std::time::Instant::now();
+    let started = crate::time::Instant::now();
     let head2 = b2_head.len().min(HEAD);
     let cpu2 = msm_g2(b2_head, &scalars[..head2]);
     let reference = <G2Projective as ark_ec::VariableBaseMSM>::msm_unchecked(&b2_head[..head2], &scalars[..head2]);
     report("cpu-msm-g2", cpu2 == reference, started);
     #[cfg(gpu)]
     if let Some(b2) = &gpu.b2 {
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         let got2 = b2.lock().unwrap().msm(&scalars[..n_b]);
         msm &= report("gpu-msm-g2", got2.is_ok_and(|(got2, _)| got2 == cpu2), started);
     }
@@ -114,7 +114,7 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
     // key, and no GPU has got it wrong yet.
     #[cfg(feature = "fullcheck")]
     let quotient = {
-        let started = std::time::Instant::now();
+        let started = crate::time::Instant::now();
         let n = plan.size();
         let (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>) = (
             (0..n).map(|_| Fr::rand(&mut rng)).collect(),
@@ -138,7 +138,7 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
 /// passed every head check).
 #[cfg(all(gpu_any, feature = "fullcheck"))]
 pub(crate) fn full_g1(name: &str, bases: &[G1Affine], mut gpu: impl FnMut(&[Fr]) -> Result<G1Projective, String>) -> bool {
-    let started = std::time::Instant::now();
+    let started = crate::time::Instant::now();
     let mut rng = rand::thread_rng();
     let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
     let cpu = msm_g1(bases, &scalars);
@@ -149,7 +149,7 @@ pub(crate) fn full_g1(name: &str, bases: &[G1Affine], mut gpu: impl FnMut(&[Fr])
 /// The CPU G2 MSM over the whole vector against arkworks'.
 #[cfg(feature = "fullcheck")]
 pub(crate) fn full_g2(bases: &[G2Affine]) -> bool {
-    let started = std::time::Instant::now();
+    let started = crate::time::Instant::now();
     let mut rng = rand::thread_rng();
     let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
     let ours = msm_g2(bases, &scalars);
