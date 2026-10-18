@@ -10,14 +10,27 @@ use std::{ffi::c_void, time::Instant};
 use ark_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::{AdditiveGroup, CurveGroup};
 use ark_ff::{BigInt, PrimeField, Zero};
-use metal::{
-    Buffer, CommandQueue, CompileOptions, ComputePipelineState, Device, MTLResourceOptions, MTLSize,
-};
+#[cfg(not(metallib))]
+use metal::CompileOptions;
+use metal::{Buffer, CommandQueue, ComputePipelineState, Device, MTLResourceOptions, MTLSize};
 use rayon::prelude::*;
 
 pub mod quotient;
 pub use quotient::Quotient;
 
+/// The shaders as a library: the metallib build.rs compiled, else compiled
+/// from source now (the G2 kernels take about a minute).
+pub(crate) fn library(device: &Device) -> Result<metal::Library, String> {
+    #[cfg(metallib)]
+    {
+        let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/ringil.metallib"));
+        return device.new_library_with_data(bytes).map_err(|e| format!("metallib: {e}"));
+    }
+    #[cfg(not(metallib))]
+    device.new_library_with_source(SHADER, &CompileOptions::new()).map_err(|e| format!("shader: {e}"))
+}
+
+#[cfg_attr(metallib, allow(dead_code))]
 pub(crate) const SHADER: &str = concat!(
     include_str!("../shaders/field.metal"),
     "\n",
@@ -164,9 +177,7 @@ impl<C: Curve> Msm<C> {
     pub fn new(bases: &[C::Affine]) -> Result<(Self, f64), String> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
-        let library = device
-            .new_library_with_source(SHADER, &CompileOptions::new())
-            .map_err(|e| format!("shader: {e}"))?;
+        let library = library(&device)?;
         let pipeline = |name: &str| {
             let function = library.get_function(name, None).map_err(|e| format!("{name}: {e}"))?;
             device

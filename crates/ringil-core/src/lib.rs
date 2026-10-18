@@ -14,6 +14,7 @@ mod fft;
 mod msm;
 mod simd;
 mod solver;
+pub mod groth16;
 
 // Stage times on stderr, for the native bench (`--features trace`).
 #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
@@ -173,30 +174,36 @@ impl Key {
         b2: &[u8],
         domain_params: &[u8],
     ) -> Result<Key, JsError> {
+        Self::build(a, b, k, z, b2, domain_params).map_err(JsError::new)
+    }
+    /// `new` for hosts outside JavaScript, with a plain error.
+    pub fn build(
+        a: &[u8],
+        b: &[u8],
+        k: &[u8],
+        z: &[u8],
+        b2: &[u8],
+        domain_params: &[u8],
+    ) -> Result<Key, &'static str> {
         if [a, b, k, z].iter().any(|v| !v.len().is_multiple_of(64))
             || !b2.len().is_multiple_of(128)
             || b.len() / 64 != b2.len() / 128
             || domain_params.len() != 64
         {
-            return Err(JsError::new("invalid gnark key dimensions"));
+            return Err("invalid gnark key dimensions");
         }
         let n = z.len() / 64 + 1;
         if !n.is_power_of_two() {
-            return Err(JsError::new("invalid gnark FFT domain"));
+            return Err("invalid gnark FFT domain");
         }
         let params = frs(domain_params);
-        let mut domain = Radix2EvaluationDomain::<Fr>::new(n)
-            .ok_or_else(|| JsError::new("unsupported FFT domain"))?;
+        let mut domain = Radix2EvaluationDomain::<Fr>::new(n).ok_or("unsupported FFT domain")?;
         domain.group_gen = params[0];
-        domain.group_gen_inv = params[0]
-            .inverse()
-            .ok_or_else(|| JsError::new("invalid FFT generator"))?;
-        let _coset = domain
-            .get_coset(params[1])
-            .ok_or_else(|| JsError::new("invalid FFT coset"))?;
+        domain.group_gen_inv = params[0].inverse().ok_or("invalid FFT generator")?;
+        let _coset = domain.get_coset(params[1]).ok_or("invalid FFT coset")?;
         let den = (params[1].pow([n as u64]) - Fr::ONE)
             .inverse()
-            .ok_or_else(|| JsError::new("invalid quotient denominator"))?;
+            .ok_or("invalid quotient denominator")?;
         let (a, b, k, z, b2) = (g1s(a), g1s(b), g1s(k), g1s(z), g2s(b2));
         let plan = fft::Plan::new(n, params[0], params[1], den);
         Ok(Self {
@@ -257,17 +264,16 @@ impl Key {
         false
     }
     pub fn solve_parts(&self, witness: &[u8]) -> Result<Vec<u8>, JsError> {
-        let plan = self
-            .solver
-            .as_ref()
-            .ok_or_else(|| JsError::new("no prepared solver"))?;
+        self.solve(witness).map_err(|error| JsError::new(&error))
+    }
+    /// `solve_parts` for hosts outside JavaScript, with a plain error.
+    pub fn solve(&self, witness: &[u8]) -> Result<Vec<u8>, String> {
+        let plan = self.solver.as_ref().ok_or("no prepared solver")?;
         if !witness.len().is_multiple_of(32) {
-            return Err(JsError::new("invalid witness encoding"));
+            return Err("invalid witness encoding".into());
         }
         let started = std::time::Instant::now();
-        let solution = plan
-            .solve(&frs(witness))
-            .map_err(|error| JsError::new(&error))?;
+        let solution = plan.solve(&frs(witness))?;
         trace("solve", started);
         let sa: Vec<_> = plan.a_indices.iter().map(|i| solution.w[*i]).collect();
         let sb: Vec<_> = plan.b_indices.iter().map(|i| solution.w[*i]).collect();

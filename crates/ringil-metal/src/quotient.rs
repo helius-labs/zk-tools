@@ -7,9 +7,8 @@
 use std::{ffi::c_void, time::Instant};
 
 use ark_bn254::Fr;
-use metal::{Buffer, CommandQueue, CompileOptions, ComputeCommandEncoderRef, ComputePipelineState, Device, MTLResourceOptions, MTLSize};
+use metal::{Buffer, CommandQueue, ComputeCommandEncoderRef, ComputePipelineState, Device, MTLResourceOptions, MTLSize};
 
-use crate::SHADER;
 
 pub struct Quotient {
     queue: CommandQueue,
@@ -43,9 +42,7 @@ impl Quotient {
         assert_eq!(forward_weights.len(), n);
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
-        let library = device
-            .new_library_with_source(SHADER, &CompileOptions::new())
-            .map_err(|e| format!("shader: {e}"))?;
+        let library = crate::library(&device)?;
         let pipeline = |name: &str| {
             let function = library.get_function(name, None).map_err(|e| format!("{name}: {e}"))?;
             device
