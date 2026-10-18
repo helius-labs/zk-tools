@@ -45,6 +45,12 @@ fn main() {
     if dir == "wgsl-field" {
         return wgsl_field();
     }
+    if dir == "parts-diff" {
+        return parts_diff(Path::new(&env::args().nth(2).expect("the dump directory")));
+    }
+    if dir == "scalars" {
+        return scalar_profile(Path::new(&env::args().nth(2).expect("the dump directory")));
+    }
     if dir == "stress" {
         let cycles = env::args().nth(2).expect("cycles").parse().expect("cycles");
         let dirs: Vec<String> = env::args().skip(3).collect();
@@ -750,4 +756,85 @@ fn wgsl_field() {
     });
     let muls = threads as f64 * rounds as f64;
     println!("RINGIL wgsl-field device=\"{}\" 16-bit {ms16:.1} ms ({:.0} M mul/s, correct {ok16}) 13-bit {ms13:.1} ms ({:.0} M mul/s, correct {ok13})", gpu.name, muls / ms16 / 1e3, muls / ms13 / 1e3);
+}
+
+/// How skewed a shape's MSM scalars are: per vector, the share of zeros,
+/// ones, minus ones, and of the rest by bit length (small negatives, p - s
+/// with s short, counted by s's length).
+fn scalar_profile(dir: &Path) {
+    use ark_ff::{BigInteger, PrimeField, Zero};
+    let dump = Dump::read(dir);
+    let key = dump.key();
+    let scalars = key.msm_scalars(&dump.witness).expect("solve");
+    let classes = [
+        "0", "1", "-1", "<=8b", "<=16b", "<=32b", "<=64b", "<=128b", "full", "-<=64b", "-<=128b",
+    ];
+    for (name, values) in ["a", "b", "k"].iter().zip(&scalars) {
+        let mut counts = [0usize; 11];
+        for v in values {
+            let bits = v.into_bigint().num_bits();
+            let neg_bits = (-*v).into_bigint().num_bits();
+            let class = if v.is_zero() {
+                0
+            } else if *v == Fr::from(1u64) {
+                1
+            } else if *v == -Fr::from(1u64) {
+                2
+            } else if bits <= 8 {
+                3
+            } else if bits <= 16 {
+                4
+            } else if bits <= 32 {
+                5
+            } else if bits <= 64 {
+                6
+            } else if bits <= 128 {
+                7
+            } else if neg_bits <= 64 {
+                9
+            } else if neg_bits <= 128 {
+                10
+            } else {
+                8
+            };
+            counts[class] += 1;
+        }
+        let n = values.len().max(1);
+        let line: Vec<String> = classes
+            .iter()
+            .zip(counts)
+            .map(|(c, k)| format!("{c}={:.1}%", 100.0 * k as f64 / n as f64))
+            .collect();
+        println!("SCALARS {} n={} {}", name, values.len(), line.join(" "));
+    }
+}
+
+/// The proof parts of one witness from a GPU key and from a CPU-only key
+/// (they are deterministic; the proof's randomness comes after): which of
+/// A, B1, K, H·Z (G1) and B2 (G2) differ.
+fn parts_diff(dir: &Path) {
+    let dump = Dump::read(dir);
+    // SAFETY: single-threaded here; the keys read RINGIL_GPU when built.
+    unsafe { env::set_var("RINGIL_GPU", "0") };
+    let cpu = dump.key().solve(&dump.witness).expect("cpu parts");
+    unsafe { env::set_var("RINGIL_GPU", "1") };
+    let key = dump.key();
+    for round in 0..2 {
+        let gpu = key.solve(&dump.witness).expect("gpu parts");
+        let names = ["a", "b1", "k", "hz", "b2"];
+        let sizes = [64, 64, 64, 64, 128];
+        let mut at = 0;
+        let mut line = Vec::new();
+        for (name, size) in names.iter().zip(sizes) {
+            let same = cpu.get(at..at + size) == gpu.get(at..at + size);
+            line.push(format!("{name}={}", if same { "same" } else { "DIFFERS" }));
+            at += size;
+        }
+        println!(
+            "PARTS round {round} len cpu={} gpu={} {}",
+            cpu.len(),
+            gpu.len(),
+            line.join(" ")
+        );
+    }
 }

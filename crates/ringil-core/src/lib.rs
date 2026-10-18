@@ -247,9 +247,11 @@ struct Gpu {
 }
 
 /// The share of the G2 MSM's points a wgpu GPU takes (RINGIL_G2_GPU_SHARE,
-/// else measured best on an M5 Pro through wgpu); the CPU takes the rest.
+/// else measured best: on an M5 Pro through wgpu, and none with the
+/// pre-compiled kernels, where the OnePlus 13's Adreno is the critical path
+/// already); the CPU takes the rest.
 #[cfg(gpu_wgpu)]
-fn g2_gpu_share() -> f64 {
+fn g2_gpu_share(spirv: bool) -> f64 {
     // A browser has no environment: the build's RINGIL_WEB_G2_SHARE, else
     // the default.
     #[cfg(target_arch = "wasm32")]
@@ -261,7 +263,7 @@ fn g2_gpu_share() -> f64 {
     std::env::var("RINGIL_G2_GPU_SHARE")
         .ok()
         .and_then(|v| v.parse::<f64>().ok())
-        .unwrap_or(WGPU_G2_SHARE)
+        .unwrap_or(if spirv { 0.0 } else { WGPU_G2_SHARE })
         .clamp(0.0, 1.0)
 }
 /// In a browser, where the CPU's share runs as WebAssembly: measured best
@@ -350,7 +352,7 @@ impl GpuBuilder {
     }
     /// How many of the G2 points (the first) the GPU took.
     fn g2(&mut self, bases: &[G2Affine]) -> Result<usize, String> {
-        let cut = (bases.len() as f64 * g2_gpu_share()).round() as usize;
+        let cut = (bases.len() as f64 * g2_gpu_share(self.gpu.spirv)).round() as usize;
         if cut == 0 {
             return Ok(0);
         }
@@ -658,7 +660,8 @@ impl Key {
                             }
                             continue;
                         }
-                        gpu_quotient = verdict.quotient;
+                        gpu_quotient = verdict.quotient
+                            && !std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0");
                         built_gpu = Some(finished);
                     }
                     let _ = (a_head, b2_head);
@@ -673,10 +676,7 @@ impl Key {
         #[cfg(gpu_any)]
         let mut plan = plan;
         #[cfg(gpu_any)]
-        if built_gpu.is_some()
-            && gpu_quotient
-            && !std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0")
-        {
+        if built_gpu.is_some() && gpu_quotient {
             plan.release_tables();
         }
         Ok(Self {
@@ -918,6 +918,19 @@ impl Key {
     }
 }
 impl Key {
+    /// The A, B and K MSM scalars of a witness, for the bench's profile of
+    /// how skewed they are.
+    #[cfg(feature = "trace")]
+    #[doc(hidden)]
+    pub fn msm_scalars(&self, witness: &[u8]) -> Result<[Vec<Fr>; 3], String> {
+        let plan = self.solver.as_ref().ok_or("no prepared solver")?;
+        let solution = plan.solve(&frs(witness))?;
+        Ok([
+            plan.a_indices.iter().map(|i| solution.w[*i]).collect(),
+            plan.b_indices.iter().map(|i| solution.w[*i]).collect(),
+            solution.w[plan.n_public..].to_vec(),
+        ])
+    }
     fn compute_parts(
         &self,
         sa: &[Fr],
@@ -989,9 +1002,7 @@ impl Key {
                     })
                 });
                 let started = crate::time::Instant::now();
-                let h = if !self.gpu_quotient
-                    || std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0")
-                {
+                let h = if !self.gpu_quotient {
                     self.quotient(a, b, c)
                 } else {
                     gpu.quotient.lock().unwrap().quotient(&a, &b, &c)?

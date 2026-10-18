@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use ark_bn254::Fr;
 
-use crate::{storage, Gpu};
+use crate::{spirv_pipeline, storage, Gpu, Slot};
 
 const FR_SHADER: &str = concat!(
     include_str!("../shaders/fr.wgsl"),
@@ -15,9 +15,29 @@ const FR_SHADER: &str = concat!(
     include_str!("../shaders/quotient.wgsl")
 );
 const WORKGROUP: u32 = 64;
+/// The kernels pre-compiled for Vulkan (glsl/), where the MSMs' are: the
+/// Adreno 830 got naga's SPIR-V of quotient.wgsl wrong.
+const SPIRV: [(&str, &[u8]); 4] = [
+    (
+        "fr_dif_stage",
+        include_bytes!("../glsl/out/fr_dif_stage.spv"),
+    ),
+    (
+        "fr_dit_stage",
+        include_bytes!("../glsl/out/fr_dit_stage.spv"),
+    ),
+    ("fr_scale", include_bytes!("../glsl/out/fr_scale.spv")),
+    (
+        "fr_pointwise",
+        include_bytes!("../glsl/out/fr_pointwise.spv"),
+    ),
+];
 
 pub struct Quotient {
     gpu: Arc<Gpu>,
+    /// Running the pre-compiled kernels: the pointwise kernel's abc is
+    /// binding 0 of set 0, its uniform binding 1.
+    spirv: bool,
     dif: wgpu::ComputePipeline,
     dit: wgpu::ComputePipeline,
     scale: wgpu::ComputePipeline,
@@ -55,23 +75,36 @@ impl Quotient {
         let started = Instant::now();
         let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
         let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
-        let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("ringil quotient"),
-            source: wgpu::ShaderSource::Wgsl(FR_SHADER.into()),
+        let spirv = gpu.spirv;
+        let module = (!spirv).then(|| {
+            device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("ringil quotient"),
+                source: wgpu::ShaderSource::Wgsl(FR_SHADER.into()),
+            })
         });
-        let pipeline = |entry: &str| {
+        let pipeline = |index: usize| {
+            let (entry, kernel) = SPIRV[index];
+            if spirv {
+                use Slot::*;
+                let slots: &[Slot] = if index == 3 {
+                    &[Write, Uniform]
+                } else {
+                    &[Write, Read, Uniform]
+                };
+                return spirv_pipeline(device, gpu.cache(), entry, kernel, slots);
+            }
             device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
                 label: Some(entry),
                 layout: None,
-                module: &module,
+                module: module.as_ref().expect("WGSL module"),
                 entry_point: Some(entry),
                 compilation_options: Default::default(),
-                cache: None,
+                cache: gpu.cache(),
             })
         };
         let mut pipelines = Vec::with_capacity(4);
-        for entry in ["fr_dif_stage", "fr_dit_stage", "fr_scale", "fr_pointwise"] {
-            pipelines.push(pipeline(entry));
+        for (index, (entry, _)) in SPIRV.iter().enumerate() {
+            pipelines.push(pipeline(index));
             if gpu.failed() {
                 return Err(format!("kernel {entry}: the device reported an error"));
             }
@@ -86,6 +119,7 @@ impl Quotient {
         if gpu.failed() {
             return Err("kernels: the device reported an error".into());
         }
+        gpu.save_cache();
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let upload = |label: &str, values: &[Fr]| {
@@ -98,6 +132,7 @@ impl Quotient {
             .map(|level| crate::uniform(&gpu, [n as u32, level, log_n - 1 - level, 0]))
             .collect();
         let quotient = Self {
+            spirv,
             dif,
             dit,
             scale,
@@ -155,26 +190,44 @@ impl Quotient {
             self.transform(&mut encoder, offset, &self.roots, false);
         }
         {
-            let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &self.pointwise.get_bind_group_layout(0),
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: self.whole.as_entire_binding(),
-                }],
-            });
-            let group1 = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &self.pointwise.get_bind_group_layout(1),
-                entries: &[wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: self.abc.as_entire_binding(),
-                }],
-            });
             let mut pass = encoder.begin_compute_pass(&Default::default());
             pass.set_pipeline(&self.pointwise);
-            pass.set_bind_group(0, &group, &[]);
-            pass.set_bind_group(1, &group1, &[]);
+            if self.spirv {
+                let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &self.pointwise.get_bind_group_layout(0),
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: self.abc.as_entire_binding(),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: self.whole.as_entire_binding(),
+                        },
+                    ],
+                });
+                pass.set_bind_group(0, &group, &[]);
+            } else {
+                let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &self.pointwise.get_bind_group_layout(0),
+                    entries: &[wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: self.whole.as_entire_binding(),
+                    }],
+                });
+                let group1 = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &self.pointwise.get_bind_group_layout(1),
+                    entries: &[wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: self.abc.as_entire_binding(),
+                    }],
+                });
+                pass.set_bind_group(0, &group, &[]);
+                pass.set_bind_group(1, &group1, &[]);
+            }
             pass.dispatch_workgroups((n as u32).div_ceil(WORKGROUP), 1, 1);
         }
         self.transform(&mut encoder, 0, &self.inverse_roots, true);

@@ -46,6 +46,11 @@ pub trait Curve: CurveGroup {
     const SHADER: &'static str;
     /// shards_first, shards_tree, reduce_blocks.
     const ENTRIES: [&'static str; 3];
+    /// The same three kernels pre-compiled for Vulkan (glsl/), when written.
+    const SPIRV: Option<[&'static [u8]; 3]>;
+    /// Whether the pre-compiled reduction writes each thread's (V, S) pair
+    /// for the host to weigh, instead of reducing them on the GPU.
+    const SPIRV_PAIRS: bool;
     fn encode(point: &Self::Affine, out: &mut Vec<u8>);
     fn xyzz_to_projective(bytes: &[u8]) -> Self;
 }
@@ -61,6 +66,12 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
     const XYZZ_BYTES: usize = 128;
     const SHADER: &'static str = G1_SHADER;
     const ENTRIES: [&'static str; 3] = ["shards_first", "shards_tree", "reduce_blocks"];
+    const SPIRV: Option<[&'static [u8]; 3]> = Some([
+        include_bytes!("../glsl/out/shards_first.spv"),
+        include_bytes!("../glsl/out/shards_tree.spv"),
+        include_bytes!("../glsl/out/reduce_blocks.spv"),
+    ]);
+    const SPIRV_PAIRS: bool = false;
     fn encode(point: &G1Affine, out: &mut Vec<u8>) {
         if point.infinity {
             out.extend_from_slice(&[0u8; 64]);
@@ -88,6 +99,12 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g2::Config> {
     const XYZZ_BYTES: usize = 256;
     const SHADER: &'static str = G2_SHADER;
     const ENTRIES: [&'static str; 3] = ["shards_first_g2", "shards_tree_g2", "reduce_blocks_g2"];
+    const SPIRV: Option<[&'static [u8]; 3]> = Some([
+        include_bytes!("../glsl/out/shards_first_g2.spv"),
+        include_bytes!("../glsl/out/shards_tree_g2.spv"),
+        include_bytes!("../glsl/out/reduce_pairs_g2.spv"),
+    ]);
+    const SPIRV_PAIRS: bool = true;
     fn encode(point: &G2Affine, out: &mut Vec<u8>) {
         if point.infinity {
             out.extend_from_slice(&[0u8; 128]);
@@ -115,6 +132,8 @@ const SHARD: usize = 32;
 /// Threads per window in the reduction, measured best (with 256 and 128
 /// close); RINGIL_REDUCE_PER_WINDOW overrides natively.
 const REDUCE_THREADS_PER_WINDOW: usize = 512;
+/// Threads per window when the host weighs the reduction's pairs.
+const PAIRS_PER_WINDOW: usize = 128;
 
 fn width_for(n: usize) -> usize {
     let width = match n {
@@ -148,6 +167,15 @@ pub struct Pending {
 }
 
 pub struct Gpu {
+    /// Whether the MSM kernels come pre-compiled as SPIR-V (glsl/): on
+    /// Vulkan with passthrough, by default on Android (RINGIL_SPIRV=0|1
+    /// overrides). Adreno's compiler loses the device on naga's SPIR-V of
+    /// the WGSL kernels and links glslc's of the GLSL ones.
+    pub spirv: bool,
+    /// The driver's pipeline cache, persisted at RINGIL_PIPELINE_CACHE when
+    /// set: a phone compiles a kernel in tens of seconds the first time.
+    cache: Option<wgpu::PipelineCache>,
+    cache_path: Option<std::path::PathBuf>,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub name: String,
@@ -210,9 +238,30 @@ impl Gpu {
             .await
             .map_err(|e| format!("no adapter: {e}"))?;
         let info = adapter.get_info();
+        let passthrough = info.backend == wgpu::Backend::Vulkan
+            && adapter
+                .features()
+                .contains(wgpu::Features::PASSTHROUGH_SHADERS);
+        let spirv = passthrough
+            && match std::env::var("RINGIL_SPIRV").as_deref() {
+                Ok("1") => true,
+                Ok(_) => false,
+                Err(_) => cfg!(target_os = "android"),
+            };
+        let cache_path = std::env::var_os("RINGIL_PIPELINE_CACHE").map(std::path::PathBuf::from);
+        let caching =
+            cache_path.is_some() && adapter.features().contains(wgpu::Features::PIPELINE_CACHE);
+        let mut features = wgpu::Features::empty();
+        if spirv {
+            features |= wgpu::Features::PASSTHROUGH_SHADERS;
+        }
+        if caching {
+            features |= wgpu::Features::PIPELINE_CACHE;
+        }
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: Some("ringil"),
+                required_features: features,
                 required_limits: adapter.limits(),
                 ..Default::default()
             })
@@ -224,12 +273,53 @@ impl Gpu {
             log::error!("ringil wgpu: {e}");
             flag.store(true, std::sync::atomic::Ordering::SeqCst);
         }));
+        // A driver crash (a phone's shader compiler) loses the device with
+        // no error in any scope: later buffers are silently invalid.
+        let flag = failed.clone();
+        device.set_device_lost_callback(Box::new(move |reason, message| {
+            log::error!("ringil wgpu: device lost ({reason:?}): {message}");
+            flag.store(true, std::sync::atomic::Ordering::SeqCst);
+        }));
+        let cache = caching.then(|| {
+            let data = cache_path
+                .as_ref()
+                .and_then(|path| std::fs::read(path).ok());
+            // SAFETY: the data is what get_data() of this driver's cache
+            // wrote, or absent; the driver validates it (fallback on a
+            // mismatch).
+            unsafe {
+                device.create_pipeline_cache(&wgpu::PipelineCacheDescriptor {
+                    label: Some("ringil"),
+                    data: data.as_deref(),
+                    fallback: true,
+                })
+            }
+        });
         Ok(Self {
             device,
             queue,
             name: format!("{} ({:?})", info.name, info.backend),
             failed,
+            spirv,
+            cache,
+            cache_path,
         })
+    }
+
+    /// The driver's pipeline cache, for pipeline descriptors.
+    pub(crate) fn cache(&self) -> Option<&wgpu::PipelineCache> {
+        self.cache.as_ref()
+    }
+
+    /// Writes the pipeline cache to its file, after kernels were built.
+    pub(crate) fn save_cache(&self) {
+        if let (Some(cache), Some(path)) = (&self.cache, &self.cache_path) {
+            if let Some(data) = cache.get_data() {
+                if let Err(e) = std::fs::write(path, data) {
+                    log::warn!("ringil wgpu: pipeline cache not saved: {e}");
+                }
+            }
+        }
     }
 
     /// Whether the device reported an error outside an error scope.
@@ -239,6 +329,11 @@ impl Gpu {
 }
 
 pub struct Msm<C: Curve> {
+    /// Running the pre-compiled kernels, whose bindings are one contiguous
+    /// set each (see `spirv_pipeline`).
+    spirv: bool,
+    /// The reduction leaves (V, S) per thread to the host (SPIRV_PAIRS).
+    pairs: bool,
     gpu: std::sync::Arc<Gpu>,
     _curve: std::marker::PhantomData<C>,
     width: usize,
@@ -266,6 +361,95 @@ pub struct Msm<C: Curve> {
     counts: Vec<u32>,
     starts: Vec<u32>,
     most: usize,
+}
+
+/// A binding of a pre-compiled kernel's one set: a storage buffer (read
+/// only or not) or a uniform.
+#[derive(Clone, Copy)]
+pub(crate) enum Slot {
+    Read,
+    Write,
+    Uniform,
+}
+
+/// A pre-compiled kernel's pipeline, its bind group layout declared (a
+/// passthrough module cannot be reflected): binding i is `slots[i]`, in
+/// one contiguous set 0 — Adreno's driver loses the device on binding gaps
+/// or a second set.
+pub(crate) fn spirv_pipeline(
+    device: &wgpu::Device,
+    cache: Option<&wgpu::PipelineCache>,
+    entry: &str,
+    spirv: &[u8],
+    slots: &[Slot],
+) -> wgpu::ComputePipeline {
+    let words: Vec<u32> = spirv
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|c| u32::from_le_bytes(*c))
+        .collect();
+    // SAFETY: glslc's output for the compute shaders in glsl/, whose
+    // bindings the slots declare.
+    let module = unsafe {
+        device.create_shader_module_passthrough(wgpu::ShaderModuleDescriptorPassthrough {
+            label: Some(entry),
+            entry_points: std::borrow::Cow::Borrowed(&[wgpu::PassthroughShaderEntryPoint {
+                name: std::borrow::Cow::Borrowed("main"),
+                workgroup_size: (WORKGROUP, 1, 1),
+            }]),
+            spirv: Some(std::borrow::Cow::Owned(words)),
+            ..Default::default()
+        })
+    };
+    let entries: Vec<wgpu::BindGroupLayoutEntry> = slots
+        .iter()
+        .enumerate()
+        .map(|(binding, slot)| wgpu::BindGroupLayoutEntry {
+            binding: binding as u32,
+            visibility: wgpu::ShaderStages::COMPUTE,
+            ty: wgpu::BindingType::Buffer {
+                ty: match slot {
+                    Slot::Read => wgpu::BufferBindingType::Storage { read_only: true },
+                    Slot::Write => wgpu::BufferBindingType::Storage { read_only: false },
+                    Slot::Uniform => wgpu::BufferBindingType::Uniform,
+                },
+                has_dynamic_offset: false,
+                min_binding_size: None,
+            },
+            count: None,
+        })
+        .collect();
+    let group = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: None,
+        entries: &entries,
+    });
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some(entry),
+        bind_group_layouts: &[Some(&group)],
+        immediate_size: 0,
+    });
+    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some(entry),
+        layout: Some(&pipeline_layout),
+        module: &module,
+        entry_point: Some("main"),
+        compilation_options: Default::default(),
+        cache,
+    })
+}
+
+/// The MSM kernels' slots, by index: shards_first is bases, sorted, start,
+/// count, dst, out and the Shards uniform; shards_tree is tree, start,
+/// count, dst, out and the uniform; the reduction is buckets, partials and
+/// the Reduce uniform.
+fn msm_slots(index: usize) -> &'static [Slot] {
+    use Slot::*;
+    match index {
+        0 => &[Read, Read, Read, Read, Read, Write, Uniform],
+        1 => &[Read, Read, Read, Read, Write, Uniform],
+        _ => &[Read, Write, Uniform],
+    }
 }
 
 pub(crate) fn storage(device: &wgpu::Device, label: &str, bytes: usize) -> wgpu::Buffer {
@@ -305,25 +489,40 @@ impl<C: Curve> Msm<C> {
         // or a key that does not fit are errors here, not a lost device.
         let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
         let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
-        let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("ringil msm"),
-            source: wgpu::ShaderSource::Wgsl(C::SHADER.into()),
+        let spirv = if gpu.spirv { C::SPIRV } else { None };
+        let module = (spirv.is_none()).then(|| {
+            device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("ringil msm"),
+                source: wgpu::ShaderSource::Wgsl(C::SHADER.into()),
+            })
         });
         let pipeline = |entry: &str| {
             device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
                 label: Some(entry),
                 layout: None,
-                module: &module,
+                module: module.as_ref().expect("WGSL module"),
                 entry_point: Some(entry),
                 compilation_options: Default::default(),
-                cache: None,
+                cache: gpu.cache(),
             })
         };
         // After each kernel: a driver that refuses one leaves the device
         // failed, and nothing else must be asked of it.
         let mut pipelines = Vec::with_capacity(4);
-        for entry in C::ENTRIES {
-            pipelines.push(pipeline(entry));
+        for (index, entry) in C::ENTRIES.into_iter().enumerate() {
+            let started = Instant::now();
+            pipelines.push(match spirv {
+                Some(kernels) => {
+                    spirv_pipeline(device, gpu.cache(), entry, kernels[index], msm_slots(index))
+                }
+                None => pipeline(entry),
+            });
+            // Delivers a device-lost callback the build caused.
+            let _ = device.poll(wgpu::PollType::Poll);
+            log::debug!(
+                "ringil wgpu: kernel {entry} built in {:.0} ms",
+                started.elapsed().as_secs_f64() * 1000.0
+            );
             if gpu.failed() {
                 return Err(format!("kernel {entry}: the device reported an error"));
             }
@@ -338,6 +537,7 @@ impl<C: Curve> Msm<C> {
         if gpu.failed() {
             return Err("kernels: the device reported an error".into());
         }
+        gpu.save_cache();
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         let mut raw = Vec::with_capacity(bases.len() * C::AFFINE_BYTES);
         for p in bases {
@@ -359,12 +559,26 @@ impl<C: Curve> Msm<C> {
                     .unwrap_or(REDUCE_THREADS_PER_WINDOW),
             )
             .max(WORKGROUP as usize);
+        let pairs = spirv.is_some() && C::SPIRV_PAIRS;
+        // The host weighs the pairs: fewer threads per window keep that
+        // cheap (RINGIL_REDUCE_PER_WINDOW still overrides).
+        let per_window = if pairs && std::env::var("RINGIL_REDUCE_PER_WINDOW").is_err() {
+            per_window.min(PAIRS_PER_WINDOW)
+        } else {
+            per_window
+        };
         let reduce_shape = [half / per_window, per_window];
-        let partials = windows * per_window / WORKGROUP as usize;
+        let partials = if pairs {
+            windows * per_window * 2
+        } else {
+            windows * per_window / WORKGROUP as usize
+        };
         let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let bases_buffer = storage(device, "bases", raw.len());
         gpu.queue.write_buffer(&bases_buffer, 0, &raw);
         let msm = Self {
+            spirv: spirv.is_some(),
+            pairs,
             width,
             half,
             windows,
@@ -481,13 +695,25 @@ impl<C: Curve> Msm<C> {
                         binding: 1,
                         resource: self.sorted.as_entire_binding(),
                     });
+                } else if self.spirv {
+                    // tree, start, count, dst, out, shards in one set.
+                    entries.insert(
+                        0,
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: self.tree[(level - 1) % 2].as_entire_binding(),
+                        },
+                    );
+                    for (i, entry) in entries.iter_mut().enumerate() {
+                        entry.binding = i as u32;
+                    }
                 }
                 let group0 = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: None,
                     layout: &pipeline.get_bind_group_layout(0),
                     entries: &entries,
                 });
-                let group1 = (level > 0).then(|| {
+                let group1 = (level > 0 && !self.spirv).then(|| {
                     device.create_bind_group(&wgpu::BindGroupDescriptor {
                         label: None,
                         layout: &pipeline.get_bind_group_layout(1),
@@ -520,7 +746,7 @@ impl<C: Curve> Msm<C> {
                         resource: self.sums.as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
-                        binding: 3,
+                        binding: if self.spirv { 2 } else { 3 },
                         resource: self.reduce_uniform.as_entire_binding(),
                     },
                 ],
@@ -562,6 +788,11 @@ impl<C: Curve> Msm<C> {
         timings.gpu_ms = pending.submitted.elapsed().as_secs_f64() * 1000.0;
 
         let started = Instant::now();
+        if self.pairs {
+            let result = self.weigh_pairs(&data);
+            timings.combine_ms = started.elapsed().as_secs_f64() * 1000.0;
+            return Ok((result, timings));
+        }
         let mut result = C::ZERO;
         for window in (0..self.windows).rev() {
             for _ in 0..self.width {
@@ -575,6 +806,44 @@ impl<C: Curve> Msm<C> {
         }
         timings.combine_ms = started.elapsed().as_secs_f64() * 1000.0;
         Ok((result, timings))
+    }
+
+    /// The MSM from the reduction's (V, S) pairs: thread t of a window
+    /// covers buckets from t * leaf, so the window's sum is the sum of V_t
+    /// plus leaf * sum t * S_t, the latter by running sums over t.
+    fn weigh_pairs(&self, data: &[u8]) -> C {
+        let [leaf, threads] = self.reduce_shape;
+        let point = |index: usize| {
+            C::xyzz_to_projective(&data[index * C::XYZZ_BYTES..(index + 1) * C::XYZZ_BYTES])
+        };
+        let sums: Vec<C> = (0..self.windows)
+            .into_par_iter()
+            .map(|window| {
+                let pair = |t: usize| 2 * (window * threads + t);
+                let mut vs = C::ZERO;
+                let mut running = C::ZERO;
+                let mut weighted = C::ZERO;
+                for t in (0..threads).rev() {
+                    vs += point(pair(t));
+                    if t > 0 {
+                        running += point(pair(t) + 1);
+                        weighted += running;
+                    }
+                }
+                for _ in 0..leaf.trailing_zeros() {
+                    weighted.double_in_place();
+                }
+                vs + weighted
+            })
+            .collect();
+        let mut result = C::ZERO;
+        for sum in sums.iter().rev() {
+            for _ in 0..self.width {
+                result.double_in_place();
+            }
+            result += sum;
+        }
+        result
     }
 
     /// Levels of shards over the sorted runs of a chunk of windows, into
@@ -703,6 +972,16 @@ fn fq(bytes: &[u8]) -> Fq {
     })))
 }
 
+/// The tests' logger: wgpu's messages on stderr (RUST_LOG, default debug).
+#[cfg(test)]
+fn init_logger() {
+    let _ = env_logger::Builder::from_env(
+        env_logger::Env::default().default_filter_or("ringil_wgpu=debug"),
+    )
+    .is_test(false)
+    .try_init();
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -712,7 +991,7 @@ mod tests {
 
     /// Distinct points without a scalar multiplication each: a random
     /// start, then repeated addition of a random step.
-    fn points<C: CurveGroup>(n: usize, rng: &mut StdRng) -> Vec<C::Affine> {
+    pub(super) fn points<C: CurveGroup>(n: usize, rng: &mut StdRng) -> Vec<C::Affine> {
         let step = C::rand(rng);
         let mut p = C::rand(rng);
         let mut out = Vec::with_capacity(n);
@@ -763,6 +1042,7 @@ mod tests {
 
     #[allow(clippy::type_complexity)]
     fn backend<C: Curve>() -> Option<impl FnMut(&[C::Affine]) -> Box<dyn FnMut(&[Fr]) -> C>> {
+        init_logger();
         let gpu = std::sync::Arc::new(Gpu::new().ok()?);
         Some(move |bases: &[C::Affine]| -> Box<dyn FnMut(&[Fr]) -> C> {
             let mut msm = Msm::<C>::new(gpu.clone(), bases).expect("msm").0;
@@ -778,5 +1058,376 @@ mod tests {
     #[test]
     fn g2_msms_match_arkworks() {
         check::<ark_bn254::G2Projective>(&[1, 100, 3000]);
+    }
+}
+
+#[cfg(test)]
+mod field_tests {
+    use super::*;
+    use ark_ec::AffineRepr;
+    use ark_ff::Field;
+    use rand::{rngs::StdRng, SeedableRng};
+
+    /// One kernel computing a + b, a - b, a * b, -a and a^2 per pair, for a field
+    /// file's prefix and type, against arkworks.
+    fn check<F: Field + ark_ff::UniformRand>(source: &str, prefix: &str, ty: &str) {
+        let k = std::mem::size_of::<F>() / 4;
+        init_logger();
+        let Ok(gpu) = Gpu::new() else {
+            eprintln!("no GPU: skipped");
+            return;
+        };
+        let kernel = format!(
+            "{source}\n@group(0) @binding(0) var<storage, read_write> data: array<{ty}>;\n\
+             @compute @workgroup_size(64) fn ops(@builtin(global_invocation_id) gid: vec3<u32>) {{\n\
+             let i = gid.x; if (i >= arrayLength(&data) / 7u) {{ return; }}\n\
+             let a = data[7u * i]; let b = data[7u * i + 1u];\n\
+             data[7u * i + 2u] = {prefix}_add(a, b); data[7u * i + 3u] = {prefix}_sub(a, b);\n\
+             data[7u * i + 4u] = {prefix}_mul(a, b); data[7u * i + 5u] = {prefix}_neg(a);\n\
+             data[7u * i + 6u] = {prefix}_square(a); }}\n"
+        );
+        let mut rng = StdRng::seed_from_u64(3);
+        let n = 4096;
+        let mut values: Vec<(F, F)> = (0..n)
+            .map(|_| (F::rand(&mut rng), F::rand(&mut rng)))
+            .collect();
+        // Edge cases: zero, one, minus one, the same and opposite values.
+        values[0] = (F::ZERO, F::ZERO);
+        values[1] = (F::ONE, -F::ONE);
+        values[2] = (-F::ONE, -F::ONE);
+        values[3] = (values[3].0, values[3].0);
+        values[4] = (values[4].0, -values[4].0);
+        let words = |f: &F| -> Vec<u32> {
+            // Montgomery form, as the kernels hold it: arkworks' own repr.
+            let repr = unsafe { std::slice::from_raw_parts(f as *const F as *const u32, k) };
+            repr.to_vec()
+        };
+        let mut input: Vec<u32> = Vec::new();
+        for (a, b) in &values {
+            input.extend(words(a));
+            input.extend(words(b));
+            input.extend(vec![0u32; 5 * k]);
+        }
+        let device = &gpu.device;
+        let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: wgpu::ShaderSource::Wgsl(kernel.into()),
+        });
+        let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: None,
+            layout: None,
+            module: &module,
+            entry_point: Some("ops"),
+            compilation_options: Default::default(),
+            cache: None,
+        });
+        let buffer = storage(device, "data", input.len() * 4);
+        gpu.queue.write_buffer(&buffer, 0, bytemuck_cast(&input));
+        let staging = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: (input.len() * 4) as u64,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &pipeline.get_bind_group_layout(0),
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: buffer.as_entire_binding(),
+            }],
+        });
+        let mut encoder = device.create_command_encoder(&Default::default());
+        {
+            let mut pass = encoder.begin_compute_pass(&Default::default());
+            pass.set_pipeline(&pipeline);
+            pass.set_bind_group(0, &group, &[]);
+            pass.dispatch_workgroups((n as u32).div_ceil(64), 1, 1);
+        }
+        encoder.copy_buffer_to_buffer(&buffer, 0, &staging, 0, (input.len() * 4) as u64);
+        gpu.queue.submit([encoder.finish()]);
+        pollster::block_on(mapped(&gpu, &staging)).expect("map");
+        let out: Vec<u32> = staging
+            .slice(..)
+            .get_mapped_range()
+            .unwrap()
+            .chunks(4)
+            .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
+            .collect();
+        let back = |w: &[u32]| -> F { unsafe { *(w.as_ptr() as *const F) } };
+        for (i, (a, b)) in values.iter().enumerate() {
+            let o = &out[i * 7 * k..(i + 1) * 7 * k];
+            assert_eq!(back(&o[2 * k..]), *a + b, "{prefix} add {i}");
+            assert_eq!(back(&o[3 * k..]), *a - b, "{prefix} sub {i}");
+            assert_eq!(back(&o[4 * k..]), *a * b, "{prefix} mul {i}");
+            assert_eq!(back(&o[5 * k..]), -*a, "{prefix} neg {i}");
+            assert_eq!(back(&o[6 * k..]), a.square(), "{prefix} square {i}");
+        }
+        let _ = F::ONE.square();
+    }
+
+    #[test]
+    fn fq_ops_match_arkworks() {
+        check::<ark_bn254::Fq>(include_str!("../shaders/field.wgsl"), "fp", "Fp");
+    }
+
+    #[test]
+    fn fr_ops_match_arkworks() {
+        check::<ark_bn254::Fr>(include_str!("../shaders/fr.wgsl"), "fr", "Fr");
+    }
+
+    /// The point formulas per pair of affine points p, q: p + q (both
+    /// lifted), p + q mixed, the pair add, 2p, and p + p mixed, against
+    /// arkworks.
+    fn check_points<C: Curve>(prefix: &str, ty: &str, affine: &str) {
+        let Ok(gpu) = Gpu::new() else {
+            eprintln!("no GPU: skipped");
+            return;
+        };
+        let source = C::SHADER.split("@group").next().unwrap();
+        let kernel = format!(
+            "{source}\n@group(0) @binding(0) var<storage, read> input: array<{affine}>;\n\
+             @group(0) @binding(1) var<storage, read_write> output: array<{ty}>;\n\
+             @compute @workgroup_size(64) fn ops(@builtin(global_invocation_id) gid: vec3<u32>) {{\n\
+             let i = gid.x; if (i >= arrayLength(&input) / 2u) {{ return; }}\n\
+             let p = input[2u * i]; let q = input[2u * i + 1u];\n\
+             let lp = {prefix}_from_affine(p);\n\
+             output[5u * i + 3u] = {prefix}_double(lp);\n\
+             output[5u * i] = {prefix}_add(lp, {prefix}_from_affine(q));\n\
+             output[5u * i + 1u] = {prefix}_add_mixed(lp, q);\n\
+             output[5u * i + 2u] = {prefix}_add_affine_pair(lp, q);\n\
+             output[5u * i + 4u] = {prefix}_add_mixed(lp, p); }}\n"
+        );
+        let mut rng = StdRng::seed_from_u64(4);
+        let n = 256;
+        let mut points: Vec<C::Affine> = (0..2 * n)
+            .map(|_| C::rand(&mut rng).into_affine())
+            .collect();
+        points[1] = points[0];
+        points[3] = (-points[2].into_group()).into_affine();
+        points[4] = C::Affine::zero();
+        points[7] = C::Affine::zero();
+        let mut input = Vec::new();
+        for p in &points {
+            C::encode(p, &mut input);
+        }
+        let device = &gpu.device;
+        let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: wgpu::ShaderSource::Wgsl(kernel.into()),
+        });
+        let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+            label: None,
+            layout: None,
+            module: &module,
+            entry_point: Some("ops"),
+            compilation_options: Default::default(),
+            cache: None,
+        });
+        let in_buffer = storage(device, "input", input.len());
+        gpu.queue.write_buffer(&in_buffer, 0, &input);
+        let out_len = (5 * n * C::XYZZ_BYTES) as u64;
+        let out_buffer = storage(device, "output", out_len as usize);
+        let staging = device.create_buffer(&wgpu::BufferDescriptor {
+            label: None,
+            size: out_len,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &pipeline.get_bind_group_layout(0),
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: in_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: out_buffer.as_entire_binding(),
+                },
+            ],
+        });
+        let mut encoder = device.create_command_encoder(&Default::default());
+        {
+            let mut pass = encoder.begin_compute_pass(&Default::default());
+            pass.set_pipeline(&pipeline);
+            pass.set_bind_group(0, &group, &[]);
+            pass.dispatch_workgroups((n as u32).div_ceil(64), 1, 1);
+        }
+        encoder.copy_buffer_to_buffer(&out_buffer, 0, &staging, 0, out_len);
+        gpu.queue.submit([encoder.finish()]);
+        pollster::block_on(mapped(&gpu, &staging)).expect("map");
+        let out = staging.slice(..).get_mapped_range().unwrap().to_vec();
+        let at = |k: usize| C::xyzz_to_projective(&out[k * C::XYZZ_BYTES..(k + 1) * C::XYZZ_BYTES]);
+        let names = [
+            "add",
+            "add_mixed",
+            "add_affine_pair",
+            "double",
+            "add_mixed self",
+        ];
+        let mut wrong = Vec::new();
+        for i in 0..n {
+            let (p, q) = (points[2 * i].into_group(), points[2 * i + 1].into_group());
+            for (k, expected) in [p + q, p + q, p + q, p.double(), p.double()]
+                .into_iter()
+                .enumerate()
+            {
+                if at(5 * i + k) != expected {
+                    wrong.push(format!("{} {i}", names[k]));
+                }
+            }
+        }
+        assert!(
+            wrong.is_empty(),
+            "{prefix}: {} wrong: {:?}",
+            wrong.len(),
+            &wrong[..wrong.len().min(12)]
+        );
+    }
+
+    /// Which kernels a driver links: each probe builds one small kernel on
+    /// a fresh device and reports whether the device survived (a phone's
+    /// driver loses the device instead of reporting a link error). Prints
+    /// PROBE lines; run it with --ignored on a new GPU.
+    #[test]
+    #[ignore]
+    fn kernel_probes() {
+        init_logger();
+        let g1 = G1_SHADER.split("@group").next().unwrap();
+        let g2 = G2_SHADER.split("@group").next().unwrap();
+        let g1_io = "@group(0) @binding(0) var<storage, read> tree: array<Xyzz>;\n\
+            @group(0) @binding(1) var<storage, read> bases: array<Affine>;\n\
+            @group(0) @binding(2) var<storage, read_write> out: array<Xyzz>;\n";
+        let g2_io = "@group(0) @binding(0) var<storage, read> tree: array<Xyzz2>;\n\
+            @group(0) @binding(1) var<storage, read> bases: array<Affine2>;\n\
+            @group(0) @binding(2) var<storage, read_write> out: array<Xyzz2>;\n\
+            @group(0) @binding(3) var<storage, read_write> data: array<Fp2>;\n";
+        let probes: [(&str, &str, &str); 12] = [
+            ("g1 tree loop (shards_tree)", g1, "var acc = tree[0]; for (var i = 1u; i < arrayLength(&tree); i++) { acc = xyzz_add(acc, tree[i]); } out[0] = acc;"),
+            ("g1 single add", g1, "out[0] = xyzz_add(tree[0], tree[1]);"),
+            ("g1 mixed loop (shards_first)", g1, "var acc = xyzz_from_affine(bases[0]); for (var i = 1u; i < arrayLength(&bases); i++) { acc = xyzz_add_mixed(acc, bases[i]); } out[0] = acc;"),
+            ("g1 single mixed", g1, "out[0] = xyzz_add_mixed(tree[0], bases[0]);"),
+            ("g1 double", g1, "out[0] = xyzz_double(tree[0]);"),
+            ("g1 add unrolled x4", g1, "out[0] = xyzz_add(xyzz_add(tree[0], tree[1]), xyzz_add(tree[2], tree[3]));"),
+            ("fp2 add", g2, "data[1] = fp2_add(data[0], data[1]);"),
+            ("fp2 mul", g2, "data[1] = fp2_mul(data[0], data[1]);"),
+            ("fp2 square", g2, "data[1] = fp2_square(data[0]);"),
+            ("fp2 mul then add", g2, "data[2] = fp2_add(fp2_mul(data[0], data[1]), data[0]);"),
+            ("g2 single add", g2, "out[0] = xyzz2_add(tree[0], tree[1]);"),
+            ("g2 single mixed", g2, "out[0] = xyzz2_add_mixed(tree[0], bases[0]);"),
+        ];
+        for (name, prefix, body) in probes {
+            let io = if std::ptr::eq(prefix, g1) {
+                g1_io
+            } else {
+                g2_io
+            };
+            let source = format!("{prefix}\n{io}@compute @workgroup_size(64) fn probe(@builtin(global_invocation_id) gid: vec3<u32>) {{ if (gid.x != 0u) {{ return; }} {body} }}\n");
+            let started = Instant::now();
+            let Ok(gpu) = Gpu::new() else {
+                eprintln!("PROBE no GPU");
+                return;
+            };
+            let module = gpu
+                .device
+                .create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some(name),
+                    source: wgpu::ShaderSource::Wgsl(source.into()),
+                });
+            let _pipeline = gpu
+                .device
+                .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                    label: Some(name),
+                    layout: None,
+                    module: &module,
+                    entry_point: Some("probe"),
+                    compilation_options: Default::default(),
+                    cache: None,
+                });
+            let _ = gpu.device.poll(wgpu::PollType::Poll);
+            eprintln!(
+                "PROBE {name}: {} in {:.0} ms",
+                if gpu.failed() { "LOST" } else { "ok" },
+                started.elapsed().as_secs_f64() * 1000.0
+            );
+        }
+    }
+
+    /// Which of the pre-compiled SPIR-V kernels a driver links, each on a
+    /// fresh device (RINGIL_SPIRV=1 on a Vulkan host). Prints PROBE lines;
+    /// run it with --ignored on a new GPU.
+    #[test]
+    #[ignore]
+    fn spirv_kernel_probes() {
+        init_logger();
+        let g1 = <ark_bn254::G1Projective as Curve>::SPIRV.unwrap();
+        let g2 = <ark_bn254::G2Projective as Curve>::SPIRV.unwrap();
+        let names = ["shards_first", "shards_tree", "reduce_blocks"];
+        // RINGIL_PROBE selects probes by a substring of "<curve> <kernel>".
+        let filter = std::env::var("RINGIL_PROBE").unwrap_or_default();
+        for (curve, kernels) in [("g1", g1), ("g2", g2)] {
+            for (index, bytes) in kernels.iter().enumerate() {
+                if !format!("{curve} {}", names[index]).contains(&filter) {
+                    continue;
+                }
+                let Ok(gpu) = Gpu::new() else {
+                    eprintln!("PROBE no GPU");
+                    return;
+                };
+                if !gpu.spirv {
+                    eprintln!("PROBE no SPIR-V passthrough on {}", gpu.name);
+                    return;
+                }
+                // RINGIL_SPV_SUFFIX probes `$RINGIL_SPV_DIR/<kernel><suffix>.spv`
+                // files (another glslc build) in place of the built-in ones.
+                let file = std::env::var("RINGIL_SPV_SUFFIX").ok().map(|suffix| {
+                    let dir = std::env::var("RINGIL_SPV_DIR").unwrap_or_else(|_| "spv".into());
+                    let g2 = if curve == "g2" { "_g2" } else { "" };
+                    std::fs::read(format!("{dir}/{}{g2}{suffix}.spv", names[index]))
+                        .expect("spv file")
+                });
+                let bytes: &[u8] = file.as_deref().unwrap_or(bytes);
+                let started = Instant::now();
+                let _pipeline = spirv_pipeline(
+                    &gpu.device,
+                    gpu.cache(),
+                    names[index],
+                    bytes,
+                    msm_slots(index),
+                );
+                let _ = gpu.device.poll(wgpu::PollType::Poll);
+                eprintln!(
+                    "PROBE spirv {curve} {}: {} in {:.0} ms",
+                    names[index],
+                    if gpu.failed() { "LOST" } else { "ok" },
+                    started.elapsed().as_secs_f64() * 1000.0
+                );
+                if !gpu.failed() {
+                    gpu.save_cache();
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn g1_points_match_arkworks() {
+        check_points::<ark_bn254::G1Projective>("xyzz", "Xyzz", "Affine");
+    }
+
+    #[test]
+    fn g2_points_match_arkworks() {
+        check_points::<ark_bn254::G2Projective>("xyzz2", "Xyzz2", "Affine2");
+    }
+
+    #[test]
+    fn fq2_ops_match_arkworks() {
+        let source = concat!(
+            include_str!("../shaders/field.wgsl"),
+            "\n",
+            include_str!("../shaders/fp2.wgsl")
+        );
+        check::<ark_bn254::Fq2>(source, "fp2", "Fp2");
     }
 }
