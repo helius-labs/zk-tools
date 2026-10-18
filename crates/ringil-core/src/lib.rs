@@ -230,8 +230,18 @@ struct Gpu {
 /// else measured best on an M5 Pro through wgpu); the CPU takes the rest.
 #[cfg(gpu_wgpu)]
 fn g2_gpu_share() -> f64 {
+    // A browser has no environment: the build's RINGIL_WEB_G2_SHARE, else
+    // the default.
+    #[cfg(target_arch = "wasm32")]
+    return option_env!("RINGIL_WEB_G2_SHARE").and_then(|v| v.parse::<f64>().ok()).unwrap_or(WEB_G2_SHARE).clamp(0.0, 1.0);
+    #[allow(unreachable_code)]
     std::env::var("RINGIL_G2_GPU_SHARE").ok().and_then(|v| v.parse::<f64>().ok()).unwrap_or(WGPU_G2_SHARE).clamp(0.0, 1.0)
 }
+/// In a browser, where the CPU's share runs as WebAssembly: measured best
+/// in Chrome on an M5 Pro at 4 threads (8 → 2 288 ms, 24 → 2 636 ms, where
+/// 0.25 gave 348 and 935).
+#[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
+const WEB_G2_SHARE: f64 = 0.75;
 #[cfg(gpu_wgpu)]
 const WGPU_G2_SHARE: f64 = 0.25;
 
