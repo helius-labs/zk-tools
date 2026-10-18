@@ -26,8 +26,10 @@ const WIDTH: usize = 15;
 const HALF: usize = 1 << (WIDTH - 1);
 const WINDOWS: usize = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(WIDTH);
 const REDUCE_THREADS: usize = 256;
-/// Shard lengths: the first level over base points, later levels over sums.
-const FIRST_SHARD: usize = 128;
+/// Shard length. Witness scalars put most points in a few buckets, whose
+/// long runs are what the shards split; long shards there starve the GPU of
+/// threads (128 over base points left 24x2's G2 MSM at 227 ms, 32 at 151).
+const FIRST_SHARD: usize = 32;
 const SHARD: usize = 32;
 
 /// Stage times of one MSM, in milliseconds.
@@ -190,9 +192,24 @@ impl<C: Curve> Msm<C> {
 
     pub fn msm(&mut self, scalars: &[Fr]) -> (C, Timings) {
         assert_eq!(scalars.len(), self.n);
-        let mut timings = Timings::default();
         let started = Instant::now();
         self.sort(scalars);
+        self.finish(started)
+    }
+
+    /// The MSM over the scalars another MSM of the same length just sorted
+    /// (G1 B and G2 B share theirs): its sorted runs, no sort.
+    pub fn msm_sorted_as<D: Curve>(&mut self, other: &Msm<D>) -> (C, Timings) {
+        assert_eq!(other.n, self.n);
+        let started = Instant::now();
+        self.sorted = other.sorted.clone();
+        self.counts.clone_from(&other.counts);
+        self.starts.clone_from(&other.starts);
+        self.finish(started)
+    }
+
+    fn finish(&mut self, started: Instant) -> (C, Timings) {
+        let mut timings = Timings::default();
         let levels = self.plan();
         timings.sort_ms = elapsed(started);
 

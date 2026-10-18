@@ -114,6 +114,17 @@ struct Gpu {
     b2: std::sync::Mutex<ringil_metal::G2Msm>,
 }
 #[cfg(gpu)]
+fn gpu_trace(name: &str, t: ringil_metal::Timings) {
+    #[cfg(feature = "trace")]
+    eprintln!(
+        "TRACE gpu-msm-{name} sort {:.1} accumulate {:.1} reduce {:.1} ms",
+        t.sort_ms, t.accumulate_ms, t.reduce_ms
+    );
+    #[cfg(not(feature = "trace"))]
+    let _ = (name, t);
+}
+
+#[cfg(gpu)]
 impl Gpu {
     /// The five MSMs' bases on the GPU, unless RINGIL_GPU=0 or there is none.
     fn new(a: &[G1Affine], b: &[G1Affine], k: &[G1Affine], z: &[G1Affine], b2: &[G2Affine]) -> Option<Self> {
@@ -327,15 +338,21 @@ impl Key {
             let started = std::time::Instant::now();
             let (h, (ar, bs1, kr, bs2)) = std::thread::scope(|scope| {
                 let msms = scope.spawn(|| {
-                    let started = std::time::Instant::now();
-                    let ar = gpu.a.lock().unwrap().msm(sa).0;
-                    let started = trace("gpu-msm-a", started);
-                    let bs1 = gpu.b.lock().unwrap().msm(sb).0;
-                    let started = trace("gpu-msm-b", started);
-                    let kr = gpu.k.lock().unwrap().msm(sk).0;
-                    let started = trace("gpu-msm-k", started);
-                    let bs2 = gpu.b2.lock().unwrap().msm(sb).0;
-                    trace("gpu-msm-b2", started);
+                    let (ar, t) = gpu.a.lock().unwrap().msm(sa);
+                    gpu_trace("a", t);
+                    let b = gpu.b.lock().unwrap();
+                    let (bs1, t) = {
+                        let mut b = b;
+                        let r = b.msm(sb);
+                        drop(b);
+                        r
+                    };
+                    gpu_trace("b", t);
+                    // G2 B shares G1 B's scalars, and so its sorted runs.
+                    let (bs2, t) = gpu.b2.lock().unwrap().msm_sorted_as(&*gpu.b.lock().unwrap());
+                    gpu_trace("b2", t);
+                    let (kr, t) = gpu.k.lock().unwrap().msm(sk);
+                    gpu_trace("k", t);
                     (ar, bs1, kr, bs2)
                 });
                 let started = std::time::Instant::now();
@@ -344,7 +361,8 @@ impl Key {
                 (h, msms.join().expect("gpu msms"))
             });
             let started = trace("quotient+gpu-msms", started);
-            let hz = gpu.z.lock().unwrap().msm(&h).0;
+            let (hz, t) = gpu.z.lock().unwrap().msm(&h);
+            gpu_trace("z", t);
             trace("gpu-msm-z", started);
             let mut out = Vec::with_capacity(384);
             for p in [ar, bs1, kr, hz] {
