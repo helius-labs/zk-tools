@@ -70,57 +70,59 @@ template <typename E> inline xyzz_t<E> xyzz_shift(xyzz_t<E> p, uint bits) {
   return p;
 }
 
-// A window sum is the sum of m * B_m. Each lane reduces a block of `leaf`
-// buckets with a running sum; adjacent blocks merge as
-// V = V_left + V_right + len_left * S_right, len_left a power of two: five
-// levels of SIMD shuffles, then a threadgroup tree. (aeglos's msm_reduce_tree.)
+// A window sum is the sum of m * B_m over its buckets. Each thread takes a
+// block of `leaf` buckets after `first`: a running sum gives V, the sum of
+// (m - first) * B_m, and S, the sum of B_m; its share is V + first * S, by
+// double-and-add over first's bits. The shares then only add: across the
+// SIMD group by shuffles, across the threadgroup through memory; the host
+// adds the threadgroups' partial sums. The longest chain is leaf + 2 * 14
+// point operations plus a few additions, where merging blocks with shifts
+// had one scaling per tree level.
+template <typename E> inline xyzz_t<E> xyzz_mul_small(xyzz_t<E> p, uint k) {
+  xyzz_t<E> r = xyzz_infinity<E>();
+  if (k == 0)
+    return r;
+  for (int bit = 31 - int(clz(k)); bit >= 0; bit--) {
+    r = xyzz_double(r);
+    if ((k >> uint(bit)) & 1u)
+      r = xyzz_add(r, p);
+  }
+  return r;
+}
+
 template <typename E>
-inline void reduce(device const xyzz_t<E> *buckets, device xyzz_t<E> *sums,
-                   uint half_buckets, uint leaf, uint leaf_log, uint window, uint index,
-                   uint lane, uint simd, uint simds,
-                   threadgroup xyzz_t<E> *shared_s, threadgroup xyzz_t<E> *shared_v) {
+inline void reduce(device const xyzz_t<E> *buckets, device xyzz_t<E> *partials,
+                   uint half_buckets, uint leaf, uint per_window, uint gid, uint group,
+                   uint index, uint lane, uint simd, uint simds,
+                   threadgroup xyzz_t<E> *shared_t) {
+  const uint window = gid / per_window;
+  const uint first = (gid % per_window) * leaf;
   device const xyzz_t<E> *items = buckets + (ulong)window * half_buckets;
   xyzz_t<E> s = xyzz_infinity<E>();
   xyzz_t<E> v = xyzz_infinity<E>();
-  const uint first = index * leaf;
   for (uint j = leaf; j > 0; j--) {
     if (first + j <= half_buckets)
       s = xyzz_add(s, items[first + j - 1]);
     v = xyzz_add(v, s);
   }
-  for (uint level = 0; level < 5; level++) {
-    const ushort delta = ushort(1u << level);
-    const xyzz_t<E> s_right = xyzz_shuffle_down(s, delta);
-    const xyzz_t<E> v_right = xyzz_shuffle_down(v, delta);
-    if ((lane & ((2u << level) - 1)) == 0) {
-      v = xyzz_add(xyzz_add(v, v_right), xyzz_shift(s_right, leaf_log + level));
-      s = xyzz_add(s, s_right);
-    }
-  }
-  if (lane == 0) {
-    shared_s[simd] = s;
-    shared_v[simd] = v;
-  }
+  xyzz_t<E> share = xyzz_add(v, xyzz_mul_small(s, first));
+  for (ushort delta = 16; delta > 0; delta >>= 1)
+    share = xyzz_add(share, xyzz_shuffle_down(share, delta));
+  if (lane == 0)
+    shared_t[simd] = share;
   threadgroup_barrier(mem_flags::mem_threadgroup);
-  for (uint level = 0; (1u << level) < simds; level++) {
-    const uint left = index * (2u << level);
-    if (left < simds) {
-      const uint right = left + (1u << level);
-      const xyzz_t<E> s_right = shared_s[right];
-      shared_v[left] = xyzz_add(xyzz_add(shared_v[left], shared_v[right]),
-                                xyzz_shift(s_right, leaf_log + 5 + level));
-      shared_s[left] = xyzz_add(shared_s[left], s_right);
-    }
-    threadgroup_barrier(mem_flags::mem_threadgroup);
+  if (index == 0) {
+    xyzz_t<E> total = shared_t[0];
+    for (uint i = 1; i < simds; i++)
+      total = xyzz_add(total, shared_t[i]);
+    partials[group] = total;
   }
-  if (index == 0)
-    sums[window] = shared_v[0];
 }
 
 struct ReduceArgs {
   uint half_buckets;
   uint leaf;
-  uint leaf_log;
+  uint per_window;
   uint pad;
 };
 
@@ -148,17 +150,17 @@ struct ReduceArgs {
   }                                                                             \
   kernel void reduce_##suffix(                                                  \
       device const xyzz_t<E> *buckets [[buffer(0)]],                            \
-      device xyzz_t<E> *sums [[buffer(1)]],                                     \
+      device xyzz_t<E> *partials [[buffer(1)]],                                 \
       constant ReduceArgs &a [[buffer(2)]],                                     \
-      uint window [[threadgroup_position_in_grid]],                             \
+      uint gid [[thread_position_in_grid]],                                     \
+      uint group [[threadgroup_position_in_grid]],                              \
       uint index [[thread_position_in_threadgroup]],                            \
       uint lane [[thread_index_in_simdgroup]],                                  \
       uint simd [[simdgroup_index_in_threadgroup]],                             \
       uint simds [[simdgroups_per_threadgroup]]) {                              \
-    threadgroup xyzz_t<E> shared_s[32];                                         \
-    threadgroup xyzz_t<E> shared_v[32];                                         \
-    reduce<E>(buckets, sums, a.half_buckets, a.leaf, a.leaf_log, window, index, \
-              lane, simd, simds, shared_s, shared_v);                           \
+    threadgroup xyzz_t<E> shared_t[32];                                         \
+    reduce<E>(buckets, partials, a.half_buckets, a.leaf, a.per_window, gid,     \
+              group, index, lane, simd, simds, shared_t);                       \
   }
 
 BUCKET_KERNELS(fp_t, g1)

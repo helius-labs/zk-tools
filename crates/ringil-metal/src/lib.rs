@@ -169,7 +169,11 @@ fn width_for(n: usize) -> usize {
         _ => 15,
     }
 }
-const MOST_REDUCE_THREADS: usize = 1024;
+/// Threads per window in the reduction: each takes half / this many buckets.
+const REDUCE_THREADS_PER_WINDOW: usize = 512;
+/// Threads per threadgroup in the reduction; each threadgroup leaves one
+/// partial sum for the host to add.
+const REDUCE_GROUP: usize = 256;
 /// Shard length. Witness scalars put most points in a few buckets, whose
 /// long runs are what the shards split; long shards there starve the GPU of
 /// threads (128 over base points left 24x2's G2 MSM at 227 ms, 32 at 151).
@@ -285,7 +289,11 @@ pub struct Msm<C: Curve> {
     /// The shard trees and the buckets, shared with the key's other MSMs.
     scratch: std::sync::Arc<Scratch>,
     bucket_bytes: usize,
+    /// The reduction's partial sums, `groups` per window.
     sums: Buffer,
+    /// The reduction's shape: buckets per thread, threads per window, threads
+    /// per threadgroup, threadgroups per window.
+    reduce_shape: [usize; 4],
     /// Host copies of the bucket runs, for planning the levels.
     counts: Vec<u32>,
     starts: Vec<u32>,
@@ -413,6 +421,13 @@ impl<C: Curve> Msm<C> {
         let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
         scratch.reserve(&device, most * C::XYZZ_BYTES, buckets * C::XYZZ_BYTES);
+        let reduce_shape = {
+            let per_window = half.min(REDUCE_THREADS_PER_WINDOW);
+            let allowed = reduce.max_total_threads_per_threadgroup() as usize;
+            let allowed = 1usize << (usize::BITS - 1 - allowed.max(1).leading_zeros());
+            let group = per_window.min(REDUCE_GROUP).min(allowed);
+            [half / per_window, per_window, group, per_window / group]
+        };
         Ok((
             Self {
                 width,
@@ -424,7 +439,8 @@ impl<C: Curve> Msm<C> {
                 levels: Vec::new(),
                 scratch,
                 bucket_bytes: buckets * C::XYZZ_BYTES,
-                sums: shared(&device, windows * C::XYZZ_BYTES),
+                sums: shared(&device, windows * reduce_shape[3] * C::XYZZ_BYTES),
+                reduce_shape,
                 counts: vec![0; buckets],
                 starts: vec![0; buckets],
                 _curve: std::marker::PhantomData,
@@ -514,16 +530,7 @@ impl<C: Curve> Msm<C> {
         // One threadgroup per window, a thread per `leaf` buckets, at least
         // a full SIMD group and no more than the kernel's registers allow on
         // this GPU (a power of two, since `leaf` is a shift).
-        let allowed = self.reduce.max_total_threads_per_threadgroup() as usize;
-        let allowed = 1usize << (usize::BITS - 1 - allowed.max(1).leading_zeros());
-        let threads = self.half.min(MOST_REDUCE_THREADS).min(allowed).max(32);
-        let leaf = self.half / threads;
-        let args = [self.half as u32, leaf as u32, leaf.trailing_zeros(), 0u32];
-        encoder.set_compute_pipeline_state(&self.reduce);
-        encoder.set_buffer(0, Some(&scratch.buckets), 0);
-        encoder.set_buffer(1, Some(&self.sums), 0);
-        encoder.set_bytes(2, 16, args.as_ptr() as *const c_void);
-        encoder.dispatch_thread_groups(MTLSize::new(self.windows as u64, 1, 1), MTLSize::new(threads as u64, 1, 1));
+        self.encode_reduce(encoder, &scratch.buckets);
         encoder.end_encoding();
         command.commit();
         Pending {
@@ -531,6 +538,90 @@ impl<C: Curve> Msm<C> {
             submitted: Instant::now(),
             timings: Timings { sort_ms, ..Timings::default() },
         }
+    }
+
+    /// The GPU time of each stage of an MSM, in ms, each dispatch in a
+    /// command buffer of its own (the bench's profile): the first level of
+    /// shards (over the bases), the tree levels, and the window reduction;
+    /// plus each pipeline's thread limit, which falls as registers grow.
+    pub fn profile(&mut self, scalars: &[Fr]) -> String {
+        autoreleasepool(|| {
+            self.sort(scalars);
+            let chunks: Vec<Vec<usize>> = (0..self.windows.div_ceil(self.chunk_windows))
+                .map(|chunk| {
+                    let first = chunk * self.chunk_windows;
+                    self.plan(chunk, first..(first + self.chunk_windows).min(self.windows))
+                })
+                .collect();
+            let scratch = self.scratch.0.lock().unwrap();
+            let run = |encode: &dyn Fn(&metal::ComputeCommandEncoderRef)| -> f64 {
+                let command = self.queue.new_command_buffer();
+                let encoder = command.new_compute_command_encoder();
+                encode(encoder);
+                encoder.end_encoding();
+                command.commit();
+                command.wait_until_completed();
+                // SAFETY: GPUStartTime/GPUEndTime are CFTimeInterval
+                // properties of a completed command buffer.
+                let (start, end): (f64, f64) = unsafe { (msg_send![command, GPUStartTime], msg_send![command, GPUEndTime]) };
+                (end - start) * 1000.0
+            };
+            let (mut first_ms, mut tree_ms, mut first_shards, mut tree_shards) = (0.0, 0.0, 0usize, 0usize);
+            for (chunk, levels) in chunks.iter().enumerate() {
+                let last = levels.len() - 1;
+                for (level, shards) in levels.iter().enumerate() {
+                    let pipeline = if level == 0 { &self.first } else { &self.tree_pipeline };
+                    let ms = run(&|encoder| {
+                        encoder.set_compute_pipeline_state(pipeline);
+                        if level == 0 {
+                            encoder.set_buffer(0, Some(&self.bases), 0);
+                            encoder.set_buffer(1, Some(&self.sorted), 0);
+                        } else {
+                            encoder.set_buffer(0, Some(&scratch.tree[(level - 1) % 2]), 0);
+                        }
+                        let [start, count, dst] = &self.levels[chunk][level];
+                        encoder.set_buffer(2, Some(start), 0);
+                        encoder.set_buffer(3, Some(count), 0);
+                        encoder.set_buffer(4, Some(dst), 0);
+                        let out = if level == last { &scratch.buckets } else { &scratch.tree[level % 2] };
+                        encoder.set_buffer(5, Some(out), 0);
+                        let n = *shards as u32;
+                        encoder.set_bytes(6, 4, &n as *const u32 as *const c_void);
+                        let group = pipeline.thread_execution_width().min(n as u64).max(1);
+                        encoder.dispatch_threads(MTLSize::new(n as u64, 1, 1), MTLSize::new(group, 1, 1));
+                    });
+                    if level == 0 {
+                        first_ms += ms;
+                        first_shards += shards;
+                    } else {
+                        tree_ms += ms;
+                        tree_shards += shards;
+                    }
+                }
+            }
+            let reduce_ms = run(&|encoder| self.encode_reduce(encoder, &scratch.buckets));
+            let threads = self.reduce_shape[1];
+            format!(
+                "first {first_ms:.1} ms ({first_shards} shards, limit {}) tree {tree_ms:.1} ms ({tree_shards} shards, limit {}) reduce {reduce_ms:.1} ms ({threads} threads/window, limit {}) width {} windows {}",
+                self.first.max_total_threads_per_threadgroup(),
+                self.tree_pipeline.max_total_threads_per_threadgroup(),
+                self.reduce.max_total_threads_per_threadgroup(),
+                self.width,
+                self.windows
+            )
+        })
+    }
+
+    /// The window reduction: a thread per block of buckets, a partial sum
+    /// per threadgroup.
+    fn encode_reduce(&self, encoder: &metal::ComputeCommandEncoderRef, buckets: &Buffer) {
+        let [leaf, per_window, group, _] = self.reduce_shape;
+        let args = [self.half as u32, leaf as u32, per_window as u32, 0u32];
+        encoder.set_compute_pipeline_state(&self.reduce);
+        encoder.set_buffer(0, Some(buckets), 0);
+        encoder.set_buffer(1, Some(&self.sums), 0);
+        encoder.set_bytes(2, 16, args.as_ptr() as *const c_void);
+        encoder.dispatch_threads(MTLSize::new((self.windows * per_window) as u64, 1, 1), MTLSize::new(group as u64, 1, 1));
     }
 
     /// Waits for a submitted MSM and combines its window sums.
@@ -545,10 +636,14 @@ impl<C: Curve> Msm<C> {
             for _ in 0..self.width {
                 result.double_in_place();
             }
-            // SAFETY: `sums` holds `windows` xyzz points, written by the
-            // completed reduce dispatch.
-            let point = unsafe { std::slice::from_raw_parts(sums.add(window * C::XYZZ_BYTES), C::XYZZ_BYTES) };
-            result += C::xyzz_to_projective(point);
+            let groups = self.reduce_shape[3];
+            for group in 0..groups {
+                // SAFETY: `sums` holds `groups` xyzz points per window,
+                // written by the completed reduce dispatch.
+                let at = (window * groups + group) * C::XYZZ_BYTES;
+                let point = unsafe { std::slice::from_raw_parts(sums.add(at), C::XYZZ_BYTES) };
+                result += C::xyzz_to_projective(point);
+            }
         }
         timings.combine_ms = elapsed(started);
         Ok((result, timings))
