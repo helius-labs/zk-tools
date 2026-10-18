@@ -54,7 +54,7 @@ impl Quotient {
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         Ok((
             Self {
-                queue: device.new_command_queue(),
+                queue: crate::queue(&device),
                 dif,
                 dit,
                 scale,
@@ -74,7 +74,11 @@ impl Quotient {
     /// The quotient's coefficients times the denominator, bit-reversed, the
     /// first n - 1 of them (what the Z key has bases for), from evaluations
     /// of a, b and c over the domain (padded with zeros to n).
-    pub fn quotient(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> Vec<Fr> {
+    pub fn quotient(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> Result<Vec<Fr>, String> {
+        objc::rc::autoreleasepool(|| self.quotient_in_pool(a, b, c))
+    }
+
+    fn quotient_in_pool(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> Result<Vec<Fr>, String> {
         let n = self.n;
         // SAFETY: abc holds 3n Fr in shared storage; the GPU is idle on it.
         let values = unsafe { std::slice::from_raw_parts_mut(self.abc.contents() as *mut Fr, 3 * n) };
@@ -99,8 +103,8 @@ impl Quotient {
         self.scale_by(encoder, 0, &self.reverse_weights);
         encoder.end_encoding();
         command.commit();
-        command.wait_until_completed();
-        values[..n - 1].to_vec()
+        crate::completed(command)?;
+        Ok(values[..n - 1].to_vec())
     }
 
     fn dispatch(&self, encoder: &ComputeCommandEncoderRef, pipeline: &ComputePipelineState, threads: usize) {

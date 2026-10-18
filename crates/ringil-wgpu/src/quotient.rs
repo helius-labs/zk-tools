@@ -121,7 +121,7 @@ impl Quotient {
 
     /// The quotient's coefficients times the denominator, bit-reversed, the
     /// first n - 1, from evaluations of a, b and c (padded with zeros to n).
-    pub fn quotient(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> Vec<Fr> {
+    pub fn quotient(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> Result<Vec<Fr>, String> {
         let n = self.n;
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let zero = Fr::from(0u64);
@@ -161,12 +161,15 @@ impl Quotient {
         queue.submit([encoder.finish()]);
         let slice = self.staging.slice(..);
         slice.map_async(wgpu::MapMode::Read, |_| {});
-        device.poll(wgpu::PollType::wait_indefinitely()).expect("gpu");
-        let data = slice.get_mapped_range().expect("mapped quotient").to_vec();
+        device.poll(wgpu::PollType::wait_indefinitely()).map_err(|e| format!("gpu: {e}"))?;
+        if self.gpu.failed() {
+            return Err("the device reported an error".into());
+        }
+        let data = slice.get_mapped_range().map_err(|e| format!("quotient: {e}"))?.to_vec();
         self.staging.unmap();
         // SAFETY: n Fr in the kernel's encoding, four u64 limbs each.
         let values: &[Fr] = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const Fr, n) };
-        values[..n - 1].to_vec()
+        Ok(values[..n - 1].to_vec())
     }
 
     fn vector_binding(&self, offset: u64) -> wgpu::BindingResource<'_> {

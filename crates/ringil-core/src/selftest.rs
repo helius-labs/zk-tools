@@ -85,8 +85,8 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
     let g1 = |name: &str, scalars: &[Fr]| {
         let started = std::time::Instant::now();
         let cpu = msm_g1(&a_head[..head], &scalars[..head]);
-        let (got, _) = gpu.a.lock().unwrap().msm(scalars);
-        report(name, got == cpu, started)
+        let got = gpu.a.lock().unwrap().msm(scalars);
+        report(name, got.is_ok_and(|(got, _)| got == cpu), started)
     };
     let mut one = vec![Fr::ZERO; n_a];
     one[0] = Fr::ONE;
@@ -105,8 +105,8 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
     #[cfg(gpu)]
     if let Some(b2) = &gpu.b2 {
         let started = std::time::Instant::now();
-        let (got2, _) = b2.lock().unwrap().msm(&scalars[..n_b]);
-        msm &= report("gpu-msm-g2", got2 == cpu2, started);
+        let got2 = b2.lock().unwrap().msm(&scalars[..n_b]);
+        msm &= report("gpu-msm-g2", got2.is_ok_and(|(got2, _)| got2 == cpu2), started);
     }
 
     let started = std::time::Instant::now();
@@ -118,7 +118,7 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
     );
     let cpu = plan.quotient(a.clone(), b.clone(), c.clone());
     let got = gpu.quotient.lock().unwrap().quotient(&a, &b, &c);
-    let quotient = report("gpu-quotient", got == cpu, started);
+    let quotient = report("gpu-quotient", got.is_ok_and(|got| got == cpu), started);
     Verdict { msm, quotient }
 }
 
@@ -126,13 +126,13 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
 /// (trace builds: a wrong proof on a Galaxy A56 at the widest key passed
 /// every head check).
 #[cfg(gpu_any)]
-pub(crate) fn full_g1(name: &str, bases: &[G1Affine], mut gpu: impl FnMut(&[Fr]) -> G1Projective) -> bool {
+pub(crate) fn full_g1(name: &str, bases: &[G1Affine], mut gpu: impl FnMut(&[Fr]) -> Result<G1Projective, String>) -> bool {
     let started = std::time::Instant::now();
     let mut rng = rand::thread_rng();
     let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
     let cpu = msm_g1(bases, &scalars);
     let got = gpu(&scalars);
-    report(&format!("full-msm-{name}"), got == cpu, started)
+    report(&format!("full-msm-{name}"), got.is_ok_and(|got| got == cpu), started)
 }
 
 /// The CPU G2 MSM over the whole vector against arkworks'.

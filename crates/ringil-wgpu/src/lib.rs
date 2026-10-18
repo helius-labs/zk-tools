@@ -305,7 +305,7 @@ impl<C: Curve> Msm<C> {
         Ok((msm, compile_ms))
     }
 
-    pub fn msm(&mut self, scalars: &[Fr]) -> (C, Timings) {
+    pub fn msm(&mut self, scalars: &[Fr]) -> Result<(C, Timings), String> {
         let pending = self.start(scalars);
         self.finish(pending)
     }
@@ -401,9 +401,12 @@ impl<C: Curve> Msm<C> {
     }
 
     /// Waits for a submitted MSM and combines its window sums.
-    pub fn finish(&mut self, pending: Pending) -> (C, Timings) {
+    pub fn finish(&mut self, pending: Pending) -> Result<(C, Timings), String> {
         let mut timings = pending.timings;
-        self.gpu.device.poll(wgpu::PollType::wait_indefinitely()).expect("gpu");
+        self.gpu.device.poll(wgpu::PollType::wait_indefinitely()).map_err(|e| format!("gpu: {e}"))?;
+        if self.gpu.failed() {
+            return Err("the device reported an error".into());
+        }
         let data = self.staging.slice(..).get_mapped_range().expect("mapped sums").to_vec();
         self.staging.unmap();
         timings.gpu_ms = pending.submitted.elapsed().as_secs_f64() * 1000.0;
@@ -417,7 +420,7 @@ impl<C: Curve> Msm<C> {
             result += C::xyzz_to_projective(&data[window * C::XYZZ_BYTES..(window + 1) * C::XYZZ_BYTES]);
         }
         timings.combine_ms = started.elapsed().as_secs_f64() * 1000.0;
-        (result, timings)
+        Ok((result, timings))
     }
 
     /// Levels of shards over the sorted runs of a chunk of windows, into

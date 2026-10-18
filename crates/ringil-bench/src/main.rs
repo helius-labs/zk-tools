@@ -156,7 +156,7 @@ fn gpu_one<C: ringil_metal::Curve>(name: &str, bases: &[C::Affine], scalars: &[F
         let mut result = cpu;
         for _ in 0..3 {
             let started = Instant::now();
-            let (point, timings) = msm.msm(scalars);
+            let (point, timings) = msm.msm(scalars).expect("gpu msm");
             let total = started.elapsed().as_secs_f64() * 1000.0;
             result = point;
             if best.is_none_or(|(_, t)| total < t) {
@@ -226,7 +226,7 @@ fn wgpu_one<C: ringil_wgpu::Curve>(
     let mut best: Option<(ringil_wgpu::Timings, f64, C)> = None;
     for _ in 0..3 {
         let started = Instant::now();
-        let (point, timings) = msm.msm(scalars);
+        let (point, timings) = msm.msm(scalars).expect("gpu msm");
         let total = started.elapsed().as_secs_f64() * 1000.0;
         if best.as_ref().is_none_or(|(_, t, _)| total < *t) {
             best = Some((timings, total, point));
@@ -270,7 +270,7 @@ fn wgpu_quotient(dir: &Path) {
     let cpu_ms = started.elapsed().as_secs_f64() * 1000.0;
     let _ = quotient.quotient(&a, &b, &c);
     let started = Instant::now();
-    let actual = quotient.quotient(&a, &b, &c);
+    let actual = quotient.quotient(&a, &b, &c).expect("gpu quotient");
     let gpu_ms = started.elapsed().as_secs_f64() * 1000.0;
     assert_eq!(actual.len(), expected.len());
     let first_mismatch = actual.iter().zip(&expected).position(|(x, y)| x != y);

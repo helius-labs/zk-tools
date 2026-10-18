@@ -184,7 +184,7 @@ fn upload_g1(gpu: &mut Option<GpuBuilder>, which: usize, bases: Vec<G1Affine>) -
             #[cfg(feature = "trace")]
             {
                 let msm = builder.g1[which].as_mut().expect("uploaded");
-                selftest::full_g1(["a", "b", "k", "z"][which], &bases, |scalars| msm.msm(scalars).0);
+                selftest::full_g1(["a", "b", "k", "z"][which], &bases, |scalars| msm.msm(scalars).map(|r| r.0));
             }
             Ok(Vec::new())
         }
@@ -451,14 +451,14 @@ impl Key {
         trace("solve", started);
         let sa: Vec<_> = plan.a_indices.iter().map(|i| solution.w[*i]).collect();
         let sb: Vec<_> = plan.b_indices.iter().map(|i| solution.w[*i]).collect();
-        Ok(self.compute_parts(
+        self.compute_parts(
             &sa,
             &sb,
             &solution.w[plan.n_public..],
             solution.a,
             solution.b,
             solution.c,
-        ))
+        )
     }
     pub fn commitment(
         &self,
@@ -502,7 +502,7 @@ impl Key {
         let sa = frs(sa);
         let sb = frs(sb);
         let sk = frs(sk);
-        Ok(self.compute_parts(&sa, &sb, &sk, frs(a), frs(b), frs(c)))
+        self.compute_parts(&sa, &sb, &sk, frs(a), frs(b), frs(c)).map_err(|e| JsError::new(&e))
     }
 }
 impl Key {
@@ -514,7 +514,7 @@ impl Key {
         a: Vec<Fr>,
         b: Vec<Fr>,
         c: Vec<Fr>,
-    ) -> Vec<u8> {
+    ) -> Result<Vec<u8>, String> {
         #[cfg(gpu)]
         if let Some(gpu) = &self.gpu {
             // The MSMs whose scalars are ready run on the GPU, driven from a
@@ -525,8 +525,8 @@ impl Key {
             // The sorts run on the pool, so a CPU G2 MSM starts only once
             // they are done: otherwise it starves them for its whole run.
             let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
-            let (h, (ar, bs1, kr, bs2)) = std::thread::scope(|scope| {
-                let msms = scope.spawn(move || {
+            let (h, (ar, bs1, kr, bs2)) = std::thread::scope(|scope| -> Result<_, String> {
+                let msms = scope.spawn(move || -> Result<_, String> {
                     // Each MSM is submitted as soon as it is sorted, so the
                     // host sorts the next while the GPU runs it; G2 B shares
                     // G1 B's scalars, and so its sorted runs.
@@ -537,21 +537,21 @@ impl Key {
                     let pb2 = b2.as_mut().map(|b2| b2.start_sorted_as(&*b));
                     let pk = k.start(sk);
                     drop(sorted_tx);
-                    let (ar, t) = a.finish(pa);
+                    let (ar, t) = a.finish(pa)?;
                     gpu_trace("a", t.sort_ms, t.gpu_ms);
-                    let (bs1, t) = b.finish(pb);
+                    let (bs1, t) = b.finish(pb)?;
                     gpu_trace("b", t.sort_ms, t.gpu_ms);
                     let bs2 = match (b2.as_mut(), pb2) {
                         (Some(b2), Some(pb2)) => {
-                            let (bs2, t) = b2.finish(pb2);
+                            let (bs2, t) = b2.finish(pb2)?;
                             gpu_trace("b2", t.sort_ms, t.gpu_ms);
                             Some(bs2)
                         }
                         _ => None,
                     };
-                    let (kr, t) = k.finish(pk);
+                    let (kr, t) = k.finish(pk)?;
                     gpu_trace("k", t.sort_ms, t.gpu_ms);
-                    (ar, bs1, kr, bs2)
+                    Ok((ar, bs1, kr, bs2))
                 });
                 let cpu_b2 = gpu.b2.is_none().then(|| {
                     scope.spawn(move || {
@@ -566,15 +566,15 @@ impl Key {
                 let h = if !self.gpu_quotient || std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0") {
                     self.quotient(a, b, c)
                 } else {
-                    gpu.quotient.lock().unwrap().quotient(&a, &b, &c)
+                    gpu.quotient.lock().unwrap().quotient(&a, &b, &c)?
                 };
                 trace("quotient", started);
-                let (ar, bs1, kr, bs2) = msms.join().expect("gpu msms");
+                let (ar, bs1, kr, bs2) = msms.join().expect("gpu msms")?;
                 let bs2 = bs2.unwrap_or_else(|| cpu_b2.expect("a G2 MSM").join().expect("cpu msm"));
-                (h, (ar, bs1, kr, bs2))
-            });
+                Ok((h, (ar, bs1, kr, bs2)))
+            })?;
             let started = trace("quotient+gpu-msms", started);
-            let (hz, t) = gpu.z.lock().unwrap().msm(&h);
+            let (hz, t) = gpu.z.lock().unwrap().msm(&h)?;
             gpu_trace("z", t.sort_ms, t.gpu_ms);
             trace("gpu-msm-z", started);
             let mut out = Vec::with_capacity(384);
@@ -582,7 +582,7 @@ impl Key {
                 output_g1(&mut out, p)
             }
             output_g2(&mut out, bs2);
-            return out;
+            return Ok(out);
         }
         #[cfg(gpu_wgpu)]
         if let Some(gpu) = &self.gpu {
@@ -590,32 +590,32 @@ impl Key {
             // a thread of their own; the pool computes G2 meanwhile.
             let started = std::time::Instant::now();
             let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
-            let ((ar, bs1, kr, h), bs2) = std::thread::scope(|scope| {
-                let gpu_work = scope.spawn(move || {
+            let ((ar, bs1, kr, h), bs2) = std::thread::scope(|scope| -> Result<_, String> {
+                let gpu_work = scope.spawn(move || -> Result<_, String> {
                     // The three MSMs are sorted and submitted back to back,
                     // and only then does the CPU G2 MSM take the pool.
                     let (mut ma, mut mb, mut mk) = (gpu.a.lock().unwrap(), gpu.b.lock().unwrap(), gpu.k.lock().unwrap());
                     let (pa, pb, pk) = (ma.start(sa), mb.start(sb), mk.start(sk));
                     drop(sorted_tx);
-                    let (ar, t) = ma.finish(pa);
+                    let (ar, t) = ma.finish(pa)?;
                     gpu_trace("a", t.sort_ms, t.gpu_ms);
-                    let (bs1, t) = mb.finish(pb);
+                    let (bs1, t) = mb.finish(pb)?;
                     gpu_trace("b", t.sort_ms, t.gpu_ms);
-                    let (kr, t) = mk.finish(pk);
+                    let (kr, t) = mk.finish(pk)?;
                     gpu_trace("k", t.sort_ms, t.gpu_ms);
                     let started = std::time::Instant::now();
-                    let h = if self.gpu_quotient { gpu.quotient.lock().unwrap().quotient(&a, &b, &c) } else { self.quotient(a, b, c) };
+                    let h = if self.gpu_quotient { gpu.quotient.lock().unwrap().quotient(&a, &b, &c)? } else { self.quotient(a, b, c) };
                     trace("quotient", started);
-                    (ar, bs1, kr, h)
+                    Ok((ar, bs1, kr, h))
                 });
                 let _ = sorted_rx.recv();
                 let started = std::time::Instant::now();
                 let bs2 = msm_g2(&self.b2, sb);
                 trace("cpu-msm-b2", started);
-                (gpu_work.join().expect("gpu work"), bs2)
-            });
+                Ok((gpu_work.join().expect("gpu work")?, bs2))
+            })?;
             let started = trace("quotient+gpu-msms", started);
-            let (hz, t) = gpu.z.lock().unwrap().msm(&h);
+            let (hz, t) = gpu.z.lock().unwrap().msm(&h)?;
             gpu_trace("z", t.sort_ms, t.gpu_ms);
             trace("gpu-msm-z", started);
             let mut out = Vec::with_capacity(384);
@@ -623,7 +623,7 @@ impl Key {
                 output_g1(&mut out, p)
             }
             output_g2(&mut out, bs2);
-            return out;
+            return Ok(out);
         }
         let started = std::time::Instant::now();
         let h = self.quotient(a, b, c);
@@ -656,7 +656,7 @@ impl Key {
             output_g1(&mut out, p)
         }
         output_g2(&mut out, bs2);
-        out
+        Ok(out)
     }
     fn quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
         self.plan.quotient(a, b, c)

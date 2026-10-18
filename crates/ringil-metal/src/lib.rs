@@ -12,6 +12,7 @@ use ark_ec::{AdditiveGroup, CurveGroup};
 use ark_ff::{BigInt, PrimeField, Zero};
 #[cfg(not(metallib))]
 use metal::CompileOptions;
+use objc::rc::autoreleasepool;
 use objc::{msg_send, sel, sel_impl};
 use metal::{Buffer, CommandQueue, ComputePipelineState, Device, MTLResourceOptions, MTLSize};
 use rayon::prelude::*;
@@ -54,6 +55,31 @@ pub fn prefer_smaller_code() -> bool {
 
 pub fn smaller_code() -> bool {
     SMALLER_CODE.load(std::sync::atomic::Ordering::SeqCst) || std::env::var("RINGIL_METAL_SIZE").is_ok_and(|v| v == "1")
+}
+
+/// One command queue per process, shared by every MSM and quotient of
+/// every key: its command buffers execute in order, and an iPhone warned
+/// of forty open queues when each object had its own.
+pub(crate) fn queue(device: &Device) -> CommandQueue {
+    static QUEUE: std::sync::Mutex<Option<Shared<CommandQueue>>> = std::sync::Mutex::new(None);
+    let mut cache = QUEUE.lock().unwrap();
+    if let Some(queue) = &*cache {
+        return queue.0.clone();
+    }
+    let queue = device.new_command_queue();
+    *cache = Some(Shared(queue.clone()));
+    queue
+}
+
+/// A completed command buffer, or the error that aborted it: an iPhone 15
+/// under memory pressure aborted ours ("Internal Error") and the proof
+/// built from the stale sums was wrong.
+pub(crate) fn completed(command: &metal::CommandBufferRef) -> Result<(), String> {
+    command.wait_until_completed();
+    match command.status() {
+        metal::MTLCommandBufferStatus::Completed => Ok(()),
+        status => Err(format!("GPU command buffer {status:?}")),
+    }
 }
 
 /// A Metal object held across threads: Metal's objects are thread-safe,
@@ -271,7 +297,7 @@ impl<C: Curve> Msm<C> {
                 half,
                 windows,
                 chunk_windows,
-                queue: device.new_command_queue(),
+                queue: queue(&device),
                 sorted: shared(&device, n * windows * 4),
                 levels: Vec::new(),
                 tree: [shared(&device, most * C::XYZZ_BYTES), shared(&device, most * C::XYZZ_BYTES)],
@@ -291,7 +317,7 @@ impl<C: Curve> Msm<C> {
         ))
     }
 
-    pub fn msm(&mut self, scalars: &[Fr]) -> (C, Timings) {
+    pub fn msm(&mut self, scalars: &[Fr]) -> Result<(C, Timings), String> {
         let pending = self.start(scalars);
         self.finish(pending)
     }
@@ -317,6 +343,13 @@ impl<C: Curve> Msm<C> {
     }
 
     fn submit(&mut self, started: Instant) -> Pending {
+        // Command buffers and encoders are autoreleased, and a Rust thread
+        // has no pool: without one each proof leaked them, and with them
+        // every buffer of the key, until an iPhone's GPU ran out.
+        autoreleasepool(|| self.submit_in_pool(started))
+    }
+
+    fn submit_in_pool(&mut self, started: Instant) -> Pending {
         let chunks: Vec<Vec<usize>> = (0..self.windows.div_ceil(self.chunk_windows))
             .map(|chunk| {
                 let first = chunk * self.chunk_windows;
@@ -378,9 +411,9 @@ impl<C: Curve> Msm<C> {
     }
 
     /// Waits for a submitted MSM and combines its window sums.
-    pub fn finish(&mut self, pending: Pending) -> (C, Timings) {
+    pub fn finish(&mut self, pending: Pending) -> Result<(C, Timings), String> {
         let mut timings = pending.timings;
-        pending.command.wait_until_completed();
+        autoreleasepool(|| completed(&pending.command))?;
         timings.gpu_ms = elapsed(pending.submitted);
         let started = Instant::now();
         let sums = self.sums.contents() as *const u8;
@@ -395,7 +428,7 @@ impl<C: Curve> Msm<C> {
             result += C::xyzz_to_projective(point);
         }
         timings.combine_ms = elapsed(started);
-        (result, timings)
+        Ok((result, timings))
     }
 
     /// The levels of shards over the sorted runs of a chunk of windows,
@@ -512,12 +545,14 @@ impl<C: Curve> Msm<C> {
     }
 
     fn run(&self, encode: impl FnOnce(&metal::ComputeCommandEncoderRef)) {
-        let command = self.queue.new_command_buffer();
-        let encoder = command.new_compute_command_encoder();
-        encode(encoder);
-        encoder.end_encoding();
-        command.commit();
-        command.wait_until_completed();
+        autoreleasepool(|| {
+            let command = self.queue.new_command_buffer();
+            let encoder = command.new_compute_command_encoder();
+            encode(encoder);
+            encoder.end_encoding();
+            command.commit();
+            command.wait_until_completed();
+        })
     }
 
     pub fn device_name(&self) -> String {
