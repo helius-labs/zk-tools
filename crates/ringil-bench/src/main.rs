@@ -23,6 +23,9 @@ fn main() {
     if dir == "gpu" {
         return gpu(Path::new(&env::args().nth(2).expect("the dump directory")));
     }
+    if dir == "wgpu" {
+        return wgpu_bench(Path::new(&env::args().nth(2).expect("the dump directory")));
+    }
     let dir = Path::new(&dir);
     let rounds: usize = env::args().nth(2).map(|v| v.parse().unwrap()).unwrap_or(5);
     let head = read(dir, "head");
@@ -159,4 +162,48 @@ fn gpu_one<C: ringil_metal::Curve>(name: &str, bases: &[C::Affine], scalars: &[F
 #[cfg(not(any(target_os = "macos", target_os = "ios")))]
 fn gpu(_: &Path) {
     panic!("the GPU bench needs Metal");
+}
+
+/// The G1 MSMs of a dumped shape's B and Z through wgpu, random and skewed
+/// scalars, checked against the CPU.
+fn wgpu_bench(dir: &Path) {
+    let gpu = std::sync::Arc::new(ringil_wgpu::Gpu::new().expect("wgpu"));
+    let mut rng = rand::rngs::OsRng;
+    for name in ["b", "b skewed", "z"] {
+        let file = name.split(' ').next().unwrap();
+        let bases = decode_g1(&read(dir, file));
+        let scalars: Vec<Fr> = (0..bases.len())
+            .map(|i| match (name.ends_with("skewed"), i % 4) {
+                (true, 0) => Fr::from(1u64),
+                (true, 1) => Fr::from((i % 65536) as u64),
+                _ => Fr::rand(&mut rng),
+            })
+            .collect();
+        let started = Instant::now();
+        let (mut msm, compile_ms) = ringil_wgpu::G1Msm::new(gpu.clone(), &bases).expect("wgpu msm");
+        let upload_ms = started.elapsed().as_secs_f64() * 1000.0 - compile_ms;
+        let started = Instant::now();
+        let cpu = ringil_core::msm_g1(&bases, &scalars);
+        let cpu_ms = started.elapsed().as_secs_f64() * 1000.0;
+        let _ = msm.msm(&scalars);
+        let mut best: Option<(ringil_wgpu::Timings, f64, _)> = None;
+        for _ in 0..3 {
+            let started = Instant::now();
+            let (point, timings) = msm.msm(&scalars);
+            let total = started.elapsed().as_secs_f64() * 1000.0;
+            if best.as_ref().is_none_or(|(_, t, _)| total < *t) {
+                best = Some((timings, total, point));
+            }
+        }
+        let (t, total, point) = best.unwrap();
+        assert_eq!(point.into_affine(), cpu.into_affine(), "{name}: the wgpu MSM differs from the CPU");
+        println!(
+            "RINGIL wgpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} device_ms={:.0} combine_ms={:.1}",
+            bases.len(),
+            gpu.name,
+            t.sort_ms,
+            t.gpu_ms,
+            t.combine_ms
+        );
+    }
 }
