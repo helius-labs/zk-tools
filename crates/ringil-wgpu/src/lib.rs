@@ -1,4 +1,4 @@
-//! G1 MSMs through wgpu: one WGSL kernel set for Vulkan (Android), WebGPU
+//! G1 and G2 MSMs through wgpu: one WGSL kernel set for Vulkan (Android), WebGPU
 //! (the browser) and Metal. As ringil-metal: the host recodes the scalars
 //! into signed digits and counting-sorts the pairs into bucket runs; the
 //! GPU sums each run in shards, level by level, reduces each window in two
@@ -6,19 +6,94 @@
 //! device; the browser's asynchronous path is to come.
 use std::time::Instant;
 
-use ark_bn254::{Fq, Fr, G1Affine, G1Projective};
+use ark_bn254::{Fq, Fq2, Fr, G1Affine, G2Affine};
 use ark_ec::{AdditiveGroup, CurveGroup};
 use ark_ff::{BigInt, PrimeField, Zero};
 use rayon::prelude::*;
 use wgpu::util::DeviceExt;
 
-const MSM_SHADER: &str = concat!(
+const G1_SHADER: &str = concat!(
     include_str!("../shaders/field.wgsl"),
     "\n",
     include_str!("../shaders/xyzz.wgsl"),
     "\n",
     include_str!("../shaders/buckets.wgsl"),
 );
+const G2_SHADER: &str = concat!(
+    include_str!("../shaders/field.wgsl"),
+    "\n",
+    include_str!("../shaders/fp2.wgsl"),
+    "\n",
+    include_str!("../shaders/xyzz2.wgsl"),
+    "\n",
+    include_str!("../shaders/buckets2.wgsl"),
+);
+
+/// A curve the shaders have kernels for, with its point encodings.
+pub trait Curve: CurveGroup {
+    const AFFINE_BYTES: usize;
+    const XYZZ_BYTES: usize;
+    const SHADER: &'static str;
+    /// shards_first, shards_tree, reduce_blocks, reduce_windows.
+    const ENTRIES: [&'static str; 4];
+    fn encode(point: &Self::Affine, out: &mut Vec<u8>);
+    fn xyzz_to_projective(bytes: &[u8]) -> Self;
+}
+
+fn fq_bytes(v: &Fq, out: &mut Vec<u8>) {
+    for w in v.0 .0 {
+        out.extend_from_slice(&w.to_le_bytes());
+    }
+}
+
+impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
+    const AFFINE_BYTES: usize = 64;
+    const XYZZ_BYTES: usize = 128;
+    const SHADER: &'static str = G1_SHADER;
+    const ENTRIES: [&'static str; 4] = ["shards_first", "shards_tree", "reduce_blocks", "reduce_windows"];
+    fn encode(point: &G1Affine, out: &mut Vec<u8>) {
+        if point.infinity {
+            out.extend_from_slice(&[0u8; 64]);
+        } else {
+            fq_bytes(&point.x, out);
+            fq_bytes(&point.y, out);
+        }
+    }
+    fn xyzz_to_projective(bytes: &[u8]) -> Self {
+        let (x, y, zz, zzz) = (fq(&bytes[..32]), fq(&bytes[32..64]), fq(&bytes[64..96]), fq(&bytes[96..128]));
+        if zz.is_zero() {
+            return Self::ZERO;
+        }
+        Self::new_unchecked(x * zz, y * zzz, zz)
+    }
+}
+
+impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g2::Config> {
+    const AFFINE_BYTES: usize = 128;
+    const XYZZ_BYTES: usize = 256;
+    const SHADER: &'static str = G2_SHADER;
+    const ENTRIES: [&'static str; 4] = ["shards_first_g2", "shards_tree_g2", "reduce_blocks_g2", "reduce_windows_g2"];
+    fn encode(point: &G2Affine, out: &mut Vec<u8>) {
+        if point.infinity {
+            out.extend_from_slice(&[0u8; 128]);
+        } else {
+            for v in [point.x.c0, point.x.c1, point.y.c0, point.y.c1] {
+                fq_bytes(&v, out);
+            }
+        }
+    }
+    fn xyzz_to_projective(bytes: &[u8]) -> Self {
+        let fq2 = |at: usize| Fq2::new(fq(&bytes[at..at + 32]), fq(&bytes[at + 32..at + 64]));
+        let (x, y, zz, zzz) = (fq2(0), fq2(64), fq2(128), fq2(192));
+        if zz.is_zero() {
+            return Self::ZERO;
+        }
+        Self::new_unchecked(x * zz, y * zzz, zz)
+    }
+}
+
+pub type G1Msm = Msm<ark_bn254::G1Projective>;
+pub type G2Msm = Msm<ark_bn254::G2Projective>;
 const WORKGROUP: u32 = 64;
 const FIRST_SHARD: usize = 32;
 const SHARD: usize = 32;
@@ -68,8 +143,9 @@ impl Gpu {
     }
 }
 
-pub struct G1Msm {
+pub struct Msm<C: Curve> {
     gpu: std::sync::Arc<Gpu>,
+    _curve: std::marker::PhantomData<C>,
     width: usize,
     half: usize,
     windows: usize,
@@ -114,13 +190,13 @@ fn bytemuck_cast(values: &[u32]) -> &[u8] {
     unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, values.len() * 4) }
 }
 
-impl G1Msm {
-    pub fn new(gpu: std::sync::Arc<Gpu>, bases: &[G1Affine]) -> Result<(Self, f64), String> {
+impl<C: Curve> Msm<C> {
+    pub fn new(gpu: std::sync::Arc<Gpu>, bases: &[C::Affine]) -> Result<(Self, f64), String> {
         let device = &gpu.device;
         let started = Instant::now();
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("ringil msm"),
-            source: wgpu::ShaderSource::Wgsl(MSM_SHADER.into()),
+            source: wgpu::ShaderSource::Wgsl(C::SHADER.into()),
         });
         let pipeline = |entry: &str| {
             device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
@@ -132,20 +208,11 @@ impl G1Msm {
                 cache: None,
             })
         };
-        let (first, tree_pipeline, reduce_blocks, reduce_windows) =
-            (pipeline("shards_first"), pipeline("shards_tree"), pipeline("reduce_blocks"), pipeline("reduce_windows"));
+        let [first, tree_pipeline, reduce_blocks, reduce_windows] = C::ENTRIES.map(pipeline);
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
-        let mut raw = Vec::with_capacity(bases.len() * 64);
+        let mut raw = Vec::with_capacity(bases.len() * C::AFFINE_BYTES);
         for p in bases {
-            if p.infinity {
-                raw.extend_from_slice(&[0u8; 64]);
-            } else {
-                for v in [p.x, p.y] {
-                    for w in v.0 .0 {
-                        raw.extend_from_slice(&w.to_le_bytes());
-                    }
-                }
-            }
+            C::encode(p, &mut raw);
         }
         let n = bases.len();
         let width = width_for(n);
@@ -172,13 +239,13 @@ impl G1Msm {
                 bases: bases_buffer,
                 sorted: storage(device, "sorted", n * windows * 4),
                 levels: Vec::new(),
-                tree: [storage(device, "tree a", most * 128), storage(device, "tree b", most * 128)],
-                buckets: storage(device, "buckets", buckets * 128),
-                pairs: storage(device, "pairs", windows * blocks * 2 * 128),
-                sums: storage(device, "sums", windows * 128),
+                tree: [storage(device, "tree a", most * C::XYZZ_BYTES), storage(device, "tree b", most * C::XYZZ_BYTES)],
+                buckets: storage(device, "buckets", buckets * C::XYZZ_BYTES),
+                pairs: storage(device, "pairs", windows * blocks * 2 * C::XYZZ_BYTES),
+                sums: storage(device, "sums", windows * C::XYZZ_BYTES),
                 staging: device.create_buffer(&wgpu::BufferDescriptor {
                     label: Some("staging"),
-                    size: (windows * 128) as u64,
+                    size: (windows * C::XYZZ_BYTES) as u64,
                     usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
                     mapped_at_creation: false,
                 }),
@@ -187,12 +254,13 @@ impl G1Msm {
                 starts: vec![0; buckets],
                 most,
                 gpu,
+                _curve: std::marker::PhantomData,
             },
             compile_ms,
         ))
     }
 
-    pub fn msm(&mut self, scalars: &[Fr]) -> (G1Projective, Timings) {
+    pub fn msm(&mut self, scalars: &[Fr]) -> (C, Timings) {
         assert_eq!(scalars.len(), self.n);
         let mut timings = Timings::default();
         let started = Instant::now();
@@ -267,7 +335,7 @@ impl G1Msm {
             let workgroup = if std::ptr::eq(pipeline, &self.reduce_windows) { 1 } else { WORKGROUP as usize };
             pass.dispatch_workgroups(threads.div_ceil(workgroup) as u32, 1, 1);
         }
-        encoder.copy_buffer_to_buffer(&self.sums, 0, &self.staging, 0, (self.windows * 128) as u64);
+        encoder.copy_buffer_to_buffer(&self.sums, 0, &self.staging, 0, (self.windows * C::XYZZ_BYTES) as u64);
         queue.submit([encoder.finish()]);
         let slice = self.staging.slice(..);
         slice.map_async(wgpu::MapMode::Read, |_| {});
@@ -277,12 +345,12 @@ impl G1Msm {
         timings.gpu_ms = started.elapsed().as_secs_f64() * 1000.0;
 
         let started = Instant::now();
-        let mut result = G1Projective::ZERO;
+        let mut result = C::ZERO;
         for window in (0..self.windows).rev() {
             for _ in 0..self.width {
                 result.double_in_place();
             }
-            result += xyzz_to_projective(&data[window * 128..window * 128 + 128]);
+            result += C::xyzz_to_projective(&data[window * C::XYZZ_BYTES..(window + 1) * C::XYZZ_BYTES]);
         }
         timings.combine_ms = started.elapsed().as_secs_f64() * 1000.0;
         (result, timings)
@@ -393,12 +461,4 @@ impl G1Msm {
 
 fn fq(bytes: &[u8]) -> Fq {
     Fq::new_unchecked(BigInt(core::array::from_fn(|i| u64::from_le_bytes(bytes[i * 8..i * 8 + 8].try_into().unwrap()))))
-}
-
-fn xyzz_to_projective(bytes: &[u8]) -> G1Projective {
-    let (x, y, zz, zzz) = (fq(&bytes[..32]), fq(&bytes[32..64]), fq(&bytes[64..96]), fq(&bytes[96..128]));
-    if zz.is_zero() {
-        return G1Projective::ZERO;
-    }
-    G1Projective::new_unchecked(x * zz, y * zzz, zz)
 }
