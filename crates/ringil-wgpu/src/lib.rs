@@ -44,8 +44,8 @@ pub trait Curve: CurveGroup {
     const AFFINE_BYTES: usize;
     const XYZZ_BYTES: usize;
     const SHADER: &'static str;
-    /// shards_first, shards_tree, reduce_blocks, reduce_windows.
-    const ENTRIES: [&'static str; 4];
+    /// shards_first, shards_tree, reduce_blocks.
+    const ENTRIES: [&'static str; 3];
     fn encode(point: &Self::Affine, out: &mut Vec<u8>);
     fn xyzz_to_projective(bytes: &[u8]) -> Self;
 }
@@ -60,7 +60,7 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
     const AFFINE_BYTES: usize = 64;
     const XYZZ_BYTES: usize = 128;
     const SHADER: &'static str = G1_SHADER;
-    const ENTRIES: [&'static str; 4] = ["shards_first", "shards_tree", "reduce_blocks", "reduce_windows"];
+    const ENTRIES: [&'static str; 3] = ["shards_first", "shards_tree", "reduce_blocks"];
     fn encode(point: &G1Affine, out: &mut Vec<u8>) {
         if point.infinity {
             out.extend_from_slice(&[0u8; 64]);
@@ -82,7 +82,7 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g2::Config> {
     const AFFINE_BYTES: usize = 128;
     const XYZZ_BYTES: usize = 256;
     const SHADER: &'static str = G2_SHADER;
-    const ENTRIES: [&'static str; 4] = ["shards_first_g2", "shards_tree_g2", "reduce_blocks_g2", "reduce_windows_g2"];
+    const ENTRIES: [&'static str; 3] = ["shards_first_g2", "shards_tree_g2", "reduce_blocks_g2"];
     fn encode(point: &G2Affine, out: &mut Vec<u8>) {
         if point.infinity {
             out.extend_from_slice(&[0u8; 128]);
@@ -108,7 +108,8 @@ const WORKGROUP: u32 = 64;
 const FIRST_SHARD: usize = 32;
 const SHARD: usize = 32;
 /// Buckets per thread in the first reduction stage.
-const REDUCE_BLOCK: usize = 64;
+/// Threads per window in the reduction (as ringil-metal's, measured best).
+const REDUCE_THREADS_PER_WINDOW: usize = 512;
 
 fn width_for(n: usize) -> usize {
     let width = match n {
@@ -227,7 +228,8 @@ pub struct Msm<C: Curve> {
     first: wgpu::ComputePipeline,
     tree_pipeline: wgpu::ComputePipeline,
     reduce_blocks: wgpu::ComputePipeline,
-    reduce_windows: wgpu::ComputePipeline,
+    /// Buckets per reduction thread and threads per window.
+    reduce_shape: [usize; 2],
     bases: wgpu::Buffer,
     sorted: wgpu::Buffer,
     /// Windows per chunk: the shard trees are sized for one chunk and
@@ -237,7 +239,7 @@ pub struct Msm<C: Curve> {
     levels: Vec<Vec<[wgpu::Buffer; 4]>>,
     tree: [wgpu::Buffer; 2],
     buckets: wgpu::Buffer,
-    pairs: wgpu::Buffer,
+    /// The reduction's partial sums, a workgroup's each.
     sums: wgpu::Buffer,
     staging: wgpu::Buffer,
     reduce_uniform: wgpu::Buffer,
@@ -304,7 +306,7 @@ impl<C: Curve> Msm<C> {
                 return Err(format!("kernel {entry}: the device reported an error"));
             }
         }
-        let [first, tree_pipeline, reduce_blocks, reduce_windows]: [wgpu::ComputePipeline; 4] = pipelines.try_into().ok().expect("four kernels");
+        let [first, tree_pipeline, reduce_blocks]: [wgpu::ComputePipeline; 3] = pipelines.try_into().ok().expect("three kernels");
         for scope in [internal, validation] {
             if let Some(e) = popped(scope) {
                 return Err(format!("kernels: {e}"));
@@ -326,7 +328,9 @@ impl<C: Curve> Msm<C> {
         let per_window = n.div_ceil(FIRST_SHARD) + half;
         let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
-        let blocks = half.div_ceil(REDUCE_BLOCK);
+        let per_window = half.min(REDUCE_THREADS_PER_WINDOW);
+        let reduce_shape = [half / per_window, per_window];
+        let partials = windows * per_window / WORKGROUP as usize;
         let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let bases_buffer = storage(device, "bases", raw.len());
         gpu.queue.write_buffer(&bases_buffer, 0, &raw);
@@ -338,22 +342,21 @@ impl<C: Curve> Msm<C> {
                 first,
                 tree_pipeline,
                 reduce_blocks,
-                reduce_windows,
+                reduce_shape,
                 bases: bases_buffer,
                 sorted: storage(device, "sorted", n * windows * 4),
                 chunk_windows,
                 levels: Vec::new(),
                 tree: [storage(device, "tree a", most * C::XYZZ_BYTES), storage(device, "tree b", most * C::XYZZ_BYTES)],
                 buckets: storage(device, "buckets", buckets * C::XYZZ_BYTES),
-                pairs: storage(device, "pairs", windows * blocks * 2 * C::XYZZ_BYTES),
-                sums: storage(device, "sums", windows * C::XYZZ_BYTES),
+                sums: storage(device, "sums", partials * C::XYZZ_BYTES),
                 staging: device.create_buffer(&wgpu::BufferDescriptor {
                     label: Some("staging"),
-                    size: (windows * C::XYZZ_BYTES) as u64,
+                    size: (partials * C::XYZZ_BYTES) as u64,
                     usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
                     mapped_at_creation: false,
                 }),
-                reduce_uniform: uniform(&gpu, [half as u32, REDUCE_BLOCK as u32, REDUCE_BLOCK.trailing_zeros(), blocks as u32]),
+                reduce_uniform: uniform(&gpu, [half as u32, reduce_shape[0] as u32, per_window as u32, 0]),
                 counts: vec![0; buckets],
                 starts: vec![0; buckets],
                 most,
@@ -435,30 +438,22 @@ impl<C: Curve> Msm<C> {
             pass.dispatch_workgroups((*shards as u32).div_ceil(WORKGROUP), 1, 1);
         }
         }
-        let blocks = self.half.div_ceil(REDUCE_BLOCK);
-        for (pipeline, threads) in [(&self.reduce_blocks, self.windows * blocks), (&self.reduce_windows, self.windows)] {
-            let blocks_stage = std::ptr::eq(pipeline, &self.reduce_blocks);
-            let mut entries = vec![
-                wgpu::BindGroupEntry { binding: 1, resource: self.pairs.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 3, resource: self.reduce_uniform.as_entire_binding() },
-            ];
-            entries.push(if blocks_stage {
-                wgpu::BindGroupEntry { binding: 0, resource: self.buckets.as_entire_binding() }
-            } else {
-                wgpu::BindGroupEntry { binding: 2, resource: self.sums.as_entire_binding() }
-            });
+        {
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
-                layout: &pipeline.get_bind_group_layout(0),
-                entries: &entries,
+                layout: &self.reduce_blocks.get_bind_group_layout(0),
+                entries: &[
+                    wgpu::BindGroupEntry { binding: 0, resource: self.buckets.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 1, resource: self.sums.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 3, resource: self.reduce_uniform.as_entire_binding() },
+                ],
             });
             let mut pass = encoder.begin_compute_pass(&Default::default());
-            pass.set_pipeline(pipeline);
+            pass.set_pipeline(&self.reduce_blocks);
             pass.set_bind_group(0, &group, &[]);
-            let workgroup = if std::ptr::eq(pipeline, &self.reduce_windows) { 1 } else { WORKGROUP as usize };
-            pass.dispatch_workgroups(threads.div_ceil(workgroup) as u32, 1, 1);
+            pass.dispatch_workgroups((self.windows * self.reduce_shape[1] / WORKGROUP as usize) as u32, 1, 1);
         }
-        encoder.copy_buffer_to_buffer(&self.sums, 0, &self.staging, 0, (self.windows * C::XYZZ_BYTES) as u64);
+        encoder.copy_buffer_to_buffer(&self.sums, 0, &self.staging, 0, self.sums.size());
         queue.submit([encoder.finish()]);
         Pending { submitted: started, timings }
     }
@@ -483,7 +478,11 @@ impl<C: Curve> Msm<C> {
             for _ in 0..self.width {
                 result.double_in_place();
             }
-            result += C::xyzz_to_projective(&data[window * C::XYZZ_BYTES..(window + 1) * C::XYZZ_BYTES]);
+            let groups = self.reduce_shape[1] / WORKGROUP as usize;
+            for group in 0..groups {
+                let at = (window * groups + group) * C::XYZZ_BYTES;
+                result += C::xyzz_to_projective(&data[at..at + C::XYZZ_BYTES]);
+            }
         }
         timings.combine_ms = started.elapsed().as_secs_f64() * 1000.0;
         Ok((result, timings))

@@ -4,7 +4,7 @@
 const SIGN: u32 = 0x80000000u;
 
 struct Shards { count: u32, pad0: u32, pad1: u32, pad2: u32, }
-struct Reduce { half: u32, block: u32, block_log: u32, blocks: u32, }
+struct Reduce { half: u32, leaf: u32, per_window: u32, pad: u32, }
 
 @group(0) @binding(0) var<storage, read> bases: array<Affine>;
 @group(0) @binding(1) var<storage, read> sorted: array<u32>;
@@ -48,45 +48,47 @@ fn shards_tree(@builtin(global_invocation_id) gid: vec3<u32>) {
     out[dst[s]] = acc;
 }
 
-// A window sum is the sum of m * B_m. Stage one: each thread takes a block
-// of `block` buckets and writes its plain sum S and its weighted sum V
-// (weights 1..block within the block) to pairs[2 * index], pairs[2 *
-// index + 1]. Stage two: one thread per window combines its blocks: W =
-// sum of V_b + block * T, with T = sum over b of b * S_b, a running sum.
+// A window sum is the sum of m * B_m. Each thread takes a block of `leaf`
+// buckets after `first`: a running sum gives V, the sum of (m - first) *
+// B_m, and S, the sum of B_m; its share is V + first * S, by double-and-add
+// over first's bits. A workgroup adds its threads' shares in memory; the
+// host adds the workgroups' partial sums. (As ringil-metal's, without SIMD
+// shuffles.)
 @group(0) @binding(0) var<storage, read> buckets: array<Xyzz>;
-@group(0) @binding(1) var<storage, read_write> pairs: array<Xyzz>;
-@group(0) @binding(2) var<storage, read_write> sums: array<Xyzz>;
+@group(0) @binding(1) var<storage, read_write> partials: array<Xyzz>;
 @group(0) @binding(3) var<uniform> reduce: Reduce;
+var<workgroup> shares: array<Xyzz, 64>;
 
-@compute @workgroup_size(64)
-fn reduce_blocks(@builtin(global_invocation_id) gid: vec3<u32>) {
-    let index = gid.x;
-    let window = index / reduce.blocks;
-    let first = window * reduce.half + (index % reduce.blocks) * reduce.block;
-    if (first >= (window + 1u) * reduce.half) { return; }
-    var s = xyzz_infinity();
-    var v = xyzz_infinity();
-    for (var j = reduce.block; j > 0u; j--) {
-        s = xyzz_add(s, buckets[first + j - 1u]);
-        v = xyzz_add(v, s);
+fn xyzz_mul_small(p: Xyzz, k: u32) -> Xyzz {
+    var r = xyzz_infinity();
+    if (k == 0u) { return r; }
+    for (var bit = i32(31u - countLeadingZeros(k)); bit >= 0; bit--) {
+        r = xyzz_double(r);
+        if (((k >> u32(bit)) & 1u) == 1u) { r = xyzz_add(r, p); }
     }
-    pairs[2u * index] = s;
-    pairs[2u * index + 1u] = v;
+    return r;
 }
 
-@compute @workgroup_size(1)
-fn reduce_windows(@builtin(global_invocation_id) gid: vec3<u32>) {
-    let window = gid.x;
-    var total_v = xyzz_infinity();
-    var t = xyzz_infinity();
-    var acc = xyzz_infinity();
-    for (var b = reduce.blocks; b > 0u; b--) {
-        let at = 2u * (window * reduce.blocks + b - 1u);
-        total_v = xyzz_add(total_v, pairs[at + 1u]);
-        if (b > 1u) {
-            acc = xyzz_add(acc, pairs[at]);
-            t = xyzz_add(t, acc);
-        }
+@compute @workgroup_size(64)
+fn reduce_blocks(
+    @builtin(global_invocation_id) gid: vec3<u32>,
+    @builtin(local_invocation_index) local: u32,
+    @builtin(workgroup_id) group: vec3<u32>,
+) {
+    let window = gid.x / reduce.per_window;
+    let first = (gid.x % reduce.per_window) * reduce.leaf;
+    let base = window * reduce.half;
+    var s = xyzz_infinity();
+    var v = xyzz_infinity();
+    for (var j = reduce.leaf; j > 0u; j--) {
+        if (first + j <= reduce.half) { s = xyzz_add(s, buckets[base + first + j - 1u]); }
+        v = xyzz_add(v, s);
     }
-    sums[window] = xyzz_add(total_v, xyzz_shift(t, reduce.block_log));
+    shares[local] = xyzz_add(v, xyzz_mul_small(s, first));
+    workgroupBarrier();
+    for (var width = 32u; width > 0u; width >>= 1u) {
+        if (local < width) { shares[local] = xyzz_add(shares[local], shares[local + width]); }
+        workgroupBarrier();
+    }
+    if (local == 0u) { partials[group.x] = shares[0]; }
 }
