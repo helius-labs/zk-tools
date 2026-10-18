@@ -144,17 +144,24 @@ pub fn solver_image_version() -> u32 {
     solver::IMAGE_VERSION as u32
 }
 
-/// Where the G2 MSM runs when there is a GPU: RINGIL_G2=gpu|cpu, else the
-/// GPU on a Mac and the CPU on a phone. A Mac's GPU is far faster than its
-/// cores at it; on a phone the GPU is already the busier side, and the CPU
-/// G2 runs beside it for free: measured on an iPhone 17 Pro, G2 on its GPU
-/// made 8 → 2 proofs 550 → 750–940 ms, after a nine-minute kernel compile.
+/// The share of the G2 MSM's points the GPU takes when there is one; the
+/// CPU takes the rest at the same time. RINGIL_G2_GPU_SHARE sets it
+/// (RINGIL_G2=gpu|cpu: all or none); else 0.8 on a Mac, whose GPU is far
+/// faster than its cores at it (the idle cores' fifth saves 4–6 %), a quarter on an Apple9 phone (A19), whose
+/// GPU was idle for about 200 ms of a 535 ms 8 → 2 proof while the CPU's G2
+/// MSM took 443, and none on older phones, whose GPUs are busy and slower
+/// at G2 than their cores.
 #[cfg(gpu)]
-fn g2_on_gpu() -> bool {
+fn g2_gpu_share() -> f64 {
+    if let Some(share) = std::env::var("RINGIL_G2_GPU_SHARE").ok().and_then(|v| v.parse::<f64>().ok()) {
+        return share.clamp(0.0, 1.0);
+    }
     match std::env::var("RINGIL_G2").as_deref() {
-        Ok("gpu") => true,
-        Ok("cpu") => false,
-        _ => cfg!(target_os = "macos"),
+        Ok("gpu") => 1.0,
+        Ok("cpu") => 0.0,
+        _ if cfg!(target_os = "macos") => 0.8,
+        _ if ringil_metal::fast_gpu() => 0.25,
+        _ => 0.0,
     }
 }
 
@@ -165,6 +172,9 @@ struct Gpu {
     k: std::sync::Mutex<ringil_metal::G1Msm>,
     z: std::sync::Mutex<ringil_metal::G1Msm>,
     b2: Option<std::sync::Mutex<ringil_metal::G2Msm>>,
+    /// The G2 points the GPU takes: those before this index; the CPU takes
+    /// the rest, which is all the key keeps of the vector.
+    b2_cut: usize,
     quotient: std::sync::Mutex<ringil_metal::Quotient>,
 }
 #[cfg(gpu_wgpu)]
@@ -206,8 +216,8 @@ impl GpuBuilder {
         self.g1[which] = Some(ringil_wgpu::G1Msm::new(self.gpu.clone(), bases)?.0);
         Ok(())
     }
-    fn g2(&mut self, _bases: &[G2Affine]) -> Result<bool, String> {
-        Ok(false)
+    fn g2(&mut self, _bases: &[G2Affine]) -> Result<usize, String> {
+        Ok(0)
     }
     fn finish(self) -> Gpu {
         let [a, b, k, z] = self.g1.map(|msm| std::sync::Mutex::new(msm.expect("every G1 vector uploaded")));
@@ -240,8 +250,9 @@ fn upload_g2(gpu: &mut Option<GpuBuilder>, bases: Vec<G2Affine>) -> Result<Vec<G
     selftest::full_g2(&bases);
     match gpu {
         Some(builder) => {
-            let taken = builder.g2(&bases).map_err(|_| "the GPU could not take the key")?;
-            Ok(if taken { Vec::new() } else { bases })
+            // The CPU keeps the points after those the GPU took.
+            let cut = builder.g2(&bases).map_err(|_| "the GPU could not take the key")?;
+            Ok(if cut == 0 { bases } else { bases[cut..].to_vec() })
         }
         None => Ok(bases),
     }
@@ -262,6 +273,7 @@ struct GpuBuilder {
     quotient: ringil_metal::Quotient,
     g1: [Option<ringil_metal::G1Msm>; 4],
     b2: Option<ringil_metal::G2Msm>,
+    b2_cut: usize,
     /// The trees and buckets all the key's MSMs share.
     scratch: std::sync::Arc<ringil_metal::Scratch>,
 }
@@ -276,26 +288,29 @@ impl GpuBuilder {
         let (roots, inverse_roots, forward, reverse) = plan.tables()?;
         let quotient = ringil_metal::Quotient::new(plan.size(), &roots, &inverse_roots, &forward, &reverse).ok()?.0;
         let scratch = ringil_metal::Scratch::new().ok()?;
-        Some(Self { started, quotient, g1: [None, None, None, None], b2: None, scratch })
+        Some(Self { started, quotient, g1: [None, None, None, None], b2: None, b2_cut: 0, scratch })
     }
     fn g1(&mut self, which: usize, bases: &[G1Affine]) -> Result<(), String> {
         self.g1[which] = Some(ringil_metal::G1Msm::new_in(bases, self.scratch.clone())?.0);
         Ok(())
     }
     /// Whether the GPU took G2: a Mac's does, a phone's leaves it to the CPU.
-    fn g2(&mut self, bases: &[G2Affine]) -> Result<bool, String> {
-        if !g2_on_gpu() {
-            return Ok(false);
+    /// How many of the G2 points (the first) the GPU took.
+    fn g2(&mut self, bases: &[G2Affine]) -> Result<usize, String> {
+        let cut = (bases.len() as f64 * g2_gpu_share()).round() as usize;
+        if cut == 0 {
+            return Ok(0);
         }
         self.b2 = Some(ringil_metal::G2Msm::new_in(bases, self.scratch.clone())?.0);
-        Ok(true)
+        self.b2_cut = cut;
+        Ok(cut)
     }
     fn finish(self) -> Gpu {
         let [a, b, k, z] = self.g1.map(|msm| std::sync::Mutex::new(msm.expect("every G1 vector uploaded")));
         trace("gpu-upload", self.started);
         #[cfg(feature = "trace")]
         log::info!("RINGIL_TRACE gpu-allocated {} MB", ringil_metal::allocated_bytes() >> 20);
-        Gpu { a, b, k, z, b2: self.b2.map(std::sync::Mutex::new), quotient: std::sync::Mutex::new(self.quotient) }
+        Gpu { a, b, k, z, b2: self.b2.map(std::sync::Mutex::new), b2_cut: self.b2_cut, quotient: std::sync::Mutex::new(self.quotient) }
     }
 }
 
@@ -617,7 +632,16 @@ impl Key {
                     let pa = a.start(sa);
                     let pb = b.start(sb);
                     let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
-                    let pb2 = b2.as_mut().map(|b2| b2.start_sorted_as(&*b));
+                    let pb2 = b2.as_mut().map(|b2| {
+                        if gpu.b2_cut == sb.len() {
+                            b2.start_sorted_as(&*b)
+                        } else {
+                            // The CPU's points weigh nothing here.
+                            let mut mine = sb.to_vec();
+                            mine[gpu.b2_cut..].fill(Fr::ZERO);
+                            b2.start(&mine)
+                        }
+                    });
                     let pk = k.start(sk);
                     drop(sorted_tx);
                     let (ar, t) = a.finish(pa)?;
@@ -636,11 +660,12 @@ impl Key {
                     gpu_trace("k", t.sort_ms, t.gpu_ms);
                     Ok((ar, bs1, kr, bs2))
                 });
-                let cpu_b2 = gpu.b2.is_none().then(|| {
+                let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
+                let cpu_b2 = (cut < sb.len()).then(|| {
                     scope.spawn(move || {
                         let _ = sorted_rx.recv();
                         let started = std::time::Instant::now();
-                        let bs2 = msm_g2(&self.b2, sb);
+                        let bs2 = msm_g2(&self.b2, &sb[cut..]);
                         trace("cpu-msm-b2", started);
                         bs2
                     })
@@ -653,7 +678,13 @@ impl Key {
                 };
                 trace("quotient", started);
                 let (ar, bs1, kr, bs2) = msms.join().expect("gpu msms")?;
-                let bs2 = bs2.unwrap_or_else(|| cpu_b2.expect("a G2 MSM").join().expect("cpu msm"));
+                let cpu = cpu_b2.map(|cpu| cpu.join().expect("cpu msm"));
+                let bs2 = match (bs2, cpu) {
+                    (Some(gpu), Some(cpu)) => gpu + cpu,
+                    (Some(gpu), None) => gpu,
+                    (None, Some(cpu)) => cpu,
+                    (None, None) => unreachable!("a G2 MSM"),
+                };
                 Ok((h, (ar, bs1, kr, bs2)))
             })?;
             let started = trace("quotient+gpu-msms", started);

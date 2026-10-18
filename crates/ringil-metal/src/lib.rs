@@ -132,8 +132,12 @@ unsafe impl<T> Sync for Shared<T> {}
 fn compile(device: &Device, g2: bool, smaller: bool) -> Result<metal::Library, String> {
     #[cfg(metallib)]
     {
-        let _ = (g2, smaller);
-        let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/ringil.metallib"));
+        let _ = g2;
+        let bytes: &[u8] = if smaller {
+            include_bytes!(concat!(env!("OUT_DIR"), "/ringil-size.metallib"))
+        } else {
+            include_bytes!(concat!(env!("OUT_DIR"), "/ringil.metallib"))
+        };
         return device.new_library_with_data(bytes).map_err(|e| format!("metallib: {e}"));
     }
     #[cfg(not(metallib))]
