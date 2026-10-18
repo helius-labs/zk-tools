@@ -40,6 +40,35 @@ pub(crate) fn library(device: &Device, g2: bool) -> Result<metal::Library, Strin
     Ok(library)
 }
 
+/// A kernel's pipeline state, built once per process, library and level:
+/// building one per key left the driver's copies mapped into the process,
+/// tens of MB more with every key load.
+pub(crate) fn pipeline(device: &Device, g2: bool, name: &str) -> Result<metal::ComputePipelineState, String> {
+    type Pipelines = std::collections::HashMap<(String, bool, bool), Shared<metal::ComputePipelineState>>;
+    static PIPELINES: std::sync::Mutex<Option<Pipelines>> = std::sync::Mutex::new(None);
+    let key = (name.to_string(), g2, smaller_code());
+    if let Some(found) = PIPELINES.lock().unwrap().as_ref().and_then(|cache| cache.get(&key)) {
+        return Ok(found.0.clone());
+    }
+    let library = library(device, g2)?;
+    let function = library.get_function(name, None).map_err(|e| format!("{name}: {e}"))?;
+    let state = device.new_compute_pipeline_state_with_function(&function).map_err(|e| format!("{name}: {e}"))?;
+    PIPELINES.lock().unwrap().get_or_insert_with(Default::default).insert(key, Shared(state.clone()));
+    Ok(state)
+}
+
+/// Compiles the library and builds the G1 MSM and quotient pipelines, so
+/// that the first key load does not: an app can call it at start.
+pub fn warm() -> Result<(), String> {
+    autoreleasepool(|| {
+        let device = Device::system_default().ok_or("no Metal device")?;
+        for name in [G1Projective::FIRST, G1Projective::TREE, G1Projective::REDUCE, "fr_dif_stage", "fr_dit_stage", "fr_scale", "fr_pointwise"] {
+            pipeline(&device, false, name)?;
+        }
+        Ok(())
+    })
+}
+
 /// Whether the shaders compile at Metal's size optimization level rather
 /// than the default: aeglos found the default level corrupting a kernel,
 /// and two older iPhones' GPU MSMs disagreed with the CPU where a newer
@@ -86,12 +115,12 @@ pub(crate) fn completed(command: &metal::CommandBufferRef) -> Result<(), String>
 /// there its G2 MSM beats the CPU's by several times, where an A14's or
 /// A16's GPU does not.
 pub fn fast_gpu() -> bool {
-    Device::system_default().is_some_and(|device| device.supports_family(metal::MTLGPUFamily::Apple9))
+    autoreleasepool(|| Device::system_default().is_some_and(|device| device.supports_family(metal::MTLGPUFamily::Apple9)))
 }
 
 /// What the Metal device has allocated for this process, in bytes.
 pub fn allocated_bytes() -> u64 {
-    Device::system_default().map_or(0, |device| device.current_allocated_size())
+    autoreleasepool(|| Device::system_default().map_or(0, |device| device.current_allocated_size()))
 }
 
 /// A Metal object held across threads: Metal's objects are thread-safe,
@@ -267,6 +296,13 @@ fn shared(device: &Device, bytes: usize) -> Buffer {
     device.new_buffer(bytes.max(16) as u64, MTLResourceOptions::StorageModeShared)
 }
 
+/// Gives a buffer's memory back as it goes: released alone, the driver kept
+/// it pooled and charged to the process (1.2 GB on a Mac after a few key
+/// loads), which an iPhone counts against its memory limit.
+pub(crate) fn discard(buffer: &Buffer) {
+    buffer.set_purgeable_state(metal::MTLPurgeableState::Empty);
+}
+
 /// Buffers a key's MSMs share: the shard trees and the buckets. The host
 /// never writes them and command buffers on the one queue use them in
 /// turn, so one set per key does instead of one per MSM (four G1 MSMs'
@@ -278,6 +314,10 @@ struct ScratchBuffers {
 }
 impl Scratch {
     pub fn new() -> Result<std::sync::Arc<Self>, String> {
+        autoreleasepool(Self::new_in_pool)
+    }
+
+    fn new_in_pool() -> Result<std::sync::Arc<Self>, String> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let buffers = ScratchBuffers { tree: [shared(&device, 16), shared(&device, 16)], buckets: shared(&device, 16) };
         Ok(std::sync::Arc::new(Self(std::sync::Mutex::new(buffers))))
@@ -288,12 +328,34 @@ impl Scratch {
         let mut buffers = self.0.lock().unwrap();
         for tree in buffers.tree.iter_mut() {
             if (tree.length() as usize) < tree_bytes {
+                discard(tree);
                 *tree = shared(device, tree_bytes);
             }
         }
         if (buffers.buckets.length() as usize) < bucket_bytes {
+            discard(&buffers.buckets);
             buffers.buckets = shared(device, bucket_bytes);
         }
+    }
+}
+
+impl Drop for ScratchBuffers {
+    fn drop(&mut self) {
+        autoreleasepool(|| {
+            self.tree.iter().for_each(discard);
+            discard(&self.buckets);
+        })
+    }
+}
+
+impl<C: Curve> Drop for Msm<C> {
+    fn drop(&mut self) {
+        autoreleasepool(|| {
+            for buffer in [&self.bases, &self.sorted, &self.sums] {
+                discard(buffer);
+            }
+            self.levels.iter().flatten().flatten().for_each(discard);
+        })
     }
 }
 
@@ -306,28 +368,39 @@ impl<C: Curve> Msm<C> {
 
     /// As `new`, with the trees and buckets shared with other MSMs.
     pub fn new_in(bases: &[C::Affine], scratch: std::sync::Arc<Scratch>) -> Result<(Self, f64), String> {
+        // Building a pipeline autoreleases objects that hold on to the
+        // device's memory; a thread without a pool leaked them per key.
+        autoreleasepool(|| Self::new_in_pool(bases, scratch))
+    }
+
+    fn new_in_pool(bases: &[C::Affine], scratch: std::sync::Arc<Scratch>) -> Result<(Self, f64), String> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
-        let library = library(&device, C::G2)?;
-        let pipeline = |name: &str| {
-            let function = library.get_function(name, None).map_err(|e| format!("{name}: {e}"))?;
-            device
-                .new_compute_pipeline_state_with_function(&function)
-                .map_err(|e| format!("{name}: {e}"))
-        };
+        let pipeline = |name: &str| pipeline(&device, C::G2, name);
         let first = pipeline(C::FIRST)?;
         let tree_pipeline = pipeline(C::TREE)?;
         let reduce = pipeline(C::REDUCE)?;
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
-        let mut raw = Vec::with_capacity(bases.len() * C::AFFINE_BYTES);
-        for p in bases {
-            C::encode(p, &mut raw);
+        // Encoded straight into the buffer, a block of points at a time: a
+        // whole host copy of the vector per key load left the allocator
+        // holding hundreds of MB.
+        let bases_buffer = shared(&device, bases.len() * C::AFFINE_BYTES);
+        let mut raw = Vec::with_capacity(4096 * C::AFFINE_BYTES);
+        for (block, points) in bases.chunks(4096).enumerate() {
+            raw.clear();
+            for p in points {
+                C::encode(p, &mut raw);
+            }
+            // SAFETY: the shared buffer is the vector's size and no GPU work
+            // uses it yet; each block lands at its own offset.
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    raw.as_ptr(),
+                    (bases_buffer.contents() as *mut u8).add(block * 4096 * C::AFFINE_BYTES),
+                    raw.len(),
+                );
+            }
         }
-        let bases_buffer = device.new_buffer_with_data(
-            raw.as_ptr() as *const c_void,
-            raw.len() as u64,
-            MTLResourceOptions::StorageModeShared,
-        );
         let n = bases.len();
         let width = width_for(n);
         let half = 1 << (width - 1);

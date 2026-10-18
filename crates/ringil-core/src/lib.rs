@@ -22,11 +22,30 @@ pub mod groth16;
 // bench prints them, a phone's bench puts them in the device log.
 fn trace(label: &str, started: std::time::Instant) -> std::time::Instant {
     #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
-    log::info!("RINGIL_TRACE {label} {:.1} ms", started.elapsed().as_secs_f64() * 1000.0);
+    log::info!("RINGIL_TRACE {label} {:.1} ms{}", started.elapsed().as_secs_f64() * 1000.0, footprint_note());
     #[cfg(not(all(feature = "trace", not(target_arch = "wasm32"))))]
     let _ = (label, started);
     std::time::Instant::now()
 }
+/// The process's physical footprint, as a trace line's suffix (Apple; what
+/// iOS's memory limit counts), and its peak so far.
+#[cfg(all(feature = "trace", target_vendor = "apple"))]
+fn footprint_note() -> String {
+    let mut info: libc::rusage_info_v4 = unsafe { std::mem::zeroed() };
+    // SAFETY: the buffer is a rusage_info_v4, as RUSAGE_INFO_V4 asks for.
+    let status = unsafe {
+        libc::proc_pid_rusage(std::process::id() as i32, libc::RUSAGE_INFO_V4, &mut info as *mut _ as *mut libc::rusage_info_t)
+    };
+    if status != 0 {
+        return String::new();
+    }
+    format!(" fp {} peak {} MB", info.ri_phys_footprint >> 20, info.ri_lifetime_max_phys_footprint >> 20)
+}
+#[cfg(all(feature = "trace", not(target_vendor = "apple"), not(target_arch = "wasm32")))]
+fn footprint_note() -> String {
+    String::new()
+}
+
 pub use decompress::{decompress_g1, decompress_g2};
 
 fn words(data: &[u8]) -> BigInt<4> {
@@ -103,6 +122,24 @@ fn output_g2(out: &mut Vec<u8>, p: G2Projective) {
 // The version of the solver images Key::solver_image writes and
 // Key::set_solver_image reads, for a host to tell its images apart.
 #[wasm_bindgen]
+/// What the GPU has allocated for this process, in bytes (Metal only; zero
+/// elsewhere): the bench's stress mode watches it for leaks.
+pub fn gpu_allocated_bytes() -> u64 {
+    #[cfg(gpu)]
+    return ringil_metal::allocated_bytes();
+    #[cfg(not(gpu))]
+    0
+}
+
+/// Compiles the GPU kernels ahead of the first key load (Metal; nothing
+/// elsewhere). False when there is no GPU or it could not compile them.
+pub fn gpu_warm() -> bool {
+    #[cfg(gpu)]
+    return ringil_metal::warm().is_ok();
+    #[cfg(not(gpu))]
+    false
+}
+
 pub fn solver_image_version() -> u32 {
     solver::IMAGE_VERSION as u32
 }
@@ -458,6 +495,10 @@ impl Key {
         }
         let parsed = solver::Plan::from_image(image);
         trace("solver-image", started);
+        #[cfg(feature = "trace")]
+        if let Ok(plan) = &parsed {
+            log::info!("RINGIL_TRACE solver-plan-size {}", plan.footprint());
+        }
         if let Ok(plan) = parsed {
             if plan.matches(self.lengths[0], self.lengths[1], self.lengths[2], self.domain.size()) {
                 self.solver = Some(plan);

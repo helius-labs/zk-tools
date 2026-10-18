@@ -47,3 +47,7 @@ ringil-metal = { path = "../ringil-metal", optional = true }
 # source on wasm32-unknown-unknown.
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+# The process's footprint in trace lines.
+libc = "0.2"

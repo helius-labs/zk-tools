@@ -4,6 +4,7 @@
 //! the Go referee.
 //!
 //!   RAYON_NUM_THREADS=4 ringil-bench <dump dir> [rounds]
+//!   ringil-bench stress <cycles> <dump dir>...
 use std::{env, fs, path::Path, time::Instant};
 
 use ark_bn254::Fr;
@@ -39,6 +40,11 @@ fn main() {
     if dir == "wgpu" {
         return wgpu_bench(Path::new(&env::args().nth(2).expect("the dump directory")));
     }
+    if dir == "stress" {
+        let cycles = env::args().nth(2).expect("cycles").parse().expect("cycles");
+        let dirs: Vec<String> = env::args().skip(3).collect();
+        return stress(cycles, &dirs);
+    }
     if dir == "wgpu-quotient" {
         return wgpu_quotient(Path::new(&env::args().nth(2).expect("the dump directory")));
     }
@@ -51,18 +57,25 @@ fn main() {
     let fixed = ringil_core::groth16::FixedPoints::decode(&head[92..540]).expect("fixed points");
     let domain = &head[540..604];
     let (a, b, k, z, b2) = (read(dir, "a"), read(dir, "b"), read(dir, "k"), read(dir, "z"), read(dir, "b2"));
+    // What the host holds anyway (gnark's vectors, which the app hands over
+    // borrowed): the rest of the peak is the kernel's.
+    let inputs_mb = footprint_mb();
 
     let started = Instant::now();
     let mut key = Key::new(&a, &b, &k, &z, &b2, domain).expect("key");
     let key_ms = started.elapsed().as_millis();
     let started = Instant::now();
-    assert!(key.set_solver(&read(dir, "program"), &read(dir, "coefficients")), "solver plan");
-    // Experiment: RINGIL_SOLVER_IMAGE=1 reloads the solver from its image,
-    // as a host that cached it would.
-    if std::env::var("RINGIL_SOLVER_IMAGE").is_ok_and(|v| v == "1") {
-        let image = key.solver_image().expect("solver image");
-        eprintln!("TRACE solver-image-bytes {}", image.len());
-        assert!(key.set_solver_image(&image), "solver image");
+    // As the mobile SDK does: the solver from its cached image beside the
+    // dump when there is one (`solver-image`), else parsed and cached.
+    let cached = dir.join("solver-image");
+    match fs::read(&cached) {
+        Ok(image) => assert!(key.set_solver_image(&image), "solver image"),
+        Err(_) => {
+            assert!(key.set_solver(&read(dir, "program"), &read(dir, "coefficients")), "solver plan");
+            if env::var("RINGIL_CACHE_SOLVER").is_ok_and(|v| v == "1") {
+                fs::write(&cached, key.solver_image().expect("solver image")).unwrap();
+            }
+        }
     }
     let plan_ms = started.elapsed().as_millis();
     let witness = read(dir, "witness");
@@ -80,10 +93,11 @@ fn main() {
     sorted.sort_by(|x, y| x.partial_cmp(y).unwrap());
     let threads = env::var("RAYON_NUM_THREADS").unwrap_or_default();
     println!(
-        "RINGIL rust {} threads={threads} key_ms={key_ms} plan_ms={plan_ms} prove_ms_min={:.0} prove_ms_median={:.0} rounds={rounds}",
+        "RINGIL rust {} threads={threads} key_ms={key_ms} plan_ms={plan_ms} prove_ms_min={:.0} prove_ms_median={:.0} rounds={rounds} inputs_mb={inputs_mb} peak_footprint_mb={}",
         dir.file_name().unwrap().to_string_lossy(),
         sorted[0],
-        sorted[sorted.len() / 2]
+        sorted[sorted.len() / 2],
+        peak_footprint_mb()
     );
 }
 
@@ -286,4 +300,152 @@ fn wgpu_quotient(dir: &Path) {
         "RINGIL wgpu-quotient n={n} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={gpu_ms:.0} exact=true",
         gpu.name
     );
+}
+
+/// A key's inputs as a dump holds them.
+struct Dump {
+    name: String,
+    a: Vec<u8>,
+    b: Vec<u8>,
+    k: Vec<u8>,
+    z: Vec<u8>,
+    b2: Vec<u8>,
+    domain: Vec<u8>,
+    program: Vec<u8>,
+    coefficients: Vec<u8>,
+    witness: Vec<u8>,
+}
+
+impl Dump {
+    fn read(dir: &Path) -> Self {
+        let head = read(dir, "head");
+        assert_eq!(&head[..16], b"zolana-key-head1", "key image head");
+        Self {
+            name: dir.file_name().unwrap().to_string_lossy().into_owned(),
+            a: read(dir, "a"),
+            b: read(dir, "b"),
+            k: read(dir, "k"),
+            z: read(dir, "z"),
+            b2: read(dir, "b2"),
+            domain: head[540..604].to_vec(),
+            program: read(dir, "program"),
+            coefficients: read(dir, "coefficients"),
+            witness: read(dir, "witness"),
+        }
+    }
+
+    fn key(&self) -> Key {
+        let mut key = Key::build(&self.a, &self.b, &self.k, &self.z, &self.b2, &self.domain).expect("key");
+        assert!(key.set_solver(&self.program, &self.coefficients), "solver plan");
+        key
+    }
+}
+
+/// The process's physical footprint in MB: what iOS's memory limit counts
+/// (RSS also counts clean pages the system can drop).
+#[cfg(target_vendor = "apple")]
+fn footprint_mb() -> u64 {
+    let mut info: libc::rusage_info_v2 = unsafe { std::mem::zeroed() };
+    // SAFETY: the buffer is a rusage_info_v2, as RUSAGE_INFO_V2 asks for.
+    let status = unsafe {
+        libc::proc_pid_rusage(std::process::id() as i32, libc::RUSAGE_INFO_V2, &mut info as *mut _ as *mut libc::rusage_info_t)
+    };
+    if status == 0 { info.ri_phys_footprint >> 20 } else { 0 }
+}
+#[cfg(not(target_vendor = "apple"))]
+fn footprint_mb() -> u64 {
+    0
+}
+
+/// The process's largest physical footprint so far, in MB.
+#[cfg(target_vendor = "apple")]
+fn peak_footprint_mb() -> u64 {
+    let mut info: libc::rusage_info_v4 = unsafe { std::mem::zeroed() };
+    // SAFETY: the buffer is a rusage_info_v4, as RUSAGE_INFO_V4 asks for.
+    let status = unsafe {
+        libc::proc_pid_rusage(std::process::id() as i32, libc::RUSAGE_INFO_V4, &mut info as *mut _ as *mut libc::rusage_info_t)
+    };
+    if status == 0 { info.ri_lifetime_max_phys_footprint >> 20 } else { 0 }
+}
+#[cfg(not(target_vendor = "apple"))]
+fn peak_footprint_mb() -> u64 {
+    0
+}
+
+/// Loads every dump's key in turn, `cycles` times over, proving twice with
+/// each, as an app switching shapes does. The proof's MSM results are
+/// deterministic (the assembly adds the randomness), so each is compared
+/// with a CPU-only key's; the GPU's allocation and the process's physical
+/// footprint are printed per cycle. Exits non-zero on any mismatch, or when either rose on
+/// each of the last four cycles (a leak; warming allocators settle).
+fn stress(cycles: usize, dirs: &[String]) {
+    let dumps: Vec<Dump> = dirs.iter().map(|d| Dump::read(Path::new(d))).collect();
+    println!("STRESS dumps read: footprint_mb={}", footprint_mb());
+    // SAFETY: single-threaded here; the variable is read at key build.
+    unsafe { env::set_var("RINGIL_GPU", "0") };
+    let references: Vec<Vec<u8>> = dumps.iter().map(|d| d.key().solve(&d.witness).expect("cpu parts")).collect();
+    unsafe { env::remove_var("RINGIL_GPU") };
+    println!("STRESS references: footprint_mb={}", footprint_mb());
+    if env::var("RINGIL_STRESS_DETAIL").is_ok_and(|v| v == "1") {
+        let started = Instant::now();
+        let warmed = ringil_core::gpu_warm();
+        println!("STRESS gpu warm {warmed} in {} ms: footprint_mb={}", started.elapsed().as_millis(), footprint_mb());
+    }
+    let mut samples: Vec<(u64, u64)> = Vec::new();
+    let mut failed = false;
+    for cycle in 0..cycles {
+        let started = Instant::now();
+        let detail = env::var("RINGIL_STRESS_DETAIL").is_ok_and(|v| v == "1");
+        for (dump, reference) in dumps.iter().zip(&references) {
+            let key = dump.key();
+            if detail {
+                println!("STRESS   {} built: footprint_mb={} gpu_mb={}", dump.name, footprint_mb(), ringil_core::gpu_allocated_bytes() >> 20);
+                if let Some(seconds) = env::var("RINGIL_STRESS_PAUSE").ok().and_then(|v| v.parse().ok()) {
+                    std::thread::sleep(std::time::Duration::from_secs(seconds));
+                }
+            }
+            for round in 0..2 {
+                match key.solve(&dump.witness) {
+                    Ok(parts) if &parts == reference => {}
+                    Ok(_) => {
+                        println!("STRESS cycle {cycle} {} round {round}: MISMATCH with the CPU", dump.name);
+                        failed = true;
+                    }
+                    Err(e) => {
+                        println!("STRESS cycle {cycle} {} round {round}: error {e}", dump.name);
+                        failed = true;
+                    }
+                }
+            }
+            if detail {
+                println!("STRESS   {} proved: footprint_mb={}", dump.name, footprint_mb());
+                drop(key);
+                println!("STRESS   {} dropped: footprint_mb={} gpu_mb={}", dump.name, footprint_mb(), ringil_core::gpu_allocated_bytes() >> 20);
+            }
+        }
+        let (gpu_mb, rss) = (ringil_core::gpu_allocated_bytes() >> 20, footprint_mb());
+        println!("STRESS cycle {cycle} gpu_mb={gpu_mb} footprint_mb={rss} ms={}", started.elapsed().as_millis());
+        samples.push((gpu_mb, rss));
+    }
+    // A leak grows every cycle; allocators warming up grow for a few and
+    // settle. So: growth on each of the last four cycles, by more than 2 %
+    // in all, of the GPU's allocation or of the RSS.
+    if samples.len() >= 5 {
+        let tail = &samples[samples.len() - 5..];
+        for (name, at) in [("gpu_mb", 0usize), ("footprint_mb", 1)] {
+            let value = |s: &(u64, u64)| if at == 0 { s.0 } else { s.1 };
+            let rising = tail.windows(2).all(|w| value(&w[1]) > value(&w[0]));
+            let (from, to) = (value(&tail[0]), value(&tail[4]));
+            if rising && to > from + from / 50 {
+                println!("STRESS {name} rose every cycle, {from} to {to}: a leak");
+                failed = true;
+            }
+        }
+    } else {
+        println!("STRESS too few cycles to judge memory (5 at least)");
+    }
+    println!("STRESS {}", if failed { "FAILED" } else { "passed" });
+    if failed {
+        std::process::exit(1);
+    }
 }

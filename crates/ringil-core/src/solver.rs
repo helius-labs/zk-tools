@@ -129,6 +129,31 @@ pub(crate) struct Plan {
     n_constraints: usize,
     ops: Vec<Op>,
 }
+impl Plan {
+    /// The plan's sizes in memory, for the trace build.
+    #[allow(dead_code)]
+    pub(crate) fn footprint(&self) -> String {
+        use std::mem::size_of;
+        let bytes = [
+            ("indices", (self.a_indices.len() + self.b_indices.len()) * size_of::<usize>()),
+            ("coefficients", self.coefficients.len() * size_of::<Fr>()),
+            ("terms", self.terms.len() * size_of::<Term>()),
+            ("sums", self.sums.len() * size_of::<Sum>()),
+            ("ops", self.ops.len() * size_of::<Op>()),
+        ];
+        let parts: Vec<String> = bytes.iter().map(|(name, b)| format!("{name} {} MB", b >> 20)).collect();
+        format!(
+            "{} (terms {}, sums {}, ops {} of {} B, coefficients {})",
+            parts.join(", "),
+            self.terms.len(),
+            self.sums.len(),
+            self.ops.len(),
+            size_of::<Op>(),
+            self.coefficients.len()
+        )
+    }
+}
+
 pub(crate) struct Solution {
     pub(crate) w: Vec<Fr>,
     pub(crate) a: Vec<Fr>,

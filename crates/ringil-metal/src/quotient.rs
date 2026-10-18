@@ -25,6 +25,16 @@ pub struct Quotient {
     abc: Buffer,
 }
 
+impl Drop for Quotient {
+    fn drop(&mut self) {
+        objc::rc::autoreleasepool(|| {
+            for buffer in [&self.roots, &self.inverse_roots, &self.forward_weights, &self.reverse_weights, &self.abc] {
+                crate::discard(buffer);
+            }
+        })
+    }
+}
+
 fn upload(device: &Device, values: &[Fr]) -> Buffer {
     device.new_buffer_with_data(
         values.as_ptr() as *const c_void,
@@ -37,18 +47,16 @@ impl Quotient {
     /// `roots` and `inverse_roots` are the first n/2 powers of the domain
     /// generator and its inverse; the weights are the plan's, bit-reversed.
     pub fn new(n: usize, roots: &[Fr], inverse_roots: &[Fr], forward_weights: &[Fr], reverse_weights: &[Fr]) -> Result<(Self, f64), String> {
+        objc::rc::autoreleasepool(|| Self::new_in_pool(n, roots, inverse_roots, forward_weights, reverse_weights))
+    }
+
+    fn new_in_pool(n: usize, roots: &[Fr], inverse_roots: &[Fr], forward_weights: &[Fr], reverse_weights: &[Fr]) -> Result<(Self, f64), String> {
         assert!(n.is_power_of_two() && n >= 8);
         assert_eq!(roots.len(), n / 2);
         assert_eq!(forward_weights.len(), n);
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
-        let library = crate::library(&device, false)?;
-        let pipeline = |name: &str| {
-            let function = library.get_function(name, None).map_err(|e| format!("{name}: {e}"))?;
-            device
-                .new_compute_pipeline_state_with_function(&function)
-                .map_err(|e| format!("{name}: {e}"))
-        };
+        let pipeline = |name: &str| crate::pipeline(&device, false, name);
         let (dif, dit, scale, pointwise) =
             (pipeline("fr_dif_stage")?, pipeline("fr_dit_stage")?, pipeline("fr_scale")?, pipeline("fr_pointwise")?);
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
