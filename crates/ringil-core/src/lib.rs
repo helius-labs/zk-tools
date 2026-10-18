@@ -573,9 +573,10 @@ impl Key {
             },
         );
         trace("msms", started);
+        // Each MSM alone, on the whole pool, for its own share: this adds
+        // to the proof time, so only with RINGIL_TRACE_MSMS=1.
         #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
-        {
-            // Each MSM alone, on the whole pool, for its own share.
+        if std::env::var("RINGIL_TRACE_MSMS").is_ok_and(|v| v == "1") {
             for (label, bases, scalars) in [("msm-a", &self.a, sa), ("msm-b", &self.b, sb), ("msm-k", &self.k, sk), ("msm-z", &self.z, &h[..])] {
                 let started = std::time::Instant::now();
                 let _ = msm_g1(bases, scalars);
