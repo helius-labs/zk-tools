@@ -65,7 +65,7 @@ impl Quotient {
                 return Err(format!("kernel {entry}: the device reported an error"));
             }
         }
-        let [dif, dit, scale, pointwise]: [wgpu::ComputePipeline; 4] = pipelines.try_into().ok().expect("four kernels");
+        let [dif, dit, scale, pointwise]: [wgpu::ComputePipeline; 4] = pipelines.try_into().expect("four kernels");
         for scope in [internal, validation] {
             if let Some(e) = crate::popped(scope) {
                 return Err(format!("kernels: {e}"));

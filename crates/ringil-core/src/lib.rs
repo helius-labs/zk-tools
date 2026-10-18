@@ -6,7 +6,6 @@ use ark_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use ark_ec::{AdditiveGroup, CurveGroup};
 use ark_ff::{BigInt, Field};
 use ark_poly::{EvaluationDomain, Radix2EvaluationDomain};
-use rayon::prelude::*;
 use wasm_bindgen::prelude::*;
 
 /// The clock: std's natively, the page's in a browser, where std has none.
@@ -355,7 +354,7 @@ fn upload_g2(gpu: &mut Option<GpuBuilder>, bases: Vec<G2Affine>) -> Result<Vec<G
         None => Ok(bases),
     }
 }
-#[cfg(gpu_any)]
+#[cfg(all(gpu_any, not(target_arch = "wasm32")))]
 fn gpu_trace(name: &str, sort_ms: f64, gpu_ms: f64) {
     #[cfg(feature = "trace")]
     log::info!("RINGIL_TRACE gpu-msm-{name} sort {sort_ms:.1} gpu {gpu_ms:.1} ms");
@@ -419,8 +418,8 @@ pub struct Key {
     /// Whether the GPU's quotient agreed with the CPU's at load.
     #[cfg(gpu_any)]
     gpu_quotient: bool,
-    /// Whether the trace build has profiled this key's GPU stages.
-    #[cfg(feature = "trace")]
+    /// Whether the trace build has profiled this key's GPU stages (Metal).
+    #[cfg(all(feature = "trace", gpu))]
     profiled: std::sync::atomic::AtomicBool,
     /// The A, B and K vectors' lengths: the vectors themselves are empty
     /// when a GPU holds them.
@@ -572,7 +571,7 @@ impl Key {
             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
             #[cfg(gpu_any)]
             gpu_quotient,
-            #[cfg(feature = "trace")]
+            #[cfg(all(feature = "trace", gpu))]
             profiled: Default::default(),
             lengths,
             a,
@@ -792,10 +791,10 @@ impl Key {
             // thread of their own so that their waits hold no rayon worker,
             // while the GPU also takes the quotient and the pool computes
             // G2 when it is not on the GPU; Z's MSM follows the quotient.
-            let started = crate::time::Instant::now();
             // The sorts run on the pool, so a CPU G2 MSM starts only once
             // they are done: otherwise it starves them for its whole run.
             let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
+            // The quotient comes back too, for the trace build's profile.
             let (h, (ar, bs1, kr, bs2, hz)) = std::thread::scope(|scope| -> Result<_, String> {
                 let msms = scope.spawn(move || -> Result<_, String> {
                     // Each MSM is submitted as soon as it is sorted, so the
@@ -870,6 +869,8 @@ impl Key {
             })?;
             // The trace build profiles the GPU's stages once per key, with
             // this proof's scalars, after the proof (the next one pays it).
+            #[cfg(not(feature = "trace"))]
+            drop(h);
             #[cfg(feature = "trace")]
             if !self.profiled.swap(true, std::sync::atomic::Ordering::Relaxed) {
                 for (name, msm, scalars) in [("a", &gpu.a, sa), ("b", &gpu.b, sb), ("k", &gpu.k, sk), ("z", &gpu.z, &h[..])] {
@@ -1082,8 +1083,8 @@ mod gpu_tests {
             let random = |len: usize, rng: &mut StdRng| -> Vec<u8> { fr_bytes(&(0..len).map(|i| if i % 3 == 0 { Fr::from(1u64) } else { Fr::rand(rng) }).collect::<Vec<_>>()) };
             let (sa, sb, sk) = (random(n, &mut rng), random(n, &mut rng), random(n, &mut rng));
             let (ea, eb, ec) = (random(domain, &mut rng), random(domain, &mut rng), random(domain, &mut rng));
-            let expected = cpu.parts(&sa, &sb, &sk, &ea, &eb, &ec).ok().expect("cpu parts");
-            let got = gpu.parts(&sa, &sb, &sk, &ea, &eb, &ec).ok().expect("gpu parts");
+            let expected = cpu.parts(&sa, &sb, &sk, &ea, &eb, &ec).unwrap_or_else(|_| panic!("cpu parts"));
+            let got = gpu.parts(&sa, &sb, &sk, &ea, &eb, &ec).unwrap_or_else(|_| panic!("gpu parts"));
             assert_eq!(got, expected, "round {round}");
         }
     }

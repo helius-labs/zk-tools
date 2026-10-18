@@ -6,7 +6,10 @@ use rayon::prelude::*;
 use crate::simd::FrLanes;
 
 /// A quad: four consecutive elements of a transform, in lane form.
-pub type Quad = FrLanes;
+pub(crate) type Quad = FrLanes;
+/// A GPU transform's tables: roots, inverse roots, forward and reverse
+/// weights.
+pub type Tables = (Vec<Fr>, Vec<Fr>, Vec<Fr>, Vec<Fr>);
 
 // Quads per parallel task in the wide passes (1024 elements).
 const TASK: usize = 256;
@@ -63,7 +66,7 @@ impl Twiddles {
 }
 
 /// `values` as quads, the last padded with zeros.
-pub fn quads(values: &[Fr]) -> Vec<Quad> {
+pub(crate) fn quads(values: &[Fr]) -> Vec<Quad> {
     values
         .par_chunks(4)
         .map(|chunk| {
@@ -75,7 +78,7 @@ pub fn quads(values: &[Fr]) -> Vec<Quad> {
 }
 
 /// The first `n` elements of `quads`.
-pub fn scalars(quads: &[Quad], n: usize) -> Vec<Fr> {
+pub(crate) fn scalars(quads: &[Quad], n: usize) -> Vec<Fr> {
     let mut values: Vec<Fr> = quads.par_iter().flat_map_iter(|quad| quad.get()).collect();
     values.truncate(n);
     values
@@ -160,7 +163,7 @@ impl Plan {
     /// The tables a GPU transform needs: the first n/2 powers of the
     /// generator and of its inverse, and both bit-reversed weight vectors.
     /// None below eight elements.
-    pub fn tables(&self) -> Option<(Vec<Fr>, Vec<Fr>, Vec<Fr>, Vec<Fr>)> {
+    pub fn tables(&self) -> Option<Tables> {
         if self.small.is_some() {
             return None;
         }
@@ -176,7 +179,7 @@ impl Plan {
     }
 
     /// The coset evaluations of the polynomial with these domain evaluations.
-    pub fn transform(&self, mut values: Vec<Fr>) -> Vec<Quad> {
+    pub(crate) fn transform(&self, mut values: Vec<Fr>) -> Vec<Quad> {
         assert!(values.len() <= self.n);
         values.resize(self.n, Fr::ZERO);
         if let Some((domain, coset, _)) = &self.small {
@@ -212,7 +215,7 @@ impl Plan {
     }
     /// The quotient's coefficients, times the denominator, in bit-reversed
     /// order, from its coset evaluations.
-    pub fn finish(&self, mut values: Vec<Quad>) -> Vec<Fr> {
+    pub(crate) fn finish(&self, mut values: Vec<Quad>) -> Vec<Fr> {
         if let Some((_, coset, den)) = &self.small {
             let mut values = scalars(&values, self.n);
             coset.ifft_in_place(&mut values);
@@ -322,7 +325,7 @@ fn dif(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
             gap /= 2;
             level += 1;
         }
-        for pair in values.chunks_exact_mut(2) {
+        for pair in values.as_chunks_mut::<2>().0 {
             let (a, b) = pair.split_at_mut(1);
             dif_within(&mut a[0], &mut b[0], &twiddles.pair);
         }
@@ -341,7 +344,7 @@ fn dit(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
             .zip(twiddles.layers[level].par_chunks(TASK))
             .for_each(|((lo, hi), twiddles)| dit_quads(lo, hi, twiddles));
     } else {
-        for pair in values.chunks_exact_mut(2) {
+        for pair in values.as_chunks_mut::<2>().0 {
             let (a, b) = pair.split_at_mut(1);
             dit_within(&mut a[0], &mut b[0], &twiddles.pair);
         }

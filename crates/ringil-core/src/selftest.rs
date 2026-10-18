@@ -9,6 +9,7 @@ use ark_ff::{BigInteger, MontConfig, PrimeField, UniformRand};
 /// Points of each vector kept back for the checks.
 pub(crate) const HEAD: usize = 1024;
 
+#[cfg(gpu_any)]
 pub(crate) struct Verdict {
     pub msm: bool,
     pub quotient: bool,

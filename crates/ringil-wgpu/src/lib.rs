@@ -306,7 +306,7 @@ impl<C: Curve> Msm<C> {
                 return Err(format!("kernel {entry}: the device reported an error"));
             }
         }
-        let [first, tree_pipeline, reduce_blocks]: [wgpu::ComputePipeline; 3] = pipelines.try_into().ok().expect("three kernels");
+        let [first, tree_pipeline, reduce_blocks]: [wgpu::ComputePipeline; 3] = pipelines.try_into().expect("three kernels");
         for scope in [internal, validation] {
             if let Some(e) = popped(scope) {
                 return Err(format!("kernels: {e}"));

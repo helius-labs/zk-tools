@@ -8,7 +8,6 @@
 use std::{env, fs, path::Path, time::Instant};
 
 use ark_bn254::Fr;
-use ark_ec::CurveGroup;
 use ark_ff::{Field, UniformRand};
 use ringil_core::{decode_g1, decode_g2, Key};
 

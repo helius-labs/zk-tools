@@ -4,7 +4,7 @@ use ark_ec::{
     short_weierstrass::{Affine, Projective, SWCurveConfig},
     AdditiveGroup, AffineRepr, CurveGroup, VariableBaseMSM,
 };
-use ark_ff::{BigInt, Field, PrimeField, Zero};
+use ark_ff::{BigInt, Field, PrimeField};
 use rayon::prelude::*;
 // Signed-window Pippenger. Reduce each bucket as an affine addition tree,
 // sharing one inversion across all buckets at each level. Keep bucket storage
@@ -605,6 +605,7 @@ impl BatchInverse for Fq2 {
 
 #[cfg(test)]
 mod tests {
+    use ark_ff::Zero;
     use super::*;
     use ark_ec::PrimeGroup;
     fn check<P: SWCurveConfig<ScalarField = Fr>>()

@@ -5,6 +5,9 @@
 //! windows. Bases are uploaded once, in the kernel's memory layout (eight
 //! little-endian words per coordinate, Montgomery form), which is also the
 //! shader's.
+// objc's msg_send! checks a cfg (feature = "cargo-clippy") that cargo
+// does not declare.
+#![allow(unexpected_cfgs)]
 use std::{ffi::c_void, time::Instant};
 
 use ark_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
@@ -138,7 +141,7 @@ fn compile(device: &Device, g2: bool, smaller: bool) -> Result<metal::Library, S
         } else {
             include_bytes!(concat!(env!("OUT_DIR"), "/ringil.metallib"))
         };
-        return device.new_library_with_data(bytes).map_err(|e| format!("metallib: {e}"));
+        device.new_library_with_data(bytes).map_err(|e| format!("metallib: {e}"))
     }
     #[cfg(not(metallib))]
     {
@@ -773,16 +776,6 @@ impl<C: Curve> Msm<C> {
             });
     }
 
-    fn run(&self, encode: impl FnOnce(&metal::ComputeCommandEncoderRef)) {
-        autoreleasepool(|| {
-            let command = self.queue.new_command_buffer();
-            let encoder = command.new_compute_command_encoder();
-            encode(encoder);
-            encoder.end_encoding();
-            command.commit();
-            command.wait_until_completed();
-        })
-    }
 
     pub fn device_name(&self) -> String {
         self.device.name().to_string()
