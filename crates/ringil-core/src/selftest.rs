@@ -79,11 +79,23 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
     }
     let head = a_head.len().min(HEAD);
 
-    let started = std::time::Instant::now();
-    let cpu = msm_g1(a_head, &scalars[..head]);
-    let (got, _) = gpu.a.lock().unwrap().msm(&scalars[..n_a]);
+    // Three inputs that tell the kernels apart: one point (a shard and the
+    // reduction), one bucket of 64 equal digits (shards and their tree),
+    // and random scalars over the head (every window and sign).
+    let mut g1 = |name: &str, scalars: &[Fr]| {
+        let started = std::time::Instant::now();
+        let cpu = msm_g1(&a_head[..head], &scalars[..head]);
+        let (got, _) = gpu.a.lock().unwrap().msm(scalars);
+        report(name, got == cpu, started)
+    };
+    let mut one = vec![Fr::ZERO; n_a];
+    one[0] = Fr::ONE;
+    let mut bucket = vec![Fr::ZERO; n_a];
+    for s in bucket.iter_mut().take(head.min(64)) {
+        *s = Fr::from(5u64);
+    }
     #[cfg_attr(not(gpu), allow(unused_mut))]
-    let mut msm = report("gpu-msm-g1", got == cpu, started);
+    let mut msm = g1("gpu-msm-g1-one", &one) & g1("gpu-msm-g1-bucket", &bucket) & g1("gpu-msm-g1-random", &scalars[..n_a]);
 
     let started = std::time::Instant::now();
     let head2 = b2_head.len().min(HEAD);

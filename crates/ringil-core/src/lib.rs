@@ -349,6 +349,15 @@ impl Key {
                         let mut finished = builder.finish();
                         let verdict = selftest::gpu(&mut finished, &plan, &a_head, &b2_head, lengths[0], lengths[1]);
                         if !verdict.msm {
+                            drop(finished);
+                            // With Metal, once more with the shaders compiled at
+                            // the size level, where aeglos found the default
+                            // level's compiler at fault.
+                            #[cfg(gpu)]
+                            if ringil_metal::prefer_smaller_code() {
+                                trace("gpu-retry-smaller-code", std::time::Instant::now());
+                                gpu = GpuBuilder::open(&plan);
+                            }
                             continue;
                         }
                         gpu_quotient = verdict.quotient;

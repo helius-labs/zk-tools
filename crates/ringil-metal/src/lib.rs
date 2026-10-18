@@ -12,6 +12,7 @@ use ark_ec::{AdditiveGroup, CurveGroup};
 use ark_ff::{BigInt, PrimeField, Zero};
 #[cfg(not(metallib))]
 use metal::CompileOptions;
+use objc::{msg_send, sel, sel_impl};
 use metal::{Buffer, CommandQueue, ComputePipelineState, Device, MTLResourceOptions, MTLSize};
 use rayon::prelude::*;
 
@@ -26,14 +27,33 @@ pub use quotient::Quotient;
 /// compilations the way a Mac does, and a key makes five or six objects
 /// from the same library. One system device is assumed.
 pub(crate) fn library(device: &Device, g2: bool) -> Result<metal::Library, String> {
-    static LIBRARIES: std::sync::Mutex<[Option<Shared<metal::Library>>; 2]> = std::sync::Mutex::new([None, None]);
+    static LIBRARIES: std::sync::Mutex<[Option<Shared<metal::Library>>; 4]> = std::sync::Mutex::new([None, None, None, None]);
+    let smaller = smaller_code();
+    let slot = g2 as usize + 2 * smaller as usize;
     let mut cache = LIBRARIES.lock().unwrap();
-    if let Some(library) = &cache[g2 as usize] {
+    if let Some(library) = &cache[slot] {
         return Ok(library.0.clone());
     }
-    let library = compile(device, g2)?;
-    cache[g2 as usize] = Some(Shared(library.clone()));
+    let library = compile(device, g2, smaller)?;
+    cache[slot] = Some(Shared(library.clone()));
     Ok(library)
+}
+
+/// Whether the shaders compile at Metal's size optimization level rather
+/// than the default: aeglos found the default level corrupting a kernel,
+/// and two older iPhones' GPU MSMs disagreed with the CPU where a newer
+/// one's agreed. A host switches after such a mismatch; RINGIL_METAL_SIZE=1
+/// switches from the start. Libraries are cached per level.
+static SMALLER_CODE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+/// Switches to the size level for the libraries compiled from now on; false
+/// when it was already on, so a host does not retry forever.
+pub fn prefer_smaller_code() -> bool {
+    !SMALLER_CODE.swap(true, std::sync::atomic::Ordering::SeqCst)
+}
+
+pub fn smaller_code() -> bool {
+    SMALLER_CODE.load(std::sync::atomic::Ordering::SeqCst) || std::env::var("RINGIL_METAL_SIZE").is_ok_and(|v| v == "1")
 }
 
 /// A Metal object held across threads: Metal's objects are thread-safe,
@@ -42,17 +62,22 @@ struct Shared<T>(T);
 unsafe impl<T> Send for Shared<T> {}
 unsafe impl<T> Sync for Shared<T> {}
 
-fn compile(device: &Device, g2: bool) -> Result<metal::Library, String> {
+fn compile(device: &Device, g2: bool, smaller: bool) -> Result<metal::Library, String> {
     #[cfg(metallib)]
     {
-        let _ = g2;
+        let _ = (g2, smaller);
         let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/ringil.metallib"));
         return device.new_library_with_data(bytes).map_err(|e| format!("metallib: {e}"));
     }
     #[cfg(not(metallib))]
     {
         let source = if g2 { format!("{SHADER}\nBUCKET_KERNELS(fp2_t, g2)\n") } else { SHADER.to_string() };
-        device.new_library_with_source(&source, &CompileOptions::new()).map_err(|e| format!("shader: {e}"))
+        let options = CompileOptions::new();
+        if smaller {
+            // MTLLibraryOptimizationLevelSize; metal-rs has no setter for it.
+            let _: () = unsafe { msg_send![&*options, setOptimizationLevel: 1i64] };
+        }
+        device.new_library_with_source(&source, &options).map_err(|e| format!("shader: {e}"))
     }
 }
 
