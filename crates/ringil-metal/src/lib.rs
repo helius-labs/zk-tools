@@ -82,6 +82,13 @@ pub(crate) fn completed(command: &metal::CommandBufferRef) -> Result<(), String>
     }
 }
 
+/// Whether the GPU is of Apple's ninth family or later (A19, M-series):
+/// there its G2 MSM beats the CPU's by several times, where an A14's or
+/// A16's GPU does not.
+pub fn fast_gpu() -> bool {
+    Device::system_default().is_some_and(|device| device.supports_family(metal::MTLGPUFamily::Apple9))
+}
+
 /// What the Metal device has allocated for this process, in bytes.
 pub fn allocated_bytes() -> u64 {
     Device::system_default().map_or(0, |device| device.current_allocated_size())

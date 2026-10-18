@@ -108,14 +108,16 @@ pub fn solver_image_version() -> u32 {
 }
 
 /// Where the G2 MSM runs when there is a GPU: RINGIL_G2=gpu|cpu, else the
-/// GPU on a Mac, whose GPU is far faster than its cores at it, and the CPU
-/// on a phone, where the cores are otherwise idle and the G2 kernels are
-/// the slow compile and the large buffers.
+/// GPU where it is of Apple's ninth family or later (a Mac's, an A19's:
+/// several times faster than the cores at it) and the CPU on older phones,
+/// whose GPUs are slower at G2 than their cores and whose G2 kernels take
+/// minutes to compile.
+#[cfg(gpu)]
 fn g2_on_gpu() -> bool {
     match std::env::var("RINGIL_G2").as_deref() {
         Ok("gpu") => true,
         Ok("cpu") => false,
-        _ => cfg!(target_os = "macos"),
+        _ => ringil_metal::fast_gpu(),
     }
 }
 
