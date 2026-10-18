@@ -21,6 +21,8 @@ pub mod fft;
 pub mod groth16;
 mod msm;
 #[cfg(not(target_arch = "wasm32"))]
+mod msm_affine;
+#[cfg(not(target_arch = "wasm32"))]
 mod selftest;
 mod simd;
 mod solver;
@@ -1155,6 +1157,11 @@ impl Key {
 pub fn msm_g1(bases: &[G1Affine], scalars: &[Fr]) -> G1Projective {
     if bases.is_empty() {
         G1Projective::ZERO
+    } else if affine_msm() {
+        #[cfg(not(target_arch = "wasm32"))]
+        return msm_affine::msm(bases, scalars);
+        #[allow(unreachable_code)]
+        msm::msm(bases, scalars)
     } else {
         msm::msm(bases, scalars)
     }
@@ -1162,9 +1169,22 @@ pub fn msm_g1(bases: &[G1Affine], scalars: &[Fr]) -> G1Projective {
 pub fn msm_g2(bases: &[G2Affine], scalars: &[Fr]) -> G2Projective {
     if bases.is_empty() {
         G2Projective::ZERO
+    } else if affine_msm() {
+        #[cfg(not(target_arch = "wasm32"))]
+        return msm_affine::msm(bases, scalars);
+        #[allow(unreachable_code)]
+        msm::msm(bases, scalars)
     } else {
         msm::msm(bases, scalars)
     }
+}
+
+/// Which CPU MSM runs: natively the batch-affine one (on a Galaxy-class
+/// phone's Cortex-A78 it proved 2 → 2 in 623 ms against the lane form's
+/// 988, an M5 Pro the same), unless RINGIL_MSM=lanes; WebAssembly the lane
+/// form, which its SIMD lanes suit.
+fn affine_msm() -> bool {
+    !cfg!(target_arch = "wasm32") && !std::env::var("RINGIL_MSM").is_ok_and(|v| v == "lanes")
 }
 
 // The kernel's little-endian Montgomery encodings, as the Go bridge and the

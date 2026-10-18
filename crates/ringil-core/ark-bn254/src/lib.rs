@@ -51,5 +51,5 @@ pub mod constraints;
 // Only wasm multiplies through mont29 (fields/fq.rs, fields/fr.rs).
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 mod mont29;
-#[cfg(target_arch = "aarch64")]
+#[cfg(all(target_arch = "aarch64", not(no_asm)))]
 mod mont_arm64;

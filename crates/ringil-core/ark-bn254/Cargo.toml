@@ -88,3 +88,6 @@ std = [
     "ark-ec/std",
     "ark-r1cs-std?/std",
 ]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(no_asm)"] }
