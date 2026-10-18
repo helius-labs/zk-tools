@@ -302,18 +302,31 @@ impl Key {
             .ok_or("invalid quotient denominator")?;
         let plan = fft::Plan::new(n, params[0], params[1], den);
         let lengths = [a.len() / 64, b.len() / 64, k.len() / 64];
-        // One vector at a time: decoded, handed to the GPU, dropped.
+        // One vector at a time: decoded, handed to the GPU, dropped. A GPU
+        // that cannot take the key (it failed to build a kernel, it ran out
+        // of memory) is let go, and the key is decoded again for the CPU.
         #[cfg(gpu_any)]
         let mut gpu = GpuBuilder::open(&plan);
         #[cfg(not(gpu_any))]
         let mut gpu: Option<()> = None;
         #[cfg(not(gpu_any))]
         let (upload_g1, upload_g2) = (|_: &mut Option<()>, _: usize, v| Ok::<_, &'static str>(v), |_: &mut Option<()>, v| Ok::<_, &'static str>(v));
-        let a = upload_g1(&mut gpu, 0, g1s(a))?;
-        let b = upload_g1(&mut gpu, 1, g1s(b))?;
-        let k = upload_g1(&mut gpu, 2, g1s(k))?;
-        let z = upload_g1(&mut gpu, 3, g1s(z))?;
-        let b2 = upload_g2(&mut gpu, g2s(b2))?;
+        let decode = |gpu: &mut Option<_>| -> Result<_, &'static str> {
+            let a = upload_g1(gpu, 0, g1s(a))?;
+            let b = upload_g1(gpu, 1, g1s(b))?;
+            let k = upload_g1(gpu, 2, g1s(k))?;
+            let z = upload_g1(gpu, 3, g1s(z))?;
+            let b2 = upload_g2(gpu, g2s(b2))?;
+            Ok((a, b, k, z, b2))
+        };
+        let (a, b, k, z, b2) = match decode(&mut gpu) {
+            Ok(vectors) => vectors,
+            Err(_) if gpu.is_some() => {
+                gpu = None;
+                decode(&mut gpu)?
+            }
+            Err(e) => return Err(e),
+        };
         Ok(Self {
             #[cfg(gpu_any)]
             gpu: gpu.map(GpuBuilder::finish),
