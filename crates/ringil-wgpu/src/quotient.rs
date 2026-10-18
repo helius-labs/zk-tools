@@ -64,6 +64,9 @@ impl Quotient {
                 return Err(format!("kernels: {e}"));
             }
         }
+        if gpu.failed() {
+            return Err("kernels: the device reported an error".into());
+        }
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let upload = |label: &str, values: &[Fr]| {
@@ -109,6 +112,9 @@ impl Quotient {
             };
         if let Some(e) = pollster::block_on(memory.pop()) {
             return Err(format!("buffers: {e}"));
+        }
+        if quotient.gpu.failed() {
+            return Err("buffers: the device reported an error".into());
         }
         Ok((quotient, compile_ms))
     }

@@ -131,6 +131,10 @@ pub struct Gpu {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub name: String,
+    /// Set by the device's uncaptured-error handler: wgpu would otherwise
+    /// panic, and a driver that refuses a kernel (a Galaxy S25's did) must
+    /// only cost the GPU.
+    failed: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl Gpu {
@@ -148,7 +152,18 @@ impl Gpu {
             ..Default::default()
         }))
         .map_err(|e| format!("no device: {e}"))?;
-        Ok(Self { device, queue, name: format!("{} ({:?})", info.name, info.backend) })
+        let failed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let flag = failed.clone();
+        device.on_uncaptured_error(std::sync::Arc::new(move |e| {
+            log::error!("ringil wgpu: {e}");
+            flag.store(true, std::sync::atomic::Ordering::SeqCst);
+        }));
+        Ok(Self { device, queue, name: format!("{} ({:?})", info.name, info.backend), failed })
+    }
+
+    /// Whether the device reported an error outside an error scope.
+    pub fn failed(&self) -> bool {
+        self.failed.load(std::sync::atomic::Ordering::SeqCst)
     }
 }
 
@@ -231,6 +246,9 @@ impl<C: Curve> Msm<C> {
                 return Err(format!("kernels: {e}"));
             }
         }
+        if gpu.failed() {
+            return Err("kernels: the device reported an error".into());
+        }
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         let mut raw = Vec::with_capacity(bases.len() * C::AFFINE_BYTES);
         for p in bases {
@@ -280,6 +298,9 @@ impl<C: Curve> Msm<C> {
             };
         if let Some(e) = pollster::block_on(memory.pop()) {
             return Err(format!("buffers: {e}"));
+        }
+        if msm.gpu.failed() {
+            return Err("buffers: the device reported an error".into());
         }
         Ok((msm, compile_ms))
     }
