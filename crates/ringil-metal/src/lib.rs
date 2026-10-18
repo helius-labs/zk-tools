@@ -22,7 +22,27 @@ pub use quotient::Quotient;
 /// from source now. The G2 kernels are instantiated only when asked for:
 /// they take a minute to compile from source (six on an iPhone), and a
 /// phone proves G2 on its CPU.
+/// Compiled once per process and kernel set: a phone does not cache source
+/// compilations the way a Mac does, and a key makes five or six objects
+/// from the same library. One system device is assumed.
 pub(crate) fn library(device: &Device, g2: bool) -> Result<metal::Library, String> {
+    static LIBRARIES: std::sync::Mutex<[Option<Shared<metal::Library>>; 2]> = std::sync::Mutex::new([None, None]);
+    let mut cache = LIBRARIES.lock().unwrap();
+    if let Some(library) = &cache[g2 as usize] {
+        return Ok(library.0.clone());
+    }
+    let library = compile(device, g2)?;
+    cache[g2 as usize] = Some(Shared(library.clone()));
+    Ok(library)
+}
+
+/// A Metal object held across threads: Metal's objects are thread-safe,
+/// metal-rs just does not say so.
+struct Shared<T>(T);
+unsafe impl<T> Send for Shared<T> {}
+unsafe impl<T> Sync for Shared<T> {}
+
+fn compile(device: &Device, g2: bool) -> Result<metal::Library, String> {
     #[cfg(metallib)]
     {
         let _ = g2;

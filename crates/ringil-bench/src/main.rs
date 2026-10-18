@@ -15,7 +15,20 @@ fn read(dir: &Path, name: &str) -> Vec<u8> {
     fs::read(dir.join(name)).unwrap_or_else(|error| panic!("{name}: {error}"))
 }
 
+/// The kernel's traces, to stderr as TRACE lines.
+struct Stderr;
+impl log::Log for Stderr {
+    fn enabled(&self, _: &log::Metadata) -> bool {
+        true
+    }
+    fn log(&self, record: &log::Record) {
+        eprintln!("{}", record.args().to_string().replace("RINGIL_TRACE", "TRACE"));
+    }
+    fn flush(&self) {}
+}
+
 fn main() {
+    let _ = log::set_logger(&Stderr).map(|()| log::set_max_level(log::LevelFilter::Info));
     let dir = env::args().nth(1).expect("the dump directory");
     if dir == "field" {
         return field();

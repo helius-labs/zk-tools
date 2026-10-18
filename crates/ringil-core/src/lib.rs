@@ -16,15 +16,14 @@ mod simd;
 mod solver;
 pub mod groth16;
 
-// Stage times on stderr, for the native bench (`--features trace`).
-#[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
+// Stage times as RINGIL_TRACE log lines (`--features trace`): the native
+// bench prints them, a phone's bench puts them in the device log.
 fn trace(label: &str, started: std::time::Instant) -> std::time::Instant {
-    eprintln!("TRACE {label} {:.1} ms", started.elapsed().as_secs_f64() * 1000.0);
+    #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
+    log::info!("RINGIL_TRACE {label} {:.1} ms", started.elapsed().as_secs_f64() * 1000.0);
+    #[cfg(not(all(feature = "trace", not(target_arch = "wasm32"))))]
+    let _ = (label, started);
     std::time::Instant::now()
-}
-#[cfg(not(all(feature = "trace", not(target_arch = "wasm32"))))]
-fn trace(_label: &str, started: std::time::Instant) -> std::time::Instant {
-    started
 }
 pub use decompress::{decompress_g1, decompress_g2};
 
@@ -162,7 +161,7 @@ impl Gpu {
 #[cfg(gpu_any)]
 fn gpu_trace(name: &str, sort_ms: f64, gpu_ms: f64) {
     #[cfg(feature = "trace")]
-    eprintln!("TRACE gpu-msm-{name} sort {sort_ms:.1} gpu {gpu_ms:.1} ms");
+    log::info!("RINGIL_TRACE gpu-msm-{name} sort {sort_ms:.1} gpu {gpu_ms:.1} ms");
     #[cfg(not(feature = "trace"))]
     let _ = (name, sort_ms, gpu_ms);
 }
