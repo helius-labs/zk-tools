@@ -134,12 +134,20 @@ struct Gpu {
     z: std::sync::Mutex<ringil_wgpu::G1Msm>,
     quotient: std::sync::Mutex<ringil_wgpu::Quotient>,
 }
+/// A GPU taking the key's G1 vectors one at a time, so that the key keeps
+/// no copy of what the GPU holds; G2 stays on the CPU, where WGSL's field
+/// arithmetic cannot beat it.
 #[cfg(gpu_wgpu)]
-impl Gpu {
-    /// The four G1 MSMs' bases and the quotient's tables on the GPU, unless
-    /// RINGIL_GPU=0 or there is none; G2 stays on the CPU, where WGSL's
-    /// field arithmetic cannot beat it.
-    fn new(a: &[G1Affine], b: &[G1Affine], k: &[G1Affine], z: &[G1Affine], _b2: &[G2Affine], plan: &fft::Plan) -> Option<Self> {
+struct GpuBuilder {
+    started: std::time::Instant,
+    gpu: std::sync::Arc<ringil_wgpu::Gpu>,
+    quotient: ringil_wgpu::Quotient,
+    g1: [Option<ringil_wgpu::G1Msm>; 4],
+}
+#[cfg(gpu_wgpu)]
+impl GpuBuilder {
+    /// None with RINGIL_GPU=0 or without a GPU.
+    fn open(plan: &fft::Plan) -> Option<Self> {
         if std::env::var("RINGIL_GPU").is_ok_and(|v| v == "0") {
             return None;
         }
@@ -147,15 +155,43 @@ impl Gpu {
         let gpu = std::sync::Arc::new(ringil_wgpu::Gpu::new().ok()?);
         let (roots, inverse_roots, forward, reverse) = plan.tables()?;
         let quotient = ringil_wgpu::Quotient::new(gpu.clone(), plan.size(), &roots, &inverse_roots, &forward, &reverse).ok()?.0;
-        let built = Self {
-            quotient: std::sync::Mutex::new(quotient),
-            a: std::sync::Mutex::new(ringil_wgpu::G1Msm::new(gpu.clone(), a).ok()?.0),
-            b: std::sync::Mutex::new(ringil_wgpu::G1Msm::new(gpu.clone(), b).ok()?.0),
-            k: std::sync::Mutex::new(ringil_wgpu::G1Msm::new(gpu.clone(), k).ok()?.0),
-            z: std::sync::Mutex::new(ringil_wgpu::G1Msm::new(gpu.clone(), z).ok()?.0),
-        };
-        trace("gpu-upload", started);
-        Some(built)
+        Some(Self { started, gpu, quotient, g1: [None, None, None, None] })
+    }
+    fn g1(&mut self, which: usize, bases: &[G1Affine]) -> Result<(), String> {
+        self.g1[which] = Some(ringil_wgpu::G1Msm::new(self.gpu.clone(), bases)?.0);
+        Ok(())
+    }
+    fn g2(&mut self, _bases: &[G2Affine]) -> Result<bool, String> {
+        Ok(false)
+    }
+    fn finish(self) -> Gpu {
+        let [a, b, k, z] = self.g1.map(|msm| std::sync::Mutex::new(msm.expect("every G1 vector uploaded")));
+        trace("gpu-upload", self.started);
+        Gpu { a, b, k, z, quotient: std::sync::Mutex::new(self.quotient) }
+    }
+}
+
+/// Hands a decoded vector to the GPU and keeps nothing of it, or keeps it
+/// when there is no GPU. A GPU that cannot take the key fails the build:
+/// the caller then proves another way.
+#[cfg(gpu_any)]
+fn upload_g1(gpu: &mut Option<GpuBuilder>, which: usize, bases: Vec<G1Affine>) -> Result<Vec<G1Affine>, &'static str> {
+    match gpu {
+        Some(builder) => {
+            builder.g1(which, &bases).map_err(|_| "the GPU could not take the key")?;
+            Ok(Vec::new())
+        }
+        None => Ok(bases),
+    }
+}
+#[cfg(gpu_any)]
+fn upload_g2(gpu: &mut Option<GpuBuilder>, bases: Vec<G2Affine>) -> Result<Vec<G2Affine>, &'static str> {
+    match gpu {
+        Some(builder) => {
+            let taken = builder.g2(&bases).map_err(|_| "the GPU could not take the key")?;
+            Ok(if taken { Vec::new() } else { bases })
+        }
+        None => Ok(bases),
     }
 }
 #[cfg(gpu_any)]
@@ -166,26 +202,43 @@ fn gpu_trace(name: &str, sort_ms: f64, gpu_ms: f64) {
     let _ = (name, sort_ms, gpu_ms);
 }
 
+/// A GPU taking the key's vectors one at a time, so that the key keeps no
+/// copy of what the GPU holds: a phone has no room for two.
 #[cfg(gpu)]
-impl Gpu {
-    /// The five MSMs' bases on the GPU, unless RINGIL_GPU=0 or there is none.
-    fn new(a: &[G1Affine], b: &[G1Affine], k: &[G1Affine], z: &[G1Affine], b2: &[G2Affine], plan: &fft::Plan) -> Option<Self> {
+struct GpuBuilder {
+    started: std::time::Instant,
+    quotient: ringil_metal::Quotient,
+    g1: [Option<ringil_metal::G1Msm>; 4],
+    b2: Option<ringil_metal::G2Msm>,
+}
+#[cfg(gpu)]
+impl GpuBuilder {
+    /// None with RINGIL_GPU=0 or without a GPU.
+    fn open(plan: &fft::Plan) -> Option<Self> {
         if std::env::var("RINGIL_GPU").is_ok_and(|v| v == "0") {
             return None;
         }
         let started = std::time::Instant::now();
         let (roots, inverse_roots, forward, reverse) = plan.tables()?;
         let quotient = ringil_metal::Quotient::new(plan.size(), &roots, &inverse_roots, &forward, &reverse).ok()?.0;
-        let gpu = Self {
-            quotient: std::sync::Mutex::new(quotient),
-            a: std::sync::Mutex::new(ringil_metal::G1Msm::new(a).ok()?.0),
-            b: std::sync::Mutex::new(ringil_metal::G1Msm::new(b).ok()?.0),
-            k: std::sync::Mutex::new(ringil_metal::G1Msm::new(k).ok()?.0),
-            z: std::sync::Mutex::new(ringil_metal::G1Msm::new(z).ok()?.0),
-            b2: if g2_on_gpu() { Some(std::sync::Mutex::new(ringil_metal::G2Msm::new(b2).ok()?.0)) } else { None },
-        };
-        trace("gpu-upload", started);
-        Some(gpu)
+        Some(Self { started, quotient, g1: [None, None, None, None], b2: None })
+    }
+    fn g1(&mut self, which: usize, bases: &[G1Affine]) -> Result<(), String> {
+        self.g1[which] = Some(ringil_metal::G1Msm::new(bases)?.0);
+        Ok(())
+    }
+    /// Whether the GPU took G2: a Mac's does, a phone's leaves it to the CPU.
+    fn g2(&mut self, bases: &[G2Affine]) -> Result<bool, String> {
+        if !g2_on_gpu() {
+            return Ok(false);
+        }
+        self.b2 = Some(ringil_metal::G2Msm::new(bases)?.0);
+        Ok(true)
+    }
+    fn finish(self) -> Gpu {
+        let [a, b, k, z] = self.g1.map(|msm| std::sync::Mutex::new(msm.expect("every G1 vector uploaded")));
+        trace("gpu-upload", self.started);
+        Gpu { a, b, k, z, b2: self.b2.map(std::sync::Mutex::new), quotient: std::sync::Mutex::new(self.quotient) }
     }
 }
 
@@ -193,6 +246,9 @@ impl Gpu {
 pub struct Key {
     #[cfg(gpu_any)]
     gpu: Option<Gpu>,
+    /// The A, B and K vectors' lengths: the vectors themselves are empty
+    /// when a GPU holds them.
+    lengths: [usize; 3],
     a: Vec<G1Affine>,
     b: Vec<G1Affine>,
     k: Vec<G1Affine>,
@@ -244,11 +300,24 @@ impl Key {
         let den = (params[1].pow([n as u64]) - Fr::ONE)
             .inverse()
             .ok_or("invalid quotient denominator")?;
-        let (a, b, k, z, b2) = (g1s(a), g1s(b), g1s(k), g1s(z), g2s(b2));
         let plan = fft::Plan::new(n, params[0], params[1], den);
+        let lengths = [a.len() / 64, b.len() / 64, k.len() / 64];
+        // One vector at a time: decoded, handed to the GPU, dropped.
+        #[cfg(gpu_any)]
+        let mut gpu = GpuBuilder::open(&plan);
+        #[cfg(not(gpu_any))]
+        let mut gpu: Option<()> = None;
+        #[cfg(not(gpu_any))]
+        let (upload_g1, upload_g2) = (|_: &mut Option<()>, _: usize, v| Ok::<_, &'static str>(v), |_: &mut Option<()>, v| Ok::<_, &'static str>(v));
+        let a = upload_g1(&mut gpu, 0, g1s(a))?;
+        let b = upload_g1(&mut gpu, 1, g1s(b))?;
+        let k = upload_g1(&mut gpu, 2, g1s(k))?;
+        let z = upload_g1(&mut gpu, 3, g1s(z))?;
+        let b2 = upload_g2(&mut gpu, g2s(b2))?;
         Ok(Self {
             #[cfg(gpu_any)]
-            gpu: Gpu::new(&a, &b, &k, &z, &b2, &plan),
+            gpu: gpu.map(GpuBuilder::finish),
+            lengths,
             a,
             b,
             k,
@@ -276,7 +345,7 @@ impl Key {
             return false;
         }
         if let Ok(plan) = solver::Plan::new(program, coefficients) {
-            if plan.matches(self.a.len(), self.b.len(), self.k.len(), self.domain.size()) {
+            if plan.matches(self.lengths[0], self.lengths[1], self.lengths[2], self.domain.size()) {
                 self.solver = Some(plan);
                 return true;
             }
@@ -296,7 +365,7 @@ impl Key {
             return false;
         }
         if let Ok(plan) = solver::Plan::from_image(image) {
-            if plan.matches(self.a.len(), self.b.len(), self.k.len(), self.domain.size()) {
+            if plan.matches(self.lengths[0], self.lengths[1], self.lengths[2], self.domain.size()) {
                 self.solver = Some(plan);
                 return true;
             }
@@ -355,9 +424,9 @@ impl Key {
         b: &[u8],
         c: &[u8],
     ) -> Result<Vec<u8>, JsError> {
-        if sa.len() != self.a.len() * 32
-            || sb.len() != self.b.len() * 32
-            || sk.len() != self.k.len() * 32
+        if sa.len() != self.lengths[0] * 32
+            || sb.len() != self.lengths[1] * 32
+            || sk.len() != self.lengths[2] * 32
             || a.len() != b.len()
             || a.len() != c.len()
             || !a.len().is_multiple_of(32)
