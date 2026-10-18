@@ -56,7 +56,8 @@ pub fn assemble(parts: &[u8], fixed: &FixedPoints) -> Vec<u8> {
     let delta: G1Projective = fixed.delta.into_group();
     let ar = a.into_group() + fixed.alpha.into_group() + delta * r;
     let bs1 = b.into_group() + fixed.beta.into_group() + delta * s;
-    let bs: G2Projective = b2.into_group() + fixed.beta2.into_group() + fixed.delta2.into_group() * s;
+    let bs: G2Projective =
+        b2.into_group() + fixed.beta2.into_group() + fixed.delta2.into_group() * s;
     let krs = k.into_group() + z.into_group() + delta * (-(r * s)) + ar * s + bs1 * r;
     let (ar, krs, bs) = (ar.into_affine(), krs.into_affine(), bs.into_affine());
     let mut out = Vec::with_capacity(256);

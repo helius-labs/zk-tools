@@ -107,7 +107,9 @@ impl<F: Mont29> Lanes<F> {
         a: &Self,
         b: &Self,
     ) -> Self {
-        let both = [a.0[0], a.0[1], a.0[2], a.0[3], b.0[0], b.0[1], b.0[2], b.0[3]];
+        let both = [
+            a.0[0], a.0[1], a.0[2], a.0[3], b.0[0], b.0[1], b.0[2], b.0[3],
+        ];
         Self([both[I0], both[I1], both[I2], both[I3]])
     }
 }
@@ -132,15 +134,24 @@ impl<F: Mont29> Lanes<F> {
     }
     #[inline(always)]
     pub(crate) fn mul(&self, b: &Self) -> Self {
-        Self(lanes::product(F::CORE, &self.0, &b.0, &lanes::modulus::<F>()), PhantomData)
+        Self(
+            lanes::product(F::CORE, &self.0, &b.0, &lanes::modulus::<F>()),
+            PhantomData,
+        )
     }
     #[inline(always)]
     pub(crate) fn add(&self, b: &Self) -> Self {
-        Self(lanes::add(&self.0, &b.0, &lanes::modulus::<F>()), PhantomData)
+        Self(
+            lanes::add(&self.0, &b.0, &lanes::modulus::<F>()),
+            PhantomData,
+        )
     }
     #[inline(always)]
     pub(crate) fn sub(&self, b: &Self) -> Self {
-        Self(lanes::sub(&self.0, &b.0, &lanes::modulus::<F>()), PhantomData)
+        Self(
+            lanes::sub(&self.0, &b.0, &lanes::modulus::<F>()),
+            PhantomData,
+        )
     }
     /// Lanes I0..I3 of `a` followed by `b` (indices 0..8).
     #[inline(always)]
@@ -149,7 +160,9 @@ impl<F: Mont29> Lanes<F> {
         b: &Self,
     ) -> Self {
         Self(
-            core::array::from_fn(|j| core::arch::wasm32::u32x4_shuffle::<I0, I1, I2, I3>(a.0[j], b.0[j])),
+            core::array::from_fn(|j| {
+                core::arch::wasm32::u32x4_shuffle::<I0, I1, I2, I3>(a.0[j], b.0[j])
+            }),
             PhantomData,
         )
     }
@@ -371,7 +384,9 @@ mod lanes {
         let d = carry(core::array::from_fn(|j| i32x4_sub(a[j], b[j])));
         // Where a < b the top limb is negative: add p back.
         let below = i32x4_shr(d[8], 31);
-        carry(core::array::from_fn(|j| i32x4_add(d[j], v128_and(p[j], below))))
+        carry(core::array::from_fn(|j| {
+            i32x4_add(d[j], v128_and(p[j], below))
+        }))
     }
 
     // The core's output t (limbs of 2^24 times the unreduced product, below

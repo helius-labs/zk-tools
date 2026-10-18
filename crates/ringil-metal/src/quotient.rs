@@ -7,8 +7,10 @@
 use std::{ffi::c_void, time::Instant};
 
 use ark_bn254::Fr;
-use metal::{Buffer, CommandQueue, ComputeCommandEncoderRef, ComputePipelineState, Device, MTLResourceOptions, MTLSize};
-
+use metal::{
+    Buffer, CommandQueue, ComputeCommandEncoderRef, ComputePipelineState, Device,
+    MTLResourceOptions, MTLSize,
+};
 
 pub struct Quotient {
     queue: CommandQueue,
@@ -28,7 +30,13 @@ pub struct Quotient {
 impl Drop for Quotient {
     fn drop(&mut self) {
         objc::rc::autoreleasepool(|| {
-            for buffer in [&self.roots, &self.inverse_roots, &self.forward_weights, &self.reverse_weights, &self.abc] {
+            for buffer in [
+                &self.roots,
+                &self.inverse_roots,
+                &self.forward_weights,
+                &self.reverse_weights,
+                &self.abc,
+            ] {
                 crate::discard(buffer);
             }
         })
@@ -46,19 +54,37 @@ fn upload(device: &Device, values: &[Fr]) -> Buffer {
 impl Quotient {
     /// `roots` and `inverse_roots` are the first n/2 powers of the domain
     /// generator and its inverse; the weights are the plan's, bit-reversed.
-    pub fn new(n: usize, roots: &[Fr], inverse_roots: &[Fr], forward_weights: &[Fr], reverse_weights: &[Fr]) -> Result<(Self, f64), String> {
-        objc::rc::autoreleasepool(|| Self::new_in_pool(n, roots, inverse_roots, forward_weights, reverse_weights))
+    pub fn new(
+        n: usize,
+        roots: &[Fr],
+        inverse_roots: &[Fr],
+        forward_weights: &[Fr],
+        reverse_weights: &[Fr],
+    ) -> Result<(Self, f64), String> {
+        objc::rc::autoreleasepool(|| {
+            Self::new_in_pool(n, roots, inverse_roots, forward_weights, reverse_weights)
+        })
     }
 
-    fn new_in_pool(n: usize, roots: &[Fr], inverse_roots: &[Fr], forward_weights: &[Fr], reverse_weights: &[Fr]) -> Result<(Self, f64), String> {
+    fn new_in_pool(
+        n: usize,
+        roots: &[Fr],
+        inverse_roots: &[Fr],
+        forward_weights: &[Fr],
+        reverse_weights: &[Fr],
+    ) -> Result<(Self, f64), String> {
         assert!(n.is_power_of_two() && n >= 8);
         assert_eq!(roots.len(), n / 2);
         assert_eq!(forward_weights.len(), n);
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
         let pipeline = |name: &str| crate::pipeline(&device, false, name);
-        let (dif, dit, scale, pointwise) =
-            (pipeline("fr_dif_stage")?, pipeline("fr_dit_stage")?, pipeline("fr_scale")?, pipeline("fr_pointwise")?);
+        let (dif, dit, scale, pointwise) = (
+            pipeline("fr_dif_stage")?,
+            pipeline("fr_dit_stage")?,
+            pipeline("fr_scale")?,
+            pipeline("fr_pointwise")?,
+        );
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         Ok((
             Self {
@@ -89,7 +115,8 @@ impl Quotient {
     fn quotient_in_pool(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> Result<Vec<Fr>, String> {
         let n = self.n;
         // SAFETY: abc holds 3n Fr in shared storage; the GPU is idle on it.
-        let values = unsafe { std::slice::from_raw_parts_mut(self.abc.contents() as *mut Fr, 3 * n) };
+        let values =
+            unsafe { std::slice::from_raw_parts_mut(self.abc.contents() as *mut Fr, 3 * n) };
         for (slot, source) in values.chunks_exact_mut(n).zip([a, b, c]) {
             slot[..source.len()].copy_from_slice(source);
             slot[source.len()..].fill(Fr::from(0u64));
@@ -115,12 +142,27 @@ impl Quotient {
         Ok(values[..n - 1].to_vec())
     }
 
-    fn dispatch(&self, encoder: &ComputeCommandEncoderRef, pipeline: &ComputePipelineState, threads: usize) {
+    fn dispatch(
+        &self,
+        encoder: &ComputeCommandEncoderRef,
+        pipeline: &ComputePipelineState,
+        threads: usize,
+    ) {
         let group = pipeline.thread_execution_width().min(threads as u64).max(1);
-        encoder.dispatch_threads(MTLSize::new(threads as u64, 1, 1), MTLSize::new(group, 1, 1));
+        encoder.dispatch_threads(
+            MTLSize::new(threads as u64, 1, 1),
+            MTLSize::new(group, 1, 1),
+        );
     }
 
-    fn stage(&self, encoder: &ComputeCommandEncoderRef, pipeline: &ComputePipelineState, offset: u64, roots: &Buffer, level: u32) {
+    fn stage(
+        &self,
+        encoder: &ComputeCommandEncoderRef,
+        pipeline: &ComputePipelineState,
+        offset: u64,
+        roots: &Buffer,
+        level: u32,
+    ) {
         let args = [self.n as u32, level, self.log_n - 1 - level, 0];
         encoder.set_compute_pipeline_state(pipeline);
         encoder.set_buffer(0, Some(&self.abc), offset);

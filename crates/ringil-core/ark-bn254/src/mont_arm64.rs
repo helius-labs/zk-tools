@@ -207,7 +207,11 @@ mod tests {
         let inv = <crate::OriginalFqConfig as MontConfig<4>>::INV;
         let mut last = p;
         last.0[0] -= 1;
-        let edge = [Original::from_bigint(BigInt([0; 4])).unwrap(), Original::from_bigint(BigInt([1, 0, 0, 0])).unwrap(), Original::new_unchecked(last)];
+        let edge = [
+            Original::from_bigint(BigInt([0; 4])).unwrap(),
+            Original::from_bigint(BigInt([1, 0, 0, 0])).unwrap(),
+            Original::new_unchecked(last),
+        ];
         for _ in 0..20000 {
             let (a, b) = (Original::rand(&mut rng), Original::rand(&mut rng));
             assert_eq!(multiply(a.0, b.0, p, inv), (a * b).0);

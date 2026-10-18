@@ -135,13 +135,19 @@ impl Plan {
     pub(crate) fn footprint(&self) -> String {
         use std::mem::size_of;
         let bytes = [
-            ("indices", (self.a_indices.len() + self.b_indices.len()) * size_of::<usize>()),
+            (
+                "indices",
+                (self.a_indices.len() + self.b_indices.len()) * size_of::<usize>(),
+            ),
             ("coefficients", self.coefficients.len() * size_of::<Fr>()),
             ("terms", self.terms.len() * size_of::<Term>()),
             ("sums", self.sums.len() * size_of::<Sum>()),
             ("ops", self.ops.len() * size_of::<Op>()),
         ];
-        let parts: Vec<String> = bytes.iter().map(|(name, b)| format!("{name} {} MB", b >> 20)).collect();
+        let parts: Vec<String> = bytes
+            .iter()
+            .map(|(name, b)| format!("{name} {} MB", b >> 20))
+            .collect();
         format!(
             "{} (terms {}, sums {}, ops {} of {} B, coefficients {})",
             parts.join(", "),
@@ -576,7 +582,11 @@ impl Plan {
                 {
                     return Err(DAMAGED_IMAGE);
                 }
-                ops.push(Op::Hint(Hint { kind, input, outputs }));
+                ops.push(Op::Hint(Hint {
+                    kind,
+                    input,
+                    outputs,
+                }));
                 continue;
             }
             let [constraint, sums_start, sums_end] = r.words::<3>()?;
@@ -601,7 +611,11 @@ impl Plan {
                 1 => {
                     let [side, wire, coefficient] = r.words::<3>()?;
                     let inverse = super::frs(r.bytes(32)?)[0];
-                    if side > 2 || wire >= n_wires || coefficient >= n_coefficients || inverse.0 >= Fr::MODULUS {
+                    if side > 2
+                        || wire >= n_wires
+                        || coefficient >= n_coefficients
+                        || inverse.0 >= Fr::MODULUS
+                    {
                         return Err(DAMAGED_IMAGE);
                     }
                     Some(Assignment {
@@ -894,13 +908,79 @@ mod tests {
     // Constraints: b0 and b1 are bits, b0 + 2 b1 = X, X * inverse = 1.
     fn with_hints() -> Vec<u32> {
         vec![
-            2, 5, 2, 1, 4, 2, 3, 4, 1, 2, 3, 0, 2, 3, 4, // header, A and B wires
-            u32::MAX, 1, 1, 1, 1, 1, 2, 4, // b0, b1 = nBits(X)
-            u32::MAX, 0, 1, 1, 1, 1, 4, 5, // inverse = InvZeroHint(X)
-            0, 1, 1, 1, 1, 2, 1, 2, 1, 2, // b0 * b0 = b0
-            1, 1, 1, 1, 1, 3, 1, 3, 1, 3, // b1 * b1 = b1
-            2, 2, 1, 1, 1, 2, 2, 3, 1, 0, 1, 1, // (b0 + 2 b1) * 1 = X
-            3, 1, 1, 1, 1, 1, 1, 4, 1, 0, // X * inverse = 1
+            2,
+            5,
+            2,
+            1,
+            4,
+            2,
+            3,
+            4,
+            1,
+            2,
+            3,
+            0,
+            2,
+            3,
+            4, // header, A and B wires
+            u32::MAX,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            4, // b0, b1 = nBits(X)
+            u32::MAX,
+            0,
+            1,
+            1,
+            1,
+            1,
+            4,
+            5, // inverse = InvZeroHint(X)
+            0,
+            1,
+            1,
+            1,
+            1,
+            2,
+            1,
+            2,
+            1,
+            2, // b0 * b0 = b0
+            1,
+            1,
+            1,
+            1,
+            1,
+            3,
+            1,
+            3,
+            1,
+            3, // b1 * b1 = b1
+            2,
+            2,
+            1,
+            1,
+            1,
+            2,
+            2,
+            3,
+            1,
+            0,
+            1,
+            1, // (b0 + 2 b1) * 1 = X
+            3,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            4,
+            1,
+            0, // X * inverse = 1
         ]
     }
 
@@ -1006,17 +1086,41 @@ mod tests {
         let (small_words, coefficients) = small();
         let (sums_words, sums_coefficients) = with_sums();
         for (program, coefficients, witness) in [
-            (small_words, coefficients.clone(), vec![Fr::from(9u64), Fr::from(3u64)]),
-            (sums_words, sums_coefficients, vec![Fr::from(5u64), -Fr::from(5u64), Fr::from(25u64)]),
+            (
+                small_words,
+                coefficients.clone(),
+                vec![Fr::from(9u64), Fr::from(3u64)],
+            ),
+            (
+                sums_words,
+                sums_coefficients,
+                vec![Fr::from(5u64), -Fr::from(5u64), Fr::from(25u64)],
+            ),
             (with_hints(), coefficients, vec![Fr::from(3u64)]),
         ] {
             let plan = Plan::new(&encode_words(&program), &coefficients).unwrap();
             let loaded = reloaded(&plan);
-            let (expected, actual) = (plan.solve(&witness).unwrap(), loaded.solve(&witness).unwrap());
-            assert_eq!((expected.w, expected.a, expected.b, expected.c), (actual.w, actual.a, actual.b, actual.c));
+            let (expected, actual) = (
+                plan.solve(&witness).unwrap(),
+                loaded.solve(&witness).unwrap(),
+            );
             assert_eq!(
-                (loaded.n_wires, loaded.n_public, &loaded.a_indices, &loaded.b_indices),
-                (plan.n_wires, plan.n_public, &plan.a_indices, &plan.b_indices)
+                (expected.w, expected.a, expected.b, expected.c),
+                (actual.w, actual.a, actual.b, actual.c)
+            );
+            assert_eq!(
+                (
+                    loaded.n_wires,
+                    loaded.n_public,
+                    &loaded.a_indices,
+                    &loaded.b_indices
+                ),
+                (
+                    plan.n_wires,
+                    plan.n_public,
+                    &plan.a_indices,
+                    &plan.b_indices
+                )
             );
         }
     }
@@ -1024,7 +1128,9 @@ mod tests {
     #[test]
     fn a_damaged_image_is_an_error() {
         let (program, coefficients) = with_sums();
-        let image = Plan::new(&encode_words(&program), &coefficients).unwrap().image();
+        let image = Plan::new(&encode_words(&program), &coefficients)
+            .unwrap()
+            .image();
         let word = |at: usize, value: u32| {
             let mut damaged = image.clone();
             damaged[at..at + 4].copy_from_slice(&value.to_le_bytes());
@@ -1035,7 +1141,9 @@ mod tests {
         // term, past the lists they index.
         assert_eq!(word(8, 0), Some(DAMAGED_IMAGE));
         assert_eq!(word(48, u32::MAX), Some(DAMAGED_IMAGE));
-        let header = |i: usize| u32::from_le_bytes(image[8 + 4 * i..12 + 4 * i].try_into().unwrap()) as usize;
+        let header = |i: usize| {
+            u32::from_le_bytes(image[8 + 4 * i..12 + 4 * i].try_into().unwrap()) as usize
+        };
         let terms = 48 + 4 * (header(4) + header(5)) + 32 * header(6);
         assert!(header(7) > 0, "the plan has terms");
         assert_eq!(word(terms, 1000), Some(DAMAGED_IMAGE));

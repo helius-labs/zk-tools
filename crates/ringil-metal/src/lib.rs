@@ -15,9 +15,9 @@ use ark_ec::{AdditiveGroup, CurveGroup};
 use ark_ff::{BigInt, PrimeField, Zero};
 #[cfg(not(metallib))]
 use metal::CompileOptions;
+use metal::{Buffer, CommandQueue, ComputePipelineState, Device, MTLResourceOptions, MTLSize};
 use objc::rc::autoreleasepool;
 use objc::{msg_send, sel, sel_impl};
-use metal::{Buffer, CommandQueue, ComputePipelineState, Device, MTLResourceOptions, MTLSize};
 use rayon::prelude::*;
 
 pub mod quotient;
@@ -31,7 +31,8 @@ pub use quotient::Quotient;
 /// compilations the way a Mac does, and a key makes five or six objects
 /// from the same library. One system device is assumed.
 pub(crate) fn library(device: &Device, g2: bool) -> Result<metal::Library, String> {
-    static LIBRARIES: std::sync::Mutex<[Option<Shared<metal::Library>>; 4]> = std::sync::Mutex::new([None, None, None, None]);
+    static LIBRARIES: std::sync::Mutex<[Option<Shared<metal::Library>>; 4]> =
+        std::sync::Mutex::new([None, None, None, None]);
     let smaller = smaller_code();
     let slot = g2 as usize + 2 * smaller as usize;
     let mut cache = LIBRARIES.lock().unwrap();
@@ -46,17 +47,35 @@ pub(crate) fn library(device: &Device, g2: bool) -> Result<metal::Library, Strin
 /// A kernel's pipeline state, built once per process, library and level:
 /// building one per key left the driver's copies mapped into the process,
 /// tens of MB more with every key load.
-pub(crate) fn pipeline(device: &Device, g2: bool, name: &str) -> Result<metal::ComputePipelineState, String> {
-    type Pipelines = std::collections::HashMap<(String, bool, bool), Shared<metal::ComputePipelineState>>;
+pub(crate) fn pipeline(
+    device: &Device,
+    g2: bool,
+    name: &str,
+) -> Result<metal::ComputePipelineState, String> {
+    type Pipelines =
+        std::collections::HashMap<(String, bool, bool), Shared<metal::ComputePipelineState>>;
     static PIPELINES: std::sync::Mutex<Option<Pipelines>> = std::sync::Mutex::new(None);
     let key = (name.to_string(), g2, smaller_code());
-    if let Some(found) = PIPELINES.lock().unwrap().as_ref().and_then(|cache| cache.get(&key)) {
+    if let Some(found) = PIPELINES
+        .lock()
+        .unwrap()
+        .as_ref()
+        .and_then(|cache| cache.get(&key))
+    {
         return Ok(found.0.clone());
     }
     let library = library(device, g2)?;
-    let function = library.get_function(name, None).map_err(|e| format!("{name}: {e}"))?;
-    let state = device.new_compute_pipeline_state_with_function(&function).map_err(|e| format!("{name}: {e}"))?;
-    PIPELINES.lock().unwrap().get_or_insert_with(Default::default).insert(key, Shared(state.clone()));
+    let function = library
+        .get_function(name, None)
+        .map_err(|e| format!("{name}: {e}"))?;
+    let state = device
+        .new_compute_pipeline_state_with_function(&function)
+        .map_err(|e| format!("{name}: {e}"))?;
+    PIPELINES
+        .lock()
+        .unwrap()
+        .get_or_insert_with(Default::default)
+        .insert(key, Shared(state.clone()));
     Ok(state)
 }
 
@@ -65,7 +84,15 @@ pub(crate) fn pipeline(device: &Device, g2: bool, name: &str) -> Result<metal::C
 pub fn warm() -> Result<(), String> {
     autoreleasepool(|| {
         let device = Device::system_default().ok_or("no Metal device")?;
-        for name in [G1Projective::FIRST, G1Projective::TREE, G1Projective::REDUCE, "fr_dif_stage", "fr_dit_stage", "fr_scale", "fr_pointwise"] {
+        for name in [
+            G1Projective::FIRST,
+            G1Projective::TREE,
+            G1Projective::REDUCE,
+            "fr_dif_stage",
+            "fr_dit_stage",
+            "fr_scale",
+            "fr_pointwise",
+        ] {
             pipeline(&device, false, name)?;
         }
         Ok(())
@@ -86,7 +113,8 @@ pub fn prefer_smaller_code() -> bool {
 }
 
 pub fn smaller_code() -> bool {
-    SMALLER_CODE.load(std::sync::atomic::Ordering::SeqCst) || std::env::var("RINGIL_METAL_SIZE").is_ok_and(|v| v == "1")
+    SMALLER_CODE.load(std::sync::atomic::Ordering::SeqCst)
+        || std::env::var("RINGIL_METAL_SIZE").is_ok_and(|v| v == "1")
 }
 
 /// One command queue per process, shared by every MSM and quotient of
@@ -118,7 +146,10 @@ pub(crate) fn completed(command: &metal::CommandBufferRef) -> Result<(), String>
 /// there its G2 MSM beats the CPU's by several times, where an A14's or
 /// A16's GPU does not.
 pub fn fast_gpu() -> bool {
-    autoreleasepool(|| Device::system_default().is_some_and(|device| device.supports_family(metal::MTLGPUFamily::Apple9)))
+    autoreleasepool(|| {
+        Device::system_default()
+            .is_some_and(|device| device.supports_family(metal::MTLGPUFamily::Apple9))
+    })
 }
 
 /// What the Metal device has allocated for this process, in bytes.
@@ -141,17 +172,25 @@ fn compile(device: &Device, g2: bool, smaller: bool) -> Result<metal::Library, S
         } else {
             include_bytes!(concat!(env!("OUT_DIR"), "/ringil.metallib"))
         };
-        device.new_library_with_data(bytes).map_err(|e| format!("metallib: {e}"))
+        device
+            .new_library_with_data(bytes)
+            .map_err(|e| format!("metallib: {e}"))
     }
     #[cfg(not(metallib))]
     {
-        let source = if g2 { format!("{SHADER}\nBUCKET_KERNELS(fp2_t, g2)\n") } else { SHADER.to_string() };
+        let source = if g2 {
+            format!("{SHADER}\nBUCKET_KERNELS(fp2_t, g2)\n")
+        } else {
+            SHADER.to_string()
+        };
         let options = CompileOptions::new();
         if smaller {
             // MTLLibraryOptimizationLevelSize; metal-rs has no setter for it.
             let _: () = unsafe { msg_send![&*options, setOptimizationLevel: 1i64] };
         }
-        device.new_library_with_source(&source, &options).map_err(|e| format!("shader: {e}"))
+        device
+            .new_library_with_source(&source, &options)
+            .map_err(|e| format!("shader: {e}"))
     }
 }
 
@@ -180,7 +219,11 @@ fn width_for(n: usize) -> usize {
     // additions. On an M5 Pro whole proofs went 202 → 154 ms at 8 → 2 and
     // 444 → 395 at 24 → 2; on an iPhone 12 and 15 the 15-bit reduction was
     // 28 % of the GPU's MSM time.
-    let cap = std::env::var("RINGIL_GPU_WIDTH").ok().and_then(|v| v.parse::<usize>().ok()).unwrap_or(13).clamp(7, 15);
+    let cap = std::env::var("RINGIL_GPU_WIDTH")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(13)
+        .clamp(7, 15);
     width.min(cap)
 }
 /// Threads per window in the reduction: each takes half / this many buckets.
@@ -246,7 +289,12 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
         }
     }
     fn xyzz_to_projective(bytes: &[u8]) -> Self {
-        let (x, y, zz, zzz) = (fq(&bytes[..32]), fq(&bytes[32..64]), fq(&bytes[64..96]), fq(&bytes[96..128]));
+        let (x, y, zz, zzz) = (
+            fq(&bytes[..32]),
+            fq(&bytes[32..64]),
+            fq(&bytes[64..96]),
+            fq(&bytes[96..128]),
+        );
         if zz.is_zero() {
             return Self::ZERO;
         }
@@ -341,7 +389,10 @@ impl Scratch {
 
     fn new_in_pool() -> Result<std::sync::Arc<Self>, String> {
         let device = Device::system_default().ok_or("no Metal device")?;
-        let buffers = ScratchBuffers { tree: [shared(&device, 16), shared(&device, 16)], buckets: shared(&device, 16) };
+        let buffers = ScratchBuffers {
+            tree: [shared(&device, 16), shared(&device, 16)],
+            buckets: shared(&device, 16),
+        };
         Ok(std::sync::Arc::new(Self(std::sync::Mutex::new(buffers))))
     }
     /// Room for an MSM's trees and buckets. A command buffer in flight keeps
@@ -389,13 +440,19 @@ impl<C: Curve> Msm<C> {
     }
 
     /// As `new`, with the trees and buckets shared with other MSMs.
-    pub fn new_in(bases: &[C::Affine], scratch: std::sync::Arc<Scratch>) -> Result<(Self, f64), String> {
+    pub fn new_in(
+        bases: &[C::Affine],
+        scratch: std::sync::Arc<Scratch>,
+    ) -> Result<(Self, f64), String> {
         // Building a pipeline autoreleases objects that hold on to the
         // device's memory; a thread without a pool leaked them per key.
         autoreleasepool(|| Self::new_in_pool(bases, scratch))
     }
 
-    fn new_in_pool(bases: &[C::Affine], scratch: std::sync::Arc<Scratch>) -> Result<(Self, f64), String> {
+    fn new_in_pool(
+        bases: &[C::Affine],
+        scratch: std::sync::Arc<Scratch>,
+    ) -> Result<(Self, f64), String> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
         let pipeline = |name: &str| pipeline(&device, C::G2, name);
@@ -513,7 +570,11 @@ impl<C: Curve> Msm<C> {
         let scratch = self.scratch.0.lock().unwrap();
         // Empty buckets stay at infinity.
         let blit = command.new_blit_command_encoder();
-        blit.fill_buffer(&scratch.buckets, metal::NSRange::new(0, self.bucket_bytes as u64), 0);
+        blit.fill_buffer(
+            &scratch.buckets,
+            metal::NSRange::new(0, self.bucket_bytes as u64),
+            0,
+        );
         blit.end_encoding();
         let encoder = command.new_compute_command_encoder();
         // Chunks run in order and share the trees; the dispatches of one
@@ -521,7 +582,11 @@ impl<C: Curve> Msm<C> {
         for (chunk, levels) in chunks.iter().enumerate() {
             let last = levels.len() - 1;
             for (level, shards) in levels.iter().enumerate() {
-                let pipeline = if level == 0 { &self.first } else { &self.tree_pipeline };
+                let pipeline = if level == 0 {
+                    &self.first
+                } else {
+                    &self.tree_pipeline
+                };
                 encoder.set_compute_pipeline_state(pipeline);
                 if level == 0 {
                     encoder.set_buffer(0, Some(&self.bases), 0);
@@ -533,7 +598,11 @@ impl<C: Curve> Msm<C> {
                 encoder.set_buffer(2, Some(start), 0);
                 encoder.set_buffer(3, Some(count), 0);
                 encoder.set_buffer(4, Some(dst), 0);
-                let out = if level == last { &scratch.buckets } else { &scratch.tree[level % 2] };
+                let out = if level == last {
+                    &scratch.buckets
+                } else {
+                    &scratch.tree[level % 2]
+                };
                 encoder.set_buffer(5, Some(out), 0);
                 let n = *shards as u32;
                 encoder.set_bytes(6, 4, &n as *const u32 as *const c_void);
@@ -550,7 +619,10 @@ impl<C: Curve> Msm<C> {
         Pending {
             command: command.to_owned(),
             submitted: Instant::now(),
-            timings: Timings { sort_ms, ..Timings::default() },
+            timings: Timings {
+                sort_ms,
+                ..Timings::default()
+            },
         }
     }
 
@@ -577,14 +649,24 @@ impl<C: Curve> Msm<C> {
                 command.wait_until_completed();
                 // SAFETY: GPUStartTime/GPUEndTime are CFTimeInterval
                 // properties of a completed command buffer.
-                let (start, end): (f64, f64) = unsafe { (msg_send![command, GPUStartTime], msg_send![command, GPUEndTime]) };
+                let (start, end): (f64, f64) = unsafe {
+                    (
+                        msg_send![command, GPUStartTime],
+                        msg_send![command, GPUEndTime],
+                    )
+                };
                 (end - start) * 1000.0
             };
-            let (mut first_ms, mut tree_ms, mut first_shards, mut tree_shards) = (0.0, 0.0, 0usize, 0usize);
+            let (mut first_ms, mut tree_ms, mut first_shards, mut tree_shards) =
+                (0.0, 0.0, 0usize, 0usize);
             for (chunk, levels) in chunks.iter().enumerate() {
                 let last = levels.len() - 1;
                 for (level, shards) in levels.iter().enumerate() {
-                    let pipeline = if level == 0 { &self.first } else { &self.tree_pipeline };
+                    let pipeline = if level == 0 {
+                        &self.first
+                    } else {
+                        &self.tree_pipeline
+                    };
                     let ms = run(&|encoder| {
                         encoder.set_compute_pipeline_state(pipeline);
                         if level == 0 {
@@ -597,12 +679,19 @@ impl<C: Curve> Msm<C> {
                         encoder.set_buffer(2, Some(start), 0);
                         encoder.set_buffer(3, Some(count), 0);
                         encoder.set_buffer(4, Some(dst), 0);
-                        let out = if level == last { &scratch.buckets } else { &scratch.tree[level % 2] };
+                        let out = if level == last {
+                            &scratch.buckets
+                        } else {
+                            &scratch.tree[level % 2]
+                        };
                         encoder.set_buffer(5, Some(out), 0);
                         let n = *shards as u32;
                         encoder.set_bytes(6, 4, &n as *const u32 as *const c_void);
                         let group = pipeline.thread_execution_width().min(n as u64).max(1);
-                        encoder.dispatch_threads(MTLSize::new(n as u64, 1, 1), MTLSize::new(group, 1, 1));
+                        encoder.dispatch_threads(
+                            MTLSize::new(n as u64, 1, 1),
+                            MTLSize::new(group, 1, 1),
+                        );
                     });
                     if level == 0 {
                         first_ms += ms;
@@ -635,7 +724,10 @@ impl<C: Curve> Msm<C> {
         encoder.set_buffer(0, Some(buckets), 0);
         encoder.set_buffer(1, Some(&self.sums), 0);
         encoder.set_bytes(2, 16, args.as_ptr() as *const c_void);
-        encoder.dispatch_threads(MTLSize::new((self.windows * per_window) as u64, 1, 1), MTLSize::new(group as u64, 1, 1));
+        encoder.dispatch_threads(
+            MTLSize::new((self.windows * per_window) as u64, 1, 1),
+            MTLSize::new(group as u64, 1, 1),
+        );
     }
 
     /// Waits for a submitted MSM and combines its window sums.
@@ -696,18 +788,32 @@ impl<C: Curve> Msm<C> {
                     let len = size.min(run_count - at);
                     start.push(run_start + at);
                     count.push(len);
-                    dst.push(if last { (first_bucket + b) as u32 } else { first + (at / size) });
+                    dst.push(if last {
+                        (first_bucket + b) as u32
+                    } else {
+                        first + (at / size)
+                    });
                     at += len;
                 }
                 next.push((first, start.len() as u32 - first));
             }
             if self.levels[chunk].len() <= level {
                 let most = self.chunk_windows * (self.n.div_ceil(FIRST_SHARD) + self.half);
-                self.levels[chunk].push([shared(&self.device, most * 4), shared(&self.device, most * 4), shared(&self.device, most * 4)]);
+                self.levels[chunk].push([
+                    shared(&self.device, most * 4),
+                    shared(&self.device, most * 4),
+                    shared(&self.device, most * 4),
+                ]);
             }
             for (buffer, data) in self.levels[chunk][level].iter().zip([&start, &count, &dst]) {
                 // SAFETY: each level buffer holds `most` u32s, at least data.len().
-                unsafe { std::ptr::copy_nonoverlapping(data.as_ptr(), buffer.contents() as *mut u32, data.len()) };
+                unsafe {
+                    std::ptr::copy_nonoverlapping(
+                        data.as_ptr(),
+                        buffer.contents() as *mut u32,
+                        data.len(),
+                    )
+                };
             }
             shard_counts.push(start.len());
             if last {
@@ -727,24 +833,29 @@ impl<C: Curve> Msm<C> {
         let n = self.n;
         // digits[i * windows + w].
         let mut digits = vec![0i16; n * windows];
-        digits.par_chunks_mut(windows).zip(scalars).for_each(|(row, s)| {
-            let BigInt(words) = s.into_bigint();
-            let mut carry = 0u64;
-            for (w, digit) in row.iter_mut().enumerate() {
-                let offset = w * width;
-                let (word, shift) = (offset / 64, offset % 64);
-                let mut value = if word < 4 { words[word] >> shift } else { 0 };
-                if shift + width > 64 && word < 3 {
-                    value |= words[word + 1] << (64 - shift);
+        digits
+            .par_chunks_mut(windows)
+            .zip(scalars)
+            .for_each(|(row, s)| {
+                let BigInt(words) = s.into_bigint();
+                let mut carry = 0u64;
+                for (w, digit) in row.iter_mut().enumerate() {
+                    let offset = w * width;
+                    let (word, shift) = (offset / 64, offset % 64);
+                    let mut value = if word < 4 { words[word] >> shift } else { 0 };
+                    if shift + width > 64 && word < 3 {
+                        value |= words[word + 1] << (64 - shift);
+                    }
+                    let value = (value & mask) + carry;
+                    carry = (value + radix / 2) >> width;
+                    *digit = (value as i64 - (carry * radix) as i64) as i16;
                 }
-                let value = (value & mask) + carry;
-                carry = (value + radix / 2) >> width;
-                *digit = (value as i64 - (carry * radix) as i64) as i16;
-            }
-        });
+            });
         // SAFETY: the buffer holds n * windows u32s, shared storage, and
         // nothing else reads it until the dispatch.
-        let sorted = unsafe { std::slice::from_raw_parts_mut(self.sorted.contents() as *mut u32, n * windows) };
+        let sorted = unsafe {
+            std::slice::from_raw_parts_mut(self.sorted.contents() as *mut u32, n * windows)
+        };
         sorted
             .par_chunks_mut(n)
             .zip(self.starts.par_chunks_mut(half))
@@ -769,13 +880,13 @@ impl<C: Curve> Msm<C> {
                     let d = digits[i * windows + w];
                     if d != 0 {
                         let b = d.unsigned_abs() as usize - 1;
-                        sorted[positions[b] as usize] = i as u32 | if d < 0 { 0x8000_0000 } else { 0 };
+                        sorted[positions[b] as usize] =
+                            i as u32 | if d < 0 { 0x8000_0000 } else { 0 };
                         positions[b] += 1;
                     }
                 }
             });
     }
-
 
     pub fn device_name(&self) -> String {
         self.device.name().to_string()
@@ -791,7 +902,6 @@ fn fq(bytes: &[u8]) -> Fq {
         u64::from_le_bytes(bytes[i * 8..i * 8 + 8].try_into().unwrap())
     })))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -839,7 +949,11 @@ mod tests {
             for skewed in [false, true] {
                 let scalars = scalars(n, skewed, &mut rng);
                 let expected = C::msm_unchecked(&bases, &scalars);
-                assert_eq!(msm(&scalars).into_affine(), expected.into_affine(), "{n} points, skewed {skewed}");
+                assert_eq!(
+                    msm(&scalars).into_affine(),
+                    expected.into_affine(),
+                    "{n} points, skewed {skewed}"
+                );
             }
             let zeros = vec![Fr::from(0u64); n];
             assert!(msm(&zeros).into_affine().is_zero(), "{n} points, all zero");

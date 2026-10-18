@@ -70,7 +70,12 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
         }
     }
     fn xyzz_to_projective(bytes: &[u8]) -> Self {
-        let (x, y, zz, zzz) = (fq(&bytes[..32]), fq(&bytes[32..64]), fq(&bytes[64..96]), fq(&bytes[96..128]));
+        let (x, y, zz, zzz) = (
+            fq(&bytes[..32]),
+            fq(&bytes[32..64]),
+            fq(&bytes[64..96]),
+            fq(&bytes[96..128]),
+        );
         if zz.is_zero() {
             return Self::ZERO;
         }
@@ -120,7 +125,11 @@ fn width_for(n: usize) -> usize {
         _ => 15,
     };
     // As the Metal driver's: capped at 13 bits (RINGIL_GPU_WIDTH overrides).
-    let cap = std::env::var("RINGIL_GPU_WIDTH").ok().and_then(|v| v.parse::<usize>().ok()).unwrap_or(13).clamp(7, 15);
+    let cap = std::env::var("RINGIL_GPU_WIDTH")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(13)
+        .clamp(7, 15);
     width.min(cap)
 }
 
@@ -164,12 +173,18 @@ pub(crate) fn popped(scope: wgpu::ErrorScopeGuard) -> Option<wgpu::Error> {
 /// the web by yielding to the page until the browser maps it.
 pub(crate) async fn mapped(gpu: &Gpu, buffer: &wgpu::Buffer) -> Result<(), String> {
     let (tx, rx) = futures_channel::oneshot::channel();
-    buffer.slice(..).map_async(wgpu::MapMode::Read, move |result| {
-        let _ = tx.send(result);
-    });
+    buffer
+        .slice(..)
+        .map_async(wgpu::MapMode::Read, move |result| {
+            let _ = tx.send(result);
+        });
     #[cfg(not(target_arch = "wasm32"))]
-    gpu.device.poll(wgpu::PollType::wait_indefinitely()).map_err(|e| format!("gpu: {e}"))?;
-    rx.await.map_err(|_| "the mapping was dropped".to_string())?.map_err(|e| format!("map: {e}"))?;
+    gpu.device
+        .poll(wgpu::PollType::wait_indefinitely())
+        .map_err(|e| format!("gpu: {e}"))?;
+    rx.await
+        .map_err(|_| "the mapping was dropped".to_string())?
+        .map_err(|e| format!("map: {e}"))?;
     if gpu.failed() {
         buffer.unmap();
         return Err("the device reported an error".into());
@@ -209,7 +224,12 @@ impl Gpu {
             log::error!("ringil wgpu: {e}");
             flag.store(true, std::sync::atomic::Ordering::SeqCst);
         }));
-        Ok(Self { device, queue, name: format!("{} ({:?})", info.name, info.backend), failed })
+        Ok(Self {
+            device,
+            queue,
+            name: format!("{} ({:?})", info.name, info.backend),
+            failed,
+        })
     }
 
     /// Whether the device reported an error outside an error scope.
@@ -252,7 +272,9 @@ pub(crate) fn storage(device: &wgpu::Device, label: &str, bytes: usize) -> wgpu:
     device.create_buffer(&wgpu::BufferDescriptor {
         label: Some(label),
         size: bytes.max(16) as u64,
-        usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::COPY_SRC,
+        usage: wgpu::BufferUsages::STORAGE
+            | wgpu::BufferUsages::COPY_DST
+            | wgpu::BufferUsages::COPY_SRC,
         mapped_at_creation: false,
     })
 }
@@ -306,7 +328,8 @@ impl<C: Curve> Msm<C> {
                 return Err(format!("kernel {entry}: the device reported an error"));
             }
         }
-        let [first, tree_pipeline, reduce_blocks]: [wgpu::ComputePipeline; 3] = pipelines.try_into().expect("three kernels");
+        let [first, tree_pipeline, reduce_blocks]: [wgpu::ComputePipeline; 3] =
+            pipelines.try_into().expect("three kernels");
         for scope in [internal, validation] {
             if let Some(e) = popped(scope) {
                 return Err(format!("kernels: {e}"));
@@ -329,7 +352,12 @@ impl<C: Curve> Msm<C> {
         let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
         let per_window = half
-            .min(std::env::var("RINGIL_REDUCE_PER_WINDOW").ok().and_then(|v| v.parse().ok()).unwrap_or(REDUCE_THREADS_PER_WINDOW))
+            .min(
+                std::env::var("RINGIL_REDUCE_PER_WINDOW")
+                    .ok()
+                    .and_then(|v| v.parse().ok())
+                    .unwrap_or(REDUCE_THREADS_PER_WINDOW),
+            )
             .max(WORKGROUP as usize);
         let reduce_shape = [half / per_window, per_window];
         let partials = windows * per_window / WORKGROUP as usize;
@@ -337,34 +365,40 @@ impl<C: Curve> Msm<C> {
         let bases_buffer = storage(device, "bases", raw.len());
         gpu.queue.write_buffer(&bases_buffer, 0, &raw);
         let msm = Self {
-                width,
-                half,
-                windows,
-                n,
-                first,
-                tree_pipeline,
-                reduce_blocks,
-                reduce_shape,
-                bases: bases_buffer,
-                sorted: storage(device, "sorted", n * windows * 4),
-                chunk_windows,
-                levels: Vec::new(),
-                tree: [storage(device, "tree a", most * C::XYZZ_BYTES), storage(device, "tree b", most * C::XYZZ_BYTES)],
-                buckets: storage(device, "buckets", buckets * C::XYZZ_BYTES),
-                sums: storage(device, "sums", partials * C::XYZZ_BYTES),
-                staging: device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some("staging"),
-                    size: (partials * C::XYZZ_BYTES) as u64,
-                    usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-                    mapped_at_creation: false,
-                }),
-                reduce_uniform: uniform(&gpu, [half as u32, reduce_shape[0] as u32, per_window as u32, 0]),
-                counts: vec![0; buckets],
-                starts: vec![0; buckets],
-                most,
-                gpu,
-                _curve: std::marker::PhantomData,
-            };
+            width,
+            half,
+            windows,
+            n,
+            first,
+            tree_pipeline,
+            reduce_blocks,
+            reduce_shape,
+            bases: bases_buffer,
+            sorted: storage(device, "sorted", n * windows * 4),
+            chunk_windows,
+            levels: Vec::new(),
+            tree: [
+                storage(device, "tree a", most * C::XYZZ_BYTES),
+                storage(device, "tree b", most * C::XYZZ_BYTES),
+            ],
+            buckets: storage(device, "buckets", buckets * C::XYZZ_BYTES),
+            sums: storage(device, "sums", partials * C::XYZZ_BYTES),
+            staging: device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("staging"),
+                size: (partials * C::XYZZ_BYTES) as u64,
+                usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            }),
+            reduce_uniform: uniform(
+                &gpu,
+                [half as u32, reduce_shape[0] as u32, per_window as u32, 0],
+            ),
+            counts: vec![0; buckets],
+            starts: vec![0; buckets],
+            most,
+            gpu,
+            _curve: std::marker::PhantomData,
+        };
         if let Some(e) = popped(memory) {
             return Err(format!("buffers: {e}"));
         }
@@ -401,63 +435,111 @@ impl<C: Curve> Msm<C> {
         let mut encoder = device.create_command_encoder(&Default::default());
         encoder.clear_buffer(&self.buckets, 0, None);
         for (chunk, levels) in chunks.iter().enumerate() {
-        let last = levels.len() - 1;
-        for (level, shards) in levels.iter().enumerate() {
-            let pipeline = if level == 0 { &self.first } else { &self.tree_pipeline };
-            let [start, count, dst, params] = &self.levels[chunk][level];
-            let out = if level == last { &self.buckets } else { &self.tree[level % 2] };
-            // A layout derived from the entry point holds only the bindings
-            // it reads: the tree levels have no bases or sorted indices.
-            let mut entries = vec![
-                wgpu::BindGroupEntry { binding: 2, resource: start.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 3, resource: count.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 4, resource: dst.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 5, resource: out.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 6, resource: params.as_entire_binding() },
-            ];
-            if level == 0 {
-                entries.push(wgpu::BindGroupEntry { binding: 0, resource: self.bases.as_entire_binding() });
-                entries.push(wgpu::BindGroupEntry { binding: 1, resource: self.sorted.as_entire_binding() });
-            }
-            let group0 = device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &pipeline.get_bind_group_layout(0),
-                entries: &entries,
-            });
-            let group1 = (level > 0).then(|| {
-                device.create_bind_group(&wgpu::BindGroupDescriptor {
+            let last = levels.len() - 1;
+            for (level, shards) in levels.iter().enumerate() {
+                let pipeline = if level == 0 {
+                    &self.first
+                } else {
+                    &self.tree_pipeline
+                };
+                let [start, count, dst, params] = &self.levels[chunk][level];
+                let out = if level == last {
+                    &self.buckets
+                } else {
+                    &self.tree[level % 2]
+                };
+                // A layout derived from the entry point holds only the bindings
+                // it reads: the tree levels have no bases or sorted indices.
+                let mut entries = vec![
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: start.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: count.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: dst.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 5,
+                        resource: out.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 6,
+                        resource: params.as_entire_binding(),
+                    },
+                ];
+                if level == 0 {
+                    entries.push(wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: self.bases.as_entire_binding(),
+                    });
+                    entries.push(wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: self.sorted.as_entire_binding(),
+                    });
+                }
+                let group0 = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: None,
-                    layout: &pipeline.get_bind_group_layout(1),
-                    entries: &[wgpu::BindGroupEntry { binding: 0, resource: self.tree[(level - 1) % 2].as_entire_binding() }],
-                })
-            });
-            let mut pass = encoder.begin_compute_pass(&Default::default());
-            pass.set_pipeline(pipeline);
-            pass.set_bind_group(0, &group0, &[]);
-            if let Some(group1) = &group1 {
-                pass.set_bind_group(1, group1, &[]);
+                    layout: &pipeline.get_bind_group_layout(0),
+                    entries: &entries,
+                });
+                let group1 = (level > 0).then(|| {
+                    device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        label: None,
+                        layout: &pipeline.get_bind_group_layout(1),
+                        entries: &[wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: self.tree[(level - 1) % 2].as_entire_binding(),
+                        }],
+                    })
+                });
+                let mut pass = encoder.begin_compute_pass(&Default::default());
+                pass.set_pipeline(pipeline);
+                pass.set_bind_group(0, &group0, &[]);
+                if let Some(group1) = &group1 {
+                    pass.set_bind_group(1, group1, &[]);
+                }
+                pass.dispatch_workgroups((*shards as u32).div_ceil(WORKGROUP), 1, 1);
             }
-            pass.dispatch_workgroups((*shards as u32).div_ceil(WORKGROUP), 1, 1);
-        }
         }
         {
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
                 layout: &self.reduce_blocks.get_bind_group_layout(0),
                 entries: &[
-                    wgpu::BindGroupEntry { binding: 0, resource: self.buckets.as_entire_binding() },
-                    wgpu::BindGroupEntry { binding: 1, resource: self.sums.as_entire_binding() },
-                    wgpu::BindGroupEntry { binding: 3, resource: self.reduce_uniform.as_entire_binding() },
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: self.buckets.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: self.sums.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: self.reduce_uniform.as_entire_binding(),
+                    },
                 ],
             });
             let mut pass = encoder.begin_compute_pass(&Default::default());
             pass.set_pipeline(&self.reduce_blocks);
             pass.set_bind_group(0, &group, &[]);
-            pass.dispatch_workgroups((self.windows * self.reduce_shape[1] / WORKGROUP as usize) as u32, 1, 1);
+            pass.dispatch_workgroups(
+                (self.windows * self.reduce_shape[1] / WORKGROUP as usize) as u32,
+                1,
+                1,
+            );
         }
         encoder.copy_buffer_to_buffer(&self.sums, 0, &self.staging, 0, self.sums.size());
         queue.submit([encoder.finish()]);
-        Pending { submitted: started, timings }
+        Pending {
+            submitted: started,
+            timings,
+        }
     }
 
     /// Waits for a submitted MSM and combines its window sums.
@@ -470,7 +552,12 @@ impl<C: Curve> Msm<C> {
     pub async fn finish_async(&mut self, pending: Pending) -> Result<(C, Timings), String> {
         let mut timings = pending.timings;
         mapped(&self.gpu, &self.staging).await?;
-        let data = self.staging.slice(..).get_mapped_range().map_err(|e| format!("sums: {e}"))?.to_vec();
+        let data = self
+            .staging
+            .slice(..)
+            .get_mapped_range()
+            .map_err(|e| format!("sums: {e}"))?
+            .to_vec();
         self.staging.unmap();
         timings.gpu_ms = pending.submitted.elapsed().as_secs_f64() * 1000.0;
 
@@ -517,7 +604,11 @@ impl<C: Curve> Msm<C> {
                     let len = size.min(run_count - at);
                     start.push(run_start + at);
                     count.push(len);
-                    dst.push(if last { (first_bucket + b) as u32 } else { first + (at / size) });
+                    dst.push(if last {
+                        (first_bucket + b) as u32
+                    } else {
+                        first + (at / size)
+                    });
                     at += len;
                 }
                 next.push((first, start.len() as u32 - first));
@@ -553,21 +644,24 @@ impl<C: Curve> Msm<C> {
         let radix = 1u64 << width;
         let mask = radix - 1;
         let mut digits = vec![0i16; n * windows];
-        digits.par_chunks_mut(windows).zip(scalars).for_each(|(row, s)| {
-            let BigInt(words) = s.into_bigint();
-            let mut carry = 0u64;
-            for (w, digit) in row.iter_mut().enumerate() {
-                let offset = w * width;
-                let (word, shift) = (offset / 64, offset % 64);
-                let mut value = if word < 4 { words[word] >> shift } else { 0 };
-                if shift + width > 64 && word < 3 {
-                    value |= words[word + 1] << (64 - shift);
+        digits
+            .par_chunks_mut(windows)
+            .zip(scalars)
+            .for_each(|(row, s)| {
+                let BigInt(words) = s.into_bigint();
+                let mut carry = 0u64;
+                for (w, digit) in row.iter_mut().enumerate() {
+                    let offset = w * width;
+                    let (word, shift) = (offset / 64, offset % 64);
+                    let mut value = if word < 4 { words[word] >> shift } else { 0 };
+                    if shift + width > 64 && word < 3 {
+                        value |= words[word + 1] << (64 - shift);
+                    }
+                    let value = (value & mask) + carry;
+                    carry = (value + radix / 2) >> width;
+                    *digit = (value as i64 - (carry * radix) as i64) as i16;
                 }
-                let value = (value & mask) + carry;
-                carry = (value + radix / 2) >> width;
-                *digit = (value as i64 - (carry * radix) as i64) as i16;
-            }
-        });
+            });
         let mut sorted = vec![0u32; n * windows];
         sorted
             .par_chunks_mut(n)
@@ -593,7 +687,8 @@ impl<C: Curve> Msm<C> {
                     let d = digits[i * windows + w];
                     if d != 0 {
                         let b = d.unsigned_abs() as usize - 1;
-                        sorted[positions[b] as usize] = i as u32 | if d < 0 { 0x8000_0000 } else { 0 };
+                        sorted[positions[b] as usize] =
+                            i as u32 | if d < 0 { 0x8000_0000 } else { 0 };
                         positions[b] += 1;
                     }
                 }
@@ -603,7 +698,9 @@ impl<C: Curve> Msm<C> {
 }
 
 fn fq(bytes: &[u8]) -> Fq {
-    Fq::new_unchecked(BigInt(core::array::from_fn(|i| u64::from_le_bytes(bytes[i * 8..i * 8 + 8].try_into().unwrap()))))
+    Fq::new_unchecked(BigInt(core::array::from_fn(|i| {
+        u64::from_le_bytes(bytes[i * 8..i * 8 + 8].try_into().unwrap())
+    })))
 }
 
 #[cfg(test)]
@@ -652,7 +749,11 @@ mod tests {
             for skewed in [false, true] {
                 let scalars = scalars(n, skewed, &mut rng);
                 let expected = C::msm_unchecked(&bases, &scalars);
-                assert_eq!(msm(&scalars).into_affine(), expected.into_affine(), "{n} points, skewed {skewed}");
+                assert_eq!(
+                    msm(&scalars).into_affine(),
+                    expected.into_affine(),
+                    "{n} points, skewed {skewed}"
+                );
             }
             let zeros = vec![Fr::from(0u64); n];
             assert!(msm(&zeros).into_affine().is_zero(), "{n} points, all zero");

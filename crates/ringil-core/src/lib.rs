@@ -18,18 +18,22 @@ pub(crate) mod time {
 pub use wasm_bindgen_rayon::init_thread_pool;
 mod decompress;
 pub mod fft;
+pub mod groth16;
 mod msm;
 #[cfg(not(target_arch = "wasm32"))]
 mod selftest;
 mod simd;
 mod solver;
-pub mod groth16;
 
 // Stage times as RINGIL_TRACE log lines (`--features trace`): the native
 // bench prints them, a phone's bench puts them in the device log.
 fn trace(label: &str, started: crate::time::Instant) -> crate::time::Instant {
     #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
-    log::info!("RINGIL_TRACE {label} {:.1} ms{}", started.elapsed().as_secs_f64() * 1000.0, footprint_note());
+    log::info!(
+        "RINGIL_TRACE {label} {:.1} ms{}",
+        started.elapsed().as_secs_f64() * 1000.0,
+        footprint_note()
+    );
     #[cfg(not(all(feature = "trace", not(target_arch = "wasm32"))))]
     let _ = (label, started);
     crate::time::Instant::now()
@@ -41,14 +45,26 @@ fn footprint_note() -> String {
     let mut info: libc::rusage_info_v4 = unsafe { std::mem::zeroed() };
     // SAFETY: the buffer is a rusage_info_v4, as RUSAGE_INFO_V4 asks for.
     let status = unsafe {
-        libc::proc_pid_rusage(std::process::id() as i32, libc::RUSAGE_INFO_V4, &mut info as *mut _ as *mut libc::rusage_info_t)
+        libc::proc_pid_rusage(
+            std::process::id() as i32,
+            libc::RUSAGE_INFO_V4,
+            &mut info as *mut _ as *mut libc::rusage_info_t,
+        )
     };
     if status != 0 {
         return String::new();
     }
-    format!(" fp {} peak {} MB", info.ri_phys_footprint >> 20, info.ri_lifetime_max_phys_footprint >> 20)
+    format!(
+        " fp {} peak {} MB",
+        info.ri_phys_footprint >> 20,
+        info.ri_lifetime_max_phys_footprint >> 20
+    )
 }
-#[cfg(all(feature = "trace", not(target_vendor = "apple"), not(target_arch = "wasm32")))]
+#[cfg(all(
+    feature = "trace",
+    not(target_vendor = "apple"),
+    not(target_arch = "wasm32")
+))]
 fn footprint_note() -> String {
     String::new()
 }
@@ -190,7 +206,10 @@ pub fn solver_image_version() -> u32 {
 /// at G2 than their cores.
 #[cfg(gpu)]
 fn g2_gpu_share() -> f64 {
-    if let Some(share) = std::env::var("RINGIL_G2_GPU_SHARE").ok().and_then(|v| v.parse::<f64>().ok()) {
+    if let Some(share) = std::env::var("RINGIL_G2_GPU_SHARE")
+        .ok()
+        .and_then(|v| v.parse::<f64>().ok())
+    {
         return share.clamp(0.0, 1.0);
     }
     match std::env::var("RINGIL_G2").as_deref() {
@@ -232,9 +251,16 @@ fn g2_gpu_share() -> f64 {
     // A browser has no environment: the build's RINGIL_WEB_G2_SHARE, else
     // the default.
     #[cfg(target_arch = "wasm32")]
-    return option_env!("RINGIL_WEB_G2_SHARE").and_then(|v| v.parse::<f64>().ok()).unwrap_or(WEB_G2_SHARE).clamp(0.0, 1.0);
+    return option_env!("RINGIL_WEB_G2_SHARE")
+        .and_then(|v| v.parse::<f64>().ok())
+        .unwrap_or(WEB_G2_SHARE)
+        .clamp(0.0, 1.0);
     #[allow(unreachable_code)]
-    std::env::var("RINGIL_G2_GPU_SHARE").ok().and_then(|v| v.parse::<f64>().ok()).unwrap_or(WGPU_G2_SHARE).clamp(0.0, 1.0)
+    std::env::var("RINGIL_G2_GPU_SHARE")
+        .ok()
+        .and_then(|v| v.parse::<f64>().ok())
+        .unwrap_or(WGPU_G2_SHARE)
+        .clamp(0.0, 1.0)
 }
 /// In a browser, where the CPU's share runs as WebAssembly: measured best
 /// in Chrome on an M5 Pro at 4 threads (8 → 2 288 ms, 24 → 2 636 ms, where
@@ -284,7 +310,9 @@ impl GpuBuilder {
     /// 3–5× slower than the phone's own cores, or did not link at all.
     fn open(plan: &fft::Plan) -> Option<Self> {
         let wanted = std::env::var("RINGIL_GPU").ok();
-        if wanted.as_deref() == Some("0") || (cfg!(target_os = "android") && wanted.as_deref() != Some("1")) {
+        if wanted.as_deref() == Some("0")
+            || (cfg!(target_os = "android") && wanted.as_deref() != Some("1"))
+        {
             return None;
         }
         let started = crate::time::Instant::now();
@@ -295,8 +323,24 @@ impl GpuBuilder {
         #[cfg(target_arch = "wasm32")]
         let gpu = WEB_GPU.with(|device| device.borrow().clone())?;
         let (roots, inverse_roots, forward, reverse) = plan.tables()?;
-        let quotient = ringil_wgpu::Quotient::new(gpu.clone(), plan.size(), &roots, &inverse_roots, &forward, &reverse).ok()?.0;
-        Some(Self { started, gpu, quotient, g1: [None, None, None, None], b2: None, b2_cut: 0 })
+        let quotient = ringil_wgpu::Quotient::new(
+            gpu.clone(),
+            plan.size(),
+            &roots,
+            &inverse_roots,
+            &forward,
+            &reverse,
+        )
+        .ok()?
+        .0;
+        Some(Self {
+            started,
+            gpu,
+            quotient,
+            g1: [None, None, None, None],
+            b2: None,
+            b2_cut: 0,
+        })
     }
     fn g1(&mut self, which: usize, bases: &[G1Affine]) -> Result<(), String> {
         self.g1[which] = Some(ringil_wgpu::G1Msm::new(self.gpu.clone(), bases)?.0);
@@ -313,9 +357,19 @@ impl GpuBuilder {
         Ok(cut)
     }
     fn finish(self) -> Gpu {
-        let [a, b, k, z] = self.g1.map(|msm| std::sync::Mutex::new(msm.expect("every G1 vector uploaded")));
+        let [a, b, k, z] = self
+            .g1
+            .map(|msm| std::sync::Mutex::new(msm.expect("every G1 vector uploaded")));
         trace("gpu-upload", self.started);
-        Gpu { a, b, k, z, b2: self.b2.map(std::sync::Mutex::new), b2_cut: self.b2_cut, quotient: std::sync::Mutex::new(self.quotient) }
+        Gpu {
+            a,
+            b,
+            k,
+            z,
+            b2: self.b2.map(std::sync::Mutex::new),
+            b2_cut: self.b2_cut,
+            quotient: std::sync::Mutex::new(self.quotient),
+        }
     }
 }
 
@@ -323,14 +377,22 @@ impl GpuBuilder {
 /// when there is no GPU. A GPU that cannot take the key fails the build:
 /// the caller then proves another way.
 #[cfg(gpu_any)]
-fn upload_g1(gpu: &mut Option<GpuBuilder>, which: usize, bases: Vec<G1Affine>) -> Result<Vec<G1Affine>, &'static str> {
+fn upload_g1(
+    gpu: &mut Option<GpuBuilder>,
+    which: usize,
+    bases: Vec<G1Affine>,
+) -> Result<Vec<G1Affine>, &'static str> {
     match gpu {
         Some(builder) => {
-            builder.g1(which, &bases).map_err(|_| "the GPU could not take the key")?;
+            builder
+                .g1(which, &bases)
+                .map_err(|_| "the GPU could not take the key")?;
             #[cfg(feature = "fullcheck")]
             {
                 let msm = builder.g1[which].as_mut().expect("uploaded");
-                selftest::full_g1(["a", "b", "k", "z"][which], &bases, |scalars| msm.msm(scalars).map(|r| r.0));
+                selftest::full_g1(["a", "b", "k", "z"][which], &bases, |scalars| {
+                    msm.msm(scalars).map(|r| r.0)
+                });
             }
             // In a browser the CPU keeps its copy: solve_parts proves there.
             #[cfg(target_arch = "wasm32")]
@@ -342,14 +404,19 @@ fn upload_g1(gpu: &mut Option<GpuBuilder>, which: usize, bases: Vec<G1Affine>) -
     }
 }
 #[cfg(gpu_any)]
-fn upload_g2(gpu: &mut Option<GpuBuilder>, bases: Vec<G2Affine>) -> Result<Vec<G2Affine>, &'static str> {
+fn upload_g2(
+    gpu: &mut Option<GpuBuilder>,
+    bases: Vec<G2Affine>,
+) -> Result<Vec<G2Affine>, &'static str> {
     #[cfg(feature = "fullcheck")]
     selftest::full_g2(&bases);
     match gpu {
         Some(builder) => {
             // The CPU keeps the points after those the GPU took; in a
             // browser it keeps them all, for solve_parts on the CPU.
-            let cut = builder.g2(&bases).map_err(|_| "the GPU could not take the key")?;
+            let cut = builder
+                .g2(&bases)
+                .map_err(|_| "the GPU could not take the key")?;
             if cfg!(target_arch = "wasm32") || cut == 0 {
                 Ok(bases)
             } else {
@@ -388,9 +455,19 @@ impl GpuBuilder {
         }
         let started = crate::time::Instant::now();
         let (roots, inverse_roots, forward, reverse) = plan.tables()?;
-        let quotient = ringil_metal::Quotient::new(plan.size(), &roots, &inverse_roots, &forward, &reverse).ok()?.0;
+        let quotient =
+            ringil_metal::Quotient::new(plan.size(), &roots, &inverse_roots, &forward, &reverse)
+                .ok()?
+                .0;
         let scratch = ringil_metal::Scratch::new().ok()?;
-        Some(Self { started, quotient, g1: [None, None, None, None], b2: None, b2_cut: 0, scratch })
+        Some(Self {
+            started,
+            quotient,
+            g1: [None, None, None, None],
+            b2: None,
+            b2_cut: 0,
+            scratch,
+        })
     }
     fn g1(&mut self, which: usize, bases: &[G1Affine]) -> Result<(), String> {
         self.g1[which] = Some(ringil_metal::G1Msm::new_in(bases, self.scratch.clone())?.0);
@@ -408,11 +485,24 @@ impl GpuBuilder {
         Ok(cut)
     }
     fn finish(self) -> Gpu {
-        let [a, b, k, z] = self.g1.map(|msm| std::sync::Mutex::new(msm.expect("every G1 vector uploaded")));
+        let [a, b, k, z] = self
+            .g1
+            .map(|msm| std::sync::Mutex::new(msm.expect("every G1 vector uploaded")));
         trace("gpu-upload", self.started);
         #[cfg(feature = "trace")]
-        log::info!("RINGIL_TRACE gpu-allocated {} MB", ringil_metal::allocated_bytes() >> 20);
-        Gpu { a, b, k, z, b2: self.b2.map(std::sync::Mutex::new), b2_cut: self.b2_cut, quotient: std::sync::Mutex::new(self.quotient) }
+        log::info!(
+            "RINGIL_TRACE gpu-allocated {} MB",
+            ringil_metal::allocated_bytes() >> 20
+        );
+        Gpu {
+            a,
+            b,
+            k,
+            z,
+            b2: self.b2.map(std::sync::Mutex::new),
+            b2_cut: self.b2_cut,
+            quotient: std::sync::Mutex::new(self.quotient),
+        }
     }
 }
 
@@ -494,7 +584,10 @@ impl Key {
         let mut gpu: Option<()> = None;
         trace("gpu-open", started);
         #[cfg(not(gpu_any))]
-        let (upload_g1, upload_g2) = (|_: &mut Option<()>, _: usize, v| Ok::<_, &'static str>(v), |_: &mut Option<()>, v| Ok::<_, &'static str>(v));
+        let (upload_g1, upload_g2) = (
+            |_: &mut Option<()>, _: usize, v| Ok::<_, &'static str>(v),
+            |_: &mut Option<()>, v| Ok::<_, &'static str>(v),
+        );
         #[cfg(not(target_arch = "wasm32"))]
         let head = |n: usize| n.min(selftest::HEAD);
         #[cfg(target_arch = "wasm32")]
@@ -535,11 +628,21 @@ impl Key {
                     if let Some(builder) = gpu.take() {
                         let mut finished = builder.finish();
                         #[cfg(not(target_arch = "wasm32"))]
-                        let verdict = selftest::gpu(&mut finished, &plan, &a_head, &b2_head, lengths[0], lengths[1]);
+                        let verdict = selftest::gpu(
+                            &mut finished,
+                            &plan,
+                            &a_head,
+                            &b2_head,
+                            lengths[0],
+                            lengths[1],
+                        );
                         #[cfg(target_arch = "wasm32")]
                         let verdict = {
                             let _ = &mut finished;
-                            selftest_web::Verdict { msm: true, quotient: true }
+                            selftest_web::Verdict {
+                                msm: true,
+                                quotient: true,
+                            }
                         };
                         if !verdict.msm {
                             drop(finished);
@@ -568,7 +671,10 @@ impl Key {
         #[cfg(gpu_any)]
         let mut plan = plan;
         #[cfg(gpu_any)]
-        if built_gpu.is_some() && gpu_quotient && !std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0") {
+        if built_gpu.is_some()
+            && gpu_quotient
+            && !std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0")
+        {
             plan.release_tables();
         }
         Ok(Self {
@@ -609,7 +715,12 @@ impl Key {
         let parsed = solver::Plan::new(program, coefficients);
         trace("solver-plan", started);
         if let Ok(plan) = parsed {
-            if plan.matches(self.lengths[0], self.lengths[1], self.lengths[2], self.domain.size()) {
+            if plan.matches(
+                self.lengths[0],
+                self.lengths[1],
+                self.lengths[2],
+                self.domain.size(),
+            ) {
                 self.solver = Some(plan);
                 return true;
             }
@@ -636,7 +747,12 @@ impl Key {
             log::info!("RINGIL_TRACE solver-plan-size {}", plan.footprint());
         }
         if let Ok(plan) = parsed {
-            if plan.matches(self.lengths[0], self.lengths[1], self.lengths[2], self.domain.size()) {
+            if plan.matches(
+                self.lengths[0],
+                self.lengths[1],
+                self.lengths[2],
+                self.domain.size(),
+            ) {
                 self.solver = Some(plan);
                 return true;
             }
@@ -659,8 +775,14 @@ impl Key {
     /// MSM follows the others.
     #[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
     pub fn solve_parts_gpu(&self, witness: &[u8]) -> Result<js_sys::Promise, JsError> {
-        let gpu = self.gpu.clone().ok_or_else(|| JsError::new("the key has no GPU"))?;
-        let plan = self.solver.as_ref().ok_or_else(|| JsError::new("no prepared solver"))?;
+        let gpu = self
+            .gpu
+            .clone()
+            .ok_or_else(|| JsError::new("the key has no GPU"))?;
+        let plan = self
+            .solver
+            .as_ref()
+            .ok_or_else(|| JsError::new("no prepared solver"))?;
         if !witness.len().is_multiple_of(32) {
             return Err(JsError::new("invalid witness encoding"));
         }
@@ -679,7 +801,10 @@ impl Key {
         let pa = gpu.a.lock().unwrap().start(&sa);
         let pb = gpu.b.lock().unwrap().start(&sb);
         let pk = gpu.k.lock().unwrap().start(sk);
-        let pb2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap().start(&sb[..cut]));
+        let pb2 = gpu
+            .b2
+            .as_ref()
+            .map(|b2| b2.lock().unwrap().start(&sb[..cut]));
         // The CPU's share of G2 while the GPU works.
         let cpu_b2 = (cut < sb.len()).then(|| msm_g2(&self.b2[cut..], &sb[cut..]));
         Ok(wasm_bindgen_futures::future_to_promise(async move {
@@ -697,7 +822,9 @@ impl Key {
             let (bs1, _) = gpu.b.lock().unwrap().finish_async(pb).await.map_err(fail)?;
             let (kr, _) = gpu.k.lock().unwrap().finish_async(pk).await.map_err(fail)?;
             let gpu_b2 = match (&gpu.b2, pb2) {
-                (Some(b2), Some(pb2)) => Some(b2.lock().unwrap().finish_async(pb2).await.map_err(fail)?.0),
+                (Some(b2), Some(pb2)) => {
+                    Some(b2.lock().unwrap().finish_async(pb2).await.map_err(fail)?.0)
+                }
                 _ => None,
             };
             let (hz, _) = gpu.z.lock().unwrap().finish_async(pz).await.map_err(fail)?;
@@ -709,7 +836,11 @@ impl Key {
             };
             // A test build's fault (RINGIL_WEB_FAULT) checks that the host
             // catches a GPU that miscomputes.
-            let ar = if option_env!("RINGIL_WEB_FAULT").is_some() { ar + <G1Projective as ark_ec::PrimeGroup>::generator() } else { ar };
+            let ar = if option_env!("RINGIL_WEB_FAULT").is_some() {
+                ar + <G1Projective as ark_ec::PrimeGroup>::generator()
+            } else {
+                ar
+            };
             let mut out = Vec::with_capacity(384);
             for p in [ar, bs1, kr, hz] {
                 output_g1(&mut out, p)
@@ -780,7 +911,8 @@ impl Key {
         let sa = frs(sa);
         let sb = frs(sb);
         let sk = frs(sk);
-        self.compute_parts(&sa, &sb, &sk, frs(a), frs(b), frs(c)).map_err(|e| JsError::new(&e))
+        self.compute_parts(&sa, &sb, &sk, frs(a), frs(b), frs(c))
+            .map_err(|e| JsError::new(&e))
     }
 }
 impl Key {
@@ -808,7 +940,11 @@ impl Key {
                     // Each MSM is submitted as soon as it is sorted, so the
                     // host sorts the next while the GPU runs it; G2 B shares
                     // G1 B's scalars, and so its sorted runs.
-                    let (mut a, mut b, mut k) = (gpu.a.lock().unwrap(), gpu.b.lock().unwrap(), gpu.k.lock().unwrap());
+                    let (mut a, mut b, mut k) = (
+                        gpu.a.lock().unwrap(),
+                        gpu.b.lock().unwrap(),
+                        gpu.k.lock().unwrap(),
+                    );
                     let pa = a.start(sa);
                     let pb = b.start(sb);
                     let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
@@ -851,7 +987,9 @@ impl Key {
                     })
                 });
                 let started = crate::time::Instant::now();
-                let h = if !self.gpu_quotient || std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0") {
+                let h = if !self.gpu_quotient
+                    || std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0")
+                {
                     self.quotient(a, b, c)
                 } else {
                     gpu.quotient.lock().unwrap().quotient(&a, &b, &c)?
@@ -880,9 +1018,20 @@ impl Key {
             #[cfg(not(feature = "trace"))]
             drop(h);
             #[cfg(feature = "trace")]
-            if !self.profiled.swap(true, std::sync::atomic::Ordering::Relaxed) {
-                for (name, msm, scalars) in [("a", &gpu.a, sa), ("b", &gpu.b, sb), ("k", &gpu.k, sk), ("z", &gpu.z, &h[..])] {
-                    log::info!("RINGIL_TRACE gpu-profile {name} {}", msm.lock().unwrap().profile(scalars));
+            if !self
+                .profiled
+                .swap(true, std::sync::atomic::Ordering::Relaxed)
+            {
+                for (name, msm, scalars) in [
+                    ("a", &gpu.a, sa),
+                    ("b", &gpu.b, sb),
+                    ("k", &gpu.k, sk),
+                    ("z", &gpu.z, &h[..]),
+                ] {
+                    log::info!(
+                        "RINGIL_TRACE gpu-profile {name} {}",
+                        msm.lock().unwrap().profile(scalars)
+                    );
                 }
             }
             let mut out = Vec::with_capacity(384);
@@ -901,41 +1050,51 @@ impl Key {
             let started = crate::time::Instant::now();
             let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
             let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
-            let ((ar, bs1, kr, hz, gpu_b2), cpu_b2) = std::thread::scope(|scope| -> Result<_, String> {
-                let gpu_work = scope.spawn(move || -> Result<_, String> {
+            let ((ar, bs1, kr, hz, gpu_b2), cpu_b2) =
+                std::thread::scope(|scope| -> Result<_, String> {
+                    let gpu_work = scope.spawn(move || -> Result<_, String> {
+                        let started = crate::time::Instant::now();
+                        let h = if self.gpu_quotient {
+                            gpu.quotient.lock().unwrap().quotient(&a, &b, &c)?
+                        } else {
+                            self.quotient(a, b, c)
+                        };
+                        trace("quotient", started);
+                        let (mut ma, mut mb, mut mk, mut mz) = (
+                            gpu.a.lock().unwrap(),
+                            gpu.b.lock().unwrap(),
+                            gpu.k.lock().unwrap(),
+                            gpu.z.lock().unwrap(),
+                        );
+                        let (pa, pb, pk) = (ma.start(sa), mb.start(sb), mk.start(sk));
+                        let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
+                        let pb2 = b2.as_mut().map(|b2| b2.start(&sb[..cut]));
+                        let pz = mz.start(&h);
+                        drop(sorted_tx);
+                        let (ar, t) = ma.finish(pa)?;
+                        gpu_trace("a", t.sort_ms, t.gpu_ms);
+                        let (bs1, t) = mb.finish(pb)?;
+                        gpu_trace("b", t.sort_ms, t.gpu_ms);
+                        let (kr, t) = mk.finish(pk)?;
+                        gpu_trace("k", t.sort_ms, t.gpu_ms);
+                        let gpu_b2 = match (b2.as_mut(), pb2) {
+                            (Some(b2), Some(pb2)) => {
+                                let (bs2, t) = b2.finish(pb2)?;
+                                gpu_trace("b2", t.sort_ms, t.gpu_ms);
+                                Some(bs2)
+                            }
+                            _ => None,
+                        };
+                        let (hz, t) = mz.finish(pz)?;
+                        gpu_trace("z", t.sort_ms, t.gpu_ms);
+                        Ok((ar, bs1, kr, hz, gpu_b2))
+                    });
+                    let _ = sorted_rx.recv();
                     let started = crate::time::Instant::now();
-                    let h = if self.gpu_quotient { gpu.quotient.lock().unwrap().quotient(&a, &b, &c)? } else { self.quotient(a, b, c) };
-                    trace("quotient", started);
-                    let (mut ma, mut mb, mut mk, mut mz) = (gpu.a.lock().unwrap(), gpu.b.lock().unwrap(), gpu.k.lock().unwrap(), gpu.z.lock().unwrap());
-                    let (pa, pb, pk) = (ma.start(sa), mb.start(sb), mk.start(sk));
-                    let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
-                    let pb2 = b2.as_mut().map(|b2| b2.start(&sb[..cut]));
-                    let pz = mz.start(&h);
-                    drop(sorted_tx);
-                    let (ar, t) = ma.finish(pa)?;
-                    gpu_trace("a", t.sort_ms, t.gpu_ms);
-                    let (bs1, t) = mb.finish(pb)?;
-                    gpu_trace("b", t.sort_ms, t.gpu_ms);
-                    let (kr, t) = mk.finish(pk)?;
-                    gpu_trace("k", t.sort_ms, t.gpu_ms);
-                    let gpu_b2 = match (b2.as_mut(), pb2) {
-                        (Some(b2), Some(pb2)) => {
-                            let (bs2, t) = b2.finish(pb2)?;
-                            gpu_trace("b2", t.sort_ms, t.gpu_ms);
-                            Some(bs2)
-                        }
-                        _ => None,
-                    };
-                    let (hz, t) = mz.finish(pz)?;
-                    gpu_trace("z", t.sort_ms, t.gpu_ms);
-                    Ok((ar, bs1, kr, hz, gpu_b2))
-                });
-                let _ = sorted_rx.recv();
-                let started = crate::time::Instant::now();
-                let cpu_b2 = (cut < sb.len()).then(|| msm_g2(&self.b2, &sb[cut..]));
-                trace("cpu-msm-b2", started);
-                Ok((gpu_work.join().expect("gpu work")?, cpu_b2))
-            })?;
+                    let cpu_b2 = (cut < sb.len()).then(|| msm_g2(&self.b2, &sb[cut..]));
+                    trace("cpu-msm-b2", started);
+                    Ok((gpu_work.join().expect("gpu work")?, cpu_b2))
+                })?;
             trace("quotient+gpu-msms", started);
             let bs2 = match (gpu_b2, cpu_b2) {
                 (Some(gpu), Some(cpu)) => gpu + cpu,
@@ -967,7 +1126,12 @@ impl Key {
         // to the proof time, so only with RINGIL_TRACE_MSMS=1.
         #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
         if std::env::var("RINGIL_TRACE_MSMS").is_ok_and(|v| v == "1") {
-            for (label, bases, scalars) in [("msm-a", &self.a, sa), ("msm-b", &self.b, sb), ("msm-k", &self.k, sk), ("msm-z", &self.z, &h[..])] {
+            for (label, bases, scalars) in [
+                ("msm-a", &self.a, sa),
+                ("msm-b", &self.b, sb),
+                ("msm-k", &self.k, sk),
+                ("msm-z", &self.z, &h[..]),
+            ] {
                 let started = crate::time::Instant::now();
                 let _ = msm_g1(bases, scalars);
                 trace(label, started);
@@ -1045,22 +1209,29 @@ mod gpu_tests {
         out
     }
     fn fr_bytes(values: &[Fr]) -> Vec<u8> {
-        values.iter().flat_map(|v| v.0 .0.iter().flat_map(|w| w.to_le_bytes())).collect()
+        values
+            .iter()
+            .flat_map(|v| v.0 .0.iter().flat_map(|w| w.to_le_bytes()))
+            .collect()
     }
     fn g1_points(n: usize, rng: &mut StdRng) -> Vec<G1Affine> {
         let (mut p, step) = (G1Projective::rand(rng), G1Projective::rand(rng));
-        let all: Vec<_> = (0..n).map(|_| {
-            p += step;
-            p
-        }).collect();
+        let all: Vec<_> = (0..n)
+            .map(|_| {
+                p += step;
+                p
+            })
+            .collect();
         G1Projective::normalize_batch(&all)
     }
     fn g2_points(n: usize, rng: &mut StdRng) -> Vec<G2Affine> {
         let (mut p, step) = (G2Projective::rand(rng), G2Projective::rand(rng));
-        let all: Vec<_> = (0..n).map(|_| {
-            p += step;
-            p
-        }).collect();
+        let all: Vec<_> = (0..n)
+            .map(|_| {
+                p += step;
+                p
+            })
+            .collect();
         G2Projective::normalize_batch(&all)
     }
 
@@ -1071,13 +1242,28 @@ mod gpu_tests {
     fn gpu_parts_match_cpu() {
         let mut rng = StdRng::seed_from_u64(11);
         let (n, domain) = (3000, 4096);
-        let (a, b, k) = (g1_points(n, &mut rng), g1_points(n, &mut rng), g1_points(n, &mut rng));
+        let (a, b, k) = (
+            g1_points(n, &mut rng),
+            g1_points(n, &mut rng),
+            g1_points(n, &mut rng),
+        );
         let z = g1_points(domain - 1, &mut rng);
         let b2 = g2_points(n, &mut rng);
         let generator = Radix2EvaluationDomain::<Fr>::new(domain).unwrap().group_gen;
         let params = fr_bytes(&[generator, Fr::from(5u64)]);
-        let bytes = [g1_bytes(&a), g1_bytes(&b), g1_bytes(&k), g1_bytes(&z), g2_bytes(&b2)];
-        let build = || Key::build(&bytes[0], &bytes[1], &bytes[2], &bytes[3], &bytes[4], &params).expect("key");
+        let bytes = [
+            g1_bytes(&a),
+            g1_bytes(&b),
+            g1_bytes(&k),
+            g1_bytes(&z),
+            g2_bytes(&b2),
+        ];
+        let build = || {
+            Key::build(
+                &bytes[0], &bytes[1], &bytes[2], &bytes[3], &bytes[4], &params,
+            )
+            .expect("key")
+        };
         // SAFETY: no other test reads RINGIL_GPU.
         unsafe { std::env::set_var("RINGIL_GPU", "0") };
         let cpu = build();
@@ -1088,11 +1274,35 @@ mod gpu_tests {
             return;
         }
         for round in 0..2 {
-            let random = |len: usize, rng: &mut StdRng| -> Vec<u8> { fr_bytes(&(0..len).map(|i| if i % 3 == 0 { Fr::from(1u64) } else { Fr::rand(rng) }).collect::<Vec<_>>()) };
-            let (sa, sb, sk) = (random(n, &mut rng), random(n, &mut rng), random(n, &mut rng));
-            let (ea, eb, ec) = (random(domain, &mut rng), random(domain, &mut rng), random(domain, &mut rng));
-            let expected = cpu.parts(&sa, &sb, &sk, &ea, &eb, &ec).unwrap_or_else(|_| panic!("cpu parts"));
-            let got = gpu.parts(&sa, &sb, &sk, &ea, &eb, &ec).unwrap_or_else(|_| panic!("gpu parts"));
+            let random = |len: usize, rng: &mut StdRng| -> Vec<u8> {
+                fr_bytes(
+                    &(0..len)
+                        .map(|i| {
+                            if i % 3 == 0 {
+                                Fr::from(1u64)
+                            } else {
+                                Fr::rand(rng)
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                )
+            };
+            let (sa, sb, sk) = (
+                random(n, &mut rng),
+                random(n, &mut rng),
+                random(n, &mut rng),
+            );
+            let (ea, eb, ec) = (
+                random(domain, &mut rng),
+                random(domain, &mut rng),
+                random(domain, &mut rng),
+            );
+            let expected = cpu
+                .parts(&sa, &sb, &sk, &ea, &eb, &ec)
+                .unwrap_or_else(|_| panic!("cpu parts"));
+            let got = gpu
+                .parts(&sa, &sb, &sk, &ea, &eb, &ec)
+                .unwrap_or_else(|_| panic!("gpu parts"));
             assert_eq!(got, expected, "round {round}");
         }
     }

@@ -2,14 +2,18 @@
 //! inverse DIF, scale, forward DIT per vector, the pointwise product, and
 //! the inverse DIF with the denominator's weights, in radix-2 stages over
 //! global memory.
-use std::{sync::Arc};
 use crate::time::Instant;
+use std::sync::Arc;
 
 use ark_bn254::Fr;
 
 use crate::{storage, Gpu};
 
-const FR_SHADER: &str = concat!(include_str!("../shaders/fr.wgsl"), "\n", include_str!("../shaders/quotient.wgsl"));
+const FR_SHADER: &str = concat!(
+    include_str!("../shaders/fr.wgsl"),
+    "\n",
+    include_str!("../shaders/quotient.wgsl")
+);
 const WORKGROUP: u32 = 64;
 
 pub struct Quotient {
@@ -38,7 +42,14 @@ fn fr_bytes(values: &[Fr]) -> &[u8] {
 }
 
 impl Quotient {
-    pub fn new(gpu: Arc<Gpu>, n: usize, roots: &[Fr], inverse_roots: &[Fr], forward_weights: &[Fr], reverse_weights: &[Fr]) -> Result<(Self, f64), String> {
+    pub fn new(
+        gpu: Arc<Gpu>,
+        n: usize,
+        roots: &[Fr],
+        inverse_roots: &[Fr],
+        forward_weights: &[Fr],
+        reverse_weights: &[Fr],
+    ) -> Result<(Self, f64), String> {
         assert!(n.is_power_of_two() && n >= 8);
         let device = &gpu.device;
         let started = Instant::now();
@@ -65,7 +76,8 @@ impl Quotient {
                 return Err(format!("kernel {entry}: the device reported an error"));
             }
         }
-        let [dif, dit, scale, pointwise]: [wgpu::ComputePipeline; 4] = pipelines.try_into().expect("four kernels");
+        let [dif, dit, scale, pointwise]: [wgpu::ComputePipeline; 4] =
+            pipelines.try_into().expect("four kernels");
         for scope in [internal, validation] {
             if let Some(e) = crate::popped(scope) {
                 return Err(format!("kernels: {e}"));
@@ -83,32 +95,30 @@ impl Quotient {
         };
         let log_n = n.trailing_zeros();
         let stages = (0..log_n)
-            .map(|level| {
-                crate::uniform(&gpu, [n as u32, level, log_n - 1 - level, 0])
-            })
+            .map(|level| crate::uniform(&gpu, [n as u32, level, log_n - 1 - level, 0]))
             .collect();
         let quotient = Self {
-                dif,
-                dit,
-                scale,
-                pointwise,
-                n,
-                log_n,
-                roots: upload("roots", roots),
-                inverse_roots: upload("inverse roots", inverse_roots),
-                forward_weights: upload("forward weights", forward_weights),
-                reverse_weights: upload("reverse weights", reverse_weights),
-                abc: storage(device, "abc", 3 * n * 32),
-                staging: device.create_buffer(&wgpu::BufferDescriptor {
-                    label: Some("quotient staging"),
-                    size: (n * 32) as u64,
-                    usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-                    mapped_at_creation: false,
-                }),
-                stages,
-                whole: crate::uniform(&gpu, [n as u32, 0, 0, 0]),
-                gpu,
-            };
+            dif,
+            dit,
+            scale,
+            pointwise,
+            n,
+            log_n,
+            roots: upload("roots", roots),
+            inverse_roots: upload("inverse roots", inverse_roots),
+            forward_weights: upload("forward weights", forward_weights),
+            reverse_weights: upload("reverse weights", reverse_weights),
+            abc: storage(device, "abc", 3 * n * 32),
+            staging: device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("quotient staging"),
+                size: (n * 32) as u64,
+                usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            }),
+            stages,
+            whole: crate::uniform(&gpu, [n as u32, 0, 0, 0]),
+            gpu,
+        };
         if let Some(e) = crate::popped(memory) {
             return Err(format!("buffers: {e}"));
         }
@@ -148,12 +158,18 @@ impl Quotient {
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
                 layout: &self.pointwise.get_bind_group_layout(0),
-                entries: &[wgpu::BindGroupEntry { binding: 2, resource: self.whole.as_entire_binding() }],
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: self.whole.as_entire_binding(),
+                }],
             });
             let group1 = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
                 layout: &self.pointwise.get_bind_group_layout(1),
-                entries: &[wgpu::BindGroupEntry { binding: 0, resource: self.abc.as_entire_binding() }],
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: self.abc.as_entire_binding(),
+                }],
             });
             let mut pass = encoder.begin_compute_pass(&Default::default());
             pass.set_pipeline(&self.pointwise);
@@ -171,7 +187,12 @@ impl Quotient {
     pub async fn finish_async(&mut self) -> Result<Vec<Fr>, String> {
         let n = self.n;
         crate::mapped(&self.gpu, &self.staging).await?;
-        let data = self.staging.slice(..).get_mapped_range().map_err(|e| format!("quotient: {e}"))?.to_vec();
+        let data = self
+            .staging
+            .slice(..)
+            .get_mapped_range()
+            .map_err(|e| format!("quotient: {e}"))?
+            .to_vec();
         self.staging.unmap();
         // SAFETY: n Fr in the kernel's encoding, four u64 limbs each.
         let values: &[Fr] = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const Fr, n) };
@@ -188,19 +209,41 @@ impl Quotient {
 
     /// DIF from the widest gap to one (bit-reversed out) when `dif`, else
     /// DIT from gap one to the widest (bit-reversed in).
-    fn transform(&self, encoder: &mut wgpu::CommandEncoder, offset: u64, roots: &wgpu::Buffer, dif: bool) {
+    fn transform(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        offset: u64,
+        roots: &wgpu::Buffer,
+        dif: bool,
+    ) {
         let pipeline = if dif { &self.dif } else { &self.dit };
-        let levels: Vec<u32> = if dif { (0..self.log_n).collect() } else { (0..self.log_n).rev().collect() };
+        let levels: Vec<u32> = if dif {
+            (0..self.log_n).collect()
+        } else {
+            (0..self.log_n).rev().collect()
+        };
         for level in levels {
-            let group = self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: None,
-                layout: &pipeline.get_bind_group_layout(0),
-                entries: &[
-                    wgpu::BindGroupEntry { binding: 0, resource: self.vector_binding(offset) },
-                    wgpu::BindGroupEntry { binding: 1, resource: roots.as_entire_binding() },
-                    wgpu::BindGroupEntry { binding: 2, resource: self.stages[level as usize].as_entire_binding() },
-                ],
-            });
+            let group = self
+                .gpu
+                .device
+                .create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &pipeline.get_bind_group_layout(0),
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: self.vector_binding(offset),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: roots.as_entire_binding(),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 2,
+                            resource: self.stages[level as usize].as_entire_binding(),
+                        },
+                    ],
+                });
             let mut pass = encoder.begin_compute_pass(&Default::default());
             pass.set_pipeline(pipeline);
             pass.set_bind_group(0, &group, &[]);
@@ -209,15 +252,27 @@ impl Quotient {
     }
 
     fn scale_by(&self, encoder: &mut wgpu::CommandEncoder, offset: u64, weights: &wgpu::Buffer) {
-        let group = self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
-            layout: &self.scale.get_bind_group_layout(0),
-            entries: &[
-                wgpu::BindGroupEntry { binding: 0, resource: self.vector_binding(offset) },
-                wgpu::BindGroupEntry { binding: 1, resource: weights.as_entire_binding() },
-                wgpu::BindGroupEntry { binding: 2, resource: self.whole.as_entire_binding() },
-            ],
-        });
+        let group = self
+            .gpu
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &self.scale.get_bind_group_layout(0),
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: self.vector_binding(offset),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: weights.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: self.whole.as_entire_binding(),
+                    },
+                ],
+            });
         let mut pass = encoder.begin_compute_pass(&Default::default());
         pass.set_pipeline(&self.scale);
         pass.set_bind_group(0, &group, &[]);

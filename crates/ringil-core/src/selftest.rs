@@ -72,7 +72,14 @@ fn cios(a: [u64; 4], b: [u64; 4]) -> [u64; 4] {
 /// The GPU's G1 MSM and quotient against the CPU's, and the CPU's G2 MSM
 /// against arkworks'; with Metal on a Mac, the GPU's G2 MSM too.
 #[cfg(gpu_any)]
-pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head: &[G2Affine], n_a: usize, n_b: usize) -> Verdict {
+pub(crate) fn gpu(
+    gpu: &mut Gpu,
+    plan: &fft::Plan,
+    a_head: &[G1Affine],
+    b2_head: &[G2Affine],
+    n_a: usize,
+    n_b: usize,
+) -> Verdict {
     let mut rng = rand::thread_rng();
     let mut scalars = vec![Fr::ZERO; n_a.max(n_b)];
     for s in scalars.iter_mut().take(HEAD) {
@@ -96,18 +103,27 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
         *s = Fr::from(5u64);
     }
     #[cfg_attr(not(gpu), allow(unused_mut))]
-    let mut msm = g1("gpu-msm-g1-one", &one) & g1("gpu-msm-g1-bucket", &bucket) & g1("gpu-msm-g1-random", &scalars[..n_a]);
+    let mut msm = g1("gpu-msm-g1-one", &one)
+        & g1("gpu-msm-g1-bucket", &bucket)
+        & g1("gpu-msm-g1-random", &scalars[..n_a]);
 
     let started = crate::time::Instant::now();
     let head2 = b2_head.len().min(HEAD);
     let cpu2 = msm_g2(b2_head, &scalars[..head2]);
-    let reference = <G2Projective as ark_ec::VariableBaseMSM>::msm_unchecked(&b2_head[..head2], &scalars[..head2]);
+    let reference = <G2Projective as ark_ec::VariableBaseMSM>::msm_unchecked(
+        &b2_head[..head2],
+        &scalars[..head2],
+    );
     report("cpu-msm-g2", cpu2 == reference, started);
     #[cfg(gpu)]
     if let Some(b2) = &gpu.b2 {
         let started = crate::time::Instant::now();
         let got2 = b2.lock().unwrap().msm(&scalars[..n_b]);
-        msm &= report("gpu-msm-g2", got2.is_ok_and(|(got2, _)| got2 == cpu2), started);
+        msm &= report(
+            "gpu-msm-g2",
+            got2.is_ok_and(|(got2, _)| got2 == cpu2),
+            started,
+        );
     }
 
     // The quotient only with the fullcheck feature: it is a full-size
@@ -138,13 +154,21 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
 /// (the fullcheck feature: a wrong proof on a Galaxy A56 at the widest key
 /// passed every head check).
 #[cfg(all(gpu_any, feature = "fullcheck"))]
-pub(crate) fn full_g1(name: &str, bases: &[G1Affine], mut gpu: impl FnMut(&[Fr]) -> Result<G1Projective, String>) -> bool {
+pub(crate) fn full_g1(
+    name: &str,
+    bases: &[G1Affine],
+    mut gpu: impl FnMut(&[Fr]) -> Result<G1Projective, String>,
+) -> bool {
     let started = crate::time::Instant::now();
     let mut rng = rand::thread_rng();
     let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
     let cpu = msm_g1(bases, &scalars);
     let got = gpu(&scalars);
-    report(&format!("full-msm-{name}"), got.is_ok_and(|got| got == cpu), started)
+    report(
+        &format!("full-msm-{name}"),
+        got.is_ok_and(|got| got == cpu),
+        started,
+    )
 }
 
 /// The CPU G2 MSM over the whole vector against arkworks'.

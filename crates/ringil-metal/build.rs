@@ -7,13 +7,28 @@
 //! from source at run time.
 use std::{env, fs, path::Path, path::PathBuf, process::Command};
 
-fn compile(sdk: &str, version_flag: &str, source: &Path, optimize: &str, out: &Path, name: &str) -> bool {
+fn compile(
+    sdk: &str,
+    version_flag: &str,
+    source: &Path,
+    optimize: &str,
+    out: &Path,
+    name: &str,
+) -> bool {
     let air = out.join(format!("{name}.air"));
     let lib = out.join(format!("{name}.metallib"));
     Command::new("xcrun")
         // Metal 3.0 and the oldest OS ringil supports: the SDK's newest
         // language version would not load on an older iPhone.
-        .args(["-sdk", sdk, "metal", "-c", "-std=metal3.0", version_flag, optimize])
+        .args([
+            "-sdk",
+            sdk,
+            "metal",
+            "-c",
+            "-std=metal3.0",
+            version_flag,
+            optimize,
+        ])
         .arg(source)
         .arg("-o")
         .arg(&air)

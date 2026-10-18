@@ -65,36 +65,40 @@ where
             }
         });
     let window_sum = |i: usize| -> Projective<P> {
-            let bucket_count = (radix / 2) as usize;
-            let mut counts = vec![0usize; bucket_count];
-            for (base, digits) in bases.iter().zip(digits.chunks(count)) {
-                let digit = digits[i];
-                if digit != 0 && !base.infinity {
-                    counts[digit.unsigned_abs() as usize - 1] += 1;
-                }
+        let bucket_count = (radix / 2) as usize;
+        let mut counts = vec![0usize; bucket_count];
+        for (base, digits) in bases.iter().zip(digits.chunks(count)) {
+            let digit = digits[i];
+            if digit != 0 && !base.infinity {
+                counts[digit.unsigned_abs() as usize - 1] += 1;
             }
-            let mut starts = vec![0; bucket_count + 1];
-            for j in 0..bucket_count {
-                starts[j + 1] = starts[j] + counts[j];
+        }
+        let mut starts = vec![0; bucket_count + 1];
+        for j in 0..bucket_count {
+            starts[j + 1] = starts[j] + counts[j];
+        }
+        let mut positions = starts[..bucket_count].to_vec();
+        let mut points = vec![LimbPoint::<P::BaseField>::infinity(); starts[bucket_count]];
+        for (base, digits) in bases.iter().zip(digits.chunks(count)) {
+            let digit = digits[i];
+            if digit != 0 && !base.infinity {
+                let j = digit.unsigned_abs() as usize - 1;
+                points[positions[j]] = limbs::<P>(if digit < 0 { -*base } else { *base });
+                positions[j] += 1;
             }
-            let mut positions = starts[..bucket_count].to_vec();
-            let mut points = vec![LimbPoint::<P::BaseField>::infinity(); starts[bucket_count]];
-            for (base, digits) in bases.iter().zip(digits.chunks(count)) {
-                let digit = digits[i];
-                if digit != 0 && !base.infinity {
-                    let j = digit.unsigned_abs() as usize - 1;
-                    points[positions[j]] = limbs::<P>(if digit < 0 { -*base } else { *base });
-                    positions[j] += 1;
-                }
-            }
-            sum_buckets(&mut points, &starts, &mut counts)
+        }
+        sum_buckets(&mut points, &starts, &mut counts)
     };
     // Each window sorts a copy of its points: all windows at once held up to
     // `count` copies (hundreds of MB for G2 on a wide key, counted against a
     // phone's memory limit). They go RINGIL_MSM_WINDOWS at a time (default:
     // all, as measured best on a Mac; phones set fewer); each window's bucket
     // groups still run in parallel.
-    let at_once = std::env::var("RINGIL_MSM_WINDOWS").ok().and_then(|v| v.parse().ok()).unwrap_or(count).max(1);
+    let at_once = std::env::var("RINGIL_MSM_WINDOWS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(count)
+        .max(1);
     let windows: Vec<usize> = (0..count).collect();
     let sums: Vec<Projective<P>> = windows
         .chunks(at_once)
@@ -322,10 +326,14 @@ fn reduce_layer<P: SWCurveConfig>(
     s.products.clear();
     let mut tail = chains.get();
     for k in full..m {
-        let (a, b) = (affine::<P>(points[s.pairs[k]]), affine::<P>(points[s.pairs[k] + 1]));
+        let (a, b) = (
+            affine::<P>(points[s.pairs[k]]),
+            affine::<P>(points[s.pairs[k] + 1]),
+        );
         let denominator = b.x - a.x;
         s.denominators.push(denominator);
-        s.products.push(F::<P>::prefix(&mut tail[k % 4], denominator));
+        s.products
+            .push(F::<P>::prefix(&mut tail[k % 4], denominator));
     }
     let mut inverses = invert4(tail);
     for k in (full..m).rev() {
@@ -357,9 +365,11 @@ fn reduce_layer<P: SWCurveConfig>(
     }
     for k in full..m {
         let t = k - full;
-        let (a, b) = (affine::<P>(points[s.pairs[k]]), affine::<P>(points[s.pairs[k] + 1]));
-        let slope =
-            (b.y - a.y) * F::<P>::denominator_inverse(s.denominators[t], s.products[t]);
+        let (a, b) = (
+            affine::<P>(points[s.pairs[k]]),
+            affine::<P>(points[s.pairs[k] + 1]),
+        );
+        let slope = (b.y - a.y) * F::<P>::denominator_inverse(s.denominators[t], s.products[t]);
         let x = slope.square() - a.x - b.x;
         let y = slope * (a.x - x) - a.y;
         s.sums.push(limbs::<P>(Affine::new_unchecked(x, y)));
@@ -605,9 +615,9 @@ impl BatchInverse for Fq2 {
 
 #[cfg(test)]
 mod tests {
-    use ark_ff::Zero;
     use super::*;
     use ark_ec::PrimeGroup;
+    use ark_ff::Zero;
     fn check<P: SWCurveConfig<ScalarField = Fr>>()
     where
         P::BaseField: BatchInverse,

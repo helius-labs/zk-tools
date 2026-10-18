@@ -146,7 +146,16 @@ impl Plan {
         let started = super::trace("plan-roots", started);
         let (forward_weights, reverse_weights) = (quads(&forward_weights), quads(&reverse_weights));
         super::trace("plan-quads", started);
-        Self { n, params: (generator, coset, den), released: false, roots, inverse_roots, forward_weights, reverse_weights, small: None }
+        Self {
+            n,
+            params: (generator, coset, den),
+            released: false,
+            roots,
+            inverse_roots,
+            forward_weights,
+            reverse_weights,
+            small: None,
+        }
     }
     /// Drops the CPU tables once a GPU holds its own (160 MB at 2^20, which
     /// a phone counts against its memory limit); a CPU quotient after this
@@ -224,7 +233,11 @@ impl Plan {
             }
             let log = self.n.trailing_zeros();
             for i in 0..self.n {
-                let j = if log == 0 { 0 } else { i.reverse_bits() >> (usize::BITS - log) };
+                let j = if log == 0 {
+                    0
+                } else {
+                    i.reverse_bits() >> (usize::BITS - log)
+                };
                 if i < j {
                     values.swap(i, j);
                 }
@@ -276,24 +289,36 @@ fn dit_quads(lo: &mut [Quad], hi: &mut [Quad], twiddles: &[Quad]) {
 #[inline(always)]
 fn dif_within(a: &mut Quad, b: &mut Quad, pair: &Quad) {
     // Two apart: (a0 a1 b0 b1) with (a2 a3 b2 b3), twiddles (1, t, 1, t).
-    let (lo, hi) = (Quad::shuffle::<0, 1, 4, 5>(a, b), Quad::shuffle::<2, 3, 6, 7>(a, b));
+    let (lo, hi) = (
+        Quad::shuffle::<0, 1, 4, 5>(a, b),
+        Quad::shuffle::<2, 3, 6, 7>(a, b),
+    );
     let sum = lo.add(&hi);
     let difference = lo.sub(&hi).mul(pair);
     *a = Quad::shuffle::<0, 1, 4, 5>(&sum, &difference);
     *b = Quad::shuffle::<2, 3, 6, 7>(&sum, &difference);
     // One apart: (a0 a2 b0 b2) with (a1 a3 b1 b3), twiddle one.
-    let (lo, hi) = (Quad::shuffle::<0, 2, 4, 6>(a, b), Quad::shuffle::<1, 3, 5, 7>(a, b));
+    let (lo, hi) = (
+        Quad::shuffle::<0, 2, 4, 6>(a, b),
+        Quad::shuffle::<1, 3, 5, 7>(a, b),
+    );
     let (sum, difference) = (lo.add(&hi), lo.sub(&hi));
     *a = Quad::shuffle::<0, 4, 1, 5>(&sum, &difference);
     *b = Quad::shuffle::<2, 6, 3, 7>(&sum, &difference);
 }
 #[inline(always)]
 fn dit_within(a: &mut Quad, b: &mut Quad, pair: &Quad) {
-    let (lo, hi) = (Quad::shuffle::<0, 2, 4, 6>(a, b), Quad::shuffle::<1, 3, 5, 7>(a, b));
+    let (lo, hi) = (
+        Quad::shuffle::<0, 2, 4, 6>(a, b),
+        Quad::shuffle::<1, 3, 5, 7>(a, b),
+    );
     let (sum, difference) = (lo.add(&hi), lo.sub(&hi));
     *a = Quad::shuffle::<0, 4, 1, 5>(&sum, &difference);
     *b = Quad::shuffle::<2, 6, 3, 7>(&sum, &difference);
-    let (lo, hi) = (Quad::shuffle::<0, 1, 4, 5>(a, b), Quad::shuffle::<2, 3, 6, 7>(a, b));
+    let (lo, hi) = (
+        Quad::shuffle::<0, 1, 4, 5>(a, b),
+        Quad::shuffle::<2, 3, 6, 7>(a, b),
+    );
     let product = hi.mul(pair);
     let (sum, difference) = (lo.add(&product), lo.sub(&product));
     *a = Quad::shuffle::<0, 1, 4, 5>(&sum, &difference);
@@ -351,7 +376,8 @@ fn dit(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
         // Butterflies `gap` quads apart use the layer of stride n / (8 gap).
         let mut gap = 1;
         while gap < values.len() {
-            let layer = &twiddles.layers[twiddles.layers.len() - 1 - gap.trailing_zeros() as usize][..gap];
+            let layer =
+                &twiddles.layers[twiddles.layers.len() - 1 - gap.trailing_zeros() as usize][..gap];
             for chunk in values.chunks_exact_mut(gap * 2) {
                 let (lo, hi) = chunk.split_at_mut(gap);
                 dit_quads(lo, hi, layer);
@@ -388,7 +414,11 @@ mod tests {
                         expected.resize(n, Fr::ZERO);
                         domain.ifft_in_place(&mut expected);
                         coset.fft_in_place(&mut expected);
-                        assert_eq!(scalars(&plan.transform(input), n), expected, "n {n} len {len}");
+                        assert_eq!(
+                            scalars(&plan.transform(input), n),
+                            expected,
+                            "n {n} len {len}"
+                        );
                         let actual = plan.finish(quads(&expected));
                         coset.ifft_in_place(&mut expected);
                         for v in &mut expected {
