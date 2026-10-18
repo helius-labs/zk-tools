@@ -1005,3 +1005,86 @@ pub fn decode_g2(data: &[u8]) -> Vec<G2Affine> {
 pub fn decode_frs(data: &[u8]) -> Vec<Fr> {
     frs(data)
 }
+
+#[cfg(all(test, gpu_any))]
+mod gpu_tests {
+    use super::*;
+    use ark_ec::CurveGroup;
+    use ark_ff::UniformRand;
+    use rand::{rngs::StdRng, SeedableRng};
+
+    fn limbs(out: &mut Vec<u8>, x: &Fq) {
+        for word in x.0 .0 {
+            out.extend_from_slice(&word.to_le_bytes());
+        }
+    }
+    fn g1_bytes(points: &[G1Affine]) -> Vec<u8> {
+        let mut out = Vec::new();
+        for p in points {
+            limbs(&mut out, &p.x);
+            limbs(&mut out, &p.y);
+        }
+        out
+    }
+    fn g2_bytes(points: &[G2Affine]) -> Vec<u8> {
+        let mut out = Vec::new();
+        for p in points {
+            for x in [&p.x.c0, &p.x.c1, &p.y.c0, &p.y.c1] {
+                limbs(&mut out, x);
+            }
+        }
+        out
+    }
+    fn fr_bytes(values: &[Fr]) -> Vec<u8> {
+        values.iter().flat_map(|v| v.0 .0.iter().flat_map(|w| w.to_le_bytes())).collect()
+    }
+    fn g1_points(n: usize, rng: &mut StdRng) -> Vec<G1Affine> {
+        let (mut p, step) = (G1Projective::rand(rng), G1Projective::rand(rng));
+        let all: Vec<_> = (0..n).map(|_| {
+            p += step;
+            p
+        }).collect();
+        G1Projective::normalize_batch(&all)
+    }
+    fn g2_points(n: usize, rng: &mut StdRng) -> Vec<G2Affine> {
+        let (mut p, step) = (G2Projective::rand(rng), G2Projective::rand(rng));
+        let all: Vec<_> = (0..n).map(|_| {
+            p += step;
+            p
+        }).collect();
+        G2Projective::normalize_batch(&all)
+    }
+
+    /// A key on the GPU proves the parts a key on the CPU proves: the MSMs
+    /// (G2 split between the two where the defaults say), the quotient, and
+    /// the window width and ordering of the GPU path.
+    #[test]
+    fn gpu_parts_match_cpu() {
+        let mut rng = StdRng::seed_from_u64(11);
+        let (n, domain) = (3000, 4096);
+        let (a, b, k) = (g1_points(n, &mut rng), g1_points(n, &mut rng), g1_points(n, &mut rng));
+        let z = g1_points(domain - 1, &mut rng);
+        let b2 = g2_points(n, &mut rng);
+        let generator = Radix2EvaluationDomain::<Fr>::new(domain).unwrap().group_gen;
+        let params = fr_bytes(&[generator, Fr::from(5u64)]);
+        let bytes = [g1_bytes(&a), g1_bytes(&b), g1_bytes(&k), g1_bytes(&z), g2_bytes(&b2)];
+        let build = || Key::build(&bytes[0], &bytes[1], &bytes[2], &bytes[3], &bytes[4], &params).expect("key");
+        // SAFETY: no other test reads RINGIL_GPU.
+        unsafe { std::env::set_var("RINGIL_GPU", "0") };
+        let cpu = build();
+        unsafe { std::env::remove_var("RINGIL_GPU") };
+        let gpu = build();
+        if gpu.gpu.is_none() {
+            eprintln!("no GPU: skipped");
+            return;
+        }
+        for round in 0..2 {
+            let random = |len: usize, rng: &mut StdRng| -> Vec<u8> { fr_bytes(&(0..len).map(|i| if i % 3 == 0 { Fr::from(1u64) } else { Fr::rand(rng) }).collect::<Vec<_>>()) };
+            let (sa, sb, sk) = (random(n, &mut rng), random(n, &mut rng), random(n, &mut rng));
+            let (ea, eb, ec) = (random(domain, &mut rng), random(domain, &mut rng), random(domain, &mut rng));
+            let expected = cpu.parts(&sa, &sb, &sk, &ea, &eb, &ec).ok().expect("cpu parts");
+            let got = gpu.parts(&sa, &sb, &sk, &ea, &eb, &ec).ok().expect("gpu parts");
+            assert_eq!(got, expected, "round {round}");
+        }
+    }
+}

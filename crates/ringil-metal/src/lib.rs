@@ -799,3 +799,77 @@ fn fq(bytes: &[u8]) -> Fq {
     })))
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ark_ec::{AffineRepr, CurveGroup, VariableBaseMSM};
+    use ark_ff::{PrimeField, UniformRand};
+    use rand::{rngs::StdRng, SeedableRng};
+
+    /// Distinct points without a scalar multiplication each: a random
+    /// start, then repeated addition of a random step.
+    fn points<C: CurveGroup>(n: usize, rng: &mut StdRng) -> Vec<C::Affine> {
+        let step = C::rand(rng);
+        let mut p = C::rand(rng);
+        let mut out = Vec::with_capacity(n);
+        for _ in 0..n {
+            out.push(p);
+            p += step;
+        }
+        C::normalize_batch(&out)
+    }
+
+    /// Scalars as witnesses have them: zeros, ones, small values, minus
+    /// one, and random ones.
+    fn scalars(n: usize, skewed: bool, rng: &mut StdRng) -> Vec<Fr> {
+        (0..n)
+            .map(|i| match (skewed, i % 5) {
+                (true, 0) => Fr::from(0u64),
+                (true, 1) => Fr::from(1u64),
+                (true, 2) => Fr::from((i % 300) as u64),
+                (true, 3) => -Fr::from(1u64),
+                _ => Fr::rand(rng),
+            })
+            .collect()
+    }
+
+    fn check<C: Curve + VariableBaseMSM<ScalarField = Fr>>(sizes: &[usize]) {
+        let Some(mut make) = backend::<C>() else {
+            eprintln!("no GPU: skipped");
+            return;
+        };
+        let mut rng = StdRng::seed_from_u64(7);
+        for &n in sizes {
+            let bases = points::<C>(n, &mut rng);
+            let mut msm = make(&bases);
+            for skewed in [false, true] {
+                let scalars = scalars(n, skewed, &mut rng);
+                let expected = C::msm_unchecked(&bases, &scalars);
+                assert_eq!(msm(&scalars).into_affine(), expected.into_affine(), "{n} points, skewed {skewed}");
+            }
+            let zeros = vec![Fr::from(0u64); n];
+            assert!(msm(&zeros).into_affine().is_zero(), "{n} points, all zero");
+            let _ = Fr::MODULUS;
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn backend<C: Curve>() -> Option<impl FnMut(&[C::Affine]) -> Box<dyn FnMut(&[Fr]) -> C>> {
+        metal::Device::system_default()?;
+        Some(|bases: &[C::Affine]| -> Box<dyn FnMut(&[Fr]) -> C> {
+            let mut msm = Msm::<C>::new(bases).expect("msm").0;
+            Box::new(move |scalars: &[Fr]| msm.msm(scalars).expect("gpu msm").0)
+        })
+    }
+
+    #[test]
+    fn g1_msms_match_arkworks() {
+        check::<G1Projective>(&[1, 7, 100, 3000, 20000]);
+    }
+
+    #[test]
+    fn g2_msms_match_arkworks() {
+        check::<G2Projective>(&[1, 100, 3000]);
+    }
+}
