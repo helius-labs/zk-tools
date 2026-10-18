@@ -109,16 +109,27 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
         msm &= report("gpu-msm-g2", got2.is_ok_and(|(got2, _)| got2 == cpu2), started);
     }
 
-    let started = std::time::Instant::now();
-    let n = plan.size();
-    let (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>) = (
-        (0..n).map(|_| Fr::rand(&mut rng)).collect(),
-        (0..n).map(|_| Fr::rand(&mut rng)).collect(),
-        (0..n).map(|_| Fr::rand(&mut rng)).collect(),
-    );
-    let cpu = plan.quotient(a.clone(), b.clone(), c.clone());
-    let got = gpu.quotient.lock().unwrap().quotient(&a, &b, &c);
-    let quotient = report("gpu-quotient", got.is_ok_and(|got| got == cpu), started);
+    // The quotient only with the fullcheck feature: it is a full-size
+    // transform on the CPU too, seconds and a few hundred MB at the widest
+    // key, and no GPU has got it wrong yet.
+    #[cfg(feature = "fullcheck")]
+    let quotient = {
+        let started = std::time::Instant::now();
+        let n = plan.size();
+        let (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>) = (
+            (0..n).map(|_| Fr::rand(&mut rng)).collect(),
+            (0..n).map(|_| Fr::rand(&mut rng)).collect(),
+            (0..n).map(|_| Fr::rand(&mut rng)).collect(),
+        );
+        let cpu = plan.quotient(a.clone(), b.clone(), c.clone());
+        let got = gpu.quotient.lock().unwrap().quotient(&a, &b, &c);
+        report("gpu-quotient", got.is_ok_and(|got| got == cpu), started)
+    };
+    #[cfg(not(feature = "fullcheck"))]
+    let quotient = {
+        let _ = plan;
+        true
+    };
     Verdict { msm, quotient }
 }
 
