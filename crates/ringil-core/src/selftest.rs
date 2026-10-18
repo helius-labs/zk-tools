@@ -121,3 +121,26 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
     let quotient = report("gpu-quotient", got == cpu, started);
     Verdict { msm, quotient }
 }
+
+/// A GPU G1 MSM over the whole vector with random scalars against the CPU's
+/// (trace builds: a wrong proof on a Galaxy A56 at the widest key passed
+/// every head check).
+#[cfg(gpu_any)]
+pub(crate) fn full_g1(name: &str, bases: &[G1Affine], mut gpu: impl FnMut(&[Fr]) -> G1Projective) -> bool {
+    let started = std::time::Instant::now();
+    let mut rng = rand::thread_rng();
+    let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+    let cpu = msm_g1(bases, &scalars);
+    let got = gpu(&scalars);
+    report(&format!("full-msm-{name}"), got == cpu, started)
+}
+
+/// The CPU G2 MSM over the whole vector against arkworks'.
+pub(crate) fn full_g2(bases: &[G2Affine]) -> bool {
+    let started = std::time::Instant::now();
+    let mut rng = rand::thread_rng();
+    let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+    let ours = msm_g2(bases, &scalars);
+    let reference = <G2Projective as ark_ec::VariableBaseMSM>::msm_unchecked(bases, &scalars);
+    report("full-cpu-msm-b2", ours == reference, started)
+}
