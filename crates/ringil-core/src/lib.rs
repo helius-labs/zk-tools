@@ -306,6 +306,9 @@ pub struct Key {
     /// Whether the GPU's quotient agreed with the CPU's at load.
     #[cfg(gpu_any)]
     gpu_quotient: bool,
+    /// Whether the trace build has profiled this key's GPU stages.
+    #[cfg(feature = "trace")]
+    profiled: std::sync::atomic::AtomicBool,
     /// The A, B and K vectors' lengths: the vectors themselves are empty
     /// when a GPU holds them.
     lengths: [usize; 3],
@@ -442,6 +445,8 @@ impl Key {
             gpu: built_gpu,
             #[cfg(gpu_any)]
             gpu_quotient,
+            #[cfg(feature = "trace")]
+            profiled: Default::default(),
             lengths,
             a,
             b,
@@ -647,6 +652,14 @@ impl Key {
             let (hz, t) = gpu.z.lock().unwrap().msm(&h)?;
             gpu_trace("z", t.sort_ms, t.gpu_ms);
             trace("gpu-msm-z", started);
+            // The trace build profiles the GPU's stages once per key, with
+            // this proof's scalars, after the proof (the next one pays it).
+            #[cfg(feature = "trace")]
+            if !self.profiled.swap(true, std::sync::atomic::Ordering::Relaxed) {
+                for (name, msm, scalars) in [("a", &gpu.a, sa), ("b", &gpu.b, sb), ("k", &gpu.k, sk), ("z", &gpu.z, &h[..])] {
+                    log::info!("RINGIL_TRACE gpu-profile {name} {}", msm.lock().unwrap().profile(scalars));
+                }
+            }
             let mut out = Vec::with_capacity(384);
             for p in [ar, bs1, kr, hz] {
                 output_g1(&mut out, p)
