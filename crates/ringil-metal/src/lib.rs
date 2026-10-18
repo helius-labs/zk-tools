@@ -27,10 +27,18 @@ pub(crate) const SHADER: &str = concat!(
     "\n",
     include_str!("../shaders/quotient.metal"),
 );
-const WIDTH: usize = 15;
-const HALF: usize = 1 << (WIDTH - 1);
-const WINDOWS: usize = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(WIDTH);
-const REDUCE_THREADS: usize = 1024;
+/// Window width by point count, as the CPU MSM's: wider windows mean fewer
+/// bucket additions and more buckets to reduce (and, here, to zero).
+fn width_for(n: usize) -> usize {
+    match n {
+        0..=1023 => 7,
+        1024..=4095 => 9,
+        4096..=16383 => 10,
+        16384..=65535 => 12,
+        _ => 15,
+    }
+}
+const MOST_REDUCE_THREADS: usize = 1024;
 /// Shard length. Witness scalars put most points in a few buckets, whose
 /// long runs are what the shards split; long shards there starve the GPU of
 /// threads (128 over base points left 24x2's G2 MSM at 227 ms, 32 at 151).
@@ -124,6 +132,9 @@ pub type G1Msm = Msm<G1Projective>;
 pub type G2Msm = Msm<G2Projective>;
 
 pub struct Msm<C: Curve> {
+    width: usize,
+    half: usize,
+    windows: usize,
     device: Device,
     queue: CommandQueue,
     first: ComputePipelineState,
@@ -176,18 +187,24 @@ impl<C: Curve> Msm<C> {
             MTLResourceOptions::StorageModeShared,
         );
         let n = bases.len();
-        let buckets = WINDOWS * HALF;
+        let width = width_for(n);
+        let half = 1 << (width - 1);
+        let windows = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(width);
+        let buckets = windows * half;
         // The most shards a level can have: every pair in its own first
         // shard, or every bucket's run split, whichever is more.
-        let most = (n * WINDOWS).div_ceil(FIRST_SHARD) + buckets;
+        let most = (n * windows).div_ceil(FIRST_SHARD) + buckets;
         Ok((
             Self {
+                width,
+                half,
+                windows,
                 queue: device.new_command_queue(),
-                sorted: shared(&device, n * WINDOWS * 4),
+                sorted: shared(&device, n * windows * 4),
                 levels: Vec::new(),
                 tree: [shared(&device, most * C::XYZZ_BYTES), shared(&device, most * C::XYZZ_BYTES)],
                 buckets: shared(&device, buckets * C::XYZZ_BYTES),
-                sums: shared(&device, WINDOWS * C::XYZZ_BYTES),
+                sums: shared(&device, windows * C::XYZZ_BYTES),
                 counts: vec![0; buckets],
                 starts: vec![0; buckets],
                 _curve: std::marker::PhantomData,
@@ -219,7 +236,7 @@ impl<C: Curve> Msm<C> {
     /// The MSM over the scalars another MSM of the same length just sorted
     /// (G1 B and G2 B share theirs): its sorted runs, no sort.
     pub fn start_sorted_as<D: Curve>(&mut self, other: &Msm<D>) -> Pending {
-        assert_eq!(other.n, self.n);
+        assert_eq!((other.n, other.width), (self.n, self.width));
         let started = Instant::now();
         self.sorted = other.sorted.clone();
         self.counts.clone_from(&other.counts);
@@ -257,13 +274,16 @@ impl<C: Curve> Msm<C> {
             let group = pipeline.thread_execution_width().min(n as u64).max(1);
             encoder.dispatch_threads(MTLSize::new(n as u64, 1, 1), MTLSize::new(group, 1, 1));
         }
-        let leaf = HALF / REDUCE_THREADS;
-        let args = [HALF as u32, leaf as u32, leaf.trailing_zeros(), 0u32];
+        // One threadgroup per window, a thread per `leaf` buckets, at least
+        // a full SIMD group.
+        let threads = self.half.min(MOST_REDUCE_THREADS).max(32);
+        let leaf = self.half / threads;
+        let args = [self.half as u32, leaf as u32, leaf.trailing_zeros(), 0u32];
         encoder.set_compute_pipeline_state(&self.reduce);
         encoder.set_buffer(0, Some(&self.buckets), 0);
         encoder.set_buffer(1, Some(&self.sums), 0);
         encoder.set_bytes(2, 16, args.as_ptr() as *const c_void);
-        encoder.dispatch_thread_groups(MTLSize::new(WINDOWS as u64, 1, 1), MTLSize::new(REDUCE_THREADS as u64, 1, 1));
+        encoder.dispatch_thread_groups(MTLSize::new(self.windows as u64, 1, 1), MTLSize::new(threads as u64, 1, 1));
         encoder.end_encoding();
         command.commit();
         Pending {
@@ -281,11 +301,11 @@ impl<C: Curve> Msm<C> {
         let started = Instant::now();
         let sums = self.sums.contents() as *const u8;
         let mut result = C::ZERO;
-        for window in (0..WINDOWS).rev() {
-            for _ in 0..WIDTH {
+        for window in (0..self.windows).rev() {
+            for _ in 0..self.width {
                 result.double_in_place();
             }
-            // SAFETY: `sums` holds WINDOWS xyzz points, written by the
+            // SAFETY: `sums` holds `windows` xyzz points, written by the
             // completed reduce dispatch.
             let point = unsafe { std::slice::from_raw_parts(sums.add(window * C::XYZZ_BYTES), C::XYZZ_BYTES) };
             result += C::xyzz_to_projective(point);
@@ -299,7 +319,7 @@ impl<C: Curve> Msm<C> {
     /// of base points into FIRST_SHARD; each later level splits the previous
     /// level's contiguous shard ranges into SHARD, until every bucket has one.
     fn plan(&mut self) -> Vec<usize> {
-        let buckets = WINDOWS * HALF;
+        let buckets = self.windows * self.half;
         let mut runs: Vec<(u32, u32)> = self.starts.iter().zip(&self.counts).map(|(s, c)| (*s, *c)).collect();
         let mut shard_counts = Vec::new();
         let mut level = 0;
@@ -323,7 +343,7 @@ impl<C: Curve> Msm<C> {
                 next.push((first, start.len() as u32 - first));
             }
             if self.levels.len() <= level {
-                let most = (self.n * WINDOWS).div_ceil(FIRST_SHARD) + buckets;
+                let most = (self.n * self.windows).div_ceil(FIRST_SHARD) + buckets;
                 self.levels.push([shared(&self.device, most * 4), shared(&self.device, most * 4), shared(&self.device, most * 4)]);
             }
             for (buffer, data) in self.levels[level].iter().zip([&start, &count, &dst]) {
@@ -342,38 +362,39 @@ impl<C: Curve> Msm<C> {
     /// Digits, counts and the scatter: digits in parallel over scalars,
     /// then one window per task writing its own segment of the buffers.
     fn sort(&mut self, scalars: &[Fr]) {
-        let radix = 1u64 << WIDTH;
+        let (width, windows, half) = (self.width, self.windows, self.half);
+        let radix = 1u64 << width;
         let mask = radix - 1;
         let n = self.n;
-        // digits[i * WINDOWS + w].
-        let mut digits = vec![0i16; n * WINDOWS];
-        digits.par_chunks_mut(WINDOWS).zip(scalars).for_each(|(row, s)| {
+        // digits[i * windows + w].
+        let mut digits = vec![0i16; n * windows];
+        digits.par_chunks_mut(windows).zip(scalars).for_each(|(row, s)| {
             let BigInt(words) = s.into_bigint();
             let mut carry = 0u64;
             for (w, digit) in row.iter_mut().enumerate() {
-                let offset = w * WIDTH;
+                let offset = w * width;
                 let (word, shift) = (offset / 64, offset % 64);
                 let mut value = if word < 4 { words[word] >> shift } else { 0 };
-                if shift + WIDTH > 64 && word < 3 {
+                if shift + width > 64 && word < 3 {
                     value |= words[word + 1] << (64 - shift);
                 }
                 let value = (value & mask) + carry;
-                carry = (value + radix / 2) >> WIDTH;
+                carry = (value + radix / 2) >> width;
                 *digit = (value as i64 - (carry * radix) as i64) as i16;
             }
         });
-        // SAFETY: the buffer holds n * WINDOWS u32s, shared storage, and
+        // SAFETY: the buffer holds n * windows u32s, shared storage, and
         // nothing else reads it until the dispatch.
-        let sorted = unsafe { std::slice::from_raw_parts_mut(self.sorted.contents() as *mut u32, n * WINDOWS) };
+        let sorted = unsafe { std::slice::from_raw_parts_mut(self.sorted.contents() as *mut u32, n * windows) };
         sorted
             .par_chunks_mut(n)
-            .zip(self.starts.par_chunks_mut(HALF))
-            .zip(self.counts.par_chunks_mut(HALF))
+            .zip(self.starts.par_chunks_mut(half))
+            .zip(self.counts.par_chunks_mut(half))
             .enumerate()
             .for_each(|(w, ((sorted, starts), counts))| {
                 counts.fill(0);
                 for i in 0..n {
-                    let d = digits[i * WINDOWS + w];
+                    let d = digits[i * windows + w];
                     if d != 0 {
                         counts[d.unsigned_abs() as usize - 1] += 1;
                     }
@@ -386,7 +407,7 @@ impl<C: Curve> Msm<C> {
                 }
                 let mut positions: Vec<u32> = starts.iter().map(|s| s - base).collect();
                 for i in 0..n {
-                    let d = digits[i * WINDOWS + w];
+                    let d = digits[i * windows + w];
                     if d != 0 {
                         let b = d.unsigned_abs() as usize - 1;
                         sorted[positions[b] as usize] = i as u32 | if d < 0 { 0x8000_0000 } else { 0 };
