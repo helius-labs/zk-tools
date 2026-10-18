@@ -35,3 +35,8 @@ wasm-opt = false
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
 ringil-metal = { path = "../ringil-metal", optional = true }
+
+# The proof blinding draws through getrandom, which needs its JavaScript
+# source on wasm32-unknown-unknown.
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
