@@ -82,7 +82,7 @@ pub(crate) fn gpu(gpu: &mut Gpu, plan: &fft::Plan, a_head: &[G1Affine], b2_head:
     // Three inputs that tell the kernels apart: one point (a shard and the
     // reduction), one bucket of 64 equal digits (shards and their tree),
     // and random scalars over the head (every window and sign).
-    let mut g1 = |name: &str, scalars: &[Fr]| {
+    let g1 = |name: &str, scalars: &[Fr]| {
         let started = std::time::Instant::now();
         let cpu = msm_g1(&a_head[..head], &scalars[..head]);
         let (got, _) = gpu.a.lock().unwrap().msm(scalars);
