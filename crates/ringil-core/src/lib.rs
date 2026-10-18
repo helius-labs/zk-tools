@@ -623,7 +623,7 @@ impl Key {
             // The sorts run on the pool, so a CPU G2 MSM starts only once
             // they are done: otherwise it starves them for its whole run.
             let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
-            let (h, (ar, bs1, kr, bs2)) = std::thread::scope(|scope| -> Result<_, String> {
+            let (h, (ar, bs1, kr, bs2, hz)) = std::thread::scope(|scope| -> Result<_, String> {
                 let msms = scope.spawn(move || -> Result<_, String> {
                     // Each MSM is submitted as soon as it is sorted, so the
                     // host sorts the next while the GPU runs it; G2 B shares
@@ -677,6 +677,10 @@ impl Key {
                     gpu.quotient.lock().unwrap().quotient(&a, &b, &c)?
                 };
                 trace("quotient", started);
+                // Z's MSM is sorted and queued now, behind the others still
+                // on the GPU, rather than after them.
+                let mut z = gpu.z.lock().unwrap();
+                let pz = z.start(&h);
                 let (ar, bs1, kr, bs2) = msms.join().expect("gpu msms")?;
                 let cpu = cpu_b2.map(|cpu| cpu.join().expect("cpu msm"));
                 let bs2 = match (bs2, cpu) {
@@ -685,12 +689,12 @@ impl Key {
                     (None, Some(cpu)) => cpu,
                     (None, None) => unreachable!("a G2 MSM"),
                 };
-                Ok((h, (ar, bs1, kr, bs2)))
+                let started = trace("quotient+gpu-msms", started);
+                let (hz, t) = z.finish(pz)?;
+                gpu_trace("z", t.sort_ms, t.gpu_ms);
+                trace("gpu-msm-z", started);
+                Ok((h, (ar, bs1, kr, bs2, hz)))
             })?;
-            let started = trace("quotient+gpu-msms", started);
-            let (hz, t) = gpu.z.lock().unwrap().msm(&h)?;
-            gpu_trace("z", t.sort_ms, t.gpu_ms);
-            trace("gpu-msm-z", started);
             // The trace build profiles the GPU's stages once per key, with
             // this proof's scalars, after the proof (the next one pays it).
             #[cfg(feature = "trace")]
