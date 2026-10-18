@@ -58,7 +58,14 @@ impl Quotient {
                 cache: None,
             })
         };
-        let (dif, dit, scale, pointwise) = (pipeline("fr_dif_stage"), pipeline("fr_dit_stage"), pipeline("fr_scale"), pipeline("fr_pointwise"));
+        let mut pipelines = Vec::with_capacity(4);
+        for entry in ["fr_dif_stage", "fr_dit_stage", "fr_scale", "fr_pointwise"] {
+            pipelines.push(pipeline(entry));
+            if gpu.failed() {
+                return Err(format!("kernel {entry}: the device reported an error"));
+            }
+        }
+        let [dif, dit, scale, pointwise]: [wgpu::ComputePipeline; 4] = pipelines.try_into().ok().expect("four kernels");
         for scope in [internal, validation] {
             if let Some(e) = pollster::block_on(scope.pop()) {
                 return Err(format!("kernels: {e}"));
@@ -77,11 +84,7 @@ impl Quotient {
         let log_n = n.trailing_zeros();
         let stages = (0..log_n)
             .map(|level| {
-                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("stage"),
-                    contents: bytemuck_cast(&[n as u32, level, log_n - 1 - level, 0]),
-                    usage: wgpu::BufferUsages::UNIFORM,
-                })
+                crate::uniform(&gpu, [n as u32, level, log_n - 1 - level, 0])
             })
             .collect();
         let quotient = Self {
@@ -103,11 +106,7 @@ impl Quotient {
                     mapped_at_creation: false,
                 }),
                 stages,
-                whole: device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("whole"),
-                    contents: bytemuck_cast(&[n as u32, 0, 0, 0]),
-                    usage: wgpu::BufferUsages::UNIFORM,
-                }),
+                whole: crate::uniform(&gpu, [n as u32, 0, 0, 0]),
                 gpu,
             };
         if let Some(e) = pollster::block_on(memory.pop()) {

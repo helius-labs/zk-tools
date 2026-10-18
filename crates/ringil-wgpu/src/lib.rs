@@ -205,12 +205,17 @@ pub(crate) fn storage(device: &wgpu::Device, label: &str, bytes: usize) -> wgpu:
     })
 }
 
-fn uniform(device: &wgpu::Device, values: [u32; 4]) -> wgpu::Buffer {
-    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+/// A uniform buffer with its values queued, never mapped: wgpu's
+/// `create_buffer_init` panics on a device that has failed.
+pub(crate) fn uniform(gpu: &Gpu, values: [u32; 4]) -> wgpu::Buffer {
+    let buffer = gpu.device.create_buffer(&wgpu::BufferDescriptor {
         label: Some("uniform"),
-        contents: bytemuck_cast(&values),
+        size: 16,
         usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-    })
+        mapped_at_creation: false,
+    });
+    gpu.queue.write_buffer(&buffer, 0, bytemuck_cast(&values));
+    buffer
 }
 
 pub(crate) fn bytemuck_cast(values: &[u32]) -> &[u8] {
@@ -240,7 +245,16 @@ impl<C: Curve> Msm<C> {
                 cache: None,
             })
         };
-        let [first, tree_pipeline, reduce_blocks, reduce_windows] = C::ENTRIES.map(pipeline);
+        // After each kernel: a driver that refuses one leaves the device
+        // failed, and nothing else must be asked of it.
+        let mut pipelines = Vec::with_capacity(4);
+        for entry in C::ENTRIES {
+            pipelines.push(pipeline(entry));
+            if gpu.failed() {
+                return Err(format!("kernel {entry}: the device reported an error"));
+            }
+        }
+        let [first, tree_pipeline, reduce_blocks, reduce_windows]: [wgpu::ComputePipeline; 4] = pipelines.try_into().ok().expect("four kernels");
         for scope in [internal, validation] {
             if let Some(e) = pollster::block_on(scope.pop()) {
                 return Err(format!("kernels: {e}"));
@@ -289,7 +303,7 @@ impl<C: Curve> Msm<C> {
                     usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
                     mapped_at_creation: false,
                 }),
-                reduce_uniform: uniform(device, [half as u32, REDUCE_BLOCK as u32, REDUCE_BLOCK.trailing_zeros(), blocks as u32]),
+                reduce_uniform: uniform(&gpu, [half as u32, REDUCE_BLOCK as u32, REDUCE_BLOCK.trailing_zeros(), blocks as u32]),
                 counts: vec![0; buckets],
                 starts: vec![0; buckets],
                 most,
@@ -407,7 +421,7 @@ impl<C: Curve> Msm<C> {
         if self.gpu.failed() {
             return Err("the device reported an error".into());
         }
-        let data = self.staging.slice(..).get_mapped_range().expect("mapped sums").to_vec();
+        let data = self.staging.slice(..).get_mapped_range().map_err(|e| format!("sums: {e}"))?.to_vec();
         self.staging.unmap();
         timings.gpu_ms = pending.submitted.elapsed().as_secs_f64() * 1000.0;
 
@@ -461,7 +475,7 @@ impl<C: Curve> Msm<C> {
                     storage(device, "start", self.most * 4),
                     storage(device, "count", self.most * 4),
                     storage(device, "dst", self.most * 4),
-                    uniform(device, [0; 4]),
+                    uniform(&self.gpu, [0; 4]),
                 ]);
             }
             let queue = &self.gpu.queue;
