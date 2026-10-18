@@ -138,14 +138,28 @@ fn field() {
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 fn gpu(dir: &Path) {
     let mut rng = rand::rngs::OsRng;
-    for name in ["b", "z", "b2"] {
-        if name == "b2" {
-            let bases = decode_g2(&read(dir, name));
-            let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+    // Witness scalars are skewed: many wires are 0, 1 or small, so a few
+    // buckets receive most points. "skewed" is a quarter ones, a quarter
+    // small, the rest random.
+    let skewed = |n: usize, rng: &mut rand::rngs::OsRng| -> Vec<Fr> {
+        (0..n)
+            .map(|i| match i % 4 {
+                0 => Fr::from(1u64),
+                1 => Fr::from((i % 65536) as u64),
+                _ => Fr::rand(rng),
+            })
+            .collect()
+    };
+    for name in ["b", "b skewed", "z", "b2", "b2 skewed"] {
+        let file = name.split(' ').next().unwrap();
+        let skew = name.ends_with("skewed");
+        if file == "b2" {
+            let bases = decode_g2(&read(dir, file));
+            let scalars = if skew { skewed(bases.len(), &mut rng) } else { (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect() };
             gpu_one(name, &bases, &scalars, ringil_core::msm_g2);
         } else {
-            let bases = decode_g1(&read(dir, name));
-            let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+            let bases = decode_g1(&read(dir, file));
+            let scalars = if skew { skewed(bases.len(), &mut rng) } else { (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect() };
             gpu_one(name, &bases, &scalars, ringil_core::msm_g1);
         }
     }
@@ -155,7 +169,7 @@ fn gpu(dir: &Path) {
 fn gpu_one<C: ringil_metal::Curve>(name: &str, bases: &[C::Affine], scalars: &[Fr], cpu_msm: fn(&[C::Affine], &[Fr]) -> C) {
     {
         let started = Instant::now();
-        let (msm, compile_ms) = ringil_metal::Msm::<C>::new(bases).expect("gpu msm");
+        let (mut msm, compile_ms) = ringil_metal::Msm::<C>::new(bases).expect("gpu msm");
         let upload_ms = started.elapsed().as_secs_f64() * 1000.0 - compile_ms;
         let started = Instant::now();
         let cpu = cpu_msm(bases, scalars);
@@ -176,7 +190,7 @@ fn gpu_one<C: ringil_metal::Curve>(name: &str, bases: &[C::Affine], scalars: &[F
         let (t, total) = best.unwrap();
         assert_eq!(result.into_affine(), cpu.into_affine(), "{name}: the GPU MSM differs from the CPU");
         println!(
-            "RINGIL gpu {name} points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} accumulate_ms={:.0} reduce_ms={:.0} combine_ms={:.1}",
+            "RINGIL gpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} accumulate_ms={:.0} reduce_ms={:.0} combine_ms={:.1}",
             bases.len(),
             msm.device_name(),
             t.sort_ms,

@@ -1,7 +1,7 @@
 // The bucket accumulation and window reduction of a signed-window Pippenger
-// MSM, over runs the host sorted: sorted[starts[b]..starts[b] + counts[b])
-// are the base indices of bucket b, the top bit negating the point. Bucket b
-// of window w is b - w * half_buckets, its weight that plus one.
+// MSM, over runs the host sorted: the base indices of a bucket, the top bit
+// negating the point. Bucket b of window w is b - w * half_buckets, its
+// weight that plus one.
 constant uint bucket_sign = 0x80000000u;
 
 template <typename E>
@@ -12,27 +12,42 @@ inline affine_t<E> signed_base(device const affine_t<E> *bases, uint encoded) {
   return point;
 }
 
-// One thread per bucket, the first pair with unit ZZ and ZZZ.
+// Runs split into shards of bounded length, which threads sum in parallel
+// level by level until every bucket holds one point: the first level reads
+// the sorted base indices, later levels the previous level's sums. Shard s
+// covers source[start[s]..start[s] + count[s]) and writes out[dst[s]].
 template <typename E>
-inline void accumulate(device const affine_t<E> *bases, device const uint *sorted,
-                       device const uint *starts, device const uint *counts,
-                       device xyzz_t<E> *buckets, uint count, uint b) {
-  if (b >= count)
+inline void shards_first(device const affine_t<E> *bases, device const uint *sorted,
+                         device const uint *start, device const uint *count,
+                         device const uint *dst, device xyzz_t<E> *out, uint shards,
+                         uint s) {
+  if (s >= shards)
     return;
-  const uint begin = starts[b];
-  const uint end = begin + counts[b];
-  xyzz_t<E> acc = xyzz_infinity<E>();
-  if (begin < end) {
-    acc = xyzz_from_affine(signed_base(bases, sorted[begin]));
-    uint i = begin + 1;
-    if (i < end) {
-      acc = xyzz_add_affine_pair(acc, signed_base(bases, sorted[i]));
-      i++;
-    }
-    for (; i < end; i++)
-      acc = xyzz_add_mixed(acc, signed_base(bases, sorted[i]));
+  const uint begin = start[s];
+  const uint end = begin + count[s];
+  xyzz_t<E> acc = xyzz_from_affine(signed_base(bases, sorted[begin]));
+  uint i = begin + 1;
+  if (i < end) {
+    acc = xyzz_add_affine_pair(acc, signed_base(bases, sorted[i]));
+    i++;
   }
-  buckets[b] = acc;
+  for (; i < end; i++)
+    acc = xyzz_add_mixed(acc, signed_base(bases, sorted[i]));
+  out[dst[s]] = acc;
+}
+
+template <typename E>
+inline void shards_tree(device const xyzz_t<E> *tree, device const uint *start,
+                        device const uint *count, device const uint *dst,
+                        device xyzz_t<E> *out, uint shards, uint s) {
+  if (s >= shards)
+    return;
+  const uint begin = start[s];
+  const uint end = begin + count[s];
+  xyzz_t<E> acc = tree[begin];
+  for (uint i = begin + 1; i < end; i++)
+    acc = xyzz_add(acc, tree[i]);
+  out[dst[s]] = acc;
 }
 
 inline fp_t e_shuffle_down(fp_t a, ushort delta) {
@@ -110,15 +125,26 @@ struct ReduceArgs {
 };
 
 #define BUCKET_KERNELS(E, suffix)                                               \
-  kernel void accumulate_##suffix(                                              \
+  kernel void shards_first_##suffix(                                            \
       device const affine_t<E> *bases [[buffer(0)]],                            \
       device const uint *sorted [[buffer(1)]],                                  \
-      device const uint *starts [[buffer(2)]],                                  \
-      device const uint *counts [[buffer(3)]],                                  \
-      device xyzz_t<E> *buckets [[buffer(4)]],                                  \
-      constant uint &count [[buffer(5)]],                                       \
-      uint b [[thread_position_in_grid]]) {                                     \
-    accumulate<E>(bases, sorted, starts, counts, buckets, count, b);            \
+      device const uint *start [[buffer(2)]],                                   \
+      device const uint *count [[buffer(3)]],                                   \
+      device const uint *dst [[buffer(4)]],                                     \
+      device xyzz_t<E> *out [[buffer(5)]],                                      \
+      constant uint &shards [[buffer(6)]],                                      \
+      uint s [[thread_position_in_grid]]) {                                     \
+    shards_first<E>(bases, sorted, start, count, dst, out, shards, s);          \
+  }                                                                             \
+  kernel void shards_tree_##suffix(                                             \
+      device const xyzz_t<E> *tree [[buffer(0)]],                               \
+      device const uint *start [[buffer(2)]],                                   \
+      device const uint *count [[buffer(3)]],                                   \
+      device const uint *dst [[buffer(4)]],                                     \
+      device xyzz_t<E> *out [[buffer(5)]],                                      \
+      constant uint &shards [[buffer(6)]],                                      \
+      uint s [[thread_position_in_grid]]) {                                     \
+    shards_tree<E>(tree, start, count, dst, out, shards, s);                    \
   }                                                                             \
   kernel void reduce_##suffix(                                                  \
       device const xyzz_t<E> *buckets [[buffer(0)]],                            \
@@ -131,8 +157,8 @@ struct ReduceArgs {
       uint simds [[simdgroups_per_threadgroup]]) {                              \
     threadgroup xyzz_t<E> shared_s[8];                                          \
     threadgroup xyzz_t<E> shared_v[8];                                          \
-    reduce<E>(buckets, sums, a.half_buckets, a.leaf, a.leaf_log, window, index, lane,   \
-              simd, simds, shared_s, shared_v);                                 \
+    reduce<E>(buckets, sums, a.half_buckets, a.leaf, a.leaf_log, window, index, \
+              lane, simd, simds, shared_s, shared_v);                           \
   }
 
 BUCKET_KERNELS(fp_t, g1)

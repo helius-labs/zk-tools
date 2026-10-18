@@ -105,8 +105,38 @@ pub fn solver_image_version() -> u32 {
     solver::IMAGE_VERSION as u32
 }
 
+#[cfg(gpu)]
+struct Gpu {
+    a: std::sync::Mutex<ringil_metal::G1Msm>,
+    b: std::sync::Mutex<ringil_metal::G1Msm>,
+    k: std::sync::Mutex<ringil_metal::G1Msm>,
+    z: std::sync::Mutex<ringil_metal::G1Msm>,
+    b2: std::sync::Mutex<ringil_metal::G2Msm>,
+}
+#[cfg(gpu)]
+impl Gpu {
+    /// The five MSMs' bases on the GPU, unless RINGIL_GPU=0 or there is none.
+    fn new(a: &[G1Affine], b: &[G1Affine], k: &[G1Affine], z: &[G1Affine], b2: &[G2Affine]) -> Option<Self> {
+        if std::env::var("RINGIL_GPU").is_ok_and(|v| v == "0") {
+            return None;
+        }
+        let started = std::time::Instant::now();
+        let gpu = Self {
+            a: std::sync::Mutex::new(ringil_metal::G1Msm::new(a).ok()?.0),
+            b: std::sync::Mutex::new(ringil_metal::G1Msm::new(b).ok()?.0),
+            k: std::sync::Mutex::new(ringil_metal::G1Msm::new(k).ok()?.0),
+            z: std::sync::Mutex::new(ringil_metal::G1Msm::new(z).ok()?.0),
+            b2: std::sync::Mutex::new(ringil_metal::G2Msm::new(b2).ok()?.0),
+        };
+        trace("gpu-upload", started);
+        Some(gpu)
+    }
+}
+
 #[wasm_bindgen]
 pub struct Key {
+    #[cfg(gpu)]
+    gpu: Option<Gpu>,
     a: Vec<G1Affine>,
     b: Vec<G1Affine>,
     k: Vec<G1Affine>,
@@ -152,12 +182,15 @@ impl Key {
         let den = (params[1].pow([n as u64]) - Fr::ONE)
             .inverse()
             .ok_or_else(|| JsError::new("invalid quotient denominator"))?;
+        let (a, b, k, z, b2) = (g1s(a), g1s(b), g1s(k), g1s(z), g2s(b2));
         Ok(Self {
-            a: g1s(a),
-            b: g1s(b),
-            k: g1s(k),
-            z: g1s(z),
-            b2: g2s(b2),
+            #[cfg(gpu)]
+            gpu: Gpu::new(&a, &b, &k, &z, &b2),
+            a,
+            b,
+            k,
+            z,
+            b2,
             domain,
             plan: fft::Plan::new(n, params[0], params[1], den),
             commitments: Vec::new(),
@@ -286,6 +319,40 @@ impl Key {
         b: Vec<Fr>,
         c: Vec<Fr>,
     ) -> Vec<u8> {
+        #[cfg(gpu)]
+        if let Some(gpu) = &self.gpu {
+            // The four MSMs whose scalars are ready run on the GPU, driven
+            // from a thread of their own so that their waits hold no rayon
+            // worker, while the pool computes the quotient; Z's follows it.
+            let started = std::time::Instant::now();
+            let (h, (ar, bs1, kr, bs2)) = std::thread::scope(|scope| {
+                let msms = scope.spawn(|| {
+                    let started = std::time::Instant::now();
+                    let ar = gpu.a.lock().unwrap().msm(sa).0;
+                    let started = trace("gpu-msm-a", started);
+                    let bs1 = gpu.b.lock().unwrap().msm(sb).0;
+                    let started = trace("gpu-msm-b", started);
+                    let kr = gpu.k.lock().unwrap().msm(sk).0;
+                    let started = trace("gpu-msm-k", started);
+                    let bs2 = gpu.b2.lock().unwrap().msm(sb).0;
+                    trace("gpu-msm-b2", started);
+                    (ar, bs1, kr, bs2)
+                });
+                let started = std::time::Instant::now();
+                let h = self.quotient(a, b, c);
+                trace("quotient", started);
+                (h, msms.join().expect("gpu msms"))
+            });
+            let started = trace("quotient+gpu-msms", started);
+            let hz = gpu.z.lock().unwrap().msm(&h).0;
+            trace("gpu-msm-z", started);
+            let mut out = Vec::with_capacity(384);
+            for p in [ar, bs1, kr, hz] {
+                output_g1(&mut out, p)
+            }
+            output_g2(&mut out, bs2);
+            return out;
+        }
         let started = std::time::Instant::now();
         let h = self.quotient(a, b, c);
         let started = trace("quotient", started);
