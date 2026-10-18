@@ -148,9 +148,13 @@ struct GpuBuilder {
 }
 #[cfg(gpu_wgpu)]
 impl GpuBuilder {
-    /// None with RINGIL_GPU=0 or without a GPU.
+    /// None with RINGIL_GPU=0 or without a GPU; on Android only with
+    /// RINGIL_GPU=1: measured on a Galaxy A16 (Mali-G57), A56 (Xclipse 940)
+    /// and S25 (Adreno 830), the WGSL MSMs took minutes to compile and ran
+    /// 3–5× slower than the phone's own cores, or did not link at all.
     fn open(plan: &fft::Plan) -> Option<Self> {
-        if std::env::var("RINGIL_GPU").is_ok_and(|v| v == "0") {
+        let wanted = std::env::var("RINGIL_GPU").ok();
+        if wanted.as_deref() == Some("0") || (cfg!(target_os = "android") && wanted.as_deref() != Some("1")) {
             return None;
         }
         let started = std::time::Instant::now();
