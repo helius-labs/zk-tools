@@ -165,13 +165,23 @@ pub(crate) const SHADER: &str = concat!(
 /// Window width by point count, as the CPU MSM's: wider windows mean fewer
 /// bucket additions and more buckets to reduce (and, here, to zero).
 fn width_for(n: usize) -> usize {
-    match n {
+    let width = match n {
         0..=1023 => 7,
         1024..=4095 => 9,
         4096..=16383 => 10,
         16384..=65535 => 12,
         _ => 15,
-    }
+    };
+    // RINGIL_GPU_WIDTH caps it (at most 15: digits are i16). GPUs before
+    // Apple's ninth family take 13: on an iPhone 12 and 15 the reduction of
+    // 15-bit windows' buckets was 28 % of the GPU's MSM time, and 13 bits
+    // has a quarter of the buckets for 18 % more additions.
+    let cap = std::env::var("RINGIL_GPU_WIDTH")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(if fast_gpu() { 15 } else { 13 })
+        .clamp(7, 15);
+    width.min(cap)
 }
 /// Threads per window in the reduction: each takes half / this many buckets.
 const REDUCE_THREADS_PER_WINDOW: usize = 512;
