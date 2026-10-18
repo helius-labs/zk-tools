@@ -42,7 +42,7 @@ impl Quotient {
         assert_eq!(forward_weights.len(), n);
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
-        let library = crate::library(&device)?;
+        let library = crate::library(&device, false)?;
         let pipeline = |name: &str| {
             let function = library.get_function(name, None).map_err(|e| format!("{name}: {e}"))?;
             device

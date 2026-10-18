@@ -162,4 +162,3 @@ struct ReduceArgs {
   }
 
 BUCKET_KERNELS(fp_t, g1)
-BUCKET_KERNELS(fp2_t, g2)

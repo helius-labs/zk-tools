@@ -19,15 +19,21 @@ pub mod quotient;
 pub use quotient::Quotient;
 
 /// The shaders as a library: the metallib build.rs compiled, else compiled
-/// from source now (the G2 kernels take about a minute).
-pub(crate) fn library(device: &Device) -> Result<metal::Library, String> {
+/// from source now. The G2 kernels are instantiated only when asked for:
+/// they take a minute to compile from source (six on an iPhone), and a
+/// phone proves G2 on its CPU.
+pub(crate) fn library(device: &Device, g2: bool) -> Result<metal::Library, String> {
     #[cfg(metallib)]
     {
+        let _ = g2;
         let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/ringil.metallib"));
         return device.new_library_with_data(bytes).map_err(|e| format!("metallib: {e}"));
     }
     #[cfg(not(metallib))]
-    device.new_library_with_source(SHADER, &CompileOptions::new()).map_err(|e| format!("shader: {e}"))
+    {
+        let source = if g2 { format!("{SHADER}\nBUCKET_KERNELS(fp2_t, g2)\n") } else { SHADER.to_string() };
+        device.new_library_with_source(&source, &CompileOptions::new()).map_err(|e| format!("shader: {e}"))
+    }
 }
 
 #[cfg_attr(metallib, allow(dead_code))]
@@ -78,6 +84,7 @@ pub struct Pending {
 pub trait Curve: CurveGroup {
     const AFFINE_BYTES: usize;
     const XYZZ_BYTES: usize;
+    const G2: bool;
     const FIRST: &'static str;
     const TREE: &'static str;
     const REDUCE: &'static str;
@@ -96,6 +103,7 @@ fn fq_bytes(v: &Fq, out: &mut Vec<u8>) {
 impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
     const AFFINE_BYTES: usize = 64;
     const XYZZ_BYTES: usize = 128;
+    const G2: bool = false;
     const FIRST: &'static str = "shards_first_g1";
     const TREE: &'static str = "shards_tree_g1";
     const REDUCE: &'static str = "reduce_g1";
@@ -119,6 +127,7 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
 impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g2::Config> {
     const AFFINE_BYTES: usize = 128;
     const XYZZ_BYTES: usize = 256;
+    const G2: bool = true;
     const FIRST: &'static str = "shards_first_g2";
     const TREE: &'static str = "shards_tree_g2";
     const REDUCE: &'static str = "reduce_g2";
@@ -156,8 +165,11 @@ pub struct Msm<C: Curve> {
     bases: Buffer,
     n: usize,
     sorted: Buffer,
-    /// Per level: shard starts, counts and destinations.
-    levels: Vec<[Buffer; 3]>,
+    /// Windows per chunk: the shard trees are sized for one chunk and
+    /// reused, which bounds the GPU memory a wide key takes.
+    chunk_windows: usize,
+    /// Per chunk and level: shard starts, counts and destinations.
+    levels: Vec<Vec<[Buffer; 3]>>,
     tree: [Buffer; 2],
     buckets: Buffer,
     sums: Buffer,
@@ -177,7 +189,7 @@ impl<C: Curve> Msm<C> {
     pub fn new(bases: &[C::Affine]) -> Result<(Self, f64), String> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
-        let library = library(&device)?;
+        let library = library(&device, C::G2)?;
         let pipeline = |name: &str| {
             let function = library.get_function(name, None).map_err(|e| format!("{name}: {e}"))?;
             device
@@ -202,14 +214,18 @@ impl<C: Curve> Msm<C> {
         let half = 1 << (width - 1);
         let windows = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(width);
         let buckets = windows * half;
-        // The most shards a level can have: every pair in its own first
-        // shard, or every bucket's run split, whichever is more.
-        let most = (n * windows).div_ceil(FIRST_SHARD) + buckets;
+        // The most shards a level can have for one window: every pair in
+        // its own first shard, or every bucket's run split, whichever is
+        // more. Chunks of windows keep each tree under about 64 MB.
+        let per_window = n.div_ceil(FIRST_SHARD) + half;
+        let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
+        let most = chunk_windows * per_window;
         Ok((
             Self {
                 width,
                 half,
                 windows,
+                chunk_windows,
                 queue: device.new_command_queue(),
                 sorted: shared(&device, n * windows * 4),
                 levels: Vec::new(),
@@ -256,7 +272,12 @@ impl<C: Curve> Msm<C> {
     }
 
     fn submit(&mut self, started: Instant) -> Pending {
-        let levels = self.plan();
+        let chunks: Vec<Vec<usize>> = (0..self.windows.div_ceil(self.chunk_windows))
+            .map(|chunk| {
+                let first = chunk * self.chunk_windows;
+                self.plan(chunk, first..(first + self.chunk_windows).min(self.windows))
+            })
+            .collect();
         let sort_ms = elapsed(started);
         let command = self.queue.new_command_buffer();
         // Empty buckets stay at infinity.
@@ -264,26 +285,30 @@ impl<C: Curve> Msm<C> {
         blit.fill_buffer(&self.buckets, metal::NSRange::new(0, self.buckets.length()), 0);
         blit.end_encoding();
         let encoder = command.new_compute_command_encoder();
-        let last = levels.len() - 1;
-        for (level, shards) in levels.iter().enumerate() {
-            let pipeline = if level == 0 { &self.first } else { &self.tree_pipeline };
-            encoder.set_compute_pipeline_state(pipeline);
-            if level == 0 {
-                encoder.set_buffer(0, Some(&self.bases), 0);
-                encoder.set_buffer(1, Some(&self.sorted), 0);
-            } else {
-                encoder.set_buffer(0, Some(&self.tree[(level - 1) % 2]), 0);
+        // Chunks run in order and share the trees; the dispatches of one
+        // are complete before the next begins.
+        for (chunk, levels) in chunks.iter().enumerate() {
+            let last = levels.len() - 1;
+            for (level, shards) in levels.iter().enumerate() {
+                let pipeline = if level == 0 { &self.first } else { &self.tree_pipeline };
+                encoder.set_compute_pipeline_state(pipeline);
+                if level == 0 {
+                    encoder.set_buffer(0, Some(&self.bases), 0);
+                    encoder.set_buffer(1, Some(&self.sorted), 0);
+                } else {
+                    encoder.set_buffer(0, Some(&self.tree[(level - 1) % 2]), 0);
+                }
+                let [start, count, dst] = &self.levels[chunk][level];
+                encoder.set_buffer(2, Some(start), 0);
+                encoder.set_buffer(3, Some(count), 0);
+                encoder.set_buffer(4, Some(dst), 0);
+                let out = if level == last { &self.buckets } else { &self.tree[level % 2] };
+                encoder.set_buffer(5, Some(out), 0);
+                let n = *shards as u32;
+                encoder.set_bytes(6, 4, &n as *const u32 as *const c_void);
+                let group = pipeline.thread_execution_width().min(n as u64).max(1);
+                encoder.dispatch_threads(MTLSize::new(n as u64, 1, 1), MTLSize::new(group, 1, 1));
             }
-            let [start, count, dst] = &self.levels[level];
-            encoder.set_buffer(2, Some(start), 0);
-            encoder.set_buffer(3, Some(count), 0);
-            encoder.set_buffer(4, Some(dst), 0);
-            let out = if level == last { &self.buckets } else { &self.tree[level % 2] };
-            encoder.set_buffer(5, Some(out), 0);
-            let n = *shards as u32;
-            encoder.set_bytes(6, 4, &n as *const u32 as *const c_void);
-            let group = pipeline.thread_execution_width().min(n as u64).max(1);
-            encoder.dispatch_threads(MTLSize::new(n as u64, 1, 1), MTLSize::new(group, 1, 1));
         }
         // One threadgroup per window, a thread per `leaf` buckets, at least
         // a full SIMD group.
@@ -325,15 +350,25 @@ impl<C: Curve> Msm<C> {
         (result, timings)
     }
 
-    /// The levels of shards over the sorted runs, written to the level
-    /// buffers; returns each level's shard count. Level 0 splits bucket runs
-    /// of base points into FIRST_SHARD; each later level splits the previous
-    /// level's contiguous shard ranges into SHARD, until every bucket has one.
-    fn plan(&mut self) -> Vec<usize> {
-        let buckets = self.windows * self.half;
-        let mut runs: Vec<(u32, u32)> = self.starts.iter().zip(&self.counts).map(|(s, c)| (*s, *c)).collect();
+    /// The levels of shards over the sorted runs of a chunk of windows,
+    /// written to the chunk's level buffers; returns each level's shard
+    /// count. Level 0 splits bucket runs of base points into FIRST_SHARD;
+    /// each later level splits the previous level's contiguous shard ranges
+    /// into SHARD, until every bucket has one, which the last level writes
+    /// to the bucket's place.
+    fn plan(&mut self, chunk: usize, windows: std::ops::Range<usize>) -> Vec<usize> {
+        let first_bucket = windows.start * self.half;
+        let buckets = windows.len() * self.half;
+        let mut runs: Vec<(u32, u32)> = self.starts[first_bucket..first_bucket + buckets]
+            .iter()
+            .zip(&self.counts[first_bucket..first_bucket + buckets])
+            .map(|(s, c)| (*s, *c))
+            .collect();
         let mut shard_counts = Vec::new();
         let mut level = 0;
+        if self.levels.len() <= chunk {
+            self.levels.push(Vec::new());
+        }
         loop {
             let size = if level == 0 { FIRST_SHARD } else { SHARD } as u32;
             let last = runs.iter().all(|(_, c)| *c <= size);
@@ -348,16 +383,16 @@ impl<C: Curve> Msm<C> {
                     let len = size.min(run_count - at);
                     start.push(run_start + at);
                     count.push(len);
-                    dst.push(if last { b as u32 } else { first + (at / size) });
+                    dst.push(if last { (first_bucket + b) as u32 } else { first + (at / size) });
                     at += len;
                 }
                 next.push((first, start.len() as u32 - first));
             }
-            if self.levels.len() <= level {
-                let most = (self.n * self.windows).div_ceil(FIRST_SHARD) + buckets;
-                self.levels.push([shared(&self.device, most * 4), shared(&self.device, most * 4), shared(&self.device, most * 4)]);
+            if self.levels[chunk].len() <= level {
+                let most = self.chunk_windows * (self.n.div_ceil(FIRST_SHARD) + self.half);
+                self.levels[chunk].push([shared(&self.device, most * 4), shared(&self.device, most * 4), shared(&self.device, most * 4)]);
             }
-            for (buffer, data) in self.levels[level].iter().zip([&start, &count, &dst]) {
+            for (buffer, data) in self.levels[chunk][level].iter().zip([&start, &count, &dst]) {
                 // SAFETY: each level buffer holds `most` u32s, at least data.len().
                 unsafe { std::ptr::copy_nonoverlapping(data.as_ptr(), buffer.contents() as *mut u32, data.len()) };
             }
