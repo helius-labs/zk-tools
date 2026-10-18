@@ -38,6 +38,8 @@ pub struct Quotient {
     /// Running the pre-compiled kernels: the pointwise kernel's abc is
     /// binding 0 of set 0, its uniform binding 1.
     spirv: bool,
+    /// The submitted transform's, for waiting on it alone.
+    submission: Option<wgpu::SubmissionIndex>,
     dif: wgpu::ComputePipeline,
     dit: wgpu::ComputePipeline,
     scale: wgpu::ComputePipeline,
@@ -133,6 +135,7 @@ impl Quotient {
             .collect();
         let quotient = Self {
             spirv,
+            submission: None,
             dif,
             dit,
             scale,
@@ -168,6 +171,12 @@ impl Quotient {
     #[cfg(not(target_arch = "wasm32"))]
     pub fn quotient(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> Result<Vec<Fr>, String> {
         self.start(a, b, c);
+        self.finish()
+    }
+
+    /// The submitted quotient, waiting for the device.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn finish(&mut self) -> Result<Vec<Fr>, String> {
         pollster::block_on(self.finish_async())
     }
 
@@ -233,13 +242,13 @@ impl Quotient {
         self.transform(&mut encoder, 0, &self.inverse_roots, true);
         self.scale_by(&mut encoder, 0, &self.reverse_weights);
         encoder.copy_buffer_to_buffer(&self.abc, 0, &self.staging, 0, (n * 32) as u64);
-        queue.submit([encoder.finish()]);
+        self.submission = Some(queue.submit([encoder.finish()]));
     }
 
     /// The submitted quotient, the first n - 1 coefficients.
     pub async fn finish_async(&mut self) -> Result<Vec<Fr>, String> {
         let n = self.n;
-        crate::mapped(&self.gpu, &self.staging).await?;
+        crate::mapped(&self.gpu, &self.staging, self.submission.take()).await?;
         let data = self
             .staging
             .slice(..)

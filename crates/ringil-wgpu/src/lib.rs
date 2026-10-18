@@ -164,6 +164,7 @@ pub struct Timings {
 pub struct Pending {
     submitted: Instant,
     timings: Timings,
+    submission: wgpu::SubmissionIndex,
 }
 
 pub struct Gpu {
@@ -199,7 +200,13 @@ pub(crate) fn popped(scope: wgpu::ErrorScopeGuard) -> Option<wgpu::Error> {
 
 /// Waits for a buffer's read mapping: natively by polling the device, on
 /// the web by yielding to the page until the browser maps it.
-pub(crate) async fn mapped(gpu: &Gpu, buffer: &wgpu::Buffer) -> Result<(), String> {
+/// Maps a staging buffer once its submission is done: natively, waiting for
+/// that submission only (later ones may run on), or for the whole queue.
+pub(crate) async fn mapped(
+    gpu: &Gpu,
+    buffer: &wgpu::Buffer,
+    submission: Option<wgpu::SubmissionIndex>,
+) -> Result<(), String> {
     let (tx, rx) = futures_channel::oneshot::channel();
     buffer
         .slice(..)
@@ -208,8 +215,13 @@ pub(crate) async fn mapped(gpu: &Gpu, buffer: &wgpu::Buffer) -> Result<(), Strin
         });
     #[cfg(not(target_arch = "wasm32"))]
     gpu.device
-        .poll(wgpu::PollType::wait_indefinitely())
+        .poll(wgpu::PollType::Wait {
+            submission_index: submission,
+            timeout: None,
+        })
         .map_err(|e| format!("gpu: {e}"))?;
+    #[cfg(target_arch = "wasm32")]
+    let _ = submission;
     rx.await
         .map_err(|_| "the mapping was dropped".to_string())?
         .map_err(|e| format!("map: {e}"))?;
@@ -761,10 +773,11 @@ impl<C: Curve> Msm<C> {
             );
         }
         encoder.copy_buffer_to_buffer(&self.sums, 0, &self.staging, 0, self.sums.size());
-        queue.submit([encoder.finish()]);
+        let submission = queue.submit([encoder.finish()]);
         Pending {
             submitted: started,
             timings,
+            submission,
         }
     }
 
@@ -777,7 +790,7 @@ impl<C: Curve> Msm<C> {
     /// As `finish`, yielding while the GPU works: the browser's way.
     pub async fn finish_async(&mut self, pending: Pending) -> Result<(C, Timings), String> {
         let mut timings = pending.timings;
-        mapped(&self.gpu, &self.staging).await?;
+        mapped(&self.gpu, &self.staging, Some(pending.submission.clone())).await?;
         let data = self
             .staging
             .slice(..)
@@ -1146,7 +1159,7 @@ mod field_tests {
         }
         encoder.copy_buffer_to_buffer(&buffer, 0, &staging, 0, (input.len() * 4) as u64);
         gpu.queue.submit([encoder.finish()]);
-        pollster::block_on(mapped(&gpu, &staging)).expect("map");
+        pollster::block_on(mapped(&gpu, &staging, None)).expect("map");
         let out: Vec<u32> = staging
             .slice(..)
             .get_mapped_range()
@@ -1257,7 +1270,7 @@ mod field_tests {
         }
         encoder.copy_buffer_to_buffer(&out_buffer, 0, &staging, 0, out_len);
         gpu.queue.submit([encoder.finish()]);
-        pollster::block_on(mapped(&gpu, &staging)).expect("map");
+        pollster::block_on(mapped(&gpu, &staging, None)).expect("map");
         let out = staging.slice(..).get_mapped_range().unwrap().to_vec();
         let at = |k: usize| C::xyzz_to_projective(&out[k * C::XYZZ_BYTES..(k + 1) * C::XYZZ_BYTES]);
         let names = [

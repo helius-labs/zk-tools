@@ -45,6 +45,9 @@ fn main() {
     if dir == "wgsl-field" {
         return wgsl_field();
     }
+    if dir == "cpu-msm" {
+        return cpu_msm(Path::new(&env::args().nth(2).expect("the dump directory")));
+    }
     if dir == "parts-diff" {
         return parts_diff(Path::new(&env::args().nth(2).expect("the dump directory")));
     }
@@ -835,6 +838,44 @@ fn parts_diff(dir: &Path) {
             cpu.len(),
             gpu.len(),
             line.join(" ")
+        );
+    }
+}
+
+/// The CPU MSMs of a dumped shape's B, Z and B2 with random scalars, best of
+/// three (RAYON_NUM_THREADS, RINGIL_CPU_WIDTH, RINGIL_CPU_SPLIT).
+fn cpu_msm(dir: &Path) {
+    let mut rng = rand::rngs::OsRng;
+    let time = |f: &mut dyn FnMut()| -> f64 {
+        f();
+        (0..3)
+            .map(|_| {
+                let started = Instant::now();
+                f();
+                started.elapsed().as_secs_f64() * 1000.0
+            })
+            .fold(f64::MAX, f64::min)
+    };
+    let only = env::var("RINGIL_CPU_VECTORS").unwrap_or_else(|_| "b,z,b2".into());
+    for name in only.split(',') {
+        let ms = if name == "b2" {
+            let bases = decode_g2(&read(dir, name));
+            let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+            time(&mut || {
+                std::hint::black_box(ringil_core::msm_g2(&bases, &scalars));
+            })
+        } else {
+            let bases = decode_g1(&read(dir, name));
+            let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+            time(&mut || {
+                std::hint::black_box(ringil_core::msm_g1(&bases, &scalars));
+            })
+        };
+        println!(
+            "RINGIL cpu-msm {name} threads={} width={} split={} ms={ms:.0}",
+            env::var("RAYON_NUM_THREADS").unwrap_or_default(),
+            env::var("RINGIL_CPU_WIDTH").unwrap_or_else(|_| "auto".into()),
+            env::var("RINGIL_CPU_SPLIT").unwrap_or_else(|_| "1".into()),
         );
     }
 }

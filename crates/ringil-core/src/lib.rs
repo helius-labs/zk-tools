@@ -246,6 +246,24 @@ struct Gpu {
     quotient: std::sync::Mutex<ringil_wgpu::Quotient>,
 }
 
+/// Threads for a GPU MSM's sort while the global pool computes the CPU's
+/// G2 MSM (RINGIL_SORT_THREADS, default 2).
+#[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
+fn sort_pool() -> &'static rayon::ThreadPool {
+    static POOL: std::sync::OnceLock<rayon::ThreadPool> = std::sync::OnceLock::new();
+    POOL.get_or_init(|| {
+        let threads = std::env::var("RINGIL_SORT_THREADS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(2);
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .thread_name(|i| format!("ringil-sort-{i}"))
+            .build()
+            .expect("sort pool")
+    })
+}
+
 /// The share of the G2 MSM's points a wgpu GPU takes (RINGIL_G2_GPU_SHARE,
 /// else measured best: on an M5 Pro through wgpu, and none with the
 /// pre-compiled kernels, where the OnePlus 13's Adreno is the critical path
@@ -1056,10 +1074,13 @@ impl Key {
         }
         #[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
         if let Some(gpu) = &self.gpu {
-            // On a thread of their own: the quotient on the GPU first, then
-            // every MSM sorted and queued (Z's too, now that its scalars are
-            // out, and the GPU's share of G2), then collected; the pool
-            // computes the CPU's share of G2 once the sorts are done.
+            // On a thread of their own: the quotient submitted to the GPU,
+            // the MSMs whose scalars are out sorted and queued behind it
+            // while it runs (and the GPU's share of G2), then Z's once the
+            // quotient is back; the pool computes the CPU's share of G2 as
+            // soon as the first sorts are done. (Waiting for the quotient
+            // before sorting left the phone's cores idle for its whole run:
+            // 116 ms of an 8 → 2 proof on a OnePlus 13.)
             let started = crate::time::Instant::now();
             let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
             let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
@@ -1067,12 +1088,10 @@ impl Key {
                 std::thread::scope(|scope| -> Result<_, String> {
                     let gpu_work = scope.spawn(move || -> Result<_, String> {
                         let started = crate::time::Instant::now();
-                        let h = if self.gpu_quotient {
-                            gpu.quotient.lock().unwrap().quotient(&a, &b, &c)?
-                        } else {
-                            self.quotient(a, b, c)
-                        };
-                        trace("quotient", started);
+                        let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
+                        if let Some(quotient) = quotient.as_mut() {
+                            quotient.start(&a, &b, &c);
+                        }
                         let (mut ma, mut mb, mut mk, mut mz) = (
                             gpu.a.lock().unwrap(),
                             gpu.b.lock().unwrap(),
@@ -1082,8 +1101,19 @@ impl Key {
                         let (pa, pb, pk) = (ma.start(sa), mb.start(sb), mk.start(sk));
                         let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
                         let pb2 = b2.as_mut().map(|b2| b2.start(&sb[..cut]));
-                        let pz = mz.start(&h);
                         drop(sorted_tx);
+                        let h = match quotient.as_mut() {
+                            Some(quotient) => quotient.finish()?,
+                            None => self.quotient(a, b, c),
+                        };
+                        drop(quotient);
+                        trace("quotient", started);
+                        // By now the pool runs the CPU's G2 MSM, whose tasks
+                        // Z's sort would queue behind (550 ms on a OnePlus
+                        // 13): it gets threads of its own, which the GPU,
+                        // busy with A, B and K, does not wait for.
+                        let z = &mut *mz;
+                        let pz = sort_pool().install(|| z.start(&h));
                         let (ar, t) = ma.finish(pa)?;
                         gpu_trace("a", t.sort_ms, t.gpu_ms);
                         let (bs1, t) = mb.finish(pb)?;

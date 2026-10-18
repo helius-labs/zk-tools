@@ -18,10 +18,26 @@ use rayon::prelude::*;
 /// The window width: gnark's cost model, (bits + 1) (n + 2^c) / c, over the
 /// widths whose signed digits fit an i16.
 fn width(n: usize) -> usize {
+    if let Some(width) = std::env::var("RINGIL_CPU_WIDTH")
+        .ok()
+        .and_then(|v| v.parse().ok())
+    {
+        return width;
+    }
     let bits = Fr::MODULUS_BIT_SIZE as usize + 1;
     (4..=15)
         .min_by_key(|&c| bits * (n + (1usize << c)) / c)
         .unwrap()
+}
+
+/// Point ranges per window (RINGIL_CPU_SPLIT, experiment): more tasks than
+/// windows for the pool, each with its own buckets.
+fn split() -> usize {
+    std::env::var("RINGIL_CPU_SPLIT")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(1)
+        .max(1)
 }
 
 /// Additions per shared inversion, by width (gnark's): wide enough that the
@@ -51,10 +67,21 @@ pub(super) fn msm<P: SWCurveConfig<ScalarField = Fr>>(
     let width = width(n);
     let windows = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(width);
     let digits = recode(scalars, width, windows);
-    let sums: Vec<Projective<P>> = (0..windows)
+    let parts = split();
+    let part = n.div_ceil(parts);
+    let pieces: Vec<Projective<P>> = (0..windows * parts)
         .into_par_iter()
-        .map(|w| window::<P>(bases, &digits[w * n..(w + 1) * n], width))
+        .map(|task| {
+            let (w, p) = (task / parts, task % parts);
+            let range = p * part..((p + 1) * part).min(n);
+            window::<P>(
+                &bases[range.clone()],
+                &digits[w * n + range.start..w * n + range.end],
+                width,
+            )
+        })
         .collect();
+    let sums: Vec<Projective<P>> = pieces.chunks(parts).map(|c| c.iter().sum()).collect();
     let mut result = Projective::<P>::ZERO;
     for sum in sums.iter().rev() {
         for _ in 0..width {
