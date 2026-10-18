@@ -106,24 +106,65 @@ pub fn solver_image_version() -> u32 {
     solver::IMAGE_VERSION as u32
 }
 
+/// Where the G2 MSM runs when there is a GPU: RINGIL_G2=gpu|cpu, else the
+/// GPU on a Mac, whose GPU is far faster than its cores at it, and the CPU
+/// on a phone, where the cores are otherwise idle and the G2 kernels are
+/// the slow compile and the large buffers.
+fn g2_on_gpu() -> bool {
+    match std::env::var("RINGIL_G2").as_deref() {
+        Ok("gpu") => true,
+        Ok("cpu") => false,
+        _ => cfg!(target_os = "macos"),
+    }
+}
+
 #[cfg(gpu)]
 struct Gpu {
     a: std::sync::Mutex<ringil_metal::G1Msm>,
     b: std::sync::Mutex<ringil_metal::G1Msm>,
     k: std::sync::Mutex<ringil_metal::G1Msm>,
     z: std::sync::Mutex<ringil_metal::G1Msm>,
-    b2: std::sync::Mutex<ringil_metal::G2Msm>,
+    b2: Option<std::sync::Mutex<ringil_metal::G2Msm>>,
     quotient: std::sync::Mutex<ringil_metal::Quotient>,
 }
-#[cfg(gpu)]
-fn gpu_trace(name: &str, t: ringil_metal::Timings) {
+#[cfg(gpu_wgpu)]
+struct Gpu {
+    a: std::sync::Mutex<ringil_wgpu::G1Msm>,
+    b: std::sync::Mutex<ringil_wgpu::G1Msm>,
+    k: std::sync::Mutex<ringil_wgpu::G1Msm>,
+    z: std::sync::Mutex<ringil_wgpu::G1Msm>,
+    quotient: std::sync::Mutex<ringil_wgpu::Quotient>,
+}
+#[cfg(gpu_wgpu)]
+impl Gpu {
+    /// The four G1 MSMs' bases and the quotient's tables on the GPU, unless
+    /// RINGIL_GPU=0 or there is none; G2 stays on the CPU, where WGSL's
+    /// field arithmetic cannot beat it.
+    fn new(a: &[G1Affine], b: &[G1Affine], k: &[G1Affine], z: &[G1Affine], _b2: &[G2Affine], plan: &fft::Plan) -> Option<Self> {
+        if std::env::var("RINGIL_GPU").is_ok_and(|v| v == "0") {
+            return None;
+        }
+        let started = std::time::Instant::now();
+        let gpu = std::sync::Arc::new(ringil_wgpu::Gpu::new().ok()?);
+        let (roots, inverse_roots, forward, reverse) = plan.tables()?;
+        let quotient = ringil_wgpu::Quotient::new(gpu.clone(), plan.size(), &roots, &inverse_roots, &forward, &reverse).ok()?.0;
+        let built = Self {
+            quotient: std::sync::Mutex::new(quotient),
+            a: std::sync::Mutex::new(ringil_wgpu::G1Msm::new(gpu.clone(), a).ok()?.0),
+            b: std::sync::Mutex::new(ringil_wgpu::G1Msm::new(gpu.clone(), b).ok()?.0),
+            k: std::sync::Mutex::new(ringil_wgpu::G1Msm::new(gpu.clone(), k).ok()?.0),
+            z: std::sync::Mutex::new(ringil_wgpu::G1Msm::new(gpu.clone(), z).ok()?.0),
+        };
+        trace("gpu-upload", started);
+        Some(built)
+    }
+}
+#[cfg(gpu_any)]
+fn gpu_trace(name: &str, sort_ms: f64, gpu_ms: f64) {
     #[cfg(feature = "trace")]
-    eprintln!(
-        "TRACE gpu-msm-{name} sort {:.1} gpu {:.1} ms",
-        t.sort_ms, t.gpu_ms
-    );
+    eprintln!("TRACE gpu-msm-{name} sort {sort_ms:.1} gpu {gpu_ms:.1} ms");
     #[cfg(not(feature = "trace"))]
-    let _ = (name, t);
+    let _ = (name, sort_ms, gpu_ms);
 }
 
 #[cfg(gpu)]
@@ -142,7 +183,7 @@ impl Gpu {
             b: std::sync::Mutex::new(ringil_metal::G1Msm::new(b).ok()?.0),
             k: std::sync::Mutex::new(ringil_metal::G1Msm::new(k).ok()?.0),
             z: std::sync::Mutex::new(ringil_metal::G1Msm::new(z).ok()?.0),
-            b2: std::sync::Mutex::new(ringil_metal::G2Msm::new(b2).ok()?.0),
+            b2: if g2_on_gpu() { Some(std::sync::Mutex::new(ringil_metal::G2Msm::new(b2).ok()?.0)) } else { None },
         };
         trace("gpu-upload", started);
         Some(gpu)
@@ -151,7 +192,7 @@ impl Gpu {
 
 #[wasm_bindgen]
 pub struct Key {
-    #[cfg(gpu)]
+    #[cfg(gpu_any)]
     gpu: Option<Gpu>,
     a: Vec<G1Affine>,
     b: Vec<G1Affine>,
@@ -207,7 +248,7 @@ impl Key {
         let (a, b, k, z, b2) = (g1s(a), g1s(b), g1s(k), g1s(z), g2s(b2));
         let plan = fft::Plan::new(n, params[0], params[1], den);
         Ok(Self {
-            #[cfg(gpu)]
+            #[cfg(gpu_any)]
             gpu: Gpu::new(&a, &b, &k, &z, &b2, &plan),
             a,
             b,
@@ -343,34 +384,50 @@ impl Key {
     ) -> Vec<u8> {
         #[cfg(gpu)]
         if let Some(gpu) = &self.gpu {
-            // The four MSMs whose scalars are ready run on the GPU, driven
-            // from a thread of their own so that their waits hold no rayon
-            // worker, while the pool computes the quotient; Z's follows it.
+            // The MSMs whose scalars are ready run on the GPU, driven from a
+            // thread of their own so that their waits hold no rayon worker,
+            // while the GPU also takes the quotient and the pool computes
+            // G2 when it is not on the GPU; Z's MSM follows the quotient.
             let started = std::time::Instant::now();
+            // The sorts run on the pool, so a CPU G2 MSM starts only once
+            // they are done: otherwise it starves them for its whole run.
+            let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
             let (h, (ar, bs1, kr, bs2)) = std::thread::scope(|scope| {
-                let msms = scope.spawn(|| {
+                let msms = scope.spawn(move || {
                     // Each MSM is submitted as soon as it is sorted, so the
                     // host sorts the next while the GPU runs it; G2 B shares
                     // G1 B's scalars, and so its sorted runs.
-                    let (mut a, mut b, mut k, mut b2) = (
-                        gpu.a.lock().unwrap(),
-                        gpu.b.lock().unwrap(),
-                        gpu.k.lock().unwrap(),
-                        gpu.b2.lock().unwrap(),
-                    );
+                    let (mut a, mut b, mut k) = (gpu.a.lock().unwrap(), gpu.b.lock().unwrap(), gpu.k.lock().unwrap());
                     let pa = a.start(sa);
                     let pb = b.start(sb);
-                    let pb2 = b2.start_sorted_as(&*b);
+                    let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
+                    let pb2 = b2.as_mut().map(|b2| b2.start_sorted_as(&*b));
                     let pk = k.start(sk);
+                    drop(sorted_tx);
                     let (ar, t) = a.finish(pa);
-                    gpu_trace("a", t);
+                    gpu_trace("a", t.sort_ms, t.gpu_ms);
                     let (bs1, t) = b.finish(pb);
-                    gpu_trace("b", t);
-                    let (bs2, t) = b2.finish(pb2);
-                    gpu_trace("b2", t);
+                    gpu_trace("b", t.sort_ms, t.gpu_ms);
+                    let bs2 = match (b2.as_mut(), pb2) {
+                        (Some(b2), Some(pb2)) => {
+                            let (bs2, t) = b2.finish(pb2);
+                            gpu_trace("b2", t.sort_ms, t.gpu_ms);
+                            Some(bs2)
+                        }
+                        _ => None,
+                    };
                     let (kr, t) = k.finish(pk);
-                    gpu_trace("k", t);
+                    gpu_trace("k", t.sort_ms, t.gpu_ms);
                     (ar, bs1, kr, bs2)
+                });
+                let cpu_b2 = gpu.b2.is_none().then(|| {
+                    scope.spawn(move || {
+                        let _ = sorted_rx.recv();
+                        let started = std::time::Instant::now();
+                        let bs2 = msm_g2(&self.b2, sb);
+                        trace("cpu-msm-b2", started);
+                        bs2
+                    })
                 });
                 let started = std::time::Instant::now();
                 let h = if std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0") {
@@ -379,11 +436,54 @@ impl Key {
                     gpu.quotient.lock().unwrap().quotient(&a, &b, &c)
                 };
                 trace("quotient", started);
-                (h, msms.join().expect("gpu msms"))
+                let (ar, bs1, kr, bs2) = msms.join().expect("gpu msms");
+                let bs2 = bs2.unwrap_or_else(|| cpu_b2.expect("a G2 MSM").join().expect("cpu msm"));
+                (h, (ar, bs1, kr, bs2))
             });
             let started = trace("quotient+gpu-msms", started);
             let (hz, t) = gpu.z.lock().unwrap().msm(&h);
-            gpu_trace("z", t);
+            gpu_trace("z", t.sort_ms, t.gpu_ms);
+            trace("gpu-msm-z", started);
+            let mut out = Vec::with_capacity(384);
+            for p in [ar, bs1, kr, hz] {
+                output_g1(&mut out, p)
+            }
+            output_g2(&mut out, bs2);
+            return out;
+        }
+        #[cfg(gpu_wgpu)]
+        if let Some(gpu) = &self.gpu {
+            // The G1 MSMs and the quotient on the GPU, one after another on
+            // a thread of their own; the pool computes G2 meanwhile.
+            let started = std::time::Instant::now();
+            let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
+            let ((ar, bs1, kr, h), bs2) = std::thread::scope(|scope| {
+                let gpu_work = scope.spawn(move || {
+                    // The three MSMs are sorted and submitted back to back,
+                    // and only then does the CPU G2 MSM take the pool.
+                    let (mut ma, mut mb, mut mk) = (gpu.a.lock().unwrap(), gpu.b.lock().unwrap(), gpu.k.lock().unwrap());
+                    let (pa, pb, pk) = (ma.start(sa), mb.start(sb), mk.start(sk));
+                    drop(sorted_tx);
+                    let (ar, t) = ma.finish(pa);
+                    gpu_trace("a", t.sort_ms, t.gpu_ms);
+                    let (bs1, t) = mb.finish(pb);
+                    gpu_trace("b", t.sort_ms, t.gpu_ms);
+                    let (kr, t) = mk.finish(pk);
+                    gpu_trace("k", t.sort_ms, t.gpu_ms);
+                    let started = std::time::Instant::now();
+                    let h = gpu.quotient.lock().unwrap().quotient(&a, &b, &c);
+                    trace("quotient", started);
+                    (ar, bs1, kr, h)
+                });
+                let _ = sorted_rx.recv();
+                let started = std::time::Instant::now();
+                let bs2 = msm_g2(&self.b2, sb);
+                trace("cpu-msm-b2", started);
+                (gpu_work.join().expect("gpu work"), bs2)
+            });
+            let started = trace("quotient+gpu-msms", started);
+            let (hz, t) = gpu.z.lock().unwrap().msm(&h);
+            gpu_trace("z", t.sort_ms, t.gpu_ms);
             trace("gpu-msm-z", started);
             let mut out = Vec::with_capacity(384);
             for p in [ar, bs1, kr, hz] {

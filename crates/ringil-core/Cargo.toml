@@ -13,6 +13,7 @@ ark-bn254 = { path = "ark-bn254" }
 ark-ec = { version = "0.5", features = ["parallel"] }
 ark-ff = { version = "0.5", features = ["parallel"] }
 ark-poly = { version = "0.5", features = ["parallel"] }
+ringil-wgpu = { path = "../ringil-wgpu", optional = true }
 rand = { version = "0.8", features = ["getrandom"] }
 rayon = "1.10"
 wasm-bindgen = "=0.2.128"
@@ -23,6 +24,8 @@ wasm-bindgen-rayon = { version = "1.3", features = ["no-bundler"] }
 trace = []
 # The MSMs on an Apple GPU (macOS, iOS); RINGIL_GPU=0 keeps them on the CPU.
 metal = ["dep:ringil-metal"]
+# The MSMs and the quotient through wgpu (Vulkan, WebGPU, Metal); G2 stays on the CPU.
+wgpu = ["dep:ringil-wgpu"]
 
 [profile.release]
 opt-level = 3

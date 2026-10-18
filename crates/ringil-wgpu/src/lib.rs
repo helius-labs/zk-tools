@@ -121,6 +121,12 @@ pub struct Timings {
     pub combine_ms: f64,
 }
 
+/// A submitted MSM: finish it for its result.
+pub struct Pending {
+    submitted: Instant,
+    timings: Timings,
+}
+
 pub struct Gpu {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
@@ -159,7 +165,11 @@ pub struct Msm<C: Curve> {
     reduce_windows: wgpu::ComputePipeline,
     bases: wgpu::Buffer,
     sorted: wgpu::Buffer,
-    levels: Vec<[wgpu::Buffer; 4]>,
+    /// Windows per chunk: the shard trees are sized for one chunk and
+    /// reused, which bounds the GPU memory a wide key takes.
+    chunk_windows: usize,
+    /// Per chunk and level: shard starts, counts, destinations, uniform.
+    levels: Vec<Vec<[wgpu::Buffer; 4]>>,
     tree: [wgpu::Buffer; 2],
     buckets: wgpu::Buffer,
     pairs: wgpu::Buffer,
@@ -222,7 +232,9 @@ impl<C: Curve> Msm<C> {
         let half = 1 << (width - 1);
         let windows = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(width);
         let buckets = windows * half;
-        let most = (n * windows).div_ceil(FIRST_SHARD) + buckets;
+        let per_window = n.div_ceil(FIRST_SHARD) + half;
+        let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
+        let most = chunk_windows * per_window;
         let blocks = half.div_ceil(REDUCE_BLOCK);
         let bases_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("bases"),
@@ -241,6 +253,7 @@ impl<C: Curve> Msm<C> {
                 reduce_windows,
                 bases: bases_buffer,
                 sorted: storage(device, "sorted", n * windows * 4),
+                chunk_windows,
                 levels: Vec::new(),
                 tree: [storage(device, "tree a", most * C::XYZZ_BYTES), storage(device, "tree b", most * C::XYZZ_BYTES)],
                 buckets: storage(device, "buckets", buckets * C::XYZZ_BYTES),
@@ -264,11 +277,22 @@ impl<C: Curve> Msm<C> {
     }
 
     pub fn msm(&mut self, scalars: &[Fr]) -> (C, Timings) {
+        let pending = self.start(scalars);
+        self.finish(pending)
+    }
+
+    /// Sorts the scalars and submits the MSM; the host is free until finish.
+    pub fn start(&mut self, scalars: &[Fr]) -> Pending {
         assert_eq!(scalars.len(), self.n);
         let mut timings = Timings::default();
         let started = Instant::now();
         let sorted = self.sort(scalars);
-        let levels = self.plan();
+        let chunks: Vec<Vec<usize>> = (0..self.windows.div_ceil(self.chunk_windows))
+            .map(|chunk| {
+                let first = chunk * self.chunk_windows;
+                self.plan(chunk, first..(first + self.chunk_windows).min(self.windows))
+            })
+            .collect();
         timings.sort_ms = started.elapsed().as_secs_f64() * 1000.0;
 
         let started = Instant::now();
@@ -277,10 +301,11 @@ impl<C: Curve> Msm<C> {
         queue.write_buffer(&self.sorted, 0, bytemuck_cast(&sorted));
         let mut encoder = device.create_command_encoder(&Default::default());
         encoder.clear_buffer(&self.buckets, 0, None);
+        for (chunk, levels) in chunks.iter().enumerate() {
         let last = levels.len() - 1;
         for (level, shards) in levels.iter().enumerate() {
             let pipeline = if level == 0 { &self.first } else { &self.tree_pipeline };
-            let [start, count, dst, params] = &self.levels[level];
+            let [start, count, dst, params] = &self.levels[chunk][level];
             let out = if level == last { &self.buckets } else { &self.tree[level % 2] };
             // A layout derived from the entry point holds only the bindings
             // it reads: the tree levels have no bases or sorted indices.
@@ -315,6 +340,7 @@ impl<C: Curve> Msm<C> {
             }
             pass.dispatch_workgroups((*shards as u32).div_ceil(WORKGROUP), 1, 1);
         }
+        }
         let blocks = self.half.div_ceil(REDUCE_BLOCK);
         for (pipeline, threads) in [(&self.reduce_blocks, self.windows * blocks), (&self.reduce_windows, self.windows)] {
             let blocks_stage = std::ptr::eq(pipeline, &self.reduce_blocks);
@@ -342,10 +368,16 @@ impl<C: Curve> Msm<C> {
         queue.submit([encoder.finish()]);
         let slice = self.staging.slice(..);
         slice.map_async(wgpu::MapMode::Read, |_| {});
-        device.poll(wgpu::PollType::wait_indefinitely()).expect("gpu");
-        let data = slice.get_mapped_range().expect("mapped sums").to_vec();
+        Pending { submitted: started, timings }
+    }
+
+    /// Waits for a submitted MSM and combines its window sums.
+    pub fn finish(&mut self, pending: Pending) -> (C, Timings) {
+        let mut timings = pending.timings;
+        self.gpu.device.poll(wgpu::PollType::wait_indefinitely()).expect("gpu");
+        let data = self.staging.slice(..).get_mapped_range().expect("mapped sums").to_vec();
         self.staging.unmap();
-        timings.gpu_ms = started.elapsed().as_secs_f64() * 1000.0;
+        timings.gpu_ms = pending.submitted.elapsed().as_secs_f64() * 1000.0;
 
         let started = Instant::now();
         let mut result = C::ZERO;
@@ -359,12 +391,21 @@ impl<C: Curve> Msm<C> {
         (result, timings)
     }
 
-    /// Levels of shards over the sorted runs, into the level buffers.
-    fn plan(&mut self) -> Vec<usize> {
-        let buckets = self.windows * self.half;
-        let mut runs: Vec<(u32, u32)> = self.starts.iter().zip(&self.counts).map(|(s, c)| (*s, *c)).collect();
+    /// Levels of shards over the sorted runs of a chunk of windows, into
+    /// the chunk's level buffers; the last level writes to the buckets.
+    fn plan(&mut self, chunk: usize, windows: std::ops::Range<usize>) -> Vec<usize> {
+        let first_bucket = windows.start * self.half;
+        let buckets = windows.len() * self.half;
+        let mut runs: Vec<(u32, u32)> = self.starts[first_bucket..first_bucket + buckets]
+            .iter()
+            .zip(&self.counts[first_bucket..first_bucket + buckets])
+            .map(|(s, c)| (*s, *c))
+            .collect();
         let mut shard_counts = Vec::new();
         let mut level = 0;
+        if self.levels.len() <= chunk {
+            self.levels.push(Vec::new());
+        }
         loop {
             let size = if level == 0 { FIRST_SHARD } else { SHARD } as u32;
             let last = runs.iter().all(|(_, c)| *c <= size);
@@ -377,14 +418,14 @@ impl<C: Curve> Msm<C> {
                     let len = size.min(run_count - at);
                     start.push(run_start + at);
                     count.push(len);
-                    dst.push(if last { b as u32 } else { first + (at / size) });
+                    dst.push(if last { (first_bucket + b) as u32 } else { first + (at / size) });
                     at += len;
                 }
                 next.push((first, start.len() as u32 - first));
             }
-            if self.levels.len() <= level {
+            if self.levels[chunk].len() <= level {
                 let device = &self.gpu.device;
-                self.levels.push([
+                self.levels[chunk].push([
                     storage(device, "start", self.most * 4),
                     storage(device, "count", self.most * 4),
                     storage(device, "dst", self.most * 4),
@@ -392,7 +433,7 @@ impl<C: Curve> Msm<C> {
                 ]);
             }
             let queue = &self.gpu.queue;
-            let [bs, bc, bd, bp] = &self.levels[level];
+            let [bs, bc, bd, bp] = &self.levels[chunk][level];
             queue.write_buffer(bs, 0, bytemuck_cast(&start));
             queue.write_buffer(bc, 0, bytemuck_cast(&count));
             queue.write_buffer(bd, 0, bytemuck_cast(&dst));
