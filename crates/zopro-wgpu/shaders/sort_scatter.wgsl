@@ -9,7 +9,7 @@
 
 @compute @workgroup_size(64)
 fn msm_scatter(@builtin(global_invocation_id) id: vec3<u32>) {
-    let i = id.x;
+    let i = sort.offset + id.x;
     if (i >= sort.n) {
         return;
     }

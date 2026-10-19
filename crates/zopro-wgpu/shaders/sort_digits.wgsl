@@ -3,7 +3,9 @@
 // window w of `width` bits plus the previous window's carry, minus 2^width
 // when that reaches half the radix (carrying one on); the extra top window
 // absorbs the last carry. Scalars arrive in Montgomery form.
-struct Sort { n: u32, width: u32, windows: u32, half_range: u32, }
+// offset: the first entry of this dispatch (the entries go in slices, so
+// that no dispatch runs long on a throttled phone).
+struct Sort { n: u32, width: u32, windows: u32, half_range: u32, offset: u32, pad0: u32, pad1: u32, pad2: u32, }
 
 fn sort_canon(a: Fr) -> Fr {
     return fr_mul(a, Fr(array<u32, 8>(1u, 0u, 0u, 0u, 0u, 0u, 0u, 0u)));

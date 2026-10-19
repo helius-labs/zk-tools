@@ -217,12 +217,16 @@ impl Quotient {
         // Four transforms of log n passes, two scalings and the pointwise.
         *self.timer.borrow_mut() =
             crate::profile::Timer::new(&self.gpu, 4 * 3 * self.log_n as usize + 8);
+        // A submission per transform: no submission holds the whole
+        // quotient (see SORT_SLICE).
         let mut encoder = device.create_command_encoder(&Default::default());
         for vector in 0..3 {
             let offset = (vector * n * 32) as u64;
             self.transform(&mut encoder, offset, &self.inverse_roots, true);
+            encoder = crate::flush(&self.gpu, encoder);
             self.scale_by(&mut encoder, offset, &self.forward_weights);
             self.transform(&mut encoder, offset, &self.roots, false);
+            encoder = crate::flush(&self.gpu, encoder);
         }
         {
             let mut pass = self.begin(&mut encoder, "fr_pointwise");
@@ -265,6 +269,7 @@ impl Quotient {
             }
             pass.dispatch_workgroups((n as u32).div_ceil(WORKGROUP), 1, 1);
         }
+        encoder = crate::flush(&self.gpu, encoder);
         self.transform(&mut encoder, 0, &self.inverse_roots, true);
         self.scale_by(&mut encoder, 0, &self.reverse_weights);
         encoder.copy_buffer_to_buffer(&self.abc, 0, &self.staging, 0, (n * 32) as u64);

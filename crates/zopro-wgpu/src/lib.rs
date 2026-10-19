@@ -362,6 +362,16 @@ pub mod profile {
     }
 }
 
+/// Where the driver's pipeline cache is kept between processes, for the
+/// devices made after this; else ZOPRO_PIPELINE_CACHE. An Adreno 830
+/// compiles the kernels for 26 s the first time and loads them from the
+/// cache in half a second after; without one every process compiles.
+static PIPELINE_CACHE: std::sync::OnceLock<std::path::PathBuf> = std::sync::OnceLock::new();
+
+pub fn set_pipeline_cache(path: std::path::PathBuf) {
+    let _ = PIPELINE_CACHE.set(path);
+}
+
 /// Qualcomm's PCI vendor id, which wgpu reports for an Adreno.
 pub const QUALCOMM: u32 = 0x5143;
 
@@ -472,7 +482,10 @@ impl Gpu {
                 Ok(_) => false,
                 Err(_) => cfg!(target_os = "android"),
             };
-        let cache_path = std::env::var_os("ZOPRO_PIPELINE_CACHE").map(std::path::PathBuf::from);
+        let cache_path = PIPELINE_CACHE
+            .get()
+            .cloned()
+            .or_else(|| std::env::var_os("ZOPRO_PIPELINE_CACHE").map(std::path::PathBuf::from));
         let caching =
             cache_path.is_some() && adapter.features().contains(wgpu::Features::PIPELINE_CACHE);
         let mut features = wgpu::Features::empty();
@@ -624,8 +637,9 @@ impl<C: Curve> Drop for Msm<C> {
                 &s.counts,
                 &s.counts_staging,
                 &s.cursors,
-                &s.uniform,
             ]
+            .into_iter()
+            .chain(s.slices.iter())
         });
         for buffer in fixed.into_iter().chain(levels).chain(sort) {
             buffer.destroy();
@@ -690,7 +704,9 @@ struct GpuSort {
     counts: wgpu::Buffer,
     counts_staging: wgpu::Buffer,
     cursors: wgpu::Buffer,
-    uniform: wgpu::Buffer,
+    /// One uniform per slice of SORT_SLICE entries: n, width, windows,
+    /// half, the slice's first entry.
+    slices: Vec<wgpu::Buffer>,
     /// The submitted counting, which `start` reads back.
     counted: Option<wgpu::SubmissionIndex>,
 }
@@ -848,6 +864,35 @@ pub(crate) fn uniform(gpu: &Gpu, values: [u32; 4]) -> wgpu::Buffer {
     });
     gpu.queue.write_buffer(&buffer, 0, bytemuck_cast(&values));
     buffer
+}
+
+/// A uniform of any number of words.
+pub(crate) fn uniform_words(gpu: &Gpu, values: &[u32]) -> wgpu::Buffer {
+    let buffer = gpu.device.create_buffer(&wgpu::BufferDescriptor {
+        label: Some("uniform"),
+        size: (values.len() * 4) as u64,
+        usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        mapped_at_creation: false,
+    });
+    gpu.queue.write_buffer(&buffer, 0, bytemuck_cast(values));
+    buffer
+}
+
+/// Entries per count and scatter dispatch. The work a dispatch or a
+/// submission holds is bounded: a OnePlus 13 warmed through a 54 → 1
+/// merge ran Z's 2^21-entry scatter for 2.3 s in one dispatch and its MSM
+/// for 5.6 s in one submission, and the next proof lost the device.
+pub(crate) const SORT_SLICE: usize = 1 << 18;
+
+/// The entries of slice `slice` of n.
+pub(crate) fn slice_len(n: usize, slice: usize) -> u32 {
+    (n - slice * SORT_SLICE).min(SORT_SLICE) as u32
+}
+
+/// What `encoder` holds, submitted; a fresh encoder for the rest.
+pub(crate) fn flush(gpu: &Gpu, encoder: wgpu::CommandEncoder) -> wgpu::CommandEncoder {
+    gpu.queue.submit([encoder.finish()]);
+    gpu.device.create_command_encoder(&Default::default())
 }
 
 pub(crate) fn bytemuck_cast(values: &[u32]) -> &[u8] {
@@ -1020,7 +1065,23 @@ impl<C: Curve> Msm<C> {
                     mapped_at_creation: false,
                 }),
                 cursors: storage(device, "cursors", buckets * 4),
-                uniform: uniform(&gpu, [n as u32, width as u32, windows as u32, half as u32]),
+                slices: (0..n.div_ceil(SORT_SLICE))
+                    .map(|slice| {
+                        uniform_words(
+                            &gpu,
+                            &[
+                                n as u32,
+                                width as u32,
+                                windows as u32,
+                                half as u32,
+                                (slice * SORT_SLICE) as u32,
+                                0,
+                                0,
+                                0,
+                            ],
+                        )
+                    })
+                    .collect(),
                 counted: None,
             }
         });
@@ -1172,48 +1233,54 @@ impl<C: Curve> Msm<C> {
                 self.plan(chunk, first..(first + self.chunk_windows).min(self.windows))
             })
             .collect();
-        let passes =
-            usize::from(self.gpu_sort.is_some()) + chunks.iter().map(Vec::len).sum::<usize>() + 1;
+        let passes = self.gpu_sort.as_ref().map_or(0, |s| s.slices.len())
+            + chunks.iter().map(Vec::len).sum::<usize>()
+            + 1;
         let mut timer = profile::Timer::new(&self.gpu, passes);
         if let Some(sort) = &self.gpu_sort {
             self.gpu
                 .queue
                 .write_buffer(&sort.cursors, 0, bytemuck_cast(&self.starts));
-            let group = self
-                .gpu
-                .device
-                .create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: None,
-                    layout: &sort.scatter.get_bind_group_layout(0),
-                    entries: &[
-                        wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: sort.scalars.as_entire_binding(),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: sort.cursors.as_entire_binding(),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 2,
-                            resource: self.sorted.as_entire_binding(),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 3,
-                            resource: sort.uniform.as_entire_binding(),
-                        },
-                    ],
-                });
-            let mut pass = match timer.as_mut() {
-                Some(timer) => encoder.begin_compute_pass(&timer.pass("msm_scatter")),
-                None => encoder.begin_compute_pass(&Default::default()),
-            };
-            pass.set_pipeline(&sort.scatter);
-            pass.set_bind_group(0, &group, &[]);
-            pass.dispatch_workgroups((self.n as u32).div_ceil(WORKGROUP), 1, 1);
-            drop(pass);
-            if let Some(stages) = profile.as_mut() {
-                encoder = stages.cut(&self.gpu.device, &self.gpu.queue, encoder, "scatter".into());
+            for (slice, uniform) in sort.slices.iter().enumerate() {
+                let group = self
+                    .gpu
+                    .device
+                    .create_bind_group(&wgpu::BindGroupDescriptor {
+                        label: None,
+                        layout: &sort.scatter.get_bind_group_layout(0),
+                        entries: &[
+                            wgpu::BindGroupEntry {
+                                binding: 0,
+                                resource: sort.scalars.as_entire_binding(),
+                            },
+                            wgpu::BindGroupEntry {
+                                binding: 1,
+                                resource: sort.cursors.as_entire_binding(),
+                            },
+                            wgpu::BindGroupEntry {
+                                binding: 2,
+                                resource: self.sorted.as_entire_binding(),
+                            },
+                            wgpu::BindGroupEntry {
+                                binding: 3,
+                                resource: uniform.as_entire_binding(),
+                            },
+                        ],
+                    });
+                let mut pass = match timer.as_mut() {
+                    Some(timer) => encoder.begin_compute_pass(&timer.pass("msm_scatter")),
+                    None => encoder.begin_compute_pass(&Default::default()),
+                };
+                pass.set_pipeline(&sort.scatter);
+                pass.set_bind_group(0, &group, &[]);
+                pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), 1, 1);
+                drop(pass);
+                encoder = match profile.as_mut() {
+                    Some(stages) => {
+                        stages.cut(&self.gpu.device, &self.gpu.queue, encoder, "scatter".into())
+                    }
+                    None => flush(&self.gpu, encoder),
+                };
             }
         }
         timings.sort_ms = started.elapsed().as_secs_f64() * 1000.0;
@@ -1314,6 +1381,10 @@ impl<C: Curve> Msm<C> {
                     encoder =
                         stages.cut(device, queue, encoder, format!("c{chunk}l{level}x{shards}"));
                 }
+            }
+            // A submission per chunk: no submission holds the whole MSM.
+            if profile.is_none() {
+                encoder = flush(&self.gpu, encoder);
             }
         }
         {
@@ -1542,12 +1613,13 @@ impl<C: Curve> Msm<C> {
         self.submit_count(encoder);
     }
 
-    /// The counting pass after what `encoder` holds, submitted.
+    /// The counting passes after what `encoder` holds, submitted a slice
+    /// at a time.
     fn submit_count(&mut self, mut encoder: wgpu::CommandEncoder) {
         let sort = self.gpu_sort.as_mut().expect("the GPU sort");
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         encoder.clear_buffer(&sort.counts, 0, None);
-        {
+        for (slice, uniform) in sort.slices.iter().enumerate() {
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
                 layout: &sort.count.get_bind_group_layout(0),
@@ -1562,14 +1634,17 @@ impl<C: Curve> Msm<C> {
                     },
                     wgpu::BindGroupEntry {
                         binding: 2,
-                        resource: sort.uniform.as_entire_binding(),
+                        resource: uniform.as_entire_binding(),
                     },
                 ],
             });
-            let mut pass = encoder.begin_compute_pass(&Default::default());
-            pass.set_pipeline(&sort.count);
-            pass.set_bind_group(0, &group, &[]);
-            pass.dispatch_workgroups((self.n as u32).div_ceil(WORKGROUP), 1, 1);
+            {
+                let mut pass = encoder.begin_compute_pass(&Default::default());
+                pass.set_pipeline(&sort.count);
+                pass.set_bind_group(0, &group, &[]);
+                pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), 1, 1);
+            }
+            encoder = flush(&self.gpu, encoder);
         }
         encoder.copy_buffer_to_buffer(&sort.counts, 0, &sort.counts_staging, 0, sort.counts.size());
         sort.counted = Some(queue.submit([encoder.finish()]));

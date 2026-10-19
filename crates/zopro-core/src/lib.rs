@@ -321,6 +321,17 @@ pub fn gpu_profile_report() -> String {
     zopro_wgpu::profile::report()
 }
 
+/// Where a wgpu device keeps its driver's pipeline cache between
+/// processes, for the keys built after this: an Adreno compiles the
+/// kernels for about 26 s the first time and loads them in half a second
+/// from the cache. Nothing where there is no wgpu device.
+pub fn set_gpu_pipeline_cache(path: &std::path::Path) {
+    #[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
+    zopro_wgpu::set_pipeline_cache(path.to_path_buf());
+    #[cfg(not(all(gpu_wgpu, not(target_arch = "wasm32"))))]
+    let _ = path;
+}
+
 /// Requests the page's WebGPU device for the keys built after it: their
 /// MSMs and quotient go to the GPU through solve_parts_gpu. False without
 /// WebGPU (the keys then prove on the CPU).
@@ -335,6 +346,10 @@ pub async fn init_gpu() -> bool {
         Err(_) => false,
     }
 }
+
+/// The largest FFT domain an Android GPU takes (see `GpuBuilder::open`).
+#[cfg(gpu_wgpu)]
+const ANDROID_GPU_DOMAIN: usize = 1 << 20;
 
 /// A GPU taking the key's vectors one at a time, so that the key keeps no
 /// copy of what the GPU holds.
@@ -353,6 +368,17 @@ impl GpuBuilder {
     fn open(plan: &fft::Plan) -> Option<Self> {
         let wanted = std::env::var("ZOPRO_GPU").ok();
         if wanted.as_deref() == Some("0") {
+            return None;
+        }
+        // A phone's GPU throttles within a big proof: a OnePlus 13 ran a
+        // 54 → 1 merge (a 2^21 domain) in 8.5 s on its Adreno, every pass
+        // of Z's MSM four to five times slower than B's minutes earlier,
+        // and in 6.5 s on its cores; 24 → 2 (2^20) in 1.7 s against 3.2.
+        // ZOPRO_GPU=1 takes the GPU for every size.
+        if cfg!(target_os = "android")
+            && plan.size() > ANDROID_GPU_DOMAIN
+            && wanted.as_deref() != Some("1")
+        {
             return None;
         }
         let started = crate::time::Instant::now();
@@ -831,9 +857,10 @@ impl Key {
             self.gpu = None;
         }
     }
-    /// Whether the key holds the page's GPU: solve_parts_gpu proves with it.
+    /// Whether the key holds a GPU (in a browser, the page's: solve_parts_gpu
+    /// proves with it).
     pub fn has_gpu(&self) -> bool {
-        #[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
+        #[cfg(gpu_any)]
         return self.gpu.is_some();
         #[allow(unreachable_code)]
         false

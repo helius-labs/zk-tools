@@ -110,7 +110,7 @@ pub fn run() {
     let mut proof = Vec::new();
     for _ in 0..rounds {
         let started = Instant::now();
-        let parts = key.solve_parts(&witness).expect("solve and parts");
+        let parts = key.solve(&witness).expect("solve and parts");
         proof = zopro_core::groth16::assemble(&parts, &fixed);
         prove.push(started.elapsed().as_secs_f64() * 1000.0);
     }

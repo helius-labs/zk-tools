@@ -159,13 +159,21 @@ impl Prover {
     }
 
     /// Proves `witness` (the key's order): the proof is verified before it
-    /// is returned; a GPU proof that fails to verify is proved again on the
-    /// CPU, and the GPU is let go.
+    /// is returned; a GPU proof that fails, or fails to verify, is proved
+    /// again on the CPU, and the GPU is let go.
     pub fn prove(&mut self, witness: &[Fr]) -> Result<Proved, Error> {
         let encoded = self.encode(witness)?;
         loop {
             let started = zopro_core::time::Instant::now();
-            let parts = self.key.solve(&encoded).map_err(Error::Prove)?;
+            let parts = match self.key.solve(&encoded) {
+                Ok(parts) => parts,
+                Err(error) if self.key.has_gpu() => {
+                    log::warn!("zopro: the GPU failed ({error}); proving on the CPU from now on");
+                    self.key.drop_gpu();
+                    continue;
+                }
+                Err(error) => return Err(Error::Prove(error)),
+            };
             let prove_ms = started.elapsed().as_millis() as u64;
             match finish(
                 &parts,
