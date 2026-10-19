@@ -9,7 +9,7 @@ use ark_poly::{EvaluationDomain, Radix2EvaluationDomain};
 use wasm_bindgen::prelude::*;
 
 /// The clock: std's natively, the page's in a browser, where std has none.
-pub(crate) mod time {
+pub mod time {
     #[cfg(not(target_arch = "wasm32"))]
     pub use std::time::Instant;
     #[cfg(target_arch = "wasm32")]
@@ -783,6 +783,14 @@ impl Key {
     }
     pub fn solve_parts(&self, witness: &[u8]) -> Result<Vec<u8>, JsError> {
         self.solve(witness).map_err(|error| JsError::new(&error))
+    }
+    /// Proves on the CPU from now on: a host whose GPU proof failed to
+    /// verify lets the GPU go.
+    pub fn drop_gpu(&mut self) {
+        #[cfg(gpu_any)]
+        {
+            self.gpu = None;
+        }
     }
     /// Whether the key holds the page's GPU: solve_parts_gpu proves with it.
     pub fn has_gpu(&self) -> bool {
