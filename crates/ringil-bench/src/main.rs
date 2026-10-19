@@ -862,13 +862,13 @@ fn cpu_msm(dir: &Path) {
             let bases = decode_g2(&read(dir, name));
             let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
             time(&mut || {
-                std::hint::black_box(ringil_core::msm_g2(&bases, &scalars));
+                let _ = std::hint::black_box(ringil_core::msm_g2(&bases, &scalars));
             })
         } else {
             let bases = decode_g1(&read(dir, name));
             let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
             time(&mut || {
-                std::hint::black_box(ringil_core::msm_g1(&bases, &scalars));
+                let _ = std::hint::black_box(ringil_core::msm_g1(&bases, &scalars));
             })
         };
         println!(

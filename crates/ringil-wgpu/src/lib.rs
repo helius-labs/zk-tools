@@ -128,7 +128,37 @@ pub type G1Msm = Msm<ark_bn254::G1Projective>;
 pub type G2Msm = Msm<ark_bn254::G2Projective>;
 const WORKGROUP: u32 = 64;
 const FIRST_SHARD: usize = 32;
+/// The first level's shard length: shorter with the pre-compiled kernels,
+/// where more, shorter shards ran the OnePlus 13's accumulation 13 % faster
+/// overall (RINGIL_FIRST_SHARD overrides, for kernel experiments).
+fn first_shard(spirv: bool) -> usize {
+    std::env::var("RINGIL_FIRST_SHARD")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(if spirv {
+            SPIRV_FIRST_SHARD
+        } else {
+            FIRST_SHARD
+        })
+}
+const SPIRV_FIRST_SHARD: usize = 16;
+/// Invocations per workgroup the first level's kernel declares
+/// (RINGIL_FIRST_GROUP, with a kernel from RINGIL_SPV_DIR).
+fn first_group() -> u32 {
+    std::env::var("RINGIL_FIRST_GROUP")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(WORKGROUP)
+}
 const SHARD: usize = 32;
+/// The tree levels' shard length (RINGIL_SHARD overrides, for kernel
+/// experiments).
+fn shard() -> usize {
+    std::env::var("RINGIL_SHARD")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(SHARD)
+}
 /// Threads per window in the reduction, measured best (with 256 and 128
 /// close); RINGIL_REDUCE_PER_WINDOW overrides natively.
 const REDUCE_THREADS_PER_WINDOW: usize = 512;
@@ -373,6 +403,70 @@ pub struct Msm<C: Curve> {
     counts: Vec<u32>,
     starts: Vec<u32>,
     most: usize,
+    /// The sort on the GPU, with the pre-compiled kernels.
+    gpu_sort: Option<GpuSort>,
+}
+
+/// Per-pass GPU times of one MSM (RINGIL_WGPU_STAGES).
+#[derive(Default)]
+struct Stages(Vec<(String, f64)>);
+
+impl Stages {
+    /// Submits what the encoder holds, waits for it, records its time and
+    /// hands back a fresh encoder.
+    #[cfg(not(target_arch = "wasm32"))]
+    fn cut(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        encoder: wgpu::CommandEncoder,
+        name: String,
+    ) -> wgpu::CommandEncoder {
+        let started = Instant::now();
+        let submission = queue.submit([encoder.finish()]);
+        let _ = device.poll(wgpu::PollType::Wait {
+            submission_index: Some(submission),
+            timeout: None,
+        });
+        self.0
+            .push((name, started.elapsed().as_secs_f64() * 1000.0));
+        device.create_command_encoder(&Default::default())
+    }
+    #[cfg(target_arch = "wasm32")]
+    fn cut(
+        &mut self,
+        device: &wgpu::Device,
+        _: &wgpu::Queue,
+        encoder: wgpu::CommandEncoder,
+        _: String,
+    ) -> wgpu::CommandEncoder {
+        let _ = encoder;
+        device.create_command_encoder(&Default::default())
+    }
+    fn report(&self) -> String {
+        let total: f64 = self.0.iter().map(|(_, ms)| ms).sum();
+        let stages: Vec<String> = self
+            .0
+            .iter()
+            .map(|(name, ms)| format!("{name}={ms:.1}"))
+            .collect();
+        format!("total={total:.1} {}", stages.join(" "))
+    }
+}
+
+/// The digits counted and the entries scattered on the GPU: the host only
+/// reads the bucket counts back to plan the shards. (On a phone the host's
+/// recoding and counting sort held the cores the CPU's G2 MSM needs.)
+struct GpuSort {
+    count: wgpu::ComputePipeline,
+    scatter: wgpu::ComputePipeline,
+    scalars: wgpu::Buffer,
+    counts: wgpu::Buffer,
+    counts_staging: wgpu::Buffer,
+    cursors: wgpu::Buffer,
+    uniform: wgpu::Buffer,
+    /// The submitted counting, which `start` reads back.
+    counted: Option<wgpu::SubmissionIndex>,
 }
 
 /// A binding of a pre-compiled kernel's one set: a storage buffer (read
@@ -451,6 +545,13 @@ pub(crate) fn spirv_pipeline(
     })
 }
 
+/// The smallest MSM the GPU sorts by default.
+const GPU_SORT_MIN: usize = 1 << 16;
+const SORT_KERNELS: [(&str, &[u8]); 2] = [
+    ("msm_count", include_bytes!("../glsl/out/msm_count.spv")),
+    ("msm_scatter", include_bytes!("../glsl/out/msm_scatter.spv")),
+];
+
 /// The MSM kernels' slots, by index: shards_first is bases, sorted, start,
 /// count, dst, out and the Shards uniform; shards_tree is tree, start,
 /// count, dst, out and the uniform; the reduction is buckets, partials and
@@ -525,7 +626,18 @@ impl<C: Curve> Msm<C> {
             let started = Instant::now();
             pipelines.push(match spirv {
                 Some(kernels) => {
-                    spirv_pipeline(device, gpu.cache(), entry, kernels[index], msm_slots(index))
+                    {
+                        // RINGIL_SPV_DIR/<entry>.spv replaces a built-in kernel
+                        // (kernel experiments on a device).
+                        let file = std::env::var("RINGIL_SPV_DIR")
+                            .ok()
+                            .and_then(|dir| std::fs::read(format!("{dir}/{entry}.spv")).ok());
+                        if file.is_some() {
+                            log::info!("RINGIL_TRACE kernel {entry} from RINGIL_SPV_DIR");
+                        }
+                        let kernel = file.as_deref().unwrap_or(kernels[index]);
+                        spirv_pipeline(device, gpu.cache(), entry, kernel, msm_slots(index))
+                    }
                 }
                 None => pipeline(entry),
             });
@@ -560,7 +672,7 @@ impl<C: Curve> Msm<C> {
         let half = 1 << (width - 1);
         let windows = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(width);
         let buckets = windows * half;
-        let per_window = n.div_ceil(FIRST_SHARD) + half;
+        let per_window = n.div_ceil(first_shard(spirv.is_some())) + half;
         let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
         let per_window = half
@@ -585,10 +697,60 @@ impl<C: Curve> Msm<C> {
         } else {
             windows * per_window / WORKGROUP as usize
         };
+        // The sort on the GPU, with the pre-compiled kernels, for MSMs of
+        // 2^16 points and more: on a OnePlus 13 it freed the cores the CPU's
+        // G2 MSM needs at 8 -> 2 (658 against 681 ms) and lost at 1 -> 2
+        // (208 against 174), where the GPU round trips weigh more
+        // (RINGIL_GPU_SORT=0|1 decides for every size).
+        let gpu_sort = (spirv.is_some()
+            && match std::env::var("RINGIL_GPU_SORT").as_deref() {
+                Ok("1") => true,
+                Ok(_) => false,
+                Err(_) => n >= GPU_SORT_MIN,
+            })
+        .then(|| {
+            use Slot::*;
+            let [(count_entry, count), (scatter_entry, scatter)] = SORT_KERNELS;
+            GpuSort {
+                count: spirv_pipeline(
+                    device,
+                    gpu.cache(),
+                    count_entry,
+                    count,
+                    &[Read, Write, Uniform],
+                ),
+                scatter: spirv_pipeline(
+                    device,
+                    gpu.cache(),
+                    scatter_entry,
+                    scatter,
+                    &[Read, Write, Write, Uniform],
+                ),
+                scalars: storage(device, "scalars", n * 32),
+                counts: storage(device, "counts", buckets * 4),
+                counts_staging: device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("counts staging"),
+                    size: (buckets * 4) as u64,
+                    usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                }),
+                cursors: storage(device, "cursors", buckets * 4),
+                uniform: uniform(&gpu, [n as u32, width as u32, windows as u32, half as u32]),
+                counted: None,
+            }
+        });
+        if gpu_sort.is_some() {
+            let _ = device.poll(wgpu::PollType::Poll);
+            if gpu.failed() {
+                return Err("sort kernels: the device reported an error".into());
+            }
+            gpu.save_cache();
+        }
         let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let bases_buffer = storage(device, "bases", raw.len());
         gpu.queue.write_buffer(&bases_buffer, 0, &raw);
         let msm = Self {
+            gpu_sort,
             spirv: spirv.is_some(),
             pairs,
             width,
@@ -643,22 +805,93 @@ impl<C: Curve> Msm<C> {
     /// Sorts the scalars and submits the MSM; the host is free until finish.
     pub fn start(&mut self, scalars: &[Fr]) -> Pending {
         assert_eq!(scalars.len(), self.n);
+        self.start_with(Some(scalars))
+    }
+
+    /// The MSM whose scalars `count_from` counted on the GPU.
+    pub fn start_counted(&mut self) -> Pending {
+        assert!(
+            self.gpu_sort
+                .as_ref()
+                .is_some_and(|sort| sort.counted.is_some()),
+            "counted on the GPU"
+        );
+        self.start_with(None)
+    }
+
+    fn start_with(&mut self, scalars: Option<&[Fr]>) -> Pending {
         let mut timings = Timings::default();
         let started = Instant::now();
-        let sorted = self.sort(scalars);
+        if self.gpu_sort.is_some() {
+            if self
+                .gpu_sort
+                .as_ref()
+                .is_some_and(|sort| sort.counted.is_none())
+            {
+                self.count(scalars.expect("scalars to count"));
+            }
+            self.read_counts();
+        } else {
+            let sorted = self.sort(scalars.expect("scalars to sort"));
+            self.gpu
+                .queue
+                .write_buffer(&self.sorted, 0, bytemuck_cast(&sorted));
+        }
+        let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
+        // RINGIL_WGPU_STAGES=1: each pass submitted and waited for alone,
+        // its time traced (a profile, not a proof's timing).
+        let mut profile = std::env::var("RINGIL_WGPU_STAGES")
+            .is_ok_and(|v| v == "1")
+            .then(Stages::default);
         let chunks: Vec<Vec<usize>> = (0..self.windows.div_ceil(self.chunk_windows))
             .map(|chunk| {
                 let first = chunk * self.chunk_windows;
                 self.plan(chunk, first..(first + self.chunk_windows).min(self.windows))
             })
             .collect();
+        if let Some(sort) = &self.gpu_sort {
+            self.gpu
+                .queue
+                .write_buffer(&sort.cursors, 0, bytemuck_cast(&self.starts));
+            let group = self
+                .gpu
+                .device
+                .create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &sort.scatter.get_bind_group_layout(0),
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: sort.scalars.as_entire_binding(),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: sort.cursors.as_entire_binding(),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 2,
+                            resource: self.sorted.as_entire_binding(),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 3,
+                            resource: sort.uniform.as_entire_binding(),
+                        },
+                    ],
+                });
+            let mut pass = encoder.begin_compute_pass(&Default::default());
+            pass.set_pipeline(&sort.scatter);
+            pass.set_bind_group(0, &group, &[]);
+            pass.dispatch_workgroups((self.n as u32).div_ceil(WORKGROUP), 1, 1);
+            drop(pass);
+            if let Some(stages) = profile.as_mut() {
+                encoder = stages.cut(&self.gpu.device, &self.gpu.queue, encoder, "scatter".into());
+            }
+        }
         timings.sort_ms = started.elapsed().as_secs_f64() * 1000.0;
 
         let started = Instant::now();
         let device = &self.gpu.device;
         let queue = &self.gpu.queue;
-        queue.write_buffer(&self.sorted, 0, bytemuck_cast(&sorted));
-        let mut encoder = device.create_command_encoder(&Default::default());
         encoder.clear_buffer(&self.buckets, 0, None);
         for (chunk, levels) in chunks.iter().enumerate() {
             let last = levels.len() - 1;
@@ -741,7 +974,13 @@ impl<C: Curve> Msm<C> {
                 if let Some(group1) = &group1 {
                     pass.set_bind_group(1, group1, &[]);
                 }
-                pass.dispatch_workgroups((*shards as u32).div_ceil(WORKGROUP), 1, 1);
+                let group = if level == 0 { first_group() } else { WORKGROUP };
+                pass.dispatch_workgroups((*shards as u32).div_ceil(group), 1, 1);
+                drop(pass);
+                if let Some(stages) = profile.as_mut() {
+                    encoder =
+                        stages.cut(device, queue, encoder, format!("c{chunk}l{level}x{shards}"));
+                }
             }
         }
         {
@@ -771,6 +1010,10 @@ impl<C: Curve> Msm<C> {
                 1,
                 1,
             );
+        }
+        if let Some(mut stages) = profile.take() {
+            encoder = stages.cut(device, queue, encoder, "reduce".into());
+            log::info!("RINGIL_TRACE wgpu-stages n={} {}", self.n, stages.report());
         }
         encoder.copy_buffer_to_buffer(&self.sums, 0, &self.staging, 0, self.sums.size());
         let submission = queue.submit([encoder.finish()]);
@@ -875,7 +1118,11 @@ impl<C: Curve> Msm<C> {
             self.levels.push(Vec::new());
         }
         loop {
-            let size = if level == 0 { FIRST_SHARD } else { SHARD } as u32;
+            let size = if level == 0 {
+                first_shard(self.spirv)
+            } else {
+                shard()
+            } as u32;
             let last = runs.iter().all(|(_, c)| *c <= size);
             let (mut start, mut count, mut dst) = (Vec::new(), Vec::new(), Vec::new());
             let mut next = Vec::with_capacity(buckets);
@@ -921,6 +1168,104 @@ impl<C: Curve> Msm<C> {
 
     /// Digits and the counting sort per window; returns the sorted encoded
     /// base indices, window segments of n.
+    /// Whether the GPU sorts this MSM's entries (`count` may then go ahead
+    /// of `start`).
+    pub fn sorts_on_gpu(&self) -> bool {
+        self.gpu_sort.is_some()
+    }
+
+    /// Submits the counting of the scalars' digits per bucket, for a
+    /// `start` with the same scalars to read back: queued ahead of other
+    /// work, the counts are back by the time the host plans.
+    pub fn count(&mut self, scalars: &[Fr]) {
+        assert_eq!(scalars.len(), self.n);
+        let sort = self.gpu_sort.as_ref().expect("the GPU sort");
+        // SAFETY: Fr is four u64 limbs with no padding, the kernels' encoding.
+        let bytes = unsafe {
+            std::slice::from_raw_parts(scalars.as_ptr() as *const u8, scalars.len() * 32)
+        };
+        self.gpu.queue.write_buffer(&sort.scalars, 0, bytes);
+        let encoder = self.gpu.device.create_command_encoder(&Default::default());
+        self.submit_count(encoder);
+    }
+
+    /// As `count`, the scalars being the first n Fr of a GPU buffer (the
+    /// quotient's output for Z's MSM): copied on the GPU, never through
+    /// the host. `start_counted` then runs the MSM.
+    pub fn count_from(&mut self, source: &wgpu::Buffer) {
+        let sort = self.gpu_sort.as_ref().expect("the GPU sort");
+        let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
+        encoder.copy_buffer_to_buffer(source, 0, &sort.scalars, 0, (self.n * 32) as u64);
+        self.submit_count(encoder);
+    }
+
+    /// The counting pass after what `encoder` holds, submitted.
+    fn submit_count(&mut self, mut encoder: wgpu::CommandEncoder) {
+        let sort = self.gpu_sort.as_mut().expect("the GPU sort");
+        let (device, queue) = (&self.gpu.device, &self.gpu.queue);
+        encoder.clear_buffer(&sort.counts, 0, None);
+        {
+            let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &sort.count.get_bind_group_layout(0),
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: sort.scalars.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: sort.counts.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: sort.uniform.as_entire_binding(),
+                    },
+                ],
+            });
+            let mut pass = encoder.begin_compute_pass(&Default::default());
+            pass.set_pipeline(&sort.count);
+            pass.set_bind_group(0, &group, &[]);
+            pass.dispatch_workgroups((self.n as u32).div_ceil(WORKGROUP), 1, 1);
+        }
+        encoder.copy_buffer_to_buffer(&sort.counts, 0, &sort.counts_staging, 0, sort.counts.size());
+        sort.counted = Some(queue.submit([encoder.finish()]));
+    }
+
+    /// The submitted counts read back into `counts` and `starts` (each
+    /// window's entries from `w * n`).
+    fn read_counts(&mut self) {
+        let sort = self.gpu_sort.as_mut().expect("the GPU sort");
+        let submission = sort.counted.take().expect("counts submitted");
+        let staging = &sort.counts_staging;
+        // A failed device leaves the counts as they were: the MSM's finish
+        // reports it.
+        if pollster::block_on(mapped(&self.gpu, staging, Some(submission))).is_ok() {
+            let data = staging
+                .slice(..)
+                .get_mapped_range()
+                .expect("counts mapped")
+                .to_vec();
+            for (count, bytes) in self.counts.iter_mut().zip(data.as_chunks::<4>().0) {
+                *count = u32::from_le_bytes(*bytes);
+            }
+            staging.unmap();
+        }
+        let (n, half) = (self.n, self.half);
+        for (w, (starts, counts)) in self
+            .starts
+            .chunks_mut(half)
+            .zip(self.counts.chunks(half))
+            .enumerate()
+        {
+            let mut at = (w * n) as u32;
+            for (start, count) in starts.iter_mut().zip(counts) {
+                *start = at;
+                at += count;
+            }
+        }
+    }
+
     fn sort(&mut self, scalars: &[Fr]) -> Vec<u32> {
         let (width, windows, half, n) = (self.width, self.windows, self.half, self.n);
         let radix = 1u64 << width;

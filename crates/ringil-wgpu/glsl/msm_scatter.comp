@@ -1,0 +1,31 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Writes each entry, point index with the digit's sign in the top bit, at
+// its bucket's cursor (the bucket's start in `sorted`, from the counts).
+// Order within a bucket is the atomics': a bucket's sum does not depend
+// on it.
+#include "field.glsl"
+#define SORT_UNIFORM 3
+#include "digits.glsl"
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Scalars { fr values[]; } scalars;
+layout(std430, set = 0, binding = 1) buffer Cursors { uint values[]; } cursors;
+layout(std430, set = 0, binding = 2) buffer Sorted { uint values[]; } sorted;
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if (i >= sort.n)
+    return;
+  const fr s = fr_to_canon(scalars.values[i]);
+  const uint radix = 1u << sort.width;
+  uint carry = 0u;
+  for (uint w = 0u; w < sort.windows; w++) {
+    const uint value = window_value(s, w * sort.width, sort.width) + carry;
+    carry = (value + radix / 2u) >> sort.width;
+    const int digit = int(value) - int(carry * radix);
+    if (digit != 0) {
+      const uint at = atomicAdd(cursors.values[w * sort.half_range + uint(abs(digit)) - 1u], 1u);
+      sorted.values[at] = i | (digit < 0 ? 0x80000000u : 0u);
+    }
+  }
+}

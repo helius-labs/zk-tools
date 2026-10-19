@@ -1,0 +1,26 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Counts each bucket's entries: one invocation per scalar, its digit in
+// every window. Bucket b of window w is w * half + |digit| - 1.
+#include "field.glsl"
+#define SORT_UNIFORM 2
+#include "digits.glsl"
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Scalars { fr values[]; } scalars;
+layout(std430, set = 0, binding = 1) buffer Counts { uint values[]; } counts;
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if (i >= sort.n)
+    return;
+  const fr s = fr_to_canon(scalars.values[i]);
+  const uint radix = 1u << sort.width;
+  uint carry = 0u;
+  for (uint w = 0u; w < sort.windows; w++) {
+    const uint value = window_value(s, w * sort.width, sort.width) + carry;
+    carry = (value + radix / 2u) >> sort.width;
+    const int digit = int(value) - int(carry * radix);
+    if (digit != 0)
+      atomicAdd(counts.values[w * sort.half_range + uint(abs(digit)) - 1u], 1u);
+  }
+}

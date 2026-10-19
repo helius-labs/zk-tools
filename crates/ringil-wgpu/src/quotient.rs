@@ -245,6 +245,12 @@ impl Quotient {
         self.submission = Some(queue.submit([encoder.finish()]));
     }
 
+    /// The buffer whose first n - 1 Fr are the submitted quotient's
+    /// coefficients (for a GPU consumer that skips the read back).
+    pub fn output(&self) -> &wgpu::Buffer {
+        &self.abc
+    }
+
     /// The submitted quotient, the first n - 1 coefficients.
     pub async fn finish_async(&mut self) -> Result<Vec<Fr>, String> {
         let n = self.n;

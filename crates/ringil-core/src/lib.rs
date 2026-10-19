@@ -1088,32 +1088,62 @@ impl Key {
                 std::thread::scope(|scope| -> Result<_, String> {
                     let gpu_work = scope.spawn(move || -> Result<_, String> {
                         let started = crate::time::Instant::now();
-                        let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
-                        if let Some(quotient) = quotient.as_mut() {
-                            quotient.start(&a, &b, &c);
-                        }
                         let (mut ma, mut mb, mut mk, mut mz) = (
                             gpu.a.lock().unwrap(),
                             gpu.b.lock().unwrap(),
                             gpu.k.lock().unwrap(),
                             gpu.z.lock().unwrap(),
                         );
+                        // An MSM the GPU sorts is counted first, ahead of
+                        // all else on the GPU's queue. When every G1 MSM is,
+                        // the CPU's G2 MSM waits for no sort; when Z's is
+                        // and the quotient is on the GPU too, Z's scalars
+                        // never leave it: the GPU counts them from the
+                        // quotient's output, ahead of the other MSMs.
+                        for (msm, scalars) in [(&mut ma, sa), (&mut mb, sb), (&mut mk, sk)] {
+                            if msm.sorts_on_gpu() {
+                                msm.count(scalars);
+                            }
+                        }
+                        let host_sorts =
+                            !(ma.sorts_on_gpu() && mb.sorts_on_gpu() && mk.sorts_on_gpu());
+                        let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
+                        let z_on_gpu = mz.sorts_on_gpu() && quotient.is_some();
+                        if let Some(q) = quotient.as_mut() {
+                            q.start(&a, &b, &c);
+                            if z_on_gpu {
+                                mz.count_from(q.output());
+                            }
+                        }
+                        let mut sorted_tx = Some(sorted_tx);
+                        if !host_sorts {
+                            sorted_tx = None;
+                        }
                         let (pa, pb, pk) = (ma.start(sa), mb.start(sb), mk.start(sk));
                         let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
                         let pb2 = b2.as_mut().map(|b2| b2.start(&sb[..cut]));
                         drop(sorted_tx);
-                        let h = match quotient.as_mut() {
-                            Some(quotient) => quotient.finish()?,
-                            None => self.quotient(a, b, c),
+                        let pz = if z_on_gpu {
+                            mz.start_counted()
+                        } else {
+                            let h = match quotient.as_mut() {
+                                Some(quotient) => quotient.finish()?,
+                                None => self.quotient(a, b, c),
+                            };
+                            trace("quotient", started);
+                            // By now the pool runs the CPU's G2 MSM, whose
+                            // tasks a host sort of Z would queue behind (550
+                            // ms on a OnePlus 13): it gets threads of its own,
+                            // which the GPU, busy with A, B and K, does not
+                            // wait for.
+                            let z = &mut *mz;
+                            if z.sorts_on_gpu() {
+                                z.start(&h)
+                            } else {
+                                sort_pool().install(|| z.start(&h))
+                            }
                         };
                         drop(quotient);
-                        trace("quotient", started);
-                        // By now the pool runs the CPU's G2 MSM, whose tasks
-                        // Z's sort would queue behind (550 ms on a OnePlus
-                        // 13): it gets threads of its own, which the GPU,
-                        // busy with A, B and K, does not wait for.
-                        let z = &mut *mz;
-                        let pz = sort_pool().install(|| z.start(&h));
                         let (ar, t) = ma.finish(pa)?;
                         gpu_trace("a", t.sort_ms, t.gpu_ms);
                         let (bs1, t) = mb.finish(pb)?;
