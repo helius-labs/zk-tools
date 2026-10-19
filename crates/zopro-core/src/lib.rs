@@ -26,6 +26,7 @@ mod msm_affine;
 mod selftest;
 mod simd;
 mod solver;
+pub mod verify;
 
 // Stage times as ZOPRO_TRACE log lines (`--features trace`): the native
 // bench prints them, a phone's bench puts them in the device log.

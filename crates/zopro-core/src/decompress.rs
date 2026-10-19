@@ -58,12 +58,12 @@ fn decompress(
 }
 
 /// Whether `value` is larger than its negation: above (q - 1) / 2.
-fn largest(value: &Fq) -> bool {
+pub(crate) fn largest(value: &Fq) -> bool {
     value.into_bigint() > Fq::MODULUS_MINUS_ONE_DIV_TWO
 }
 
 /// As gnark orders E2: by the second coordinate, by the first when it is zero.
-fn largest2(value: &Fq2) -> bool {
+pub(crate) fn largest2(value: &Fq2) -> bool {
     if value.c1.is_zero() {
         largest(&value.c0)
     } else {
@@ -72,7 +72,7 @@ fn largest2(value: &Fq2) -> bool {
 }
 
 /// The canonical big-endian field element in `bytes`.
-fn coordinate(bytes: &[u8]) -> Result<Fq, &'static str> {
+pub(crate) fn coordinate(bytes: &[u8]) -> Result<Fq, &'static str> {
     let value = Fq::from_be_bytes_mod_order(bytes);
     if value.into_bigint().to_bytes_be() != bytes {
         return Err("coordinate not below the field modulus");
