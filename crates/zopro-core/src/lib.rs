@@ -209,9 +209,10 @@ pub fn solver_image_version() -> u32 {
 
 /// The share of the G2 MSM's points the GPU takes when there is one; the
 /// CPU takes the rest at the same time. ZOPRO_G2_GPU_SHARE sets it
-/// (ZOPRO_G2=gpu|cpu: all or none); else 0.8 on a Mac, whose GPU is far
-/// faster than its cores at it (the idle cores' fifth saves 4–6 %), a quarter on an Apple9 phone (A19), whose
-/// GPU was idle for about 200 ms of a 535 ms 8 → 2 proof while the CPU's G2
+/// (ZOPRO_G2=gpu|cpu: all or none); else none on a Mac, whose GPU is the
+/// bottleneck of the proof (M5 Pro, 24 → 2: 209 ms at 0, 233 at 0.2; 2 → 2:
+/// 41 and 49; a 54 → 1 merge, 423 at 0 and 399 at 0.1), a quarter on an
+/// Apple9 phone (A19), whose GPU was idle for about 200 ms of a 535 ms 8 → 2 proof while the CPU's G2
 /// MSM took 443, and none on older phones, whose GPUs are busy and slower
 /// at G2 than their cores.
 #[cfg(gpu)]
@@ -225,7 +226,7 @@ fn g2_gpu_share() -> f64 {
     match std::env::var("ZOPRO_G2").as_deref() {
         Ok("gpu") => 1.0,
         Ok("cpu") => 0.0,
-        _ if cfg!(target_os = "macos") => 0.8,
+        _ if cfg!(target_os = "macos") => 0.0,
         _ if zopro_metal::fast_gpu() => 0.25,
         _ => 0.0,
     }
@@ -1101,6 +1102,16 @@ impl Key {
             // The sorts run on the pool, so a CPU G2 MSM starts only once
             // they are done: otherwise it starves them for its whole run.
             let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
+            // The quotient has the GPU to itself: Z's sort and MSM wait for
+            // it, the others for nothing, so they are submitted once it is
+            // back (sharing the GPU with them it came back after 179 ms
+            // rather than 45 on an M5 Pro, 54 → 1 merge).
+            let started = crate::time::Instant::now();
+            let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
+            let pending = quotient.as_mut().map(|q| q.start(&a, &b, &c));
+            let (quotient_tx, quotient_rx) = std::sync::mpsc::channel::<()>();
+            // A quotient on the CPU holds nothing up.
+            let quotient_tx = pending.is_some().then_some(quotient_tx);
             // The quotient comes back too, for the trace build's profile.
             let (h, (ar, bs1, kr, bs2, hz)) = std::thread::scope(|scope| -> Result<_, String> {
                 let msms = scope.spawn(move || -> Result<_, String> {
@@ -1112,8 +1123,12 @@ impl Key {
                         gpu.b.lock().unwrap(),
                         gpu.k.lock().unwrap(),
                     );
-                    let pa = a.start(sa);
-                    let pb = b.start(sb);
+                    let (sorted_a, sorted_b, sorted_k) =
+                        (a.sort_now(sa), b.sort_now(sb), k.sort_now(sk));
+                    drop(sorted_tx);
+                    let _ = quotient_rx.recv();
+                    let pa = a.submit_sorted(sorted_a);
+                    let pb = b.submit_sorted(sorted_b);
                     let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
                     let pb2 = b2.as_mut().map(|b2| {
                         if gpu.b2_cut == sb.len() {
@@ -1125,8 +1140,7 @@ impl Key {
                             b2.start(&mine)
                         }
                     });
-                    let pk = k.start(sk);
-                    drop(sorted_tx);
+                    let pk = k.submit_sorted(sorted_k);
                     let (ar, t) = a.finish(pa)?;
                     gpu_trace("a", t.sort_ms, t.gpu_ms);
                     let (bs1, t) = b.finish(pb)?;
@@ -1153,12 +1167,11 @@ impl Key {
                         bs2
                     })
                 });
-                let started = crate::time::Instant::now();
-                let h = if !self.gpu_quotient {
-                    self.quotient(a, b, c)
-                } else {
-                    gpu.quotient.lock().unwrap().quotient(&a, &b, &c)?
+                let h = match (quotient.as_mut(), pending) {
+                    (Some(q), Some(pending)) => q.finish(pending)?,
+                    _ => self.quotient(a, b, c),
                 };
+                drop((quotient, quotient_tx));
                 trace("quotient", started);
                 // Z's MSM is sorted and queued now, behind the others still
                 // on the GPU, rather than after them; on a pool of its own,

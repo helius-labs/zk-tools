@@ -88,8 +88,8 @@ pub fn warm() -> Result<(), String> {
             G1Projective::FIRST,
             G1Projective::TREE,
             G1Projective::REDUCE,
-            "fr_dif_stage",
-            "fr_dit_stage",
+            "fr_dif_pass",
+            "fr_dit_pass",
             "fr_scale",
             "fr_pointwise",
         ] {
@@ -247,6 +247,11 @@ pub struct Timings {
     pub sort_ms: f64,
     pub gpu_ms: f64,
     pub combine_ms: f64,
+}
+
+/// An MSM's scalars sorted on the host, not yet submitted.
+pub struct Sorted {
+    started: Instant,
 }
 
 /// An MSM submitted to the GPU and not yet collected.
@@ -588,6 +593,19 @@ impl<C: Curve> Msm<C> {
         self.submit(started)
     }
 
+    /// The first half of [`Msm::start`]: the scalars sorted, for
+    /// [`Msm::submit_sorted`] once the GPU should take them.
+    pub fn sort_now(&mut self, scalars: &[Fr]) -> Sorted {
+        assert_eq!(scalars.len(), self.n);
+        let started = Instant::now();
+        self.sort(scalars);
+        Sorted { started }
+    }
+
+    pub fn submit_sorted(&mut self, sorted: Sorted) -> Pending {
+        self.submit(sorted.started)
+    }
+
     /// The MSM over the scalars another MSM of the same length just sorted
     /// (G1 B and G2 B share theirs): its sorted runs, no sort.
     pub fn start_sorted_as<D: Curve>(&mut self, other: &Msm<D>) -> Pending {
@@ -924,26 +942,42 @@ impl<C: Curve> Msm<C> {
         let radix = 1u64 << width;
         let mask = radix - 1;
         let n = self.n;
-        // digits[i * windows + w].
+        // In chunks of scalars, window-major within each: a window's pass
+        // reads its runs rather than every row (a 2^21-point Z sort took
+        // 60-110 ms reading all of them).
+        const CHUNK: usize = 4096;
         let mut digits = vec![0i16; n * windows];
         digits
-            .par_chunks_mut(windows)
-            .zip(scalars)
-            .for_each(|(row, s)| {
-                let BigInt(words) = s.into_bigint();
-                let mut carry = 0u64;
-                for (w, digit) in row.iter_mut().enumerate() {
-                    let offset = w * width;
-                    let (word, shift) = (offset / 64, offset % 64);
-                    let mut value = if word < 4 { words[word] >> shift } else { 0 };
-                    if shift + width > 64 && word < 3 {
-                        value |= words[word + 1] << (64 - shift);
+            .par_chunks_mut(CHUNK * windows)
+            .zip(scalars.par_chunks(CHUNK))
+            .for_each(|(block, chunk)| {
+                let len = chunk.len();
+                for (i, s) in chunk.iter().enumerate() {
+                    let BigInt(words) = s.into_bigint();
+                    let mut carry = 0u64;
+                    for w in 0..windows {
+                        let offset = w * width;
+                        let (word, shift) = (offset / 64, offset % 64);
+                        let mut value = if word < 4 { words[word] >> shift } else { 0 };
+                        if shift + width > 64 && word < 3 {
+                            value |= words[word + 1] << (64 - shift);
+                        }
+                        let value = (value & mask) + carry;
+                        carry = (value + radix / 2) >> width;
+                        block[w * len + i] = (value as i64 - (carry * radix) as i64) as i16;
                     }
-                    let value = (value & mask) + carry;
-                    carry = (value + radix / 2) >> width;
-                    *digit = (value as i64 - (carry * radix) as i64) as i16;
                 }
             });
+        // Window w's digits, chunk by chunk, with the chunk's first index.
+        let runs = |w: usize| {
+            digits
+                .chunks(CHUNK * windows)
+                .enumerate()
+                .map(move |(c, block)| {
+                    let len = block.len() / windows;
+                    (c * CHUNK, &block[w * len..(w + 1) * len])
+                })
+        };
         // SAFETY: the buffer holds n * windows u32s, shared storage, and
         // nothing else reads it until the dispatch.
         let sorted = unsafe {
@@ -956,10 +990,11 @@ impl<C: Curve> Msm<C> {
             .enumerate()
             .for_each(|(w, ((sorted, starts), counts))| {
                 counts.fill(0);
-                for i in 0..n {
-                    let d = digits[i * windows + w];
-                    if d != 0 {
-                        counts[d.unsigned_abs() as usize - 1] += 1;
+                for (_, run) in runs(w) {
+                    for &d in run {
+                        if d != 0 {
+                            counts[d.unsigned_abs() as usize - 1] += 1;
+                        }
                     }
                 }
                 let base = (w * n) as u32;
@@ -969,13 +1004,14 @@ impl<C: Curve> Msm<C> {
                     at += count;
                 }
                 let mut positions: Vec<u32> = starts.iter().map(|s| s - base).collect();
-                for i in 0..n {
-                    let d = digits[i * windows + w];
-                    if d != 0 {
-                        let b = d.unsigned_abs() as usize - 1;
-                        sorted[positions[b] as usize] =
-                            i as u32 | if d < 0 { 0x8000_0000 } else { 0 };
-                        positions[b] += 1;
+                for (first, run) in runs(w) {
+                    for (j, &d) in run.iter().enumerate() {
+                        if d != 0 {
+                            let b = d.unsigned_abs() as usize - 1;
+                            sorted[positions[b] as usize] =
+                                (first + j) as u32 | if d < 0 { 0x8000_0000 } else { 0 };
+                            positions[b] += 1;
+                        }
                     }
                 }
             });

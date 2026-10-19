@@ -65,6 +65,10 @@ pub fn run() {
         let dirs: Vec<String> = env::args().skip(3).collect();
         return stress(cycles, &dirs);
     }
+    #[cfg(target_vendor = "apple")]
+    if dir == "metal-quotient" {
+        return metal_quotient(Path::new(&env::args().nth(2).expect("the dump directory")));
+    }
     if dir == "wgpu-quotient" {
         return wgpu_quotient(Path::new(&env::args().nth(2).expect("the dump directory")));
     }
@@ -319,6 +323,45 @@ fn wgpu_one<C: zopro_wgpu::Curve>(
     for line in zopro_wgpu::profile::report().lines() {
         println!("ZOPRO wgpu-profile \"{name}\" {line} (3 runs)");
     }
+}
+
+/// The quotient of random evaluations through Metal against the CPU plan's,
+/// on the dumped shape's domain.
+#[cfg(target_vendor = "apple")]
+fn metal_quotient(dir: &Path) {
+    let head = zopro_core::dump::Head::read(dir).expect("dump head");
+    let params = zopro_core::decode_frs(&head.domain);
+    let (generator, coset) = (params[0], params[1]);
+    let n = read(dir, "z").len() / 64 + 1;
+    let den = zopro_core::fft::denominator(n, coset).expect("denominator");
+    let plan = zopro_core::fft::Plan::new(n, generator, coset, den);
+    let (roots, inverse_roots, forward, reverse) = plan.tables().expect("tables");
+    let (mut quotient, _) =
+        zopro_metal::Quotient::new(n, &roots, &inverse_roots, &forward, &reverse)
+            .expect("quotient");
+    let mut rng = rand::rngs::OsRng;
+    let m = n - n / 16;
+    let (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>) = (
+        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
+        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
+        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
+    );
+    let expected = plan.quotient(a.clone(), b.clone(), c.clone());
+    let _ = quotient.quotient(&a, &b, &c);
+    let mut times = Vec::new();
+    let mut actual = Vec::new();
+    for _ in 0..5 {
+        let started = Instant::now();
+        actual = quotient.quotient(&a, &b, &c).expect("gpu quotient");
+        times.push(started.elapsed().as_secs_f64() * 1000.0);
+    }
+    times.sort_by(f64::total_cmp);
+    let exact = actual == expected;
+    println!(
+        "ZOPRO metal-quotient n={n} gpu_ms_median={:.1} gpu_ms_min={:.1} exact={exact}",
+        times[2], times[0]
+    );
+    assert!(exact, "the Metal quotient differs from the CPU plan");
 }
 
 /// The quotient of random evaluations through wgpu against the CPU plan's,
