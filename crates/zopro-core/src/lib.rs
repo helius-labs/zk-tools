@@ -280,13 +280,13 @@ fn sort_pool() -> &'static rayon::ThreadPool {
 #[cfg(gpu_wgpu)]
 fn g2_gpu_share(spirv: bool) -> f64 {
     // A browser has no environment and no pre-compiled kernels: the build's
-    // ZOPRO_WEB_G2_SHARE, else the default.
+    // ZOPRO_WEB_G2_SHARE, else by the pool's size.
     #[cfg(target_arch = "wasm32")]
     let _ = spirv;
     #[cfg(target_arch = "wasm32")]
     return option_env!("ZOPRO_WEB_G2_SHARE")
         .and_then(|v| v.parse::<f64>().ok())
-        .unwrap_or(WEB_G2_SHARE)
+        .unwrap_or_else(|| web_g2_share(rayon::current_num_threads()))
         .clamp(0.0, 1.0);
     #[allow(unreachable_code)]
     std::env::var("ZOPRO_G2_GPU_SHARE")
@@ -296,11 +296,14 @@ fn g2_gpu_share(spirv: bool) -> f64 {
         .clamp(0.0, 1.0)
 }
 /// In a browser, where the CPU's share runs as WebAssembly on the pool
-/// while the GPU sorts and sums the rest: measured best in Chrome on an M5
-/// Pro at 4 threads (8 → 2 177 ms, 24 → 2 430; 0.75 gave 191 and 459,
-/// 0.45 203 and 506).
+/// while the GPU sorts and sums the rest: the CPU's speed grows with the
+/// pool, the GPU's does not. Measured best in Chrome on an M5 Pro: 0.55 at
+/// 4 threads, 0.3 at 8 and 0.1 at 16 (a 54 → 1 merge at 16 threads: 702 ms
+/// at 0.1, 735 at 0.3, 864 at 0.55; at 4: 984 at 0.55, 1380 at 0.3).
 #[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
-const WEB_G2_SHARE: f64 = 0.55;
+fn web_g2_share(threads: usize) -> f64 {
+    (2.2 / threads.max(1) as f64).min(0.75)
+}
 #[cfg(gpu_wgpu)]
 const WGPU_G2_SHARE: f64 = 0.25;
 

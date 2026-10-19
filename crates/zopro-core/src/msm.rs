@@ -92,12 +92,21 @@ where
     // Each window sorts a copy of its points: all windows at once held up to
     // `count` copies (hundreds of MB for G2 on a wide key, counted against a
     // phone's memory limit). They go ZOPRO_MSM_WINDOWS at a time (default:
-    // all, as measured best on a Mac; phones set fewer); each window's bucket
-    // groups still run in parallel.
+    // all natively, as measured best on a Mac; phones set fewer); each
+    // window's bucket groups still run in parallel. In WebAssembly's 4 GB
+    // heap the copies at once are held to COPIES_BUDGET: sixteen threads'
+    // G2 copies of a 54 → 1 merge (2 GB) took the heap to 4052 MB, and one
+    // allocation more trapped a worker and hung the proof.
+    let copy = bases.len() * std::mem::size_of::<LimbPoint<P::BaseField>>();
+    let default = if cfg!(target_arch = "wasm32") {
+        (COPIES_BUDGET / copy.max(1)).clamp(1, count)
+    } else {
+        count
+    };
     let at_once = std::env::var("ZOPRO_MSM_WINDOWS")
         .ok()
         .and_then(|v| v.parse().ok())
-        .unwrap_or(count)
+        .unwrap_or(default)
         .max(1);
     let windows: Vec<usize> = (0..count).collect();
     let sums: Vec<Projective<P>> = windows
@@ -113,6 +122,11 @@ where
     }
     result
 }
+
+/// The most bytes of window copies a WebAssembly MSM holds at once: at 16
+/// threads a 54 → 1 merge's heap peaked at 2.8 GB rather than 4.0, for 5 %
+/// of its time (256 MB took 50 %); none at 4 threads.
+const COPIES_BUDGET: usize = 512 << 20;
 
 // Smaller bucket groups let idle workers help a long-running window and keep
 // each affine inversion batch's working set small. Each task owns disjoint
