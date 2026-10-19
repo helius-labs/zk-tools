@@ -82,9 +82,10 @@ fn check(shape: &str, key_name: &str, request: &str) {
     assert_eq!(result.proof.len(), 164);
     assert_eq!(result.public_inputs.len(), 44);
     let proof = Proof::from_json(&result.proof_json).expect("proof json");
+    // The gnark key's sha256, which the SDKs check against their pins.
     assert_eq!(
-        result.proof_json["provingKeySha256"].as_str().map(str::len),
-        Some(64)
+        result.proof_json["provingKeySha256"].as_str(),
+        Some(zopro_core::verify::hex_of(&read(&dir, "head")[60..92]).as_str())
     );
     assert!(prover.verify(&proof, &values[..1]));
     // For gnark's verifier: the raw proof beside the dump.

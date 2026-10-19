@@ -98,6 +98,9 @@ pub fn pack(parts: &Parts) -> Result<Vec<u8>, String> {
     if parts.fixed.len() != 448 || parts.domain.len() != 64 {
         return Err("fixed points are 448 bytes and the domain 64".into());
     }
+    if parts.digest == [0; 32] {
+        return Err("the gnark key's digest is missing: proofs report it".into());
+    }
     if parts.public_names.len() + 1 != parts.public as usize
         || parts.secret_names.len() != parts.secret as usize
     {

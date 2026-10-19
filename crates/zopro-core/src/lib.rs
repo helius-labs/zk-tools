@@ -272,8 +272,10 @@ fn sort_pool() -> &'static rayon::ThreadPool {
 /// already); the CPU takes the rest.
 #[cfg(gpu_wgpu)]
 fn g2_gpu_share(spirv: bool) -> f64 {
-    // A browser has no environment: the build's ZOPRO_WEB_G2_SHARE, else
-    // the default.
+    // A browser has no environment and no pre-compiled kernels: the build's
+    // ZOPRO_WEB_G2_SHARE, else the default.
+    #[cfg(target_arch = "wasm32")]
+    let _ = spirv;
     #[cfg(target_arch = "wasm32")]
     return option_env!("ZOPRO_WEB_G2_SHARE")
         .and_then(|v| v.parse::<f64>().ok())

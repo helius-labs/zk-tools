@@ -42,8 +42,10 @@ proving key, and gnark's verifier accepts zopro's proofs.
   (`RAYON_NUM_THREADS=4 zopro-bench <dump dir>`), and has modes for the GPU
   MSMs (`gpu`, `wgpu`), a key-switching stress check of results and memory
   (`stress <cycles> <dumps...>`), and field microbenchmarks (`field`,
-  `wgsl-field`). Dumps and the proof referee are `TestZoproDump` in the
-  web SDK's `wasm/prover-wasm`.
+  `wgsl-field`).
+- `tools/gnark`: gnark's side, offline: a key's parts for `zopro-bench
+  pack`, the zopro keys of a whole key set with their lockfile
+  (`build-keys.sh`), and gnark's verifier as the referee of zopro's proofs.
 
 ## Safety
 
