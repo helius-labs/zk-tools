@@ -249,7 +249,8 @@ struct Pass {
 /// The passes over a 2^log_n domain, widest gaps first: tiles of 2^9
 /// elements (16 KB of threadgroup memory, two threadgroups to a core), no
 /// more than `limit` / 2 pairs, and eight columns where the stride allows,
-/// so that a tile's loads are 256-byte runs rather than scattered words.
+/// so that a tile's loads are 256-byte runs rather than scattered words
+/// (more in the last pass when it has fewer stages).
 /// ZOPRO_METAL_NTT_TILE and ZOPRO_METAL_NTT_COLS set the logs.
 fn plan_passes(log_n: u32, limit: u64) -> Vec<Pass> {
     let env = |name: &str, default: u32| {
@@ -264,8 +265,9 @@ fn plan_passes(log_n: u32, limit: u64) -> Vec<Pass> {
     let mut passes = Vec::new();
     let mut covered = 0;
     while covered < log_n {
-        let cols_log = cols.min(covered).min(tile_log - 1);
+        let mut cols_log = cols.min(covered).min(tile_log - 1);
         let levels = (tile_log - cols_log).min(log_n - covered);
+        cols_log = (tile_log - levels).min(covered);
         passes.push(Pass {
             first: log_n - covered - levels,
             levels,

@@ -60,6 +60,26 @@ pub struct Quotient {
     timer: std::cell::RefCell<Option<crate::profile::Timer>>,
 }
 
+/// As the MSMs' buffers: destroyed, not left to a browser's collector.
+impl Drop for Quotient {
+    fn drop(&mut self) {
+        let uniforms = self.stages.iter().chain([&self.whole]);
+        for buffer in [
+            &self.roots,
+            &self.inverse_roots,
+            &self.forward_weights,
+            &self.reverse_weights,
+            &self.abc,
+            &self.staging,
+        ]
+        .into_iter()
+        .chain(uniforms)
+        {
+            buffer.destroy();
+        }
+    }
+}
+
 fn fr_bytes(values: &[Fr]) -> &[u8] {
     // SAFETY: Fr is four u64 limbs with no padding, the kernel's encoding.
     unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, values.len() * 32) }

@@ -206,7 +206,7 @@ impl Prover {
             return Ok(Box::pin(async move {
                 let parts = wasm_bindgen_futures::JsFuture::from(parts)
                     .await
-                    .map_err(|_| Error::Prove("the GPU failed".into()))?;
+                    .map_err(|e| Error::Prove(format!("the GPU failed: {e:?}")))?;
                 let parts = js_sys::Uint8Array::new(&parts).to_vec();
                 let prove_ms = started.elapsed().as_millis() as u64;
                 finish(&parts, &witness, public, &fixed, &verifying_key, prove_ms)

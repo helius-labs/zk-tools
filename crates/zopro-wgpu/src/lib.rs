@@ -262,6 +262,17 @@ pub mod profile {
         period: f32,
     }
 
+    /// One timer per submission: destroyed rather than left to a browser's
+    /// collector (five 54 → 1 merges in a row ran Chrome's GPU out of
+    /// memory).
+    impl Drop for Timer {
+        fn drop(&mut self) {
+            self.set.destroy();
+            self.resolve.destroy();
+            self.staging.destroy();
+        }
+    }
+
     impl Timer {
         /// Room for `passes` passes, when profiling and the device times.
         pub(crate) fn new(gpu: &crate::Gpu, passes: usize) -> Option<Self> {
@@ -362,7 +373,7 @@ pub struct Gpu {
     /// Set by the device's uncaptured-error handler: wgpu would otherwise
     /// panic, and a driver that refuses a kernel (a Galaxy S25's did) must
     /// only cost the GPU.
-    failed: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    failed: std::sync::Arc<std::sync::OnceLock<String>>,
 }
 
 /// An error scope's verdict: waited for natively; on the web, where nothing
@@ -404,9 +415,9 @@ pub(crate) async fn mapped(
     rx.await
         .map_err(|_| "the mapping was dropped".to_string())?
         .map_err(|e| format!("map: {e}"))?;
-    if gpu.failed() {
+    if let Some(failure) = gpu.failure() {
         buffer.unmap();
-        return Err("the device reported an error".into());
+        return Err(format!("the device reported an error: {failure}"));
     }
     Ok(())
 }
@@ -473,18 +484,18 @@ impl Gpu {
             })
             .await
             .map_err(|e| format!("no device: {e}"))?;
-        let failed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let failed = std::sync::Arc::new(std::sync::OnceLock::new());
         let flag = failed.clone();
         device.on_uncaptured_error(std::sync::Arc::new(move |e| {
             log::error!("zopro wgpu: {e}");
-            flag.store(true, std::sync::atomic::Ordering::SeqCst);
+            let _ = flag.set(e.to_string());
         }));
         // A driver crash (a phone's shader compiler) loses the device with
         // no error in any scope: later buffers are silently invalid.
         let flag = failed.clone();
         device.set_device_lost_callback(Box::new(move |reason, message| {
             log::error!("zopro wgpu: device lost ({reason:?}): {message}");
-            flag.store(true, std::sync::atomic::Ordering::SeqCst);
+            let _ = flag.set(format!("device lost ({reason:?}): {message}"));
         }));
         let cache = caching.then(|| {
             let data = cache_path
@@ -533,7 +544,12 @@ impl Gpu {
 
     /// Whether the device reported an error outside an error scope.
     pub fn failed(&self) -> bool {
-        self.failed.load(std::sync::atomic::Ordering::SeqCst)
+        self.failed.get().is_some()
+    }
+
+    /// The first error the device reported outside an error scope.
+    pub fn failure(&self) -> Option<&str> {
+        self.failed.get().map(String::as_str)
     }
 }
 
@@ -572,6 +588,37 @@ pub struct Msm<C: Curve> {
     most: usize,
     /// The sort on the GPU, with the pre-compiled kernels.
     gpu_sort: Option<GpuSort>,
+}
+
+/// A browser frees a GPU buffer when the collector takes its JavaScript
+/// object, not when it is dropped: the buffers are destroyed here, so that a
+/// key let go frees its hundreds of megabytes at once.
+impl<C: Curve> Drop for Msm<C> {
+    fn drop(&mut self) {
+        let fixed = [
+            &self.bases,
+            &self.sorted,
+            &self.tree[0],
+            &self.tree[1],
+            &self.buckets,
+            &self.sums,
+            &self.staging,
+            &self.reduce_uniform,
+        ];
+        let levels = self.levels.iter().flatten().flatten();
+        let sort = self.gpu_sort.iter().flat_map(|s| {
+            [
+                &s.scalars,
+                &s.counts,
+                &s.counts_staging,
+                &s.cursors,
+                &s.uniform,
+            ]
+        });
+        for buffer in fixed.into_iter().chain(levels).chain(sort) {
+            buffer.destroy();
+        }
+    }
 }
 
 /// Per-pass GPU times of one MSM (ZOPRO_WGPU_STAGES).
