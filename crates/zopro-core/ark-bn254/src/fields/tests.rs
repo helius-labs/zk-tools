@@ -5,6 +5,8 @@ use ark_ff::{
     One, UniformRand, Zero,
 };
 use ark_std::{
+    vec,
+    vec::Vec,
     cmp::Ordering,
     ops::{AddAssign, MulAssign},
 };
@@ -216,4 +218,45 @@ fn test_fq12_mul_by_034() {
 
         assert_eq!(a, b);
     }
+}
+
+/// The branchless addition, subtraction, doubling and negation against
+/// big-integer arithmetic on the representation, at the edges (zero, one,
+/// p - 1, p - 2) and on random elements.
+fn check_add_sub<F: PrimeField<BigInt = BigInteger256>>() {
+    let p = F::MODULUS;
+    let reduce = |mut s: BigInteger256| {
+        if s >= p {
+            s.sub_with_borrow(&p);
+        }
+        s
+    };
+    let mut rng = ark_std::test_rng();
+    let mut values: Vec<F> = vec![F::zero(), F::one(), -F::one(), -F::one() - F::one()];
+    values.extend((0..60).map(|_| F::rand(&mut rng)));
+    for a in &values {
+        for b in &values {
+            let (ra, rb) = (a.into_bigint(), b.into_bigint());
+            let mut sum = ra;
+            sum.add_with_carry(&rb);
+            assert_eq!((*a + b).into_bigint(), reduce(sum));
+            let mut difference = ra;
+            if rb > ra {
+                difference.add_with_carry(&p);
+            }
+            difference.sub_with_borrow(&rb);
+            assert_eq!((*a - b).into_bigint(), difference);
+        }
+        let mut negated = p;
+        negated.sub_with_borrow(&a.into_bigint());
+        let expected = if a.is_zero() { BigInteger256::zero() } else { negated };
+        assert_eq!((-*a).into_bigint(), expected);
+        assert_eq!(a.double(), *a + a);
+    }
+}
+
+#[test]
+fn branchless_add_sub() {
+    check_add_sub::<Fq>();
+    check_add_sub::<Fr>();
 }

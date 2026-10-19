@@ -157,9 +157,27 @@ fn field() {
         z *= b2;
     }
     let mul2 = started.elapsed().as_nanos() as f64 / n as f64;
+    // Four independent chains: the throughput an out-of-order core reaches
+    // when the products do not wait on each other.
+    let started = Instant::now();
+    let mut w = [a2, b2, a2 + b2, a2 - b2];
+    for _ in 0..n / 4 {
+        for v in w.iter_mut() {
+            *v *= b2;
+        }
+    }
+    let mul2_independent = started.elapsed().as_nanos() as f64 / n as f64;
+    let started = Instant::now();
+    let mut u = [a, b, a + b, a - b];
+    for _ in 0..n / 4 {
+        for v in u.iter_mut() {
+            *v *= b;
+        }
+    }
+    let mul_independent = started.elapsed().as_nanos() as f64 / n as f64;
     println!(
-        "ZOPRO field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} {}",
-        (x + y).0 .0[0] ^ z.c0.0 .0[0]
+        "ZOPRO field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} independent: fq_mul_ns={mul_independent:.2} fq2_mul_ns={mul2_independent:.2} {}",
+        (x + y + u[0]).0 .0[0] ^ (z + w[0]).c0.0 .0[0]
     );
 }
 

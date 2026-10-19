@@ -514,3 +514,141 @@ mod tests {
         }
     }
 }
+
+// Addition, subtraction and negation without branches: arkworks' compare
+// and conditionally adjust, and the branch on random field elements is
+// mispredicted half the time (a quarter of a G2 MSM's time went to Fq2
+// subtractions on an M5 Pro). Inputs reduced modulo p < 2^254.
+
+/// a + b mod p: the sum (below 2p, no carry out of 256 bits) less p unless
+/// that borrows.
+#[inline(always)]
+pub fn add(a: BigInt<4>, b: BigInt<4>, p: BigInt<4>) -> BigInt<4> {
+    let (r0, r1, r2, r3): (u64, u64, u64, u64);
+    // SAFETY: registers only.
+    unsafe {
+        core::arch::asm!(
+            "adds {s0}, {s0}, {b0}",
+            "adcs {s1}, {s1}, {b1}",
+            "adcs {s2}, {s2}, {b2}",
+            "adc {s3}, {s3}, {b3}",
+            "subs {d0}, {s0}, {p0}",
+            "sbcs {d1}, {s1}, {p1}",
+            "sbcs {d2}, {s2}, {p2}",
+            "sbcs {d3}, {s3}, {p3}",
+            "csel {r0}, {s0}, {d0}, lo",
+            "csel {r1}, {s1}, {d1}, lo",
+            "csel {r2}, {s2}, {d2}, lo",
+            "csel {r3}, {s3}, {d3}, lo",
+            s0 = inout(reg) a.0[0] => _,
+            s1 = inout(reg) a.0[1] => _,
+            s2 = inout(reg) a.0[2] => _,
+            s3 = inout(reg) a.0[3] => _,
+            b0 = in(reg) b.0[0],
+            b1 = in(reg) b.0[1],
+            b2 = in(reg) b.0[2],
+            b3 = in(reg) b.0[3],
+            p0 = in(reg) p.0[0],
+            p1 = in(reg) p.0[1],
+            p2 = in(reg) p.0[2],
+            p3 = in(reg) p.0[3],
+            d0 = out(reg) _,
+            d1 = out(reg) _,
+            d2 = out(reg) _,
+            d3 = out(reg) _,
+            r0 = lateout(reg) r0,
+            r1 = lateout(reg) r1,
+            r2 = lateout(reg) r2,
+            r3 = lateout(reg) r3,
+            options(pure, nomem, nostack),
+        );
+    }
+    BigInt([r0, r1, r2, r3])
+}
+
+/// a - b mod p: the difference, plus p when it borrows.
+#[inline(always)]
+pub fn sub(a: BigInt<4>, b: BigInt<4>, p: BigInt<4>) -> BigInt<4> {
+    let (r0, r1, r2, r3): (u64, u64, u64, u64);
+    // SAFETY: registers only.
+    unsafe {
+        core::arch::asm!(
+            "subs {d0}, {d0}, {b0}",
+            "sbcs {d1}, {d1}, {b1}",
+            "sbcs {d2}, {d2}, {b2}",
+            "sbcs {d3}, {d3}, {b3}",
+            "csel {m0}, {p0}, xzr, lo",
+            "csel {m1}, {p1}, xzr, lo",
+            "csel {m2}, {p2}, xzr, lo",
+            "csel {m3}, {p3}, xzr, lo",
+            "adds {r0}, {d0}, {m0}",
+            "adcs {r1}, {d1}, {m1}",
+            "adcs {r2}, {d2}, {m2}",
+            "adc {r3}, {d3}, {m3}",
+            d0 = inout(reg) a.0[0] => _,
+            d1 = inout(reg) a.0[1] => _,
+            d2 = inout(reg) a.0[2] => _,
+            d3 = inout(reg) a.0[3] => _,
+            b0 = in(reg) b.0[0],
+            b1 = in(reg) b.0[1],
+            b2 = in(reg) b.0[2],
+            b3 = in(reg) b.0[3],
+            p0 = in(reg) p.0[0],
+            p1 = in(reg) p.0[1],
+            p2 = in(reg) p.0[2],
+            p3 = in(reg) p.0[3],
+            m0 = out(reg) _,
+            m1 = out(reg) _,
+            m2 = out(reg) _,
+            m3 = out(reg) _,
+            r0 = lateout(reg) r0,
+            r1 = lateout(reg) r1,
+            r2 = lateout(reg) r2,
+            r3 = lateout(reg) r3,
+            options(pure, nomem, nostack),
+        );
+    }
+    BigInt([r0, r1, r2, r3])
+}
+
+/// -a mod p: p - a, or zero for zero.
+#[inline(always)]
+pub fn neg(a: BigInt<4>, p: BigInt<4>) -> BigInt<4> {
+    let (r0, r1, r2, r3): (u64, u64, u64, u64);
+    // SAFETY: registers only.
+    unsafe {
+        core::arch::asm!(
+            "subs {d0}, {p0}, {a0}",
+            "sbcs {d1}, {p1}, {a1}",
+            "sbcs {d2}, {p2}, {a2}",
+            "sbc {d3}, {p3}, {a3}",
+            "orr {z}, {a0}, {a1}",
+            "orr {z}, {z}, {a2}",
+            "orr {z}, {z}, {a3}",
+            "cmp {z}, #0",
+            "csel {r0}, {d0}, xzr, ne",
+            "csel {r1}, {d1}, xzr, ne",
+            "csel {r2}, {d2}, xzr, ne",
+            "csel {r3}, {d3}, xzr, ne",
+            a0 = in(reg) a.0[0],
+            a1 = in(reg) a.0[1],
+            a2 = in(reg) a.0[2],
+            a3 = in(reg) a.0[3],
+            p0 = in(reg) p.0[0],
+            p1 = in(reg) p.0[1],
+            p2 = in(reg) p.0[2],
+            p3 = in(reg) p.0[3],
+            d0 = out(reg) _,
+            d1 = out(reg) _,
+            d2 = out(reg) _,
+            d3 = out(reg) _,
+            z = out(reg) _,
+            r0 = lateout(reg) r0,
+            r1 = lateout(reg) r1,
+            r2 = lateout(reg) r2,
+            r3 = lateout(reg) r3,
+            options(pure, nomem, nostack),
+        );
+    }
+    BigInt([r0, r1, r2, r3])
+}

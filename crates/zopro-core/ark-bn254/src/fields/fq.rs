@@ -26,6 +26,27 @@ impl MontConfig<4> for FqConfig {
     fn square_in_place(a: &mut Fq) {
         a.0 = crate::mont_arm64::multiply(a.0, a.0, Self::MODULUS, Self::INV)
     }
+    // Without branches (mont_arm64::add).
+    #[cfg(all(target_arch = "aarch64", not(no_asm)))]
+    #[inline(always)]
+    fn add_assign(a: &mut Fq, b: &Fq) {
+        a.0 = crate::mont_arm64::add(a.0, b.0, Self::MODULUS)
+    }
+    #[cfg(all(target_arch = "aarch64", not(no_asm)))]
+    #[inline(always)]
+    fn sub_assign(a: &mut Fq, b: &Fq) {
+        a.0 = crate::mont_arm64::sub(a.0, b.0, Self::MODULUS)
+    }
+    #[cfg(all(target_arch = "aarch64", not(no_asm)))]
+    #[inline(always)]
+    fn double_in_place(a: &mut Fq) {
+        a.0 = crate::mont_arm64::add(a.0, a.0, Self::MODULUS)
+    }
+    #[cfg(all(target_arch = "aarch64", not(no_asm)))]
+    #[inline(always)]
+    fn neg_in_place(a: &mut Fq) {
+        a.0 = crate::mont_arm64::neg(a.0, Self::MODULUS)
+    }
     // Fq2's product is two sums of two products: one reduction each
     // (arkworks' generic sum took an Fq2 product to 4-5 Fq products' time
     // on a Snapdragon 8 Elite and a Cortex-A78).

@@ -35,6 +35,27 @@ impl MontConfig<4> for FrConfig {
     fn square_in_place(a: &mut Fr) {
         a.0 = crate::mont_arm64::multiply(a.0, a.0, Self::MODULUS, Self::INV)
     }
+    // Without branches (mont_arm64::add).
+    #[cfg(all(target_arch = "aarch64", not(no_asm)))]
+    #[inline(always)]
+    fn add_assign(a: &mut Fr, b: &Fr) {
+        a.0 = crate::mont_arm64::add(a.0, b.0, Self::MODULUS)
+    }
+    #[cfg(all(target_arch = "aarch64", not(no_asm)))]
+    #[inline(always)]
+    fn sub_assign(a: &mut Fr, b: &Fr) {
+        a.0 = crate::mont_arm64::sub(a.0, b.0, Self::MODULUS)
+    }
+    #[cfg(all(target_arch = "aarch64", not(no_asm)))]
+    #[inline(always)]
+    fn double_in_place(a: &mut Fr) {
+        a.0 = crate::mont_arm64::add(a.0, a.0, Self::MODULUS)
+    }
+    #[cfg(all(target_arch = "aarch64", not(no_asm)))]
+    #[inline(always)]
+    fn neg_in_place(a: &mut Fr) {
+        a.0 = crate::mont_arm64::neg(a.0, Self::MODULUS)
+    }
     #[cfg(target_arch = "wasm32")]
     #[inline(always)]
     fn mul_assign(a: &mut Fr, b: &Fr) {
