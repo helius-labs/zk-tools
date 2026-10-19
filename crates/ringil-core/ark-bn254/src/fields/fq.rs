@@ -26,6 +26,28 @@ impl MontConfig<4> for FqConfig {
     fn square_in_place(a: &mut Fq) {
         a.0 = crate::mont_arm64::multiply(a.0, a.0, Self::MODULUS, Self::INV)
     }
+    // Fq2's product is two sums of two products: one reduction each
+    // (arkworks' generic sum took an Fq2 product to 4-5 Fq products' time
+    // on a Snapdragon 8 Elite and a Cortex-A78).
+    #[cfg(all(target_arch = "aarch64", not(no_asm)))]
+    #[inline(always)]
+    fn sum_of_products<const M: usize>(a: &[Fq; M], b: &[Fq; M]) -> Fq {
+        if M == 2 {
+            return Fq::new_unchecked(crate::mont_arm64::sum2(
+                a[0].0,
+                b[0].0,
+                a[1].0,
+                b[1].0,
+                Self::MODULUS,
+                Self::INV,
+            ));
+        }
+        let mut out = Fq::new_unchecked(ark_ff::BigInt([0; 4]));
+        for i in 0..M {
+            out += a[i] * b[i]
+        }
+        out
+    }
     #[cfg(target_arch = "wasm32")]
     #[inline(always)]
     fn mul_assign(a: &mut Fq, b: &Fq) {
