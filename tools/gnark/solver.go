@@ -1,4 +1,4 @@
-package main
+package zoprognark
 
 import (
 	"math"
@@ -16,13 +16,11 @@ var kernelHints = map[string]uint32{
 	"github.com/consensys/gnark/std/math/bits.nBits": 1,
 }
 
-// gnark 0.15 represents GKR work through custom blueprints/hints, which
-// are rejected below along with every non-generic instruction.
-// Export ordinary R1Cs and the hints of kernelHints, in gnark's dependency
-// order. Other hints, custom blueprints, commitments, GKR and Println retain
-// the original Go solver. Rust validates the dimensions, topology and
-// coefficient table before use. The versioned bridge is internal to the
-// generated Go/Rust pair.
+// kernelSolverProgram is the kernel's solver program for a constraint
+// system: its R1Cs and the hints of kernelHints, in gnark's dependency
+// order; nil for a system the kernel cannot solve (other hints, custom
+// blueprints such as GKR's, commitments, Println). The kernel validates the
+// dimensions, topology and coefficient table before use.
 func kernelSolverProgram(r1cs *cs.R1CS, infinityA, infinityB []bool) []uint32 {
 	commitments, ok := r1cs.CommitmentInfo.(constraint.Groth16Commitments)
 	if !ok || len(commitments) != 0 || len(r1cs.Logs) != 0 || r1cs.Type != constraint.SystemR1CS {

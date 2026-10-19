@@ -92,6 +92,21 @@ pub struct VerifyingKey {
     k: Vec<G1Affine>,
 }
 
+/// A raw verifying key's alpha, beta and delta, which a proving key's
+/// fixed points must be.
+pub fn fixed_points(bytes: &[u8]) -> Result<crate::groth16::FixedPoints, &'static str> {
+    let short = "verifying key too short";
+    let g1 = |at: usize| bytes.get(at..at + 64).ok_or(short).and_then(raw_g1);
+    let g2 = |at: usize| bytes.get(at..at + 128).ok_or(short).and_then(raw_g2);
+    Ok(crate::groth16::FixedPoints {
+        alpha: g1(0)?,
+        beta: g1(64)?,
+        delta: g1(384)?,
+        beta2: g2(128)?,
+        delta2: g2(448)?,
+    })
+}
+
 impl VerifyingKey {
     /// From gnark's raw encoding: alpha, beta (G1), beta, gamma (G2), delta
     /// (G1), delta (G2), the K points (a big-endian count), then the
@@ -190,53 +205,16 @@ impl Proof {
         })
     }
 
-    /// From the hex coordinates of `to_json`.
-    pub fn from_json(json: &serde_json::Value) -> Result<Self, &'static str> {
-        let hex = |value: &serde_json::Value| -> Result<Fq, &'static str> {
-            let text = value.as_str().ok_or("a coordinate is a string")?;
-            let text = text
-                .strip_prefix("0x")
-                .ok_or("a coordinate starts with 0x")?;
-            if text.len() != 64 {
-                return Err("a coordinate is 64 hex digits");
-            }
-            let mut bytes = [0u8; 32];
-            for (i, byte) in bytes.iter_mut().enumerate() {
-                *byte = u8::from_str_radix(&text[2 * i..2 * i + 2], 16).map_err(|_| "not hex")?;
-            }
-            coordinate(&bytes)
-        };
-        let g1 = |value: &serde_json::Value| -> Result<G1Affine, &'static str> {
-            let pair = value
-                .as_array()
-                .filter(|a| a.len() == 2)
-                .ok_or("a G1 point is [x, y]")?;
-            let point = G1Affine::new_unchecked(hex(&pair[0])?, hex(&pair[1])?);
-            if !point.is_on_curve() || !point.is_in_correct_subgroup_assuming_on_curve() {
-                return Err("G1 point not on the curve");
-            }
-            Ok(point)
-        };
-        let fq2 = |value: &serde_json::Value| -> Result<Fq2, &'static str> {
-            let pair = value
-                .as_array()
-                .filter(|a| a.len() == 2)
-                .ok_or("an Fq2 is [c1, c0]")?;
-            Ok(Fq2::new(hex(&pair[1])?, hex(&pair[0])?))
-        };
-        let bs = json["bs"]
-            .as_array()
-            .filter(|a| a.len() == 2)
-            .ok_or("bs is [x, y]")?;
-        let bs = G2Affine::new_unchecked(fq2(&bs[0])?, fq2(&bs[1])?);
-        if !bs.is_on_curve() || !bs.is_in_correct_subgroup_assuming_on_curve() {
-            return Err("G2 point not on the curve");
+    /// `from_raw`'s 256 bytes.
+    pub fn to_raw(&self) -> Vec<u8> {
+        let mut out = Vec::with_capacity(256);
+        for v in [&self.ar.x, &self.ar.y, &self.krs.x, &self.krs.y] {
+            be(v, &mut out);
         }
-        Ok(Self {
-            ar: g1(&json["ar"])?,
-            bs,
-            krs: g1(&json["krs"])?,
-        })
+        for v in [&self.bs.x.c1, &self.bs.x.c0, &self.bs.y.c1, &self.bs.y.c0] {
+            be(v, &mut out);
+        }
+        out
     }
 
     /// gnark's compressed proof (`Proof.WriteTo`): Ar, Bs, Krs compressed,
@@ -250,26 +228,6 @@ impl Proof {
         out.extend_from_slice(&0u32.to_be_bytes());
         out.extend_from_slice(&compress_g1(&G1Affine::identity()));
         out
-    }
-
-    /// The SDKs' proof JSON: `ar` [x, y], `bs` [[x.c1, x.c0], [y.c1, y.c0]],
-    /// `krs` [x, y], each coordinate 0x and 64 hex digits, and the proving
-    /// key's digest when given.
-    pub fn to_json(&self, proving_key_sha256: Option<&str>) -> serde_json::Value {
-        let hex = |value: &Fq| {
-            let mut out = Vec::with_capacity(32);
-            be(value, &mut out);
-            serde_json::Value::String(format!("0x{}", hex_of(&out)))
-        };
-        let mut json = serde_json::json!({
-            "ar": [hex(&self.ar.x), hex(&self.ar.y)],
-            "bs": [[hex(&self.bs.x.c1), hex(&self.bs.x.c0)], [hex(&self.bs.y.c1), hex(&self.bs.y.c0)]],
-            "krs": [hex(&self.krs.x), hex(&self.krs.y)],
-        });
-        if let Some(digest) = proving_key_sha256 {
-            json["provingKeySha256"] = serde_json::Value::String(digest.into());
-        }
-        json
     }
 }
 

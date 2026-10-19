@@ -1,12 +1,17 @@
-//! Zolana's Groth16 prover in Rust alone: a zopro key (`zopro_core::artifact`)
-//! and a proof request as the SDKs send them (the same JSON gnark's Go
-//! prover took) give a proof, verified before it leaves, in gnark's formats
-//! for the chain and gnark's verifier.
+//! A Groth16 prover over BN254 for gnark circuits, without gnark: a zopro
+//! key (`zopro_core::artifact`, built offline from gnark's constraint
+//! system and keys by `tools/gnark`) and the circuit's inputs by gnark's
+//! names give a proof in gnark's formats, verified with the key's verifying
+//! key before it is returned.
 //!
-//! gnark stays the reference offline — the circuits are gnark circuits and
-//! the keys come from them — so the client does only what the Go glue did:
-//! decode and check the request, place its values on the circuit's inputs
-//! by name, solve, prove, verify, encode.
+//! ```ignore
+//! let mut prover = Prover::load(&std::fs::read("cubic.zopro")?)?;
+//! let mut assignment = Assignment::default();
+//! assignment.set("X".into(), Fr::from(3u64));
+//! assignment.set("Y".into(), Fr::from(35u64));
+//! let proved = prover.prove(&prover.witness(&assignment)?)?;
+//! let (proof, public) = (proved.proof.to_gnark(), proved.public_witness());
+//! ```
 use ark_bn254::Fr;
 use zopro_core::{
     Key,
@@ -15,94 +20,64 @@ use zopro_core::{
     verify::{Proof, VerifyingKey, public_witness},
 };
 
-mod merge;
-pub mod request;
-mod transfer;
+pub mod raw;
 pub mod witness;
 
-pub use request::Error;
-/// The kernel, for hosts that cache its solver images and read key files.
+pub use witness::Assignment;
+/// The kernel, for hosts that read key files and cache solver images.
 pub use zopro_core;
 
-/// The circuits' assignments, for tests against the Go prover's witnesses.
-#[doc(hidden)]
-pub mod test_support {
-    pub use crate::merge::assign as merge;
-    pub use crate::transfer::assign as transfer;
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Error {
+    /// The assignment does not give the key's inputs.
+    Witness(String),
+    /// The kernel could not prove (an unsatisfied constraint, a failed GPU).
+    Prove(String),
+    /// The proof did not verify with the key's verifying key.
+    Unverified,
 }
 
-/// The circuits the SDKs prove with, by the request's `circuitType` and
-/// the key's name.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Circuit {
-    TransferConfidential,
-    TransferRing,
-    TransferRingAuthority,
-    Merge,
-    MergeRing,
-}
-
-impl Circuit {
-    pub fn from_type(circuit_type: &str) -> Option<Self> {
-        Some(match circuit_type {
-            "transfer-confidential" => Self::TransferConfidential,
-            "transfer-ring" => Self::TransferRing,
-            "transfer-ring-authority" => Self::TransferRingAuthority,
-            "merge" => Self::Merge,
-            "merge-ring" => Self::MergeRing,
-            _ => return None,
-        })
-    }
-
-    /// From a key's name: `transfer_confidential_2_2`, `merge_24_1`,
-    /// `transfer_ring_authority_2_2`, ...
-    pub fn from_key_name(name: &str) -> Option<Self> {
-        Some(if name.starts_with("transfer_confidential_") {
-            Self::TransferConfidential
-        } else if name.starts_with("transfer_ring_authority_") {
-            Self::TransferRingAuthority
-        } else if name.starts_with("transfer_ring_") {
-            Self::TransferRing
-        } else if name.starts_with("merge_ring_") {
-            Self::MergeRing
-        } else if name.starts_with("merge_") {
-            Self::Merge
-        } else {
-            return None;
-        })
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Witness(message) | Self::Prove(message) => f.write_str(message),
+            Self::Unverified => f.write_str("the proof did not verify"),
+        }
     }
 }
 
-/// A proof as the SDKs return it.
+impl std::error::Error for Error {}
+
+/// A verified proof.
 #[derive(Clone, Debug)]
-pub struct ProofResult {
-    /// gnark's compressed proof (`Proof.WriteTo`).
-    pub proof: Vec<u8>,
-    /// gnark's binary public witness.
-    pub public_inputs: Vec<u8>,
-    /// The proof's coordinates in the SDKs' JSON.
-    pub proof_json: serde_json::Value,
-    /// Decoding the request and placing its values.
-    pub witness_ms: u64,
+pub struct Proved {
+    pub proof: Proof,
+    /// The public inputs it proves, the constant one apart.
+    pub public: Vec<Fr>,
     /// Solving, the MSMs and the assembly.
     pub prove_ms: u64,
     /// Checking the proof.
     pub verify_ms: u64,
 }
 
-/// A loaded zopro key, ready to prove requests for its circuit.
+impl Proved {
+    /// gnark's binary public witness.
+    pub fn public_witness(&self) -> Vec<u8> {
+        public_witness(&self.public)
+    }
+}
+
+/// A loaded zopro key.
 pub struct Prover {
     key: Key,
     verifying_key: VerifyingKey,
     fixed: FixedPoints,
-    circuit: Circuit,
     name: String,
-    inputs: u32,
-    outputs: u32,
-    /// The inputs' names in the key's order, the constant one apart.
+    metadata: Vec<u8>,
+    /// The inputs' names in the key's order, public then secret, the
+    /// constant one apart.
     names: Vec<String>,
-    /// The key's digest, 64 hex digits, for the proof JSON.
-    digest: String,
+    public: usize,
 }
 
 impl Prover {
@@ -121,23 +96,26 @@ impl Prover {
         vectors: &[Vec<u8>; 5],
         solver_image: Option<&[u8]>,
     ) -> Result<Self, String> {
-        let circuit = Circuit::from_key_name(artifact.name)
-            .ok_or_else(|| format!("no circuit for a key named {}", artifact.name))?;
-        let key = artifact.key(vectors, solver_image)?;
+        let names: Vec<String> = artifact
+            .input_names()
+            .iter()
+            .map(|n| (*n).to_owned())
+            .collect();
+        let public = artifact.public as usize - 1;
+        let verifying_key = artifact.verifying_key()?;
+        if verifying_key.public_inputs() != public
+            || names.len() != public + artifact.secret as usize
+        {
+            return Err("the key's inputs do not match its verifying key".into());
+        }
         Ok(Self {
-            key,
-            verifying_key: artifact.verifying_key()?,
+            key: artifact.key(vectors, solver_image)?,
+            verifying_key,
             fixed: artifact.fixed_points()?,
-            circuit,
             name: artifact.name.to_owned(),
-            inputs: artifact.inputs,
-            outputs: artifact.outputs,
-            names: artifact
-                .input_names()
-                .iter()
-                .map(|n| (*n).to_owned())
-                .collect(),
-            digest: zopro_core::verify::hex_of(&artifact.digest),
+            metadata: artifact.metadata.to_vec(),
+            names,
+            public,
         })
     }
 
@@ -145,13 +123,19 @@ impl Prover {
         &self.name
     }
 
-    pub fn circuit(&self) -> Circuit {
-        self.circuit
+    /// What the application that built the key keeps in it.
+    pub fn metadata(&self) -> &[u8] {
+        &self.metadata
     }
 
-    /// The circuit's shape: inputs and outputs.
-    pub fn shape(&self) -> (u32, u32) {
-        (self.inputs, self.outputs)
+    /// The inputs' names in the key's order: the public ones
+    /// (`public_inputs` of them), then the secret ones.
+    pub fn names(&self) -> &[String] {
+        &self.names
+    }
+
+    pub fn public_inputs(&self) -> usize {
+        self.public
     }
 
     /// The kernel's solver image, for a host to cache beside the key.
@@ -159,136 +143,126 @@ impl Prover {
         self.key.solver_image()
     }
 
-    /// The witness the request assigns, in the key's order: for tests and
-    /// tools; `prove` builds it itself.
-    pub fn witness(&self, request: &str) -> Result<Vec<Fr>, Error> {
-        let assignment = self.assignment(request)?;
-        witness::order(&assignment, &self.names)
+    /// Whether proofs run on a GPU.
+    pub fn has_gpu(&self) -> bool {
+        self.key.has_gpu()
     }
 
-    fn assignment(&self, request: &str) -> Result<witness::Assignment, Error> {
-        let json = request::parse(request)?;
-        let circuit_type = json["circuitType"].as_str().ok_or(Error::Request)?;
-        let circuit = Circuit::from_type(circuit_type).ok_or(Error::Unsupported)?;
-        if circuit != self.circuit {
-            return Err(Error::Shape);
-        }
-        match circuit {
-            Circuit::TransferConfidential
-            | Circuit::TransferRing
-            | Circuit::TransferRingAuthority => {
-                transfer::assign(&json, circuit, self.inputs, self.outputs, &self.names)
-            }
-            Circuit::Merge | Circuit::MergeRing => merge::assign(&json, circuit, self.inputs),
-        }
+    /// Proves on the CPU from now on.
+    pub fn drop_gpu(&mut self) {
+        self.key.drop_gpu();
     }
 
-    /// The request's witness, encoded for the kernel, with its public
-    /// values; the first step of a proof.
-    fn prepare(&self, request: &str) -> Result<Prepared, Error> {
-        let started = zopro_core::time::Instant::now();
-        let values = self.witness(request)?;
-        let public: Vec<Fr> = values[..self.names.len() - secret_count(&self.names)].to_vec();
-        let encoded = witness::encode(&values);
-        Ok(Prepared {
-            public,
-            encoded,
-            witness_ms: started.elapsed().as_millis() as u64,
-        })
+    /// The witness vector of `assignment`, in the key's order.
+    pub fn witness(&self, assignment: &Assignment) -> Result<Vec<Fr>, Error> {
+        witness::order(assignment, &self.names)
     }
 
-    /// Proves `request`: the proof is verified with the key's verifying key
-    /// before it is returned; a GPU proof that fails to verify is proved
-    /// again on the CPU, and the GPU is let go.
-    pub fn prove(&mut self, request: &str) -> Result<ProofResult, Error> {
-        let prepared = self.prepare(request)?;
-        let (mut prove_ms, mut verify_ms) = (0, 0);
+    /// Proves `witness` (the key's order): the proof is verified before it
+    /// is returned; a GPU proof that fails to verify is proved again on the
+    /// CPU, and the GPU is let go.
+    pub fn prove(&mut self, witness: &[Fr]) -> Result<Proved, Error> {
+        let encoded = self.encode(witness)?;
         loop {
             let started = zopro_core::time::Instant::now();
-            let parts = self.key.solve(&prepared.encoded).map_err(Error::Prove)?;
-            prove_ms += started.elapsed().as_millis() as u64;
-            match self.finish(&parts, &prepared, prove_ms, verify_ms) {
-                Ok(result) => return Ok(result),
-                Err(Unverified { verify_ms: ms }) if self.key.has_gpu() => {
-                    verify_ms = ms;
+            let parts = self.key.solve(&encoded).map_err(Error::Prove)?;
+            let prove_ms = started.elapsed().as_millis() as u64;
+            match finish(
+                &parts,
+                witness,
+                self.public,
+                &self.fixed,
+                &self.verifying_key,
+                prove_ms,
+            ) {
+                Err(_) if self.key.has_gpu() => {
                     log::warn!("zopro: a GPU proof did not verify; proving on the CPU from now on");
                     self.key.drop_gpu();
                 }
-                Err(_) => return Err(Error::Prove("the proof did not verify".into())),
+                result => return result,
             }
         }
     }
 
-    /// The proof from the kernel's parts, verified and encoded.
-    fn finish(
+    /// `prove` in a browser: the GPU's work is awaited. A proof that does
+    /// not verify is `Error::Unverified`, the GPU kept: the caller lets it
+    /// go (`drop_gpu`) and proves again.
+    #[cfg(target_arch = "wasm32")]
+    pub fn prove_async(
         &self,
-        parts: &[u8],
-        prepared: &Prepared,
-        prove_ms: u64,
-        verify_ms: u64,
-    ) -> Result<ProofResult, Unverified> {
-        finish(
-            parts,
-            prepared,
+        witness: &[Fr],
+    ) -> Result<std::pin::Pin<Box<dyn std::future::Future<Output = Result<Proved, Error>>>>, Error>
+    {
+        let encoded = self.encode(witness)?;
+        let started = zopro_core::time::Instant::now();
+        #[cfg(feature = "wgpu")]
+        if self.key.has_gpu() {
+            let parts = self
+                .key
+                .solve_parts_gpu(&encoded)
+                .map_err(|_| Error::Prove("the GPU could not start".into()))?;
+            let (witness, public, fixed) = (witness.to_vec(), self.public, self.fixed);
+            let verifying_key = self.verifying_key.clone();
+            return Ok(Box::pin(async move {
+                let parts = wasm_bindgen_futures::JsFuture::from(parts)
+                    .await
+                    .map_err(|_| Error::Prove("the GPU failed".into()))?;
+                let parts = js_sys::Uint8Array::new(&parts).to_vec();
+                let prove_ms = started.elapsed().as_millis() as u64;
+                finish(&parts, &witness, public, &fixed, &verifying_key, prove_ms)
+            }));
+        }
+        let parts = self.key.solve(&encoded).map_err(Error::Prove)?;
+        let prove_ms = started.elapsed().as_millis() as u64;
+        let result = finish(
+            &parts,
+            witness,
+            self.public,
             &self.fixed,
             &self.verifying_key,
-            &self.digest,
             prove_ms,
-            verify_ms,
-        )
+        );
+        Ok(Box::pin(async move { result }))
     }
 
-    /// Whether a proof (gnark's compressed encoding or the SDKs' JSON) proves
-    /// the request's public input.
+    /// Whether `proof` proves `public` (the constant one apart).
     pub fn verify(&self, proof: &Proof, public: &[Fr]) -> bool {
         self.verifying_key.verify(proof, public)
     }
+
+    fn encode(&self, witness: &[Fr]) -> Result<Vec<u8>, Error> {
+        if witness.len() != self.names.len() {
+            return Err(Error::Witness(format!(
+                "the key takes {} inputs, not {}",
+                self.names.len(),
+                witness.len()
+            )));
+        }
+        Ok(witness::encode(witness))
+    }
 }
 
-/// How many of the names are secret: every circuit has one public input,
-/// its hash, first.
-fn secret_count(names: &[String]) -> usize {
-    names.len() - 1
-}
-
-/// A request's witness, ready for the kernel.
-struct Prepared {
-    public: Vec<Fr>,
-    encoded: Vec<u8>,
-    witness_ms: u64,
-}
-
-/// A proof that did not verify, with the time the check took.
-struct Unverified {
-    verify_ms: u64,
-}
-
-/// The proof from the kernel's parts, verified and encoded.
+/// The proof from the kernel's parts, verified.
 fn finish(
     parts: &[u8],
-    prepared: &Prepared,
+    witness: &[Fr],
+    public: usize,
     fixed: &FixedPoints,
     verifying_key: &VerifyingKey,
-    digest: &str,
     prove_ms: u64,
-    verify_ms: u64,
-) -> Result<ProofResult, Unverified> {
+) -> Result<Proved, Error> {
     let started = zopro_core::time::Instant::now();
-    let raw = groth16::assemble(parts, fixed);
-    let proof = Proof::from_raw(&raw).ok();
-    let verified = proof.is_some_and(|proof| verifying_key.verify(&proof, &prepared.public));
-    let verify_ms = verify_ms + started.elapsed().as_millis() as u64;
-    match (verified, proof) {
-        (true, Some(proof)) => Ok(ProofResult {
-            proof: proof.to_gnark(),
-            public_inputs: public_witness(&prepared.public),
-            proof_json: proof.to_json(Some(digest)),
-            witness_ms: prepared.witness_ms,
-            prove_ms,
-            verify_ms,
-        }),
-        _ => Err(Unverified { verify_ms }),
+    let public = witness[..public].to_vec();
+    let proof = Proof::from_raw(&groth16::assemble(parts, fixed)).map_err(|_| Error::Unverified)?;
+    if !verifying_key.verify(&proof, &public) {
+        return Err(Error::Unverified);
     }
+    Ok(Proved {
+        proof,
+        public,
+        prove_ms,
+        verify_ms: started.elapsed().as_millis() as u64,
+    })
 }
 
 #[cfg(target_arch = "wasm32")]

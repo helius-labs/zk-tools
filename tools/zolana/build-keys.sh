@@ -2,11 +2,11 @@
 # Builds a zopro key for every confidential transfer and merge key of a
 # gnark key set, and the zopro-keys.lock that pins them: downloads each
 # gnark key from the key set's CDN folder and checks it against the gnark
-# lockfile, writes its parts with TestZoproDump, packs them with
-# `zopro-bench pack`, and deletes the key and the parts (one key at a time,
-# for the disk). Keys already in <out> are kept.
+# lockfile, writes its parts and Zolana metadata with TestZoproDump, packs
+# them with `zopro-bench pack`, and deletes the key and the parts (one key
+# at a time, for the disk). Keys already in <out> are kept.
 #
-#   tools/gnark/build-keys.sh <gnark proving-keys.lock> <out> [<CDN base>]
+#   tools/zolana/build-keys.sh <gnark proving-keys.lock> <out> [<CDN base>]
 #
 # The CDN base defaults to the Zolana key CDN; the lockfile's prefix names
 # the folder. Needs ./fetch-zolana.sh first.
@@ -56,7 +56,11 @@ for name, entry in sorted(gnark["keys"].items()):
         continue
     file = name[:-4] + ".zopro"
     data = open(os.path.join(out, file), "rb").read()
-    if data[72:104].hex() != entry["sha256"]:
+    # The metadata blob, after the 564-byte fixed part and the name's blob.
+    at = 564
+    at += 4 + int.from_bytes(data[at:at + 4], "little")
+    size = int.from_bytes(data[at:at + 4], "little")
+    if json.loads(data[at + 4:at + 4 + size]).get("keySha256") != entry["sha256"]:
         sys.exit(f"{file} was not built from the pinned {name}")
     keys[name] = {"file": file, "size": len(data), "sha256": hashlib.sha256(data).hexdigest(), "key_sha256": entry["sha256"]}
 lock = {"prefix": gnark["prefix"], "baseUrl": f"{cdn}/{gnark['prefix']}/", "keys": keys}

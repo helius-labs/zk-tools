@@ -10,7 +10,6 @@ use zopro_core::verify::{compress_g1, compress_g2, public_witness, Proof, Verify
 const VK: &[u8] = include_bytes!("fixtures/transfer-2x2.vk");
 const PROOF: &[u8] = include_bytes!("fixtures/transfer-2x2.proof");
 const PUBLIC: &[u8] = include_bytes!("fixtures/transfer-2x2.public");
-const RESPONSE: &str = include_str!("fixtures/transfer-2x2.response.json");
 
 fn key() -> VerifyingKey {
     VerifyingKey::decode_raw(VK).expect("the fixture's verifying key")
@@ -33,22 +32,9 @@ fn verifies_the_kernels_proof() {
 }
 
 #[test]
-fn verifies_the_sdks_response() {
-    let response: serde_json::Value = serde_json::from_str(RESPONSE).unwrap();
-    let proof = Proof::from_json(&response["proof"]).unwrap();
-    let hash = response["publicInputHash"].as_str().unwrap();
-    let bytes: Vec<u8> = (0..32)
-        .map(|i| u8::from_str_radix(&hash[2 + 2 * i..4 + 2 * i], 16).unwrap())
-        .collect();
-    let public = Fr::from_be_bytes_mod_order(&bytes);
-    assert!(key().verify(&proof, &[public]));
-    // The JSON round trip is exact.
-    assert_eq!(proof.to_json(None), response["proof"]);
-}
-
-#[test]
 fn gnark_encodings_round_trip() {
     let proof = Proof::from_raw(PROOF).unwrap();
+    assert_eq!(proof.to_raw(), PROOF);
     let compressed = proof.to_gnark();
     assert_eq!(compressed.len(), 164);
     assert_eq!(&compressed[128..132], &[0, 0, 0, 0]);

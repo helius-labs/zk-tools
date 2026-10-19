@@ -2,11 +2,30 @@
 
 A Groth16 BN254 prover in Rust for gnark circuits. One kernel for browsers
 (WebAssembly, SIMD lanes, WebGPU), phones and laptops (native, AArch64
-assembly, Metal or wgpu): zopro builds the witness from a Zolana `/prove`
-request, solves the circuit with its own solver plan, runs the MSMs and the
-quotient on the CPU or the GPU, and verifies the proof before it returns it,
-in gnark's encodings. gnark stays offline: a zopro key is built from gnark's
-proving key, and gnark's verifier accepts zopro's proofs.
+assembly, Metal or wgpu): given a circuit's inputs by gnark's names, zopro
+solves the circuit with its own solver plan, runs the MSMs and the quotient
+on the CPU or the GPU, and verifies the proof before it returns it, in
+gnark's encodings. gnark stays offline: a zopro key is built once from a
+gnark constraint system and its keys (`tools/gnark`), and gnark's verifier
+accepts zopro's proofs.
+
+Circuits the kernel proves alone: BN254, no commitments (so not gnark's
+range-check API), and no hints but gnark's `InvZeroHint` (`IsZero`,
+`Inverse`) and `bits.nBits` (`ToBinary`). A key of any other circuit fails
+to build, not to prove.
+
+```sh
+tools/gnark/pack.sh circuit.r1cs circuit.pk circuit.vk my_circuit my_circuit.zopro
+```
+
+```rust
+let mut prover = zopro_prover::Prover::load(&std::fs::read("my_circuit.zopro")?)?;
+let mut inputs = zopro_prover::Assignment::default();
+inputs.set("X".into(), Fr::from(3u64));
+inputs.set("Y".into(), Fr::from(35u64));
+let proved = prover.prove(&prover.witness(&inputs)?)?;
+let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness());
+```
 
 ## Layout
 
@@ -31,20 +50,29 @@ proving key, and gnark's verifier accepts zopro's proofs.
 - `crates/zopro-wgpu`: the same design in WGSL for Vulkan, Metal and WebGPU,
   with async reads for the browser. The field and curve code is aeglos's
   (Apache-2.0), its multiplication rewritten as a loop of sixteen rounds.
-- `crates/zopro-prover`: Zolana's prover over the kernel. A zopro key file
-  (`artifact`: gnark's vectors compressed, the solver program, the input
-  names and the verifying key) loads into a `Prover`, which turns a
-  request into the circuit's inputs by gnark's names, proves, and verifies.
-  In a browser its `web` module is the runtime: `WebProver` loads a key file
-  or the raw form an earlier load exported (vectors decompressed, the
-  solver's image), and proves on the thread pool and WebGPU.
+- `crates/zopro-prover`: the prover. A zopro key file (`artifact`: gnark's
+  vectors compressed, the solver program, the input names, the verifying
+  key and the application's metadata; the fixed points are checked against
+  the verifying key) loads into a `Prover`, which proves an `Assignment` of
+  the inputs by name and verifies. `raw` is the form a host caches in place
+  of the key file (vectors decompressed, the solver's image). In a browser,
+  `WebProver` takes the inputs as an object of decimal or hex strings and
+  returns gnark's compressed proof and public witness.
+- `crates/zopro-zolana`: Zolana's proof requests on the prover: the SDKs'
+  `/prove` JSON onto the transfer and merge circuits' inputs, the prover
+  server's proof JSON, and the key metadata (shape, the gnark key's sha256
+  that proofs report). Its cdylib is the Zolana browser runtime
+  (`ZolanaProver` beside `WebProver`).
 - `crates/zopro-bench`: proves a dumped shape natively and times it
   (`RAYON_NUM_THREADS=4 zopro-bench <dump dir>`), and has modes for the GPU
   MSMs (`gpu`, `wgpu`), a key-switching stress check of results and memory
   (`stress <cycles> <dumps...>`), and field microbenchmarks (`field`,
   `wgsl-field`).
-- `tools/gnark`: gnark's side, offline: a key's parts for `zopro-bench
-  pack`, the zopro keys of a whole key set with their lockfile
+- `tools/gnark`: gnark's side, offline, with gnark alone: `zopro-dump`
+  writes a constraint system's and its keys' parts (`zoprognark.Dump` for
+  Go callers), and `pack.sh` makes the zopro key.
+- `tools/zolana`: Zolana's keys: the dump of a Zolana gnark key with its
+  metadata, the zopro keys of a whole key set with their lockfile
   (`build-keys.sh`), and gnark's verifier as the referee of zopro's proofs.
 
 ## Safety
@@ -65,7 +93,12 @@ point vectors).
 `--features zopro-core/wgpu`: the GPU crates check their MSMs against
 arkworks (1 to 20 000 points, random, witness-like and zero scalars), and
 zopro-core checks a GPU key's proof parts against a CPU key's byte for
-byte. GPU tests skip without a GPU.
+byte. GPU tests skip without a GPU. `zopro-prover`'s `tests/cubic.rs` proves a small
+gnark circuit end to end from a committed dump (`tools/gnark`'s test writes
+it with `ZOPRO_CUBIC`). With `ZOPRO_DUMP` (dumps from `tools/zolana`), the
+Zolana tests prove the 2 → 2 transfer and the 24-note merge, check the
+witness against gnark's byte for byte, and leave raw proofs that
+`tools/zolana`'s test verifies with gnark.
 
 ## Measured
 
@@ -87,7 +120,8 @@ its cores or refused a kernel).
 
 Native: `cargo build --release`. Browser: `CARGO_PROFILE_RELEASE_LTO=false
 cargo rustc --release --target wasm32-unknown-unknown --crate-type cdylib
---features wgpu` in `crates/zopro-prover` with `nightly-2025-11-15`, then
+--features wgpu` in `crates/zopro-prover` (or `crates/zopro-zolana` for
+Zolana's runtime) with `nightly-2025-11-15`, then
 `wasm-bindgen --target web` (0.2.128). Without LTO: zopro-core's SIMD
 assembly does not assemble with `simd128` in an rlib built for LTO. The web
 SDK's `scripts/build-runtime.sh` does both.

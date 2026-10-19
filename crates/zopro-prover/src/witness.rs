@@ -1,16 +1,16 @@
-//! The circuit's inputs by gnark's names, and the witness vector in the
-//! key's order.
+//! A circuit's inputs by gnark's names, and the witness vector in the key's
+//! order.
 use std::collections::HashMap;
 
 use ark_bn254::Fr;
-use ark_ff::PrimeField;
+use ark_ff::{BigInteger, PrimeField};
 
 use crate::Error;
 
 /// Values by the names gnark gives a circuit's inputs: a struct field's
 /// path, with each step and each index joined by an underscore
-/// (`Private_Inputs_0_Utxo_Domain`); an embedded struct's fields keep the
-/// embedding struct's path.
+/// (`Inputs_0_Amount`); an embedded struct's fields keep the embedding
+/// struct's path.
 #[derive(Default)]
 pub struct Assignment {
     values: HashMap<String, Fr>,
@@ -49,16 +49,44 @@ impl Assignment {
 }
 
 /// The assignment's values in the key's order of names: every name
-/// assigned, nothing assigned the key does not name (else the request's
-/// shape is not the key's).
+/// assigned, and nothing the key does not name.
 pub fn order(assignment: &Assignment, names: &[String]) -> Result<Vec<Fr>, Error> {
-    if assignment.len() != names.len() {
-        return Err(Error::Shape);
+    if let Some(name) = names.iter().find(|name| assignment.get(name).is_none()) {
+        return Err(Error::Witness(format!("{name} is not assigned")));
     }
-    names
-        .iter()
-        .map(|name| assignment.get(name).copied().ok_or(Error::Shape))
-        .collect()
+    if assignment.len() != names.len() {
+        return Err(Error::Witness(
+            "the assignment names inputs the key does not".into(),
+        ));
+    }
+    Ok(names.iter().map(|name| assignment.values[name]).collect())
+}
+
+/// A value from its decimal digits or `0x` and hex digits, below the
+/// field's modulus.
+pub fn parse_value(text: &str) -> Option<Fr> {
+    let (digits, base) = text.strip_prefix("0x").map_or((text, 10), |hex| (hex, 16));
+    if digits.is_empty() || digits.len() > 80 {
+        return None;
+    }
+    // Big endian bytes, times the base plus the digit for each digit.
+    let mut bytes = vec![0u8; 34];
+    for c in digits.chars() {
+        let mut carry = c.to_digit(base)?;
+        for byte in bytes.iter_mut().rev() {
+            let v = *byte as u32 * base + carry;
+            *byte = v as u8;
+            carry = v >> 8;
+        }
+        if carry != 0 {
+            return None;
+        }
+    }
+    let modulus = Fr::MODULUS.to_bytes_be();
+    if bytes[..2] != [0, 0] || bytes[2..] >= modulus[..] {
+        return None;
+    }
+    Some(Fr::from_be_bytes_mod_order(&bytes[2..]))
 }
 
 /// The kernel's encoding of the witness: four little-endian Montgomery

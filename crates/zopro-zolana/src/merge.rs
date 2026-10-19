@@ -4,10 +4,9 @@ use ark_bn254::Fr;
 use serde_json::Value;
 
 use crate::{
-    Circuit,
+    Assignment, Circuit,
     request::{Error, element, elements, is_zero, object},
     transfer::{assign_tree_slots, check_tree_slots, tree_slots},
-    witness::Assignment,
 };
 
 const STATE_TREE_HEIGHT: usize = 32;

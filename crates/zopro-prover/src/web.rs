@@ -1,225 +1,142 @@
-//! The prover for a browser: `WebProver` over wasm-bindgen, beside the
-//! kernel's thread pool, WebGPU (`init_gpu`) and point decompression that
-//! zopro-core exports. A GPU proof is awaited; the worker that holds the
-//! prover lets the GPU go (`drop_gpu`) when one fails to verify and proves
-//! again on the CPU.
+//! The prover in a browser, over wasm-bindgen, beside the kernel's thread
+//! pool (`initThreadPool`) and WebGPU (`init_gpu`) that zopro-core exports.
+//!
+//! ```js
+//! const prover = new WebProver(keyFileOrRawForm);
+//! const { proof, publicWitness } = await prover.prove({ X: "3", Y: "35" });
+//! ```
 use js_sys::{Object, Promise, Reflect, Uint8Array};
 use wasm_bindgen::prelude::*;
-use zopro_core::artifact::Artifact;
 
-use crate::{Error, ProofResult, Prover, Unverified, finish};
+use crate::{Assignment, Error, Proved, Prover, raw, witness};
 
-/// The raw form a page caches in place of the key file, so a later load
-/// skips point decompression and the solver's build: a magic, the key
-/// file's head (everything before its vectors, length-prefixed), the five
-/// vectors decompressed into the kernel's encoding, and the kernel's solver
-/// image (length-prefixed). `RAW_FORMAT` names the layout; a page keeps a
-/// raw form only beside the format that wrote it.
-pub const RAW_FORMAT: &str = "zopro-raw-1";
-const RAW_MAGIC: &[u8; 16] = b"zopro-raw1\0\0\0\0\0\0";
-
+/// The raw form `export_raw` writes, for a page's cache to check.
 #[wasm_bindgen]
 pub fn raw_format() -> String {
-    RAW_FORMAT.into()
+    raw::FORMAT.into()
 }
 
 #[wasm_bindgen]
 pub struct WebProver {
     prover: Prover,
-    /// What `export_raw` writes, from a load of the key file; none after
-    /// the export or a load of the raw form.
-    raw: Option<(Vec<u8>, [Vec<u8>; 5])>,
+    source: Option<raw::Source>,
 }
 
 #[wasm_bindgen]
 impl WebProver {
-    /// Loads `key`: a zopro key file, or the raw form an earlier load
-    /// exported.
+    /// Loads a zopro key file, or the raw form an earlier load exported.
     #[wasm_bindgen(constructor)]
     pub fn new(key: &[u8]) -> Result<WebProver, JsError> {
-        if key.starts_with(RAW_MAGIC) {
-            let (artifact, vectors, image) =
-                parse_raw(key).ok_or_else(|| JsError::new("not a raw key"))?;
-            let prover = Prover::from_artifact(&artifact, &vectors, Some(&image))
-                .map_err(|e| JsError::new(&e))?;
-            return Ok(Self { prover, raw: None });
-        }
-        let (_, at) = Artifact::head(key).map_err(JsError::new)?;
-        let artifact = Artifact::parse(key).map_err(JsError::new)?;
-        let vectors = artifact.vectors().map_err(JsError::new)?;
-        let prover =
-            Prover::from_artifact(&artifact, &vectors, None).map_err(|e| JsError::new(&e))?;
-        Ok(Self {
-            prover,
-            raw: Some((key[..at].to_vec(), vectors)),
-        })
+        let (prover, source) = Prover::load_cacheable(key).map_err(|e| JsError::new(&e))?;
+        Ok(Self { prover, source })
     }
 
-    /// The raw form to cache, once per load of the key file; empty after,
-    /// and after a load of the raw form.
+    /// The raw form to cache, once per load of a key file; empty after, and
+    /// after a load of the raw form.
     pub fn export_raw(&mut self) -> Uint8Array {
-        let Some((head, vectors)) = self.raw.take() else {
-            return Uint8Array::new_with_length(0);
-        };
-        let image = self.prover.solver_image().unwrap_or_default();
-        let size = 24 + head.len() + vectors.iter().map(Vec::len).sum::<usize>() + image.len();
-        let mut out = Vec::with_capacity(size);
-        out.extend_from_slice(RAW_MAGIC);
-        out.extend_from_slice(&(head.len() as u32).to_le_bytes());
-        out.extend_from_slice(&head);
-        for vector in &vectors {
-            out.extend_from_slice(vector);
+        match self.source.take() {
+            Some(source) => Uint8Array::from(source.export(&self.prover).as_slice()),
+            None => Uint8Array::new_with_length(0),
         }
-        out.extend_from_slice(&(image.len() as u32).to_le_bytes());
-        out.extend_from_slice(&image);
-        Uint8Array::from(out.as_slice())
     }
 
     pub fn name(&self) -> String {
         self.prover.name().to_owned()
     }
 
-    /// The gnark proving key's sha256, hex: what the key file was built
-    /// from, and what a proof reports.
-    pub fn digest(&self) -> String {
-        self.prover.digest.clone()
+    pub fn metadata(&self) -> Uint8Array {
+        Uint8Array::from(self.prover.metadata())
     }
 
-    pub fn inputs(&self) -> u32 {
-        self.prover.shape().0
+    /// The inputs' names, public then secret.
+    pub fn names(&self) -> Vec<String> {
+        self.prover.names().to_vec()
     }
 
-    pub fn outputs(&self) -> u32 {
-        self.prover.shape().1
+    pub fn public_inputs(&self) -> usize {
+        self.prover.public_inputs()
     }
 
     pub fn has_gpu(&self) -> bool {
-        self.prover.key.has_gpu()
+        self.prover.has_gpu()
     }
 
     /// Proves on the CPU from now on.
     pub fn drop_gpu(&mut self) {
-        self.prover.key.drop_gpu();
+        self.prover.drop_gpu();
     }
 
-    /// A Promise of the proof: `{proof, witnessMs, proveMs, verifyMs}`,
-    /// `proof` the JSON string the prover server returns. It rejects with
+    /// A Promise of `{proof, publicWitness, proveMs, verifyMs}` for an
+    /// object of the inputs' values by name (decimal, or `0x` and hex):
+    /// gnark's compressed proof and binary public witness. It rejects with
     /// "unverified" when the proof did not verify (a GPU at fault: call
-    /// `drop_gpu` and prove again), else with the request's error.
-    pub fn prove(&mut self, request: &str) -> Result<Promise, JsError> {
-        let prepared = self
-            .prover
-            .prepare(request)
-            .map_err(|e| JsError::new(&e.to_string()))?;
-        let key = &self.prover.key;
-        let started = zopro_core::time::Instant::now();
-        if key.has_gpu() {
-            let parts = key.solve_parts_gpu(&prepared.encoded)?;
-            let (fixed, digest) = (self.prover.fixed, self.prover.digest.clone());
-            let verifying_key = self.prover.verifying_key.clone();
-            return Ok(wasm_bindgen_futures::future_to_promise(async move {
-                let parts = wasm_bindgen_futures::JsFuture::from(parts).await?;
-                let parts = Uint8Array::new(&parts).to_vec();
-                let prove_ms = started.elapsed().as_millis() as u64;
-                finish(
-                    &parts,
-                    &prepared,
-                    &fixed,
-                    &verifying_key,
-                    &digest,
-                    prove_ms,
-                    0,
-                )
-                .map(result_object)
-                .map_err(unverified)
-            }));
+    /// `drop_gpu` and prove again).
+    pub fn prove(&self, assignment: JsValue) -> Result<Promise, JsError> {
+        let mut values = Assignment::default();
+        for entry in Object::entries(
+            &assignment
+                .dyn_into::<Object>()
+                .map_err(|_| JsError::new("an object of values"))?,
+        ) {
+            let pair = js_sys::Array::from(&entry);
+            let (name, value) = (pair.get(0).as_string(), pair.get(1).as_string());
+            let (Some(name), Some(value)) = (name, value) else {
+                return Err(JsError::new("values are strings"));
+            };
+            let value = witness::parse_value(&value)
+                .ok_or_else(|| JsError::new(&format!("{name} is not a field element")))?;
+            values.set(name, value);
         }
-        let parts = key.solve(&prepared.encoded).map_err(|e| JsError::new(&e))?;
-        let prove_ms = started.elapsed().as_millis() as u64;
-        Ok(
-            match self
-                .prover
-                .finish(&parts, &prepared, prove_ms, 0)
-                .map(result_object)
-                .map_err(unverified)
-            {
-                Ok(value) => Promise::resolve(&value),
-                Err(error) => Promise::reject(&error),
-            },
-        )
-    }
-
-    /// Whether `proof_json` (the SDKs' proof JSON) proves `request`'s public
-    /// input with this key.
-    pub fn verify(&self, request: &str, proof_json: &str) -> Result<bool, JsError> {
-        let prepared = self
+        let witness = self
             .prover
-            .prepare(request)
+            .witness(&values)
             .map_err(|e| JsError::new(&e.to_string()))?;
-        let json: serde_json::Value =
-            serde_json::from_str(proof_json).map_err(|_| JsError::new("proof JSON"))?;
-        let proof = zopro_core::verify::Proof::from_json(&json).map_err(JsError::new)?;
-        Ok(self.prover.verify(&proof, &prepared.public))
+        Ok(promise(&self.prover, &witness, |proved| {
+            let object = Object::new();
+            set(
+                &object,
+                "proof",
+                Uint8Array::from(proved.proof.to_gnark().as_slice()).into(),
+            );
+            set(
+                &object,
+                "publicWitness",
+                Uint8Array::from(proved.public_witness().as_slice()).into(),
+            );
+            set(
+                &object,
+                "proveMs",
+                JsValue::from_f64(proved.prove_ms as f64),
+            );
+            set(
+                &object,
+                "verifyMs",
+                JsValue::from_f64(proved.verify_ms as f64),
+            );
+            object.into()
+        }))
     }
 }
 
-fn unverified(Unverified { .. }: Unverified) -> JsValue {
-    JsValue::from_str("unverified")
-}
-
-fn result_object(result: ProofResult) -> JsValue {
-    let object = Object::new();
-    let set = |name: &str, value: JsValue| {
-        let _ = Reflect::set(&object, &JsValue::from_str(name), &value);
+/// A Promise of `prover`'s proof of `witness`, made into a JS value by
+/// `value`; it rejects with "unverified" or the kernel's message.
+pub fn promise(
+    prover: &Prover,
+    witness: &[ark_bn254::Fr],
+    value: impl FnOnce(Proved) -> JsValue + 'static,
+) -> Promise {
+    let rejection = |error: Error| match error {
+        Error::Unverified => JsValue::from_str("unverified"),
+        error => JsValue::from(JsError::new(&error.to_string())),
     };
-    set("proof", JsValue::from_str(&result.proof_json.to_string()));
-    set("witnessMs", JsValue::from_f64(result.witness_ms as f64));
-    set("proveMs", JsValue::from_f64(result.prove_ms as f64));
-    set("verifyMs", JsValue::from_f64(result.verify_ms as f64));
-    object.into()
-}
-
-/// The raw form's key head, vectors and solver image, when it is whole.
-fn parse_raw(raw: &[u8]) -> Option<(Artifact<'_>, [Vec<u8>; 5], Vec<u8>)> {
-    let mut reader = Reader { raw, at: 16 };
-    let head_len = reader.length()?;
-    let head = reader.take(head_len)?;
-    let (artifact, end) = Artifact::head(head).ok()?;
-    if end != head.len() {
-        return None;
-    }
-    let [a, b, k, z, b2] = artifact.points.map(|n| n as usize);
-    let vectors = [
-        reader.take(a * 64)?.to_vec(),
-        reader.take(b * 64)?.to_vec(),
-        reader.take(k * 64)?.to_vec(),
-        reader.take(z * 64)?.to_vec(),
-        reader.take(b2 * 128)?.to_vec(),
-    ];
-    let image_len = reader.length()?;
-    let image = reader.take(image_len)?.to_vec();
-    (reader.at == raw.len()).then_some((artifact, vectors, image))
-}
-
-struct Reader<'a> {
-    raw: &'a [u8],
-    at: usize,
-}
-
-impl<'a> Reader<'a> {
-    fn take(&mut self, len: usize) -> Option<&'a [u8]> {
-        let out = self.raw.get(self.at..self.at.checked_add(len)?)?;
-        self.at += len;
-        Some(out)
-    }
-
-    fn length(&mut self) -> Option<usize> {
-        Some(u32::from_le_bytes(self.take(4)?.try_into().ok()?) as usize)
+    match prover.prove_async(witness) {
+        Ok(future) => wasm_bindgen_futures::future_to_promise(async move {
+            future.await.map(value).map_err(rejection)
+        }),
+        Err(error) => Promise::reject(&rejection(error)),
     }
 }
 
-impl From<Error> for JsValue {
-    fn from(error: Error) -> Self {
-        JsValue::from_str(&error.to_string())
-    }
+pub fn set(object: &Object, name: &str, value: JsValue) {
+    let _ = Reflect::set(object, &JsValue::from_str(name), &value);
 }

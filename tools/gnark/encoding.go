@@ -1,4 +1,4 @@
-package main
+package zoprognark
 
 import (
 	"unsafe"
@@ -6,10 +6,10 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 )
 
-// The arithmetic bridge uses four little-endian Montgomery limbs per element:
-// the memory of an fr.Element on a little-endian target, as of every type
-// packKernel sends.
-func encodeKernelFields(values []fr.Element) []byte {
+// EncodeFields is the kernel's encoding of field elements: four
+// little-endian Montgomery limbs each, the memory of an fr.Element on a
+// little-endian target. Witnesses in a dump are in it.
+func EncodeFields(values []fr.Element) []byte {
 	return bytesOf(values)
 }
 

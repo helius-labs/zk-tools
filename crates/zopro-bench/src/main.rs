@@ -68,12 +68,9 @@ fn main() {
     }
     let dir = Path::new(&dir);
     let rounds: usize = env::args().nth(2).map(|v| v.parse().unwrap()).unwrap_or(5);
-    let head = read(dir, "head");
-    assert_eq!(&head[..16], b"zolana-key-head1", "key image head");
-    // After the magic and eleven u32 counts: digest, alpha, beta, delta,
-    // beta2, delta2, generator, coset generator.
-    let fixed = zopro_core::groth16::FixedPoints::decode(&head[92..540]).expect("fixed points");
-    let domain = &head[540..604];
+    let head = zopro_core::dump::Head::read(dir).expect("dump head");
+    let fixed = head.fixed_points();
+    let domain = &head.domain[..];
     let (a, b, k, z, b2) = (
         read(dir, "a"),
         read(dir, "b"),
@@ -320,8 +317,8 @@ fn wgpu_one<C: zopro_wgpu::Curve>(
 /// The quotient of random evaluations through wgpu against the CPU plan's,
 /// on the dumped shape's domain.
 fn wgpu_quotient(dir: &Path) {
-    let head = read(dir, "head");
-    let params = zopro_core::decode_frs(&head[540..604]);
+    let head = zopro_core::dump::Head::read(dir).expect("dump head");
+    let params = zopro_core::decode_frs(&head.domain);
     let (generator, coset) = (params[0], params[1]);
     let n = read(dir, "z").len() / 64 + 1;
     let den = zopro_core::fft::denominator(n, coset).expect("denominator");
@@ -375,8 +372,7 @@ struct Dump {
 
 impl Dump {
     fn read(dir: &Path) -> Self {
-        let head = read(dir, "head");
-        assert_eq!(&head[..16], b"zolana-key-head1", "key image head");
+        let head = zopro_core::dump::Head::read(dir).expect("dump head");
         Self {
             name: dir.file_name().unwrap().to_string_lossy().into_owned(),
             a: read(dir, "a"),
@@ -384,7 +380,7 @@ impl Dump {
             k: read(dir, "k"),
             z: read(dir, "z"),
             b2: read(dir, "b2"),
-            domain: head[540..604].to_vec(),
+            domain: head.domain,
             program: read(dir, "program"),
             coefficients: read(dir, "coefficients"),
             witness: read(dir, "witness"),
@@ -885,54 +881,17 @@ fn cpu_msm(dir: &Path) {
 }
 
 /// `pack <dump dir> <key name> <out file>`: the zopro key file of a dumped
-/// shape (the dump test writes head, a, b, k, z, b2, program, coefficients,
-/// public-names and secret-names).
+/// key (see `zopro_core::dump`; `tools/gnark` writes dumps).
 fn pack_dump(dir: &Path, name: &str, out: &Path) {
-    let head = read(dir, "head");
-    assert_eq!(&head[..16], b"zolana-key-head1", "key image head");
-    let word = |i: usize| u32::from_le_bytes(head[16 + 4 * i..20 + 4 * i].try_into().unwrap());
-    let vk_len = u32::from_le_bytes(head[604..608].try_into().unwrap()) as usize;
-    let mut digest = [0u8; 32];
-    digest.copy_from_slice(&head[60..92]);
-    let lines = |file: &str| -> Vec<String> {
-        String::from_utf8(read(dir, file))
-            .unwrap()
-            .lines()
-            .map(str::to_owned)
-            .collect()
-    };
-    let (public_names, secret_names) = (lines("public-names"), lines("secret-names"));
-    let [a, b, k, z, b2, program, coefficients] =
-        ["a", "b", "k", "z", "b2", "program", "coefficients"].map(|n| read(dir, n));
-    let parts = zopro_core::artifact::Parts {
-        name,
-        inputs: word(0),
-        outputs: word(1),
-        flags: word(2),
-        public: word(3),
-        secret: word(4),
-        constraints: word(5),
-        digest,
-        fixed: &head[92..540],
-        domain: &head[540..604],
-        verifying_key: &head[608..608 + vk_len],
-        public_names: &public_names,
-        secret_names: &secret_names,
-        a: &a,
-        b: &b,
-        k: &k,
-        z: &z,
-        b2: &b2,
-        program: &program,
-        coefficients: &coefficients,
-    };
+    let dump = zopro_core::dump::Dump::read(dir).expect("dump");
+    let parts = dump.parts(name);
     let started = Instant::now();
     let bytes = zopro_core::artifact::pack(&parts).expect("pack");
     fs::write(out, &bytes).expect("write the key");
     println!(
         "ZOPRO pack {name} bytes={} points={} ms={}",
         bytes.len(),
-        (a.len() + b.len() + k.len() + z.len()) / 64 + b2.len() / 128,
+        dump.vectors[..4].iter().map(Vec::len).sum::<usize>() / 64 + dump.vectors[4].len() / 128,
         started.elapsed().as_millis()
     );
 }

@@ -2,7 +2,7 @@
 //! same request (gnark's names, decimal values).
 use std::collections::BTreeMap;
 
-use zopro_prover::{Circuit, request, witness};
+use zopro_zolana::{Circuit, request, zopro_prover::witness};
 
 const REQUEST: &str = include_str!("fixtures/transfer-2x2.request.json");
 const WITNESS: &str = include_str!("fixtures/transfer-2x2.witness.json");
@@ -15,7 +15,7 @@ fn transfer_2x2_matches_the_go_witness() {
     // from them).
     let names: Vec<String> = golden.keys().cloned().collect();
     let assignment =
-        zopro_prover::test_support::transfer(&json, Circuit::TransferConfidential, 2, 2, &names)
+        zopro_zolana::test_support::transfer(&json, Circuit::TransferConfidential, 2, 2, &names)
             .unwrap();
     assert_eq!(assignment.len(), golden.len(), "{:?}", assignment.names());
     for (name, value) in &golden {
@@ -35,7 +35,7 @@ fn rejects_what_the_go_prover_rejected() {
         .cloned()
         .collect();
     let ok = |json: &serde_json::Value| {
-        zopro_prover::test_support::transfer(json, Circuit::TransferConfidential, 2, 2, &names)
+        zopro_zolana::test_support::transfer(json, Circuit::TransferConfidential, 2, 2, &names)
             .is_ok()
     };
     assert!(ok(&json));

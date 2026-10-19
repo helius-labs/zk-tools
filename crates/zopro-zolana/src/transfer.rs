@@ -6,9 +6,8 @@ use ark_bn254::Fr;
 use serde_json::Value;
 
 use crate::{
-    Circuit,
+    Assignment, Circuit,
     request::{self, Error, count, element, elements, is_zero, object, small},
-    witness::Assignment,
 };
 
 const INPUT_TREES: usize = 5;

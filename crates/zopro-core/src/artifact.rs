@@ -1,19 +1,21 @@
 //! The zopro key: one file with everything a client needs to prove with a
-//! gnark proving key and no gnark. Built once per key, offline, from
-//! gnark's key (`pack`); read on the device (`load`).
+//! gnark Groth16 proving key over BN254 and no gnark. Built once per key,
+//! offline, from gnark's constraint system and keys (`pack`, over a dump
+//! that `tools/gnark` writes); read on the device (`Artifact::parse`).
 //!
-//! Layout, little endian: a 16-byte magic; the format version; the
-//! circuit's input and output counts and flags; the public (the constant
-//! one included) and secret input counts and the constraint count; the five
-//! vectors' lengths in points; the gnark key's digest; the fixed points and
-//! the FFT domain in the kernel's encoding; then five length-prefixed blobs
-//! — the key's name, gnark's raw verifying key, the inputs' names (public
-//! then secret, newline-separated, the constant one apart), the kernel's
-//! solver program and the constraint coefficients, both deflated (the
-//! program is the bulk of a key and shrinks six times) — and the vectors
-//! A, B, K, Z (G1) and B2 (G2) in gnark's compressed point encoding. The
-//! file comes out smaller than gnark's key. A host parses the program once
-//! and may cache the kernel's solver image.
+//! Layout, little endian: a 16-byte magic; the format version; the public
+//! (the constant one included) and secret input counts and the constraint
+//! count; the five vectors' lengths in points; the fixed points and the FFT
+//! domain in the kernel's encoding; then six length-prefixed blobs — the
+//! key's name, the application's metadata (opaque here), gnark's raw
+//! verifying key, the inputs' names (public then secret, newline-separated,
+//! the constant one apart), the kernel's solver program and the constraint
+//! coefficients, both deflated (the program is the bulk of a key and
+//! shrinks six times) — and the vectors A, B, K, Z (G1) and B2 (G2) in
+//! gnark's compressed point encoding. The fixed points must be the
+//! verifying key's: `pack` and `fixed_points` refuse a key whose are not,
+//! since a prover blinds its proofs with them. A host parses the program
+//! once and may cache the kernel's solver image.
 use ark_ff::PrimeField;
 use rayon::prelude::*;
 
@@ -24,30 +26,28 @@ use crate::{
     Key,
 };
 
-const MAGIC: &[u8; 16] = b"zopro-key1\0\0\0\0\0\0";
-const FORMAT: u32 = 1;
-/// The fixed part after the magic: 14 u32s, the digest, the fixed points
-/// and the domain.
-const FIXED: usize = 16 + 14 * 4 + 32 + 448 + 64;
+const MAGIC: &[u8; 16] = b"zopro-key\0\0\0\0\0\0\0";
+const FORMAT: u32 = 2;
+/// The fixed part after the magic: 9 u32s, the fixed points and the
+/// domain.
+const FIXED: usize = 16 + 9 * 4 + 448 + 64;
 /// Deflate at this level: the programs' index streams compress alike from
 /// level 4 up, in a tenth of level 9's time.
 const DEFLATE_LEVEL: u8 = 6;
 
 /// A parsed key file, borrowing its bytes.
 pub struct Artifact<'a> {
-    pub inputs: u32,
-    pub outputs: u32,
-    pub flags: u32,
     /// Public inputs, the constant one included.
     pub public: u32,
     pub secret: u32,
     pub constraints: u32,
-    pub digest: [u8; 32],
     /// The vectors' lengths in points: a, b, k, z, b2.
     pub points: [u32; 5],
     pub fixed: &'a [u8],
     pub domain: &'a [u8],
     pub name: &'a str,
+    /// What the application that built the key keeps in it; opaque here.
+    pub metadata: &'a [u8],
     pub verifying_key: &'a [u8],
     /// Public names then secret names, one per line.
     pub names: &'a str,
@@ -65,13 +65,10 @@ pub struct Artifact<'a> {
 /// dump's files), plus the names.
 pub struct Parts<'a> {
     pub name: &'a str,
-    pub inputs: u32,
-    pub outputs: u32,
-    pub flags: u32,
+    pub metadata: &'a [u8],
     pub public: u32,
     pub secret: u32,
     pub constraints: u32,
-    pub digest: [u8; 32],
     /// The kernel's encoding, 448 bytes.
     pub fixed: &'a [u8],
     /// The kernel's encoding, 64 bytes.
@@ -98,16 +95,13 @@ pub fn pack(parts: &Parts) -> Result<Vec<u8>, String> {
     if parts.fixed.len() != 448 || parts.domain.len() != 64 {
         return Err("fixed points are 448 bytes and the domain 64".into());
     }
-    if parts.digest == [0; 32] {
-        return Err("the gnark key's digest is missing: proofs report it".into());
-    }
     if parts.public_names.len() + 1 != parts.public as usize
         || parts.secret_names.len() != parts.secret as usize
     {
         return Err("the names do not match the input counts".into());
     }
     VerifyingKey::decode_raw(parts.verifying_key)?;
-    FixedPoints::decode(parts.fixed).ok_or("fixed points")?;
+    check_fixed(parts.fixed, parts.verifying_key)?;
     let mut key = Key::build(parts.a, parts.b, parts.k, parts.z, parts.b2, parts.domain)?;
     if !key.set_solver(parts.program, parts.coefficients) {
         return Err("the kernel does not solve this circuit".into());
@@ -146,10 +140,6 @@ pub fn pack(parts: &Parts) -> Result<Vec<u8>, String> {
     out.extend_from_slice(MAGIC);
     for v in [
         FORMAT,
-        0,
-        parts.inputs,
-        parts.outputs,
-        parts.flags,
         parts.public,
         parts.secret,
         parts.constraints,
@@ -158,15 +148,14 @@ pub fn pack(parts: &Parts) -> Result<Vec<u8>, String> {
         (parts.k.len() / 64) as u32,
         (parts.z.len() / 64) as u32,
         (parts.b2.len() / 128) as u32,
-        0,
     ] {
         out.extend_from_slice(&v.to_le_bytes());
     }
-    out.extend_from_slice(&parts.digest);
     out.extend_from_slice(parts.fixed);
     out.extend_from_slice(parts.domain);
     for blob in [
         parts.name.as_bytes(),
+        parts.metadata,
         parts.verifying_key,
         names.as_bytes(),
         &program,
@@ -212,11 +201,9 @@ impl<'a> Artifact<'a> {
         if word(0) != FORMAT {
             return Err("a zopro key of another format version");
         }
-        let points = [word(8), word(9), word(10), word(11), word(12)];
-        let mut digest = [0u8; 32];
-        digest.copy_from_slice(&bytes[72..104]);
-        let fixed = &bytes[104..552];
-        let domain = &bytes[552..616];
+        let points = [word(4), word(5), word(6), word(7), word(8)];
+        let fixed = &bytes[52..500];
+        let domain = &bytes[500..564];
         let mut at = FIXED;
         let mut blob = || -> Result<&'a [u8], &'static str> {
             let len = u32::from_le_bytes(
@@ -231,22 +218,20 @@ impl<'a> Artifact<'a> {
             Ok(out)
         };
         let name = std::str::from_utf8(blob()?).map_err(|_| "key name")?;
+        let metadata = blob()?;
         let verifying_key = blob()?;
         let names = std::str::from_utf8(blob()?).map_err(|_| "input names")?;
         let program = blob()?;
         let coefficients = blob()?;
         let artifact = Self {
-            inputs: word(2),
-            outputs: word(3),
-            flags: word(4),
-            public: word(5),
-            secret: word(6),
-            constraints: word(7),
-            digest,
+            public: word(1),
+            secret: word(2),
+            constraints: word(3),
             points,
             fixed,
             domain,
             name,
+            metadata,
             verifying_key,
             names,
             program,
@@ -304,9 +289,21 @@ impl<'a> Artifact<'a> {
         VerifyingKey::decode_raw(self.verifying_key)
     }
 
+    /// The fixed points, checked against the verifying key's.
     pub fn fixed_points(&self) -> Result<FixedPoints, &'static str> {
-        FixedPoints::decode(self.fixed).ok_or("fixed points")
+        check_fixed(self.fixed, self.verifying_key)
     }
+}
+
+/// The fixed points in the kernel's encoding, when they are the verifying
+/// key's: a prover that blinds with a delta other than the verifying key's
+/// can make proofs that verify and reveal the witness.
+fn check_fixed(fixed: &[u8], verifying_key: &[u8]) -> Result<FixedPoints, &'static str> {
+    let fixed = FixedPoints::decode(fixed).ok_or("fixed points")?;
+    if fixed != crate::verify::fixed_points(verifying_key)? {
+        return Err("the fixed points are not the verifying key's");
+    }
+    Ok(fixed)
 }
 
 /// Raw big-endian G1 points (64 bytes) in the kernel's encoding: each

@@ -8,8 +8,9 @@ use rand::rngs::OsRng;
 
 use crate::{decode_g1, decode_g2};
 
-/// The proving key's fixed points, as a key image head carries them.
-#[derive(Clone, Copy)]
+/// The proving key's fixed points: the verifying key's alpha, beta and
+/// delta.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct FixedPoints {
     pub alpha: G1Affine,
     pub beta: G1Affine,
