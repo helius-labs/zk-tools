@@ -2,9 +2,9 @@ inline fp_t e_add(fp_t a, fp_t b) { return fp_add(a, b); }
 inline fp2_t e_add(fp2_t a, fp2_t b) { return fp2_add(a, b); }
 inline fp_t e_sub(fp_t a, fp_t b) { return fp_sub(a, b); }
 inline fp2_t e_sub(fp2_t a, fp2_t b) { return fp2_sub(a, b); }
-inline fp_t e_mul(fp_t a, fp_t b) { return fp_mul(a, b); }
+inline fp_t e_mul(fp_t a, fp_t b) { return fp_mul_g1(a, b); }
 inline fp2_t e_mul(fp2_t a, fp2_t b) { return fp2_mul(a, b); }
-inline fp_t e_square(fp_t a) { return fp_mul(a, a); }
+inline fp_t e_square(fp_t a) { return fp_square_g1(a); }
 inline fp2_t e_square(fp2_t a) { return fp2_square(a); }
 inline fp_t e_neg(fp_t a) { return fp_neg(a); }
 inline fp2_t e_neg(fp2_t a) { return fp2_neg(a); }

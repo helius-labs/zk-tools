@@ -347,7 +347,11 @@ pub struct Msm<C: Curve> {
     queue: CommandQueue,
     first: ComputePipelineState,
     tree_pipeline: ComputePipelineState,
-    reduce: ComputePipelineState,
+    /// The window reduction on the GPU; none where neither kernel builds
+    /// (G2 on an A12Z exceeds the shader stack), and the host reduces
+    /// `host_buckets`, the buckets copied out of the shared scratch.
+    reduce: Option<ComputePipelineState>,
+    host_buckets: Option<Buffer>,
     bases: Buffer,
     n: usize,
     sorted: Buffer,
@@ -435,6 +439,9 @@ impl<C: Curve> Drop for Msm<C> {
             for buffer in [&self.bases, &self.sorted, &self.sums] {
                 discard(buffer);
             }
+            if let Some(host) = &self.host_buckets {
+                discard(host);
+            }
             self.levels.iter().flatten().flatten().for_each(discard);
         })
     }
@@ -474,12 +481,21 @@ impl<C: Curve> Msm<C> {
         } else {
             pipeline(C::REDUCE)
         };
+        // ZOPRO_METAL_HOST_REDUCE=1 reduces on the host anywhere.
+        let host = std::env::var("ZOPRO_METAL_HOST_REDUCE").is_ok_and(|v| v == "1");
         let (reduce, tree_reduce) = match shuffles {
-            Ok(reduce) => (reduce, false),
-            Err(e) => {
-                log::info!("zopro metal: {e}; reducing through threadgroup memory");
-                (pipeline(C::REDUCE_TG)?, true)
-            }
+            _ if host => (None, false),
+            Ok(reduce) => (Some(reduce), false),
+            Err(e) => match pipeline(C::REDUCE_TG) {
+                Ok(reduce) => {
+                    log::info!("zopro metal: {e}; reducing through threadgroup memory");
+                    (Some(reduce), true)
+                }
+                Err(e) => {
+                    log::info!("zopro metal: {e}; reducing on the host");
+                    (None, false)
+                }
+            },
         };
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         // Encoded straight into the buffer, a block of points at a time: a
@@ -516,7 +532,9 @@ impl<C: Curve> Msm<C> {
         scratch.reserve(&device, most * C::XYZZ_BYTES, buckets * C::XYZZ_BYTES);
         let reduce_shape = {
             let per_window = half.min(REDUCE_THREADS_PER_WINDOW);
-            let allowed = reduce.max_total_threads_per_threadgroup() as usize;
+            let allowed = reduce.as_ref().map_or(REDUCE_GROUP, |r| {
+                r.max_total_threads_per_threadgroup() as usize
+            });
             let allowed = 1usize << (usize::BITS - 1 - allowed.max(1).leading_zeros());
             let most = if tree_reduce {
                 REDUCE_TG_GROUP
@@ -544,6 +562,9 @@ impl<C: Curve> Msm<C> {
                 _curve: std::marker::PhantomData,
                 first,
                 tree_pipeline,
+                host_buckets: reduce
+                    .is_none()
+                    .then(|| shared(&device, buckets * C::XYZZ_BYTES)),
                 reduce,
                 bases: bases_buffer,
                 n,
@@ -640,8 +661,16 @@ impl<C: Curve> Msm<C> {
         // One threadgroup per window, a thread per `leaf` buckets, at least
         // a full SIMD group and no more than the kernel's registers allow on
         // this GPU (a power of two, since `leaf` is a shift).
-        self.encode_reduce(encoder, &scratch.buckets);
+        if self.reduce.is_some() {
+            self.encode_reduce(encoder, &scratch.buckets);
+        }
         encoder.end_encoding();
+        // The host reduces its own copy: the next MSM reuses the scratch.
+        if let Some(host) = &self.host_buckets {
+            let blit = command.new_blit_command_encoder();
+            blit.copy_from_buffer(&scratch.buckets, 0, host, 0, self.bucket_bytes as u64);
+            blit.end_encoding();
+        }
         command.commit();
         Pending {
             command: command.to_owned(),
@@ -729,13 +758,19 @@ impl<C: Curve> Msm<C> {
                     }
                 }
             }
+            let Some(reduce) = &self.reduce else {
+                return format!(
+                    "first {first_ms:.1} ms ({first_shards} shards) tree {tree_ms:.1} ms ({tree_shards} shards) reduce on the host width {} windows {}",
+                    self.width, self.windows
+                );
+            };
             let reduce_ms = run(&|encoder| self.encode_reduce(encoder, &scratch.buckets));
             let threads = self.reduce_shape[1];
             format!(
                 "first {first_ms:.1} ms ({first_shards} shards, limit {}) tree {tree_ms:.1} ms ({tree_shards} shards, limit {}) reduce {reduce_ms:.1} ms ({threads} threads/window, limit {}) width {} windows {}",
                 self.first.max_total_threads_per_threadgroup(),
                 self.tree_pipeline.max_total_threads_per_threadgroup(),
-                self.reduce.max_total_threads_per_threadgroup(),
+                reduce.max_total_threads_per_threadgroup(),
                 self.width,
                 self.windows
             )
@@ -747,7 +782,7 @@ impl<C: Curve> Msm<C> {
     fn encode_reduce(&self, encoder: &metal::ComputeCommandEncoderRef, buckets: &Buffer) {
         let [leaf, per_window, group, _] = self.reduce_shape;
         let args = [self.half as u32, leaf as u32, per_window as u32, 0u32];
-        encoder.set_compute_pipeline_state(&self.reduce);
+        encoder.set_compute_pipeline_state(self.reduce.as_ref().expect("a GPU reduction"));
         encoder.set_buffer(0, Some(buckets), 0);
         encoder.set_buffer(1, Some(&self.sums), 0);
         encoder.set_bytes(2, 16, args.as_ptr() as *const c_void);
@@ -763,8 +798,39 @@ impl<C: Curve> Msm<C> {
         autoreleasepool(|| completed(&pending.command))?;
         timings.gpu_ms = elapsed(pending.submitted);
         let started = Instant::now();
-        let sums = self.sums.contents() as *const u8;
         let mut result = C::ZERO;
+        if let Some(host) = &self.host_buckets {
+            // Each window's sum of m * B_m by running sums, windows in
+            // parallel.
+            let buckets = host.contents() as *const u8 as usize;
+            let (half, xyzz) = (self.half, C::XYZZ_BYTES);
+            let sums: Vec<C> = (0..self.windows)
+                .into_par_iter()
+                .map(|window| {
+                    let (mut running, mut sum) = (C::ZERO, C::ZERO);
+                    for m in (0..half).rev() {
+                        let at = (window * half + m) * xyzz;
+                        // SAFETY: the completed command buffer copied the
+                        // buckets, `windows * half` points, into `host`.
+                        let point = unsafe {
+                            std::slice::from_raw_parts((buckets + at) as *const u8, xyzz)
+                        };
+                        running += C::xyzz_to_projective(point);
+                        sum += running;
+                    }
+                    sum
+                })
+                .collect();
+            for sum in sums.into_iter().rev() {
+                for _ in 0..self.width {
+                    result.double_in_place();
+                }
+                result += sum;
+            }
+            timings.combine_ms = elapsed(started);
+            return Ok((result, timings));
+        }
+        let sums = self.sums.contents() as *const u8;
         for window in (0..self.windows).rev() {
             for _ in 0..self.width {
                 result.double_in_place();
