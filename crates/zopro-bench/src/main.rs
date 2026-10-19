@@ -45,6 +45,10 @@ fn main() {
     if dir == "wgsl-field" {
         return wgsl_field();
     }
+    if dir == "pack" {
+        let args: Vec<String> = env::args().collect();
+        return pack_dump(Path::new(&args[2]), &args[3], Path::new(&args[4]));
+    }
     if dir == "cpu-msm" {
         return cpu_msm(Path::new(&env::args().nth(2).expect("the dump directory")));
     }
@@ -878,4 +882,57 @@ fn cpu_msm(dir: &Path) {
             env::var("ZOPRO_CPU_SPLIT").unwrap_or_else(|_| "1".into()),
         );
     }
+}
+
+/// `pack <dump dir> <key name> <out file>`: the zopro key file of a dumped
+/// shape (the dump test writes head, a, b, k, z, b2, program, coefficients,
+/// public-names and secret-names).
+fn pack_dump(dir: &Path, name: &str, out: &Path) {
+    let head = read(dir, "head");
+    assert_eq!(&head[..16], b"zolana-key-head1", "key image head");
+    let word = |i: usize| u32::from_le_bytes(head[16 + 4 * i..20 + 4 * i].try_into().unwrap());
+    let vk_len = u32::from_le_bytes(head[604..608].try_into().unwrap()) as usize;
+    let mut digest = [0u8; 32];
+    digest.copy_from_slice(&head[60..92]);
+    let lines = |file: &str| -> Vec<String> {
+        String::from_utf8(read(dir, file))
+            .unwrap()
+            .lines()
+            .map(str::to_owned)
+            .collect()
+    };
+    let (public_names, secret_names) = (lines("public-names"), lines("secret-names"));
+    let [a, b, k, z, b2, program, coefficients] =
+        ["a", "b", "k", "z", "b2", "program", "coefficients"].map(|n| read(dir, n));
+    let parts = zopro_core::artifact::Parts {
+        name,
+        inputs: word(0),
+        outputs: word(1),
+        flags: word(2),
+        public: word(3),
+        secret: word(4),
+        constraints: word(5),
+        digest,
+        fixed: &head[92..540],
+        domain: &head[540..604],
+        verifying_key: &head[608..608 + vk_len],
+        public_names: &public_names,
+        secret_names: &secret_names,
+        a: &a,
+        b: &b,
+        k: &k,
+        z: &z,
+        b2: &b2,
+        program: &program,
+        coefficients: &coefficients,
+    };
+    let started = Instant::now();
+    let bytes = zopro_core::artifact::pack(&parts).expect("pack");
+    fs::write(out, &bytes).expect("write the key");
+    println!(
+        "ZOPRO pack {name} bytes={} points={} ms={}",
+        bytes.len(),
+        (a.len() + b.len() + k.len() + z.len()) / 64 + b2.len() / 128,
+        started.elapsed().as_millis()
+    );
 }

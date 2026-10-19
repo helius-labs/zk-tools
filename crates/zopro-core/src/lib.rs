@@ -16,6 +16,7 @@ pub(crate) mod time {
     pub use web_time::Instant;
 }
 pub use wasm_bindgen_rayon::init_thread_pool;
+pub mod artifact;
 mod decompress;
 pub mod fft;
 pub mod groth16;

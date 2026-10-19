@@ -32,11 +32,11 @@ pub fn decompress_g2(compressed: &[u8]) -> Result<Vec<u8>, JsError> {
     g2(compressed).map_err(JsError::new)
 }
 
-fn g1(compressed: &[u8]) -> Result<Vec<u8>, &'static str> {
+pub(crate) fn g1(compressed: &[u8]) -> Result<Vec<u8>, &'static str> {
     decompress(compressed, 32, 64, g1_point)
 }
 
-fn g2(compressed: &[u8]) -> Result<Vec<u8>, &'static str> {
+pub(crate) fn g2(compressed: &[u8]) -> Result<Vec<u8>, &'static str> {
     decompress(compressed, 64, 128, g2_point)
 }
 
