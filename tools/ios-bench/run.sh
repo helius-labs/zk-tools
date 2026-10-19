@@ -4,6 +4,9 @@
 #
 #   tools/ios-bench/run.sh <device UDID> dump/2x2 5
 #   tools/ios-bench/run.sh <device UDID> --push <dump dir> dump/<name>
+#
+# The app's environment comes from DEVICECTL_CHILD_<NAME> variables
+# (DEVICECTL_CHILD_ZOPRO_GPU=0 proves on the CPU).
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 device="${1:?device UDID}"; shift

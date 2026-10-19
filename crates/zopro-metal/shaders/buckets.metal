@@ -90,11 +90,10 @@ template <typename E> inline xyzz_t<E> xyzz_mul_small(xyzz_t<E> p, uint k) {
   return r;
 }
 
+// A thread's share of its window: V + first * S over its block of buckets.
 template <typename E>
-inline void reduce(device const xyzz_t<E> *buckets, device xyzz_t<E> *partials,
-                   uint half_buckets, uint leaf, uint per_window, uint gid, uint group,
-                   uint index, uint lane, uint simd, uint simds,
-                   threadgroup xyzz_t<E> *shared_t) {
+inline xyzz_t<E> reduce_share(device const xyzz_t<E> *buckets, uint half_buckets, uint leaf,
+                              uint per_window, uint gid) {
   const uint window = gid / per_window;
   const uint first = (gid % per_window) * leaf;
   device const xyzz_t<E> *items = buckets + (ulong)window * half_buckets;
@@ -105,7 +104,15 @@ inline void reduce(device const xyzz_t<E> *buckets, device xyzz_t<E> *partials,
       s = xyzz_add(s, items[first + j - 1]);
     v = xyzz_add(v, s);
   }
-  xyzz_t<E> share = xyzz_add(v, xyzz_mul_small(s, first));
+  return xyzz_add(v, xyzz_mul_small(s, first));
+}
+
+template <typename E>
+inline void reduce(device const xyzz_t<E> *buckets, device xyzz_t<E> *partials,
+                   uint half_buckets, uint leaf, uint per_window, uint gid, uint group,
+                   uint index, uint lane, uint simd, uint simds,
+                   threadgroup xyzz_t<E> *shared_t) {
+  xyzz_t<E> share = reduce_share(buckets, half_buckets, leaf, per_window, gid);
   for (ushort delta = 16; delta > 0; delta >>= 1)
     share = xyzz_add(share, xyzz_shuffle_down(share, delta));
   if (lane == 0)
@@ -117,6 +124,25 @@ inline void reduce(device const xyzz_t<E> *buckets, device xyzz_t<E> *partials,
       total = xyzz_add(total, shared_t[i]);
     partials[group] = total;
   }
+}
+
+// The same without SIMD-group functions, which an A12's GPU lacks: the
+// shares add as a tree through threadgroup memory, at most REDUCE_TG
+// threads a group (a power of two).
+#define REDUCE_TG 64
+template <typename E>
+inline void reduce_tg(device const xyzz_t<E> *buckets, device xyzz_t<E> *partials,
+                      uint half_buckets, uint leaf, uint per_window, uint gid, uint group,
+                      uint index, uint threads, threadgroup xyzz_t<E> *shared_t) {
+  shared_t[index] = reduce_share(buckets, half_buckets, leaf, per_window, gid);
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  for (uint stride = threads / 2; stride > 0; stride >>= 1) {
+    if (index < stride)
+      shared_t[index] = xyzz_add(shared_t[index], shared_t[index + stride]);
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+  }
+  if (index == 0)
+    partials[group] = shared_t[0];
 }
 
 struct ReduceArgs {
@@ -161,6 +187,18 @@ struct ReduceArgs {
     threadgroup xyzz_t<E> shared_t[32];                                         \
     reduce<E>(buckets, partials, a.half_buckets, a.leaf, a.per_window, gid,     \
               group, index, lane, simd, simds, shared_t);                       \
+  }                                                                             \
+  kernel void reduce_tg_##suffix(                                               \
+      device const xyzz_t<E> *buckets [[buffer(0)]],                            \
+      device xyzz_t<E> *partials [[buffer(1)]],                                 \
+      constant ReduceArgs &a [[buffer(2)]],                                     \
+      uint gid [[thread_position_in_grid]],                                     \
+      uint group [[threadgroup_position_in_grid]],                              \
+      uint index [[thread_position_in_threadgroup]],                            \
+      uint threads [[threads_per_threadgroup]]) {                               \
+    threadgroup xyzz_t<E> shared_t[REDUCE_TG];                                  \
+    reduce_tg<E>(buckets, partials, a.half_buckets, a.leaf, a.per_window, gid,  \
+                 group, index, threads, shared_t);                              \
   }
 
 BUCKET_KERNELS(fp_t, g1)

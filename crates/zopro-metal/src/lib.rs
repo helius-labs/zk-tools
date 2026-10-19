@@ -231,6 +231,9 @@ const REDUCE_THREADS_PER_WINDOW: usize = 512;
 /// Threads per threadgroup in the reduction; each threadgroup leaves one
 /// partial sum for the host to add.
 const REDUCE_GROUP: usize = 256;
+/// The threadgroup memory reduction's most threads per group
+/// (`REDUCE_TG` in buckets.metal).
+const REDUCE_TG_GROUP: usize = 64;
 /// Shard length. Witness scalars put most points in a few buckets, whose
 /// long runs are what the shards split; long shards there starve the GPU of
 /// threads (128 over base points left 24x2's G2 MSM at 227 ms, 32 at 151).
@@ -261,6 +264,9 @@ pub trait Curve: CurveGroup {
     const FIRST: &'static str;
     const TREE: &'static str;
     const REDUCE: &'static str;
+    /// The reduction without SIMD-group functions (`reduce_tg` in
+    /// buckets.metal), for GPUs without them (an A12's).
+    const REDUCE_TG: &'static str;
     /// The affine point as the kernel holds it, the identity as zeros.
     fn encode(point: &Self::Affine, out: &mut Vec<u8>);
     /// An xyzz point (x, y, zz, zzz) as arkworks' Jacobian (x zz, y zzz, zz).
@@ -280,6 +286,7 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
     const FIRST: &'static str = "shards_first_g1";
     const TREE: &'static str = "shards_tree_g1";
     const REDUCE: &'static str = "reduce_g1";
+    const REDUCE_TG: &'static str = "reduce_tg_g1";
     fn encode(point: &G1Affine, out: &mut Vec<u8>) {
         if point.infinity {
             out.extend_from_slice(&[0u8; 64]);
@@ -309,6 +316,7 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g2::Config> {
     const FIRST: &'static str = "shards_first_g2";
     const TREE: &'static str = "shards_tree_g2";
     const REDUCE: &'static str = "reduce_g2";
+    const REDUCE_TG: &'static str = "reduce_tg_g2";
     fn encode(point: &G2Affine, out: &mut Vec<u8>) {
         if point.infinity {
             out.extend_from_slice(&[0u8; 128]);
@@ -458,7 +466,21 @@ impl<C: Curve> Msm<C> {
         let pipeline = |name: &str| pipeline(&device, C::G2, name);
         let first = pipeline(C::FIRST)?;
         let tree_pipeline = pipeline(C::TREE)?;
-        let reduce = pipeline(C::REDUCE)?;
+        // SIMD-group shuffles need an A13's GPU or later
+        // (ZOPRO_METAL_TG_REDUCE=1 takes the fallback anywhere).
+        let forced = std::env::var("ZOPRO_METAL_TG_REDUCE").is_ok_and(|v| v == "1");
+        let shuffles = if forced {
+            Err("ZOPRO_METAL_TG_REDUCE=1".to_string())
+        } else {
+            pipeline(C::REDUCE)
+        };
+        let (reduce, tree_reduce) = match shuffles {
+            Ok(reduce) => (reduce, false),
+            Err(e) => {
+                log::info!("zopro metal: {e}; reducing through threadgroup memory");
+                (pipeline(C::REDUCE_TG)?, true)
+            }
+        };
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         // Encoded straight into the buffer, a block of points at a time: a
         // whole host copy of the vector per key load left the allocator
@@ -496,7 +518,12 @@ impl<C: Curve> Msm<C> {
             let per_window = half.min(REDUCE_THREADS_PER_WINDOW);
             let allowed = reduce.max_total_threads_per_threadgroup() as usize;
             let allowed = 1usize << (usize::BITS - 1 - allowed.max(1).leading_zeros());
-            let group = per_window.min(REDUCE_GROUP).min(allowed);
+            let most = if tree_reduce {
+                REDUCE_TG_GROUP
+            } else {
+                REDUCE_GROUP
+            };
+            let group = per_window.min(most).min(allowed);
             [half / per_window, per_window, group, per_window / group]
         };
         Ok((
