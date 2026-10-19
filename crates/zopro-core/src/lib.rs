@@ -328,20 +328,24 @@ struct GpuBuilder {
 }
 #[cfg(gpu_wgpu)]
 impl GpuBuilder {
-    /// None with ZOPRO_GPU=0 or without a GPU; on Android only with
-    /// ZOPRO_GPU=1: measured on a Galaxy A16 (Mali-G57), A56 (Xclipse 940)
-    /// and S25 (Adreno 830), the WGSL MSMs took minutes to compile and ran
-    /// 3–5× slower than the phone's own cores, or did not link at all.
+    /// None with ZOPRO_GPU=0 or without a GPU usable here.
     fn open(plan: &fft::Plan) -> Option<Self> {
         let wanted = std::env::var("ZOPRO_GPU").ok();
-        if wanted.as_deref() == Some("0")
-            || (cfg!(target_os = "android") && wanted.as_deref() != Some("1"))
-        {
+        if wanted.as_deref() == Some("0") {
             return None;
         }
         let started = crate::time::Instant::now();
         #[cfg(not(target_arch = "wasm32"))]
         let gpu = std::sync::Arc::new(zopro_wgpu::Gpu::new().ok()?);
+        // On Android only a GPU running the pre-compiled kernels (Vulkan
+        // with SPIR-V passthrough): the WGSL kernels through naga took the
+        // Galaxy A16's Mali and A56's Xclipse minutes to compile and ran
+        // slower than the cores, and the Adreno lost the device on them.
+        // ZOPRO_GPU=1 tries any GPU.
+        #[cfg(all(target_os = "android", not(target_arch = "wasm32")))]
+        if !gpu.spirv && wanted.as_deref() != Some("1") {
+            return None;
+        }
         // In a browser the device is requested ahead, asynchronously
         // (init_gpu); building on it is synchronous.
         #[cfg(target_arch = "wasm32")]

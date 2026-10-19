@@ -80,7 +80,12 @@ pub struct ProofResult {
     pub public_inputs: Vec<u8>,
     /// The proof's coordinates in the SDKs' JSON.
     pub proof_json: serde_json::Value,
+    /// Decoding the request and placing its values.
+    pub witness_ms: u64,
+    /// Solving, the MSMs and the assembly.
     pub prove_ms: u64,
+    /// Checking the proof.
+    pub verify_ms: u64,
 }
 
 /// A loaded zopro key, ready to prove requests for its circuit.
@@ -175,15 +180,23 @@ impl Prover {
     /// before it is returned; a GPU proof that fails to verify is proved
     /// again on the CPU, and the GPU is let go.
     pub fn prove(&mut self, request: &str) -> Result<ProofResult, Error> {
+        let ms = |started: zopro_core::time::Instant| started.elapsed().as_millis() as u64;
         let started = zopro_core::time::Instant::now();
         let values = self.witness(request)?;
         let public: Vec<Fr> = values[..self.names.len() - secret_count(&self.names)].to_vec();
         let encoded = witness::encode(&values);
+        let witness_ms = ms(started);
+        let (mut prove_ms, mut verify_ms) = (0, 0);
         let proof = loop {
+            let started = zopro_core::time::Instant::now();
             let parts = self.key.solve(&encoded).map_err(Error::Prove)?;
             let raw = groth16::assemble(&parts, &self.fixed);
             let proof = Proof::from_raw(&raw).map_err(|e| Error::Prove(e.into()))?;
-            if self.verifying_key.verify(&proof, &public) {
+            prove_ms += ms(started);
+            let started = zopro_core::time::Instant::now();
+            let verified = self.verifying_key.verify(&proof, &public);
+            verify_ms += ms(started);
+            if verified {
                 break proof;
             }
             if self.key.has_gpu() {
@@ -197,7 +210,9 @@ impl Prover {
             proof: proof.to_gnark(),
             public_inputs: public_witness(&public),
             proof_json: proof.to_json(Some(&self.digest)),
-            prove_ms: started.elapsed().as_millis() as u64,
+            witness_ms,
+            prove_ms,
+            verify_ms,
         })
     }
 
