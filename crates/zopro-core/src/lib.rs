@@ -256,7 +256,7 @@ struct Gpu {
 
 /// Threads for a GPU MSM's sort while the global pool computes the CPU's
 /// G2 MSM (ZOPRO_SORT_THREADS, default 2).
-#[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
+#[cfg(all(any(gpu_wgpu, gpu), not(target_arch = "wasm32")))]
 fn sort_pool() -> &'static rayon::ThreadPool {
     static POOL: std::sync::OnceLock<rayon::ThreadPool> = std::sync::OnceLock::new();
     POOL.get_or_init(|| {
@@ -1047,9 +1047,12 @@ impl Key {
                 };
                 trace("quotient", started);
                 // Z's MSM is sorted and queued now, behind the others still
-                // on the GPU, rather than after them.
+                // on the GPU, rather than after them; on a pool of its own,
+                // since on the global one it queued behind the CPU's G2 MSM
+                // (365 ms instead of 10 on an iPad Pro's A12Z at 8x2).
                 let mut z = gpu.z.lock().unwrap();
-                let pz = z.start(&h);
+                let msm_z = &mut *z;
+                let pz = sort_pool().install(|| msm_z.start(&h));
                 let (ar, bs1, kr, bs2) = msms.join().expect("gpu msms")?;
                 let cpu = cpu_b2.map(|cpu| cpu.join().expect("cpu msm"));
                 let bs2 = match (bs2, cpu) {
