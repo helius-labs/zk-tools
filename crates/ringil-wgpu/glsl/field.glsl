@@ -3,7 +3,9 @@
 // umulExtended, uaddCarry), from Aeglos's generated field_gen.glsl
 // (helius-labs/aeglos, android branch, host/vulkan/gen_field.py), with the
 // multiplication's eight rounds in a loop: Adreno compiled the straight-line
-// form for 15-30 s per kernel (minutes for G2) and ran it slower.
+// form for 15-30 s per kernel (minutes for G2) and ran it slower. The
+// square is its own, straight-line: the cross products once, doubled
+// (13 % off the OnePlus 13's bucket accumulation).
 // Copyright (c) 2026 Helius Blockchain Technologies, Inc.
 #extension GL_EXT_control_flow_attributes : require
 struct fp { uint l0, l1, l2, l3, l4, l5, l6, l7; };
@@ -103,7 +105,233 @@ fp fp_mul(fp a, fp b) {
   return fp_reduce_once(t0, t1, t2, t3, t4, t5, t6, t7);
 }
 
-fp fp_square(fp a) { return fp_mul(a, a); }
+fp fp_square(fp a) {
+  // a^2 with the cross products a_i a_j (i < j) computed once and
+  // doubled, 36 limb products against the multiplication's 64, then the
+  // Montgomery reduction of the 16-limb square.
+  const uint a0 = a.l0;
+  const uint a1 = a.l1;
+  const uint a2 = a.l2;
+  const uint a3 = a.l3;
+  const uint a4 = a.l4;
+  const uint a5 = a.l5;
+  const uint a6 = a.l6;
+  const uint a7 = a.l7;
+  uint hi, lo, k1, k2;
+  uint c0 = 0u, c1 = 0u, c2 = 0u;
+  uint t0;
+  uint t1;
+  uint t2;
+  uint t3;
+  uint t4;
+  uint t5;
+  uint t6;
+  uint t7;
+  uint t8;
+  uint t9;
+  uint t10;
+  uint t11;
+  uint t12;
+  uint t13;
+  uint t14;
+  uint t15;
+  // column 0
+  umulExtended(a0, a0, hi, lo); c0 = uaddCarry(c0, lo, k1); c1 = uaddCarry(c1, hi, k2); c1 = uaddCarry(c1, k1, k1); c2 += k1 + k2;
+  t0 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 1
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a0, a1, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  t1 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 2
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a0, a2, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  umulExtended(a1, a1, hi, lo); c0 = uaddCarry(c0, lo, k1); c1 = uaddCarry(c1, hi, k2); c1 = uaddCarry(c1, k1, k1); c2 += k1 + k2;
+  t2 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 3
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a0, a3, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a1, a2, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  t3 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 4
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a0, a4, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a1, a3, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  umulExtended(a2, a2, hi, lo); c0 = uaddCarry(c0, lo, k1); c1 = uaddCarry(c1, hi, k2); c1 = uaddCarry(c1, k1, k1); c2 += k1 + k2;
+  t4 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 5
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a0, a5, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a1, a4, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a2, a3, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  t5 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 6
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a0, a6, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a1, a5, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a2, a4, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  umulExtended(a3, a3, hi, lo); c0 = uaddCarry(c0, lo, k1); c1 = uaddCarry(c1, hi, k2); c1 = uaddCarry(c1, k1, k1); c2 += k1 + k2;
+  t6 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 7
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a0, a7, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a1, a6, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a2, a5, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a3, a4, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  t7 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 8
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a1, a7, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a2, a6, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a3, a5, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  umulExtended(a4, a4, hi, lo); c0 = uaddCarry(c0, lo, k1); c1 = uaddCarry(c1, hi, k2); c1 = uaddCarry(c1, k1, k1); c2 += k1 + k2;
+  t8 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 9
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a2, a7, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a3, a6, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a4, a5, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  t9 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 10
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a3, a7, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a4, a6, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  umulExtended(a5, a5, hi, lo); c0 = uaddCarry(c0, lo, k1); c1 = uaddCarry(c1, hi, k2); c1 = uaddCarry(c1, k1, k1); c2 += k1 + k2;
+  t10 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 11
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a4, a7, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    umulExtended(a5, a6, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  t11 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 12
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a5, a7, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  umulExtended(a6, a6, hi, lo); c0 = uaddCarry(c0, lo, k1); c1 = uaddCarry(c1, hi, k2); c1 = uaddCarry(c1, k1, k1); c2 += k1 + k2;
+  t12 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 13
+  { uint x0 = 0u, x1 = 0u, x2 = 0u;
+    umulExtended(a6, a7, hi, lo); x0 = uaddCarry(x0, lo, k1); x1 = uaddCarry(x1, hi, k2); x1 = uaddCarry(x1, k1, k1); x2 += k1 + k2;
+    x2 = (x2 << 1u) | (x1 >> 31u); x1 = (x1 << 1u) | (x0 >> 31u); x0 = x0 << 1u;
+    c0 = uaddCarry(c0, x0, k1); c1 = uaddCarry(c1, x1, k2); c1 = uaddCarry(c1, k1, k1); c2 += x2 + k1 + k2; }
+  t13 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  // column 14
+  umulExtended(a7, a7, hi, lo); c0 = uaddCarry(c0, lo, k1); c1 = uaddCarry(c1, hi, k2); c1 = uaddCarry(c1, k1, k1); c2 += k1 + k2;
+  t14 = c0; c0 = c1; c1 = c2; c2 = 0u;
+  t15 = c0;
+  uint m, cc, top = 0u;
+  // reduction round 0
+  m = t0 * FP_INV; cc = 0u;
+  umulExtended(m, Q0, hi, lo); t0 = uaddCarry(t0, lo, k1); t0 = uaddCarry(t0, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q1, hi, lo); t1 = uaddCarry(t1, lo, k1); t1 = uaddCarry(t1, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q2, hi, lo); t2 = uaddCarry(t2, lo, k1); t2 = uaddCarry(t2, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q3, hi, lo); t3 = uaddCarry(t3, lo, k1); t3 = uaddCarry(t3, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q4, hi, lo); t4 = uaddCarry(t4, lo, k1); t4 = uaddCarry(t4, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q5, hi, lo); t5 = uaddCarry(t5, lo, k1); t5 = uaddCarry(t5, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q6, hi, lo); t6 = uaddCarry(t6, lo, k1); t6 = uaddCarry(t6, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q7, hi, lo); t7 = uaddCarry(t7, lo, k1); t7 = uaddCarry(t7, cc, k2); cc = hi + k1 + k2;
+  t8 = uaddCarry(t8, cc, k1); t8 = uaddCarry(t8, top, k2); top = k1 + k2;
+  // reduction round 1
+  m = t1 * FP_INV; cc = 0u;
+  umulExtended(m, Q0, hi, lo); t1 = uaddCarry(t1, lo, k1); t1 = uaddCarry(t1, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q1, hi, lo); t2 = uaddCarry(t2, lo, k1); t2 = uaddCarry(t2, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q2, hi, lo); t3 = uaddCarry(t3, lo, k1); t3 = uaddCarry(t3, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q3, hi, lo); t4 = uaddCarry(t4, lo, k1); t4 = uaddCarry(t4, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q4, hi, lo); t5 = uaddCarry(t5, lo, k1); t5 = uaddCarry(t5, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q5, hi, lo); t6 = uaddCarry(t6, lo, k1); t6 = uaddCarry(t6, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q6, hi, lo); t7 = uaddCarry(t7, lo, k1); t7 = uaddCarry(t7, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q7, hi, lo); t8 = uaddCarry(t8, lo, k1); t8 = uaddCarry(t8, cc, k2); cc = hi + k1 + k2;
+  t9 = uaddCarry(t9, cc, k1); t9 = uaddCarry(t9, top, k2); top = k1 + k2;
+  // reduction round 2
+  m = t2 * FP_INV; cc = 0u;
+  umulExtended(m, Q0, hi, lo); t2 = uaddCarry(t2, lo, k1); t2 = uaddCarry(t2, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q1, hi, lo); t3 = uaddCarry(t3, lo, k1); t3 = uaddCarry(t3, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q2, hi, lo); t4 = uaddCarry(t4, lo, k1); t4 = uaddCarry(t4, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q3, hi, lo); t5 = uaddCarry(t5, lo, k1); t5 = uaddCarry(t5, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q4, hi, lo); t6 = uaddCarry(t6, lo, k1); t6 = uaddCarry(t6, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q5, hi, lo); t7 = uaddCarry(t7, lo, k1); t7 = uaddCarry(t7, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q6, hi, lo); t8 = uaddCarry(t8, lo, k1); t8 = uaddCarry(t8, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q7, hi, lo); t9 = uaddCarry(t9, lo, k1); t9 = uaddCarry(t9, cc, k2); cc = hi + k1 + k2;
+  t10 = uaddCarry(t10, cc, k1); t10 = uaddCarry(t10, top, k2); top = k1 + k2;
+  // reduction round 3
+  m = t3 * FP_INV; cc = 0u;
+  umulExtended(m, Q0, hi, lo); t3 = uaddCarry(t3, lo, k1); t3 = uaddCarry(t3, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q1, hi, lo); t4 = uaddCarry(t4, lo, k1); t4 = uaddCarry(t4, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q2, hi, lo); t5 = uaddCarry(t5, lo, k1); t5 = uaddCarry(t5, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q3, hi, lo); t6 = uaddCarry(t6, lo, k1); t6 = uaddCarry(t6, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q4, hi, lo); t7 = uaddCarry(t7, lo, k1); t7 = uaddCarry(t7, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q5, hi, lo); t8 = uaddCarry(t8, lo, k1); t8 = uaddCarry(t8, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q6, hi, lo); t9 = uaddCarry(t9, lo, k1); t9 = uaddCarry(t9, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q7, hi, lo); t10 = uaddCarry(t10, lo, k1); t10 = uaddCarry(t10, cc, k2); cc = hi + k1 + k2;
+  t11 = uaddCarry(t11, cc, k1); t11 = uaddCarry(t11, top, k2); top = k1 + k2;
+  // reduction round 4
+  m = t4 * FP_INV; cc = 0u;
+  umulExtended(m, Q0, hi, lo); t4 = uaddCarry(t4, lo, k1); t4 = uaddCarry(t4, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q1, hi, lo); t5 = uaddCarry(t5, lo, k1); t5 = uaddCarry(t5, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q2, hi, lo); t6 = uaddCarry(t6, lo, k1); t6 = uaddCarry(t6, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q3, hi, lo); t7 = uaddCarry(t7, lo, k1); t7 = uaddCarry(t7, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q4, hi, lo); t8 = uaddCarry(t8, lo, k1); t8 = uaddCarry(t8, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q5, hi, lo); t9 = uaddCarry(t9, lo, k1); t9 = uaddCarry(t9, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q6, hi, lo); t10 = uaddCarry(t10, lo, k1); t10 = uaddCarry(t10, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q7, hi, lo); t11 = uaddCarry(t11, lo, k1); t11 = uaddCarry(t11, cc, k2); cc = hi + k1 + k2;
+  t12 = uaddCarry(t12, cc, k1); t12 = uaddCarry(t12, top, k2); top = k1 + k2;
+  // reduction round 5
+  m = t5 * FP_INV; cc = 0u;
+  umulExtended(m, Q0, hi, lo); t5 = uaddCarry(t5, lo, k1); t5 = uaddCarry(t5, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q1, hi, lo); t6 = uaddCarry(t6, lo, k1); t6 = uaddCarry(t6, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q2, hi, lo); t7 = uaddCarry(t7, lo, k1); t7 = uaddCarry(t7, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q3, hi, lo); t8 = uaddCarry(t8, lo, k1); t8 = uaddCarry(t8, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q4, hi, lo); t9 = uaddCarry(t9, lo, k1); t9 = uaddCarry(t9, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q5, hi, lo); t10 = uaddCarry(t10, lo, k1); t10 = uaddCarry(t10, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q6, hi, lo); t11 = uaddCarry(t11, lo, k1); t11 = uaddCarry(t11, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q7, hi, lo); t12 = uaddCarry(t12, lo, k1); t12 = uaddCarry(t12, cc, k2); cc = hi + k1 + k2;
+  t13 = uaddCarry(t13, cc, k1); t13 = uaddCarry(t13, top, k2); top = k1 + k2;
+  // reduction round 6
+  m = t6 * FP_INV; cc = 0u;
+  umulExtended(m, Q0, hi, lo); t6 = uaddCarry(t6, lo, k1); t6 = uaddCarry(t6, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q1, hi, lo); t7 = uaddCarry(t7, lo, k1); t7 = uaddCarry(t7, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q2, hi, lo); t8 = uaddCarry(t8, lo, k1); t8 = uaddCarry(t8, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q3, hi, lo); t9 = uaddCarry(t9, lo, k1); t9 = uaddCarry(t9, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q4, hi, lo); t10 = uaddCarry(t10, lo, k1); t10 = uaddCarry(t10, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q5, hi, lo); t11 = uaddCarry(t11, lo, k1); t11 = uaddCarry(t11, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q6, hi, lo); t12 = uaddCarry(t12, lo, k1); t12 = uaddCarry(t12, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q7, hi, lo); t13 = uaddCarry(t13, lo, k1); t13 = uaddCarry(t13, cc, k2); cc = hi + k1 + k2;
+  t14 = uaddCarry(t14, cc, k1); t14 = uaddCarry(t14, top, k2); top = k1 + k2;
+  // reduction round 7
+  m = t7 * FP_INV; cc = 0u;
+  umulExtended(m, Q0, hi, lo); t7 = uaddCarry(t7, lo, k1); t7 = uaddCarry(t7, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q1, hi, lo); t8 = uaddCarry(t8, lo, k1); t8 = uaddCarry(t8, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q2, hi, lo); t9 = uaddCarry(t9, lo, k1); t9 = uaddCarry(t9, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q3, hi, lo); t10 = uaddCarry(t10, lo, k1); t10 = uaddCarry(t10, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q4, hi, lo); t11 = uaddCarry(t11, lo, k1); t11 = uaddCarry(t11, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q5, hi, lo); t12 = uaddCarry(t12, lo, k1); t12 = uaddCarry(t12, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q6, hi, lo); t13 = uaddCarry(t13, lo, k1); t13 = uaddCarry(t13, cc, k2); cc = hi + k1 + k2;
+  umulExtended(m, Q7, hi, lo); t14 = uaddCarry(t14, lo, k1); t14 = uaddCarry(t14, cc, k2); cc = hi + k1 + k2;
+  t15 = uaddCarry(t15, cc, k1); t15 = uaddCarry(t15, top, k2); top = k1 + k2;
+  return fp_reduce_once(t8, t9, t10, t11, t12, t13, t14, t15);
+}
 fp fp_neg(fp a) { return fp_sub(fp_zero(), a); }
 
 struct affine { fp x; fp y; };
@@ -216,7 +444,11 @@ fp2 e2_mul(fp2 a, fp2 b) {
 }
 #endif
 
-fp2 e2_square(fp2 a) { return e2_mul(a, a); }
+// i^2 = -1: ((a0 + a1)(a0 - a1), 2 a0 a1), two products.
+fp2 e2_square(fp2 a) {
+  const fp product = fp_mul(a.a0, a.a1);
+  return fp2(fp_mul(fp_add(a.a0, a.a1), fp_sub(a.a0, a.a1)), fp_add(product, product));
+}
 fp2 e2_neg(fp2 a) { return e2_sub(e2_zero(), a); }
 
 struct affine2 { fp2 x; fp2 y; };
