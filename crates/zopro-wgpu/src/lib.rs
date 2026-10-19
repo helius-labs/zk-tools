@@ -195,6 +195,148 @@ pub struct Pending {
     submitted: Instant,
     timings: Timings,
     submission: wgpu::SubmissionIndex,
+    timer: Option<profile::Timer>,
+}
+
+/// Per-kernel GPU times from timestamp queries, where the device has them
+/// and profiling is on before the device is made (`set_profiling`, or
+/// ZOPRO_WGPU_PROFILE=1 natively): every pass of an MSM or a quotient
+/// writes its beginning and end, and `profile_report` gives the sums by
+/// kernel since the last report. A browser rounds timestamps to 0.1 ms.
+pub mod profile {
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    };
+
+    static ON: AtomicBool = AtomicBool::new(false);
+    static TIMES: Mutex<Vec<(&'static str, f64, u32)>> = Mutex::new(Vec::new());
+
+    pub fn set_profiling(on: bool) {
+        ON.store(on, Ordering::SeqCst);
+    }
+
+    pub(crate) fn wanted() -> bool {
+        ON.load(Ordering::SeqCst)
+            || (cfg!(not(target_arch = "wasm32"))
+                && std::env::var("ZOPRO_WGPU_PROFILE").is_ok_and(|v| v == "1"))
+    }
+
+    pub(crate) fn record(kernel: &'static str, ms: f64) {
+        let mut times = TIMES.lock().unwrap();
+        match times.iter_mut().find(|(name, ..)| *name == kernel) {
+            Some((_, total, count)) => {
+                *total += ms;
+                *count += 1;
+            }
+            None => times.push((kernel, ms, 1)),
+        }
+    }
+
+    /// A host stage's time, when profiling.
+    pub fn record_cpu(stage: &'static str, ms: f64) {
+        if wanted() {
+            record(stage, ms);
+        }
+    }
+
+    /// `kernel total_ms passes` per line, and clears them.
+    pub fn report() -> String {
+        let mut times = TIMES.lock().unwrap();
+        let out = times
+            .iter()
+            .map(|(name, total, count)| format!("{name} {total:.2} ms {count} passes"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        times.clear();
+        out
+    }
+
+    /// The passes of one submission: their names, the query set they write,
+    /// and the buffers it resolves into.
+    pub(crate) struct Timer {
+        set: wgpu::QuerySet,
+        resolve: wgpu::Buffer,
+        pub(crate) staging: wgpu::Buffer,
+        names: Vec<&'static str>,
+        period: f32,
+    }
+
+    impl Timer {
+        /// Room for `passes` passes, when profiling and the device times.
+        pub(crate) fn new(gpu: &crate::Gpu, passes: usize) -> Option<Self> {
+            let period = gpu.timestamp_period?;
+            let count = (2 * passes) as u32;
+            let device = &gpu.device;
+            Some(Self {
+                set: device.create_query_set(&wgpu::QuerySetDescriptor {
+                    label: Some("zopro profile"),
+                    ty: wgpu::QueryType::Timestamp,
+                    count,
+                }),
+                resolve: device.create_buffer(&wgpu::BufferDescriptor {
+                    label: None,
+                    size: 8 * count as u64,
+                    usage: wgpu::BufferUsages::QUERY_RESOLVE | wgpu::BufferUsages::COPY_SRC,
+                    mapped_at_creation: false,
+                }),
+                staging: device.create_buffer(&wgpu::BufferDescriptor {
+                    label: None,
+                    size: 8 * count as u64,
+                    usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                }),
+                names: Vec::with_capacity(passes),
+                period,
+            })
+        }
+
+        /// A pass's descriptor, its times written as `kernel`'s.
+        pub(crate) fn pass(&mut self, kernel: &'static str) -> wgpu::ComputePassDescriptor<'_> {
+            let i = self.names.len() as u32;
+            self.names.push(kernel);
+            wgpu::ComputePassDescriptor {
+                label: None,
+                timestamp_writes: Some(wgpu::ComputePassTimestampWrites {
+                    query_set: &self.set,
+                    beginning_of_pass_write_index: Some(2 * i),
+                    end_of_pass_write_index: Some(2 * i + 1),
+                }),
+            }
+        }
+
+        /// Copies the times out after the passes.
+        pub(crate) fn resolve(&self, encoder: &mut wgpu::CommandEncoder) {
+            let count = 2 * self.names.len() as u32;
+            encoder.resolve_query_set(&self.set, 0..count, &self.resolve, 0);
+            encoder.copy_buffer_to_buffer(&self.resolve, 0, &self.staging, 0, 8 * count as u64);
+        }
+
+        /// Records the times once the submission is done.
+        pub(crate) async fn read(
+            self,
+            gpu: &crate::Gpu,
+            submission: wgpu::SubmissionIndex,
+        ) -> Result<(), String> {
+            crate::mapped(gpu, &self.staging, Some(submission)).await?;
+            let data = self
+                .staging
+                .slice(..)
+                .get_mapped_range()
+                .map_err(|e| format!("timestamps: {e}"))?
+                .to_vec();
+            self.staging.unmap();
+            let ticks: Vec<u64> = data
+                .chunks_exact(8)
+                .map(|c| u64::from_le_bytes(c.try_into().unwrap()))
+                .collect();
+            for (i, name) in self.names.iter().enumerate() {
+                let ns = ticks[2 * i + 1].saturating_sub(ticks[2 * i]) as f64 * self.period as f64;
+                record(name, ns / 1e6);
+            }
+            Ok(())
+        }
+    }
 }
 
 /// Qualcomm's PCI vendor id, which wgpu reports for an Adreno.
@@ -208,6 +350,8 @@ pub struct Gpu {
     pub spirv: bool,
     /// The adapter's PCI vendor id (Qualcomm 0x5143, ARM 0x13b5, ...).
     pub vendor: u32,
+    /// Nanoseconds per timestamp tick, when profiling (`profile`).
+    pub(crate) timestamp_period: Option<f32>,
     /// The driver's pipeline cache, persisted at ZOPRO_PIPELINE_CACHE when
     /// set: a phone compiles a kernel in tens of seconds the first time.
     cache: Option<wgpu::PipelineCache>,
@@ -315,6 +459,11 @@ impl Gpu {
         if caching {
             features |= wgpu::Features::PIPELINE_CACHE;
         }
+        let timing =
+            profile::wanted() && adapter.features().contains(wgpu::Features::TIMESTAMP_QUERY);
+        if timing {
+            features |= wgpu::Features::TIMESTAMP_QUERY;
+        }
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: Some("zopro"),
@@ -352,6 +501,7 @@ impl Gpu {
                 })
             }
         });
+        let timestamp_period = timing.then(|| queue.get_timestamp_period());
         Ok(Self {
             device,
             queue,
@@ -359,6 +509,7 @@ impl Gpu {
             failed,
             spirv,
             vendor: info.vendor,
+            timestamp_period,
             cache,
             cache_path,
         })
@@ -866,6 +1017,9 @@ impl<C: Curve> Msm<C> {
                 self.plan(chunk, first..(first + self.chunk_windows).min(self.windows))
             })
             .collect();
+        let passes =
+            usize::from(self.gpu_sort.is_some()) + chunks.iter().map(Vec::len).sum::<usize>() + 1;
+        let mut timer = profile::Timer::new(&self.gpu, passes);
         if let Some(sort) = &self.gpu_sort {
             self.gpu
                 .queue
@@ -895,7 +1049,10 @@ impl<C: Curve> Msm<C> {
                         },
                     ],
                 });
-            let mut pass = encoder.begin_compute_pass(&Default::default());
+            let mut pass = match timer.as_mut() {
+                Some(timer) => encoder.begin_compute_pass(&timer.pass("msm_scatter")),
+                None => encoder.begin_compute_pass(&Default::default()),
+            };
             pass.set_pipeline(&sort.scatter);
             pass.set_bind_group(0, &group, &[]);
             pass.dispatch_workgroups((self.n as u32).div_ceil(WORKGROUP), 1, 1);
@@ -985,7 +1142,11 @@ impl<C: Curve> Msm<C> {
                         }],
                     })
                 });
-                let mut pass = encoder.begin_compute_pass(&Default::default());
+                let kernel = C::ENTRIES[if level == 0 { 0 } else { 1 }];
+                let mut pass = match timer.as_mut() {
+                    Some(timer) => encoder.begin_compute_pass(&timer.pass(kernel)),
+                    None => encoder.begin_compute_pass(&Default::default()),
+                };
                 pass.set_pipeline(pipeline);
                 pass.set_bind_group(0, &group0, &[]);
                 if let Some(group1) = &group1 {
@@ -1019,7 +1180,10 @@ impl<C: Curve> Msm<C> {
                     },
                 ],
             });
-            let mut pass = encoder.begin_compute_pass(&Default::default());
+            let mut pass = match timer.as_mut() {
+                Some(timer) => encoder.begin_compute_pass(&timer.pass(C::ENTRIES[2])),
+                None => encoder.begin_compute_pass(&Default::default()),
+            };
             pass.set_pipeline(&self.reduce_blocks);
             pass.set_bind_group(0, &group, &[]);
             pass.dispatch_workgroups(
@@ -1033,11 +1197,15 @@ impl<C: Curve> Msm<C> {
             log::info!("ZOPRO_TRACE wgpu-stages n={} {}", self.n, stages.report());
         }
         encoder.copy_buffer_to_buffer(&self.sums, 0, &self.staging, 0, self.sums.size());
+        if let Some(timer) = &timer {
+            timer.resolve(&mut encoder);
+        }
         let submission = queue.submit([encoder.finish()]);
         Pending {
             submitted: started,
             timings,
             submission,
+            timer,
         }
     }
 
@@ -1051,6 +1219,9 @@ impl<C: Curve> Msm<C> {
     pub async fn finish_async(&mut self, pending: Pending) -> Result<(C, Timings), String> {
         let mut timings = pending.timings;
         mapped(&self.gpu, &self.staging, Some(pending.submission.clone())).await?;
+        if let Some(timer) = pending.timer {
+            timer.read(&self.gpu, pending.submission.clone()).await?;
+        }
         let data = self
             .staging
             .slice(..)

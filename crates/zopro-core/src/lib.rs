@@ -308,6 +308,23 @@ thread_local! {
     static WEB_GPU: std::cell::RefCell<Option<std::sync::Arc<zopro_wgpu::Gpu>>> = const { std::cell::RefCell::new(None) };
 }
 
+/// Per-kernel GPU times from timestamp queries for the proofs after the
+/// next `init_gpu` (`gpu_profile_report` gives them): a profile, not for
+/// production proofs.
+#[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
+#[wasm_bindgen]
+pub fn gpu_profile(on: bool) {
+    zopro_wgpu::profile::set_profiling(on);
+}
+
+/// The kernels' GPU times since the last report, a line each:
+/// `kernel total_ms ms passes passes`.
+#[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
+#[wasm_bindgen]
+pub fn gpu_profile_report() -> String {
+    zopro_wgpu::profile::report()
+}
+
 /// Requests the page's WebGPU device for the keys built after it: their
 /// MSMs and quotient go to the GPU through solve_parts_gpu. False without
 /// WebGPU (the keys then prove on the CPU).
@@ -754,6 +771,9 @@ impl Key {
                 self.lengths[2],
                 self.domain.size(),
             ) {
+                let started = crate::time::Instant::now();
+                plan.prepare();
+                trace("solver-schedule", started);
                 self.solver = Some(plan);
                 return true;
             }
@@ -786,6 +806,9 @@ impl Key {
                 self.lengths[2],
                 self.domain.size(),
             ) {
+                let started = crate::time::Instant::now();
+                plan.prepare();
+                trace("solver-schedule", started);
                 self.solver = Some(plan);
                 return true;
             }
@@ -827,11 +850,18 @@ impl Key {
         if !witness.len().is_multiple_of(32) {
             return Err(JsError::new("invalid witness encoding"));
         }
+        // CPU stages into the GPU profile when profiling (gpu_profile).
+        let mut clock = crate::time::Instant::now();
+        let mut stage = |name: &'static str| {
+            zopro_wgpu::profile::record_cpu(name, clock.elapsed().as_secs_f64() * 1000.0);
+            clock = crate::time::Instant::now();
+        };
         let solution = plan.solve(&frs(witness)).map_err(|e| JsError::new(&e))?;
         let sa: Vec<_> = plan.a_indices.iter().map(|i| solution.w[*i]).collect();
         let sb: Vec<_> = plan.b_indices.iter().map(|i| solution.w[*i]).collect();
         let sk = &solution.w[plan.n_public..];
         let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
+        stage("cpu solve");
         let (a, b, c) = (solution.a, solution.b, solution.c);
         let (h_from_cpu, quotient_on_gpu) = if self.gpu_quotient {
             gpu.quotient.lock().unwrap().start(&a, &b, &c);
@@ -839,6 +869,7 @@ impl Key {
         } else {
             (Some(self.quotient(a, b, c)), false)
         };
+        stage("cpu quotient submit");
         let pa = gpu.a.lock().unwrap().start(&sa);
         let pb = gpu.b.lock().unwrap().start(&sb);
         let pk = gpu.k.lock().unwrap().start(sk);
@@ -846,9 +877,16 @@ impl Key {
             .b2
             .as_ref()
             .map(|b2| b2.lock().unwrap().start(&sb[..cut]));
+        stage("cpu sort a b k b2");
         // The CPU's share of G2 while the GPU works.
         let cpu_b2 = (cut < sb.len()).then(|| msm_g2(&self.b2[cut..], &sb[cut..]));
+        stage("cpu g2 share");
         Ok(wasm_bindgen_futures::future_to_promise(async move {
+            let mut clock = crate::time::Instant::now();
+            let mut stage = |name: &'static str| {
+                zopro_wgpu::profile::record_cpu(name, clock.elapsed().as_secs_f64() * 1000.0);
+                clock = crate::time::Instant::now();
+            };
             let fail = |e: String| JsValue::from(JsError::new(&e));
             let h = match h_from_cpu {
                 Some(h) => h,
@@ -858,7 +896,9 @@ impl Key {
                     quotient.finish_async().await.map_err(fail)?
                 }
             };
+            stage("wait quotient");
             let pz = gpu.z.lock().unwrap().start(&h);
+            stage("cpu sort z");
             let (ar, _) = gpu.a.lock().unwrap().finish_async(pa).await.map_err(fail)?;
             let (bs1, _) = gpu.b.lock().unwrap().finish_async(pb).await.map_err(fail)?;
             let (kr, _) = gpu.k.lock().unwrap().finish_async(pk).await.map_err(fail)?;
@@ -869,6 +909,7 @@ impl Key {
                 _ => None,
             };
             let (hz, _) = gpu.z.lock().unwrap().finish_async(pz).await.map_err(fail)?;
+            stage("wait msms");
             let bs2 = match (gpu_b2, cpu_b2) {
                 (Some(g), Some(c)) => g + c,
                 (Some(g), None) => g,

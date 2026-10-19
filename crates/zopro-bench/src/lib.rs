@@ -291,6 +291,8 @@ fn wgpu_one<C: zopro_wgpu::Curve>(
     let cpu = cpu_msm(bases, scalars);
     let cpu_ms = started.elapsed().as_secs_f64() * 1000.0;
     let _ = msm.msm(scalars);
+    // Only the timed runs' kernel times (ZOPRO_WGPU_PROFILE=1).
+    let _ = zopro_wgpu::profile::report();
     let mut best: Option<(zopro_wgpu::Timings, f64, C)> = None;
     for _ in 0..3 {
         let started = Instant::now();
@@ -314,6 +316,9 @@ fn wgpu_one<C: zopro_wgpu::Curve>(
         t.gpu_ms,
         t.combine_ms
     );
+    for line in zopro_wgpu::profile::report().lines() {
+        println!("ZOPRO wgpu-profile \"{name}\" {line} (3 runs)");
+    }
 }
 
 /// The quotient of random evaluations through wgpu against the CPU plan's,

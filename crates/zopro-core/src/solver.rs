@@ -128,7 +128,60 @@ pub(crate) struct Plan {
     sums: Vec<Sum>,
     n_constraints: usize,
     ops: Vec<Op>,
+    /// The ops in epochs of parallel tasks, built at the first solve.
+    schedule: std::sync::OnceLock<Schedule>,
 }
+
+/// Bands of dependency depth (epochs), each a list of tasks: the connected
+/// components of the epoch's ops, whose inputs earlier epochs or earlier
+/// ops of the same task produce. Tasks of an epoch run in parallel, each in
+/// program order, which is a topological order. gnark's own levels are too
+/// narrow for this (a median of 16 ops at 8 -> 2 over 8036 levels), but
+/// the circuits' notes and hashes are largely independent until late.
+struct Schedule {
+    epochs: Vec<Vec<Vec<u32>>>,
+}
+
+/// Raw access to the solution's vectors for the parallel solve: every op
+/// writes only its own output wires, its own sums and its own constraint's
+/// row, and reads only what earlier epochs or its task wrote.
+#[derive(Clone, Copy)]
+struct View {
+    w: *mut Fr,
+    a: *mut Fr,
+    b: *mut Fr,
+    c: *mut Fr,
+}
+// SAFETY: see View; the schedule keeps every write disjoint and ordered
+// before its reads.
+unsafe impl Send for View {}
+unsafe impl Sync for View {}
+/// Epochs of the parallel solve (ZOPRO_SOLVE_EPOCHS; 0 solves on one
+/// thread).
+fn solve_epochs() -> usize {
+    #[cfg(not(target_arch = "wasm32"))]
+    if let Some(epochs) = std::env::var("ZOPRO_SOLVE_EPOCHS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+    {
+        return epochs;
+    }
+    SOLVE_EPOCHS
+}
+/// Measured best: 64 in Chrome on an M5 Pro at four threads (8 -> 2 57 ->
+/// 22 ms, 24 -> 2 163 -> 59), 16 natively, where a phone's little cores
+/// hold up each epoch's last tasks (a Seeker at 64 solved 2 -> 2 in 71 ms
+/// against 28 on one thread; at 16 in 17, 8 -> 2 93 -> 59, 24 -> 2 269 ->
+/// 160).
+const SOLVE_EPOCHS: usize = if cfg!(target_arch = "wasm32") { 64 } else { 16 };
+
+/// The op before `op` that writes `wire`, if one does. `producer` holds the
+/// last writer, and wires are written once.
+fn producer_before(producer: &[u32], wire: usize, op: usize) -> Option<usize> {
+    let p = producer[wire];
+    (p != u32::MAX && (p as usize) < op).then_some(p as usize)
+}
+
 impl Plan {
     /// The plan's sizes in memory, for the trace build.
     #[allow(dead_code)]
@@ -391,6 +444,7 @@ impl Plan {
             sums,
             n_constraints,
             ops,
+            schedule: std::sync::OnceLock::new(),
         })
     }
 
@@ -648,6 +702,7 @@ impl Plan {
             sums,
             n_constraints,
             ops,
+            schedule: std::sync::OnceLock::new(),
         })
     }
 
@@ -668,97 +723,262 @@ impl Plan {
         let mut a = vec![Fr::ZERO; self.n_constraints];
         let mut b = a.clone();
         let mut c = a.clone();
-        for op in &self.ops {
-            let step = match op {
-                Op::Constraint(step) => step,
-                Op::Hint(hint) => {
-                    let mut value = Fr::ZERO;
-                    for term in &self.terms[hint.input.clone()] {
-                        value += self.evaluate_term(term, &w);
-                    }
-                    match hint.kind {
-                        HintKind::InvZero => {
-                            w[hint.outputs.start] = value.inverse().unwrap_or(Fr::ZERO);
-                        }
-                        HintKind::Bits => {
-                            let bits = value.into_bigint();
-                            for (i, wire) in hint.outputs.clone().enumerate() {
-                                w[wire] = if bits.get_bit(i) { Fr::ONE } else { Fr::ZERO };
-                            }
-                        }
-                    }
-                    continue;
-                }
-            };
-            for index in step.sums.clone() {
-                let sum = &self.sums[index];
-                let term = self.evaluate_term(&sum.term, &w);
-                w[self.n_wires + index] = if sum.previous == NO_SUM {
-                    term
-                } else {
-                    w[sum.previous] + term
-                };
+        let view = View {
+            w: w.as_mut_ptr(),
+            a: a.as_mut_ptr(),
+            b: b.as_mut_ptr(),
+            c: c.as_mut_ptr(),
+        };
+        let epochs = solve_epochs();
+        if epochs == 0 || self.ops.len() < 4096 {
+            for op in &self.ops {
+                // SAFETY: one thread, in program order.
+                unsafe { self.run(op, view)? };
             }
-            let mut values = [Fr::ZERO; 3];
-            for (value, expression) in values.iter_mut().zip(&step.expressions) {
-                *value = match expression {
-                    Expression::Zero => Fr::ZERO,
-                    Expression::Wire(wire) => w[*wire],
-                    Expression::Constant(coefficient) => self.coefficients[*coefficient],
-                    Expression::Term(term) => self.evaluate_term(&self.terms[*term], &w),
-                    Expression::Sum(range) => {
-                        let mut sum = Fr::ZERO;
-                        for term in &self.terms[range.clone()] {
-                            sum += self.evaluate_term(term, &w);
-                        }
-                        sum
-                    }
-                };
+        } else {
+            use rayon::prelude::*;
+            let schedule = self.schedule.get_or_init(|| self.build_schedule(epochs));
+            for epoch in &schedule.epochs {
+                epoch.par_iter().try_for_each(|task| {
+                    task.iter().try_for_each(|&op| {
+                        // SAFETY: see View and Schedule.
+                        unsafe { self.run(&self.ops[op as usize], view) }
+                    })
+                })?;
             }
-            let fail = || format!("constraint #{} is not satisfied", step.constraint);
-            if let Some(assignment) = &step.assignment {
-                let term = match assignment.side {
-                    0 | 1 => {
-                        let other = values[1 - assignment.side];
-                        if other == Fr::ZERO {
-                            if values[2] != Fr::ZERO {
-                                return Err(fail());
-                            }
-                            Fr::ZERO
-                        } else {
-                            let quotient = if other == Fr::ONE {
-                                values[2]
-                            } else {
-                                values[2] * other.inverse().unwrap()
-                            };
-                            let term = quotient - values[assignment.side];
-                            values[assignment.side] = quotient;
-                            term
-                        }
-                    }
-                    _ => {
-                        let product = values[0] * values[1];
-                        let term = product - values[2];
-                        values[2] = product;
-                        term
-                    }
-                };
-                w[assignment.wire] = match assignment.coefficient {
-                    1 => term,
-                    3 => -term,
-                    _ => term * assignment.inverse,
-                };
-            } else if values[0] * values[1] != values[2] {
-                return Err(fail());
-            }
-            a[step.constraint] = values[0];
-            b[step.constraint] = values[1];
-            c[step.constraint] = values[2];
         }
         w.truncate(self.n_wires);
         Ok(Solution { w, a, b, c })
     }
-    #[inline]
+
+    /// Builds the parallel solve's schedule now, at the key's load, rather
+    /// than at its first proof (140 ms for 24 -> 2 on a Seeker).
+    pub(crate) fn prepare(&self) {
+        let epochs = solve_epochs();
+        if epochs > 0 && self.ops.len() >= 4096 {
+            self.schedule.get_or_init(|| self.build_schedule(epochs));
+        }
+    }
+
+    /// The epochs and their tasks (see Schedule).
+    fn build_schedule(&self, epochs: usize) -> Schedule {
+        let n = self.ops.len();
+        // Which op writes each wire and sum.
+        let mut producer = vec![u32::MAX; self.n_wires + self.sums.len()];
+        let mut depth = vec![0u32; n];
+        let mut reads = Vec::new();
+        for (i, op) in self.ops.iter().enumerate() {
+            self.reads(op, &mut reads);
+            depth[i] = reads
+                .iter()
+                .filter_map(|&wire| {
+                    (producer[wire] != u32::MAX).then(|| depth[producer[wire] as usize] + 1)
+                })
+                .max()
+                .unwrap_or(0);
+            for wire in self.writes(op) {
+                producer[wire] = i as u32;
+            }
+        }
+        let deepest = depth.iter().copied().max().unwrap_or(0) as usize + 1;
+        let epoch_of = |op: usize| depth[op] as usize * epochs / deepest;
+        // Components of each epoch's ops, by union-find over reads of wires
+        // the same epoch produces.
+        let mut parent: Vec<u32> = (0..n as u32).collect();
+        fn find(parent: &mut [u32], mut x: u32) -> u32 {
+            while parent[x as usize] != x {
+                parent[x as usize] = parent[parent[x as usize] as usize];
+                x = parent[x as usize];
+            }
+            x
+        }
+        for (i, op) in self.ops.iter().enumerate() {
+            self.reads(op, &mut reads);
+            for &wire in &reads {
+                let p = producer_before(&producer, wire, i);
+                if let Some(p) = p {
+                    if epoch_of(p) == epoch_of(i) {
+                        let (x, y) = (find(&mut parent, i as u32), find(&mut parent, p as u32));
+                        parent[x as usize] = y;
+                    }
+                }
+            }
+        }
+        let mut tasks: Vec<std::collections::HashMap<u32, Vec<u32>>> = (0..epochs)
+            .map(|_| std::collections::HashMap::new())
+            .collect();
+        for i in 0..n {
+            let root = find(&mut parent, i as u32);
+            tasks[epoch_of(i)].entry(root).or_default().push(i as u32);
+        }
+        let epochs = tasks
+            .into_iter()
+            .map(|tasks| {
+                let mut tasks: Vec<Vec<u32>> = tasks.into_values().collect();
+                tasks.sort_unstable_by_key(|task| std::cmp::Reverse(task.len()));
+                tasks
+            })
+            .filter(|tasks| !tasks.is_empty())
+            .collect();
+        Schedule { epochs }
+    }
+
+    /// The wires and sums an op reads.
+    fn reads(&self, op: &Op, out: &mut Vec<usize>) {
+        out.clear();
+        match op {
+            Op::Hint(hint) => out.extend(self.terms[hint.input.clone()].iter().map(|t| t.wire)),
+            Op::Constraint(step) => {
+                for index in step.sums.clone() {
+                    let sum = &self.sums[index];
+                    out.push(sum.term.wire);
+                    if sum.previous != NO_SUM {
+                        out.push(sum.previous);
+                    }
+                }
+                for expression in &step.expressions {
+                    match expression {
+                        Expression::Wire(wire) => out.push(*wire),
+                        Expression::Term(term) => out.push(self.terms[*term].wire),
+                        Expression::Sum(range) => {
+                            out.extend(self.terms[range.clone()].iter().map(|t| t.wire))
+                        }
+                        Expression::Zero | Expression::Constant(_) => {}
+                    }
+                }
+            }
+        }
+    }
+
+    /// The wires and sums an op writes.
+    fn writes(&self, op: &Op) -> Vec<usize> {
+        match op {
+            Op::Hint(hint) => hint.outputs.clone().collect(),
+            Op::Constraint(step) => step
+                .assignment
+                .iter()
+                .map(|assignment| assignment.wire)
+                .chain(step.sums.clone().map(|index| self.n_wires + index))
+                .collect(),
+        }
+    }
+
+    /// One op, reading and writing through `v`.
+    ///
+    /// # Safety
+    /// `v` points at the solve's vectors, and every wire the op reads is
+    /// written (by an earlier op of the same thread, or before the epoch).
+    unsafe fn run(&self, op: &Op, v: View) -> Result<(), String> {
+        let get = |i: usize| unsafe { *v.w.add(i) };
+        let set = |i: usize, value: Fr| unsafe { *v.w.add(i) = value };
+        let term_value = |term: &Term| -> Fr {
+            if term.wire == 0 {
+                return self.coefficients[term.coefficient];
+            }
+            match term.coefficient {
+                1 => get(term.wire),
+                2 => get(term.wire).double(),
+                3 => -get(term.wire),
+                _ => self.coefficients[term.coefficient] * get(term.wire),
+            }
+        };
+        let step = match op {
+            Op::Constraint(step) => step,
+            Op::Hint(hint) => {
+                let mut value = Fr::ZERO;
+                for term in &self.terms[hint.input.clone()] {
+                    value += term_value(term);
+                }
+                match hint.kind {
+                    HintKind::InvZero => {
+                        set(hint.outputs.start, value.inverse().unwrap_or(Fr::ZERO))
+                    }
+                    HintKind::Bits => {
+                        let bits = value.into_bigint();
+                        for (i, wire) in hint.outputs.clone().enumerate() {
+                            set(wire, if bits.get_bit(i) { Fr::ONE } else { Fr::ZERO });
+                        }
+                    }
+                }
+                return Ok(());
+            }
+        };
+        for index in step.sums.clone() {
+            let sum = &self.sums[index];
+            let term = term_value(&sum.term);
+            set(
+                self.n_wires + index,
+                if sum.previous == NO_SUM {
+                    term
+                } else {
+                    get(sum.previous) + term
+                },
+            );
+        }
+        let mut values = [Fr::ZERO; 3];
+        for (value, expression) in values.iter_mut().zip(&step.expressions) {
+            *value = match expression {
+                Expression::Zero => Fr::ZERO,
+                Expression::Wire(wire) => get(*wire),
+                Expression::Constant(coefficient) => self.coefficients[*coefficient],
+                Expression::Term(term) => term_value(&self.terms[*term]),
+                Expression::Sum(range) => {
+                    let mut sum = Fr::ZERO;
+                    for term in &self.terms[range.clone()] {
+                        sum += term_value(term);
+                    }
+                    sum
+                }
+            };
+        }
+        let fail = || format!("constraint #{} is not satisfied", step.constraint);
+        if let Some(assignment) = &step.assignment {
+            let term = match assignment.side {
+                0 | 1 => {
+                    let other = values[1 - assignment.side];
+                    if other == Fr::ZERO {
+                        if values[2] != Fr::ZERO {
+                            return Err(fail());
+                        }
+                        Fr::ZERO
+                    } else {
+                        let quotient = if other == Fr::ONE {
+                            values[2]
+                        } else {
+                            values[2] * other.inverse().unwrap()
+                        };
+                        let term = quotient - values[assignment.side];
+                        values[assignment.side] = quotient;
+                        term
+                    }
+                }
+                _ => {
+                    let product = values[0] * values[1];
+                    let term = product - values[2];
+                    values[2] = product;
+                    term
+                }
+            };
+            set(
+                assignment.wire,
+                match assignment.coefficient {
+                    1 => term,
+                    3 => -term,
+                    _ => term * assignment.inverse,
+                },
+            );
+        } else if values[0] * values[1] != values[2] {
+            return Err(fail());
+        }
+        // SAFETY: each constraint's row is written by its own op only.
+        unsafe {
+            *v.a.add(step.constraint) = values[0];
+            *v.b.add(step.constraint) = values[1];
+            *v.c.add(step.constraint) = values[2];
+        }
+        Ok(())
+    }
+
     fn evaluate_term(&self, term: &Term, w: &[Fr]) -> Fr {
         if term.wire == 0 {
             return self.coefficients[term.coefficient];
@@ -795,6 +1015,75 @@ mod tests {
             ],
             encode_fields(&[Fr::ZERO, Fr::ONE, Fr::from(2u64), -Fr::ONE, -Fr::from(2u64)]),
         )
+    }
+
+    /// The parallel solve of a dumped circuit (ZOPRO_DUMP=<dir>, every
+    /// shape with a witness) against the one-thread solve, wire for wire.
+    #[test]
+    fn parallel_solve_matches_the_sequential_one() {
+        let Ok(dump) = std::env::var("ZOPRO_DUMP") else {
+            return;
+        };
+        for entry in std::fs::read_dir(dump).unwrap() {
+            let dir = entry.unwrap().path();
+            let (Ok(program), Ok(coefficients), Ok(witness)) = (
+                std::fs::read(dir.join("program")),
+                std::fs::read(dir.join("coefficients")),
+                std::fs::read(dir.join("witness")),
+            ) else {
+                continue;
+            };
+            let plan = Plan::new(&program, &coefficients).unwrap();
+            let witness = crate::decode_frs(&witness);
+            let view = |solution: &Solution| {
+                [
+                    solution.w.clone(),
+                    solution.a.clone(),
+                    solution.b.clone(),
+                    solution.c.clone(),
+                ]
+            };
+            let parallel = view(&plan.solve(&witness).unwrap());
+            let sequential = {
+                let mut w = vec![Fr::ZERO; plan.n_wires + plan.sums.len()];
+                w[0] = Fr::ONE;
+                w[1..plan.n_inputs].copy_from_slice(&witness);
+                let (mut a, mut b, mut c) = (
+                    vec![Fr::ZERO; plan.n_constraints],
+                    vec![Fr::ZERO; plan.n_constraints],
+                    vec![Fr::ZERO; plan.n_constraints],
+                );
+                let v = View {
+                    w: w.as_mut_ptr(),
+                    a: a.as_mut_ptr(),
+                    b: b.as_mut_ptr(),
+                    c: c.as_mut_ptr(),
+                };
+                for op in &plan.ops {
+                    unsafe { plan.run(op, v).unwrap() };
+                }
+                w.truncate(plan.n_wires);
+                [w, a, b, c]
+            };
+            assert!(
+                parallel == sequential,
+                "{}: the parallel solve differs",
+                dir.display()
+            );
+            let schedule = plan.schedule.get().expect("a schedule");
+            let widest = schedule
+                .epochs
+                .iter()
+                .map(|tasks| tasks[0].len())
+                .sum::<usize>();
+            eprintln!(
+                "{}: {} ops, critical path {} ops over {} epochs",
+                dir.display(),
+                plan.ops.len(),
+                widest,
+                schedule.epochs.len()
+            );
+        }
     }
 
     #[test]

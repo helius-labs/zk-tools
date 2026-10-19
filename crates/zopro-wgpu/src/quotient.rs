@@ -56,6 +56,8 @@ pub struct Quotient {
     /// the whole-vector passes.
     stages: Vec<wgpu::Buffer>,
     whole: wgpu::Buffer,
+    /// The submitted transform's pass times, when profiling.
+    timer: std::cell::RefCell<Option<crate::profile::Timer>>,
 }
 
 fn fr_bytes(values: &[Fr]) -> &[u8] {
@@ -155,6 +157,7 @@ impl Quotient {
             }),
             stages,
             whole: crate::uniform(&gpu, [n as u32, 0, 0, 0]),
+            timer: std::cell::RefCell::new(None),
             gpu,
         };
         if let Some(e) = crate::popped(memory) {
@@ -191,6 +194,9 @@ impl Quotient {
             padded.resize(n, zero);
             queue.write_buffer(&self.abc, (vector * n * 32) as u64, fr_bytes(&padded));
         }
+        // Four transforms of log n passes, two scalings and the pointwise.
+        *self.timer.borrow_mut() =
+            crate::profile::Timer::new(&self.gpu, 4 * 3 * self.log_n as usize + 8);
         let mut encoder = device.create_command_encoder(&Default::default());
         for vector in 0..3 {
             let offset = (vector * n * 32) as u64;
@@ -199,7 +205,7 @@ impl Quotient {
             self.transform(&mut encoder, offset, &self.roots, false);
         }
         {
-            let mut pass = encoder.begin_compute_pass(&Default::default());
+            let mut pass = self.begin(&mut encoder, "fr_pointwise");
             pass.set_pipeline(&self.pointwise);
             if self.spirv {
                 let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -242,6 +248,9 @@ impl Quotient {
         self.transform(&mut encoder, 0, &self.inverse_roots, true);
         self.scale_by(&mut encoder, 0, &self.reverse_weights);
         encoder.copy_buffer_to_buffer(&self.abc, 0, &self.staging, 0, (n * 32) as u64);
+        if let Some(timer) = self.timer.borrow().as_ref() {
+            timer.resolve(&mut encoder);
+        }
         self.submission = Some(queue.submit([encoder.finish()]));
     }
 
@@ -254,7 +263,12 @@ impl Quotient {
     /// The submitted quotient, the first n - 1 coefficients.
     pub async fn finish_async(&mut self) -> Result<Vec<Fr>, String> {
         let n = self.n;
-        crate::mapped(&self.gpu, &self.staging, self.submission.take()).await?;
+        let submission = self.submission.take();
+        crate::mapped(&self.gpu, &self.staging, submission.clone()).await?;
+        let timer = self.timer.borrow_mut().take();
+        if let (Some(timer), Some(submission)) = (timer, submission) {
+            timer.read(&self.gpu, submission).await?;
+        }
         let data = self
             .staging
             .slice(..)
@@ -265,6 +279,18 @@ impl Quotient {
         // SAFETY: n Fr in the kernel's encoding, four u64 limbs each.
         let values: &[Fr] = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const Fr, n) };
         Ok(values[..n - 1].to_vec())
+    }
+
+    /// A compute pass, timed as `kernel`'s when profiling.
+    fn begin<'e>(
+        &self,
+        encoder: &'e mut wgpu::CommandEncoder,
+        kernel: &'static str,
+    ) -> wgpu::ComputePass<'e> {
+        match self.timer.borrow_mut().as_mut() {
+            Some(timer) => encoder.begin_compute_pass(&timer.pass(kernel)),
+            None => encoder.begin_compute_pass(&Default::default()),
+        }
     }
 
     fn vector_binding(&self, offset: u64) -> wgpu::BindingResource<'_> {
@@ -312,7 +338,7 @@ impl Quotient {
                         },
                     ],
                 });
-            let mut pass = encoder.begin_compute_pass(&Default::default());
+            let mut pass = self.begin(encoder, if dif { "fr_dif_stage" } else { "fr_dit_stage" });
             pass.set_pipeline(pipeline);
             pass.set_bind_group(0, &group, &[]);
             pass.dispatch_workgroups((self.n as u32 / 2).div_ceil(WORKGROUP), 1, 1);
@@ -341,7 +367,7 @@ impl Quotient {
                     },
                 ],
             });
-        let mut pass = encoder.begin_compute_pass(&Default::default());
+        let mut pass = self.begin(encoder, "fr_scale");
         pass.set_pipeline(&self.scale);
         pass.set_bind_group(0, &group, &[]);
         pass.dispatch_workgroups((self.n as u32).div_ceil(WORKGROUP), 1, 1);
