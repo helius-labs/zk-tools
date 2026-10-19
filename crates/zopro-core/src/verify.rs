@@ -82,6 +82,7 @@ pub fn compress_g2(point: &G2Affine) -> [u8; 64] {
 
 /// A Groth16 verifying key as gnark serializes it (`WriteRawTo`, points
 /// uncompressed), with the pairings of its fixed points prepared.
+#[derive(Clone)]
 pub struct VerifyingKey {
     alpha: G1Affine,
     beta2: <Bn254 as Pairing>::G2Prepared,

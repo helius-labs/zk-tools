@@ -2,9 +2,11 @@
 
 A Groth16 BN254 prover in Rust for gnark circuits. One kernel for browsers
 (WebAssembly, SIMD lanes, WebGPU), phones and laptops (native, AArch64
-assembly, Metal or wgpu): the host (gnark) builds the witness, zopro solves
-the circuit with its own solver plan, runs the MSMs and the quotient on the
-CPU or the GPU, and the host assembles and verifies the proof.
+assembly, Metal or wgpu): zopro builds the witness from a Zolana `/prove`
+request, solves the circuit with its own solver plan, runs the MSMs and the
+quotient on the CPU or the GPU, and verifies the proof before it returns it,
+in gnark's encodings. gnark stays offline: a zopro key is built from gnark's
+proving key, and gnark's verifier accepts zopro's proofs.
 
 ## Layout
 
@@ -29,6 +31,13 @@ CPU or the GPU, and the host assembles and verifies the proof.
 - `crates/zopro-wgpu`: the same design in WGSL for Vulkan, Metal and WebGPU,
   with async reads for the browser. The field and curve code is aeglos's
   (Apache-2.0), its multiplication rewritten as a loop of sixteen rounds.
+- `crates/zopro-prover`: Zolana's prover over the kernel. A zopro key file
+  (`artifact`: gnark's vectors compressed, the solver program, the input
+  names and the verifying key) loads into a `Prover`, which turns a
+  request into the circuit's inputs by gnark's names, proves, and verifies.
+  In a browser its `web` module is the runtime: `WebProver` loads a key file
+  or the raw form an earlier load exported (vectors decompressed, the
+  solver's image), and proves on the thread pool and WebGPU.
 - `crates/zopro-bench`: proves a dumped shape natively and times it
   (`RAYON_NUM_THREADS=4 zopro-bench <dump dir>`), and has modes for the GPU
   MSMs (`gpu`, `wgpu`), a key-switching stress check of results and memory
@@ -74,9 +83,9 @@ its cores or refused a kernel).
 
 ## Building
 
-Native: `cargo build --release`. Browser: `cargo rustc --release --target
-wasm32-unknown-unknown --crate-type cdylib --features wgpu` in
-`crates/zopro-core` with `nightly-2025-11-15`, then `wasm-bindgen --target
-web` (0.2.128); the crate must build as a cdylib alone, since its SIMD
-assembly assembles with `simd128` only in the crate that links. The web SDK's
-`scripts/build-runtime-zopro.sh <zopro checkout>` does both.
+Native: `cargo build --release`. Browser: `CARGO_PROFILE_RELEASE_LTO=false
+cargo rustc --release --target wasm32-unknown-unknown --crate-type cdylib
+--features wgpu` in `crates/zopro-prover` with `nightly-2025-11-15`, then
+`wasm-bindgen --target web` (0.2.128). Without LTO: zopro-core's SIMD
+assembly does not assemble with `simd128` in an rlib built for LTO. The web
+SDK's `scripts/build-runtime.sh` does both.

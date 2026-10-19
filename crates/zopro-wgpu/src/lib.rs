@@ -830,6 +830,7 @@ impl<C: Curve> Msm<C> {
             {
                 self.count(scalars.expect("scalars to count"));
             }
+            #[cfg(not(target_arch = "wasm32"))]
             self.read_counts();
         } else {
             let sorted = self.sort(scalars.expect("scalars to sort"));
@@ -1233,7 +1234,9 @@ impl<C: Curve> Msm<C> {
     }
 
     /// The submitted counts read back into `counts` and `starts` (each
-    /// window's entries from `w * n`).
+    /// window's entries from `w * n`). Native only, as the GPU sort: a
+    /// browser never builds one.
+    #[cfg(not(target_arch = "wasm32"))]
     fn read_counts(&mut self) {
         let sort = self.gpu_sort.as_mut().expect("the GPU sort");
         let submission = sort.counted.take().expect("counts submitted");

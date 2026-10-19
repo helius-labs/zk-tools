@@ -43,6 +43,8 @@ pub struct Artifact<'a> {
     pub secret: u32,
     pub constraints: u32,
     pub digest: [u8; 32],
+    /// The vectors' lengths in points: a, b, k, z, b2.
+    pub points: [u32; 5],
     pub fixed: &'a [u8],
     pub domain: &'a [u8],
     pub name: &'a str,
@@ -178,6 +180,28 @@ pub fn pack(parts: &Parts) -> Result<Vec<u8>, String> {
 
 impl<'a> Artifact<'a> {
     pub fn parse(bytes: &'a [u8]) -> Result<Self, &'static str> {
+        let (mut artifact, mut at) = Self::head(bytes)?;
+        let mut vector = |points: u32, size: usize| -> Result<&'a [u8], &'static str> {
+            let len = points as usize * size;
+            let out = bytes.get(at..at + len).ok_or("truncated key")?;
+            at += len;
+            Ok(out)
+        };
+        let [a, b, k, z, b2] = artifact.points;
+        artifact.a = vector(a, 32)?;
+        artifact.b = vector(b, 32)?;
+        artifact.k = vector(k, 32)?;
+        artifact.z = vector(z, 32)?;
+        artifact.b2 = vector(b2, 64)?;
+        if at != bytes.len() {
+            return Err("a zopro key with trailing bytes");
+        }
+        Ok(artifact)
+    }
+
+    /// The key without its vectors (empty here), and where they begin: a
+    /// host that caches the vectors decompressed keeps the head with them.
+    pub fn head(bytes: &'a [u8]) -> Result<(Self, usize), &'static str> {
         if bytes.len() < FIXED || &bytes[..16] != MAGIC {
             return Err("not a zopro key");
         }
@@ -185,7 +209,7 @@ impl<'a> Artifact<'a> {
         if word(0) != FORMAT {
             return Err("a zopro key of another format version");
         }
-        let lengths = [word(8), word(9), word(10), word(11), word(12)];
+        let points = [word(8), word(9), word(10), word(11), word(12)];
         let mut digest = [0u8; 32];
         digest.copy_from_slice(&bytes[72..104]);
         let fixed = &bytes[104..552];
@@ -208,21 +232,7 @@ impl<'a> Artifact<'a> {
         let names = std::str::from_utf8(blob()?).map_err(|_| "input names")?;
         let program = blob()?;
         let coefficients = blob()?;
-        let mut vector = |points: u32, size: usize| -> Result<&'a [u8], &'static str> {
-            let len = points as usize * size;
-            let out = bytes.get(at..at + len).ok_or("truncated key")?;
-            at += len;
-            Ok(out)
-        };
-        let a = vector(lengths[0], 32)?;
-        let b = vector(lengths[1], 32)?;
-        let k = vector(lengths[2], 32)?;
-        let z = vector(lengths[3], 32)?;
-        let b2 = vector(lengths[4], 64)?;
-        if at != bytes.len() {
-            return Err("a zopro key with trailing bytes");
-        }
-        Ok(Self {
+        let artifact = Self {
             inputs: word(2),
             outputs: word(3),
             flags: word(4),
@@ -230,6 +240,7 @@ impl<'a> Artifact<'a> {
             secret: word(6),
             constraints: word(7),
             digest,
+            points,
             fixed,
             domain,
             name,
@@ -237,12 +248,13 @@ impl<'a> Artifact<'a> {
             names,
             program,
             coefficients,
-            a,
-            b,
-            k,
-            z,
-            b2,
-        })
+            a: &[],
+            b: &[],
+            k: &[],
+            z: &[],
+            b2: &[],
+        };
+        Ok((artifact, at))
     }
 
     /// The inputs' names: public (the constant one apart) then secret.

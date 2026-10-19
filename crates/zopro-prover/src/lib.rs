@@ -21,6 +21,8 @@ mod transfer;
 pub mod witness;
 
 pub use request::Error;
+/// The kernel, for hosts that cache its solver images and read key files.
+pub use zopro_core;
 
 /// The circuits' assignments, for tests against the Go prover's witnesses.
 #[doc(hidden)]
@@ -147,6 +149,11 @@ impl Prover {
         self.circuit
     }
 
+    /// The circuit's shape: inputs and outputs.
+    pub fn shape(&self) -> (u32, u32) {
+        (self.inputs, self.outputs)
+    }
+
     /// The kernel's solver image, for a host to cache beside the key.
     pub fn solver_image(&self) -> Option<Vec<u8>> {
         self.key.solver_image()
@@ -176,44 +183,59 @@ impl Prover {
         }
     }
 
-    /// Proves `request`: the proof is verified with the key's verifying key
-    /// before it is returned; a GPU proof that fails to verify is proved
-    /// again on the CPU, and the GPU is let go.
-    pub fn prove(&mut self, request: &str) -> Result<ProofResult, Error> {
-        let ms = |started: zopro_core::time::Instant| started.elapsed().as_millis() as u64;
+    /// The request's witness, encoded for the kernel, with its public
+    /// values; the first step of a proof.
+    fn prepare(&self, request: &str) -> Result<Prepared, Error> {
         let started = zopro_core::time::Instant::now();
         let values = self.witness(request)?;
         let public: Vec<Fr> = values[..self.names.len() - secret_count(&self.names)].to_vec();
         let encoded = witness::encode(&values);
-        let witness_ms = ms(started);
+        Ok(Prepared {
+            public,
+            encoded,
+            witness_ms: started.elapsed().as_millis() as u64,
+        })
+    }
+
+    /// Proves `request`: the proof is verified with the key's verifying key
+    /// before it is returned; a GPU proof that fails to verify is proved
+    /// again on the CPU, and the GPU is let go.
+    pub fn prove(&mut self, request: &str) -> Result<ProofResult, Error> {
+        let prepared = self.prepare(request)?;
         let (mut prove_ms, mut verify_ms) = (0, 0);
-        let proof = loop {
+        loop {
             let started = zopro_core::time::Instant::now();
-            let parts = self.key.solve(&encoded).map_err(Error::Prove)?;
-            let raw = groth16::assemble(&parts, &self.fixed);
-            let proof = Proof::from_raw(&raw).map_err(|e| Error::Prove(e.into()))?;
-            prove_ms += ms(started);
-            let started = zopro_core::time::Instant::now();
-            let verified = self.verifying_key.verify(&proof, &public);
-            verify_ms += ms(started);
-            if verified {
-                break proof;
+            let parts = self.key.solve(&prepared.encoded).map_err(Error::Prove)?;
+            prove_ms += started.elapsed().as_millis() as u64;
+            match self.finish(&parts, &prepared, prove_ms, verify_ms) {
+                Ok(result) => return Ok(result),
+                Err(Unverified { verify_ms: ms }) if self.key.has_gpu() => {
+                    verify_ms = ms;
+                    log::warn!("zopro: a GPU proof did not verify; proving on the CPU from now on");
+                    self.key.drop_gpu();
+                }
+                Err(_) => return Err(Error::Prove("the proof did not verify".into())),
             }
-            if self.key.has_gpu() {
-                log::warn!("zopro: a GPU proof did not verify; proving on the CPU from now on");
-                self.key.drop_gpu();
-                continue;
-            }
-            return Err(Error::Prove("the proof did not verify".into()));
-        };
-        Ok(ProofResult {
-            proof: proof.to_gnark(),
-            public_inputs: public_witness(&public),
-            proof_json: proof.to_json(Some(&self.digest)),
-            witness_ms,
+        }
+    }
+
+    /// The proof from the kernel's parts, verified and encoded.
+    fn finish(
+        &self,
+        parts: &[u8],
+        prepared: &Prepared,
+        prove_ms: u64,
+        verify_ms: u64,
+    ) -> Result<ProofResult, Unverified> {
+        finish(
+            parts,
+            prepared,
+            &self.fixed,
+            &self.verifying_key,
+            &self.digest,
             prove_ms,
             verify_ms,
-        })
+        )
     }
 
     /// Whether a proof (gnark's compressed encoding or the SDKs' JSON) proves
@@ -228,3 +250,46 @@ impl Prover {
 fn secret_count(names: &[String]) -> usize {
     names.len() - 1
 }
+
+/// A request's witness, ready for the kernel.
+struct Prepared {
+    public: Vec<Fr>,
+    encoded: Vec<u8>,
+    witness_ms: u64,
+}
+
+/// A proof that did not verify, with the time the check took.
+struct Unverified {
+    verify_ms: u64,
+}
+
+/// The proof from the kernel's parts, verified and encoded.
+fn finish(
+    parts: &[u8],
+    prepared: &Prepared,
+    fixed: &FixedPoints,
+    verifying_key: &VerifyingKey,
+    digest: &str,
+    prove_ms: u64,
+    verify_ms: u64,
+) -> Result<ProofResult, Unverified> {
+    let started = zopro_core::time::Instant::now();
+    let raw = groth16::assemble(parts, fixed);
+    let proof = Proof::from_raw(&raw).ok();
+    let verified = proof.is_some_and(|proof| verifying_key.verify(&proof, &prepared.public));
+    let verify_ms = verify_ms + started.elapsed().as_millis() as u64;
+    match (verified, proof) {
+        (true, Some(proof)) => Ok(ProofResult {
+            proof: proof.to_gnark(),
+            public_inputs: public_witness(&prepared.public),
+            proof_json: proof.to_json(Some(digest)),
+            witness_ms: prepared.witness_ms,
+            prove_ms,
+            verify_ms,
+        }),
+        _ => Err(Unverified { verify_ms }),
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub mod web;
