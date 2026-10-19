@@ -48,10 +48,14 @@ fn trace(label: &str, started: crate::time::Instant) -> crate::time::Instant {
 /// iOS's memory limit counts), and its peak so far.
 #[cfg(all(feature = "trace", target_vendor = "apple"))]
 fn footprint_note() -> String {
+    // libSystem's, on iOS too; the libc crate declares it for macOS only.
+    extern "C" {
+        fn proc_pid_rusage(pid: i32, flavor: i32, buffer: *mut libc::rusage_info_t) -> i32;
+    }
     let mut info: libc::rusage_info_v4 = unsafe { std::mem::zeroed() };
     // SAFETY: the buffer is a rusage_info_v4, as RUSAGE_INFO_V4 asks for.
     let status = unsafe {
-        libc::proc_pid_rusage(
+        proc_pid_rusage(
             std::process::id() as i32,
             libc::RUSAGE_INFO_V4,
             &mut info as *mut _ as *mut libc::rusage_info_t,
@@ -341,11 +345,10 @@ impl GpuBuilder {
         let started = crate::time::Instant::now();
         #[cfg(not(target_arch = "wasm32"))]
         let gpu = std::sync::Arc::new(zopro_wgpu::Gpu::new().ok()?);
-        // On Android only a GPU running the pre-compiled kernels (Vulkan
-        // with SPIR-V passthrough): the WGSL kernels through naga took the
-        // Galaxy A16's Mali and A56's Xclipse minutes to compile and ran
-        // slower than the cores, and the Adreno lost the device on them.
-        // ZOPRO_GPU=1 tries any GPU.
+        // On Android only an Adreno (zopro_wgpu::Gpu::request decides) and
+        // only with the pre-compiled kernels (Vulkan with SPIR-V
+        // passthrough): the WGSL kernels through naga lost an Adreno's
+        // device. ZOPRO_GPU=1 tries them anyway.
         #[cfg(all(target_os = "android", not(target_arch = "wasm32")))]
         if !gpu.spirv && wanted.as_deref() != Some("1") {
             return None;

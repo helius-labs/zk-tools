@@ -197,12 +197,17 @@ pub struct Pending {
     submission: wgpu::SubmissionIndex,
 }
 
+/// Qualcomm's PCI vendor id, which wgpu reports for an Adreno.
+pub const QUALCOMM: u32 = 0x5143;
+
 pub struct Gpu {
     /// Whether the MSM kernels come pre-compiled as SPIR-V (glsl/): on
     /// Vulkan with passthrough, by default on Android (ZOPRO_SPIRV=0|1
     /// overrides). Adreno's compiler loses the device on naga's SPIR-V of
     /// the WGSL kernels and links glslc's of the GLSL ones.
     pub spirv: bool,
+    /// The adapter's PCI vendor id (Qualcomm 0x5143, ARM 0x13b5, ...).
+    pub vendor: u32,
     /// The driver's pipeline cache, persisted at ZOPRO_PIPELINE_CACHE when
     /// set: a phone compiles a kernel in tens of seconds the first time.
     cache: Option<wgpu::PipelineCache>,
@@ -280,6 +285,16 @@ impl Gpu {
             .await
             .map_err(|e| format!("no adapter: {e}"))?;
         let info = adapter.get_info();
+        // On Android only an Adreno, where the kernels beat the cores (a
+        // Seeker's Mali-G615 runs them 3-4 times slower than its cores after
+        // minutes of compiling); ZOPRO_GPU=1 takes any GPU. Decided before
+        // the device is made, which costs a phone half a second.
+        if cfg!(target_os = "android")
+            && info.vendor != QUALCOMM
+            && std::env::var("ZOPRO_GPU").as_deref() != Ok("1")
+        {
+            return Err(format!("{} is not an Adreno", info.name));
+        }
         let passthrough = info.backend == wgpu::Backend::Vulkan
             && adapter
                 .features()
@@ -343,6 +358,7 @@ impl Gpu {
             name: format!("{} ({:?})", info.name, info.backend),
             failed,
             spirv,
+            vendor: info.vendor,
             cache,
             cache_path,
         })
