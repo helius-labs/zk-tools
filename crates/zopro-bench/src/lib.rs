@@ -168,6 +168,21 @@ fn field() {
     }
     let mul2_independent = started.elapsed().as_nanos() as f64 / n as f64;
     let started = Instant::now();
+    let mut l = [a2, b2, a2 + b2, a2 - b2];
+    for _ in 0..n / 4 {
+        for v in l.iter_mut() {
+            *v = ark_bn254::fq2::mul_lazy(v, &b2);
+        }
+    }
+    let lazy_independent = started.elapsed().as_nanos() as f64 / n as f64;
+    let started = Instant::now();
+    let mut lz = a2;
+    for _ in 0..n {
+        lz = ark_bn254::fq2::mul_lazy(&lz, &b2);
+    }
+    let lazy = started.elapsed().as_nanos() as f64 / n as f64;
+    w[0] += l[0] + lz;
+    let started = Instant::now();
     let mut u = [a, b, a + b, a - b];
     for _ in 0..n / 4 {
         for v in u.iter_mut() {
@@ -176,7 +191,7 @@ fn field() {
     }
     let mul_independent = started.elapsed().as_nanos() as f64 / n as f64;
     println!(
-        "ZOPRO field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} independent: fq_mul_ns={mul_independent:.2} fq2_mul_ns={mul2_independent:.2} {}",
+        "ZOPRO field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} independent: fq_mul_ns={mul_independent:.2} fq2_mul_ns={mul2_independent:.2} lazy fq2: {lazy:.2} independent {lazy_independent:.2} {}",
         (x + y + u[0]).0 .0[0] ^ (z + w[0]).c0.0 .0[0]
     );
 }

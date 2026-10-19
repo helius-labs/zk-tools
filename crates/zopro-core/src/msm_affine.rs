@@ -15,6 +15,27 @@ use ark_ec::{
 use ark_ff::{BigInt, Field, PrimeField};
 use rayon::prelude::*;
 
+/// The base field's product for the batch additions: Fq2's by Karatsuba
+/// with lazy reduction on arm64 (ark_bn254::fq2::mul_lazy, 19 ns rather
+/// than 21 on an M5 Pro), Fq's as arkworks'.
+pub(super) trait BatchField: Field {
+    fn times(&self, other: &Self) -> Self;
+}
+
+impl BatchField for ark_bn254::Fq {
+    #[inline(always)]
+    fn times(&self, other: &Self) -> Self {
+        *self * other
+    }
+}
+
+impl BatchField for ark_bn254::Fq2 {
+    #[inline(always)]
+    fn times(&self, other: &Self) -> Self {
+        ark_bn254::fq2::mul_lazy(self, other)
+    }
+}
+
 /// The window width: gnark's cost model, (bits + 1) (n + 2^c) / c, over the
 /// widths whose signed digits fit an i16.
 fn width(n: usize) -> usize {
@@ -58,7 +79,10 @@ fn batch_size(width: usize) -> usize {
 pub(super) fn msm<P: SWCurveConfig<ScalarField = Fr>>(
     bases: &[Affine<P>],
     scalars: &[Fr],
-) -> Projective<P> {
+) -> Projective<P>
+where
+    P::BaseField: BatchField,
+{
     assert_eq!(bases.len(), scalars.len(), "validated MSM dimensions");
     let n = bases.len();
     if n < 256 {
@@ -134,7 +158,10 @@ fn recode(scalars: &[Fr], width: usize, windows: usize) -> Vec<i16> {
 }
 
 /// One window's sum, the sum of m * B_m over its buckets B_m.
-fn window<P: SWCurveConfig>(bases: &[Affine<P>], digits: &[i16], width: usize) -> Projective<P> {
+fn window<P: SWCurveConfig>(bases: &[Affine<P>], digits: &[i16], width: usize) -> Projective<P>
+where
+    P::BaseField: BatchField,
+{
     let half = 1usize << (width - 1);
     let size = batch_size(width);
     if size == 0 {
@@ -213,7 +240,10 @@ struct Window<P: SWCurveConfig> {
     prefixes: Vec<P::BaseField>,
 }
 
-impl<P: SWCurveConfig> Window<P> {
+impl<P: SWCurveConfig> Window<P>
+where
+    P::BaseField: BatchField,
+{
     fn new(half: usize, size: usize) -> Self {
         Self {
             affine: vec![Affine::<P>::identity(); half],
@@ -262,18 +292,18 @@ impl<P: SWCurveConfig> Window<P> {
         for (bucket, point) in &self.batch {
             let denominator = point.x - self.affine[*bucket as usize].x;
             self.prefixes.push(product);
-            product *= denominator;
+            product = product.times(&denominator);
             self.denominators.push(denominator);
         }
         let mut inverse = product.inverse().expect("distinct x in a batch");
         for j in (0..self.batch.len()).rev() {
             let (bucket, point) = self.batch[j];
-            let lambda_denominator = inverse * self.prefixes[j];
-            inverse *= self.denominators[j];
+            let lambda_denominator = inverse.times(&self.prefixes[j]);
+            inverse = inverse.times(&self.denominators[j]);
             let current = &mut self.affine[bucket as usize];
-            let lambda = (point.y - current.y) * lambda_denominator;
+            let lambda = (point.y - current.y).times(&lambda_denominator);
             let x = lambda.square() - current.x - point.x;
-            let y = lambda * (current.x - x) - current.y;
+            let y = lambda.times(&(current.x - x)) - current.y;
             *current = Affine::<P>::new_unchecked(x, y);
             self.busy[bucket as usize / 64] = 0;
         }
@@ -310,7 +340,10 @@ mod tests {
     /// Against arkworks, with the special cases the batch must step around:
     /// zero and unit scalars, repeated bases (doublings in a bucket), a base
     /// and its negation (zero sums), the point at infinity.
-    fn check<P: SWCurveConfig<ScalarField = Fr>>(sizes: &[usize]) {
+    fn check<P: SWCurveConfig<ScalarField = Fr>>(sizes: &[usize])
+    where
+        P::BaseField: BatchField,
+    {
         let mut rng = StdRng::seed_from_u64(5);
         let max = *sizes.iter().max().unwrap();
         let g = Projective::<P>::generator();

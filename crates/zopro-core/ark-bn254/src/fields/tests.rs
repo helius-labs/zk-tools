@@ -260,3 +260,20 @@ fn branchless_add_sub() {
     check_add_sub::<Fq>();
     check_add_sub::<Fr>();
 }
+
+#[test]
+fn fq2_mul_lazy_matches() {
+    let mut rng = ark_std::test_rng();
+    let edges = [Fq::zero(), Fq::one(), -Fq::one()];
+    let mut values: Vec<Fq2> = (0..200).map(|_| Fq2::rand(&mut rng)).collect();
+    for x in edges {
+        for y in edges {
+            values.push(Fq2::new(x, y));
+        }
+    }
+    for a in &values {
+        for b in values.iter().take(40) {
+            assert_eq!(crate::fq2::mul_lazy(a, b), *a * b);
+        }
+    }
+}
