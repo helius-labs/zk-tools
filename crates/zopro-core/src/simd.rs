@@ -1,9 +1,8 @@
 // Four independent field elements at once. In WebAssembly with SIMD,
-// mont29_simd.s (scripts/mont29_simd.py) runs ark-bn254's mont29
+// mont29_simd.s (scripts/mont29_simd.py) runs zopro-bn254's mont29
 // multiplication on four lanes, and this module adds, subtracts and
 // shuffles in the same lane form; elsewhere the lanes run one by one.
-use ark_bn254::{Fq, FqConfig, Fr, FrConfig};
-use ark_ff::{BigInt, BigInteger, MontConfig};
+use zopro_bn254::{Fq, FpConfig, FqConfig, Fr, FrConfig};
 #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
 use core::marker::PhantomData;
 
@@ -12,41 +11,41 @@ use core::marker::PhantomData;
     not(all(target_arch = "wasm32", target_feature = "simd128")),
     allow(dead_code)
 )]
-pub(crate) trait Mont29: Copy + ark_ff::Field {
-    fn modulus() -> BigInt<4>;
-    fn repr(self) -> BigInt<4>;
-    fn from_repr(repr: BigInt<4>) -> Self;
+pub(crate) trait Mont29: Copy + zopro_bn254::Field {
+    fn modulus() -> [u64; 4];
+    fn repr(self) -> [u64; 4];
+    fn from_repr(repr: [u64; 4]) -> Self;
     #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
     const CORE: unsafe extern "C" fn(*const u32, *const u32, *mut u32);
 }
 impl Mont29 for Fq {
     #[inline(always)]
-    fn modulus() -> BigInt<4> {
-        <FqConfig as MontConfig<4>>::MODULUS
+    fn modulus() -> [u64; 4] {
+        FqConfig::P
     }
     #[inline(always)]
-    fn repr(self) -> BigInt<4> {
+    fn repr(self) -> [u64; 4] {
         self.0
     }
     #[inline(always)]
-    fn from_repr(repr: BigInt<4>) -> Self {
-        Fq::new_unchecked(repr)
+    fn from_repr(repr: [u64; 4]) -> Self {
+        Fq::from_montgomery(repr)
     }
     #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
     const CORE: unsafe extern "C" fn(*const u32, *const u32, *mut u32) = lanes::mont29_mul4_fq;
 }
 impl Mont29 for Fr {
     #[inline(always)]
-    fn modulus() -> BigInt<4> {
-        <FrConfig as MontConfig<4>>::MODULUS
+    fn modulus() -> [u64; 4] {
+        FrConfig::P
     }
     #[inline(always)]
-    fn repr(self) -> BigInt<4> {
+    fn repr(self) -> [u64; 4] {
         self.0
     }
     #[inline(always)]
-    fn from_repr(repr: BigInt<4>) -> Self {
-        Fr::new_unchecked(repr)
+    fn from_repr(repr: [u64; 4]) -> Self {
+        Fr::from_montgomery(repr)
     }
     #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
     const CORE: unsafe extern "C" fn(*const u32, *const u32, *mut u32) = lanes::mont29_mul4_fr;
@@ -190,7 +189,7 @@ impl FqLimbs {
     }
     #[inline(always)]
     pub(crate) fn is_zero(&self) -> bool {
-        ark_ff::Zero::is_zero(&self.0)
+        self.0.is_zero()
     }
 }
 #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
@@ -213,7 +212,7 @@ impl FqLimbs {
     }
     #[inline(always)]
     pub(crate) fn get(self) -> Fq {
-        Fq::new_unchecked(word(self.0.map(|limb| limb as u64)))
+        Fq::from_montgomery(word(self.0.map(|limb| limb as u64)))
     }
     #[inline(always)]
     pub(crate) fn is_zero(&self) -> bool {
@@ -257,9 +256,8 @@ impl FqLanes {
 // The 29-bit limbs of mont29.
 #[allow(dead_code)]
 #[inline(always)]
-fn split(a: &BigInt<4>) -> [u32; 9] {
+fn split(a: &[u64; 4]) -> [u32; 9] {
     const MASK: u64 = (1 << 29) - 1;
-    let a = a.0;
     [
         a[0] & MASK,
         ((a[0] >> 29) | (a[1] << 35)) & MASK,
@@ -277,35 +275,50 @@ fn split(a: &BigInt<4>) -> [u32; 9] {
 // The words of nine reduced 29-bit limbs.
 #[allow(dead_code)]
 #[inline(always)]
-fn word(t: [u64; 9]) -> BigInt<4> {
-    BigInt([
+fn word(t: [u64; 9]) -> [u64; 4] {
+    [
         t[0] | (t[1] << 29) | (t[2] << 58),
         (t[2] >> 6) | (t[3] << 23) | (t[4] << 52),
         (t[4] >> 12) | (t[5] << 17) | (t[6] << 46),
         (t[6] >> 18) | (t[7] << 11) | (t[8] << 40),
-    ])
+    ]
 }
 
 // mont29's final shift by 2^24 and conditional subtraction, in words.
 #[allow(dead_code)]
 #[inline(always)]
-fn join(t: [u64; 10], p: BigInt<4>) -> BigInt<4> {
-    let mut out = BigInt([
+fn join(t: [u64; 10], p: [u64; 4]) -> [u64; 4] {
+    let out = [
         (t[0] >> 24) | (t[1] << 5) | (t[2] << 34) | (t[3] << 63),
         (t[3] >> 1) | (t[4] << 28) | (t[5] << 57),
         (t[5] >> 7) | (t[6] << 22) | (t[7] << 51),
         (t[7] >> 13) | (t[8] << 16) | (t[9] << 45),
-    ]);
-    if out >= p {
-        out.sub_with_borrow(&p);
+    ];
+    let (d, borrow) = sub4(out, p);
+    if borrow {
+        out
+    } else {
+        d
     }
-    out
+}
+
+#[allow(dead_code)]
+#[inline(always)]
+fn sub4(a: [u64; 4], b: [u64; 4]) -> ([u64; 4], bool) {
+    let mut r = [0u64; 4];
+    let mut borrow = false;
+    for i in 0..4 {
+        let (d, b1) = a[i].overflowing_sub(b[i]);
+        let (d, b2) = d.overflowing_sub(borrow as u64);
+        r[i] = d;
+        borrow = b1 | b2;
+    }
+    (r, borrow)
 }
 
 #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
 mod lanes {
     use super::{split, Mont29};
-    use ark_ff::BigInt;
     use core::arch::wasm32::*;
 
     core::arch::global_asm!(include_str!("mont29_simd.s"));
@@ -318,14 +331,14 @@ mod lanes {
     const MASK: u32 = (1 << 29) - 1;
 
     #[inline(always)]
-    pub(super) fn limbs(a: &[BigInt<4>; 4]) -> [v128; 9] {
+    pub(super) fn limbs(a: &[[u64; 4]; 4]) -> [v128; 9] {
         let l = [split(&a[0]), split(&a[1]), split(&a[2]), split(&a[3])];
         core::array::from_fn(|j| u32x4(l[0][j], l[1][j], l[2][j], l[3][j]))
     }
 
     // The words of four reduced lane-form elements.
     #[inline(always)]
-    pub(super) fn words(l: &[v128; 9]) -> [BigInt<4>; 4] {
+    pub(super) fn words(l: &[v128; 9]) -> [[u64; 4]; 4] {
         let lane = |i: usize| -> [u64; 9] {
             core::array::from_fn(|j| {
                 (match i {

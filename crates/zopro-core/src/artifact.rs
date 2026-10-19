@@ -16,7 +16,6 @@
 //! verifying key's: `pack` and `fixed_points` refuse a key whose are not,
 //! since a prover blinds its proofs with them. A host parses the program
 //! once and may cache the kernel's solver image.
-use ark_ff::PrimeField;
 use rayon::prelude::*;
 
 use crate::{
@@ -336,8 +335,8 @@ fn kernel_fq(raw: &[u8], out: &mut [u8]) {
         out.fill(0);
         return;
     }
-    let value = ark_bn254::Fq::from_be_bytes_mod_order(raw);
-    for (limb, word) in value.0 .0.iter().zip(out.chunks_mut(8)) {
+    let value = zopro_bn254::Fq::from_be_bytes_mod_order(raw);
+    for (limb, word) in value.0.iter().zip(out.chunks_mut(8)) {
         word.copy_from_slice(&limb.to_le_bytes());
     }
 }

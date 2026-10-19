@@ -9,8 +9,7 @@ description = "A Groth16 prover over BN254 for gnark circuits, without gnark: a 
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-ark-bn254 = { path = "../zopro-core/ark-bn254" }
-ark-ff = { version = "0.5", default-features = false }
+zopro-bn254 = { path = "../zopro-bn254" }
 log = "0.4"
 zopro-core = { path = "../zopro-core" }
 
@@ -23,6 +22,3 @@ wasm-bindgen-futures = "0.4"
 metal = ["zopro-core/metal"]
 wgpu = ["zopro-core/wgpu"]
 trace = ["zopro-core/trace"]
-
-[dev-dependencies]
-ark-ff = "0.5"

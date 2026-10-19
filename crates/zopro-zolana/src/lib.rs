@@ -7,7 +7,7 @@
 //! solves, proves and verifies. A Zolana key's metadata (`Metadata`) gives
 //! its shape and the sha256 of the gnark key it was built from, which proofs
 //! report and the SDKs check against their pins.
-use ark_bn254::Fr;
+use zopro_bn254::Fr;
 use zopro_prover::{
     Assignment,
     zopro_core::{

@@ -1,7 +1,6 @@
 //! The prover server's proof JSON against the mobile SDK's response
 //! fixture and the 2 -> 2 key's verifying key (gnark's raw encoding).
-use ark_bn254::Fr;
-use ark_ff::PrimeField;
+use zopro_bn254::Fr;
 use zopro_zolana::{proof_json, zopro_core::verify::VerifyingKey};
 
 const VK: &[u8] = include_bytes!("fixtures/transfer-2x2.vk");

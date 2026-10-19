@@ -3,8 +3,7 @@
 //! counts as unsigned 32-bit numbers, no more than 32 levels or 8 MB — and
 //! whose values are field elements in hex (`0x` optional, as big.Int reads
 //! base 16: a sign allowed, no underscores) below the scalar field's order.
-use ark_bn254::Fr;
-use ark_ff::{BigInteger, PrimeField};
+use zopro_bn254::Fr;
 use serde_json::Value;
 
 /// The Go prover's errors, kept apart for the SDKs' messages.
@@ -126,10 +125,7 @@ pub fn hex_element(s: &str) -> Result<Fr, Error> {
         let nibble = (digit as char).to_digit(16).unwrap() as u8;
         bytes[31 - i / 2] |= nibble << (4 * (i % 2));
     }
-    let value = Fr::from_be_bytes_mod_order(&bytes);
-    if value.into_bigint().to_bytes_be() != bytes {
-        return Err(Error::Request);
-    }
+    let value = Fr::from_be_bytes(&bytes).ok_or(Error::Request)?;
     if negative && !value.is_zero() {
         return Err(Error::Request);
     }
@@ -138,11 +134,11 @@ pub fn hex_element(s: &str) -> Result<Fr, Error> {
 
 /// `value` as a small unsigned integer, when it is one.
 pub fn small(value: &Fr) -> Option<u64> {
-    let bigint = value.into_bigint();
-    if bigint.0[1..].iter().any(|w| *w != 0) {
+    let limbs = value.to_canonical();
+    if limbs[1..].iter().any(|w| *w != 0) {
         return None;
     }
-    Some(bigint.0[0])
+    Some(limbs[0])
 }
 
 pub fn is_zero(value: &Fr) -> bool {

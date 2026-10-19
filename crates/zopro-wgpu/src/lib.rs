@@ -14,9 +14,7 @@ pub(crate) mod time {
     pub use web_time::Instant;
 }
 
-use ark_bn254::{Fq, Fq2, Fr, G1Affine, G2Affine};
-use ark_ec::{AdditiveGroup, CurveGroup};
-use ark_ff::{BigInt, PrimeField, Zero};
+use zopro_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use rayon::prelude::*;
 
 pub mod quotient;
@@ -40,7 +38,19 @@ const G2_SHADER: &str = concat!(
 );
 
 /// A curve the shaders have kernels for, with its point encodings.
-pub trait Curve: CurveGroup {
+pub trait Curve:
+    'static
+    + Copy
+    + Send
+    + Sync
+    + PartialEq
+    + std::fmt::Debug
+    + std::ops::Add<Output = Self>
+    + std::ops::AddAssign
+{
+    type Affine: Copy + Send + Sync;
+    const IDENTITY: Self;
+    fn double(&self) -> Self;
     const AFFINE_BYTES: usize;
     const XYZZ_BYTES: usize;
     const SHADER: &'static str;
@@ -56,12 +66,17 @@ pub trait Curve: CurveGroup {
 }
 
 fn fq_bytes(v: &Fq, out: &mut Vec<u8>) {
-    for w in v.0 .0 {
+    for w in v.0 {
         out.extend_from_slice(&w.to_le_bytes());
     }
 }
 
-impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
+impl Curve for G1Projective {
+    type Affine = G1Affine;
+    const IDENTITY: Self = Self::IDENTITY;
+    fn double(&self) -> Self {
+        G1Projective::double(self)
+    }
     const AFFINE_BYTES: usize = 64;
     const XYZZ_BYTES: usize = 128;
     const SHADER: &'static str = G1_SHADER;
@@ -73,12 +88,8 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
     ]);
     const SPIRV_PAIRS: bool = false;
     fn encode(point: &G1Affine, out: &mut Vec<u8>) {
-        if point.infinity {
-            out.extend_from_slice(&[0u8; 64]);
-        } else {
-            fq_bytes(&point.x, out);
-            fq_bytes(&point.y, out);
-        }
+        fq_bytes(&point.x, out);
+        fq_bytes(&point.y, out);
     }
     fn xyzz_to_projective(bytes: &[u8]) -> Self {
         let (x, y, zz, zzz) = (
@@ -88,13 +99,18 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
             fq(&bytes[96..128]),
         );
         if zz.is_zero() {
-            return Self::ZERO;
+            return Self::IDENTITY;
         }
-        Self::new_unchecked(x * zz, y * zzz, zz)
+        Self::new(x * zz, y * zzz, zz)
     }
 }
 
-impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g2::Config> {
+impl Curve for G2Projective {
+    type Affine = G2Affine;
+    const IDENTITY: Self = Self::IDENTITY;
+    fn double(&self) -> Self {
+        G2Projective::double(self)
+    }
     const AFFINE_BYTES: usize = 128;
     const XYZZ_BYTES: usize = 256;
     const SHADER: &'static str = G2_SHADER;
@@ -106,26 +122,22 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g2::Config> {
     ]);
     const SPIRV_PAIRS: bool = true;
     fn encode(point: &G2Affine, out: &mut Vec<u8>) {
-        if point.infinity {
-            out.extend_from_slice(&[0u8; 128]);
-        } else {
-            for v in [point.x.c0, point.x.c1, point.y.c0, point.y.c1] {
-                fq_bytes(&v, out);
-            }
+        for v in [point.x.c0, point.x.c1, point.y.c0, point.y.c1] {
+            fq_bytes(&v, out);
         }
     }
     fn xyzz_to_projective(bytes: &[u8]) -> Self {
         let fq2 = |at: usize| Fq2::new(fq(&bytes[at..at + 32]), fq(&bytes[at + 32..at + 64]));
         let (x, y, zz, zzz) = (fq2(0), fq2(64), fq2(128), fq2(192));
         if zz.is_zero() {
-            return Self::ZERO;
+            return Self::IDENTITY;
         }
-        Self::new_unchecked(x * zz, y * zzz, zz)
+        Self::new(x * zz, y * zzz, zz)
     }
 }
 
-pub type G1Msm = Msm<ark_bn254::G1Projective>;
-pub type G2Msm = Msm<ark_bn254::G2Projective>;
+pub type G1Msm = Msm<G1Projective>;
+pub type G2Msm = Msm<G2Projective>;
 const WORKGROUP: u32 = 64;
 const FIRST_SHARD: usize = 32;
 /// The first level's shard length: shorter with the pre-compiled kernels,
@@ -919,7 +931,7 @@ impl<C: Curve> Msm<C> {
         let n = bases.len();
         let width = width_for(n);
         let half = 1 << (width - 1);
-        let windows = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(width);
+        let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
         let buckets = windows * half;
         let per_window = n.div_ceil(first_shard(spirv.is_some())) + half;
         let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
@@ -1380,10 +1392,10 @@ impl<C: Curve> Msm<C> {
             timings.combine_ms = started.elapsed().as_secs_f64() * 1000.0;
             return Ok((result, timings));
         }
-        let mut result = C::ZERO;
+        let mut result = C::IDENTITY;
         for window in (0..self.windows).rev() {
             for _ in 0..self.width {
-                result.double_in_place();
+                result = result.double();
             }
             let groups = self.reduce_shape[1] / WORKGROUP as usize;
             for group in 0..groups {
@@ -1407,9 +1419,9 @@ impl<C: Curve> Msm<C> {
             .into_par_iter()
             .map(|window| {
                 let pair = |t: usize| 2 * (window * threads + t);
-                let mut vs = C::ZERO;
-                let mut running = C::ZERO;
-                let mut weighted = C::ZERO;
+                let mut vs = C::IDENTITY;
+                let mut running = C::IDENTITY;
+                let mut weighted = C::IDENTITY;
                 for t in (0..threads).rev() {
                     vs += point(pair(t));
                     if t > 0 {
@@ -1418,17 +1430,17 @@ impl<C: Curve> Msm<C> {
                     }
                 }
                 for _ in 0..leaf.trailing_zeros() {
-                    weighted.double_in_place();
+                    weighted = weighted.double();
                 }
                 vs + weighted
             })
             .collect();
-        let mut result = C::ZERO;
+        let mut result = C::IDENTITY;
         for sum in sums.iter().rev() {
             for _ in 0..self.width {
-                result.double_in_place();
+                result = result.double();
             }
-            result += sum;
+            result += *sum;
         }
         result
     }
@@ -1612,7 +1624,7 @@ impl<C: Curve> Msm<C> {
             .par_chunks_mut(windows)
             .zip(scalars)
             .for_each(|(row, s)| {
-                let BigInt(words) = s.into_bigint();
+                let words = s.to_canonical();
                 let mut carry = 0u64;
                 for (w, digit) in row.iter_mut().enumerate() {
                     let offset = w * width;
@@ -1662,9 +1674,9 @@ impl<C: Curve> Msm<C> {
 }
 
 fn fq(bytes: &[u8]) -> Fq {
-    Fq::new_unchecked(BigInt(core::array::from_fn(|i| {
+    Fq::from_montgomery(core::array::from_fn(|i| {
         u64::from_le_bytes(bytes[i * 8..i * 8 + 8].try_into().unwrap())
-    })))
+    }))
 }
 
 /// The tests' logger: wgpu's messages on stderr (RUST_LOG, default debug).
@@ -1677,24 +1689,78 @@ fn init_logger() {
     .try_init();
 }
 
+/// A seeded source of field elements and points for the tests (splitmix64).
+#[cfg(test)]
+pub(crate) mod test_rng {
+    use zopro_bn254::{Affine, CurveConfig, Fq, Fq2, Fr, Projective};
+
+    pub(crate) struct StdRng(u64);
+
+    pub(crate) trait SeedableRng {
+        fn seed_from_u64(seed: u64) -> Self;
+    }
+    impl SeedableRng for StdRng {
+        fn seed_from_u64(seed: u64) -> Self {
+            Self(seed)
+        }
+    }
+
+    impl StdRng {
+        fn bytes(&mut self) -> [u8; 64] {
+            let mut bytes = [0u8; 64];
+            for chunk in bytes.chunks_mut(8) {
+                self.0 = self.0.wrapping_add(0x9e37_79b9_7f4a_7c15);
+                let mut z = self.0;
+                z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+                z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+                chunk.copy_from_slice(&(z ^ (z >> 31)).to_le_bytes());
+            }
+            bytes
+        }
+
+        pub(crate) fn point<C: CurveConfig>(&mut self) -> Affine<C> {
+            Projective::<C>::generator().mul(&Fr::sample(self)).to_affine()
+        }
+    }
+
+    /// A uniform element.
+    pub(crate) trait Sample {
+        fn sample(rng: &mut StdRng) -> Self;
+    }
+    impl Sample for Fq {
+        fn sample(rng: &mut StdRng) -> Self {
+            Fq::from_random_bytes(&rng.bytes())
+        }
+    }
+    impl Sample for Fr {
+        fn sample(rng: &mut StdRng) -> Self {
+            Fr::from_random_bytes(&rng.bytes())
+        }
+    }
+    impl Sample for Fq2 {
+        fn sample(rng: &mut StdRng) -> Self {
+            Fq2::new(Fq::sample(rng), Fq::sample(rng))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ec::{AffineRepr, CurveGroup, VariableBaseMSM};
-    use ark_ff::{PrimeField, UniformRand};
-    use rand::{rngs::StdRng, SeedableRng};
+    use crate::test_rng::{Sample, SeedableRng, StdRng};
+    use zopro_bn254::{Affine, CurveConfig, G1Config, G2Config, Projective};
 
     /// Distinct points without a scalar multiplication each: a random
     /// start, then repeated addition of a random step.
-    pub(super) fn points<C: CurveGroup>(n: usize, rng: &mut StdRng) -> Vec<C::Affine> {
-        let step = C::rand(rng);
-        let mut p = C::rand(rng);
+    pub(super) fn points<C: CurveConfig>(n: usize, rng: &mut StdRng) -> Vec<Affine<C>> {
+        let step = rng.point::<C>().to_projective();
+        let mut p = rng.point::<C>().to_projective();
         let mut out = Vec::with_capacity(n);
         for _ in 0..n {
             out.push(p);
             p += step;
         }
-        C::normalize_batch(&out)
+        Projective::<C>::batch_to_affine(&out)
     }
 
     /// Scalars as witnesses have them: zeros, ones, small values, minus
@@ -1706,13 +1772,16 @@ mod tests {
                 (true, 1) => Fr::from(1u64),
                 (true, 2) => Fr::from((i % 300) as u64),
                 (true, 3) => -Fr::from(1u64),
-                _ => Fr::rand(rng),
+                _ => Fr::sample(rng),
             })
             .collect()
     }
 
-    fn check<C: Curve + VariableBaseMSM<ScalarField = Fr>>(sizes: &[usize]) {
-        let Some(mut make) = backend::<C>() else {
+    fn check<C: CurveConfig>(sizes: &[usize])
+    where
+        Projective<C>: Curve<Affine = Affine<C>>,
+    {
+        let Some(mut make) = backend::<Projective<C>>() else {
             eprintln!("no GPU: skipped");
             return;
         };
@@ -1722,16 +1791,15 @@ mod tests {
             let mut msm = make(&bases);
             for skewed in [false, true] {
                 let scalars = scalars(n, skewed, &mut rng);
-                let expected = C::msm_unchecked(&bases, &scalars);
+                let expected = zopro_bn254::curve::msm(&bases, &scalars);
                 assert_eq!(
-                    msm(&scalars).into_affine(),
-                    expected.into_affine(),
+                    msm(&scalars).to_affine(),
+                    expected.to_affine(),
                     "{n} points, skewed {skewed}"
                 );
             }
             let zeros = vec![Fr::from(0u64); n];
-            assert!(msm(&zeros).into_affine().is_zero(), "{n} points, all zero");
-            let _ = Fr::MODULUS;
+            assert!(msm(&zeros).is_identity(), "{n} points, all zero");
         }
     }
 
@@ -1746,26 +1814,25 @@ mod tests {
     }
 
     #[test]
-    fn g1_msms_match_arkworks() {
-        check::<ark_bn254::G1Projective>(&[1, 7, 100, 3000, 20000]);
+    fn g1_msms_match_the_reference() {
+        check::<G1Config>(&[1, 7, 100, 3000, 20000]);
     }
 
     #[test]
-    fn g2_msms_match_arkworks() {
-        check::<ark_bn254::G2Projective>(&[1, 100, 3000]);
+    fn g2_msms_match_the_reference() {
+        check::<G2Config>(&[1, 100, 3000]);
     }
 }
 
 #[cfg(test)]
 mod field_tests {
     use super::*;
-    use ark_ec::AffineRepr;
-    use ark_ff::Field;
-    use rand::{rngs::StdRng, SeedableRng};
+    use crate::test_rng::{Sample, SeedableRng, StdRng};
+    use zopro_bn254::{Affine, CurveConfig, Field, G1Config, G2Config, Projective};
 
     /// One kernel computing a + b, a - b, a * b, -a and a^2 per pair, for a field
-    /// file's prefix and type, against arkworks.
-    fn check<F: Field + ark_ff::UniformRand>(source: &str, prefix: &str, ty: &str) {
+    /// file's prefix and type, against the CPU's.
+    fn check<F: Field + Sample>(source: &str, prefix: &str, ty: &str) {
         let k = std::mem::size_of::<F>() / 4;
         init_logger();
         let Ok(gpu) = Gpu::new() else {
@@ -1784,7 +1851,7 @@ mod field_tests {
         let mut rng = StdRng::seed_from_u64(3);
         let n = 4096;
         let mut values: Vec<(F, F)> = (0..n)
-            .map(|_| (F::rand(&mut rng), F::rand(&mut rng)))
+            .map(|_| (F::sample(&mut rng), F::sample(&mut rng)))
             .collect();
         // Edge cases: zero, one, minus one, the same and opposite values.
         values[0] = (F::ZERO, F::ZERO);
@@ -1793,7 +1860,7 @@ mod field_tests {
         values[3] = (values[3].0, values[3].0);
         values[4] = (values[4].0, -values[4].0);
         let words = |f: &F| -> Vec<u32> {
-            // Montgomery form, as the kernels hold it: arkworks' own repr.
+            // Montgomery form, as the kernels hold it, as the CPU's.
             let repr = unsafe { std::slice::from_raw_parts(f as *const F as *const u32, k) };
             repr.to_vec()
         };
@@ -1852,9 +1919,9 @@ mod field_tests {
         let back = |w: &[u32]| -> F { unsafe { *(w.as_ptr() as *const F) } };
         for (i, (a, b)) in values.iter().enumerate() {
             let o = &out[i * 7 * k..(i + 1) * 7 * k];
-            assert_eq!(back(&o[2 * k..]), *a + b, "{prefix} add {i}");
-            assert_eq!(back(&o[3 * k..]), *a - b, "{prefix} sub {i}");
-            assert_eq!(back(&o[4 * k..]), *a * b, "{prefix} mul {i}");
+            assert_eq!(back(&o[2 * k..]), *a + *b, "{prefix} add {i}");
+            assert_eq!(back(&o[3 * k..]), *a - *b, "{prefix} sub {i}");
+            assert_eq!(back(&o[4 * k..]), *a * *b, "{prefix} mul {i}");
             assert_eq!(back(&o[5 * k..]), -*a, "{prefix} neg {i}");
             assert_eq!(back(&o[6 * k..]), a.square(), "{prefix} square {i}");
         }
@@ -1862,24 +1929,27 @@ mod field_tests {
     }
 
     #[test]
-    fn fq_ops_match_arkworks() {
-        check::<ark_bn254::Fq>(include_str!("../shaders/field.wgsl"), "fp", "Fp");
+    fn fq_ops_match_the_cpu() {
+        check::<Fq>(include_str!("../shaders/field.wgsl"), "fp", "Fp");
     }
 
     #[test]
-    fn fr_ops_match_arkworks() {
-        check::<ark_bn254::Fr>(include_str!("../shaders/fr.wgsl"), "fr", "Fr");
+    fn fr_ops_match_the_cpu() {
+        check::<Fr>(include_str!("../shaders/fr.wgsl"), "fr", "Fr");
     }
 
     /// The point formulas per pair of affine points p, q: p + q (both
     /// lifted), p + q mixed, the pair add, 2p, and p + p mixed, against
-    /// arkworks.
-    fn check_points<C: Curve>(prefix: &str, ty: &str, affine: &str) {
+    /// the CPU's.
+    fn check_points<C: CurveConfig>(prefix: &str, ty: &str, affine: &str)
+    where
+        Projective<C>: Curve<Affine = Affine<C>>,
+    {
         let Ok(gpu) = Gpu::new() else {
             eprintln!("no GPU: skipped");
             return;
         };
-        let source = C::SHADER.split("@group").next().unwrap();
+        let source = <Projective<C> as Curve>::SHADER.split("@group").next().unwrap();
         let kernel = format!(
             "{source}\n@group(0) @binding(0) var<storage, read> input: array<{affine}>;\n\
              @group(0) @binding(1) var<storage, read_write> output: array<{ty}>;\n\
@@ -1895,16 +1965,14 @@ mod field_tests {
         );
         let mut rng = StdRng::seed_from_u64(4);
         let n = 256;
-        let mut points: Vec<C::Affine> = (0..2 * n)
-            .map(|_| C::rand(&mut rng).into_affine())
-            .collect();
+        let mut points: Vec<Affine<C>> = (0..2 * n).map(|_| rng.point::<C>()).collect();
         points[1] = points[0];
-        points[3] = (-points[2].into_group()).into_affine();
-        points[4] = C::Affine::zero();
-        points[7] = C::Affine::zero();
+        points[3] = -points[2];
+        points[4] = Affine::<C>::IDENTITY;
+        points[7] = Affine::<C>::IDENTITY;
         let mut input = Vec::new();
         for p in &points {
-            C::encode(p, &mut input);
+            <Projective<C> as Curve>::encode(p, &mut input);
         }
         let device = &gpu.device;
         let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -1921,7 +1989,7 @@ mod field_tests {
         });
         let in_buffer = storage(device, "input", input.len());
         gpu.queue.write_buffer(&in_buffer, 0, &input);
-        let out_len = (5 * n * C::XYZZ_BYTES) as u64;
+        let out_len = (5 * n * <Projective<C> as Curve>::XYZZ_BYTES) as u64;
         let out_buffer = storage(device, "output", out_len as usize);
         let staging = device.create_buffer(&wgpu::BufferDescriptor {
             label: None,
@@ -1954,7 +2022,8 @@ mod field_tests {
         gpu.queue.submit([encoder.finish()]);
         pollster::block_on(mapped(&gpu, &staging, None)).expect("map");
         let out = staging.slice(..).get_mapped_range().unwrap().to_vec();
-        let at = |k: usize| C::xyzz_to_projective(&out[k * C::XYZZ_BYTES..(k + 1) * C::XYZZ_BYTES]);
+        let bytes = <Projective<C> as Curve>::XYZZ_BYTES;
+        let at = |k: usize| <Projective<C> as Curve>::xyzz_to_projective(&out[k * bytes..(k + 1) * bytes]);
         let names = [
             "add",
             "add_mixed",
@@ -1964,7 +2033,7 @@ mod field_tests {
         ];
         let mut wrong = Vec::new();
         for i in 0..n {
-            let (p, q) = (points[2 * i].into_group(), points[2 * i + 1].into_group());
+            let (p, q) = (points[2 * i].to_projective(), points[2 * i + 1].to_projective());
             for (k, expected) in [p + q, p + q, p + q, p.double(), p.double()]
                 .into_iter()
                 .enumerate()
@@ -2057,8 +2126,8 @@ mod field_tests {
     #[ignore]
     fn spirv_kernel_probes() {
         init_logger();
-        let g1 = <ark_bn254::G1Projective as Curve>::SPIRV.unwrap();
-        let g2 = <ark_bn254::G2Projective as Curve>::SPIRV.unwrap();
+        let g1 = <G1Projective as Curve>::SPIRV.unwrap();
+        let g2 = <G2Projective as Curve>::SPIRV.unwrap();
         let names = ["shards_first", "shards_tree", "reduce_blocks"];
         // ZOPRO_PROBE selects probes by a substring of "<curve> <kernel>".
         let filter = std::env::var("ZOPRO_PROBE").unwrap_or_default();
@@ -2107,22 +2176,22 @@ mod field_tests {
     }
 
     #[test]
-    fn g1_points_match_arkworks() {
-        check_points::<ark_bn254::G1Projective>("xyzz", "Xyzz", "Affine");
+    fn g1_points_match_the_reference() {
+        check_points::<G1Config>("xyzz", "Xyzz", "Affine");
     }
 
     #[test]
-    fn g2_points_match_arkworks() {
-        check_points::<ark_bn254::G2Projective>("xyzz2", "Xyzz2", "Affine2");
+    fn g2_points_match_the_reference() {
+        check_points::<G2Config>("xyzz2", "Xyzz2", "Affine2");
     }
 
     #[test]
-    fn fq2_ops_match_arkworks() {
+    fn fq2_ops_match_the_cpu() {
         let source = concat!(
             include_str!("../shaders/field.wgsl"),
             "\n",
             include_str!("../shaders/fp2.wgsl")
         );
-        check::<ark_bn254::Fq2>(source, "fp2", "Fp2");
+        check::<Fq2>(source, "fp2", "Fp2");
     }
 }

@@ -12,7 +12,7 @@
 //! let proved = prover.prove(&prover.witness(&assignment)?)?;
 //! let (proof, public) = (proved.proof.to_gnark(), proved.public_witness());
 //! ```
-use ark_bn254::Fr;
+use zopro_bn254::Fr;
 use zopro_core::{
     Key,
     artifact::Artifact,

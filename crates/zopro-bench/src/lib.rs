@@ -7,8 +7,7 @@
 //!   zopro-bench stress <cycles> <dump dir>...
 use std::{env, fs, path::Path, time::Instant};
 
-use ark_bn254::Fr;
-use ark_ff::{Field, UniformRand};
+use zopro_bn254::Fr;
 use zopro_core::{decode_g1, decode_g2, Key};
 
 fn read(dir: &Path, name: &str) -> Vec<u8> {
@@ -43,9 +42,6 @@ pub fn run() {
     }
     if dir == "wgpu" {
         return wgpu_bench(Path::new(&env::args().nth(2).expect("the dump directory")));
-    }
-    if dir == "wgsl-field" {
-        return wgsl_field();
     }
     if dir == "pack" {
         let args: Vec<String> = env::args().collect();
@@ -133,10 +129,34 @@ pub fn run() {
 
 /// Nanoseconds per Fq multiplication, squaring, and Fq2 multiplication on
 /// one thread: a dependent chain of ten million.
+/// Uniform elements from the system's randomness.
+trait Random: Sized {
+    fn random() -> Self;
+}
+fn random_bytes() -> [u8; 64] {
+    let mut bytes = [0u8; 64];
+    getrandom::getrandom(&mut bytes).expect("the system's randomness");
+    bytes
+}
+impl Random for Fr {
+    fn random() -> Self {
+        Fr::from_random_bytes(&random_bytes())
+    }
+}
+impl Random for zopro_bn254::Fq {
+    fn random() -> Self {
+        zopro_bn254::Fq::from_random_bytes(&random_bytes())
+    }
+}
+impl Random for zopro_bn254::Fq2 {
+    fn random() -> Self {
+        zopro_bn254::Fq2::new(Random::random(), Random::random())
+    }
+}
+
 fn field() {
-    use ark_bn254::{Fq, Fq2};
-    let mut rng = rand::rngs::OsRng;
-    let (a, b) = (Fq::rand(&mut rng), Fq::rand(&mut rng));
+    use zopro_bn254::{Fq, Fq2};
+    let (a, b) = (Fq::random(), Fq::random());
     let n = 10_000_000u32;
     let started = Instant::now();
     let mut x = a;
@@ -147,10 +167,10 @@ fn field() {
     let started = Instant::now();
     let mut y = a;
     for _ in 0..n {
-        y.square_in_place();
+        y = y.square();
     }
     let square = started.elapsed().as_nanos() as f64 / n as f64;
-    let (a2, b2) = (Fq2::rand(&mut rng), Fq2::rand(&mut rng));
+    let (a2, b2) = (Fq2::random(), Fq2::random());
     let started = Instant::now();
     let mut z = a2;
     for _ in 0..n {
@@ -168,21 +188,6 @@ fn field() {
     }
     let mul2_independent = started.elapsed().as_nanos() as f64 / n as f64;
     let started = Instant::now();
-    let mut l = [a2, b2, a2 + b2, a2 - b2];
-    for _ in 0..n / 4 {
-        for v in l.iter_mut() {
-            *v = ark_bn254::fq2::mul_lazy(v, &b2);
-        }
-    }
-    let lazy_independent = started.elapsed().as_nanos() as f64 / n as f64;
-    let started = Instant::now();
-    let mut lz = a2;
-    for _ in 0..n {
-        lz = ark_bn254::fq2::mul_lazy(&lz, &b2);
-    }
-    let lazy = started.elapsed().as_nanos() as f64 / n as f64;
-    w[0] += l[0] + lz;
-    let started = Instant::now();
     let mut u = [a, b, a + b, a - b];
     for _ in 0..n / 4 {
         for v in u.iter_mut() {
@@ -191,8 +196,8 @@ fn field() {
     }
     let mul_independent = started.elapsed().as_nanos() as f64 / n as f64;
     println!(
-        "ZOPRO field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} independent: fq_mul_ns={mul_independent:.2} fq2_mul_ns={mul2_independent:.2} lazy fq2: {lazy:.2} independent {lazy_independent:.2} {}",
-        (x + y + u[0]).0 .0[0] ^ (z + w[0]).c0.0 .0[0]
+        "ZOPRO field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} independent: fq_mul_ns={mul_independent:.2} fq2_mul_ns={mul2_independent:.2} {}",
+        (x + y + u[0]).0[0] ^ (z + w[0]).c0.0[0]
     );
 }
 
@@ -200,16 +205,15 @@ fn field() {
 /// the CPU (RAYON_NUM_THREADS) and on the GPU, checked against each other.
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 fn gpu(dir: &Path) {
-    let mut rng = rand::rngs::OsRng;
     // Witness scalars are skewed: many wires are 0, 1 or small, so a few
     // buckets receive most points. "skewed" is a quarter ones, a quarter
     // small, the rest random.
-    let skewed = |n: usize, rng: &mut rand::rngs::OsRng| -> Vec<Fr> {
+    let skewed = |n: usize| -> Vec<Fr> {
         (0..n)
             .map(|i| match i % 4 {
                 0 => Fr::from(1u64),
                 1 => Fr::from((i % 65536) as u64),
-                _ => Fr::rand(rng),
+                _ => Fr::random(),
             })
             .collect()
     };
@@ -219,17 +223,17 @@ fn gpu(dir: &Path) {
         if file == "b2" {
             let bases = decode_g2(&read(dir, file));
             let scalars = if skew {
-                skewed(bases.len(), &mut rng)
+                skewed(bases.len())
             } else {
-                (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect()
+                (0..bases.len()).map(|_| Fr::random()).collect()
             };
             gpu_one(name, &bases, &scalars, zopro_core::msm_g2);
         } else {
             let bases = decode_g1(&read(dir, file));
             let scalars = if skew {
-                skewed(bases.len(), &mut rng)
+                skewed(bases.len())
             } else {
-                (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect()
+                (0..bases.len()).map(|_| Fr::random()).collect()
             };
             gpu_one(name, &bases, &scalars, zopro_core::msm_g1);
         }
@@ -266,8 +270,8 @@ fn gpu_one<C: zopro_metal::Curve>(
         let (t, total) = best.unwrap();
         println!("ZOPRO gpu-profile \"{name}\" {}", msm.profile(scalars));
         assert_eq!(
-            result.into_affine(),
-            cpu.into_affine(),
+            result,
+            cpu,
             "{name}: the GPU MSM differs from the CPU"
         );
         println!(
@@ -289,13 +293,12 @@ fn gpu(_: &Path) {
 /// skewed scalars, checked against the CPU.
 fn wgpu_bench(dir: &Path) {
     let gpu = std::sync::Arc::new(zopro_wgpu::Gpu::new().expect("wgpu"));
-    let mut rng = rand::rngs::OsRng;
-    let scalars_for = |n: usize, skewed: bool, rng: &mut rand::rngs::OsRng| -> Vec<Fr> {
+    let scalars_for = |n: usize, skewed: bool| -> Vec<Fr> {
         (0..n)
             .map(|i| match (skewed, i % 4) {
                 (true, 0) => Fr::from(1u64),
                 (true, 1) => Fr::from((i % 65536) as u64),
-                _ => Fr::rand(rng),
+                _ => Fr::random(),
             })
             .collect()
     };
@@ -304,11 +307,11 @@ fn wgpu_bench(dir: &Path) {
         let skewed = name.ends_with("skewed");
         if file == "b2" {
             let bases = decode_g2(&read(dir, file));
-            let scalars = scalars_for(bases.len(), skewed, &mut rng);
+            let scalars = scalars_for(bases.len(), skewed);
             wgpu_one(&gpu, name, &bases, &scalars, zopro_core::msm_g2);
         } else {
             let bases = decode_g1(&read(dir, file));
-            let scalars = scalars_for(bases.len(), skewed, &mut rng);
+            let scalars = scalars_for(bases.len(), skewed);
             wgpu_one(&gpu, name, &bases, &scalars, zopro_core::msm_g1);
         }
     }
@@ -341,8 +344,8 @@ fn wgpu_one<C: zopro_wgpu::Curve>(
     }
     let (t, total, point) = best.unwrap();
     assert_eq!(
-        point.into_affine(),
-        cpu.into_affine(),
+        point,
+        cpu,
         "{name}: the wgpu MSM differs from the CPU"
     );
     println!(
@@ -372,12 +375,11 @@ fn metal_quotient(dir: &Path) {
     let (mut quotient, _) =
         zopro_metal::Quotient::new(n, &roots, &inverse_roots, &forward, &reverse)
             .expect("quotient");
-    let mut rng = rand::rngs::OsRng;
     let m = n - n / 16;
     let (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>) = (
-        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
-        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
-        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
+        (0..m).map(|_| Fr::random()).collect(),
+        (0..m).map(|_| Fr::random()).collect(),
+        (0..m).map(|_| Fr::random()).collect(),
     );
     let expected = plan.quotient(a.clone(), b.clone(), c.clone());
     let _ = quotient.quotient(&a, &b, &c);
@@ -413,12 +415,11 @@ fn wgpu_quotient(dir: &Path) {
         zopro_wgpu::Quotient::new(gpu.clone(), n, &roots, &inverse_roots, &forward, &reverse)
             .expect("quotient");
     let upload_ms = started.elapsed().as_secs_f64() * 1000.0 - compile_ms;
-    let mut rng = rand::rngs::OsRng;
     let m = n - n / 16;
     let (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>) = (
-        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
-        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
-        (0..m).map(|_| Fr::rand(&mut rng)).collect(),
+        (0..m).map(|_| Fr::random()).collect(),
+        (0..m).map(|_| Fr::random()).collect(),
+        (0..m).map(|_| Fr::random()).collect(),
     );
     let started = Instant::now();
     let expected = plan.quotient(a.clone(), b.clone(), c.clone());
@@ -639,216 +640,10 @@ fn stress(cycles: usize, dirs: &[String]) {
     }
 }
 
-/// Experiment: the WGSL field multiplication, sixteen-bit halves (field.wgsl)
-/// against thirteen-bit limbs with lazy carries (field13.wgsl): a chain of
-/// multiplications per thread, results checked against arkworks.
-fn wgsl_field() {
-    use ark_bn254::Fq;
-    use ark_ff::{BigInteger, Field, PrimeField};
-    let gpu = zopro_wgpu::Gpu::new().expect("wgpu");
-    let (device, queue) = (&gpu.device, &gpu.queue);
-    let q = Fq::MODULUS;
-    let limbs13 = |x: &ark_ff::BigInt<4>| -> [u32; 20] {
-        let bits = x.to_bits_le();
-        core::array::from_fn(|i| {
-            (0..13)
-                .map(|b| {
-                    if bits.get(i * 13 + b).copied().unwrap_or(false) {
-                        1u32 << b
-                    } else {
-                        0
-                    }
-                })
-                .sum()
-        })
-    };
-    let q13 = limbs13(&q);
-    // -q^-1 mod 2^13
-    let q0 = q.0[0] as u32 & 0x1fff;
-    let mut inv = 1u32;
-    for _ in 0..13 {
-        inv = inv.wrapping_mul(2u32.wrapping_sub(q0.wrapping_mul(inv))) & 0x1fff;
-    }
-    let np = (0x2000 - inv) & 0x1fff;
-    let field = include_str!("../../zopro-wgpu/shaders/field.wgsl");
-    let shader13 = include_str!("field13.wgsl")
-        .replace("NP13_VALUE", &format!("{np}u"))
-        .replace(
-            "Q13_VALUES",
-            &q13.iter()
-                .map(|v| format!("{v}u"))
-                .collect::<Vec<_>>()
-                .join(", "),
-        );
-    let shader16 = format!("{field}\n{}", include_str!("field16.wgsl"));
-    let (threads, rounds) = (65536usize, 256u32);
-    let mut rng = rand::rngs::OsRng;
-    let xs: Vec<Fq> = (0..threads).map(|_| Fq::rand(&mut rng)).collect();
-    let ys: Vec<Fq> = (0..threads).map(|_| Fq::rand(&mut rng)).collect();
-    let run = |source: &str, entry: &str, words: Vec<u32>, per: usize| -> (Vec<u32>, f64) {
-        let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: None,
-            source: wgpu::ShaderSource::Wgsl(source.into()),
-        });
-        let pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-            label: None,
-            layout: None,
-            module: &module,
-            entry_point: Some(entry),
-            compilation_options: Default::default(),
-            cache: None,
-        });
-        let bytes: Vec<u8> = words.iter().flat_map(|w| w.to_le_bytes()).collect();
-        let data = device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: bytes.len() as u64,
-            usage: wgpu::BufferUsages::STORAGE
-                | wgpu::BufferUsages::COPY_DST
-                | wgpu::BufferUsages::COPY_SRC,
-            mapped_at_creation: false,
-        });
-        queue.write_buffer(&data, 0, &bytes);
-        let uniform = device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: 16,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-        let u: Vec<u8> = [rounds, threads as u32, 0, 0]
-            .iter()
-            .flat_map(|w| w.to_le_bytes())
-            .collect();
-        queue.write_buffer(&uniform, 0, &u);
-        let staging = device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: bytes.len() as u64,
-            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-        let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
-            layout: &pipeline.get_bind_group_layout(0),
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: data.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: uniform.as_entire_binding(),
-                },
-            ],
-        });
-        let mut best = f64::MAX;
-        for _ in 0..3 {
-            queue.write_buffer(&data, 0, &bytes);
-            let mut encoder = device.create_command_encoder(&Default::default());
-            {
-                let mut pass = encoder.begin_compute_pass(&Default::default());
-                pass.set_pipeline(&pipeline);
-                pass.set_bind_group(0, &group, &[]);
-                pass.dispatch_workgroups((threads as u32).div_ceil(64), 1, 1);
-            }
-            encoder.copy_buffer_to_buffer(&data, 0, &staging, 0, bytes.len() as u64);
-            let started = Instant::now();
-            queue.submit([encoder.finish()]);
-            staging.slice(..).map_async(wgpu::MapMode::Read, |_| {});
-            device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
-            best = best.min(started.elapsed().as_secs_f64() * 1000.0);
-            if best > 0.0 {
-                let out: Vec<u32> = staging
-                    .slice(..)
-                    .get_mapped_range()
-                    .unwrap()
-                    .chunks(4)
-                    .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
-                    .collect();
-                staging.unmap();
-                if best < f64::MAX {
-                    // keep the last result
-                    let _ = &out;
-                }
-            }
-        }
-        let mut encoder = device.create_command_encoder(&Default::default());
-        queue.write_buffer(&data, 0, &bytes);
-        {
-            let mut pass = encoder.begin_compute_pass(&Default::default());
-            pass.set_pipeline(&pipeline);
-            pass.set_bind_group(0, &group, &[]);
-            pass.dispatch_workgroups((threads as u32).div_ceil(64), 1, 1);
-        }
-        encoder.copy_buffer_to_buffer(&data, 0, &staging, 0, bytes.len() as u64);
-        queue.submit([encoder.finish()]);
-        staging.slice(..).map_async(wgpu::MapMode::Read, |_| {});
-        device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
-        let out: Vec<u32> = staging
-            .slice(..)
-            .get_mapped_range()
-            .unwrap()
-            .chunks(4)
-            .map(|c| u32::from_le_bytes(c.try_into().unwrap()))
-            .collect();
-        staging.unmap();
-        let _ = per;
-        (out, best)
-    };
-    let expected: Vec<Fq> = xs
-        .iter()
-        .zip(&ys)
-        .map(|(x, y)| *x * y.pow([rounds as u64]))
-        .collect();
-    // Sixteen-bit halves: Montgomery with R = 2^256, ark's own form.
-    let words16: Vec<u32> = xs
-        .iter()
-        .zip(&ys)
-        .flat_map(|(x, y)| [x, y])
-        .flat_map(|v| {
-            v.0 .0
-                .iter()
-                .flat_map(|w| [*w as u32, (*w >> 32) as u32])
-                .collect::<Vec<_>>()
-        })
-        .collect();
-    let (out16, ms16) = run(&shader16, "chain16", words16, 8);
-    let ok16 = (0..threads).all(|i| {
-        let w = &out16[i * 16..i * 16 + 8];
-        let big = ark_ff::BigInt::<4>(core::array::from_fn(|j| {
-            w[2 * j] as u64 | (w[2 * j + 1] as u64) << 32
-        }));
-        Fq::new_unchecked(big) == expected[i]
-    });
-    // Thirteen-bit limbs: R = 2^260, so a value v is stored as v * 2^260
-    // mod q, ark's internal form of v * 16.
-    let sixteen = Fq::from(16u64);
-    let words13: Vec<u32> = xs
-        .iter()
-        .zip(&ys)
-        .flat_map(|(x, y)| [*x * sixteen, *y * sixteen])
-        .flat_map(|v| limbs13(&v.0))
-        .collect();
-    let (out13, ms13) = run(&shader13, "chain13", words13, 20);
-    let ok13 = (0..threads).all(|i| {
-        let l = &out13[i * 40..i * 40 + 20];
-        let mut big = ark_ff::BigInt::<4>::zero();
-        for (j, limb) in l.iter().enumerate() {
-            let mut shifted = ark_ff::BigInt::<4>::from(*limb as u64);
-            for _ in 0..(13 * j) {
-                shifted.mul2();
-            }
-            big.add_with_carry(&shifted);
-        }
-        Fq::new_unchecked(big) * sixteen.inverse().unwrap() == expected[i]
-    });
-    let muls = threads as f64 * rounds as f64;
-    println!("ZOPRO wgsl-field device=\"{}\" 16-bit {ms16:.1} ms ({:.0} M mul/s, correct {ok16}) 13-bit {ms13:.1} ms ({:.0} M mul/s, correct {ok13})", gpu.name, muls / ms16 / 1e3, muls / ms13 / 1e3);
-}
-
 /// How skewed a shape's MSM scalars are: per vector, the share of zeros,
 /// ones, minus ones, and of the rest by bit length (small negatives, p - s
 /// with s short, counted by s's length).
 fn scalar_profile(dir: &Path) {
-    use ark_ff::{BigInteger, PrimeField, Zero};
     let dump = Dump::read(dir);
     let key = dump.key();
     let scalars = key.msm_scalars(&dump.witness).expect("solve");
@@ -858,8 +653,8 @@ fn scalar_profile(dir: &Path) {
     for (name, values) in ["a", "b", "k"].iter().zip(&scalars) {
         let mut counts = [0usize; 11];
         for v in values {
-            let bits = v.into_bigint().num_bits();
-            let neg_bits = (-*v).into_bigint().num_bits();
+            let bits = v.num_bits();
+            let neg_bits = (-*v).num_bits();
             let class = if v.is_zero() {
                 0
             } else if *v == Fr::from(1u64) {
@@ -928,7 +723,6 @@ fn parts_diff(dir: &Path) {
 /// The CPU MSMs of a dumped shape's B, Z and B2 with random scalars, best of
 /// three (RAYON_NUM_THREADS, ZOPRO_CPU_WIDTH, ZOPRO_CPU_SPLIT).
 fn cpu_msm(dir: &Path) {
-    let mut rng = rand::rngs::OsRng;
     let time = |f: &mut dyn FnMut()| -> f64 {
         f();
         (0..3)
@@ -943,13 +737,13 @@ fn cpu_msm(dir: &Path) {
     for name in only.split(',') {
         let ms = if name == "b2" {
             let bases = decode_g2(&read(dir, name));
-            let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+            let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::random()).collect();
             time(&mut || {
                 let _ = std::hint::black_box(zopro_core::msm_g2(&bases, &scalars));
             })
         } else {
             let bases = decode_g1(&read(dir, name));
-            let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+            let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::random()).collect();
             time(&mut || {
                 let _ = std::hint::black_box(zopro_core::msm_g1(&bases, &scalars));
             })

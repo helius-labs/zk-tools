@@ -90,12 +90,12 @@ pub(crate) mod backend {
     pub use crate::portable::{multiply, sum2};
 
     #[cfg(target_arch = "wasm32")]
-    #[inline(always)]
+    #[inline]
     pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
         crate::mont29::multiply(a, b, p, inv)
     }
     #[cfg(target_arch = "wasm32")]
-    #[inline(always)]
+    #[inline]
     pub fn sum2(
         a: [u64; 4],
         b: [u64; 4],
@@ -181,3 +181,18 @@ impl<C: FpConfig> Field for Fp<C> {
 
 #[cfg(test)]
 mod tests;
+
+impl Fr {
+    /// A primitive n-th root of unity for a power of two n up to 2^28: the
+    /// generator of arkworks' and gnark's FFT domains of that size.
+    pub fn root_of_unity(n: usize) -> Option<Fr> {
+        if !n.is_power_of_two() || n.trailing_zeros() > Self::TWO_ADICITY {
+            return None;
+        }
+        let mut root = Self::TWO_ADIC_ROOT_OF_UNITY;
+        for _ in n.trailing_zeros()..Self::TWO_ADICITY {
+            root = root.square();
+        }
+        Some(root)
+    }
+}

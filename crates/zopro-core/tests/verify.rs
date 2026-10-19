@@ -3,8 +3,7 @@
 //! head), a proof the kernel made that gnark verified, its public input,
 //! (in the kernel's encoding, four little-endian Montgomery limbs), and the
 //! mobile SDK's response fixture.
-use ark_bn254::Fr;
-use ark_ff::{BigInteger, PrimeField};
+use zopro_bn254::Fr;
 use zopro_core::verify::{compress_g1, compress_g2, public_witness, Proof, VerifyingKey};
 
 const VK: &[u8] = include_bytes!("fixtures/transfer-2x2.vk");
@@ -55,5 +54,5 @@ fn gnark_encodings_round_trip() {
     let witness = public_witness(&[public]);
     assert_eq!(witness.len(), 44);
     assert_eq!(&witness[..12], &[0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1]);
-    assert_eq!(witness[12..], public.into_bigint().to_bytes_be());
+    assert_eq!(witness[12..], public.to_be_bytes());
 }

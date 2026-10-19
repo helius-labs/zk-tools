@@ -9,9 +9,7 @@
 //! the larger, `01` for the point at infinity (the rest zero). A G2 point
 //! stores x as `A1 | A0`. The raw encoding is x then y, each coordinate in the
 //! same order, and the point at infinity is all zero.
-use ark_bn254::{g1, g2, Fq, Fq2};
-use ark_ec::short_weierstrass::SWCurveConfig;
-use ark_ff::{BigInteger, Field, PrimeField, Zero};
+use zopro_bn254::{CurveConfig, Fq, Fq2, G1Config, G2Config};
 use rayon::prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -59,29 +57,22 @@ fn decompress(
 
 /// Whether `value` is larger than its negation: above (q - 1) / 2.
 pub(crate) fn largest(value: &Fq) -> bool {
-    value.into_bigint() > Fq::MODULUS_MINUS_ONE_DIV_TWO
+    value.is_largest()
 }
 
 /// As gnark orders E2: by the second coordinate, by the first when it is zero.
 pub(crate) fn largest2(value: &Fq2) -> bool {
-    if value.c1.is_zero() {
-        largest(&value.c0)
-    } else {
-        largest(&value.c1)
-    }
+    value.is_largest()
 }
 
 /// The canonical big-endian field element in `bytes`.
 pub(crate) fn coordinate(bytes: &[u8]) -> Result<Fq, &'static str> {
-    let value = Fq::from_be_bytes_mod_order(bytes);
-    if value.into_bigint().to_bytes_be() != bytes {
-        return Err("coordinate not below the field modulus");
-    }
-    Ok(value)
+    let bytes: &[u8; 32] = bytes.try_into().map_err(|_| "a 32-byte coordinate")?;
+    Fq::from_be_bytes(bytes).ok_or("coordinate not below the field modulus")
 }
 
 fn write(out: &mut [u8], value: &Fq) {
-    out.copy_from_slice(&value.into_bigint().to_bytes_be());
+    out.copy_from_slice(&value.to_be_bytes());
 }
 
 /// The flags of a compressed point, or `None` for the point at infinity,
@@ -109,7 +100,7 @@ fn g1_point(compressed: &[u8], raw: &mut [u8]) -> Result<(), &'static str> {
     x_bytes.copy_from_slice(compressed);
     x_bytes[0] &= !MASK;
     let x = coordinate(&x_bytes)?;
-    let mut y = (x.square() * x + g1::Config::COEFF_B)
+    let mut y = (x.square() * x + G1Config::B)
         .sqrt()
         .ok_or("x is not on the curve")?;
     if largest(&y) != (mask == LARGEST) {
@@ -129,7 +120,7 @@ fn g2_point(compressed: &[u8], raw: &mut [u8]) -> Result<(), &'static str> {
     a1.copy_from_slice(&compressed[..32]);
     a1[0] &= !MASK;
     let x = Fq2::new(coordinate(&compressed[32..])?, coordinate(&a1)?);
-    let mut y = (x.square() * x + g2::Config::COEFF_B)
+    let mut y = (x.square() * x + G2Config::B)
         .sqrt()
         .ok_or("x is not on the twist")?;
     if largest2(&y) != (mask == LARGEST) {

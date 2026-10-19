@@ -1,10 +1,7 @@
 //! gnark's Groth16 proof assembly over the kernel's parts, with fresh
 //! blinding: Ar = A + alpha + r delta, Bs = B2 + beta2 + s delta2,
 //! Krs = K + Z - r s delta + s Ar + r Bs1 with Bs1 = B + beta + s delta.
-use ark_bn254::{Fq, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
-use ark_ec::{AffineRepr, CurveGroup};
-use ark_ff::{BigInteger, PrimeField, UniformRand};
-use rand::rngs::OsRng;
+use zopro_bn254::{Fq, G1Affine, G1Projective, G2Affine, G2Projective};
 
 use crate::{decode_g1, decode_g2};
 
@@ -37,7 +34,7 @@ impl FixedPoints {
 }
 
 fn be(v: Fq, out: &mut Vec<u8>) {
-    out.extend_from_slice(&v.into_bigint().to_bytes_be());
+    out.extend_from_slice(&v.to_be_bytes());
 }
 
 /// The proof from `Key::solve_parts`' or `Key::parts`' 384 bytes (A, B, K,
@@ -52,15 +49,14 @@ pub fn assemble(parts: &[u8], fixed: &FixedPoints) -> Vec<u8> {
         decode_g1(&parts[192..256])[0],
     );
     let b2 = decode_g2(&parts[256..384])[0];
-    let mut rng = OsRng;
-    let (r, s) = (Fr::rand(&mut rng), Fr::rand(&mut rng));
-    let delta: G1Projective = fixed.delta.into_group();
-    let ar = a.into_group() + fixed.alpha.into_group() + delta * r;
-    let bs1 = b.into_group() + fixed.beta.into_group() + delta * s;
+    let (r, s) = (crate::random_fr(), crate::random_fr());
+    let delta: G1Projective = fixed.delta.to_projective();
+    let ar = a.to_projective() + fixed.alpha.to_projective() + delta * r;
+    let bs1 = b.to_projective() + fixed.beta.to_projective() + delta * s;
     let bs: G2Projective =
-        b2.into_group() + fixed.beta2.into_group() + fixed.delta2.into_group() * s;
-    let krs = k.into_group() + z.into_group() + delta * (-(r * s)) + ar * s + bs1 * r;
-    let (ar, krs, bs) = (ar.into_affine(), krs.into_affine(), bs.into_affine());
+        b2.to_projective() + fixed.beta2.to_projective() + fixed.delta2.to_projective() * s;
+    let krs = k.to_projective() + z.to_projective() + delta * (-(r * s)) + ar * s + bs1 * r;
+    let (ar, krs, bs) = (ar.to_affine(), krs.to_affine(), bs.to_affine());
     let mut out = Vec::with_capacity(256);
     for v in [ar.x, ar.y, krs.x, krs.y] {
         be(v, &mut out);

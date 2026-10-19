@@ -1,6 +1,4 @@
-use ark_bn254::Fr;
-use ark_ff::{AdditiveGroup, Field};
-use ark_poly::{EvaluationDomain, Radix2EvaluationDomain};
+use zopro_bn254::Fr;
 use rayon::prelude::*;
 
 use crate::simd::FrLanes;
@@ -20,7 +18,7 @@ const TASK: usize = 256;
 // emits bit-reversed coefficients; the forward DIT transform consumes that
 // order directly. The final inverse transform already matches gnark's
 // bit-reversed Z key, so no proof-time permutation is needed. Domains
-// below eight elements, which only tests use, go through arkworks.
+// below eight elements, which only tests use, take the direct transform.
 pub struct Plan {
     n: usize,
     /// The generator, coset generator and denominator the tables come from,
@@ -32,7 +30,7 @@ pub struct Plan {
     inverse_roots: Twiddles,
     forward_weights: Vec<Quad>,
     reverse_weights: Vec<Quad>,
-    small: Option<(Radix2EvaluationDomain<Fr>, Radix2EvaluationDomain<Fr>, Fr)>,
+    small: Option<(Direct, Fr)>,
 }
 
 // One direction's twiddles. layers[k] holds generator^(j·2^k), four j per
@@ -86,17 +84,13 @@ pub(crate) fn scalars(quads: &[Quad], n: usize) -> Vec<Fr> {
 
 /// The quotient's denominator for a coset: 1 / (coset^n - 1).
 pub fn denominator(n: usize, coset: Fr) -> Option<Fr> {
-    (coset.pow([n as u64]) - Fr::ONE).inverse()
+    (coset.pow(&[n as u64]) - Fr::ONE).inverse()
 }
 
 impl Plan {
     pub fn new(n: usize, generator: Fr, coset: Fr, den: Fr) -> Self {
         assert!(n.is_power_of_two());
         if n < 8 {
-            let mut domain = Radix2EvaluationDomain::<Fr>::new(n).unwrap();
-            domain.group_gen = generator;
-            domain.group_gen_inv = generator.inverse().unwrap();
-            let coset_domain = domain.get_coset(coset).unwrap();
             return Self {
                 n,
                 params: (generator, coset, den),
@@ -105,13 +99,13 @@ impl Plan {
                 inverse_roots: Twiddles::empty(),
                 forward_weights: Vec::new(),
                 reverse_weights: Vec::new(),
-                small: Some((domain, coset_domain, den)),
+                small: Some((Direct { generator, coset }, den)),
             };
         }
         let powers = |base: Fr, len: usize| {
             let mut out = vec![Fr::ONE; len];
             out.par_chunks_mut(256).enumerate().for_each(|(i, chunk)| {
-                let mut power = base.pow([(i * 256) as u64]);
+                let mut power = base.pow(&[(i * 256) as u64]);
                 for value in chunk {
                     *value = power;
                     power *= base;
@@ -191,10 +185,8 @@ impl Plan {
     pub(crate) fn transform(&self, mut values: Vec<Fr>) -> Vec<Quad> {
         assert!(values.len() <= self.n);
         values.resize(self.n, Fr::ZERO);
-        if let Some((domain, coset, _)) = &self.small {
-            domain.ifft_in_place(&mut values);
-            coset.fft_in_place(&mut values);
-            return quads(&values);
+        if let Some((direct, _)) = &self.small {
+            return quads(&direct.coset_evaluations(&direct.coefficients(&values)));
         }
         let mut values = quads(&values);
         dif(&mut values, &self.inverse_roots, 0);
@@ -225,11 +217,10 @@ impl Plan {
     /// The quotient's coefficients, times the denominator, in bit-reversed
     /// order, from its coset evaluations.
     pub(crate) fn finish(&self, mut values: Vec<Quad>) -> Vec<Fr> {
-        if let Some((_, coset, den)) = &self.small {
-            let mut values = scalars(&values, self.n);
-            coset.ifft_in_place(&mut values);
+        if let Some((direct, den)) = &self.small {
+            let mut values = direct.coset_coefficients(&scalars(&values, self.n));
             for v in &mut values {
-                *v *= den;
+                *v *= *den;
             }
             let log = self.n.trailing_zeros();
             for i in 0..self.n {
@@ -387,43 +378,105 @@ fn dit(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
     }
 }
 
+/// The transforms by their definition, for domains below eight elements:
+/// the subgroup of `generator` and its coset by `coset`.
+pub(crate) struct Direct {
+    generator: Fr,
+    coset: Fr,
+}
+
+impl Direct {
+    fn powers(x: Fr, n: usize) -> Vec<Fr> {
+        let mut out = Vec::with_capacity(n);
+        let mut p = Fr::ONE;
+        for _ in 0..n {
+            out.push(p);
+            p *= x;
+        }
+        out
+    }
+
+    /// Sum over i of values[i] point_i^j, for the points w^i scaled by
+    /// `scale`.
+    fn evaluate(values: &[Fr], root: Fr, scale: Fr) -> Vec<Fr> {
+        let n = values.len();
+        let roots = Self::powers(root, n);
+        let scales = Self::powers(scale, n);
+        (0..n)
+            .map(|j| {
+                (0..n)
+                    .map(|i| values[i] * scales[i] * roots[(i * j) % n])
+                    .fold(Fr::ZERO, |a, b| a + b)
+            })
+            .collect()
+    }
+
+    /// The coefficients of the polynomial with these evaluations over the
+    /// subgroup.
+    pub(crate) fn coefficients(&self, values: &[Fr]) -> Vec<Fr> {
+        let n_inv = Fr::from(values.len() as u64).inverse().expect("a nonzero size");
+        let inverse = self.generator.inverse().expect("a nonzero generator");
+        Self::evaluate(values, inverse, Fr::ONE)
+            .into_iter()
+            .map(|c| c * n_inv)
+            .collect()
+    }
+
+    /// The polynomial's evaluations over the coset.
+    pub(crate) fn coset_evaluations(&self, coefficients: &[Fr]) -> Vec<Fr> {
+        Self::evaluate(coefficients, self.generator, self.coset)
+    }
+
+    /// The coefficients of the polynomial with these coset evaluations.
+    pub(crate) fn coset_coefficients(&self, values: &[Fr]) -> Vec<Fr> {
+        let coset_inv = self.coset.inverse().expect("a nonzero coset");
+        let mut c = self.coefficients(values);
+        let mut scale = Fr::ONE;
+        for v in &mut c {
+            *v *= scale;
+            scale *= coset_inv;
+        }
+        c
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    /// Against the transforms by their definition.
     #[test]
-    fn matches_arkworks() {
-        for n in [1, 2, 4, 8, 16, 1024, 2048, 32768] {
+    fn matches_direct_transforms() {
+        for n in [1, 2, 4, 8, 16, 256, 1024] {
             for root_power in [1, 3] {
-                let mut domain = Radix2EvaluationDomain::<Fr>::new(n).unwrap();
-                domain.group_gen = domain.group_gen.pow([root_power]);
-                domain.group_gen_inv = domain.group_gen.inverse().unwrap();
+                let generator = Fr::root_of_unity(n).unwrap().pow(&[root_power]);
                 for offset in [5, 7] {
-                    let coset = domain.get_coset(Fr::from(offset as u64)).unwrap();
-                    let den = (coset.offset.pow([n as u64]) - Fr::ONE).inverse().unwrap();
-                    let plan = Plan::new(n, domain.group_gen, coset.offset, den);
+                    let coset = Fr::from(offset as u64);
+                    let direct = Direct { generator, coset };
+                    let den = (coset.pow(&[n as u64]) - Fr::ONE).inverse().unwrap();
+                    let plan = Plan::new(n, generator, coset, den);
                     for len in [0, n / 2, n] {
                         let input: Vec<Fr> = (0..len)
                             .map(|i| match i % 4 {
                                 0 => Fr::ZERO,
                                 1 => -Fr::ONE,
-                                _ => Fr::from(i as u64 + 1).pow([127]),
+                                _ => Fr::from(i as u64 + 1).pow(&[127]),
                             })
                             .collect();
-                        let mut expected = input.clone();
-                        expected.resize(n, Fr::ZERO);
-                        domain.ifft_in_place(&mut expected);
-                        coset.fft_in_place(&mut expected);
+                        let mut padded = input.clone();
+                        padded.resize(n, Fr::ZERO);
+                        let expected = direct.coset_evaluations(&direct.coefficients(&padded));
                         assert_eq!(
                             scalars(&plan.transform(input), n),
                             expected,
                             "n {n} len {len}"
                         );
                         let actual = plan.finish(quads(&expected));
-                        coset.ifft_in_place(&mut expected);
-                        for v in &mut expected {
-                            *v *= den;
-                        }
+                        let coefficients: Vec<Fr> = direct
+                            .coset_coefficients(&expected)
+                            .into_iter()
+                            .map(|v| v * den)
+                            .collect();
                         let log = n.trailing_zeros();
                         for (i, value) in actual.iter().enumerate() {
                             let j = if log == 0 {
@@ -431,7 +484,7 @@ mod tests {
                             } else {
                                 i.reverse_bits() >> (usize::BITS - log)
                             };
-                            assert_eq!(*value, expected[j], "n {n} len {len} i {i}");
+                            assert_eq!(*value, coefficients[j], "n {n} len {len} i {i}");
                         }
                     }
                 }

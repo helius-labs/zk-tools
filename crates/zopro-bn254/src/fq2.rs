@@ -30,7 +30,8 @@ impl Fq2 {
     }
 
     /// (c0 + c1)(c0 - c1) + 2 c0 c1 u.
-    #[inline(always)]
+    #[cfg_attr(target_arch = "wasm32", inline(never))]
+    #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     pub fn square(&self) -> Self {
         let product = self.c0 * self.c1;
         Self::new((self.c0 + self.c1) * (self.c0 - self.c1), product.double())
@@ -155,7 +156,9 @@ impl Neg for Fq2 {
 }
 impl Mul for Fq2 {
     type Output = Self;
-    #[inline(always)]
+    // Out of line in WebAssembly, as Fq's (fp.rs).
+    #[cfg_attr(target_arch = "wasm32", inline)]
+    #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     fn mul(self, o: Self) -> Self {
         mul(&self, &o)
     }
@@ -225,7 +228,8 @@ fn mul(a: &Fq2, b: &Fq2) -> Fq2 {
 
 /// a b as two sums of two products, one reduction each.
 #[cfg(not(all(target_arch = "aarch64", not(no_asm))))]
-#[inline(always)]
+#[cfg_attr(target_arch = "wasm32", inline(never))]
+#[cfg_attr(not(target_arch = "wasm32"), inline(always))]
 fn mul(a: &Fq2, b: &Fq2) -> Fq2 {
     Fq2::new(
         Fq::sum_of_products(&a.c0, &b.c0, &(-a.c1), &b.c1),

@@ -10,9 +10,7 @@
 #![allow(unexpected_cfgs)]
 use std::{ffi::c_void, time::Instant};
 
-use ark_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
-use ark_ec::{AdditiveGroup, CurveGroup};
-use ark_ff::{BigInt, PrimeField, Zero};
+use zopro_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 #[cfg(not(metallib))]
 use metal::CompileOptions;
 use metal::{Buffer, CommandQueue, ComputePipelineState, Device, MTLResourceOptions, MTLSize};
@@ -262,7 +260,19 @@ pub struct Pending {
 }
 
 /// A curve the shaders have kernels for, with its point encodings.
-pub trait Curve: CurveGroup {
+pub trait Curve:
+    'static
+    + Copy
+    + Send
+    + Sync
+    + PartialEq
+    + std::fmt::Debug
+    + std::ops::Add<Output = Self>
+    + std::ops::AddAssign
+{
+    type Affine: Copy + Send + Sync;
+    const IDENTITY: Self;
+    fn double(&self) -> Self;
     const AFFINE_BYTES: usize;
     const XYZZ_BYTES: usize;
     const G2: bool;
@@ -274,17 +284,22 @@ pub trait Curve: CurveGroup {
     const REDUCE_TG: &'static str;
     /// The affine point as the kernel holds it, the identity as zeros.
     fn encode(point: &Self::Affine, out: &mut Vec<u8>);
-    /// An xyzz point (x, y, zz, zzz) as arkworks' Jacobian (x zz, y zzz, zz).
+    /// An xyzz point (x, y, zz, zzz) as a Jacobian one (x zz, y zzz, zz).
     fn xyzz_to_projective(bytes: &[u8]) -> Self;
 }
 
 fn fq_bytes(v: &Fq, out: &mut Vec<u8>) {
-    for w in v.0 .0 {
+    for w in v.0 {
         out.extend_from_slice(&w.to_le_bytes());
     }
 }
 
-impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
+impl Curve for G1Projective {
+    type Affine = G1Affine;
+    const IDENTITY: Self = Self::IDENTITY;
+    fn double(&self) -> Self {
+        G1Projective::double(self)
+    }
     const AFFINE_BYTES: usize = 64;
     const XYZZ_BYTES: usize = 128;
     const G2: bool = false;
@@ -293,12 +308,8 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
     const REDUCE: &'static str = "reduce_g1";
     const REDUCE_TG: &'static str = "reduce_tg_g1";
     fn encode(point: &G1Affine, out: &mut Vec<u8>) {
-        if point.infinity {
-            out.extend_from_slice(&[0u8; 64]);
-        } else {
-            fq_bytes(&point.x, out);
-            fq_bytes(&point.y, out);
-        }
+        fq_bytes(&point.x, out);
+        fq_bytes(&point.y, out);
     }
     fn xyzz_to_projective(bytes: &[u8]) -> Self {
         let (x, y, zz, zzz) = (
@@ -308,13 +319,18 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g1::Config> {
             fq(&bytes[96..128]),
         );
         if zz.is_zero() {
-            return Self::ZERO;
+            return Self::IDENTITY;
         }
-        Self::new_unchecked(x * zz, y * zzz, zz)
+        Self::new(x * zz, y * zzz, zz)
     }
 }
 
-impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g2::Config> {
+impl Curve for G2Projective {
+    type Affine = G2Affine;
+    const IDENTITY: Self = Self::IDENTITY;
+    fn double(&self) -> Self {
+        G2Projective::double(self)
+    }
     const AFFINE_BYTES: usize = 128;
     const XYZZ_BYTES: usize = 256;
     const G2: bool = true;
@@ -323,21 +339,17 @@ impl Curve for ark_ec::short_weierstrass::Projective<ark_bn254::g2::Config> {
     const REDUCE: &'static str = "reduce_g2";
     const REDUCE_TG: &'static str = "reduce_tg_g2";
     fn encode(point: &G2Affine, out: &mut Vec<u8>) {
-        if point.infinity {
-            out.extend_from_slice(&[0u8; 128]);
-        } else {
-            for v in [point.x.c0, point.x.c1, point.y.c0, point.y.c1] {
-                fq_bytes(&v, out);
-            }
+        for v in [point.x.c0, point.x.c1, point.y.c0, point.y.c1] {
+            fq_bytes(&v, out);
         }
     }
     fn xyzz_to_projective(bytes: &[u8]) -> Self {
         let fq2 = |at: usize| Fq2::new(fq(&bytes[at..at + 32]), fq(&bytes[at + 32..at + 64]));
         let (x, y, zz, zzz) = (fq2(0), fq2(64), fq2(128), fq2(192));
         if zz.is_zero() {
-            return Self::ZERO;
+            return Self::IDENTITY;
         }
-        Self::new_unchecked(x * zz, y * zzz, zz)
+        Self::new(x * zz, y * zzz, zz)
     }
 }
 
@@ -526,7 +538,7 @@ impl<C: Curve> Msm<C> {
         let n = bases.len();
         let width = width_for(n);
         let half = 1 << (width - 1);
-        let windows = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(width);
+        let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
         let buckets = windows * half;
         // The most shards a level can have for one window: every pair in
         // its own first shard, or every bucket's run split, whichever is
@@ -816,7 +828,7 @@ impl<C: Curve> Msm<C> {
         autoreleasepool(|| completed(&pending.command))?;
         timings.gpu_ms = elapsed(pending.submitted);
         let started = Instant::now();
-        let mut result = C::ZERO;
+        let mut result = C::IDENTITY;
         if let Some(host) = &self.host_buckets {
             // Each window's sum of m * B_m by running sums, windows in
             // parallel.
@@ -825,7 +837,7 @@ impl<C: Curve> Msm<C> {
             let sums: Vec<C> = (0..self.windows)
                 .into_par_iter()
                 .map(|window| {
-                    let (mut running, mut sum) = (C::ZERO, C::ZERO);
+                    let (mut running, mut sum) = (C::IDENTITY, C::IDENTITY);
                     for m in (0..half).rev() {
                         let at = (window * half + m) * xyzz;
                         // SAFETY: the completed command buffer copied the
@@ -841,7 +853,7 @@ impl<C: Curve> Msm<C> {
                 .collect();
             for sum in sums.into_iter().rev() {
                 for _ in 0..self.width {
-                    result.double_in_place();
+                    result = result.double();
                 }
                 result += sum;
             }
@@ -851,7 +863,7 @@ impl<C: Curve> Msm<C> {
         let sums = self.sums.contents() as *const u8;
         for window in (0..self.windows).rev() {
             for _ in 0..self.width {
-                result.double_in_place();
+                result = result.double();
             }
             let groups = self.reduce_shape[3];
             for group in 0..groups {
@@ -953,7 +965,7 @@ impl<C: Curve> Msm<C> {
             .for_each(|(block, chunk)| {
                 let len = chunk.len();
                 for (i, s) in chunk.iter().enumerate() {
-                    let BigInt(words) = s.into_bigint();
+                    let words = s.to_canonical();
                     let mut carry = 0u64;
                     for w in 0..windows {
                         let offset = w * width;
@@ -1027,29 +1039,46 @@ fn elapsed(started: Instant) -> f64 {
 }
 
 fn fq(bytes: &[u8]) -> Fq {
-    Fq::new_unchecked(BigInt(core::array::from_fn(|i| {
+    Fq::from_montgomery(core::array::from_fn(|i| {
         u64::from_le_bytes(bytes[i * 8..i * 8 + 8].try_into().unwrap())
-    })))
+    }))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ec::{AffineRepr, CurveGroup, VariableBaseMSM};
-    use ark_ff::{PrimeField, UniformRand};
-    use rand::{rngs::StdRng, SeedableRng};
+    use zopro_bn254::{Affine, CurveConfig, G1Config, G2Config, Projective};
+
+    /// A seeded source of scalars (splitmix64).
+    struct StdRng(u64);
+    impl StdRng {
+        fn seed_from_u64(seed: u64) -> Self {
+            Self(seed)
+        }
+        fn fr(&mut self) -> Fr {
+            let mut bytes = [0u8; 64];
+            for chunk in bytes.chunks_mut(8) {
+                self.0 = self.0.wrapping_add(0x9e37_79b9_7f4a_7c15);
+                let mut z = self.0;
+                z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+                z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+                chunk.copy_from_slice(&(z ^ (z >> 31)).to_le_bytes());
+            }
+            Fr::from_random_bytes(&bytes)
+        }
+    }
 
     /// Distinct points without a scalar multiplication each: a random
     /// start, then repeated addition of a random step.
-    fn points<C: CurveGroup>(n: usize, rng: &mut StdRng) -> Vec<C::Affine> {
-        let step = C::rand(rng);
-        let mut p = C::rand(rng);
+    fn points<C: CurveConfig>(n: usize, rng: &mut StdRng) -> Vec<Affine<C>> {
+        let step = Projective::<C>::generator().mul(&rng.fr());
+        let mut p = Projective::<C>::generator().mul(&rng.fr());
         let mut out = Vec::with_capacity(n);
         for _ in 0..n {
             out.push(p);
             p += step;
         }
-        C::normalize_batch(&out)
+        Projective::<C>::batch_to_affine(&out)
     }
 
     /// Scalars as witnesses have them: zeros, ones, small values, minus
@@ -1061,13 +1090,16 @@ mod tests {
                 (true, 1) => Fr::from(1u64),
                 (true, 2) => Fr::from((i % 300) as u64),
                 (true, 3) => -Fr::from(1u64),
-                _ => Fr::rand(rng),
+                _ => rng.fr(),
             })
             .collect()
     }
 
-    fn check<C: Curve + VariableBaseMSM<ScalarField = Fr>>(sizes: &[usize]) {
-        let Some(mut make) = backend::<C>() else {
+    fn check<C: CurveConfig>(sizes: &[usize])
+    where
+        Projective<C>: Curve<Affine = Affine<C>>,
+    {
+        let Some(mut make) = backend::<Projective<C>>() else {
             eprintln!("no GPU: skipped");
             return;
         };
@@ -1077,16 +1109,15 @@ mod tests {
             let mut msm = make(&bases);
             for skewed in [false, true] {
                 let scalars = scalars(n, skewed, &mut rng);
-                let expected = C::msm_unchecked(&bases, &scalars);
+                let expected = zopro_bn254::curve::msm(&bases, &scalars);
                 assert_eq!(
-                    msm(&scalars).into_affine(),
-                    expected.into_affine(),
+                    msm(&scalars).to_affine(),
+                    expected.to_affine(),
                     "{n} points, skewed {skewed}"
                 );
             }
             let zeros = vec![Fr::from(0u64); n];
-            assert!(msm(&zeros).into_affine().is_zero(), "{n} points, all zero");
-            let _ = Fr::MODULUS;
+            assert!(msm(&zeros).is_identity(), "{n} points, all zero");
         }
     }
 
@@ -1100,12 +1131,12 @@ mod tests {
     }
 
     #[test]
-    fn g1_msms_match_arkworks() {
-        check::<G1Projective>(&[1, 7, 100, 3000, 20000]);
+    fn g1_msms_match_the_reference() {
+        check::<G1Config>(&[1, 7, 100, 3000, 20000]);
     }
 
     #[test]
-    fn g2_msms_match_arkworks() {
-        check::<G2Projective>(&[1, 100, 3000]);
+    fn g2_msms_match_the_reference() {
+        check::<G2Config>(&[1, 100, 3000]);
     }
 }

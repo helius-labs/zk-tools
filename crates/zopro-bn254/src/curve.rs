@@ -373,3 +373,67 @@ impl G2Affine {
         self.mul_limbs(&SIX_X_SQUARED) == self.psi().to_projective()
     }
 }
+
+impl<C: CurveConfig> core::ops::Mul<Fr> for Projective<C> {
+    type Output = Self;
+    fn mul(self, scalar: Fr) -> Self {
+        Projective::mul(&self, &scalar)
+    }
+}
+impl<C: CurveConfig> core::ops::Mul<Fr> for Affine<C> {
+    type Output = Projective<C>;
+    fn mul(self, scalar: Fr) -> Projective<C> {
+        Affine::mul(&self, &scalar)
+    }
+}
+impl<C: CurveConfig> Add for Affine<C> {
+    type Output = Projective<C>;
+    fn add(self, other: Self) -> Projective<C> {
+        self.to_projective().add_affine(&other)
+    }
+}
+impl<'a, C: CurveConfig> AddAssign<&'a Projective<C>> for Projective<C> {
+    #[inline]
+    fn add_assign(&mut self, other: &'a Projective<C>) {
+        *self = self.add_projective(other);
+    }
+}
+impl<'a, C: CurveConfig> AddAssign<&'a Affine<C>> for Projective<C> {
+    #[inline]
+    fn add_assign(&mut self, other: &'a Affine<C>) {
+        *self = self.add_affine(other);
+    }
+}
+impl<'a, C: CurveConfig> SubAssign<&'a Affine<C>> for Projective<C> {
+    #[inline]
+    fn sub_assign(&mut self, other: &'a Affine<C>) {
+        *self = self.add_affine(&-*other);
+    }
+}
+
+/// The sum of scalars[i] bases[i] by unsigned 4-bit windows into
+/// projective buckets: simple, for small inputs and as tests' reference.
+pub fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projective<C> {
+    assert_eq!(bases.len(), scalars.len(), "as many scalars as bases");
+    let scalars: Vec<[u64; 4]> = scalars.iter().map(|s| s.to_canonical()).collect();
+    let mut result = Projective::<C>::IDENTITY;
+    for window in (0..64).rev() {
+        for _ in 0..4 {
+            result = result.double();
+        }
+        let mut buckets = [Projective::<C>::IDENTITY; 15];
+        for (base, s) in bases.iter().zip(&scalars) {
+            let digit = (s[window / 16] >> (4 * (window % 16))) & 15;
+            if digit != 0 {
+                buckets[digit as usize - 1] += *base;
+            }
+        }
+        let (mut running, mut sum) = (Projective::<C>::IDENTITY, Projective::<C>::IDENTITY);
+        for bucket in buckets.iter().rev() {
+            running += *bucket;
+            sum += running;
+        }
+        result += sum;
+    }
+    result
+}

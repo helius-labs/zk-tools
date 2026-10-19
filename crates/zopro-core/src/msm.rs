@@ -1,24 +1,19 @@
 use crate::simd::{fq_mul4, FqLanes, FqLimbs};
-use ark_bn254::{Fq, Fq2, Fr};
-use ark_ec::{
-    short_weierstrass::{Affine, Projective, SWCurveConfig},
-    AdditiveGroup, AffineRepr, CurveGroup, VariableBaseMSM,
-};
-use ark_ff::{BigInt, Field, PrimeField};
+use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fq2, Fr, Projective};
 use rayon::prelude::*;
 // Signed-window Pippenger. Reduce each bucket as an affine addition tree,
 // sharing one inversion across all buckets at each level. Keep bucket storage
 // contiguous: thousands of small allocations contend on the WASM allocator.
-pub(super) fn msm<P: SWCurveConfig<ScalarField = Fr>>(
-    bases: &[Affine<P>],
+pub(super) fn msm<C: CurveConfig>(
+    bases: &[Affine<C>],
     scalars: &[Fr],
-) -> Projective<P>
+) -> Projective<C>
 where
-    P::BaseField: BatchInverse,
+    C::Base: BatchInverse,
 {
     assert_eq!(bases.len(), scalars.len(), "validated MSM dimensions");
     if bases.len() < 256 {
-        return Projective::<P>::msm(bases, scalars).unwrap();
+        return zopro_bn254::curve::msm(bases, scalars);
     }
     // Wider windows mean fewer digits per scalar, so fewer bucket additions,
     // at the cost of more buckets to sum per window; past 2^16 points the
@@ -38,18 +33,23 @@ where
         _ => width,
     };
     // Leave room for the final carry when recoding into signed digits.
-    let count = (Fr::MODULUS_BIT_SIZE as usize + 1).div_ceil(width);
+    let count = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
     let radix = 1u64 << width;
     let mask = radix - 1;
     // Preserve indexed writes into one allocation. Collecting a flattened
     // parallel iterator creates temporary vectors and contends on the WASM heap.
     debug_assert!(width <= 15, "signed digits of this width overflow i16");
     let mut digits = vec![0i16; scalars.len() * count];
+    // The point at infinity's digits stay zero: the windows skip it with
+    // the zero digits, without a check of their own.
     digits
         .par_chunks_mut(count)
-        .zip(scalars)
-        .for_each(|(digits, s)| {
-            let BigInt(words) = s.into_bigint();
+        .zip(scalars.par_iter().zip(bases))
+        .for_each(|(digits, (s, base))| {
+            if base.is_identity() {
+                return;
+            }
+            let words = s.to_canonical();
             let mut carry = 0;
             for (i, digit) in digits.iter_mut().enumerate() {
                 let offset = i * width;
@@ -64,12 +64,12 @@ where
                 *digit = (value as i32 - (carry * radix) as i32) as i16;
             }
         });
-    let window_sum = |i: usize| -> Projective<P> {
+    let window_sum = |i: usize| -> Projective<C> {
         let bucket_count = (radix / 2) as usize;
         let mut counts = vec![0usize; bucket_count];
-        for (base, digits) in bases.iter().zip(digits.chunks(count)) {
+        for digits in digits.chunks(count) {
             let digit = digits[i];
-            if digit != 0 && !base.infinity {
+            if digit != 0 {
                 counts[digit.unsigned_abs() as usize - 1] += 1;
             }
         }
@@ -78,12 +78,17 @@ where
             starts[j + 1] = starts[j] + counts[j];
         }
         let mut positions = starts[..bucket_count].to_vec();
-        let mut points = vec![LimbPoint::<P::BaseField>::infinity(); starts[bucket_count]];
+        let mut points = vec![LimbPoint::<C::Base>::infinity(); starts[bucket_count]];
         for (base, digits) in bases.iter().zip(digits.chunks(count)) {
             let digit = digits[i];
-            if digit != 0 && !base.infinity {
+            if digit != 0 {
                 let j = digit.unsigned_abs() as usize - 1;
-                points[positions[j]] = limbs::<P>(if digit < 0 { -*base } else { *base });
+                // Never the point at infinity: its digits are zero.
+                let point = if digit < 0 { -*base } else { *base };
+                points[positions[j]] = LimbPoint {
+                    x: C::Base::to_limbs(point.x),
+                    y: C::Base::to_limbs(point.y),
+                };
                 positions[j] += 1;
             }
         }
@@ -97,7 +102,7 @@ where
     // heap the copies at once are held to COPIES_BUDGET: sixteen threads'
     // G2 copies of a 54 → 1 merge (2 GB) took the heap to 4052 MB, and one
     // allocation more trapped a worker and hung the proof.
-    let copy = bases.len() * std::mem::size_of::<LimbPoint<P::BaseField>>();
+    let copy = bases.len() * std::mem::size_of::<LimbPoint<C::Base>>();
     let default = if cfg!(target_arch = "wasm32") {
         (COPIES_BUDGET / copy.max(1)).clamp(1, count)
     } else {
@@ -109,14 +114,14 @@ where
         .unwrap_or(default)
         .max(1);
     let windows: Vec<usize> = (0..count).collect();
-    let sums: Vec<Projective<P>> = windows
+    let sums: Vec<Projective<C>> = windows
         .chunks(at_once)
         .flat_map(|chunk| chunk.par_iter().map(|&i| window_sum(i)).collect::<Vec<_>>())
         .collect();
-    let mut result = Projective::<P>::ZERO;
+    let mut result = Projective::<C>::IDENTITY;
     for sum in sums.iter().rev() {
         for _ in 0..width {
-            result.double_in_place();
+            result = result.double();
         }
         result += sum;
     }
@@ -131,13 +136,13 @@ const COPIES_BUDGET: usize = 512 << 20;
 // Smaller bucket groups let idle workers help a long-running window and keep
 // each affine inversion batch's working set small. Each task owns disjoint
 // point and count slices; no shared writes or additional prepared key data.
-fn sum_buckets<P: SWCurveConfig>(
-    points: &mut [LimbPoint<P::BaseField>],
+fn sum_buckets<C: CurveConfig>(
+    points: &mut [LimbPoint<C::Base>],
     starts: &[usize],
     counts: &mut [usize],
-) -> Projective<P>
+) -> Projective<C>
 where
-    P::BaseField: BatchInverse,
+    C::Base: BatchInverse,
 {
     const GROUP: usize = 256;
     if counts.len() <= GROUP || rayon::current_num_threads() == 1 {
@@ -163,41 +168,41 @@ where
     // Local weights restart at one. Group i therefore needs an additional
     // i * GROUP times its unweighted total. Reverse running sums compute
     // those offsets without a separate scalar multiplication for each group.
-    let mut sum = Projective::<P>::ZERO;
-    let mut offset = Projective::<P>::ZERO;
-    let mut running = Projective::<P>::ZERO;
+    let mut sum = Projective::<C>::IDENTITY;
+    let mut offset = Projective::<C>::IDENTITY;
+    let mut running = Projective::<C>::IDENTITY;
     for (weighted, total) in partials.into_iter().rev() {
         sum += weighted;
         offset += running;
         running += total;
     }
     for _ in 0..GROUP.ilog2() {
-        offset.double_in_place();
+        offset = offset.double();
     }
     sum + offset
 }
 
-fn sum_bucket_group<P: SWCurveConfig>(
-    points: &mut [LimbPoint<P::BaseField>],
+fn sum_bucket_group<C: CurveConfig>(
+    points: &mut [LimbPoint<C::Base>],
     starts: &[usize],
     counts: &mut [usize],
-) -> (Projective<P>, Affine<P>)
+) -> (Projective<C>, Affine<C>)
 where
-    P::BaseField: BatchInverse,
+    C::Base: BatchInverse,
 {
     let mut scratch = Scratch::default();
     while counts.iter().any(|n| *n > 1) {
         reduce_layer(points, starts, counts, &mut scratch);
     }
     let n = counts.len();
-    let mut buckets = vec![LimbPoint::<P::BaseField>::infinity(); n * 2 - 1];
+    let mut buckets = vec![LimbPoint::<C::Base>::infinity(); n * 2 - 1];
     for j in 0..n {
         if counts[j] != 0 {
             buckets[j] = points[starts[j]];
         }
     }
     let weighted = weighted_sum(&mut buckets, n, &mut scratch);
-    (weighted, affine::<P>(buckets[0]))
+    (weighted, affine::<C>(buckets[0]))
 }
 
 // A bucket point, coordinates in limb form; the identity is (0, 0), which
@@ -221,46 +226,46 @@ impl<F: BatchInverse> LimbPoint<F> {
     }
 }
 #[inline(always)]
-fn limbs<P: SWCurveConfig>(point: Affine<P>) -> LimbPoint<P::BaseField>
+fn limbs<C: CurveConfig>(point: Affine<C>) -> LimbPoint<C::Base>
 where
-    P::BaseField: BatchInverse,
+    C::Base: BatchInverse,
 {
-    if point.infinity {
+    if point.is_identity() {
         LimbPoint::infinity()
     } else {
         LimbPoint {
-            x: P::BaseField::to_limbs(point.x),
-            y: P::BaseField::to_limbs(point.y),
+            x: C::Base::to_limbs(point.x),
+            y: C::Base::to_limbs(point.y),
         }
     }
 }
 #[inline(always)]
-fn affine<P: SWCurveConfig>(point: LimbPoint<P::BaseField>) -> Affine<P>
+fn affine<C: CurveConfig>(point: LimbPoint<C::Base>) -> Affine<C>
 where
-    P::BaseField: BatchInverse,
+    C::Base: BatchInverse,
 {
     if point.is_infinity() {
-        Affine::identity()
+        Affine::IDENTITY
     } else {
-        Affine::new_unchecked(
-            P::BaseField::from_limbs(point.x),
-            P::BaseField::from_limbs(point.y),
+        Affine::new(
+            C::Base::from_limbs(point.x),
+            C::Base::from_limbs(point.y),
         )
     }
 }
 
 // Buffers of one layer, reused across the layers of a bucket group.
-struct Scratch<P: SWCurveConfig>
+struct Scratch<C: CurveConfig>
 where
-    P::BaseField: BatchInverse,
+    C::Base: BatchInverse,
 {
     // The first point of each pair the affine formula adds, in bucket order.
     pairs: Vec<usize>,
     // Groups of four pairs in lane form, then the scalar tail.
-    groups: Vec<Group<P::BaseField>>,
-    denominators: Vec<P::BaseField>,
-    products: Vec<<P::BaseField as BatchInverse>::Product>,
-    sums: Vec<LimbPoint<P::BaseField>>,
+    groups: Vec<Group<C::Base>>,
+    denominators: Vec<C::Base>,
+    products: Vec<<C::Base as BatchInverse>::Product>,
+    sums: Vec<LimbPoint<C::Base>>,
 }
 // Four pairs a + b: coordinates, denominator b.x - a.x, the norm the chains
 // multiply by, and their chains' prefix, later 1/norm.
@@ -274,9 +279,9 @@ struct Group<F: BatchInverse> {
     norm: FqLanes,
     prefix: FqLanes,
 }
-impl<P: SWCurveConfig> Default for Scratch<P>
+impl<C: CurveConfig> Default for Scratch<C>
 where
-    P::BaseField: BatchInverse,
+    C::Base: BatchInverse,
 {
     fn default() -> Self {
         Self {
@@ -294,13 +299,13 @@ where
 // operation on four lanes, in lane form from loading its coordinates to its
 // sums. Pairs with an identity, a doubling or opposite points take the
 // complete formulas instead.
-fn reduce_layer<P: SWCurveConfig>(
-    points: &mut [LimbPoint<P::BaseField>],
+fn reduce_layer<C: CurveConfig>(
+    points: &mut [LimbPoint<C::Base>],
     starts: &[usize],
     counts: &mut [usize],
-    s: &mut Scratch<P>,
+    s: &mut Scratch<C>,
 ) where
-    P::BaseField: BatchInverse,
+    C::Base: BatchInverse,
 {
     s.pairs.clear();
     for index in 0..counts.len() {
@@ -312,18 +317,18 @@ fn reduce_layer<P: SWCurveConfig>(
             }
         }
     }
-    type F<P> = <P as ark_ec::CurveConfig>::BaseField;
+    type F<C> = <C as CurveConfig>::Base;
     let m = s.pairs.len();
     let full = m / 4 * 4;
     s.groups.clear();
     let mut chains = FqLanes::one();
     for k in (0..full).step_by(4) {
-        let a: [&LimbPoint<F<P>>; 4] = core::array::from_fn(|i| &points[s.pairs[k + i]]);
-        let b: [&LimbPoint<F<P>>; 4] = core::array::from_fn(|i| &points[s.pairs[k + i] + 1]);
-        let (ax, ay) = (F::<P>::load(a.map(|p| &p.x)), F::<P>::load(a.map(|p| &p.y)));
-        let (bx, by) = (F::<P>::load(b.map(|p| &p.x)), F::<P>::load(b.map(|p| &p.y)));
-        let denominator = F::<P>::lanes_sub(&bx, &ax);
-        let norm = F::<P>::lanes_norm(&denominator);
+        let a: [&LimbPoint<F<C>>; 4] = core::array::from_fn(|i| &points[s.pairs[k + i]]);
+        let b: [&LimbPoint<F<C>>; 4] = core::array::from_fn(|i| &points[s.pairs[k + i] + 1]);
+        let (ax, ay) = (F::<C>::load(a.map(|p| &p.x)), F::<C>::load(a.map(|p| &p.y)));
+        let (bx, by) = (F::<C>::load(b.map(|p| &p.x)), F::<C>::load(b.map(|p| &p.y)));
+        let denominator = F::<C>::lanes_sub(&bx, &ax);
+        let norm = F::<C>::lanes_norm(&denominator);
         let prefix = chains;
         chains = chains.mul(&norm);
         s.groups.push(Group {
@@ -341,18 +346,18 @@ fn reduce_layer<P: SWCurveConfig>(
     let mut tail = chains.get();
     for k in full..m {
         let (a, b) = (
-            affine::<P>(points[s.pairs[k]]),
-            affine::<P>(points[s.pairs[k] + 1]),
+            affine::<C>(points[s.pairs[k]]),
+            affine::<C>(points[s.pairs[k] + 1]),
         );
         let denominator = b.x - a.x;
         s.denominators.push(denominator);
         s.products
-            .push(F::<P>::prefix(&mut tail[k % 4], denominator));
+            .push(F::<C>::prefix(&mut tail[k % 4], denominator));
     }
     let mut inverses = invert4(tail);
     for k in (full..m).rev() {
         let t = k - full;
-        F::<P>::reverse(&mut inverses[k % 4], s.denominators[t], &mut s.products[t]);
+        F::<C>::reverse(&mut inverses[k % 4], s.denominators[t], &mut s.products[t]);
     }
     let mut inverses = FqLanes::new(&inverses);
     for group in s.groups.iter_mut().rev() {
@@ -362,17 +367,17 @@ fn reduce_layer<P: SWCurveConfig>(
     }
     s.sums.clear();
     for group in &s.groups {
-        let inverse = F::<P>::lanes_inverse(&group.denominator, &group.prefix);
-        let slope = F::<P>::lanes_mul(&F::<P>::lanes_sub(&group.by, &group.ay), &inverse);
-        let x = F::<P>::lanes_sub(
-            &F::<P>::lanes_sub(&F::<P>::lanes_square(&slope), &group.ax),
+        let inverse = F::<C>::lanes_inverse(&group.denominator, &group.prefix);
+        let slope = F::<C>::lanes_mul(&F::<C>::lanes_sub(&group.by, &group.ay), &inverse);
+        let x = F::<C>::lanes_sub(
+            &F::<C>::lanes_sub(&F::<C>::lanes_square(&slope), &group.ax),
             &group.bx,
         );
-        let y = F::<P>::lanes_sub(
-            &F::<P>::lanes_mul(&slope, &F::<P>::lanes_sub(&group.ax, &x)),
+        let y = F::<C>::lanes_sub(
+            &F::<C>::lanes_mul(&slope, &F::<C>::lanes_sub(&group.ax, &x)),
             &group.ay,
         );
-        let (x, y) = (F::<P>::store(&x), F::<P>::store(&y));
+        let (x, y) = (F::<C>::store(&x), F::<C>::store(&y));
         for i in 0..4 {
             s.sums.push(LimbPoint { x: x[i], y: y[i] });
         }
@@ -380,13 +385,13 @@ fn reduce_layer<P: SWCurveConfig>(
     for k in full..m {
         let t = k - full;
         let (a, b) = (
-            affine::<P>(points[s.pairs[k]]),
-            affine::<P>(points[s.pairs[k] + 1]),
+            affine::<C>(points[s.pairs[k]]),
+            affine::<C>(points[s.pairs[k] + 1]),
         );
-        let slope = (b.y - a.y) * F::<P>::denominator_inverse(s.denominators[t], s.products[t]);
+        let slope = (b.y - a.y) * F::<C>::denominator_inverse(s.denominators[t], s.products[t]);
         let x = slope.square() - a.x - b.x;
         let y = slope * (a.x - x) - a.y;
-        s.sums.push(limbs::<P>(Affine::new_unchecked(x, y)));
+        s.sums.push(limbs::<C>(Affine::new(x, y)));
     }
     // Each bucket keeps its pair sums in front, in order. A write lands
     // before the pairs still to be read.
@@ -406,7 +411,7 @@ fn reduce_layer<P: SWCurveConfig>(
                     a
                 } else {
                     // Doubling and opposite points need the complete formulas.
-                    limbs::<P>((affine::<P>(a) + affine::<P>(b)).into_affine())
+                    limbs::<C>((affine::<C>(a) + affine::<C>(b)).to_affine())
                 }
             };
         }
@@ -430,13 +435,13 @@ fn invert4(c: [Fq; 4]) -> [Fq; 4] {
 // W(B) = 2*W(B[0]+B[1], B[2]+B[3], ...) - sum(B[0], B[2], ...).
 // Reduce the odd-weight sums from all preceding levels together with the
 // current paired buckets, sharing one inverse per level.
-fn weighted_sum<P: SWCurveConfig>(
-    points: &mut [LimbPoint<P::BaseField>],
+fn weighted_sum<C: CurveConfig>(
+    points: &mut [LimbPoint<C::Base>],
     n: usize,
-    scratch: &mut Scratch<P>,
-) -> Projective<P>
+    scratch: &mut Scratch<C>,
+) -> Projective<C>
 where
-    P::BaseField: BatchInverse,
+    C::Base: BatchInverse,
 {
     debug_assert!(n.is_power_of_two());
     debug_assert_eq!(points.len(), 2 * n - 1);
@@ -455,10 +460,10 @@ where
         counts.push(half);
         next += half;
     }
-    let mut sum = affine::<P>(points[0]).into_group();
+    let mut sum = affine::<C>(points[0]).to_projective();
     for start in starts[1..].iter().rev() {
-        sum.double_in_place();
-        sum -= affine::<P>(points[*start]);
+        sum = sum.double();
+        sum -= affine::<C>(points[*start]);
     }
     sum
 }
@@ -554,7 +559,7 @@ impl BatchInverse for Fq2 {
     type Product = [Fq; 2];
     #[inline(always)]
     fn prefix(accumulator: &mut Fq, value: Self) -> Self::Product {
-        let norm = Fq::sum_of_products(&[value.c0, value.c1], &[value.c0, value.c1]);
+        let norm = Fq::sum_of_products(&value.c0, &value.c0, &value.c1, &value.c1);
         let prefix = *accumulator;
         *accumulator *= norm;
         [prefix, norm]
@@ -630,11 +635,9 @@ impl BatchInverse for Fq2 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_ec::PrimeGroup;
-    use ark_ff::Zero;
-    fn check<P: SWCurveConfig<ScalarField = Fr>>()
+    fn check<C: CurveConfig>()
     where
-        P::BaseField: BatchInverse,
+        C::Base: BatchInverse,
     {
         let mut seed = 41u64;
         let mut next = || {
@@ -659,24 +662,24 @@ mod tests {
                 ),
             })
             .collect();
-        let bases: Vec<Affine<P>> = (0..16385)
+        let bases: Vec<Affine<C>> = (0..16385)
             .map(|i| match i % 20 {
-                0 => Affine::identity(),
-                1..=3 => Projective::<P>::generator().into_affine(),
-                4 => (-Projective::<P>::generator()).into_affine(),
-                _ => (Projective::<P>::generator() * Fr::from(next())).into_affine(),
+                0 => Affine::IDENTITY,
+                1..=3 => Projective::<C>::generator().to_affine(),
+                4 => (-Projective::<C>::generator()).to_affine(),
+                _ => (Projective::<C>::generator() * Fr::from(next())).to_affine(),
             })
             .collect();
         for n in [
             0, 1, 255, 256, 511, 1023, 1024, 1025, 4095, 4096, 16383, 16384, 16385,
         ] {
             assert_eq!(
-                msm::<P>(&bases[..n], &scalars[..n]),
-                Projective::<P>::msm(&bases[..n], &scalars[..n]).unwrap(),
+                msm::<C>(&bases[..n], &scalars[..n]),
+                zopro_bn254::curve::msm(&bases[..n], &scalars[..n]),
                 "size {n}"
             );
         }
-        let generator = Projective::<P>::generator().into_affine();
+        let generator = Projective::<C>::generator().to_affine();
         for scalar in [Fr::ZERO, Fr::ONE, -Fr::ONE] {
             let scalars = vec![scalar; 4096];
             // Force exceptional additions at multiple levels of a bucket tree.
@@ -685,11 +688,11 @@ mod tests {
                 (0..4096)
                     .map(|i| if i % 2 == 0 { generator } else { -generator })
                     .collect(),
-                vec![Affine::identity(); 4096],
+                vec![Affine::IDENTITY; 4096],
             ] {
                 assert_eq!(
-                    msm::<P>(&bases, &scalars),
-                    Projective::<P>::msm(&bases, &scalars).unwrap()
+                    msm::<C>(&bases, &scalars),
+                    zopro_bn254::curve::msm(&bases, &scalars)
                 );
             }
         }
@@ -753,10 +756,11 @@ mod tests {
     }
     #[test]
     fn g1() {
-        check::<ark_bn254::g1::Config>();
+        check::<zopro_bn254::G1Config>();
     }
     #[test]
     fn g2() {
-        check::<ark_bn254::g2::Config>();
+        check::<zopro_bn254::G2Config>();
     }
 }
+

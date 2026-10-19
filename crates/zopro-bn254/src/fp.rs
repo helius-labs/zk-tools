@@ -73,7 +73,8 @@ impl<C: FpConfig> Fp<C> {
         self.0 == [0; 4]
     }
 
-    #[inline(always)]
+    #[cfg_attr(target_arch = "wasm32", inline)]
+    #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     pub fn square(&self) -> Self {
         Self(backend::multiply(self.0, self.0, C::P, C::INV), PhantomData)
     }
@@ -84,7 +85,8 @@ impl<C: FpConfig> Fp<C> {
     }
 
     /// a b + c d with one reduction.
-    #[inline(always)]
+    #[cfg_attr(target_arch = "wasm32", inline)]
+    #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     pub fn sum_of_products(a: &Self, b: &Self, c: &Self, d: &Self) -> Self {
         Self(backend::sum2(a.0, b.0, c.0, d.0, C::P, C::INV), PhantomData)
     }
@@ -232,7 +234,10 @@ impl<C: FpConfig> Sub for Fp<C> {
 }
 impl<C: FpConfig> Mul for Fp<C> {
     type Output = Self;
-    #[inline(always)]
+    // In WebAssembly the 29-bit multiply is a few kilobytes: inlined into
+    // every point formula it took the module from 7.4 MB to 7.9.
+    #[cfg_attr(target_arch = "wasm32", inline)]
+    #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     fn mul(self, other: Self) -> Self {
         Self(backend::multiply(self.0, other.0, C::P, C::INV), PhantomData)
     }
@@ -245,3 +250,66 @@ impl<C: FpConfig> Neg for Fp<C> {
     }
 }
 crate::assign_ops!(Fp<C>, C: FpConfig);
+
+impl<C: FpConfig> From<u64> for Fp<C> {
+    #[inline]
+    fn from(x: u64) -> Self {
+        Self::from_u64(x)
+    }
+}
+
+impl<C: FpConfig> Fp<C> {
+    /// A uniform element from 64 random bytes: their value mod p, whose
+    /// bias is below 2^-250.
+    pub fn from_random_bytes(bytes: &[u8; 64]) -> Self {
+        Self::from_be_bytes_mod_order(bytes)
+    }
+}
+
+impl<C: FpConfig> Fp<C> {
+    /// The modulus's bit length.
+    pub const MODULUS_BITS: u32 = 256 - C::P[3].leading_zeros();
+}
+
+impl<C: FpConfig> Fp<C> {
+    /// The element of little-endian bytes of any length, reduced mod p.
+    pub fn from_le_bytes_mod_order(bytes: &[u8]) -> Self {
+        let reversed: Vec<u8> = bytes.iter().rev().copied().collect();
+        Self::from_be_bytes_mod_order(&reversed)
+    }
+}
+
+impl<C: FpConfig> Fp<C> {
+    /// Whether the representation is below p, as every element built by
+    /// this crate's arithmetic is (not checked by `from_montgomery`).
+    pub fn is_reduced(&self) -> bool {
+        portable::less(self.0, C::P)
+    }
+}
+
+impl<C: FpConfig> Fp<C> {
+    /// The value's decimal digits.
+    pub fn to_decimal(&self) -> String {
+        let mut limbs = self.to_canonical();
+        let mut chunks = Vec::new();
+        // Divide by 10^19 until zero, keeping the remainders.
+        const BASE: u128 = 10_000_000_000_000_000_000;
+        loop {
+            let mut remainder = 0u128;
+            for limb in limbs.iter_mut().rev() {
+                let value = (remainder << 64) | *limb as u128;
+                *limb = (value / BASE) as u64;
+                remainder = value % BASE;
+            }
+            chunks.push(remainder as u64);
+            if limbs == [0; 4] {
+                break;
+            }
+        }
+        let mut out = chunks.pop().unwrap().to_string();
+        for chunk in chunks.iter().rev() {
+            out.push_str(&format!("{chunk:019}"));
+        }
+        out
+    }
+}

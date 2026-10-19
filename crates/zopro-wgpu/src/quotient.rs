@@ -5,7 +5,7 @@
 use crate::time::Instant;
 use std::sync::Arc;
 
-use ark_bn254::Fr;
+use zopro_bn254::Fr;
 
 use crate::{spirv_pipeline, storage, Gpu, Slot};
 

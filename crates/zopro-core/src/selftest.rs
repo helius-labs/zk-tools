@@ -4,7 +4,6 @@
 //! implementation on a small input and reported as a ZOPRO_TRACE selftest
 //! line; a GPU unit that disagrees is not used.
 use super::*;
-use ark_ff::{BigInteger, MontConfig, PrimeField, UniformRand};
 
 /// Points of each vector kept back for the checks.
 pub(crate) const HEAD: usize = 1024;
@@ -28,17 +27,16 @@ fn report(unit: &str, ok: bool, started: crate::time::Instant) -> bool {
 /// plain CIOS multiply in u128 arithmetic.
 pub(crate) fn field() -> bool {
     let started = crate::time::Instant::now();
-    let mut rng = rand::thread_rng();
     let ok = (0..4096).all(|_| {
-        let (a, b) = (Fq::rand(&mut rng), Fq::rand(&mut rng));
-        (a * b).0 == BigInt(cios(a.0 .0, b.0 .0))
+        let (a, b) = (crate::random_fq(), crate::random_fq());
+        (a * b).0 == cios(a.0, b.0)
     });
     report("field", ok, started)
 }
 
 fn cios(a: [u64; 4], b: [u64; 4]) -> [u64; 4] {
-    let q = Fq::MODULUS.0;
-    let inv = <ark_bn254::FqConfig as MontConfig<4>>::INV;
+    let q = Fq::MODULUS;
+    let inv = <zopro_bn254::FqConfig as zopro_bn254::FpConfig>::INV;
     let mut t = [0u64; 6];
     for &bi in &b {
         let mut carry = 0u128;
@@ -62,15 +60,24 @@ fn cios(a: [u64; 4], b: [u64; 4]) -> [u64; 4] {
         t[3] = s as u64;
         t[4] = t[5] + (s >> 64) as u64;
     }
-    let mut r = BigInt([t[0], t[1], t[2], t[3]]);
-    if t[4] != 0 || r >= BigInt(q) {
-        r.sub_with_borrow(&BigInt(q));
+    let r = [t[0], t[1], t[2], t[3]];
+    let mut d = [0u64; 4];
+    let mut borrow = false;
+    for i in 0..4 {
+        let (x, b1) = r[i].overflowing_sub(q[i]);
+        let (x, b2) = x.overflowing_sub(borrow as u64);
+        d[i] = x;
+        borrow = b1 | b2;
     }
-    r.0
+    if t[4] != 0 || !borrow {
+        d
+    } else {
+        r
+    }
 }
 
 /// The GPU's G1 MSM and quotient against the CPU's, and the CPU's G2 MSM
-/// against arkworks'; with Metal on a Mac, the GPU's G2 MSM too.
+/// against the lane-form MSM's; with Metal on a Mac, the GPU's G2 MSM too.
 #[cfg(gpu_any)]
 pub(crate) fn gpu(
     gpu: &mut Gpu,
@@ -80,10 +87,9 @@ pub(crate) fn gpu(
     n_a: usize,
     n_b: usize,
 ) -> Verdict {
-    let mut rng = rand::thread_rng();
     let mut scalars = vec![Fr::ZERO; n_a.max(n_b)];
     for s in scalars.iter_mut().take(HEAD) {
-        *s = Fr::rand(&mut rng);
+        *s = crate::random_fr();
     }
     let head = a_head.len().min(HEAD);
 
@@ -110,10 +116,8 @@ pub(crate) fn gpu(
     let started = crate::time::Instant::now();
     let head2 = b2_head.len().min(HEAD);
     let cpu2 = msm_g2(b2_head, &scalars[..head2]);
-    let reference = <G2Projective as ark_ec::VariableBaseMSM>::msm_unchecked(
-        &b2_head[..head2],
-        &scalars[..head2],
-    );
+    // The lane-form MSM, another algorithm.
+    let reference = crate::msm::msm(&b2_head[..head2], &scalars[..head2]);
     report("cpu-msm-g2", cpu2 == reference, started);
     #[cfg(gpu)]
     if let Some(b2) = &gpu.b2 {
@@ -134,9 +138,9 @@ pub(crate) fn gpu(
         let started = crate::time::Instant::now();
         let n = plan.size();
         let (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>) = (
-            (0..n).map(|_| Fr::rand(&mut rng)).collect(),
-            (0..n).map(|_| Fr::rand(&mut rng)).collect(),
-            (0..n).map(|_| Fr::rand(&mut rng)).collect(),
+            (0..n).map(|_| crate::random_fr()).collect(),
+            (0..n).map(|_| crate::random_fr()).collect(),
+            (0..n).map(|_| crate::random_fr()).collect(),
         );
         let cpu = plan.quotient(a.clone(), b.clone(), c.clone());
         let got = gpu.quotient.lock().unwrap().quotient(&a, &b, &c);
@@ -160,8 +164,7 @@ pub(crate) fn full_g1(
     mut gpu: impl FnMut(&[Fr]) -> Result<G1Projective, String>,
 ) -> bool {
     let started = crate::time::Instant::now();
-    let mut rng = rand::thread_rng();
-    let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+    let scalars: Vec<Fr> = (0..bases.len()).map(|_| crate::random_fr()).collect();
     let cpu = msm_g1(bases, &scalars);
     let got = gpu(&scalars);
     report(
@@ -171,13 +174,12 @@ pub(crate) fn full_g1(
     )
 }
 
-/// The CPU G2 MSM over the whole vector against arkworks'.
+/// The CPU G2 MSM over the whole vector against the lane-form MSM's.
 #[cfg(feature = "fullcheck")]
 pub(crate) fn full_g2(bases: &[G2Affine]) -> bool {
     let started = crate::time::Instant::now();
-    let mut rng = rand::thread_rng();
-    let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
+    let scalars: Vec<Fr> = (0..bases.len()).map(|_| crate::random_fr()).collect();
     let ours = msm_g2(bases, &scalars);
-    let reference = <G2Projective as ark_ec::VariableBaseMSM>::msm_unchecked(bases, &scalars);
+    let reference = crate::msm::msm(bases, &scalars);
     report("full-cpu-msm-b2", ours == reference, started)
 }

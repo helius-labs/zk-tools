@@ -6,7 +6,7 @@
 //! and the bit-reversed coset weights.
 use std::{ffi::c_void, time::Instant};
 
-use ark_bn254::Fr;
+use zopro_bn254::Fr;
 use metal::{
     Buffer, CommandQueue, ComputeCommandEncoderRef, ComputePipelineState, Device,
     MTLResourceOptions, MTLSize,

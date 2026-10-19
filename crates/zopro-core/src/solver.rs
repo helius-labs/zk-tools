@@ -5,8 +5,7 @@
 // arkworks field arithmetic. The arithmetic follows constraint/bn254/solver.go's
 // solveR1C and solveHintGeneric semantics.
 
-use ark_bn254::Fr;
-use ark_ff::{AdditiveGroup, BigInteger, Field, PrimeField};
+use zopro_bn254::Fr;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hasher};
 use std::ops::Range;
@@ -278,7 +277,7 @@ impl Plan {
         let mut coefficients = super::frs(coefficients);
         if coefficients.len() < 5
             || coefficients[..5] != [Fr::ZERO, Fr::ONE, Fr::from(2u64), -Fr::ONE, -Fr::from(2u64)]
-            || coefficients.iter().any(|c| c.0 >= Fr::MODULUS)
+            || coefficients.iter().any(|c| !c.is_reduced())
         {
             return Err("invalid solver coefficients");
         }
@@ -463,7 +462,7 @@ impl Plan {
         );
         let word = |out: &mut Vec<u8>, v: usize| out.extend_from_slice(&(v as u32).to_le_bytes());
         let field = |out: &mut Vec<u8>, v: &Fr| {
-            for w in v.0 .0 {
+            for w in v.0 {
                 out.extend_from_slice(&w.to_le_bytes());
             }
         };
@@ -585,7 +584,7 @@ impl Plan {
         let coefficients = super::frs(r.bytes(32 * n_coefficients)?);
         if coefficients.len() < 5
             || coefficients[..5] != [Fr::ZERO, Fr::ONE, Fr::from(2u64), -Fr::ONE, -Fr::from(2u64)]
-            || coefficients.iter().any(|c| c.0 >= Fr::MODULUS)
+            || coefficients.iter().any(|c| !c.is_reduced())
         {
             return Err(DAMAGED_IMAGE);
         }
@@ -668,7 +667,7 @@ impl Plan {
                     if side > 2
                         || wire >= n_wires
                         || coefficient >= n_coefficients
-                        || inverse.0 >= Fr::MODULUS
+                        || !inverse.is_reduced()
                     {
                         return Err(DAMAGED_IMAGE);
                     }
@@ -894,9 +893,9 @@ impl Plan {
                         set(hint.outputs.start, value.inverse().unwrap_or(Fr::ZERO))
                     }
                     HintKind::Bits => {
-                        let bits = value.into_bigint();
+                        let bits = value.to_canonical();
                         for (i, wire) in hint.outputs.clone().enumerate() {
-                            set(wire, if bits.get_bit(i) { Fr::ONE } else { Fr::ZERO });
+                            set(wire, if (bits[i / 64] >> (i % 64)) & 1 == 1 { Fr::ONE } else { Fr::ZERO });
                         }
                     }
                 }
@@ -1002,7 +1001,7 @@ mod tests {
     fn encode_fields(values: &[Fr]) -> Vec<u8> {
         values
             .iter()
-            .flat_map(|v| v.0 .0.iter().flat_map(|w| w.to_le_bytes()))
+            .flat_map(|v| v.0.iter().flat_map(|w| w.to_le_bytes()))
             .collect()
     }
     fn small() -> (Vec<u32>, Vec<u8>) {
@@ -1280,7 +1279,7 @@ mod tests {
         assert!(plan.matches(3, 4, 4, 4));
         for x in 1..4u64 {
             let x = Fr::from(x);
-            let bit = |i: u32| Fr::from((x.into_bigint().0[0] >> i) & 1);
+            let bit = |i: u32| Fr::from((x.to_canonical()[0] >> i) & 1);
             let solution = plan.solve(&[x]).unwrap();
             let inverse = x.inverse().unwrap();
             assert_eq!(solution.w, [Fr::ONE, x, bit(0), bit(1), inverse]);
@@ -1366,7 +1365,7 @@ mod tests {
         assert!(Plan::new(&bytes, &coefficients[..coefficients.len() - 1]).is_err());
         // Noncanonical table entries cannot enter field arithmetic.
         let mut changed = coefficients.clone();
-        changed.extend(Fr::MODULUS.0.iter().flat_map(|w| w.to_le_bytes()));
+        changed.extend(Fr::MODULUS.iter().flat_map(|w| w.to_le_bytes()));
         assert!(Plan::new(&bytes, &changed).is_err());
     }
 

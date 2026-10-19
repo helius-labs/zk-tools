@@ -1,6 +1,6 @@
 //! The merge requests (`merge`, `merge-ring`) onto the spp_merge circuits'
 //! inputs, as the Go prover's merge package did.
-use ark_bn254::Fr;
+use zopro_bn254::Fr;
 use serde_json::Value;
 
 use crate::{

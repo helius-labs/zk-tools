@@ -9,8 +9,7 @@ description = "Zolana's proof requests on zopro: a request and a zopro key give 
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-ark-bn254 = { path = "../zopro-core/ark-bn254" }
-ark-ff = { version = "0.5", default-features = false }
+zopro-bn254 = { path = "../zopro-bn254" }
 serde_json = "1"
 zopro-prover = { path = "../zopro-prover" }
 
@@ -22,6 +21,3 @@ wasm-bindgen = "=0.2.128"
 metal = ["zopro-prover/metal"]
 wgpu = ["zopro-prover/wgpu"]
 trace = ["zopro-prover/trace"]
-
-[dev-dependencies]
-ark-ff = "0.5"

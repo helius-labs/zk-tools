@@ -122,7 +122,7 @@ impl WebProver {
 /// `value`; it rejects with "unverified" or the kernel's message.
 pub fn promise(
     prover: &Prover,
-    witness: &[ark_bn254::Fr],
+    witness: &[zopro_bn254::Fr],
     value: impl FnOnce(Proved) -> JsValue + 'static,
 ) -> Promise {
     let rejection = |error: Error| match error {

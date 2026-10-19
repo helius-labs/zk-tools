@@ -2,8 +2,7 @@
 //! order.
 use std::collections::HashMap;
 
-use ark_bn254::Fr;
-use ark_ff::{BigInteger, PrimeField};
+use zopro_bn254::Fr;
 
 use crate::Error;
 
@@ -82,11 +81,10 @@ pub fn parse_value(text: &str) -> Option<Fr> {
             return None;
         }
     }
-    let modulus = Fr::MODULUS.to_bytes_be();
-    if bytes[..2] != [0, 0] || bytes[2..] >= modulus[..] {
+    if bytes[..2] != [0, 0] {
         return None;
     }
-    Some(Fr::from_be_bytes_mod_order(&bytes[2..]))
+    Fr::from_be_bytes(bytes[2..].try_into().expect("32 bytes"))
 }
 
 /// The kernel's encoding of the witness: four little-endian Montgomery
@@ -94,7 +92,7 @@ pub fn parse_value(text: &str) -> Option<Fr> {
 pub fn encode(values: &[Fr]) -> Vec<u8> {
     let mut out = Vec::with_capacity(values.len() * 32);
     for value in values {
-        for limb in value.0.0 {
+        for limb in value.0 {
             out.extend_from_slice(&limb.to_le_bytes());
         }
     }
@@ -103,5 +101,5 @@ pub fn encode(values: &[Fr]) -> Vec<u8> {
 
 /// A value's decimal digits, as gnark's flattened witnesses print them.
 pub fn decimal(value: &Fr) -> String {
-    value.into_bigint().to_string()
+    value.to_decimal()
 }

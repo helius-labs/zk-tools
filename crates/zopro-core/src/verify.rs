@@ -1,12 +1,10 @@
 //! gnark's Groth16 verifying key and proof formats, and the verification:
 //! the client checks every proof it hands out, and encodes it as gnark's
 //! verifier and the chain read it.
-use ark_bn254::{Bn254, Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine};
-use ark_ec::{
-    pairing::{Pairing, PairingOutput},
-    AffineRepr, CurveGroup, VariableBaseMSM,
+use zopro_bn254::{
+    pairing::{pairing_product_is_one, G2Prepared},
+    Fq, Fq2, Fr, G1Affine, G2Affine,
 };
-use ark_ff::{BigInteger, One, PrimeField, Zero};
 
 use crate::decompress::{coordinate, largest, largest2};
 
@@ -19,10 +17,11 @@ const INFINITY: u8 = 0b01 << 6;
 /// endian; all zero for the point at infinity.
 fn raw_g1(bytes: &[u8]) -> Result<G1Affine, &'static str> {
     if bytes.iter().all(|&b| b == 0) {
-        return Ok(G1Affine::identity());
+        return Ok(G1Affine::IDENTITY);
     }
-    let point = G1Affine::new_unchecked(coordinate(&bytes[..32])?, coordinate(&bytes[32..64])?);
-    if !point.is_on_curve() || !point.is_in_correct_subgroup_assuming_on_curve() {
+    let point = G1Affine::new(coordinate(&bytes[..32])?, coordinate(&bytes[32..64])?);
+    // G1 has cofactor one: on the curve is in the group.
+    if !point.is_on_curve() {
         return Err("G1 point not on the curve");
     }
     Ok(point)
@@ -31,7 +30,7 @@ fn raw_g1(bytes: &[u8]) -> Result<G1Affine, &'static str> {
 /// A G2 point from gnark's raw encoding: x.c1, x.c0, y.c1, y.c0.
 fn raw_g2(bytes: &[u8]) -> Result<G2Affine, &'static str> {
     if bytes.iter().all(|&b| b == 0) {
-        return Ok(G2Affine::identity());
+        return Ok(G2Affine::IDENTITY);
     }
     let fq2 = |at: usize| -> Result<Fq2, &'static str> {
         Ok(Fq2::new(
@@ -39,15 +38,15 @@ fn raw_g2(bytes: &[u8]) -> Result<G2Affine, &'static str> {
             coordinate(&bytes[at..at + 32])?,
         ))
     };
-    let point = G2Affine::new_unchecked(fq2(0)?, fq2(64)?);
-    if !point.is_on_curve() || !point.is_in_correct_subgroup_assuming_on_curve() {
+    let point = G2Affine::new(fq2(0)?, fq2(64)?);
+    if !point.is_on_curve() || !point.is_in_subgroup() {
         return Err("G2 point not on the curve");
     }
     Ok(point)
 }
 
 fn be(value: &Fq, out: &mut Vec<u8>) {
-    out.extend_from_slice(&value.into_bigint().to_bytes_be());
+    out.extend_from_slice(&value.to_be_bytes());
 }
 
 /// gnark's compressed G1 encoding: x big endian, the first byte's top
@@ -55,12 +54,11 @@ fn be(value: &Fq, out: &mut Vec<u8>) {
 /// (and zeros) for the point at infinity.
 pub fn compress_g1(point: &G1Affine) -> [u8; 32] {
     let mut out = [0u8; 32];
-    match point.xy() {
-        None => out[0] = INFINITY,
-        Some((x, y)) => {
-            out.copy_from_slice(&x.into_bigint().to_bytes_be());
-            out[0] |= if largest(&y) { LARGEST } else { SMALLEST };
-        }
+    if point.is_identity() {
+        out[0] = INFINITY;
+    } else {
+        out.copy_from_slice(&point.x.to_be_bytes());
+        out[0] |= if largest(&point.y) { LARGEST } else { SMALLEST };
     }
     out
 }
@@ -69,13 +67,12 @@ pub fn compress_g1(point: &G1Affine) -> [u8; 32] {
 /// with gnark's order on Fq2.
 pub fn compress_g2(point: &G2Affine) -> [u8; 64] {
     let mut out = [0u8; 64];
-    match point.xy() {
-        None => out[0] = INFINITY,
-        Some((x, y)) => {
-            out[..32].copy_from_slice(&x.c1.into_bigint().to_bytes_be());
-            out[32..].copy_from_slice(&x.c0.into_bigint().to_bytes_be());
-            out[0] |= if largest2(&y) { LARGEST } else { SMALLEST };
-        }
+    if point.is_identity() {
+        out[0] = INFINITY;
+    } else {
+        out[..32].copy_from_slice(&point.x.c1.to_be_bytes());
+        out[32..].copy_from_slice(&point.x.c0.to_be_bytes());
+        out[0] |= if largest2(&point.y) { LARGEST } else { SMALLEST };
     }
     out
 }
@@ -85,9 +82,9 @@ pub fn compress_g2(point: &G2Affine) -> [u8; 64] {
 #[derive(Clone)]
 pub struct VerifyingKey {
     alpha: G1Affine,
-    beta2: <Bn254 as Pairing>::G2Prepared,
-    gamma2: <Bn254 as Pairing>::G2Prepared,
-    delta2: <Bn254 as Pairing>::G2Prepared,
+    beta2: G2Prepared,
+    gamma2: G2Prepared,
+    delta2: G2Prepared,
     /// The public inputs' points, the constant one's first.
     k: Vec<G1Affine>,
 }
@@ -144,9 +141,9 @@ impl VerifyingKey {
         }
         Ok(Self {
             alpha,
-            beta2: beta2.into(),
-            gamma2: gamma2.into(),
-            delta2: delta2.into(),
+            beta2: G2Prepared::new(&beta2),
+            gamma2: G2Prepared::new(&gamma2),
+            delta2: G2Prepared::new(&delta2),
             k,
         })
     }
@@ -163,23 +160,16 @@ impl VerifyingKey {
             return false;
         }
         let mut scalars = Vec::with_capacity(self.k.len());
-        scalars.push(Fr::one());
+        scalars.push(Fr::ONE);
         scalars.extend_from_slice(public);
-        let inputs: G1Projective =
-            VariableBaseMSM::msm(&self.k, &scalars).expect("matching lengths");
-        let g1 = [
-            <Bn254 as Pairing>::G1Prepared::from(-proof.ar.into_group()),
-            self.alpha.into(),
-            inputs.into_affine().into(),
-            proof.krs.into(),
-        ];
-        let g2 = [
-            <Bn254 as Pairing>::G2Prepared::from(proof.bs),
-            self.beta2.clone(),
-            self.gamma2.clone(),
-            self.delta2.clone(),
-        ];
-        Bn254::multi_pairing(g1, g2) == PairingOutput::zero()
+        let inputs = zopro_bn254::curve::msm(&self.k, &scalars).to_affine();
+        let bs = G2Prepared::new(&proof.bs);
+        pairing_product_is_one(&[
+            (-proof.ar, &bs),
+            (self.alpha, &self.beta2),
+            (inputs, &self.gamma2),
+            (proof.krs, &self.delta2),
+        ])
     }
 }
 
@@ -226,7 +216,7 @@ impl Proof {
         out.extend_from_slice(&compress_g2(&self.bs));
         out.extend_from_slice(&compress_g1(&self.krs));
         out.extend_from_slice(&0u32.to_be_bytes());
-        out.extend_from_slice(&compress_g1(&G1Affine::identity()));
+        out.extend_from_slice(&compress_g1(&G1Affine::IDENTITY));
         out
     }
 }
@@ -240,7 +230,7 @@ pub fn public_witness(values: &[Fr]) -> Vec<u8> {
     out.extend_from_slice(&0u32.to_be_bytes());
     out.extend_from_slice(&(values.len() as u32).to_be_bytes());
     for value in values {
-        out.extend_from_slice(&value.into_bigint().to_bytes_be());
+        out.extend_from_slice(&value.to_be_bytes());
     }
     out
 }

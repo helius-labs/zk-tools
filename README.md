@@ -29,16 +29,20 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
 
 ## Layout
 
-- `crates/zopro-core`: the field arithmetic (`ark-bn254`, vendored: 29-bit
-  SIMD lanes on wasm, assembly on AArch64, arkworks' 64-bit code elsewhere),
-  the signed-window MSM, the FFT plan, the witness solver and its image, the
-  `Key` a host builds from gnark's proving key, and the proof assembly
-  (`groth16`). `--features metal` or `--features wgpu` moves the MSMs and the
-  quotient to the GPU; the G2 MSM is split between the GPU and the CPU, which
-  run at once (`ZOPRO_G2_GPU_SHARE`; defaults: 0.8 on a Mac, a quarter on
-  an A19 phone, none on older ones, 0.25 natively and 0.75 in a browser
-  through wgpu). In a browser `init_gpu()` requests WebGPU and
-  `Key::solve_parts_gpu` returns a Promise of the parts.
+- `crates/zopro-bn254`: BN254 without arkworks: Fq and Fr in Montgomery
+  form (assembly on AArch64, 29-bit SIMD-friendly limbs on wasm, 128-bit
+  products elsewhere), the tower to Fq12, G1 and G2 with the point at
+  infinity as (0, 0), and the pairing that verifies proofs. Its tests check
+  every operation against arkworks, which is only a dev-dependency.
+- `crates/zopro-core`: the signed-window MSM, the FFT plan, the witness
+  solver and its image, the `Key` a host builds from gnark's proving key,
+  and the proof assembly (`groth16`). `--features metal` or `--features
+  wgpu` moves the MSMs and the quotient to the GPU; the G2 MSM is split
+  between the GPU and the CPU, which run at once (`ZOPRO_G2_GPU_SHARE`;
+  defaults: none on a Mac, a quarter on an A19 phone, none on older ones,
+  0.25 natively through wgpu and 2.2 / threads in a browser). In a
+  browser `init_gpu()` requests WebGPU and `Key::solve_parts_gpu` returns a
+  Promise of the parts.
 - `crates/zopro-metal`: the Metal driver. The host recodes and sorts the
   scalars into bucket runs; the GPU sums each run in shards (witness scalars
   are skewed, so a few buckets hold most points), reduces each window (each
@@ -91,7 +95,8 @@ point vectors).
 
 `cargo test --workspace` (CPU), plus `--features zopro-core/metal` and
 `--features zopro-core/wgpu`: the GPU crates check their MSMs against
-arkworks (1 to 20 000 points, random, witness-like and zero scalars), and
+zopro-bn254's reference MSM (1 to 20 000 points, random, witness-like and
+zero scalars), and
 zopro-core checks a GPU key's proof parts against a CPU key's byte for
 byte. GPU tests skip without a GPU. `zopro-prover`'s `tests/cubic.rs` proves a small
 gnark circuit end to end from a committed dump (`tools/gnark`'s test writes

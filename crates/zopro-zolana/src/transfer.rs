@@ -2,7 +2,7 @@
 //! `transfer-ring-authority`) onto the spp_transaction circuits' inputs, as
 //! the Go prover's transfer_eddsa_only package did: the same checks, the
 //! same defaults, no hashing. The client computes every value.
-use ark_bn254::Fr;
+use zopro_bn254::Fr;
 use serde_json::Value;
 
 use crate::{

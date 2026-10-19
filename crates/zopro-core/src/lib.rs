@@ -2,10 +2,7 @@
     all(target_arch = "wasm32", target_feature = "simd128"),
     feature(asm_experimental_arch)
 )]
-use ark_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
-use ark_ec::{AdditiveGroup, CurveGroup};
-use ark_ff::{BigInt, Field};
-use ark_poly::{EvaluationDomain, Radix2EvaluationDomain};
+use zopro_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use wasm_bindgen::prelude::*;
 
 /// The clock: std's natively, the page's in a browser, where std has none.
@@ -29,6 +26,8 @@ mod msm_affine;
 mod selftest;
 mod simd;
 mod solver;
+#[cfg(test)]
+mod testing;
 pub mod verify;
 
 // Stage times as ZOPRO_TRACE log lines (`--features trace`): the native
@@ -111,34 +110,37 @@ mod selftest_web {
     }
 }
 
-fn words(data: &[u8]) -> BigInt<4> {
-    BigInt(core::array::from_fn(|i| {
-        u64::from_le_bytes(data[i * 8..i * 8 + 8].try_into().unwrap())
-    }))
+fn words(data: &[u8]) -> [u64; 4] {
+    core::array::from_fn(|i| u64::from_le_bytes(data[i * 8..i * 8 + 8].try_into().unwrap()))
 }
 fn fq(data: &[u8]) -> Fq {
-    Fq::new_unchecked(words(data))
+    Fq::from_montgomery(words(data))
+}
+fn random_bytes() -> [u8; 64] {
+    let mut bytes = [0u8; 64];
+    getrandom::getrandom(&mut bytes).expect("the system's randomness");
+    bytes
+}
+/// A uniform scalar from the system's randomness.
+pub(crate) fn random_fr() -> Fr {
+    Fr::from_random_bytes(&random_bytes())
+}
+/// A uniform base field element from the system's randomness.
+pub(crate) fn random_fq() -> Fq {
+    Fq::from_random_bytes(&random_bytes())
 }
 fn frs(data: &[u8]) -> Vec<Fr> {
     data.as_chunks::<32>()
         .0
         .iter()
-        .map(|x| Fr::new_unchecked(words(x)))
+        .map(|x| Fr::from_montgomery(words(x)))
         .collect()
 }
 fn g1s(data: &[u8]) -> Vec<G1Affine> {
     data.as_chunks::<64>()
         .0
         .iter()
-        .map(|x| {
-            let px = fq(x);
-            let py = fq(&x[32..]);
-            if px == Fq::ZERO && py == Fq::ZERO {
-                G1Affine::identity()
-            } else {
-                G1Affine::new_unchecked(px, py)
-            }
-        })
+        .map(|x| G1Affine::new(fq(x), fq(&x[32..])))
         .collect()
 }
 fn g2s(data: &[u8]) -> Vec<G2Affine> {
@@ -146,40 +148,29 @@ fn g2s(data: &[u8]) -> Vec<G2Affine> {
         .0
         .iter()
         .map(|x| {
-            let px = Fq2::new(fq(x), fq(&x[32..]));
-            let py = Fq2::new(fq(&x[64..]), fq(&x[96..]));
-            if px == Fq2::ZERO && py == Fq2::ZERO {
-                G2Affine::identity()
-            } else {
-                G2Affine::new_unchecked(px, py)
-            }
+            G2Affine::new(
+                Fq2::new(fq(x), fq(&x[32..])),
+                Fq2::new(fq(&x[64..]), fq(&x[96..])),
+            )
         })
         .collect()
 }
 fn output_fq(out: &mut Vec<u8>, v: Fq) {
-    for w in v.0 .0 {
+    for w in v.0 {
         out.extend_from_slice(&w.to_le_bytes())
     }
 }
 fn output_g1(out: &mut Vec<u8>, p: G1Projective) {
-    let p = p.into_affine();
-    if p.infinity {
-        out.extend_from_slice(&[0; 64]);
-    } else {
-        output_fq(out, p.x);
-        output_fq(out, p.y);
-    }
+    let p = p.to_affine();
+    output_fq(out, p.x);
+    output_fq(out, p.y);
 }
 fn output_g2(out: &mut Vec<u8>, p: G2Projective) {
-    let p = p.into_affine();
-    if p.infinity {
-        out.extend_from_slice(&[0; 128]);
-    } else {
-        output_fq(out, p.x.c0);
-        output_fq(out, p.x.c1);
-        output_fq(out, p.y.c0);
-        output_fq(out, p.y.c1);
-    }
+    let p = p.to_affine();
+    output_fq(out, p.x.c0);
+    output_fq(out, p.x.c1);
+    output_fq(out, p.y.c0);
+    output_fq(out, p.y.c1);
 }
 
 // The version of the solver images Key::solver_image writes and
@@ -583,7 +574,8 @@ pub struct Key {
     /// Shared, for a browser's CPU share of the G2 MSM on the pool while
     /// the proof's future awaits the GPU.
     b2: std::sync::Arc<Vec<G2Affine>>,
-    domain: Radix2EvaluationDomain<Fr>,
+    /// The FFT domain's size.
+    domain: usize,
     plan: fft::Plan,
     commitments: Vec<(Vec<G1Affine>, Vec<G1Affine>)>,
     solver: Option<solver::Plan>,
@@ -622,11 +614,17 @@ impl Key {
             return Err("invalid gnark FFT domain");
         }
         let params = frs(domain_params);
-        let mut domain = Radix2EvaluationDomain::<Fr>::new(n).ok_or("unsupported FFT domain")?;
-        domain.group_gen = params[0];
-        domain.group_gen_inv = params[0].inverse().ok_or("invalid FFT generator")?;
-        let _coset = domain.get_coset(params[1]).ok_or("invalid FFT coset")?;
-        let den = (params[1].pow([n as u64]) - Fr::ONE)
+        if n.trailing_zeros() > Fr::TWO_ADICITY {
+            return Err("unsupported FFT domain");
+        }
+        if params[0].is_zero() {
+            return Err("invalid FFT generator");
+        }
+        if params[1].is_zero() {
+            return Err("invalid FFT coset");
+        }
+        let domain = n;
+        let den = (params[1].pow(&[n as u64]) - Fr::ONE)
             .inverse()
             .ok_or("invalid quotient denominator")?;
         let started = crate::time::Instant::now();
@@ -776,7 +774,7 @@ impl Key {
                 self.lengths[0],
                 self.lengths[1],
                 self.lengths[2],
-                self.domain.size(),
+                self.domain,
             ) {
                 let started = crate::time::Instant::now();
                 plan.prepare();
@@ -811,7 +809,7 @@ impl Key {
                 self.lengths[0],
                 self.lengths[1],
                 self.lengths[2],
-                self.domain.size(),
+                self.domain,
             ) {
                 let started = crate::time::Instant::now();
                 plan.prepare();
@@ -991,12 +989,12 @@ impl Key {
                 (Some(g), Some(c)) => g + c,
                 (Some(g), None) => g,
                 (None, Some(c)) => c,
-                (None, None) => G2Projective::ZERO,
+                (None, None) => G2Projective::IDENTITY,
             };
             // A test build's fault (ZOPRO_WEB_FAULT) checks that the host
             // catches a GPU that miscomputes.
             let ar = if option_env!("ZOPRO_WEB_FAULT").is_some() {
-                ar + <G1Projective as ark_ec::PrimeGroup>::generator()
+                ar + G1Projective::generator()
             } else {
                 ar
             };
@@ -1063,7 +1061,7 @@ impl Key {
             || a.len() != b.len()
             || a.len() != c.len()
             || !a.len().is_multiple_of(32)
-            || a.len() / 32 > self.domain.size()
+            || a.len() / 32 > self.domain
         {
             return Err(JsError::new("witness does not match prepared gnark key"));
         }
@@ -1380,7 +1378,7 @@ impl Key {
 
 pub fn msm_g1(bases: &[G1Affine], scalars: &[Fr]) -> G1Projective {
     if bases.is_empty() {
-        G1Projective::ZERO
+        G1Projective::IDENTITY
     } else if affine_msm() {
         #[cfg(not(target_arch = "wasm32"))]
         return msm_affine::msm(bases, scalars);
@@ -1392,7 +1390,7 @@ pub fn msm_g1(bases: &[G1Affine], scalars: &[Fr]) -> G1Projective {
 }
 pub fn msm_g2(bases: &[G2Affine], scalars: &[Fr]) -> G2Projective {
     if bases.is_empty() {
-        G2Projective::ZERO
+        G2Projective::IDENTITY
     } else if affine_msm() {
         #[cfg(not(target_arch = "wasm32"))]
         return msm_affine::msm(bases, scalars);
@@ -1426,12 +1424,10 @@ pub fn decode_frs(data: &[u8]) -> Vec<Fr> {
 #[cfg(all(test, gpu_any))]
 mod gpu_tests {
     use super::*;
-    use ark_ec::CurveGroup;
-    use ark_ff::UniformRand;
-    use rand::{rngs::StdRng, SeedableRng};
+    use crate::testing::Seeded as StdRng;
 
     fn limbs(out: &mut Vec<u8>, x: &Fq) {
-        for word in x.0 .0 {
+        for word in x.0 {
             out.extend_from_slice(&word.to_le_bytes());
         }
     }
@@ -1455,28 +1451,30 @@ mod gpu_tests {
     fn fr_bytes(values: &[Fr]) -> Vec<u8> {
         values
             .iter()
-            .flat_map(|v| v.0 .0.iter().flat_map(|w| w.to_le_bytes()))
+            .flat_map(|v| v.0.iter().flat_map(|w| w.to_le_bytes()))
             .collect()
     }
     fn g1_points(n: usize, rng: &mut StdRng) -> Vec<G1Affine> {
-        let (mut p, step) = (G1Projective::rand(rng), G1Projective::rand(rng));
+        let g = G1Projective::generator();
+        let (mut p, step) = (g.mul(&rng.fr()), g.mul(&rng.fr()));
         let all: Vec<_> = (0..n)
             .map(|_| {
                 p += step;
                 p
             })
             .collect();
-        G1Projective::normalize_batch(&all)
+        G1Projective::batch_to_affine(&all)
     }
     fn g2_points(n: usize, rng: &mut StdRng) -> Vec<G2Affine> {
-        let (mut p, step) = (G2Projective::rand(rng), G2Projective::rand(rng));
+        let g = G2Projective::generator();
+        let (mut p, step) = (g.mul(&rng.fr()), g.mul(&rng.fr()));
         let all: Vec<_> = (0..n)
             .map(|_| {
                 p += step;
                 p
             })
             .collect();
-        G2Projective::normalize_batch(&all)
+        G2Projective::batch_to_affine(&all)
     }
 
     /// A key on the GPU proves the parts a key on the CPU proves: the MSMs
@@ -1484,7 +1482,7 @@ mod gpu_tests {
     /// the window width and ordering of the GPU path.
     #[test]
     fn gpu_parts_match_cpu() {
-        let mut rng = StdRng::seed_from_u64(11);
+        let mut rng = StdRng::new(11);
         let (n, domain) = (3000, 4096);
         let (a, b, k) = (
             g1_points(n, &mut rng),
@@ -1493,7 +1491,7 @@ mod gpu_tests {
         );
         let z = g1_points(domain - 1, &mut rng);
         let b2 = g2_points(n, &mut rng);
-        let generator = Radix2EvaluationDomain::<Fr>::new(domain).unwrap().group_gen;
+        let generator = Fr::root_of_unity(domain).unwrap();
         let params = fr_bytes(&[generator, Fr::from(5u64)]);
         let bytes = [
             g1_bytes(&a),
@@ -1525,7 +1523,7 @@ mod gpu_tests {
                             if i % 3 == 0 {
                                 Fr::from(1u64)
                             } else {
-                                Fr::rand(rng)
+                                rng.fr()
                             }
                         })
                         .collect::<Vec<_>>(),

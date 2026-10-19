@@ -4,7 +4,7 @@
 //! its metadata, and loads again from its raw form.
 use std::path::Path;
 
-use ark_bn254::Fr;
+use zopro_bn254::Fr;
 use zopro_prover::{
     Assignment, Error, Prover,
     zopro_core::{artifact::pack, dump::Dump},
