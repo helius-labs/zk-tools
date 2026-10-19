@@ -102,7 +102,7 @@ pub fn warm() -> Result<(), String> {
 /// Whether the shaders compile at Metal's size optimization level rather
 /// than the default: aeglos found the default level corrupting a kernel,
 /// and two older iPhones' GPU MSMs disagreed with the CPU where a newer
-/// one's agreed. A host switches after such a mismatch; RINGIL_METAL_SIZE=1
+/// one's agreed. A host switches after such a mismatch; ZOPRO_METAL_SIZE=1
 /// switches from the start. Libraries are cached per level.
 static SMALLER_CODE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
@@ -114,7 +114,7 @@ pub fn prefer_smaller_code() -> bool {
 
 pub fn smaller_code() -> bool {
     SMALLER_CODE.load(std::sync::atomic::Ordering::SeqCst)
-        || std::env::var("RINGIL_METAL_SIZE").is_ok_and(|v| v == "1")
+        || std::env::var("ZOPRO_METAL_SIZE").is_ok_and(|v| v == "1")
 }
 
 /// One command queue per process, shared by every MSM and quotient of
@@ -168,9 +168,9 @@ fn compile(device: &Device, g2: bool, smaller: bool) -> Result<metal::Library, S
     {
         let _ = g2;
         let bytes: &[u8] = if smaller {
-            include_bytes!(concat!(env!("OUT_DIR"), "/ringil-size.metallib"))
+            include_bytes!(concat!(env!("OUT_DIR"), "/zopro-size.metallib"))
         } else {
-            include_bytes!(concat!(env!("OUT_DIR"), "/ringil.metallib"))
+            include_bytes!(concat!(env!("OUT_DIR"), "/zopro.metallib"))
         };
         device
             .new_library_with_data(bytes)
@@ -214,12 +214,12 @@ fn width_for(n: usize) -> usize {
         16384..=65535 => 12,
         _ => 15,
     };
-    // Capped at 13 bits (RINGIL_GPU_WIDTH overrides, at most 15: digits are
+    // Capped at 13 bits (ZOPRO_GPU_WIDTH overrides, at most 15: digits are
     // i16): a quarter of 15 bits' buckets to reduce and sort for 18 % more
     // additions. On an M5 Pro whole proofs went 202 → 154 ms at 8 → 2 and
     // 444 → 395 at 24 → 2; on an iPhone 12 and 15 the 15-bit reduction was
     // 28 % of the GPU's MSM time.
-    let cap = std::env::var("RINGIL_GPU_WIDTH")
+    let cap = std::env::var("ZOPRO_GPU_WIDTH")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(13)

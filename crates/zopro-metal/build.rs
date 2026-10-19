@@ -18,7 +18,7 @@ fn compile(
     let air = out.join(format!("{name}.air"));
     let lib = out.join(format!("{name}.metallib"));
     Command::new("xcrun")
-        // Metal 3.0 and the oldest OS ringil supports: the SDK's newest
+        // Metal 3.0 and the oldest OS zopro supports: the SDK's newest
         // language version would not load on an older iPhone.
         .args([
             "-sdk",
@@ -61,10 +61,10 @@ fn main() {
         .collect::<Vec<_>>()
         .join("\n");
     source.push_str("\nBUCKET_KERNELS(fp2_t, g2)\n");
-    let all = out.join("ringil.metal");
+    let all = out.join("zopro.metal");
     fs::write(&all, source).unwrap();
-    let compiled = compile(sdk, version_flag, &all, "-O2", &out, "ringil")
-        && compile(sdk, version_flag, &all, "-Os", &out, "ringil-size");
+    let compiled = compile(sdk, version_flag, &all, "-O2", &out, "zopro")
+        && compile(sdk, version_flag, &all, "-Os", &out, "zopro-size");
     if compiled {
         println!("cargo::rustc-cfg=metallib");
     } else {

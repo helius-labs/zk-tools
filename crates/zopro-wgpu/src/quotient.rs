@@ -1,4 +1,4 @@
-//! The quotient polynomial's coefficients through wgpu, as ringil-metal's:
+//! The quotient polynomial's coefficients through wgpu, as zopro-metal's:
 //! inverse DIF, scale, forward DIT per vector, the pointwise product, and
 //! the inverse DIF with the denominator's weights, in radix-2 stages over
 //! global memory.
@@ -80,7 +80,7 @@ impl Quotient {
         let spirv = gpu.spirv;
         let module = (!spirv).then(|| {
             device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("ringil quotient"),
+                label: Some("zopro quotient"),
                 source: wgpu::ShaderSource::Wgsl(FR_SHADER.into()),
             })
         });

@@ -27,12 +27,12 @@ mod selftest;
 mod simd;
 mod solver;
 
-// Stage times as RINGIL_TRACE log lines (`--features trace`): the native
+// Stage times as ZOPRO_TRACE log lines (`--features trace`): the native
 // bench prints them, a phone's bench puts them in the device log.
 fn trace(label: &str, started: crate::time::Instant) -> crate::time::Instant {
     #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
     log::info!(
-        "RINGIL_TRACE {label} {:.1} ms{}",
+        "ZOPRO_TRACE {label} {:.1} ms{}",
         started.elapsed().as_secs_f64() * 1000.0,
         footprint_note()
     );
@@ -181,7 +181,7 @@ fn output_g2(out: &mut Vec<u8>, p: G2Projective) {
 /// elsewhere): the bench's stress mode watches it for leaks.
 pub fn gpu_allocated_bytes() -> u64 {
     #[cfg(gpu)]
-    return ringil_metal::allocated_bytes();
+    return zopro_metal::allocated_bytes();
     #[cfg(not(gpu))]
     0
 }
@@ -190,7 +190,7 @@ pub fn gpu_allocated_bytes() -> u64 {
 /// elsewhere). False when there is no GPU or it could not compile them.
 pub fn gpu_warm() -> bool {
     #[cfg(gpu)]
-    return ringil_metal::warm().is_ok();
+    return zopro_metal::warm().is_ok();
     #[cfg(not(gpu))]
     false
 }
@@ -200,85 +200,85 @@ pub fn solver_image_version() -> u32 {
 }
 
 /// The share of the G2 MSM's points the GPU takes when there is one; the
-/// CPU takes the rest at the same time. RINGIL_G2_GPU_SHARE sets it
-/// (RINGIL_G2=gpu|cpu: all or none); else 0.8 on a Mac, whose GPU is far
+/// CPU takes the rest at the same time. ZOPRO_G2_GPU_SHARE sets it
+/// (ZOPRO_G2=gpu|cpu: all or none); else 0.8 on a Mac, whose GPU is far
 /// faster than its cores at it (the idle cores' fifth saves 4–6 %), a quarter on an Apple9 phone (A19), whose
 /// GPU was idle for about 200 ms of a 535 ms 8 → 2 proof while the CPU's G2
 /// MSM took 443, and none on older phones, whose GPUs are busy and slower
 /// at G2 than their cores.
 #[cfg(gpu)]
 fn g2_gpu_share() -> f64 {
-    if let Some(share) = std::env::var("RINGIL_G2_GPU_SHARE")
+    if let Some(share) = std::env::var("ZOPRO_G2_GPU_SHARE")
         .ok()
         .and_then(|v| v.parse::<f64>().ok())
     {
         return share.clamp(0.0, 1.0);
     }
-    match std::env::var("RINGIL_G2").as_deref() {
+    match std::env::var("ZOPRO_G2").as_deref() {
         Ok("gpu") => 1.0,
         Ok("cpu") => 0.0,
         _ if cfg!(target_os = "macos") => 0.8,
-        _ if ringil_metal::fast_gpu() => 0.25,
+        _ if zopro_metal::fast_gpu() => 0.25,
         _ => 0.0,
     }
 }
 
 #[cfg(gpu)]
 struct Gpu {
-    a: std::sync::Mutex<ringil_metal::G1Msm>,
-    b: std::sync::Mutex<ringil_metal::G1Msm>,
-    k: std::sync::Mutex<ringil_metal::G1Msm>,
-    z: std::sync::Mutex<ringil_metal::G1Msm>,
-    b2: Option<std::sync::Mutex<ringil_metal::G2Msm>>,
+    a: std::sync::Mutex<zopro_metal::G1Msm>,
+    b: std::sync::Mutex<zopro_metal::G1Msm>,
+    k: std::sync::Mutex<zopro_metal::G1Msm>,
+    z: std::sync::Mutex<zopro_metal::G1Msm>,
+    b2: Option<std::sync::Mutex<zopro_metal::G2Msm>>,
     /// The G2 points the GPU takes: those before this index; the CPU takes
     /// the rest, which is all the key keeps of the vector.
     b2_cut: usize,
-    quotient: std::sync::Mutex<ringil_metal::Quotient>,
+    quotient: std::sync::Mutex<zopro_metal::Quotient>,
 }
 #[cfg(gpu_wgpu)]
 struct Gpu {
-    a: std::sync::Mutex<ringil_wgpu::G1Msm>,
-    b: std::sync::Mutex<ringil_wgpu::G1Msm>,
-    k: std::sync::Mutex<ringil_wgpu::G1Msm>,
-    z: std::sync::Mutex<ringil_wgpu::G1Msm>,
-    b2: Option<std::sync::Mutex<ringil_wgpu::G2Msm>>,
+    a: std::sync::Mutex<zopro_wgpu::G1Msm>,
+    b: std::sync::Mutex<zopro_wgpu::G1Msm>,
+    k: std::sync::Mutex<zopro_wgpu::G1Msm>,
+    z: std::sync::Mutex<zopro_wgpu::G1Msm>,
+    b2: Option<std::sync::Mutex<zopro_wgpu::G2Msm>>,
     b2_cut: usize,
-    quotient: std::sync::Mutex<ringil_wgpu::Quotient>,
+    quotient: std::sync::Mutex<zopro_wgpu::Quotient>,
 }
 
 /// Threads for a GPU MSM's sort while the global pool computes the CPU's
-/// G2 MSM (RINGIL_SORT_THREADS, default 2).
+/// G2 MSM (ZOPRO_SORT_THREADS, default 2).
 #[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
 fn sort_pool() -> &'static rayon::ThreadPool {
     static POOL: std::sync::OnceLock<rayon::ThreadPool> = std::sync::OnceLock::new();
     POOL.get_or_init(|| {
-        let threads = std::env::var("RINGIL_SORT_THREADS")
+        let threads = std::env::var("ZOPRO_SORT_THREADS")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(2);
         rayon::ThreadPoolBuilder::new()
             .num_threads(threads)
-            .thread_name(|i| format!("ringil-sort-{i}"))
+            .thread_name(|i| format!("zopro-sort-{i}"))
             .build()
             .expect("sort pool")
     })
 }
 
-/// The share of the G2 MSM's points a wgpu GPU takes (RINGIL_G2_GPU_SHARE,
+/// The share of the G2 MSM's points a wgpu GPU takes (ZOPRO_G2_GPU_SHARE,
 /// else measured best: on an M5 Pro through wgpu, and none with the
 /// pre-compiled kernels, where the OnePlus 13's Adreno is the critical path
 /// already); the CPU takes the rest.
 #[cfg(gpu_wgpu)]
 fn g2_gpu_share(spirv: bool) -> f64 {
-    // A browser has no environment: the build's RINGIL_WEB_G2_SHARE, else
+    // A browser has no environment: the build's ZOPRO_WEB_G2_SHARE, else
     // the default.
     #[cfg(target_arch = "wasm32")]
-    return option_env!("RINGIL_WEB_G2_SHARE")
+    return option_env!("ZOPRO_WEB_G2_SHARE")
         .and_then(|v| v.parse::<f64>().ok())
         .unwrap_or(WEB_G2_SHARE)
         .clamp(0.0, 1.0);
     #[allow(unreachable_code)]
-    std::env::var("RINGIL_G2_GPU_SHARE")
+    std::env::var("ZOPRO_G2_GPU_SHARE")
         .ok()
         .and_then(|v| v.parse::<f64>().ok())
         .unwrap_or(if spirv { 0.0 } else { WGPU_G2_SHARE })
@@ -295,7 +295,7 @@ const WGPU_G2_SHARE: f64 = 0.25;
 #[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
 thread_local! {
     /// The page's WebGPU device, once init_gpu has it.
-    static WEB_GPU: std::cell::RefCell<Option<std::sync::Arc<ringil_wgpu::Gpu>>> = const { std::cell::RefCell::new(None) };
+    static WEB_GPU: std::cell::RefCell<Option<std::sync::Arc<zopro_wgpu::Gpu>>> = const { std::cell::RefCell::new(None) };
 }
 
 /// Requests the page's WebGPU device for the keys built after it: their
@@ -304,7 +304,7 @@ thread_local! {
 #[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
 #[wasm_bindgen]
 pub async fn init_gpu() -> bool {
-    match ringil_wgpu::Gpu::request().await {
+    match zopro_wgpu::Gpu::request().await {
         Ok(gpu) => {
             WEB_GPU.with(|device| *device.borrow_mut() = Some(std::sync::Arc::new(gpu)));
             true
@@ -318,20 +318,20 @@ pub async fn init_gpu() -> bool {
 #[cfg(gpu_wgpu)]
 struct GpuBuilder {
     started: crate::time::Instant,
-    gpu: std::sync::Arc<ringil_wgpu::Gpu>,
-    quotient: ringil_wgpu::Quotient,
-    g1: [Option<ringil_wgpu::G1Msm>; 4],
-    b2: Option<ringil_wgpu::G2Msm>,
+    gpu: std::sync::Arc<zopro_wgpu::Gpu>,
+    quotient: zopro_wgpu::Quotient,
+    g1: [Option<zopro_wgpu::G1Msm>; 4],
+    b2: Option<zopro_wgpu::G2Msm>,
     b2_cut: usize,
 }
 #[cfg(gpu_wgpu)]
 impl GpuBuilder {
-    /// None with RINGIL_GPU=0 or without a GPU; on Android only with
-    /// RINGIL_GPU=1: measured on a Galaxy A16 (Mali-G57), A56 (Xclipse 940)
+    /// None with ZOPRO_GPU=0 or without a GPU; on Android only with
+    /// ZOPRO_GPU=1: measured on a Galaxy A16 (Mali-G57), A56 (Xclipse 940)
     /// and S25 (Adreno 830), the WGSL MSMs took minutes to compile and ran
     /// 3–5× slower than the phone's own cores, or did not link at all.
     fn open(plan: &fft::Plan) -> Option<Self> {
-        let wanted = std::env::var("RINGIL_GPU").ok();
+        let wanted = std::env::var("ZOPRO_GPU").ok();
         if wanted.as_deref() == Some("0")
             || (cfg!(target_os = "android") && wanted.as_deref() != Some("1"))
         {
@@ -339,13 +339,13 @@ impl GpuBuilder {
         }
         let started = crate::time::Instant::now();
         #[cfg(not(target_arch = "wasm32"))]
-        let gpu = std::sync::Arc::new(ringil_wgpu::Gpu::new().ok()?);
+        let gpu = std::sync::Arc::new(zopro_wgpu::Gpu::new().ok()?);
         // In a browser the device is requested ahead, asynchronously
         // (init_gpu); building on it is synchronous.
         #[cfg(target_arch = "wasm32")]
         let gpu = WEB_GPU.with(|device| device.borrow().clone())?;
         let (roots, inverse_roots, forward, reverse) = plan.tables()?;
-        let quotient = ringil_wgpu::Quotient::new(
+        let quotient = zopro_wgpu::Quotient::new(
             gpu.clone(),
             plan.size(),
             &roots,
@@ -365,7 +365,7 @@ impl GpuBuilder {
         })
     }
     fn g1(&mut self, which: usize, bases: &[G1Affine]) -> Result<(), String> {
-        self.g1[which] = Some(ringil_wgpu::G1Msm::new(self.gpu.clone(), bases)?.0);
+        self.g1[which] = Some(zopro_wgpu::G1Msm::new(self.gpu.clone(), bases)?.0);
         Ok(())
     }
     /// How many of the G2 points (the first) the GPU took.
@@ -374,7 +374,7 @@ impl GpuBuilder {
         if cut == 0 {
             return Ok(0);
         }
-        self.b2 = Some(ringil_wgpu::G2Msm::new(self.gpu.clone(), &bases[..cut])?.0);
+        self.b2 = Some(zopro_wgpu::G2Msm::new(self.gpu.clone(), &bases[..cut])?.0);
         self.b2_cut = cut;
         Ok(cut)
     }
@@ -451,7 +451,7 @@ fn upload_g2(
 #[cfg(all(gpu_any, not(target_arch = "wasm32")))]
 fn gpu_trace(name: &str, sort_ms: f64, gpu_ms: f64) {
     #[cfg(feature = "trace")]
-    log::info!("RINGIL_TRACE gpu-msm-{name} sort {sort_ms:.1} gpu {gpu_ms:.1} ms");
+    log::info!("ZOPRO_TRACE gpu-msm-{name} sort {sort_ms:.1} gpu {gpu_ms:.1} ms");
     #[cfg(not(feature = "trace"))]
     let _ = (name, sort_ms, gpu_ms);
 }
@@ -461,27 +461,27 @@ fn gpu_trace(name: &str, sort_ms: f64, gpu_ms: f64) {
 #[cfg(gpu)]
 struct GpuBuilder {
     started: crate::time::Instant,
-    quotient: ringil_metal::Quotient,
-    g1: [Option<ringil_metal::G1Msm>; 4],
-    b2: Option<ringil_metal::G2Msm>,
+    quotient: zopro_metal::Quotient,
+    g1: [Option<zopro_metal::G1Msm>; 4],
+    b2: Option<zopro_metal::G2Msm>,
     b2_cut: usize,
     /// The trees and buckets all the key's MSMs share.
-    scratch: std::sync::Arc<ringil_metal::Scratch>,
+    scratch: std::sync::Arc<zopro_metal::Scratch>,
 }
 #[cfg(gpu)]
 impl GpuBuilder {
-    /// None with RINGIL_GPU=0 or without a GPU.
+    /// None with ZOPRO_GPU=0 or without a GPU.
     fn open(plan: &fft::Plan) -> Option<Self> {
-        if std::env::var("RINGIL_GPU").is_ok_and(|v| v == "0") {
+        if std::env::var("ZOPRO_GPU").is_ok_and(|v| v == "0") {
             return None;
         }
         let started = crate::time::Instant::now();
         let (roots, inverse_roots, forward, reverse) = plan.tables()?;
         let quotient =
-            ringil_metal::Quotient::new(plan.size(), &roots, &inverse_roots, &forward, &reverse)
+            zopro_metal::Quotient::new(plan.size(), &roots, &inverse_roots, &forward, &reverse)
                 .ok()?
                 .0;
-        let scratch = ringil_metal::Scratch::new().ok()?;
+        let scratch = zopro_metal::Scratch::new().ok()?;
         Some(Self {
             started,
             quotient,
@@ -492,7 +492,7 @@ impl GpuBuilder {
         })
     }
     fn g1(&mut self, which: usize, bases: &[G1Affine]) -> Result<(), String> {
-        self.g1[which] = Some(ringil_metal::G1Msm::new_in(bases, self.scratch.clone())?.0);
+        self.g1[which] = Some(zopro_metal::G1Msm::new_in(bases, self.scratch.clone())?.0);
         Ok(())
     }
     /// Whether the GPU took G2: a Mac's does, a phone's leaves it to the CPU.
@@ -502,7 +502,7 @@ impl GpuBuilder {
         if cut == 0 {
             return Ok(0);
         }
-        self.b2 = Some(ringil_metal::G2Msm::new_in(bases, self.scratch.clone())?.0);
+        self.b2 = Some(zopro_metal::G2Msm::new_in(bases, self.scratch.clone())?.0);
         self.b2_cut = cut;
         Ok(cut)
     }
@@ -513,8 +513,8 @@ impl GpuBuilder {
         trace("gpu-upload", self.started);
         #[cfg(feature = "trace")]
         log::info!(
-            "RINGIL_TRACE gpu-allocated {} MB",
-            ringil_metal::allocated_bytes() >> 20
+            "ZOPRO_TRACE gpu-allocated {} MB",
+            zopro_metal::allocated_bytes() >> 20
         );
         Gpu {
             a,
@@ -672,14 +672,14 @@ impl Key {
                             // the size level, where aeglos found the default
                             // level's compiler at fault.
                             #[cfg(gpu)]
-                            if ringil_metal::prefer_smaller_code() {
+                            if zopro_metal::prefer_smaller_code() {
                                 trace("gpu-retry-smaller-code", crate::time::Instant::now());
                                 gpu = GpuBuilder::open(&plan);
                             }
                             continue;
                         }
                         gpu_quotient = verdict.quotient
-                            && !std::env::var("RINGIL_GPU_QUOTIENT").is_ok_and(|v| v == "0");
+                            && !std::env::var("ZOPRO_GPU_QUOTIENT").is_ok_and(|v| v == "0");
                         built_gpu = Some(finished);
                     }
                     let _ = (a_head, b2_head);
@@ -764,7 +764,7 @@ impl Key {
         trace("solver-image", started);
         #[cfg(feature = "trace")]
         if let Ok(plan) = &parsed {
-            log::info!("RINGIL_TRACE solver-plan-size {}", plan.footprint());
+            log::info!("ZOPRO_TRACE solver-plan-size {}", plan.footprint());
         }
         if let Ok(plan) = parsed {
             if plan.matches(
@@ -854,9 +854,9 @@ impl Key {
                 (None, Some(c)) => c,
                 (None, None) => G2Projective::ZERO,
             };
-            // A test build's fault (RINGIL_WEB_FAULT) checks that the host
+            // A test build's fault (ZOPRO_WEB_FAULT) checks that the host
             // catches a GPU that miscomputes.
-            let ar = if option_env!("RINGIL_WEB_FAULT").is_some() {
+            let ar = if option_env!("ZOPRO_WEB_FAULT").is_some() {
                 ar + <G1Projective as ark_ec::PrimeGroup>::generator()
             } else {
                 ar
@@ -938,7 +938,6 @@ impl Key {
 impl Key {
     /// The A, B and K MSM scalars of a witness, for the bench's profile of
     /// how skewed they are.
-    #[cfg(feature = "trace")]
     #[doc(hidden)]
     pub fn msm_scalars(&self, witness: &[u8]) -> Result<[Vec<Fr>; 3], String> {
         let plan = self.solver.as_ref().ok_or("no prepared solver")?;
@@ -1060,7 +1059,7 @@ impl Key {
                     ("z", &gpu.z, &h[..]),
                 ] {
                     log::info!(
-                        "RINGIL_TRACE gpu-profile {name} {}",
+                        "ZOPRO_TRACE gpu-profile {name} {}",
                         msm.lock().unwrap().profile(scalars)
                     );
                 }
@@ -1196,9 +1195,9 @@ impl Key {
         );
         trace("msms", started);
         // Each MSM alone, on the whole pool, for its own share: this adds
-        // to the proof time, so only with RINGIL_TRACE_MSMS=1.
+        // to the proof time, so only with ZOPRO_TRACE_MSMS=1.
         #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
-        if std::env::var("RINGIL_TRACE_MSMS").is_ok_and(|v| v == "1") {
+        if std::env::var("ZOPRO_TRACE_MSMS").is_ok_and(|v| v == "1") {
             for (label, bases, scalars) in [
                 ("msm-a", &self.a, sa),
                 ("msm-b", &self.b, sb),
@@ -1252,10 +1251,10 @@ pub fn msm_g2(bases: &[G2Affine], scalars: &[Fr]) -> G2Projective {
 
 /// Which CPU MSM runs: natively the batch-affine one (on a Galaxy-class
 /// phone's Cortex-A78 it proved 2 → 2 in 623 ms against the lane form's
-/// 988, an M5 Pro the same), unless RINGIL_MSM=lanes; WebAssembly the lane
+/// 988, an M5 Pro the same), unless ZOPRO_MSM=lanes; WebAssembly the lane
 /// form, which its SIMD lanes suit.
 fn affine_msm() -> bool {
-    !cfg!(target_arch = "wasm32") && !std::env::var("RINGIL_MSM").is_ok_and(|v| v == "lanes")
+    !cfg!(target_arch = "wasm32") && !std::env::var("ZOPRO_MSM").is_ok_and(|v| v == "lanes")
 }
 
 // The kernel's little-endian Montgomery encodings, as the Go bridge and the
@@ -1355,10 +1354,10 @@ mod gpu_tests {
             )
             .expect("key")
         };
-        // SAFETY: no other test reads RINGIL_GPU.
-        unsafe { std::env::set_var("RINGIL_GPU", "0") };
+        // SAFETY: no other test reads ZOPRO_GPU.
+        unsafe { std::env::set_var("ZOPRO_GPU", "0") };
         let cpu = build();
-        unsafe { std::env::remove_var("RINGIL_GPU") };
+        unsafe { std::env::remove_var("ZOPRO_GPU") };
         let gpu = build();
         if gpu.gpu.is_none() {
             eprintln!("no GPU: skipped");

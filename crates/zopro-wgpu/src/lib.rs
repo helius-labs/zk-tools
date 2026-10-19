@@ -1,5 +1,5 @@
 //! G1 and G2 MSMs through wgpu: one WGSL kernel set for Vulkan (Android), WebGPU
-//! (the browser) and Metal. As ringil-metal: the host recodes the scalars
+//! (the browser) and Metal. As zopro-metal: the host recodes the scalars
 //! into signed digits and counting-sorts the pairs into bucket runs; the
 //! GPU sums each run in shards, level by level, reduces each window in two
 //! stages, and the host combines the windows. Native hosts wait on the
@@ -130,9 +130,9 @@ const WORKGROUP: u32 = 64;
 const FIRST_SHARD: usize = 32;
 /// The first level's shard length: shorter with the pre-compiled kernels,
 /// where more, shorter shards ran the OnePlus 13's accumulation 13 % faster
-/// overall (RINGIL_FIRST_SHARD overrides, for kernel experiments).
+/// overall (ZOPRO_FIRST_SHARD overrides, for kernel experiments).
 fn first_shard(spirv: bool) -> usize {
-    std::env::var("RINGIL_FIRST_SHARD")
+    std::env::var("ZOPRO_FIRST_SHARD")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(if spirv {
@@ -143,24 +143,24 @@ fn first_shard(spirv: bool) -> usize {
 }
 const SPIRV_FIRST_SHARD: usize = 16;
 /// Invocations per workgroup the first level's kernel declares
-/// (RINGIL_FIRST_GROUP, with a kernel from RINGIL_SPV_DIR).
+/// (ZOPRO_FIRST_GROUP, with a kernel from ZOPRO_SPV_DIR).
 fn first_group() -> u32 {
-    std::env::var("RINGIL_FIRST_GROUP")
+    std::env::var("ZOPRO_FIRST_GROUP")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(WORKGROUP)
 }
 const SHARD: usize = 32;
-/// The tree levels' shard length (RINGIL_SHARD overrides, for kernel
+/// The tree levels' shard length (ZOPRO_SHARD overrides, for kernel
 /// experiments).
 fn shard() -> usize {
-    std::env::var("RINGIL_SHARD")
+    std::env::var("ZOPRO_SHARD")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(SHARD)
 }
 /// Threads per window in the reduction, measured best (with 256 and 128
-/// close); RINGIL_REDUCE_PER_WINDOW overrides natively.
+/// close); ZOPRO_REDUCE_PER_WINDOW overrides natively.
 const REDUCE_THREADS_PER_WINDOW: usize = 512;
 /// Threads per window when the host weighs the reduction's pairs.
 const PAIRS_PER_WINDOW: usize = 128;
@@ -173,8 +173,8 @@ fn width_for(n: usize) -> usize {
         16384..=65535 => 12,
         _ => 15,
     };
-    // As the Metal driver's: capped at 13 bits (RINGIL_GPU_WIDTH overrides).
-    let cap = std::env::var("RINGIL_GPU_WIDTH")
+    // As the Metal driver's: capped at 13 bits (ZOPRO_GPU_WIDTH overrides).
+    let cap = std::env::var("ZOPRO_GPU_WIDTH")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(13)
@@ -199,11 +199,11 @@ pub struct Pending {
 
 pub struct Gpu {
     /// Whether the MSM kernels come pre-compiled as SPIR-V (glsl/): on
-    /// Vulkan with passthrough, by default on Android (RINGIL_SPIRV=0|1
+    /// Vulkan with passthrough, by default on Android (ZOPRO_SPIRV=0|1
     /// overrides). Adreno's compiler loses the device on naga's SPIR-V of
     /// the WGSL kernels and links glslc's of the GLSL ones.
     pub spirv: bool,
-    /// The driver's pipeline cache, persisted at RINGIL_PIPELINE_CACHE when
+    /// The driver's pipeline cache, persisted at ZOPRO_PIPELINE_CACHE when
     /// set: a phone compiles a kernel in tens of seconds the first time.
     cache: Option<wgpu::PipelineCache>,
     cache_path: Option<std::path::PathBuf>,
@@ -285,12 +285,12 @@ impl Gpu {
                 .features()
                 .contains(wgpu::Features::PASSTHROUGH_SHADERS);
         let spirv = passthrough
-            && match std::env::var("RINGIL_SPIRV").as_deref() {
+            && match std::env::var("ZOPRO_SPIRV").as_deref() {
                 Ok("1") => true,
                 Ok(_) => false,
                 Err(_) => cfg!(target_os = "android"),
             };
-        let cache_path = std::env::var_os("RINGIL_PIPELINE_CACHE").map(std::path::PathBuf::from);
+        let cache_path = std::env::var_os("ZOPRO_PIPELINE_CACHE").map(std::path::PathBuf::from);
         let caching =
             cache_path.is_some() && adapter.features().contains(wgpu::Features::PIPELINE_CACHE);
         let mut features = wgpu::Features::empty();
@@ -302,7 +302,7 @@ impl Gpu {
         }
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
-                label: Some("ringil"),
+                label: Some("zopro"),
                 required_features: features,
                 required_limits: adapter.limits(),
                 ..Default::default()
@@ -312,14 +312,14 @@ impl Gpu {
         let failed = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
         let flag = failed.clone();
         device.on_uncaptured_error(std::sync::Arc::new(move |e| {
-            log::error!("ringil wgpu: {e}");
+            log::error!("zopro wgpu: {e}");
             flag.store(true, std::sync::atomic::Ordering::SeqCst);
         }));
         // A driver crash (a phone's shader compiler) loses the device with
         // no error in any scope: later buffers are silently invalid.
         let flag = failed.clone();
         device.set_device_lost_callback(Box::new(move |reason, message| {
-            log::error!("ringil wgpu: device lost ({reason:?}): {message}");
+            log::error!("zopro wgpu: device lost ({reason:?}): {message}");
             flag.store(true, std::sync::atomic::Ordering::SeqCst);
         }));
         let cache = caching.then(|| {
@@ -331,7 +331,7 @@ impl Gpu {
             // mismatch).
             unsafe {
                 device.create_pipeline_cache(&wgpu::PipelineCacheDescriptor {
-                    label: Some("ringil"),
+                    label: Some("zopro"),
                     data: data.as_deref(),
                     fallback: true,
                 })
@@ -358,7 +358,7 @@ impl Gpu {
         if let (Some(cache), Some(path)) = (&self.cache, &self.cache_path) {
             if let Some(data) = cache.get_data() {
                 if let Err(e) = std::fs::write(path, data) {
-                    log::warn!("ringil wgpu: pipeline cache not saved: {e}");
+                    log::warn!("zopro wgpu: pipeline cache not saved: {e}");
                 }
             }
         }
@@ -407,7 +407,7 @@ pub struct Msm<C: Curve> {
     gpu_sort: Option<GpuSort>,
 }
 
-/// Per-pass GPU times of one MSM (RINGIL_WGPU_STAGES).
+/// Per-pass GPU times of one MSM (ZOPRO_WGPU_STAGES).
 #[derive(Default)]
 struct Stages(Vec<(String, f64)>);
 
@@ -605,7 +605,7 @@ impl<C: Curve> Msm<C> {
         let spirv = if gpu.spirv { C::SPIRV } else { None };
         let module = (spirv.is_none()).then(|| {
             device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("ringil msm"),
+                label: Some("zopro msm"),
                 source: wgpu::ShaderSource::Wgsl(C::SHADER.into()),
             })
         });
@@ -627,13 +627,13 @@ impl<C: Curve> Msm<C> {
             pipelines.push(match spirv {
                 Some(kernels) => {
                     {
-                        // RINGIL_SPV_DIR/<entry>.spv replaces a built-in kernel
+                        // ZOPRO_SPV_DIR/<entry>.spv replaces a built-in kernel
                         // (kernel experiments on a device).
-                        let file = std::env::var("RINGIL_SPV_DIR")
+                        let file = std::env::var("ZOPRO_SPV_DIR")
                             .ok()
                             .and_then(|dir| std::fs::read(format!("{dir}/{entry}.spv")).ok());
                         if file.is_some() {
-                            log::info!("RINGIL_TRACE kernel {entry} from RINGIL_SPV_DIR");
+                            log::info!("ZOPRO_TRACE kernel {entry} from ZOPRO_SPV_DIR");
                         }
                         let kernel = file.as_deref().unwrap_or(kernels[index]);
                         spirv_pipeline(device, gpu.cache(), entry, kernel, msm_slots(index))
@@ -644,7 +644,7 @@ impl<C: Curve> Msm<C> {
             // Delivers a device-lost callback the build caused.
             let _ = device.poll(wgpu::PollType::Poll);
             log::debug!(
-                "ringil wgpu: kernel {entry} built in {:.0} ms",
+                "zopro wgpu: kernel {entry} built in {:.0} ms",
                 started.elapsed().as_secs_f64() * 1000.0
             );
             if gpu.failed() {
@@ -677,7 +677,7 @@ impl<C: Curve> Msm<C> {
         let most = chunk_windows * per_window;
         let per_window = half
             .min(
-                std::env::var("RINGIL_REDUCE_PER_WINDOW")
+                std::env::var("ZOPRO_REDUCE_PER_WINDOW")
                     .ok()
                     .and_then(|v| v.parse().ok())
                     .unwrap_or(REDUCE_THREADS_PER_WINDOW),
@@ -685,8 +685,8 @@ impl<C: Curve> Msm<C> {
             .max(WORKGROUP as usize);
         let pairs = spirv.is_some() && C::SPIRV_PAIRS;
         // The host weighs the pairs: fewer threads per window keep that
-        // cheap (RINGIL_REDUCE_PER_WINDOW still overrides).
-        let per_window = if pairs && std::env::var("RINGIL_REDUCE_PER_WINDOW").is_err() {
+        // cheap (ZOPRO_REDUCE_PER_WINDOW still overrides).
+        let per_window = if pairs && std::env::var("ZOPRO_REDUCE_PER_WINDOW").is_err() {
             per_window.min(PAIRS_PER_WINDOW)
         } else {
             per_window
@@ -701,9 +701,9 @@ impl<C: Curve> Msm<C> {
         // 2^16 points and more: on a OnePlus 13 it freed the cores the CPU's
         // G2 MSM needs at 8 -> 2 (658 against 681 ms) and lost at 1 -> 2
         // (208 against 174), where the GPU round trips weigh more
-        // (RINGIL_GPU_SORT=0|1 decides for every size).
+        // (ZOPRO_GPU_SORT=0|1 decides for every size).
         let gpu_sort = (spirv.is_some()
-            && match std::env::var("RINGIL_GPU_SORT").as_deref() {
+            && match std::env::var("ZOPRO_GPU_SORT").as_deref() {
                 Ok("1") => true,
                 Ok(_) => false,
                 Err(_) => n >= GPU_SORT_MIN,
@@ -838,9 +838,9 @@ impl<C: Curve> Msm<C> {
                 .write_buffer(&self.sorted, 0, bytemuck_cast(&sorted));
         }
         let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
-        // RINGIL_WGPU_STAGES=1: each pass submitted and waited for alone,
+        // ZOPRO_WGPU_STAGES=1: each pass submitted and waited for alone,
         // its time traced (a profile, not a proof's timing).
-        let mut profile = std::env::var("RINGIL_WGPU_STAGES")
+        let mut profile = std::env::var("ZOPRO_WGPU_STAGES")
             .is_ok_and(|v| v == "1")
             .then(Stages::default);
         let chunks: Vec<Vec<usize>> = (0..self.windows.div_ceil(self.chunk_windows))
@@ -1013,7 +1013,7 @@ impl<C: Curve> Msm<C> {
         }
         if let Some(mut stages) = profile.take() {
             encoder = stages.cut(device, queue, encoder, "reduce".into());
-            log::info!("RINGIL_TRACE wgpu-stages n={} {}", self.n, stages.report());
+            log::info!("ZOPRO_TRACE wgpu-stages n={} {}", self.n, stages.report());
         }
         encoder.copy_buffer_to_buffer(&self.sums, 0, &self.staging, 0, self.sums.size());
         let submission = queue.submit([encoder.finish()]);
@@ -1334,7 +1334,7 @@ fn fq(bytes: &[u8]) -> Fq {
 #[cfg(test)]
 fn init_logger() {
     let _ = env_logger::Builder::from_env(
-        env_logger::Env::default().default_filter_or("ringil_wgpu=debug"),
+        env_logger::Env::default().default_filter_or("zopro_wgpu=debug"),
     )
     .is_test(false)
     .try_init();
@@ -1714,7 +1714,7 @@ mod field_tests {
     }
 
     /// Which of the pre-compiled SPIR-V kernels a driver links, each on a
-    /// fresh device (RINGIL_SPIRV=1 on a Vulkan host). Prints PROBE lines;
+    /// fresh device (ZOPRO_SPIRV=1 on a Vulkan host). Prints PROBE lines;
     /// run it with --ignored on a new GPU.
     #[test]
     #[ignore]
@@ -1723,8 +1723,8 @@ mod field_tests {
         let g1 = <ark_bn254::G1Projective as Curve>::SPIRV.unwrap();
         let g2 = <ark_bn254::G2Projective as Curve>::SPIRV.unwrap();
         let names = ["shards_first", "shards_tree", "reduce_blocks"];
-        // RINGIL_PROBE selects probes by a substring of "<curve> <kernel>".
-        let filter = std::env::var("RINGIL_PROBE").unwrap_or_default();
+        // ZOPRO_PROBE selects probes by a substring of "<curve> <kernel>".
+        let filter = std::env::var("ZOPRO_PROBE").unwrap_or_default();
         for (curve, kernels) in [("g1", g1), ("g2", g2)] {
             for (index, bytes) in kernels.iter().enumerate() {
                 if !format!("{curve} {}", names[index]).contains(&filter) {
@@ -1738,10 +1738,10 @@ mod field_tests {
                     eprintln!("PROBE no SPIR-V passthrough on {}", gpu.name);
                     return;
                 }
-                // RINGIL_SPV_SUFFIX probes `$RINGIL_SPV_DIR/<kernel><suffix>.spv`
+                // ZOPRO_SPV_SUFFIX probes `$ZOPRO_SPV_DIR/<kernel><suffix>.spv`
                 // files (another glslc build) in place of the built-in ones.
-                let file = std::env::var("RINGIL_SPV_SUFFIX").ok().map(|suffix| {
-                    let dir = std::env::var("RINGIL_SPV_DIR").unwrap_or_else(|_| "spv".into());
+                let file = std::env::var("ZOPRO_SPV_SUFFIX").ok().map(|suffix| {
+                    let dir = std::env::var("ZOPRO_SPV_DIR").unwrap_or_else(|_| "spv".into());
                     let g2 = if curve == "g2" { "_g2" } else { "" };
                     std::fs::read(format!("{dir}/{}{g2}{suffix}.spv", names[index]))
                         .expect("spv file")

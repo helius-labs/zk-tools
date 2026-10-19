@@ -1591,74 +1591,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "19b30a45b0cd0bcca8037f3d0dc3421eaf95327a17cad11964fb8179b4fc4832"
 
 [[package]]
-name = "ringil-bench"
-version = "0.1.0"
-dependencies = [
- "ark-bn254",
- "ark-ec",
- "ark-ff",
- "libc",
- "log",
- "rand",
- "ringil-core",
- "ringil-metal",
- "ringil-wgpu",
- "wgpu",
-]
-
-[[package]]
-name = "ringil-core"
-version = "0.1.0"
-dependencies = [
- "ark-bn254",
- "ark-ec",
- "ark-ff",
- "ark-poly",
- "getrandom",
- "js-sys",
- "libc",
- "log",
- "rand",
- "rayon",
- "ringil-metal",
- "ringil-wgpu",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-rayon",
- "web-time",
-]
-
-[[package]]
-name = "ringil-metal"
-version = "0.1.0"
-dependencies = [
- "ark-bn254",
- "ark-ec",
- "ark-ff",
- "metal",
- "objc",
- "rand",
- "rayon",
-]
-
-[[package]]
-name = "ringil-wgpu"
-version = "0.1.0"
-dependencies = [
- "ark-bn254",
- "ark-ec",
- "ark-ff",
- "env_logger",
- "futures-channel",
- "log",
- "pollster",
- "rand",
- "rayon",
- "web-time",
- "wgpu",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2391,3 +2323,71 @@ name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+
+[[package]]
+name = "zopro-bench"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "libc",
+ "log",
+ "rand",
+ "wgpu",
+ "zopro-core",
+ "zopro-metal",
+ "zopro-wgpu",
+]
+
+[[package]]
+name = "zopro-core"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "ark-poly",
+ "getrandom",
+ "js-sys",
+ "libc",
+ "log",
+ "rand",
+ "rayon",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-rayon",
+ "web-time",
+ "zopro-metal",
+ "zopro-wgpu",
+]
+
+[[package]]
+name = "zopro-metal"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "metal",
+ "objc",
+ "rand",
+ "rayon",
+]
+
+[[package]]
+name = "zopro-wgpu"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "env_logger",
+ "futures-channel",
+ "log",
+ "pollster",
+ "rand",
+ "rayon",
+ "web-time",
+ "wgpu",
+]

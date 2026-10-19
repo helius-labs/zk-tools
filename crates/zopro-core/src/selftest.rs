@@ -1,7 +1,7 @@
 //! Checks of the arithmetic at key load. A phone's GPU may compile the
 //! kernels and still compute them wrong (two older iPhones did where a
 //! newer one did not), so each unit is compared with another
-//! implementation on a small input and reported as a RINGIL_TRACE selftest
+//! implementation on a small input and reported as a ZOPRO_TRACE selftest
 //! line; a GPU unit that disagrees is not used.
 use super::*;
 use ark_ff::{BigInteger, MontConfig, PrimeField, UniformRand};
@@ -17,7 +17,7 @@ pub(crate) struct Verdict {
 
 fn report(unit: &str, ok: bool, started: crate::time::Instant) -> bool {
     log::info!(
-        "RINGIL_TRACE selftest {unit} {} {:.1} ms",
+        "ZOPRO_TRACE selftest {unit} {} {:.1} ms",
         if ok { "ok" } else { "MISMATCH" },
         started.elapsed().as_secs_f64() * 1000.0
     );

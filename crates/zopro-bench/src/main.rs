@@ -1,15 +1,15 @@
-//! Proves one shape from the files TestRingilDump wrote (head, a, b, k, z,
+//! Proves one shape from the files TestZoproDump wrote (head, a, b, k, z,
 //! b2, program, coefficients, witness) and prints the stage times, then
 //! writes the proof as Ar, Krs, Bs in gnark's raw big-endian encoding for
 //! the Go referee.
 //!
-//!   RAYON_NUM_THREADS=4 ringil-bench <dump dir> [rounds]
-//!   ringil-bench stress <cycles> <dump dir>...
+//!   RAYON_NUM_THREADS=4 zopro-bench <dump dir> [rounds]
+//!   zopro-bench stress <cycles> <dump dir>...
 use std::{env, fs, path::Path, time::Instant};
 
 use ark_bn254::Fr;
 use ark_ff::{Field, UniformRand};
-use ringil_core::{decode_g1, decode_g2, Key};
+use zopro_core::{decode_g1, decode_g2, Key};
 
 fn read(dir: &Path, name: &str) -> Vec<u8> {
     fs::read(dir.join(name)).unwrap_or_else(|error| panic!("{name}: {error}"))
@@ -24,7 +24,7 @@ impl log::Log for Stderr {
     fn log(&self, record: &log::Record) {
         eprintln!(
             "{}",
-            record.args().to_string().replace("RINGIL_TRACE", "TRACE")
+            record.args().to_string().replace("ZOPRO_TRACE", "TRACE")
         );
     }
     fn flush(&self) {}
@@ -68,7 +68,7 @@ fn main() {
     assert_eq!(&head[..16], b"zolana-key-head1", "key image head");
     // After the magic and eleven u32 counts: digest, alpha, beta, delta,
     // beta2, delta2, generator, coset generator.
-    let fixed = ringil_core::groth16::FixedPoints::decode(&head[92..540]).expect("fixed points");
+    let fixed = zopro_core::groth16::FixedPoints::decode(&head[92..540]).expect("fixed points");
     let domain = &head[540..604];
     let (a, b, k, z, b2) = (
         read(dir, "a"),
@@ -95,7 +95,7 @@ fn main() {
                 key.set_solver(&read(dir, "program"), &read(dir, "coefficients")),
                 "solver plan"
             );
-            if env::var("RINGIL_CACHE_SOLVER").is_ok_and(|v| v == "1") {
+            if env::var("ZOPRO_CACHE_SOLVER").is_ok_and(|v| v == "1") {
                 fs::write(&cached, key.solver_image().expect("solver image")).unwrap();
             }
         }
@@ -108,7 +108,7 @@ fn main() {
     for _ in 0..rounds {
         let started = Instant::now();
         let parts = key.solve_parts(&witness).expect("solve and parts");
-        proof = ringil_core::groth16::assemble(&parts, &fixed);
+        proof = zopro_core::groth16::assemble(&parts, &fixed);
         prove.push(started.elapsed().as_secs_f64() * 1000.0);
     }
     fs::write(dir.join("proof"), &proof).unwrap();
@@ -116,7 +116,7 @@ fn main() {
     sorted.sort_by(|x, y| x.partial_cmp(y).unwrap());
     let threads = env::var("RAYON_NUM_THREADS").unwrap_or_default();
     println!(
-        "RINGIL rust {} threads={threads} key_ms={key_ms} plan_ms={plan_ms} prove_ms_min={:.0} prove_ms_median={:.0} rounds={rounds} inputs_mb={inputs_mb} peak_footprint_mb={}",
+        "ZOPRO rust {} threads={threads} key_ms={key_ms} plan_ms={plan_ms} prove_ms_min={:.0} prove_ms_median={:.0} rounds={rounds} inputs_mb={inputs_mb} peak_footprint_mb={}",
         dir.file_name().unwrap().to_string_lossy(),
         sorted[0],
         sorted[sorted.len() / 2],
@@ -151,7 +151,7 @@ fn field() {
     }
     let mul2 = started.elapsed().as_nanos() as f64 / n as f64;
     println!(
-        "RINGIL field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} {}",
+        "ZOPRO field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} {}",
         (x + y).0 .0[0] ^ z.c0.0 .0[0]
     );
 }
@@ -183,7 +183,7 @@ fn gpu(dir: &Path) {
             } else {
                 (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect()
             };
-            gpu_one(name, &bases, &scalars, ringil_core::msm_g2);
+            gpu_one(name, &bases, &scalars, zopro_core::msm_g2);
         } else {
             let bases = decode_g1(&read(dir, file));
             let scalars = if skew {
@@ -191,13 +191,13 @@ fn gpu(dir: &Path) {
             } else {
                 (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect()
             };
-            gpu_one(name, &bases, &scalars, ringil_core::msm_g1);
+            gpu_one(name, &bases, &scalars, zopro_core::msm_g1);
         }
     }
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
-fn gpu_one<C: ringil_metal::Curve>(
+fn gpu_one<C: zopro_metal::Curve>(
     name: &str,
     bases: &[C::Affine],
     scalars: &[Fr],
@@ -205,14 +205,14 @@ fn gpu_one<C: ringil_metal::Curve>(
 ) {
     {
         let started = Instant::now();
-        let (mut msm, compile_ms) = ringil_metal::Msm::<C>::new(bases).expect("gpu msm");
+        let (mut msm, compile_ms) = zopro_metal::Msm::<C>::new(bases).expect("gpu msm");
         let upload_ms = started.elapsed().as_secs_f64() * 1000.0 - compile_ms;
         let started = Instant::now();
         let cpu = cpu_msm(bases, scalars);
         let cpu_ms = started.elapsed().as_secs_f64() * 1000.0;
         // Warm, then timed.
         let _ = msm.msm(scalars);
-        let mut best: Option<(ringil_metal::Timings, f64)> = None;
+        let mut best: Option<(zopro_metal::Timings, f64)> = None;
         let mut result = cpu;
         for _ in 0..3 {
             let started = Instant::now();
@@ -224,14 +224,14 @@ fn gpu_one<C: ringil_metal::Curve>(
             }
         }
         let (t, total) = best.unwrap();
-        println!("RINGIL gpu-profile \"{name}\" {}", msm.profile(scalars));
+        println!("ZOPRO gpu-profile \"{name}\" {}", msm.profile(scalars));
         assert_eq!(
             result.into_affine(),
             cpu.into_affine(),
             "{name}: the GPU MSM differs from the CPU"
         );
         println!(
-            "RINGIL gpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} device_ms={:.0} combine_ms={:.1}",
+            "ZOPRO gpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} device_ms={:.0} combine_ms={:.1}",
             bases.len(),
             msm.device_name(),
             t.sort_ms,
@@ -248,7 +248,7 @@ fn gpu(_: &Path) {
 /// The MSMs of a dumped shape's B, Z and G2 B through wgpu, random and
 /// skewed scalars, checked against the CPU.
 fn wgpu_bench(dir: &Path) {
-    let gpu = std::sync::Arc::new(ringil_wgpu::Gpu::new().expect("wgpu"));
+    let gpu = std::sync::Arc::new(zopro_wgpu::Gpu::new().expect("wgpu"));
     let mut rng = rand::rngs::OsRng;
     let scalars_for = |n: usize, skewed: bool, rng: &mut rand::rngs::OsRng| -> Vec<Fr> {
         (0..n)
@@ -265,30 +265,30 @@ fn wgpu_bench(dir: &Path) {
         if file == "b2" {
             let bases = decode_g2(&read(dir, file));
             let scalars = scalars_for(bases.len(), skewed, &mut rng);
-            wgpu_one(&gpu, name, &bases, &scalars, ringil_core::msm_g2);
+            wgpu_one(&gpu, name, &bases, &scalars, zopro_core::msm_g2);
         } else {
             let bases = decode_g1(&read(dir, file));
             let scalars = scalars_for(bases.len(), skewed, &mut rng);
-            wgpu_one(&gpu, name, &bases, &scalars, ringil_core::msm_g1);
+            wgpu_one(&gpu, name, &bases, &scalars, zopro_core::msm_g1);
         }
     }
 }
 
-fn wgpu_one<C: ringil_wgpu::Curve>(
-    gpu: &std::sync::Arc<ringil_wgpu::Gpu>,
+fn wgpu_one<C: zopro_wgpu::Curve>(
+    gpu: &std::sync::Arc<zopro_wgpu::Gpu>,
     name: &str,
     bases: &[C::Affine],
     scalars: &[Fr],
     cpu_msm: fn(&[C::Affine], &[Fr]) -> C,
 ) {
     let started = Instant::now();
-    let (mut msm, compile_ms) = ringil_wgpu::Msm::<C>::new(gpu.clone(), bases).expect("wgpu msm");
+    let (mut msm, compile_ms) = zopro_wgpu::Msm::<C>::new(gpu.clone(), bases).expect("wgpu msm");
     let upload_ms = started.elapsed().as_secs_f64() * 1000.0 - compile_ms;
     let started = Instant::now();
     let cpu = cpu_msm(bases, scalars);
     let cpu_ms = started.elapsed().as_secs_f64() * 1000.0;
     let _ = msm.msm(scalars);
-    let mut best: Option<(ringil_wgpu::Timings, f64, C)> = None;
+    let mut best: Option<(zopro_wgpu::Timings, f64, C)> = None;
     for _ in 0..3 {
         let started = Instant::now();
         let (point, timings) = msm.msm(scalars).expect("gpu msm");
@@ -304,7 +304,7 @@ fn wgpu_one<C: ringil_wgpu::Curve>(
         "{name}: the wgpu MSM differs from the CPU"
     );
     println!(
-        "RINGIL wgpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} device_ms={:.0} combine_ms={:.1}",
+        "ZOPRO wgpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} device_ms={:.0} combine_ms={:.1}",
         bases.len(),
         gpu.name,
         t.sort_ms,
@@ -317,16 +317,16 @@ fn wgpu_one<C: ringil_wgpu::Curve>(
 /// on the dumped shape's domain.
 fn wgpu_quotient(dir: &Path) {
     let head = read(dir, "head");
-    let params = ringil_core::decode_frs(&head[540..604]);
+    let params = zopro_core::decode_frs(&head[540..604]);
     let (generator, coset) = (params[0], params[1]);
     let n = read(dir, "z").len() / 64 + 1;
-    let den = ringil_core::fft::denominator(n, coset).expect("denominator");
-    let plan = ringil_core::fft::Plan::new(n, generator, coset, den);
+    let den = zopro_core::fft::denominator(n, coset).expect("denominator");
+    let plan = zopro_core::fft::Plan::new(n, generator, coset, den);
     let (roots, inverse_roots, forward, reverse) = plan.tables().expect("tables");
-    let gpu = std::sync::Arc::new(ringil_wgpu::Gpu::new().expect("wgpu"));
+    let gpu = std::sync::Arc::new(zopro_wgpu::Gpu::new().expect("wgpu"));
     let started = Instant::now();
     let (mut quotient, compile_ms) =
-        ringil_wgpu::Quotient::new(gpu.clone(), n, &roots, &inverse_roots, &forward, &reverse)
+        zopro_wgpu::Quotient::new(gpu.clone(), n, &roots, &inverse_roots, &forward, &reverse)
             .expect("quotient");
     let upload_ms = started.elapsed().as_secs_f64() * 1000.0 - compile_ms;
     let mut rng = rand::rngs::OsRng;
@@ -350,7 +350,7 @@ fn wgpu_quotient(dir: &Path) {
         "the wgpu quotient differs from the CPU plan at {first_mismatch:?}"
     );
     println!(
-        "RINGIL wgpu-quotient n={n} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={gpu_ms:.0} exact=true",
+        "ZOPRO wgpu-quotient n={n} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={gpu_ms:.0} exact=true",
         gpu.name
     );
 }
@@ -455,16 +455,16 @@ fn stress(cycles: usize, dirs: &[String]) {
     let dumps: Vec<Dump> = dirs.iter().map(|d| Dump::read(Path::new(d))).collect();
     println!("STRESS dumps read: footprint_mb={}", footprint_mb());
     // SAFETY: single-threaded here; the variable is read at key build.
-    unsafe { env::set_var("RINGIL_GPU", "0") };
+    unsafe { env::set_var("ZOPRO_GPU", "0") };
     let references: Vec<Vec<u8>> = dumps
         .iter()
         .map(|d| d.key().solve(&d.witness).expect("cpu parts"))
         .collect();
-    unsafe { env::remove_var("RINGIL_GPU") };
+    unsafe { env::remove_var("ZOPRO_GPU") };
     println!("STRESS references: footprint_mb={}", footprint_mb());
-    if env::var("RINGIL_STRESS_DETAIL").is_ok_and(|v| v == "1") {
+    if env::var("ZOPRO_STRESS_DETAIL").is_ok_and(|v| v == "1") {
         let started = Instant::now();
-        let warmed = ringil_core::gpu_warm();
+        let warmed = zopro_core::gpu_warm();
         println!(
             "STRESS gpu warm {warmed} in {} ms: footprint_mb={}",
             started.elapsed().as_millis(),
@@ -475,7 +475,7 @@ fn stress(cycles: usize, dirs: &[String]) {
     let mut failed = false;
     for cycle in 0..cycles {
         let started = Instant::now();
-        let detail = env::var("RINGIL_STRESS_DETAIL").is_ok_and(|v| v == "1");
+        let detail = env::var("ZOPRO_STRESS_DETAIL").is_ok_and(|v| v == "1");
         for (dump, reference) in dumps.iter().zip(&references) {
             let key = dump.key();
             if detail {
@@ -483,9 +483,9 @@ fn stress(cycles: usize, dirs: &[String]) {
                     "STRESS   {} built: footprint_mb={} gpu_mb={}",
                     dump.name,
                     footprint_mb(),
-                    ringil_core::gpu_allocated_bytes() >> 20
+                    zopro_core::gpu_allocated_bytes() >> 20
                 );
-                if let Some(seconds) = env::var("RINGIL_STRESS_PAUSE")
+                if let Some(seconds) = env::var("ZOPRO_STRESS_PAUSE")
                     .ok()
                     .and_then(|v| v.parse().ok())
                 {
@@ -522,11 +522,11 @@ fn stress(cycles: usize, dirs: &[String]) {
                     "STRESS   {} dropped: footprint_mb={} gpu_mb={}",
                     dump.name,
                     footprint_mb(),
-                    ringil_core::gpu_allocated_bytes() >> 20
+                    zopro_core::gpu_allocated_bytes() >> 20
                 );
             }
         }
-        let (gpu_mb, rss) = (ringil_core::gpu_allocated_bytes() >> 20, footprint_mb());
+        let (gpu_mb, rss) = (zopro_core::gpu_allocated_bytes() >> 20, footprint_mb());
         println!(
             "STRESS cycle {cycle} gpu_mb={gpu_mb} footprint_mb={rss} ms={}",
             started.elapsed().as_millis()
@@ -562,7 +562,7 @@ fn stress(cycles: usize, dirs: &[String]) {
 fn wgsl_field() {
     use ark_bn254::Fq;
     use ark_ff::{BigInteger, Field, PrimeField};
-    let gpu = ringil_wgpu::Gpu::new().expect("wgpu");
+    let gpu = zopro_wgpu::Gpu::new().expect("wgpu");
     let (device, queue) = (&gpu.device, &gpu.queue);
     let q = Fq::MODULUS;
     let limbs13 = |x: &ark_ff::BigInt<4>| -> [u32; 20] {
@@ -587,7 +587,7 @@ fn wgsl_field() {
         inv = inv.wrapping_mul(2u32.wrapping_sub(q0.wrapping_mul(inv))) & 0x1fff;
     }
     let np = (0x2000 - inv) & 0x1fff;
-    let field = include_str!("../../ringil-wgpu/shaders/field.wgsl");
+    let field = include_str!("../../zopro-wgpu/shaders/field.wgsl");
     let shader13 = include_str!("field13.wgsl")
         .replace("NP13_VALUE", &format!("{np}u"))
         .replace(
@@ -758,7 +758,7 @@ fn wgsl_field() {
         Fq::new_unchecked(big) * sixteen.inverse().unwrap() == expected[i]
     });
     let muls = threads as f64 * rounds as f64;
-    println!("RINGIL wgsl-field device=\"{}\" 16-bit {ms16:.1} ms ({:.0} M mul/s, correct {ok16}) 13-bit {ms13:.1} ms ({:.0} M mul/s, correct {ok13})", gpu.name, muls / ms16 / 1e3, muls / ms13 / 1e3);
+    println!("ZOPRO wgsl-field device=\"{}\" 16-bit {ms16:.1} ms ({:.0} M mul/s, correct {ok16}) 13-bit {ms13:.1} ms ({:.0} M mul/s, correct {ok13})", gpu.name, muls / ms16 / 1e3, muls / ms13 / 1e3);
 }
 
 /// How skewed a shape's MSM scalars are: per vector, the share of zeros,
@@ -817,10 +817,10 @@ fn scalar_profile(dir: &Path) {
 /// A, B1, K, H·Z (G1) and B2 (G2) differ.
 fn parts_diff(dir: &Path) {
     let dump = Dump::read(dir);
-    // SAFETY: single-threaded here; the keys read RINGIL_GPU when built.
-    unsafe { env::set_var("RINGIL_GPU", "0") };
+    // SAFETY: single-threaded here; the keys read ZOPRO_GPU when built.
+    unsafe { env::set_var("ZOPRO_GPU", "0") };
     let cpu = dump.key().solve(&dump.witness).expect("cpu parts");
-    unsafe { env::set_var("RINGIL_GPU", "1") };
+    unsafe { env::set_var("ZOPRO_GPU", "1") };
     let key = dump.key();
     for round in 0..2 {
         let gpu = key.solve(&dump.witness).expect("gpu parts");
@@ -843,7 +843,7 @@ fn parts_diff(dir: &Path) {
 }
 
 /// The CPU MSMs of a dumped shape's B, Z and B2 with random scalars, best of
-/// three (RAYON_NUM_THREADS, RINGIL_CPU_WIDTH, RINGIL_CPU_SPLIT).
+/// three (RAYON_NUM_THREADS, ZOPRO_CPU_WIDTH, ZOPRO_CPU_SPLIT).
 fn cpu_msm(dir: &Path) {
     let mut rng = rand::rngs::OsRng;
     let time = |f: &mut dyn FnMut()| -> f64 {
@@ -856,26 +856,26 @@ fn cpu_msm(dir: &Path) {
             })
             .fold(f64::MAX, f64::min)
     };
-    let only = env::var("RINGIL_CPU_VECTORS").unwrap_or_else(|_| "b,z,b2".into());
+    let only = env::var("ZOPRO_CPU_VECTORS").unwrap_or_else(|_| "b,z,b2".into());
     for name in only.split(',') {
         let ms = if name == "b2" {
             let bases = decode_g2(&read(dir, name));
             let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
             time(&mut || {
-                let _ = std::hint::black_box(ringil_core::msm_g2(&bases, &scalars));
+                let _ = std::hint::black_box(zopro_core::msm_g2(&bases, &scalars));
             })
         } else {
             let bases = decode_g1(&read(dir, name));
             let scalars: Vec<Fr> = (0..bases.len()).map(|_| Fr::rand(&mut rng)).collect();
             time(&mut || {
-                let _ = std::hint::black_box(ringil_core::msm_g1(&bases, &scalars));
+                let _ = std::hint::black_box(zopro_core::msm_g1(&bases, &scalars));
             })
         };
         println!(
-            "RINGIL cpu-msm {name} threads={} width={} split={} ms={ms:.0}",
+            "ZOPRO cpu-msm {name} threads={} width={} split={} ms={ms:.0}",
             env::var("RAYON_NUM_THREADS").unwrap_or_default(),
-            env::var("RINGIL_CPU_WIDTH").unwrap_or_else(|_| "auto".into()),
-            env::var("RINGIL_CPU_SPLIT").unwrap_or_else(|_| "1".into()),
+            env::var("ZOPRO_CPU_WIDTH").unwrap_or_else(|_| "auto".into()),
+            env::var("ZOPRO_CPU_SPLIT").unwrap_or_else(|_| "1".into()),
         );
     }
 }

@@ -18,7 +18,7 @@ use rayon::prelude::*;
 /// The window width: gnark's cost model, (bits + 1) (n + 2^c) / c, over the
 /// widths whose signed digits fit an i16.
 fn width(n: usize) -> usize {
-    if let Some(width) = std::env::var("RINGIL_CPU_WIDTH")
+    if let Some(width) = std::env::var("ZOPRO_CPU_WIDTH")
         .ok()
         .and_then(|v| v.parse().ok())
     {
@@ -30,10 +30,10 @@ fn width(n: usize) -> usize {
         .unwrap()
 }
 
-/// Point ranges per window (RINGIL_CPU_SPLIT, experiment): more tasks than
+/// Point ranges per window (ZOPRO_CPU_SPLIT, experiment): more tasks than
 /// windows for the pool, each with its own buckets.
 fn split() -> usize {
-    std::env::var("RINGIL_CPU_SPLIT")
+    std::env::var("ZOPRO_CPU_SPLIT")
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(1)

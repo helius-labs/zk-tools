@@ -1,5 +1,5 @@
 // The quotient's transforms over Fr, radix-2 stages in global memory, as
-// ringil-metal's quotient.metal.
+// zopro-metal's quotient.metal.
 struct Stage { n: u32, level: u32, gap_log: u32, pad: u32, }
 
 @group(0) @binding(0) var<storage, read_write> values: array<Fr>;
