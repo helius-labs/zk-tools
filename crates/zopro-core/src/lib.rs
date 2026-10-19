@@ -294,11 +294,12 @@ fn g2_gpu_share(spirv: bool) -> f64 {
         .unwrap_or(if spirv { 0.0 } else { WGPU_G2_SHARE })
         .clamp(0.0, 1.0)
 }
-/// In a browser, where the CPU's share runs as WebAssembly: measured best
-/// in Chrome on an M5 Pro at 4 threads (8 → 2 288 ms, 24 → 2 636 ms, where
-/// 0.25 gave 348 and 935).
+/// In a browser, where the CPU's share runs as WebAssembly on the pool
+/// while the GPU sorts and sums the rest: measured best in Chrome on an M5
+/// Pro at 4 threads (8 → 2 177 ms, 24 → 2 430; 0.75 gave 191 and 459,
+/// 0.45 203 and 506).
 #[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
-const WEB_G2_SHARE: f64 = 0.75;
+const WEB_G2_SHARE: f64 = 0.55;
 #[cfg(gpu_wgpu)]
 const WGPU_G2_SHARE: f64 = 0.25;
 
@@ -575,7 +576,9 @@ pub struct Key {
     b: Vec<G1Affine>,
     k: Vec<G1Affine>,
     z: Vec<G1Affine>,
-    b2: Vec<G2Affine>,
+    /// Shared, for a browser's CPU share of the G2 MSM on the pool while
+    /// the proof's future awaits the GPU.
+    b2: std::sync::Arc<Vec<G2Affine>>,
     domain: Radix2EvaluationDomain<Fr>,
     plan: fft::Plan,
     commitments: Vec<(Vec<G1Affine>, Vec<G1Affine>)>,
@@ -739,7 +742,7 @@ impl Key {
             b,
             k,
             z,
-            b2,
+            b2: std::sync::Arc::new(b2),
             domain,
             plan,
             commitments: Vec::new(),
@@ -859,28 +862,72 @@ impl Key {
         let solution = plan.solve(&frs(witness)).map_err(|e| JsError::new(&e))?;
         let sa: Vec<_> = plan.a_indices.iter().map(|i| solution.w[*i]).collect();
         let sb: Vec<_> = plan.b_indices.iter().map(|i| solution.w[*i]).collect();
-        let sk = &solution.w[plan.n_public..];
+        let sk: Vec<Fr> = solution.w[plan.n_public..].to_vec();
         let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
         stage("cpu solve");
         let (a, b, c) = (solution.a, solution.b, solution.c);
-        let (h_from_cpu, quotient_on_gpu) = if self.gpu_quotient {
+        let h_from_cpu = if self.gpu_quotient {
             gpu.quotient.lock().unwrap().start(&a, &b, &c);
-            (None, true)
+            None
         } else {
-            (Some(self.quotient(a, b, c)), false)
+            Some(self.quotient(a, b, c))
         };
-        stage("cpu quotient submit");
-        let pa = gpu.a.lock().unwrap().start(&sa);
-        let pb = gpu.b.lock().unwrap().start(&sb);
-        let pk = gpu.k.lock().unwrap().start(sk);
-        let pb2 = gpu
-            .b2
-            .as_ref()
-            .map(|b2| b2.lock().unwrap().start(&sb[..cut]));
-        stage("cpu sort a b k b2");
-        // The CPU's share of G2 while the GPU works.
-        let cpu_b2 = (cut < sb.len()).then(|| msm_g2(&self.b2[cut..], &sb[cut..]));
-        stage("cpu g2 share");
+        stage("cpu quotient");
+        // The GPU counts the scalars of the MSMs it sorts behind the
+        // quotient, Z's from the quotient's output without a read back;
+        // the host plans each MSM from its counts as they come.
+        let sb2 = sb[..cut].to_vec();
+        for (msm, scalars) in [(&gpu.a, &sa), (&gpu.b, &sb), (&gpu.k, &sk)] {
+            let mut msm = msm.lock().unwrap();
+            if msm.sorts_on_gpu() {
+                msm.count(scalars);
+            }
+        }
+        if let Some(b2) = &gpu.b2 {
+            let mut b2 = b2.lock().unwrap();
+            if b2.sorts_on_gpu() {
+                b2.count(&sb2);
+            }
+        }
+        let z_counted = h_from_cpu.is_none() && {
+            let mut z = gpu.z.lock().unwrap();
+            z.sorts_on_gpu() && {
+                z.count_from(gpu.quotient.lock().unwrap().output());
+                true
+            }
+        };
+        // The MSMs the host sorts start now, before the CPU's G2 share takes
+        // the pool.
+        let host_start = |msm: &std::sync::Mutex<zopro_wgpu::G1Msm>, scalars: &[Fr]| {
+            let mut msm = msm.lock().unwrap();
+            (!msm.sorts_on_gpu()).then(|| msm.start(scalars))
+        };
+        let (ha, hb, hk) = (
+            host_start(&gpu.a, &sa),
+            host_start(&gpu.b, &sb),
+            host_start(&gpu.k, &sk),
+        );
+        let hb2 = gpu.b2.as_ref().and_then(|b2| {
+            let mut b2 = b2.lock().unwrap();
+            (!b2.sorts_on_gpu()).then(|| b2.start(&sb2))
+        });
+        stage("cpu counts submit, host sorts");
+        // The CPU's share of G2 on the pool, while this thread awaits the
+        // GPU.
+        let cpu_b2 = (cut < sb.len()).then(|| {
+            let (tx, rx) = futures_channel::oneshot::channel();
+            let (bases, scalars) = (self.b2.clone(), sb[cut..].to_vec());
+            rayon::spawn(move || {
+                let started = crate::time::Instant::now();
+                let sum = msm_g2(&bases[cut..], &scalars);
+                zopro_wgpu::profile::record_cpu(
+                    "cpu g2 share",
+                    started.elapsed().as_secs_f64() * 1000.0,
+                );
+                let _ = tx.send(sum);
+            });
+            rx
+        });
         Ok(wasm_bindgen_futures::future_to_promise(async move {
             let mut clock = crate::time::Instant::now();
             let mut stage = |name: &'static str| {
@@ -888,17 +935,38 @@ impl Key {
                 clock = crate::time::Instant::now();
             };
             let fail = |e: String| JsValue::from(JsError::new(&e));
-            let h = match h_from_cpu {
-                Some(h) => h,
-                None => {
-                    debug_assert!(quotient_on_gpu);
-                    let mut quotient = gpu.quotient.lock().unwrap();
-                    quotient.finish_async().await.map_err(fail)?
+            // The GPU-sorted MSMs start as their counts come back.
+            async fn begin(
+                msm: &std::sync::Mutex<zopro_wgpu::G1Msm>,
+                started: Option<zopro_wgpu::Pending>,
+            ) -> zopro_wgpu::Pending {
+                match started {
+                    Some(pending) => pending,
+                    None => msm.lock().unwrap().start_counted_async().await,
                 }
+            }
+            let pa = begin(&gpu.a, ha).await;
+            let pb = begin(&gpu.b, hb).await;
+            let pk = begin(&gpu.k, hk).await;
+            let pb2 = match (&gpu.b2, hb2) {
+                (Some(_), Some(pending)) => Some(pending),
+                (Some(b2), None) => Some(b2.lock().unwrap().start_counted_async().await),
+                (None, _) => None,
             };
-            stage("wait quotient");
-            let pz = gpu.z.lock().unwrap().start(&h);
-            stage("cpu sort z");
+            stage("plan a b k b2");
+            let pz = if z_counted {
+                gpu.z.lock().unwrap().start_counted_async().await
+            } else {
+                let h = match h_from_cpu {
+                    Some(h) => h,
+                    None => {
+                        let mut quotient = gpu.quotient.lock().unwrap();
+                        quotient.finish_async().await.map_err(fail)?
+                    }
+                };
+                gpu.z.lock().unwrap().start(&h)
+            };
+            stage("plan z");
             let (ar, _) = gpu.a.lock().unwrap().finish_async(pa).await.map_err(fail)?;
             let (bs1, _) = gpu.b.lock().unwrap().finish_async(pb).await.map_err(fail)?;
             let (kr, _) = gpu.k.lock().unwrap().finish_async(pk).await.map_err(fail)?;
@@ -910,6 +978,11 @@ impl Key {
             };
             let (hz, _) = gpu.z.lock().unwrap().finish_async(pz).await.map_err(fail)?;
             stage("wait msms");
+            let cpu_b2 = match cpu_b2 {
+                Some(rx) => Some(rx.await.map_err(|_| fail("the CPU's G2 share".into()))?),
+                None => None,
+            };
+            stage("wait cpu g2");
             let bs2 = match (gpu_b2, cpu_b2) {
                 (Some(g), Some(c)) => g + c,
                 (Some(g), None) => g,

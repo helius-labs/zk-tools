@@ -714,6 +714,41 @@ pub(crate) fn spirv_pipeline(
 
 /// The smallest MSM the GPU sorts by default.
 const GPU_SORT_MIN: usize = 1 << 16;
+
+/// The GPU sort's threshold: GPU_SORT_MIN, or in a browser the build's
+/// ZOPRO_WEB_GPU_SORT_MIN.
+fn gpu_sort_min() -> usize {
+    #[cfg(target_arch = "wasm32")]
+    if let Some(min) = option_env!("ZOPRO_WEB_GPU_SORT_MIN").and_then(|v| v.parse().ok()) {
+        return min;
+    }
+    GPU_SORT_MIN
+}
+/// The same kernels in WGSL, for the browser: count and scatter in
+/// modules of their own, as their bindings differ.
+const SORT_WGSL: [(&str, &str); 2] = [
+    (
+        "msm_count",
+        concat!(
+            include_str!("../shaders/fr.wgsl"),
+            "\n",
+            include_str!("../shaders/sort_digits.wgsl"),
+            "\n",
+            include_str!("../shaders/sort_count.wgsl")
+        ),
+    ),
+    (
+        "msm_scatter",
+        concat!(
+            include_str!("../shaders/fr.wgsl"),
+            "\n",
+            include_str!("../shaders/sort_digits.wgsl"),
+            "\n",
+            include_str!("../shaders/sort_scatter.wgsl")
+        ),
+    ),
+];
+
 const SORT_KERNELS: [(&str, &[u8]); 2] = [
     ("msm_count", include_bytes!("../glsl/out/msm_count.spv")),
     ("msm_scatter", include_bytes!("../glsl/out/msm_scatter.spv")),
@@ -864,35 +899,59 @@ impl<C: Curve> Msm<C> {
         } else {
             windows * per_window / WORKGROUP as usize
         };
-        // The sort on the GPU, with the pre-compiled kernels, for MSMs of
-        // 2^16 points and more: on a OnePlus 13 it freed the cores the CPU's
+        // The sort on the GPU for MSMs of 2^16 points and more: with the
+        // pre-compiled kernels on a OnePlus 13 it freed the cores the CPU's
         // G2 MSM needs at 8 -> 2 (658 against 681 ms) and lost at 1 -> 2
-        // (208 against 174), where the GPU round trips weigh more
-        // (ZOPRO_GPU_SORT=0|1 decides for every size).
-        let gpu_sort = (spirv.is_some()
+        // (208 against 174), where the GPU round trips weigh more; in a
+        // browser it frees the WebAssembly threads for G2 (the WGSL
+        // kernels). ZOPRO_GPU_SORT=0|1 decides for every size natively.
+        let gpu_sort = ((spirv.is_some() || cfg!(target_arch = "wasm32"))
             && match std::env::var("ZOPRO_GPU_SORT").as_deref() {
                 Ok("1") => true,
                 Ok(_) => false,
-                Err(_) => n >= GPU_SORT_MIN,
-            })
+                Err(_) => n >= gpu_sort_min(),
+            }
+            || std::env::var("ZOPRO_GPU_SORT").as_deref() == Ok("1"))
         .then(|| {
             use Slot::*;
             let [(count_entry, count), (scatter_entry, scatter)] = SORT_KERNELS;
+            let (count, scatter) = if spirv.is_some() {
+                (
+                    spirv_pipeline(
+                        device,
+                        gpu.cache(),
+                        count_entry,
+                        count,
+                        &[Read, Write, Uniform],
+                    ),
+                    spirv_pipeline(
+                        device,
+                        gpu.cache(),
+                        scatter_entry,
+                        scatter,
+                        &[Read, Write, Write, Uniform],
+                    ),
+                )
+            } else {
+                let wgsl = |(entry, source): (&str, &str)| {
+                    let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                        label: Some(entry),
+                        source: wgpu::ShaderSource::Wgsl(source.into()),
+                    });
+                    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                        label: Some(entry),
+                        layout: None,
+                        module: &module,
+                        entry_point: Some(entry),
+                        compilation_options: Default::default(),
+                        cache: gpu.cache(),
+                    })
+                };
+                (wgsl(SORT_WGSL[0]), wgsl(SORT_WGSL[1]))
+            };
             GpuSort {
-                count: spirv_pipeline(
-                    device,
-                    gpu.cache(),
-                    count_entry,
-                    count,
-                    &[Read, Write, Uniform],
-                ),
-                scatter: spirv_pipeline(
-                    device,
-                    gpu.cache(),
-                    scatter_entry,
-                    scatter,
-                    &[Read, Write, Write, Uniform],
-                ),
+                count,
+                scatter,
                 scalars: storage(device, "scalars", n * 32),
                 counts: storage(device, "counts", buckets * 4),
                 counts_staging: device.create_buffer(&wgpu::BufferDescriptor {
@@ -987,24 +1046,61 @@ impl<C: Curve> Msm<C> {
     }
 
     fn start_with(&mut self, scalars: Option<&[Fr]>) -> Pending {
-        let mut timings = Timings::default();
         let started = Instant::now();
         if self.gpu_sort.is_some() {
-            if self
-                .gpu_sort
-                .as_ref()
-                .is_some_and(|sort| sort.counted.is_none())
-            {
-                self.count(scalars.expect("scalars to count"));
-            }
+            self.count_once(scalars);
             #[cfg(not(target_arch = "wasm32"))]
             self.read_counts();
         } else {
-            let sorted = self.sort(scalars.expect("scalars to sort"));
-            self.gpu
-                .queue
-                .write_buffer(&self.sorted, 0, bytemuck_cast(&sorted));
+            self.sort_on_host(scalars);
         }
+        self.submit_sorted(started)
+    }
+
+    /// `start` in a browser: the GPU's counts are awaited, not waited for.
+    pub async fn start_async(&mut self, scalars: &[Fr]) -> Pending {
+        assert_eq!(scalars.len(), self.n);
+        self.start_with_async(Some(scalars)).await
+    }
+
+    /// `start_counted` in a browser.
+    pub async fn start_counted_async(&mut self) -> Pending {
+        self.start_with_async(None).await
+    }
+
+    async fn start_with_async(&mut self, scalars: Option<&[Fr]>) -> Pending {
+        let started = Instant::now();
+        if self.gpu_sort.is_some() {
+            self.count_once(scalars);
+            self.read_counts_async().await;
+        } else {
+            self.sort_on_host(scalars);
+        }
+        self.submit_sorted(started)
+    }
+
+    /// Submits the counting unless `count`/`count_from` already did.
+    fn count_once(&mut self, scalars: Option<&[Fr]>) {
+        if self
+            .gpu_sort
+            .as_ref()
+            .is_some_and(|sort| sort.counted.is_none())
+        {
+            self.count(scalars.expect("scalars to count"));
+        }
+    }
+
+    fn sort_on_host(&mut self, scalars: Option<&[Fr]>) {
+        let sorted = self.sort(scalars.expect("scalars to sort"));
+        self.gpu
+            .queue
+            .write_buffer(&self.sorted, 0, bytemuck_cast(&sorted));
+    }
+
+    /// The MSM's passes over sorted entries (the GPU scatters them first
+    /// when it sorts), submitted.
+    fn submit_sorted(&mut self, started: Instant) -> Pending {
+        let mut timings = Timings::default();
         let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
         // ZOPRO_WGPU_STAGES=1: each pass submitted and waited for alone,
         // its time traced (a profile, not a proof's timing).
@@ -1421,16 +1517,20 @@ impl<C: Curve> Msm<C> {
     }
 
     /// The submitted counts read back into `counts` and `starts` (each
-    /// window's entries from `w * n`). Native only, as the GPU sort: a
-    /// browser never builds one.
+    /// window's entries from `w * n`).
     #[cfg(not(target_arch = "wasm32"))]
     fn read_counts(&mut self) {
+        pollster::block_on(self.read_counts_async());
+    }
+
+    /// As `read_counts`, yielding while the GPU counts: the browser's way.
+    async fn read_counts_async(&mut self) {
         let sort = self.gpu_sort.as_mut().expect("the GPU sort");
         let submission = sort.counted.take().expect("counts submitted");
         let staging = &sort.counts_staging;
         // A failed device leaves the counts as they were: the MSM's finish
         // reports it.
-        if pollster::block_on(mapped(&self.gpu, staging, Some(submission))).is_ok() {
+        if mapped(&self.gpu, staging, Some(submission)).await.is_ok() {
             let data = staging
                 .slice(..)
                 .get_mapped_range()
