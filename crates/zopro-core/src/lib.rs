@@ -666,6 +666,7 @@ impl<T: InPlace> Store<T> {
         })
     }
     /// The points after the first `cut`.
+    #[cfg(gpu_any)]
     fn tail(self, cut: usize) -> Self
     where
         T: Clone,
@@ -889,8 +890,8 @@ impl Key {
             clock = crate::time::Instant::now();
         };
         let solution = plan.solve(&frs(witness)).map_err(|e| JsError::new(&e))?;
-        let sa: Vec<_> = plan.a_indices.iter().map(|i| solution.w[*i]).collect();
-        let sb: Vec<_> = plan.b_indices.iter().map(|i| solution.w[*i]).collect();
+        let sa: Vec<_> = plan.a_indices.iter().map(|&i| solution.w[i as usize]).collect();
+        let sb: Vec<_> = plan.b_indices.iter().map(|&i| solution.w[i as usize]).collect();
         let sk: Vec<Fr> = solution.w[plan.n_public..].to_vec();
         let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
         stage("cpu solve");
@@ -1042,8 +1043,8 @@ impl Key {
         let started = crate::time::Instant::now();
         let solution = plan.solve(&frs(witness))?;
         trace("solve", started);
-        let sa: Vec<_> = plan.a_indices.iter().map(|i| solution.w[*i]).collect();
-        let sb: Vec<_> = plan.b_indices.iter().map(|i| solution.w[*i]).collect();
+        let sa: Vec<_> = plan.a_indices.iter().map(|&i| solution.w[i as usize]).collect();
+        let sb: Vec<_> = plan.b_indices.iter().map(|&i| solution.w[i as usize]).collect();
         self.compute_parts(
             &sa,
             &sb,
@@ -1280,8 +1281,8 @@ impl Key {
         let plan = self.solver.as_ref().ok_or("no prepared solver")?;
         let solution = plan.solve(&frs(witness))?;
         Ok([
-            plan.a_indices.iter().map(|i| solution.w[*i]).collect(),
-            plan.b_indices.iter().map(|i| solution.w[*i]).collect(),
+            plan.a_indices.iter().map(|&i| solution.w[i as usize]).collect(),
+            plan.b_indices.iter().map(|&i| solution.w[i as usize]).collect(),
             solution.w[plan.n_public..].to_vec(),
         ])
     }
