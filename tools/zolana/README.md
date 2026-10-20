@@ -16,3 +16,7 @@ builds against; its aeglos GPU files need a module this does not fetch, so
   `zopro-keys.lock` that pins them, beside the gnark key each was built
   from. The SDKs copy the lockfile and serve the keys from the key set's
   CDN folder.
+- `fixtures/` holds a `/prove` request per shape (`transfer-<n>x2.json`,
+  `merge-<n>x1.json`, written by zolana's `TestRequestFixture` with the
+  shape changed) and `zopro-keys.lock` the key set they prove with; both
+  feed `tools/bench.sh`.

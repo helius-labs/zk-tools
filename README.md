@@ -74,16 +74,24 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
   that proofs report). Its cdylib is the Zolana browser runtime
   (`ZolanaProver` beside `WebProver`).
 - `crates/zopro-bench`: proves a dumped shape natively and times it
-  (`RAYON_NUM_THREADS=4 zopro-bench <dump dir>`), and has modes for the GPU
-  MSMs (`gpu`, `wgpu`), a key-switching stress check of results and memory
-  (`stress <cycles> <dumps...>`), and field microbenchmarks (`field`,
-  `wgsl-field`).
+  (`RAYON_NUM_THREADS=4 zopro-bench <dump dir>`), proves a Zolana request
+  with its key as the mobile SDK does and reports times and memory
+  (`zolana <key.zopro> <request.json>`; `tools/bench.sh` runs it shape by
+  shape), and has modes for the GPU MSMs (`gpu`, `wgpu`), a key-switching
+  stress check of results and memory (`stress <cycles> <dumps...>`), and
+  field microbenchmarks (`field`).
 - `tools/gnark`: gnark's side, offline, with gnark alone: `zopro-dump`
   writes a constraint system's and its keys' parts (`zoprognark.Dump` for
   Go callers), and `pack.sh` makes the zopro key.
 - `tools/zolana`: Zolana's keys: the dump of a Zolana gnark key with its
   metadata, the zopro keys of a whole key set with their lockfile
-  (`build-keys.sh`), and gnark's verifier as the referee of zopro's proofs.
+  (`build-keys.sh`; `zopro-keys.lock` pins the key set the bench uses),
+  request fixtures per shape (`fixtures/`), and gnark's verifier as the
+  referee of zopro's proofs.
+- `tools/bench.sh [shapes] [rounds]`: benches this computer on Zolana's
+  keys (downloaded once into `~/.cache/zopro-keys`, checked against the
+  lockfile) and requests, 1 → 2 to 24 → 2 by default: a key's first load,
+  its later loads, the memory it holds, and each proof's time and peak.
 
 ## Safety
 
@@ -91,11 +99,9 @@ A GPU can compute wrong results (two iPhones' did, from a threadgroup size
 their pipelines could not run). At key load zopro compares the GPU's MSM on
 small inputs with the CPU's, and a GPU that disagrees is let go (Metal first
 retries with size-optimized shaders); the hosts verify every proof before it
-leaves and, on a failure, prove again on the CPU (the browser) or with gnark
-(mobile). A kernel or buffer the driver refuses, a lost device or an aborted
-command buffer is an error, never a panic. On phones a key is proved with
-zopro only when the free memory holds its peak (about nine times the key's
-point vectors).
+leaves and, on a GPU's failure, prove again on the CPU. A kernel or buffer
+the driver refuses, a lost device or an aborted command buffer is an error,
+never a panic.
 
 ## Tests
 
@@ -113,19 +119,24 @@ witness against gnark's byte for byte, and leave raw proofs that
 
 ## Measured
 
-Proof with the key loaded, 4 CPU threads, every proof verified by gnark.
+`tools/bench.sh` on an M5 Pro (Metal, every proof verified; memory is the
+process's physical footprint, Metal's buffers included):
 
-| shape | gnark (M5 Pro) | zopro, Metal (M5 Pro) | web runtime 0.3.1 (Chrome, M5 Pro) | zopro, WebGPU (Chrome, M5 Pro) |
-|---|---|---|---|---|
-| 1 → 2 | — | 51 ms | 171 ms | 61 ms |
-| 2 → 2 | 287 ms | 67 ms | 280 ms | 89 ms |
-| 8 → 2 | 920 ms | 149 ms | 920 ms | 212 ms |
-| 24 → 2 | 2 472 ms | 361–381 ms | 2 744 ms | 574 ms |
+| shape | first load | load | key held | proof peak | proof |
+|---|---|---|---|---|---|
+| 1 → 2 | 141 ms | 79 ms | 350 MB | 391 MB | 24 ms |
+| 2 → 2 | 215 ms | 89 ms | 397 MB | 462 MB | 31 ms |
+| 4 → 2 | 372 ms | 93 ms | 484 MB | 605 MB | 53 ms |
+| 8 → 2 | 724 ms | 110 ms | 645 MB | 893 MB | 68 ms |
+| 12 → 2 | 1188 ms | 135 ms | 812 MB | 1176 MB | 99 ms |
+| 16 → 2 | 1528 ms | 151 ms | 969 MB | 1362 MB | 125 ms |
+| 24 → 2 | 2355 ms | 190 ms | 1273 MB | 1862 MB | 180 ms |
 
-Phones (AWS Device Farm, release builds, against gnark on the same phone):
-iPhone 17 Pro 1.7–2.25×, iPhone 15 1.45–1.7×, iPhone 12 1.3–1.5×; Android
-proves on its CPU at gnark's speed (its GPUs, through wgpu, were slower than
-its cores or refused a kernel).
+On a phone's CPU (a Seeker, Android, anonymous memory) 12 → 2 proves in
+2.45 s with a 194 MB peak, against gnark's 4.79 s and 790 MB. Phones in AWS
+Device Farm (release builds, against gnark on the same phone): proofs 23 to
+49 % faster on Android's CPUs (Galaxy A16, A56), 21 to 58 % on a Galaxy
+S25, and 43 to 76 % on iPhones 12, 15 and 17 Pro with Metal.
 
 ## Building
 
