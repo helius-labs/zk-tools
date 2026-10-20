@@ -63,6 +63,10 @@ impl Prover {
     /// reads its points in place, so the system may drop their pages under
     /// memory pressure and read them again rather than the process holding
     /// them, and the load decompresses nothing.
+    ///
+    /// A host writes the image once, from the key file, renames it into
+    /// place and maps it; a damaged or older image fails here, and the host
+    /// writes it again.
     pub fn load_image(image: Image) -> Result<Self, String> {
         let bytes = (*image).as_ref();
         if !bytes.starts_with(MAGIC) {
@@ -72,28 +76,39 @@ impl Prover {
         Self::from_artifact(&artifact, Points::Mapped(&image, ranges), Some(solver))
     }
 
-    /// Writes the raw form of this prover, loaded from `key` (its key file),
-    /// to `out`, from the points the key holds; `Ok(false)` without writing
-    /// when it holds none (a GPU took them).
-    pub fn write_image(&self, key: &[u8], out: &mut impl Write) -> io::Result<bool> {
-        let Some(vectors) = self.key.point_bytes() else {
-            return Ok(false);
-        };
-        let (_, at) = Artifact::head(key).map_err(io::Error::other)?;
-        let image = self.solver_image().unwrap_or_default();
-        write(out, &key[..at], vectors, &image)?;
-        Ok(true)
+    /// Writes the raw form of the key file `key` to `out` without loading
+    /// the key: each vector decompressed and written in turn, then the
+    /// solver's image built and written, so it holds one of them at a time
+    /// (a load holds them all: at 16 -> 2 on a phone, ~300 MB against ~500).
+    pub fn write_image(key: &[u8], out: &mut impl Write) -> Result<(), String> {
+        let (_, at) = Artifact::head(key)?;
+        let artifact = Artifact::parse(key)?;
+        let io = |e: io::Error| e.to_string();
+        write_head(out, &key[..at]).map_err(io)?;
+        artifact.write_points(out).map_err(io)?;
+        let image = artifact.solver_image()?;
+        write_tail(out, &image).map_err(io)
     }
 }
 
 fn write(out: &mut impl Write, head: &[u8], vectors: [&[u8]; 5], image: &[u8]) -> io::Result<()> {
-    out.write_all(MAGIC)?;
-    out.write_all(&(head.len() as u32).to_le_bytes())?;
-    out.write_all(head)?;
-    out.write_all(&[0; ALIGN][..padding(MAGIC.len() + 4 + head.len())])?;
+    write_head(out, head)?;
     for vector in vectors {
         out.write_all(vector)?;
     }
+    write_tail(out, image)
+}
+
+/// The magic, the key's head and the padding to the vectors.
+fn write_head(out: &mut impl Write, head: &[u8]) -> io::Result<()> {
+    out.write_all(MAGIC)?;
+    out.write_all(&(head.len() as u32).to_le_bytes())?;
+    out.write_all(head)?;
+    out.write_all(&[0; ALIGN][..padding(MAGIC.len() + 4 + head.len())])
+}
+
+/// The solver image after the vectors.
+fn write_tail(out: &mut impl Write, image: &[u8]) -> io::Result<()> {
     out.write_all(&(image.len() as u32).to_le_bytes())?;
     out.write_all(image)
 }

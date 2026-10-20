@@ -1092,30 +1092,6 @@ impl Key {
     }
 }
 impl Key {
-    /// The points as bytes in the kernel's encoding (a, b, k, z, b2), for a
-    /// host's image of the key, when the CPU holds all of them (a GPU took
-    /// none) on a little-endian device, where their memory is that
-    /// encoding.
-    pub fn point_bytes(&self) -> Option<[&[u8]; 5]> {
-        fn bytes<T: InPlace>(points: &[T]) -> &[u8] {
-            // SAFETY: T's memory is T::SIZE plain bytes (InPlace).
-            unsafe { std::slice::from_raw_parts(points.as_ptr().cast::<u8>(), points.len() * T::SIZE) }
-        }
-        let whole = self.a.len() == self.lengths[0]
-            && self.b.len() == self.lengths[1]
-            && self.k.len() == self.lengths[2]
-            && self.z.len() + 1 == self.domain
-            && self.b2.len() == self.lengths[1];
-        (cfg!(target_endian = "little") && whole).then(|| {
-            [
-                bytes(&self.a),
-                bytes(&self.b),
-                bytes(&self.k),
-                bytes(&self.z),
-                bytes(&self.b2),
-            ]
-        })
-    }
     /// `new` for hosts outside JavaScript, from either encoding of the
     /// points, with a plain error.
     pub fn build(points: Points, domain_params: &[u8]) -> Result<Key, &'static str> {

@@ -61,7 +61,7 @@ fn proves_from_its_image_in_place() {
     let key = key();
     let (prover, source) = Prover::load_cacheable(&key).expect("load");
     let mut image = Vec::new();
-    assert!(prover.write_image(&key, &mut image).expect("write"));
+    Prover::write_image(&key, &mut image).expect("write");
     assert_eq!(image, source.expect("a key file's raw source").export(&prover), "the raw form");
     let image: zopro_prover::zopro_core::Image = std::sync::Arc::new(image);
     let mut again = Prover::load_image(image.clone()).expect("load the image");

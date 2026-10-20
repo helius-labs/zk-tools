@@ -139,8 +139,8 @@ pub fn run() {
     );
 }
 
-/// Loads a zopro key as the mobile SDK does (its image mapped, or the key
-/// file and then its image written), proves and verifies the dump's
+/// Loads a zopro key as the mobile SDK does (its image mapped, written
+/// from the key file first when there is none), proves and verifies the dump's
 /// witness `rounds` times, and prints the anonymous footprint and its peak
 /// after each stage.
 ///
@@ -184,16 +184,17 @@ fn key_file(path: &Path, dir: &Path, rounds: usize) {
         }
         None => {
             let bytes = map(path).expect("the key file");
-            let prover = zopro_prover::Prover::load(&bytes).expect("the key");
-            stage("key", started);
-            let started = Instant::now();
             let partial = image_path.with_extension("partial");
             let mut out = std::io::BufWriter::new(fs::File::create(&partial).unwrap());
-            if prover.write_image(&bytes, &mut out).unwrap() {
-                drop(out);
-                fs::rename(&partial, &image_path).unwrap();
-            }
+            zopro_prover::Prover::write_image(&bytes, &mut out).expect("the key's image");
+            out.into_inner().unwrap().sync_all().unwrap();
+            fs::rename(&partial, &image_path).unwrap();
             stage("write-image", started);
+            let started = Instant::now();
+            let image = map(&image_path).expect("the key's image");
+            let prover = zopro_prover::Prover::load_image(std::sync::Arc::new(image))
+                .expect("the key's image");
+            stage("image", started);
             prover
         }
     };

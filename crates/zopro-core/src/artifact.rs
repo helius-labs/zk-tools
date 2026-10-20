@@ -270,6 +270,41 @@ impl<'a> Artifact<'a> {
         ])
     }
 
+    /// Writes the points decompressed into the kernel's encoding, a, b, k,
+    /// z, b2, one vector at a time: a host's image of the key without the
+    /// key loaded (little-endian devices, where the points' memory is that
+    /// encoding).
+    pub fn write_points(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+        fn bytes<T>(points: &[T]) -> &[u8] {
+            // SAFETY: plain points, read as their bytes.
+            unsafe {
+                std::slice::from_raw_parts(points.as_ptr().cast::<u8>(), std::mem::size_of_val(points))
+            }
+        }
+        if !cfg!(target_endian = "little") {
+            return Err(std::io::Error::other("a key image on a big-endian device"));
+        }
+        for vector in [self.a, self.b, self.k, self.z] {
+            out.write_all(bytes(&decompress::g1_affine(vector).map_err(std::io::Error::other)?))?;
+        }
+        out.write_all(bytes(&decompress::g2_affine(self.b2).map_err(std::io::Error::other)?))
+    }
+
+    /// The kernel's solver image of the key's program (`Key::solver_image`),
+    /// built without the key: a host's image of the key keeps it.
+    pub fn solver_image(&self) -> Result<Vec<u8>, String> {
+        let plan = {
+            let program = inflate(self.program)?;
+            let coefficients = inflate(self.coefficients)?;
+            crate::solver::Plan::new(&program, &coefficients)?
+        };
+        let [a, b, k, z, _] = self.points;
+        if !plan.matches(a as usize, b as usize, k as usize, z as usize + 1) {
+            return Err("the key's program does not match its points".into());
+        }
+        Ok(plan.image())
+    }
+
     /// The kernel's key from `points` (`points()`, or a host's cache of
     /// them decompressed), its solver from the program, or from
     /// `solver_image` when a host cached the kernel's own
@@ -281,10 +316,6 @@ impl<'a> Artifact<'a> {
                 return Ok(key);
             }
         }
-        let inflate = |bytes: &[u8]| {
-            miniz_oxide::inflate::decompress_to_vec(bytes)
-                .map_err(|_| "the key's program is damaged")
-        };
         let (program, coefficients) = (inflate(self.program)?, inflate(self.coefficients)?);
         if !key.set_solver(&program, &coefficients) {
             return Err("the kernel does not solve the key's program".into());
@@ -300,6 +331,10 @@ impl<'a> Artifact<'a> {
     pub fn fixed_points(&self) -> Result<FixedPoints, &'static str> {
         check_fixed(self.fixed, self.verifying_key)
     }
+}
+
+fn inflate(bytes: &[u8]) -> Result<Vec<u8>, &'static str> {
+    miniz_oxide::inflate::decompress_to_vec(bytes).map_err(|_| "the key's program is damaged")
 }
 
 /// The fixed points in the kernel's encoding, when they are the verifying
