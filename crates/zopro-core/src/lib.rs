@@ -1041,18 +1041,11 @@ impl Key {
             return Err("invalid witness encoding".into());
         }
         let started = crate::time::Instant::now();
-        let solution = plan.solve_in(&frs(witness), self.domain)?;
+        let solver::Solution { mut w, a, b, c } = plan.solve_in(&frs(witness), self.domain)?;
         trace("solve", started);
-        let sa: Vec<_> = plan.a_indices.iter().map(|&i| solution.w[i as usize]).collect();
-        let sb: Vec<_> = plan.b_indices.iter().map(|&i| solution.w[i as usize]).collect();
-        self.compute_parts(
-            &sa,
-            &sb,
-            &solution.w[plan.n_public..],
-            solution.a,
-            solution.b,
-            solution.c,
-        )
+        let mut sa: Vec<_> = plan.a_indices.iter().map(|&i| w[i as usize]).collect();
+        let mut sb: Vec<_> = plan.b_indices.iter().map(|&i| w[i as usize]).collect();
+        self.compute_parts(&mut sa, &mut sb, &mut w[plan.n_public..], a, b, c)
     }
     pub fn commitment(
         &self,
@@ -1093,10 +1086,8 @@ impl Key {
         {
             return Err(JsError::new("witness does not match prepared gnark key"));
         }
-        let sa = frs(sa);
-        let sb = frs(sb);
-        let sk = frs(sk);
-        self.compute_parts(&sa, &sb, &sk, frs(a), frs(b), frs(c))
+        let (mut sa, mut sb, mut sk) = (frs(sa), frs(sb), frs(sk));
+        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c))
             .map_err(|e| JsError::new(&e))
     }
 }
@@ -1286,17 +1277,20 @@ impl Key {
             solution.w[plan.n_public..].to_vec(),
         ])
     }
+    /// The proof's parts from the solve's MSM scalars, which the CPU's MSMs
+    /// take over (natively, as canonical limbs in place), and its a, b, c.
     fn compute_parts(
         &self,
-        sa: &[Fr],
-        sb: &[Fr],
-        sk: &[Fr],
+        sa: &mut [Fr],
+        sb: &mut [Fr],
+        sk: &mut [Fr],
         a: Vec<Fr>,
         b: Vec<Fr>,
         c: Vec<Fr>,
     ) -> Result<Vec<u8>, String> {
         #[cfg(gpu)]
         if let Some(gpu) = &self.gpu {
+            let (sa, sb, sk) = (&*sa, &*sb, &*sk);
             // The MSMs whose scalars are ready run on the GPU, driven from a
             // thread of their own so that their waits hold no rayon worker,
             // while the GPU also takes the quotient and the pool computes
@@ -1426,6 +1420,7 @@ impl Key {
         }
         #[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
         if let Some(gpu) = &self.gpu {
+            let (sa, sb, sk) = (&*sa, &*sb, &*sk);
             // On a thread of their own: the quotient submitted to the GPU,
             // the MSMs whose scalars are out sorted and queued behind it
             // while it runs (and the GPU's share of G2), then Z's once the
@@ -1535,26 +1530,18 @@ impl Key {
             return Ok(out);
         }
         let started = crate::time::Instant::now();
-        let h = self.quotient(a, b, c);
+        let mut h = self.quotient(a, b, c);
         let started = trace("quotient", started);
-        let ((ar, bs1), (kr, (hz, bs2))) = rayon::join(
-            || rayon::join(|| msm_g1(&self.a, sa), || msm_g1(&self.b, sb)),
-            || {
-                rayon::join(
-                    || msm_g1(&self.k, sk),
-                    || rayon::join(|| msm_g1(&self.z, &h), || msm_g2(&self.b2, sb)),
-                )
-            },
-        );
+        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h);
         trace("msms", started);
         // Each MSM alone, on the whole pool, for its own share: this adds
         // to the proof time, so only with ZOPRO_TRACE_MSMS=1.
         #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
         if std::env::var("ZOPRO_TRACE_MSMS").is_ok_and(|v| v == "1") {
             for (label, bases, scalars) in [
-                ("msm-a", &self.a, sa),
-                ("msm-b", &self.b, sb),
-                ("msm-k", &self.k, sk),
+                ("msm-a", &self.a, &*sa),
+                ("msm-b", &self.b, &*sb),
+                ("msm-k", &self.k, &*sk),
                 ("msm-z", &self.z, &h[..]),
             ] {
                 let started = crate::time::Instant::now();
@@ -1574,6 +1561,44 @@ impl Key {
     }
     fn quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
         self.plan.quotient(a, b, c)
+    }
+    /// The CPU's five MSMs at once. Natively the batch-affine ones take the
+    /// scalars as canonical limbs, converted in place: a proof holds no
+    /// copy of them and no digits (63 MB at 16 -> 2).
+    #[allow(clippy::type_complexity)]
+    fn cpu_msms(
+        &self,
+        sa: &mut [Fr],
+        sb: &mut [Fr],
+        sk: &mut [Fr],
+        h: &mut [Fr],
+    ) -> (
+        (G1Projective, G1Projective),
+        (G1Projective, (G1Projective, G2Projective)),
+    ) {
+        #[cfg(not(target_arch = "wasm32"))]
+        if affine_msm() {
+            use msm_affine::{canonical, msm_canonical as msm};
+            let (sa, sb, sk, h) = (canonical(sa), canonical(sb), canonical(sk), canonical(h));
+            return rayon::join(
+                || rayon::join(|| msm(&self.a[..], sa), || msm(&self.b[..], sb)),
+                || {
+                    rayon::join(
+                        || msm(&self.k[..], sk),
+                        || rayon::join(|| msm(&self.z[..], h), || msm(&self.b2[..], sb)),
+                    )
+                },
+            );
+        }
+        rayon::join(
+            || rayon::join(|| msm_g1(&self.a, sa), || msm_g1(&self.b, sb)),
+            || {
+                rayon::join(
+                    || msm_g1(&self.k, sk),
+                    || rayon::join(|| msm_g1(&self.z, h), || msm_g2(&self.b2, sb)),
+                )
+            },
+        )
     }
 }
 
