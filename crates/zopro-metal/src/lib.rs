@@ -264,6 +264,12 @@ const REDUCE_TG_GROUP: usize = 64;
 /// threads (128 over base points left 24x2's G2 MSM at 227 ms, 32 at 151).
 const FIRST_SHARD: usize = 32;
 const SHARD: usize = 32;
+/// The most a shard tree takes, in MB (ZOPRO_METAL_TREE_MB sets it): the
+/// windows go through it in chunks, and the key's two trees count against an
+/// iPhone's memory limit. Chunks under 8 MB rather than 64 cost no time on an
+/// iPad Pro (A12Z) or an M5 Pro and took 16 -> 2's peak from 765 to 673 MB on
+/// the iPad, 24 -> 2's from 1362 to 1226 on the M5 Pro.
+const TREE_MB: usize = 8;
 
 /// Stage times of one MSM, in milliseconds: the host sort and planning,
 /// the GPU from submission to completion, the host combination.
@@ -569,9 +575,14 @@ impl<C: Curve> Msm<C> {
         let buckets = windows * half;
         // The most shards a level can have for one window: every pair in
         // its own first shard, or every bucket's run split, whichever is
-        // more. Chunks of windows keep each tree under about 64 MB.
+        // more. Chunks of windows keep each tree under TREE_MB.
         let per_window = n.div_ceil(FIRST_SHARD) + half;
-        let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
+        let tree_cap = std::env::var("ZOPRO_METAL_TREE_MB")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(TREE_MB)
+            << 20;
+        let chunk_windows = (tree_cap / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
         scratch.reserve(&device, most * C::XYZZ_BYTES, buckets * C::XYZZ_BYTES);
         let reduce_shape = {
