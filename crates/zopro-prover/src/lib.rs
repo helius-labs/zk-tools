@@ -4,6 +4,11 @@
 //! names give a proof in gnark's formats, verified with the key's verifying
 //! key before it is returned.
 //!
+//! **Experimental.** New and unaudited: checked against gnark and arkworks
+//! on the devices we have, every proof verified before it is returned, no
+//! independent review yet. Do not rely on it where a wrong or leaked proof
+//! would cost anything.
+//!
 //! ```ignore
 //! let mut prover = Prover::load(&std::fs::read("cubic.zopro")?)?;
 //! let mut assignment = Assignment::default();

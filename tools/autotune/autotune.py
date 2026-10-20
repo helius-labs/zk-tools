@@ -110,7 +110,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("target", choices=list(KNOBS))
     p.add_argument("--bench", default="target/release/zopro-bench")
-    p.add_argument("--dumps", default="/tmp/ringil-dump")
+    p.add_argument("--dumps", default="/tmp/zopro-dump")
     p.add_argument("--udid")
     p.add_argument("--shapes", default="2x2,8x2,24x2,merge-54x1")
     p.add_argument("--rounds", type=int, default=5)

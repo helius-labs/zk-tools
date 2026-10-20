@@ -1,5 +1,11 @@
 # zopro
 
+**Experimental.** zopro is new and unaudited: its field arithmetic, its
+solver and its GPU kernels were checked against gnark and arkworks on the
+devices we have, and every proof is verified before it is returned, but
+nothing here has had an independent review. Do not rely on it where a
+wrong or leaked proof would cost anything.
+
 A Groth16 BN254 prover in Rust for gnark circuits. One kernel for browsers
 (WebAssembly, SIMD lanes, WebGPU), phones and laptops (native, AArch64
 assembly, Metal or wgpu): given a circuit's inputs by gnark's names, zopro

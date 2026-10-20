@@ -2,6 +2,11 @@
 //! gnark's Go prover took) and a zopro key built from Zolana's gnark key
 //! give the proof the prover server returns, verified before it leaves.
 //!
+//! **Experimental.** New and unaudited: checked against gnark and arkworks
+//! on the devices we have, every proof verified before it is returned, no
+//! independent review yet. Do not rely on it where a wrong or leaked proof
+//! would cost anything.
+//!
 //! The client does only what the Go glue did: decode and check the request
 //! and place its values on the circuit's inputs by name; `zopro-prover`
 //! solves, proves and verifies. A Zolana key's metadata (`Metadata`) gives
