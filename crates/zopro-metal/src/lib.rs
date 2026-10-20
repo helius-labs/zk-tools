@@ -8,6 +8,9 @@
 // objc's msg_send! checks a cfg (feature = "cargo-clippy") that cargo
 // does not declare.
 #![allow(unexpected_cfgs)]
+// Empty elsewhere: Metal is Apple's, and a workspace build on Linux still
+// builds this crate.
+#![cfg(any(target_os = "macos", target_os = "ios"))]
 use std::{ffi::c_void, time::Instant};
 
 use zopro_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
