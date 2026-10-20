@@ -9,7 +9,9 @@ use zopro_bn254::Fr;
 
 use crate::{spirv_pipeline, storage, Gpu, Slot};
 
-const FR_SHADER: &str = concat!(
+pub(crate) const LABEL: &str = "zopro quotient";
+pub(crate) const ENTRIES: [&str; 4] = ["fr_dif_stage", "fr_dit_stage", "fr_scale", "fr_pointwise"];
+pub(crate) const FR_SHADER: &str = concat!(
     include_str!("../shaders/fr.wgsl"),
     "\n",
     include_str!("../shaders/quotient.wgsl")
@@ -100,12 +102,6 @@ impl Quotient {
         let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
         let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
         let spirv = gpu.spirv;
-        let module = (!spirv).then(|| {
-            device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("zopro quotient"),
-                source: wgpu::ShaderSource::Wgsl(FR_SHADER.into()),
-            })
-        });
         let pipeline = |index: usize| {
             let (entry, kernel) = SPIRV[index];
             if spirv {
@@ -115,16 +111,9 @@ impl Quotient {
                 } else {
                     &[Write, Read, Uniform]
                 };
-                return spirv_pipeline(device, gpu.cache(), entry, kernel, slots);
+                return gpu.kernel(entry, || spirv_pipeline(device, gpu.cache(), entry, kernel, slots));
             }
-            device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-                label: Some(entry),
-                layout: None,
-                module: module.as_ref().expect("WGSL module"),
-                entry_point: Some(entry),
-                compilation_options: Default::default(),
-                cache: gpu.cache(),
-            })
+            gpu.wgsl_kernel(LABEL, FR_SHADER, entry)
         };
         let mut pipelines = Vec::with_capacity(4);
         for (index, (entry, _)) in SPIRV.iter().enumerate() {

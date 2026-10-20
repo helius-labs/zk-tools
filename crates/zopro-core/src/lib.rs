@@ -340,6 +340,8 @@ pub fn set_gpu_pipeline_cache(path: &std::path::Path) {
 pub async fn init_gpu() -> bool {
     match zopro_wgpu::Gpu::request().await {
         Ok(gpu) => {
+            // The kernels compile from now, while the key downloads.
+            gpu.warm_kernels();
             WEB_GPU.with(|device| *device.borrow_mut() = Some(std::sync::Arc::new(gpu)));
             true
         }

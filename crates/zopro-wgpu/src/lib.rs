@@ -54,6 +54,8 @@ pub trait Curve:
     const AFFINE_BYTES: usize;
     const XYZZ_BYTES: usize;
     const SHADER: &'static str;
+    /// The WGSL module's name, the key it is cached by.
+    const LABEL: &'static str;
     /// shards_first, shards_tree, reduce_blocks.
     const ENTRIES: [&'static str; 3];
     /// The same three kernels pre-compiled for Vulkan (glsl/), when written.
@@ -80,6 +82,7 @@ impl Curve for G1Projective {
     const AFFINE_BYTES: usize = 64;
     const XYZZ_BYTES: usize = 128;
     const SHADER: &'static str = G1_SHADER;
+    const LABEL: &'static str = G1_LABEL;
     const ENTRIES: [&'static str; 3] = ["shards_first", "shards_tree", "reduce_blocks"];
     const SPIRV: Option<[&'static [u8]; 3]> = Some([
         include_bytes!("../glsl/out/shards_first.spv"),
@@ -114,6 +117,7 @@ impl Curve for G2Projective {
     const AFFINE_BYTES: usize = 128;
     const XYZZ_BYTES: usize = 256;
     const SHADER: &'static str = G2_SHADER;
+    const LABEL: &'static str = G2_LABEL;
     const ENTRIES: [&'static str; 3] = ["shards_first_g2", "shards_tree_g2", "reduce_blocks_g2"];
     const SPIRV: Option<[&'static [u8]; 3]> = Some([
         include_bytes!("../glsl/out/shards_first_g2.spv"),
@@ -396,6 +400,13 @@ pub struct Gpu {
     /// panic, and a driver that refuses a kernel (a Galaxy S25's did) must
     /// only cost the GPU.
     failed: std::sync::Arc<std::sync::OnceLock<String>>,
+    /// The kernels built on this device, one per entry point, and the WGSL
+    /// modules they come from: a key's four G1 MSMs, its G2 MSM and its
+    /// quotient share them rather than each compiling its own (a page load
+    /// in Chrome compiled the G1 module four times, 10 s on an M1 VM), and
+    /// a browser builds them at init_gpu, before the key downloads.
+    kernels: std::sync::Mutex<std::collections::HashMap<String, wgpu::ComputePipeline>>,
+    modules: std::sync::Mutex<std::collections::HashMap<&'static str, wgpu::ShaderModule>>,
 }
 
 /// An error scope's verdict: waited for natively; on the web, where nothing
@@ -548,7 +559,86 @@ impl Gpu {
             timestamp_period,
             cache,
             cache_path,
+            kernels: Default::default(),
+            modules: Default::default(),
         })
+    }
+
+    /// A WGSL module, compiled once per device.
+    pub(crate) fn module(&self, label: &'static str, source: &'static str) -> wgpu::ShaderModule {
+        self.modules
+            .lock()
+            .unwrap()
+            .entry(label)
+            .or_insert_with(|| {
+                self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some(label),
+                    source: wgpu::ShaderSource::Wgsl(source.into()),
+                })
+            })
+            .clone()
+    }
+
+    /// The kernel of an entry point, built by `build` the first time.
+    pub(crate) fn kernel(
+        &self,
+        entry: &str,
+        build: impl FnOnce() -> wgpu::ComputePipeline,
+    ) -> wgpu::ComputePipeline {
+        if let Some(found) = self.kernels.lock().unwrap().get(entry) {
+            return found.clone();
+        }
+        let pipeline = build();
+        self.kernels
+            .lock()
+            .unwrap()
+            .insert(entry.to_string(), pipeline.clone());
+        pipeline
+    }
+
+    /// A WGSL kernel from a module, both cached.
+    pub(crate) fn wgsl_kernel(
+        &self,
+        label: &'static str,
+        source: &'static str,
+        entry: &str,
+    ) -> wgpu::ComputePipeline {
+        self.kernel(entry, || {
+            let module = self.module(label, source);
+            self.device
+                .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                    label: Some(entry),
+                    layout: None,
+                    module: &module,
+                    entry_point: Some(entry),
+                    compilation_options: Default::default(),
+                    cache: self.cache(),
+                })
+        })
+    }
+
+    /// Builds every WGSL kernel now (the pre-compiled kernels need no
+    /// warming): a browser calls this at init_gpu, so that the compilation
+    /// runs while the key downloads and decodes rather than at its first
+    /// proof.
+    pub fn warm_kernels(&self) {
+        if self.spirv {
+            return;
+        }
+        for (label, source, entries) in [
+            (G1_LABEL, G1_SHADER, <G1Projective as Curve>::ENTRIES),
+            (G2_LABEL, G2_SHADER, <G2Projective as Curve>::ENTRIES),
+        ] {
+            for entry in entries {
+                self.wgsl_kernel(label, source, entry);
+            }
+        }
+        for (entry, source) in SORT_WGSL {
+            self.wgsl_kernel(entry, source, entry);
+        }
+        for entry in quotient::ENTRIES {
+            self.wgsl_kernel(quotient::LABEL, quotient::FR_SHADER, entry);
+        }
     }
 
     /// The driver's pipeline cache, for pipeline descriptors.
@@ -787,6 +877,9 @@ pub(crate) fn spirv_pipeline(
     })
 }
 
+const G1_LABEL: &str = "zopro msm g1";
+const G2_LABEL: &str = "zopro msm g2";
+
 /// The smallest MSM the GPU sorts by default.
 const GPU_SORT_MIN: usize = 1 << 16;
 
@@ -909,22 +1002,6 @@ impl<C: Curve> Msm<C> {
         let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
         let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
         let spirv = if gpu.spirv { C::SPIRV } else { None };
-        let module = (spirv.is_none()).then(|| {
-            device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("zopro msm"),
-                source: wgpu::ShaderSource::Wgsl(C::SHADER.into()),
-            })
-        });
-        let pipeline = |entry: &str| {
-            device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-                label: Some(entry),
-                layout: None,
-                module: module.as_ref().expect("WGSL module"),
-                entry_point: Some(entry),
-                compilation_options: Default::default(),
-                cache: gpu.cache(),
-            })
-        };
         // After each kernel: a driver that refuses one leaves the device
         // failed, and nothing else must be asked of it.
         let mut pipelines = Vec::with_capacity(4);
@@ -942,10 +1019,12 @@ impl<C: Curve> Msm<C> {
                             log::info!("ZOPRO_TRACE kernel {entry} from ZOPRO_SPV_DIR");
                         }
                         let kernel = file.as_deref().unwrap_or(kernels[index]);
-                        spirv_pipeline(device, gpu.cache(), entry, kernel, msm_slots(index))
+                        gpu.kernel(entry, || {
+                            spirv_pipeline(device, gpu.cache(), entry, kernel, msm_slots(index))
+                        })
                     }
                 }
-                None => pipeline(entry),
+                None => gpu.wgsl_kernel(C::LABEL, C::SHADER, entry),
             });
             // Delivers a device-lost callback the build caused.
             let _ = device.poll(wgpu::PollType::Poll);
@@ -1021,37 +1100,25 @@ impl<C: Curve> Msm<C> {
             let [(count_entry, count), (scatter_entry, scatter)] = SORT_KERNELS;
             let (count, scatter) = if spirv.is_some() {
                 (
-                    spirv_pipeline(
-                        device,
-                        gpu.cache(),
-                        count_entry,
-                        count,
-                        &[Read, Write, Uniform],
-                    ),
-                    spirv_pipeline(
-                        device,
-                        gpu.cache(),
-                        scatter_entry,
-                        scatter,
-                        &[Read, Write, Write, Uniform],
-                    ),
+                    gpu.kernel(count_entry, || {
+                        spirv_pipeline(device, gpu.cache(), count_entry, count, &[Read, Write, Uniform])
+                    }),
+                    gpu.kernel(scatter_entry, || {
+                        spirv_pipeline(
+                            device,
+                            gpu.cache(),
+                            scatter_entry,
+                            scatter,
+                            &[Read, Write, Write, Uniform],
+                        )
+                    }),
                 )
             } else {
-                let wgsl = |(entry, source): (&str, &str)| {
-                    let module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                        label: Some(entry),
-                        source: wgpu::ShaderSource::Wgsl(source.into()),
-                    });
-                    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-                        label: Some(entry),
-                        layout: None,
-                        module: &module,
-                        entry_point: Some(entry),
-                        compilation_options: Default::default(),
-                        cache: gpu.cache(),
-                    })
-                };
-                (wgsl(SORT_WGSL[0]), wgsl(SORT_WGSL[1]))
+                let [(count_entry, count_source), (scatter_entry, scatter_source)] = SORT_WGSL;
+                (
+                    gpu.wgsl_kernel(count_entry, count_source, count_entry),
+                    gpu.wgsl_kernel(scatter_entry, scatter_source, scatter_entry),
+                )
             };
             GpuSort {
                 count,
