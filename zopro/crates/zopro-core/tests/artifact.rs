@@ -9,6 +9,7 @@ use zopro_core::{
     dump::Dump,
     groth16::assemble,
     verify::Proof,
+    Points,
 };
 
 fn read(dir: &Path, name: &str) -> Vec<u8> {
@@ -42,13 +43,12 @@ fn packs_loads_and_proves() {
         vectors[4], dump.vectors[4],
         "B2 decompresses to what was packed"
     );
-    let key = artifact.key(&vectors, None).expect("key");
+    let key = artifact.key(artifact.points(), None).expect("key");
     let image = key.solver_image().expect("solver image");
-    drop(
-        artifact
-            .key(&vectors, Some(&image))
-            .expect("key from the cached image"),
-    );
+    let [a, b, k, z, b2] = &vectors;
+    let cached = artifact
+        .key(Points::Kernel([a, b, k, z, b2]), Some(&image))
+        .expect("key from the cached vectors and image");
     let verifying_key = artifact.verifying_key().expect("verifying key");
     let fixed = artifact.fixed_points().expect("fixed points");
 
@@ -56,6 +56,9 @@ fn packs_loads_and_proves() {
     let proof_parts = key.solve(&witness).expect("solve");
     let proof = Proof::from_raw(&assemble(&proof_parts, &fixed)).expect("proof");
     let public = zopro_core::decode_frs(&read(&dir, "public"));
+    assert!(verifying_key.verify(&proof, &public));
+    let proof_parts = cached.solve(&witness).expect("solve");
+    let proof = Proof::from_raw(&assemble(&proof_parts, &fixed)).expect("proof");
     assert!(verifying_key.verify(&proof, &public));
 
     // A delta that is not the verifying key's would unblind proofs.

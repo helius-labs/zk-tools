@@ -9,7 +9,7 @@
 //! the larger, `01` for the point at infinity (the rest zero). A G2 point
 //! stores x as `A1 | A0`. The raw encoding is x then y, each coordinate in the
 //! same order, and the point at infinity is all zero.
-use zopro_bn254::{CurveConfig, Fq, Fq2, G1Config, G2Config};
+use zopro_bn254::{CurveConfig, Fq, Fq2, G1Affine, G1Config, G2Affine, G2Config};
 use rayon::prelude::*;
 use wasm_bindgen::prelude::*;
 
@@ -91,10 +91,10 @@ fn flags(compressed: &[u8]) -> Result<Option<u8>, &'static str> {
     Ok(Some(mask))
 }
 
-fn g1_point(compressed: &[u8], raw: &mut [u8]) -> Result<(), &'static str> {
+/// A compressed G1 point's coordinates, `None` for the point at infinity.
+fn g1_coordinates(compressed: &[u8]) -> Result<Option<(Fq, Fq)>, &'static str> {
     let Some(mask) = flags(compressed)? else {
-        raw.fill(0);
-        return Ok(());
+        return Ok(None);
     };
     let mut x_bytes = [0u8; 32];
     x_bytes.copy_from_slice(compressed);
@@ -106,15 +106,13 @@ fn g1_point(compressed: &[u8], raw: &mut [u8]) -> Result<(), &'static str> {
     if largest(&y) != (mask == LARGEST) {
         y = -y;
     }
-    write(&mut raw[..32], &x);
-    write(&mut raw[32..], &y);
-    Ok(())
+    Ok(Some((x, y)))
 }
 
-fn g2_point(compressed: &[u8], raw: &mut [u8]) -> Result<(), &'static str> {
+/// A compressed G2 point's coordinates, `None` for the point at infinity.
+fn g2_coordinates(compressed: &[u8]) -> Result<Option<(Fq2, Fq2)>, &'static str> {
     let Some(mask) = flags(compressed)? else {
-        raw.fill(0);
-        return Ok(());
+        return Ok(None);
     };
     let mut a1 = [0u8; 32];
     a1.copy_from_slice(&compressed[..32]);
@@ -126,11 +124,68 @@ fn g2_point(compressed: &[u8], raw: &mut [u8]) -> Result<(), &'static str> {
     if largest2(&y) != (mask == LARGEST) {
         y = -y;
     }
-    write(&mut raw[..32], &x.c1);
-    write(&mut raw[32..64], &x.c0);
-    write(&mut raw[64..96], &y.c1);
-    write(&mut raw[96..], &y.c0);
+    Ok(Some((x, y)))
+}
+
+fn g1_point(compressed: &[u8], raw: &mut [u8]) -> Result<(), &'static str> {
+    match g1_coordinates(compressed)? {
+        None => raw.fill(0),
+        Some((x, y)) => {
+            write(&mut raw[..32], &x);
+            write(&mut raw[32..], &y);
+        }
+    }
     Ok(())
+}
+
+fn g2_point(compressed: &[u8], raw: &mut [u8]) -> Result<(), &'static str> {
+    match g2_coordinates(compressed)? {
+        None => raw.fill(0),
+        Some((x, y)) => {
+            write(&mut raw[..32], &x.c1);
+            write(&mut raw[32..64], &x.c0);
+            write(&mut raw[64..96], &y.c1);
+            write(&mut raw[96..], &y.c0);
+        }
+    }
+    Ok(())
+}
+
+/// `compressed` G1 points as the kernel's points, with no byte encoding
+/// between: a key's load holds each vector once.
+pub(crate) fn g1_affine(compressed: &[u8]) -> Result<Vec<G1Affine>, &'static str> {
+    affine(compressed, 32, G1Affine::IDENTITY, |c| {
+        Ok(g1_coordinates(c)?.map_or(G1Affine::IDENTITY, |(x, y)| G1Affine::new(x, y)))
+    })
+}
+
+/// `compressed` G2 points as the kernel's points.
+pub(crate) fn g2_affine(compressed: &[u8]) -> Result<Vec<G2Affine>, &'static str> {
+    affine(compressed, 64, G2Affine::IDENTITY, |c| {
+        Ok(g2_coordinates(c)?.map_or(G2Affine::IDENTITY, |(x, y)| G2Affine::new(x, y)))
+    })
+}
+
+/// Into a vector allocated once: collecting a fallible parallel iterator
+/// goes through per-thread lists, the vector twice over at its end.
+fn affine<P: Copy + Send + Sync>(
+    compressed: &[u8],
+    size: usize,
+    identity: P,
+    point: impl Fn(&[u8]) -> Result<P, &'static str> + Sync,
+) -> Result<Vec<P>, &'static str> {
+    if !compressed.len().is_multiple_of(size) {
+        return Err("compressed points of a partial length");
+    }
+    let mut out = vec![identity; compressed.len() / size];
+    compressed
+        .par_chunks(size)
+        .zip(out.par_iter_mut())
+        .try_for_each(|(compressed, out)| {
+            *out = point(compressed)?;
+            Ok(())
+        })?;
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -160,6 +215,27 @@ mod tests {
         let compressed: Vec<u8> = vectors::G2.iter().flat_map(|(c, _)| hex(c)).collect();
         let raw: Vec<u8> = vectors::G2.iter().flat_map(|(_, r)| hex(r)).collect();
         assert_eq!(g2(&compressed).unwrap(), raw);
+    }
+
+    #[test]
+    fn points_decompress_as_the_kernel_decodes_gnark_raw_ones() {
+        let compressed: Vec<u8> = vectors::G1.iter().flat_map(|(c, _)| hex(c)).collect();
+        let raw = g1(&compressed).unwrap();
+        let points = g1_affine(&compressed).unwrap();
+        assert_eq!(points.len(), raw.len() / 64);
+        for (point, raw) in points.iter().zip(raw.chunks(64)) {
+            assert_eq!(point.x.to_be_bytes(), raw[..32]);
+            assert_eq!(point.y.to_be_bytes(), raw[32..]);
+        }
+        let compressed: Vec<u8> = vectors::G2.iter().flat_map(|(c, _)| hex(c)).collect();
+        let raw = g2(&compressed).unwrap();
+        let points = g2_affine(&compressed).unwrap();
+        for (point, raw) in points.iter().zip(raw.chunks(128)) {
+            assert_eq!(point.x.c1.to_be_bytes(), raw[..32]);
+            assert_eq!(point.x.c0.to_be_bytes(), raw[32..64]);
+            assert_eq!(point.y.c1.to_be_bytes(), raw[64..96]);
+            assert_eq!(point.y.c0.to_be_bytes(), raw[96..]);
+        }
     }
 
     #[test]

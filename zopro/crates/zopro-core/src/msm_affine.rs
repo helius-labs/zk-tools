@@ -62,11 +62,34 @@ fn batch_size(width: usize) -> usize {
 }
 
 pub(super) fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projective<C> {
-    assert_eq!(bases.len(), scalars.len(), "validated MSM dimensions");
+    let canonical: Vec<[u64; 4]> = scalars.par_iter().map(Fr::to_canonical).collect();
+    msm_canonical(bases, &canonical)
+}
+
+/// `scalars` in place as their canonical limbs, for msm_canonical: a
+/// proof's scalars, which it needs no more after its MSMs.
+pub(super) fn canonical(scalars: &mut [Fr]) -> &[[u64; 4]] {
+    scalars
+        .par_iter_mut()
+        .for_each(|s| *s = Fr::from_montgomery(s.to_canonical()));
+    // SAFETY: Fr is repr(transparent) over its four limbs.
+    unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) }
+}
+
+/// The MSM of scalars given as canonical limbs. Each window computes its
+/// digits from them as it goes (`digit`), so the MSM holds no digits: 63
+/// MB for 16 -> 2's five MSMs at once, at no cost in time on a phone.
+pub(super) fn msm_canonical<C: CurveConfig>(
+    bases: &[Affine<C>],
+    canonical: &[[u64; 4]],
+) -> Projective<C> {
+    assert_eq!(bases.len(), canonical.len(), "validated MSM dimensions");
     let n = bases.len();
+    if n == 0 {
+        return Projective::<C>::IDENTITY;
+    }
     let width = width(n);
     let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
-    let digits = recode(bases, scalars, width, windows);
     let parts = split();
     let part = n.div_ceil(parts);
     let pieces: Vec<Projective<C>> = (0..windows * parts)
@@ -76,7 +99,7 @@ pub(super) fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projec
             let range = p * part..((p + 1) * part).min(n);
             window::<C>(
                 &bases[range.clone()],
-                &digits[w * n + range.start..w * n + range.end],
+                canonical[range].iter().map(|s| digit(s, w, width)),
                 width,
             )
         })
@@ -92,67 +115,52 @@ pub(super) fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projec
     result
 }
 
-/// Signed digits, window-major: digits[w * n + i] is scalar i's digit in
-/// window w, in (-2^(width-1), 2^(width-1)].
-/// The point at infinity's digits stay zero, which the windows skip it by.
-fn recode<C: CurveConfig>(
-    bases: &[Affine<C>],
-    scalars: &[Fr],
-    width: usize,
-    windows: usize,
-) -> Vec<i16> {
-    let n = scalars.len();
-    let radix = 1u64 << width;
-    let mask = radix - 1;
-    let rows: Vec<Vec<i16>> = scalars
-        .par_chunks(4096)
-        .zip(bases.par_chunks(4096))
-        .map(|(chunk, chunk_bases)| {
-            let mut rows = vec![0i16; chunk.len() * windows];
-            for (i, (s, base)) in chunk.iter().zip(chunk_bases).enumerate() {
-                if base.is_identity() {
-                    continue;
-                }
-                let words = s.to_canonical();
-                let mut carry = 0u64;
-                for w in 0..windows {
-                    let offset = w * width;
-                    let (word, shift) = (offset / 64, offset % 64);
-                    let mut value = if word < 4 { words[word] >> shift } else { 0 };
-                    if shift + width > 64 && word < 3 {
-                        value |= words[word + 1] << (64 - shift);
-                    }
-                    let value = (value & mask) + carry;
-                    carry = (value + radix / 2) >> width;
-                    rows[w * chunk.len() + i] = (value as i64 - (carry * radix) as i64) as i16;
-                }
-            }
-            rows
-        })
-        .collect();
-    let mut digits = vec![0i16; n * windows];
-    let mut start = 0;
-    for rows in rows {
-        let len = rows.len() / windows;
-        for w in 0..windows {
-            digits[w * n + start..w * n + start + len]
-                .copy_from_slice(&rows[w * len..(w + 1) * len]);
+/// Scalar `words`' signed digit in window `w`, in (-2^(width-1),
+/// 2^(width-1)]: the window's bits plus the carry out of the window below,
+/// which is one when that window's bits are at least half the radix, none
+/// when they are less than half less one, and the carry into it when they
+/// are just that (rarely: one in 2^width). The point at infinity's windows
+/// skip it.
+#[inline(always)]
+fn digit(words: &[u64; 4], w: usize, width: usize) -> i16 {
+    let half = 1u64 << (width - 1);
+    let bits = |w: usize| -> u64 {
+        let offset = w * width;
+        let (word, shift) = (offset / 64, offset % 64);
+        let mut value = if word < 4 { words[word] >> shift } else { 0 };
+        if shift + width > 64 && word < 3 {
+            value |= words[word + 1] << (64 - shift);
         }
-        start += len;
+        value & ((1u64 << width) - 1)
+    };
+    let mut carry = 0;
+    let mut below = w;
+    while below > 0 {
+        let b = bits(below - 1);
+        if b != half - 1 {
+            carry = (b >= half) as u64;
+            break;
+        }
+        below -= 1;
     }
-    digits
+    let value = bits(w) + carry;
+    let out = (value + half) >> width;
+    (value as i64 - (out << width) as i64) as i16
 }
 
-/// One window's sum, the sum of m * B_m over its buckets B_m.
-fn window<C: CurveConfig>(bases: &[Affine<C>], digits: &[i16], width: usize) -> Projective<C> {
+fn window<C: CurveConfig>(
+    bases: &[Affine<C>],
+    digits: impl Iterator<Item = i16>,
+    width: usize,
+) -> Projective<C> {
     let half = 1usize << (width - 1);
     let size = batch_size(width);
     if size == 0 {
         return window_projective(bases, digits, half);
     }
     let mut w = Window::<C>::new(half, size);
-    for (base, &digit) in bases.iter().zip(digits) {
-        if digit == 0 {
+    for (base, digit) in bases.iter().zip(digits) {
+        if digit == 0 || base.is_identity() {
             continue;
         }
         let bucket = digit.unsigned_abs() as usize - 1;
@@ -185,11 +193,11 @@ fn window<C: CurveConfig>(bases: &[Affine<C>], digits: &[i16], width: usize) -> 
 /// Narrow windows: few buckets, so projective buckets without batching.
 fn window_projective<C: CurveConfig>(
     bases: &[Affine<C>],
-    digits: &[i16],
+    digits: impl Iterator<Item = i16>,
     half: usize,
 ) -> Projective<C> {
     let mut buckets = vec![Projective::<C>::IDENTITY; half];
-    for (base, &digit) in bases.iter().zip(digits) {
+    for (base, digit) in bases.iter().zip(digits) {
         if digit > 0 {
             buckets[digit as usize - 1] += base;
         } else if digit < 0 {
@@ -315,6 +323,63 @@ mod tests {
     use super::*;
     use crate::testing::Seeded;
     use zopro_bn254::{G1Config, G2Config};
+
+    /// Each window's digit against recoding the scalar from its lowest
+    /// window up, the carry passed along: for scalars whose windows are
+    /// just below half the radix in runs, where a digit's carry comes from
+    /// windows further down, and for random ones; and the digits rebuild
+    /// the scalar.
+    #[test]
+    fn digits_match_a_sequential_recoding() {
+        let mut seeded = Seeded::new(7);
+        for width in 4..=15usize {
+            let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
+            let half = 1u64 << (width - 1);
+            let mut scalars: Vec<[u64; 4]> = (0..64).map(|_| seeded.fr().to_canonical()).collect();
+            for run in [1, 2, 3, 7, windows] {
+                for start in [0, 1, windows / 2] {
+                    // Below 2^252, so still below the modulus.
+                    let mut words = seeded.fr().to_canonical();
+                    words[3] &= (1 << 60) - 1;
+                    for w in start..(start + run).min(windows - 1) {
+                        for bit in 0..width {
+                            let at = w * width + bit;
+                            if at < 252 {
+                                let one = (half - 1) >> bit & 1 == 1;
+                                let (word, shift) = (at / 64, at % 64);
+                                words[word] = words[word] & !(1 << shift) | (one as u64) << shift;
+                            }
+                        }
+                    }
+                    scalars.push(words);
+                }
+            }
+            for words in &scalars {
+                let mut carry = 0u64;
+                let mut rebuilt = Fr::ZERO;
+                let radix = Fr::from(1u64 << width);
+                for w in (0..windows).rev() {
+                    rebuilt = rebuilt * radix + {
+                        let d = digit(words, w, width) as i64;
+                        if d < 0 { -Fr::from(d.unsigned_abs()) } else { Fr::from(d as u64) }
+                    };
+                }
+                for w in 0..windows {
+                    let offset = w * width;
+                    let (word, shift) = (offset / 64, offset % 64);
+                    let mut value = if word < 4 { words[word] >> shift } else { 0 };
+                    if shift + width > 64 && word < 3 {
+                        value |= words[word + 1] << (64 - shift);
+                    }
+                    let value = (value & ((1 << width) - 1)) + carry;
+                    carry = (value + half) >> width;
+                    let expected = (value as i64 - (carry << width) as i64) as i16;
+                    assert_eq!(digit(words, w, width), expected, "width {width}, window {w}");
+                }
+                assert_eq!(rebuilt.to_canonical(), *words, "width {width}");
+            }
+        }
+    }
 
     /// Against the sum of the products, with the special cases the batch
     /// must step around: zero and unit scalars, repeated bases (doublings in

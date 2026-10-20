@@ -56,6 +56,7 @@ impl Mont29 for Fr {
 /// splits and joins its operands once rather than at every product; values
 /// stay reduced. Elsewhere it holds the four elements.
 #[derive(Clone, Copy)]
+#[cfg_attr(not(all(target_arch = "wasm32", target_feature = "simd128")), repr(transparent))]
 pub(crate) struct Lanes<F: Mont29>(
     #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))] [core::arch::wasm32::v128; 9],
     #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))] [F; 4],

@@ -19,7 +19,7 @@
 //! ```
 use zopro_bn254::Fr;
 use zopro_core::{
-    Key,
+    Key, Points,
     artifact::Artifact,
     groth16::{self, FixedPoints},
     verify::{Proof, VerifyingKey, public_witness},
@@ -89,16 +89,15 @@ impl Prover {
     /// From a zopro key file.
     pub fn load(bytes: &[u8]) -> Result<Self, String> {
         let artifact = Artifact::parse(bytes)?;
-        let vectors = artifact.vectors()?;
-        Self::from_artifact(&artifact, &vectors, None)
+        Self::from_artifact(&artifact, artifact.points(), None)
     }
 
-    /// From a parsed key, its vectors decompressed (by `Artifact::vectors`
-    /// or a host's cache of them) and a cached solver image when the host
+    /// From a parsed key, its points (`Artifact::points`, or a host's
+    /// cache of them decompressed) and a cached solver image when the host
     /// kept one (`solver_image`).
     pub fn from_artifact(
         artifact: &Artifact,
-        vectors: &[Vec<u8>; 5],
+        points: Points,
         solver_image: Option<&[u8]>,
     ) -> Result<Self, String> {
         let names: Vec<String> = artifact
@@ -114,7 +113,7 @@ impl Prover {
             return Err("the key's inputs do not match its verifying key".into());
         }
         Ok(Self {
-            key: artifact.key(vectors, solver_image)?,
+            key: artifact.key(points, solver_image)?,
             verifying_key,
             fixed: artifact.fixed_points()?,
             name: artifact.name.to_owned(),
