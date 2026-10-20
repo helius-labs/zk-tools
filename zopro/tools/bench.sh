@@ -42,6 +42,8 @@ else:
 
 mkdir -p "$keys"
 prefix="$(pin)"
+header="| shape | first load | first load peak | load | key held | proof peak | witness | proof (median) |"
+echo "$header" >&2
 rows=()
 for shape in ${shapes//,/ }; do
   if [[ "$shape" == merge-* ]]; then
@@ -72,6 +74,6 @@ done
 echo
 echo "zopro on $(uname -sm), $rounds proofs a shape, memory the process's own (MB), times in ms"
 echo
-echo "| shape | first load | first load peak | load | key held | proof peak | witness | proof (median) |"
+echo "$header"
 echo "|---|---|---|---|---|---|---|---|"
 printf '%s\n' "${rows[@]}"
