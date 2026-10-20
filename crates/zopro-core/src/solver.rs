@@ -87,6 +87,8 @@ enum Expression {
 struct Step {
     constraint: u32,
     sums: (u32, u32),
+    /// Where the step's first stored sum goes in the solution's vector.
+    first_slot: u32,
     expressions: [Expression; 3],
     assignment: Option<Assignment>,
 }
@@ -97,21 +99,105 @@ impl Step {
     fn sums(&self) -> Range<usize> {
         self.sums.0 as usize..self.sums.1 as usize
     }
+    fn first_slot(&self) -> usize {
+        self.first_slot as usize
+    }
 }
+/// A prefix of a linear expression: an earlier sum plus a term. Most sums
+/// (2.7 M of 16 -> 2's 3.1 M) are read once, by the next sum of their own
+/// chain, so a solve carries them in a running value and stores only the
+/// others, each in a slot of the solution's vector after the wires (0.45 M
+/// at 16 -> 2: 14 MB rather than 100). `previous` holds STORED for a stored
+/// sum, and below it CHAIN (the running value), NONE, or the slot it adds
+/// its term to; while the plan is built, the sum's id or u32::MAX.
 struct Sum {
     previous: u32,
     term: Term,
 }
+const STORED: u32 = 1 << 31;
+const NONE: u32 = STORED - 1;
+const CHAIN: u32 = STORED - 2;
+enum Previous {
+    None,
+    Chain,
+    Slot(usize),
+}
 impl Sum {
-    /// The sum this one adds its term to, NO_SUM for none.
-    fn previous(&self) -> usize {
-        if self.previous == u32::MAX {
-            NO_SUM
-        } else {
-            self.previous as usize
+    fn previous(&self) -> Previous {
+        match self.previous & !STORED {
+            NONE => Previous::None,
+            CHAIN => Previous::Chain,
+            slot => Previous::Slot(slot as usize),
         }
     }
+    fn stored(&self) -> bool {
+        self.previous & STORED != 0
+    }
 }
+/// Gives the sums that need one a slot, in order, and rewrites the built
+/// plan's sum ids (n_wires + index, u32::MAX for none) into slots, CHAIN
+/// and NONE (see Sum). A sum needs no slot when an expression does not read
+/// it and its only reader is the next sum of its own step. The steps' sums
+/// are consecutive and in order, as the build appends them.
+fn assign_slots(n_wires: usize, sums: &mut [Sum], ops: &mut [Op]) -> usize {
+    let id = |previous: u32| (previous != u32::MAX).then(|| previous as usize - n_wires);
+    // Readers per sum, two meaning more than one or an expression.
+    let mut readers = vec![0u8; sums.len()];
+    for sum in sums.iter() {
+        if let Some(previous) = id(sum.previous) {
+            readers[previous] = readers[previous].saturating_add(1).min(2);
+        }
+    }
+    for op in ops.iter() {
+        if let Op::Constraint(step) = op {
+            for expression in &step.expressions {
+                if let Expression::Wire(wire) = expression {
+                    if *wire as usize >= n_wires {
+                        readers[*wire as usize - n_wires] = 2;
+                    }
+                }
+            }
+        }
+    }
+    let mut slot_of = vec![u32::MAX; sums.len()];
+    let mut n_slots = 0;
+    for op in ops.iter_mut() {
+        let Op::Constraint(step) = op else { continue };
+        step.first_slot = n_slots as u32;
+        let range = step.sums();
+        for index in range.clone() {
+            let chained = readers[index] == 1
+                && index + 1 < range.end
+                && id(sums[index + 1].previous) == Some(index);
+            if !chained {
+                slot_of[index] = (n_wires + n_slots) as u32;
+                n_slots += 1;
+            }
+        }
+    }
+    for (index, sum) in sums.iter_mut().enumerate() {
+        let previous = match id(sum.previous) {
+            None => NONE,
+            Some(previous) if slot_of[previous] == u32::MAX => CHAIN,
+            Some(previous) => slot_of[previous],
+        };
+        let stored = if slot_of[index] == u32::MAX { 0 } else { STORED };
+        sum.previous = previous | stored;
+    }
+    for op in ops.iter_mut() {
+        if let Op::Constraint(step) = op {
+            for expression in &mut step.expressions {
+                if let Expression::Wire(wire) = expression {
+                    if *wire as usize >= n_wires {
+                        *wire = slot_of[*wire as usize - n_wires];
+                    }
+                }
+            }
+        }
+    }
+    n_slots
+}
+
 /// A u32 range of a plan's list, as usize.
 fn range32(range: Range<usize>) -> (u32, u32) {
     (range.start as u32, range.end as u32)
@@ -119,11 +205,10 @@ fn range32(range: Range<usize>) -> (u32, u32) {
 fn range_of((start, end): (u32, u32)) -> Range<usize> {
     start as usize..end as usize
 }
-const NO_SUM: usize = usize::MAX;
 // "ZSP1" and the solver image's version: a kernel reads the images its own
 // version wrote.
 const IMAGE_MAGIC: usize = 0x3150_535a;
-pub(crate) const IMAGE_VERSION: usize = 1;
+pub(crate) const IMAGE_VERSION: usize = 2;
 const DAMAGED_IMAGE: &str = "damaged solver image";
 
 // A cursor over a solver image's little-endian words.
@@ -186,6 +271,8 @@ pub(crate) struct Plan {
     coefficients: Vec<Fr>,
     terms: Vec<Term>,
     sums: Vec<Sum>,
+    /// The stored sums' slots, after the wires in the solution's vector.
+    n_slots: usize,
     n_constraints: usize,
     ops: Vec<Op>,
     /// The ops in epochs of parallel tasks, built at the first solve.
@@ -458,7 +545,7 @@ impl Plan {
                         // all of its circuit wires have been solved.
                         let mut previous = u32::MAX;
                         for term in &terms[start..] {
-                            if n_wires + sums.len() >= u32::MAX as usize {
+                            if n_wires + sums.len() >= CHAIN as usize {
                                 return Err("a solver program with too many sums");
                             }
                             previous = *prefixes
@@ -485,6 +572,7 @@ impl Plan {
             ops.push(Op::Constraint(Step {
                 constraint: constraint as u32,
                 sums: range32(sum_start..sums.len()),
+                first_slot: 0,
                 expressions,
                 assignment,
             }));
@@ -492,6 +580,8 @@ impl Plan {
         if words.next().is_some() || solved.contains(&false) || seen.contains(&false) {
             return Err("incomplete solver program");
         }
+        drop(prefixes);
+        let n_slots = assign_slots(n_wires, &mut sums, &mut ops);
         Ok(Self {
             n_wires,
             n_inputs,
@@ -501,6 +591,7 @@ impl Plan {
             coefficients,
             terms,
             sums,
+            n_slots,
             n_constraints,
             ops,
             schedule: std::sync::OnceLock::new(),
@@ -510,8 +601,9 @@ impl Plan {
     // The plan as an image, for a host to keep and load without building it
     // again from the program: a header of [magic, version, wires, inputs,
     // public, constraints, A indices, B indices, coefficients, terms, sums,
-    // ops], then each list in order. Every value is a little-endian u32 but
-    // the coefficients and inverses, four little-endian Montgomery words.
+    // slots, ops], then each list in order. Every value is a little-endian
+    // u32 but the coefficients and inverses, four little-endian Montgomery
+    // words.
     pub(crate) fn image(&self) -> Vec<u8> {
         let mut out = Vec::with_capacity(
             48 + 4 * (self.a_indices.len() + self.b_indices.len())
@@ -538,6 +630,7 @@ impl Plan {
             self.coefficients.len(),
             self.terms.len(),
             self.sums.len(),
+            self.n_slots,
             self.ops.len(),
         ] {
             word(&mut out, v);
@@ -553,7 +646,7 @@ impl Plan {
             word(&mut out, term.wire());
         }
         for sum in &self.sums {
-            word(&mut out, sum.previous());
+            word(&mut out, sum.previous as usize);
             word(&mut out, sum.term.coefficient());
             word(&mut out, sum.term.wire());
         }
@@ -573,7 +666,7 @@ impl Plan {
                 }
                 Op::Constraint(step) => {
                     let sums = step.sums();
-                    for v in [0, step.constraint(), sums.start, sums.end] {
+                    for v in [0, step.constraint(), sums.start, sums.end, step.first_slot()] {
                         word(&mut out, v);
                     }
                     for expression in &step.expressions {
@@ -612,8 +705,8 @@ impl Plan {
         if r.word()? != IMAGE_MAGIC || r.word()? != IMAGE_VERSION {
             return Err("unsupported solver image");
         }
-        let [n_wires, n_inputs, n_public, n_constraints, n_a, n_b, n_coefficients, n_terms, n_sums, n_ops] =
-            r.words::<10>()?;
+        let [n_wires, n_inputs, n_public, n_constraints, n_a, n_b, n_coefficients, n_terms, n_sums, n_slots, n_ops] =
+            r.words::<11>()?;
         // Every list must fit in what is left of the image before anything
         // is allocated for it; in u64, which a count cannot overflow.
         let needed = 4 * (n_a as u64 + n_b as u64)
@@ -624,7 +717,8 @@ impl Plan {
         if n_public == 0
             || n_public > n_inputs
             || n_inputs > n_wires
-            || n_wires + n_sums >= u32::MAX as usize
+            || n_slots > n_sums
+            || n_wires + n_slots >= CHAIN as usize
             || needed > (image.len() - r.at) as u64
         {
             return Err(DAMAGED_IMAGE);
@@ -667,17 +761,25 @@ impl Plan {
         for _ in 0..n_terms {
             terms.push(term(&mut r)?);
         }
+        // A stored sum adds its term to a slot an earlier one filled.
         let mut sums = Vec::with_capacity(n_sums);
-        for index in 0..n_sums {
-            let previous = match r.word()? {
-                v if v == u32::MAX as usize => u32::MAX,
-                v if (n_wires..n_wires + index).contains(&v) => v as u32,
+        let mut stored = 0;
+        for _ in 0..n_sums {
+            let previous = r.word()? as u32;
+            let filled = n_wires..n_wires + stored;
+            match previous & !STORED {
+                NONE | CHAIN => {}
+                slot if filled.contains(&(slot as usize)) => {}
                 _ => return Err(DAMAGED_IMAGE),
-            };
+            }
+            stored += (previous & STORED != 0) as usize;
             sums.push(Sum {
                 previous,
                 term: term(&mut r)?,
             });
+        }
+        if stored != n_slots {
+            return Err(DAMAGED_IMAGE);
         }
         let mut ops = Vec::with_capacity(n_ops);
         for _ in 0..n_ops {
@@ -703,17 +805,21 @@ impl Plan {
                 }));
                 continue;
             }
-            let [constraint, sums_start, sums_end] = r.words::<3>()?;
+            let [constraint, sums_start, sums_end, first_slot] = r.words::<4>()?;
             if constraint >= n_constraints {
                 return Err(DAMAGED_IMAGE);
             }
             let step_sums = range(sums_start, sums_end, n_sums)?;
+            let step_stored = sums[step_sums.clone()].iter().filter(|s| s.stored()).count();
+            if first_slot + step_stored > n_slots {
+                return Err(DAMAGED_IMAGE);
+            }
             let mut expressions = [Expression::Zero, Expression::Zero, Expression::Zero];
             for expression in &mut expressions {
                 let [tag, a, b] = r.words::<3>()?;
                 *expression = match tag {
                     0 => Expression::Zero,
-                    1 if a < n_wires + n_sums => Expression::Wire(a as u32),
+                    1 if a < n_wires + n_slots => Expression::Wire(a as u32),
                     2 if a < n_coefficients => Expression::Constant(a as u32),
                     3 if a < n_terms => Expression::Term(a as u32),
                     4 => {
@@ -747,6 +853,7 @@ impl Plan {
             ops.push(Op::Constraint(Step {
                 constraint: constraint as u32,
                 sums: range32(step_sums),
+                first_slot: first_slot as u32,
                 expressions,
                 assignment,
             }));
@@ -763,6 +870,7 @@ impl Plan {
             coefficients,
             terms,
             sums,
+            n_slots,
             n_constraints,
             ops,
             schedule: std::sync::OnceLock::new(),
@@ -776,6 +884,7 @@ impl Plan {
             && self.n_constraints <= domain
     }
 
+    #[cfg(test)]
     pub(crate) fn solve(&self, witness: &[Fr]) -> Result<Solution, String> {
         self.solve_in(witness, self.n_constraints)
     }
@@ -786,7 +895,7 @@ impl Plan {
         if witness.len() != self.n_inputs - 1 {
             return Err("invalid witness size".into());
         }
-        let mut w = vec![Fr::ZERO; self.n_wires + self.sums.len()];
+        let mut w = vec![Fr::ZERO; self.n_wires + self.n_slots];
         w[0] = Fr::ONE;
         w[1..self.n_inputs].copy_from_slice(witness);
         let row = || {
@@ -820,7 +929,7 @@ impl Plan {
             }
         }
         // The sums are scratch: copied out, the wires alone stay allocated
-        // through the proof (truncating kept the sums' 100 MB at 16 -> 2).
+        // through the proof (truncating would keep the slots).
         let w = w[..self.n_wires].to_vec();
         Ok(Solution { w, a, b, c })
     }
@@ -838,7 +947,7 @@ impl Plan {
     fn build_schedule(&self, epochs: usize) -> Schedule {
         let n = self.ops.len();
         // Which op writes each wire and sum.
-        let mut producer = vec![u32::MAX; self.n_wires + self.sums.len()];
+        let mut producer = vec![u32::MAX; self.n_wires + self.n_slots];
         let mut depth = vec![0u32; n];
         let mut reads = Vec::new();
         for (i, op) in self.ops.iter().enumerate() {
@@ -903,11 +1012,10 @@ impl Plan {
         match op {
             Op::Hint(hint) => out.extend(self.terms[hint.input()].iter().map(|t| t.wire())),
             Op::Constraint(step) => {
-                for index in step.sums() {
-                    let sum = &self.sums[index];
+                for sum in &self.sums[step.sums()] {
                     out.push(sum.term.wire());
-                    if sum.previous() != NO_SUM {
-                        out.push(sum.previous());
+                    if let Previous::Slot(slot) = sum.previous() {
+                        out.push(slot);
                     }
                 }
                 for expression in &step.expressions {
@@ -924,6 +1032,11 @@ impl Plan {
         }
     }
 
+    /// How many of a step's sums are stored.
+    fn stored(&self, step: &Step) -> usize {
+        self.sums[step.sums()].iter().filter(|sum| sum.stored()).count()
+    }
+
     /// The wires and sums an op writes.
     fn writes(&self, op: &Op) -> Vec<usize> {
         match op {
@@ -932,7 +1045,7 @@ impl Plan {
                 .assignment
                 .iter()
                 .map(|assignment| assignment.wire())
-                .chain(step.sums().map(|index| self.n_wires + index))
+                .chain(self.n_wires + step.first_slot()..self.n_wires + step.first_slot() + self.stored(step))
                 .collect(),
         }
     }
@@ -977,17 +1090,19 @@ impl Plan {
                 return Ok(());
             }
         };
-        for index in step.sums() {
-            let sum = &self.sums[index];
+        let mut slot = self.n_wires + step.first_slot();
+        let mut chain = Fr::ZERO;
+        for sum in &self.sums[step.sums()] {
             let term = term_value(&sum.term);
-            set(
-                self.n_wires + index,
-                if sum.previous() == NO_SUM {
-                    term
-                } else {
-                    get(sum.previous()) + term
-                },
-            );
+            chain = match sum.previous() {
+                Previous::None => term,
+                Previous::Chain => chain + term,
+                Previous::Slot(previous) => get(previous) + term,
+            };
+            if sum.stored() {
+                set(slot, chain);
+                slot += 1;
+            }
         }
         let mut values = [Fr::ZERO; 3];
         for (value, expression) in values.iter_mut().zip(&step.expressions) {
@@ -1119,7 +1234,7 @@ mod tests {
             };
             let parallel = view(&plan.solve(&witness).unwrap());
             let sequential = {
-                let mut w = vec![Fr::ZERO; plan.n_wires + plan.sums.len()];
+                let mut w = vec![Fr::ZERO; plan.n_wires + plan.n_slots];
                 w[0] = Fr::ONE;
                 w[1..plan.n_inputs].copy_from_slice(&witness);
                 let (mut a, mut b, mut c) = (
@@ -1499,15 +1614,15 @@ mod tests {
             damaged[at..at + 4].copy_from_slice(&value.to_le_bytes());
             Plan::from_image(&damaged).err()
         };
-        assert_eq!(word(4, 2), Some("unsupported solver image"));
+        assert_eq!(word(4, IMAGE_VERSION as u32 + 1), Some("unsupported solver image"));
         // The wire count, the first A index, and both words of the first
         // term, past the lists they index.
         assert_eq!(word(8, 0), Some(DAMAGED_IMAGE));
-        assert_eq!(word(48, u32::MAX), Some(DAMAGED_IMAGE));
+        assert_eq!(word(52, u32::MAX), Some(DAMAGED_IMAGE));
         let header = |i: usize| {
             u32::from_le_bytes(image[8 + 4 * i..12 + 4 * i].try_into().unwrap()) as usize
         };
-        let terms = 48 + 4 * (header(4) + header(5)) + 32 * header(6);
+        let terms = 52 + 4 * (header(4) + header(5)) + 32 * header(6);
         assert!(header(7) > 0, "the plan has terms");
         assert_eq!(word(terms, 1000), Some(DAMAGED_IMAGE));
         assert_eq!(word(terms + 4, 1000), Some(DAMAGED_IMAGE));
