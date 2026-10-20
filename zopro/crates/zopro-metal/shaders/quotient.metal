@@ -87,12 +87,15 @@ kernel void fr_dit_pass(device fr_t *values [[buffer(0)]],
   fr_pass<true>(values, roots, a, tile, t, g, threads);
 }
 
+// values[i] *= its weight, chunks[i >> low_bits] * lows[i & (2^low_bits - 1)].
 kernel void fr_scale(device fr_t *values [[buffer(0)]],
-                     device const fr_t *weights [[buffer(1)]],
+                     device const fr_t *lows [[buffer(1)]],
                      constant uint &n [[buffer(2)]],
+                     device const fr_t *chunks [[buffer(3)]],
+                     constant uint &low_bits [[buffer(4)]],
                      uint i [[thread_position_in_grid]]) {
   if (i < n)
-    values[i] = fr_mul(values[i], weights[i]);
+    values[i] = fr_mul(fr_mul(values[i], lows[i & ((1u << low_bits) - 1)]), chunks[i >> low_bits]);
 }
 
 // a, b, c each n long, consecutive: a = a b - c.

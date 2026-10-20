@@ -47,7 +47,7 @@ zopro-metal = { path = "../zopro-metal", optional = true }
 getrandom = { version = "0.2", features = ["js"] }
 
 [target.'cfg(target_vendor = "apple")'.dependencies]
-# The process's footprint in trace lines.
+# The process's footprint in trace lines; alloc's mappings.
 libc = "0.2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies.web-time]

@@ -11,6 +11,10 @@ use std::{env, fs, path::Path, time::Instant};
 use zopro_bn254::Fr;
 use zopro_core::{decode_g1, decode_g2, Key, Points};
 
+// As the mobile SDK: large blocks go back to the system when freed.
+#[global_allocator]
+static ALLOCATOR: zopro_core::alloc::Allocator = zopro_core::alloc::Allocator;
+
 fn read(dir: &Path, name: &str) -> Vec<u8> {
     fs::read(dir.join(name)).unwrap_or_else(|error| panic!("{name}: {error}"))
 }
@@ -517,9 +521,16 @@ fn metal_quotient(dir: &Path) {
     let n = read(dir, "z").len() / 64 + 1;
     let den = zopro_core::fft::denominator(n, coset).expect("denominator");
     let plan = zopro_core::fft::Plan::new(n, generator, coset, den);
-    let (roots, inverse_roots, forward, reverse) = plan.tables().expect("tables");
+    let (roots, inverse_roots, forward, reverse) = plan.compact_tables().expect("tables");
+    fn weights(w: &zopro_core::fft::WeightTables) -> zopro_metal::Weights<'_> {
+        zopro_metal::Weights {
+            lows: &w.lows,
+            chunks: &w.chunks,
+            low_bits: w.low_bits,
+        }
+    }
     let (mut quotient, _) =
-        zopro_metal::Quotient::new(n, &roots, &inverse_roots, &forward, &reverse)
+        zopro_metal::Quotient::new(n, &roots, &inverse_roots, weights(&forward), weights(&reverse))
             .expect("quotient");
     let m = n - n / 16;
     let (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>) = (
