@@ -3,7 +3,7 @@
 //! DIT), multiplied pointwise, and brought back (inverse DIF, scale by the
 //! denominator), in passes of several radix-2 stages through threadgroup
 //! memory. The tables are the CPU plan's: half the roots of each direction,
-//! and the bit-reversed coset weights.
+//! and the bit-reversed coset weights in two small tables each (Weights).
 use std::{ffi::c_void, time::Instant};
 
 use zopro_bn254::Fr;
@@ -11,6 +11,16 @@ use metal::{
     Buffer, CommandQueue, ComputeCommandEncoderRef, ComputePipelineState, Device,
     MTLResourceOptions, MTLSize,
 };
+
+/// One direction's bit-reversed coset weights, as the CPU plan keeps them:
+/// element i's is chunks[i >> low_bits] * lows[i & (2^low_bits - 1)], so the
+/// GPU holds two small tables rather than n elements (32 MB for both
+/// directions at 2^19).
+pub struct Weights<'a> {
+    pub lows: &'a [Fr],
+    pub chunks: &'a [Fr],
+    pub low_bits: u32,
+}
 
 /// A quotient submitted to the GPU and not yet collected.
 pub struct PendingQuotient {
@@ -28,21 +38,21 @@ pub struct Quotient {
     n: usize,
     roots: Buffer,
     inverse_roots: Buffer,
-    forward_weights: Buffer,
-    reverse_weights: Buffer,
+    /// Each direction's weights: lows, then chunks.
+    forward_weights: [Buffer; 2],
+    reverse_weights: [Buffer; 2],
+    low_bits: u32,
     abc: Buffer,
 }
 
 impl Drop for Quotient {
     fn drop(&mut self) {
         objc::rc::autoreleasepool(|| {
-            for buffer in [
-                &self.roots,
-                &self.inverse_roots,
-                &self.forward_weights,
-                &self.reverse_weights,
-                &self.abc,
-            ] {
+            for buffer in [&self.roots, &self.inverse_roots, &self.abc]
+                .into_iter()
+                .chain(&self.forward_weights)
+                .chain(&self.reverse_weights)
+            {
                 crate::discard(buffer);
             }
         })
@@ -64,8 +74,8 @@ impl Quotient {
         n: usize,
         roots: &[Fr],
         inverse_roots: &[Fr],
-        forward_weights: &[Fr],
-        reverse_weights: &[Fr],
+        forward_weights: Weights,
+        reverse_weights: Weights,
     ) -> Result<(Self, f64), String> {
         objc::rc::autoreleasepool(|| {
             Self::new_in_pool(n, roots, inverse_roots, forward_weights, reverse_weights)
@@ -76,12 +86,16 @@ impl Quotient {
         n: usize,
         roots: &[Fr],
         inverse_roots: &[Fr],
-        forward_weights: &[Fr],
-        reverse_weights: &[Fr],
+        forward_weights: Weights,
+        reverse_weights: Weights,
     ) -> Result<(Self, f64), String> {
         assert!(n.is_power_of_two() && n >= 8);
         assert_eq!(roots.len(), n / 2);
-        assert_eq!(forward_weights.len(), n);
+        for weights in [&forward_weights, &reverse_weights] {
+            assert_eq!(weights.lows.len(), 1 << weights.low_bits);
+            assert_eq!(weights.lows.len() * weights.chunks.len(), n);
+        }
+        assert_eq!(forward_weights.low_bits, reverse_weights.low_bits);
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
         let pipeline = |name: &str| crate::pipeline(&device, false, name);
@@ -108,8 +122,15 @@ impl Quotient {
                 n,
                 roots: upload(&device, roots),
                 inverse_roots: upload(&device, inverse_roots),
-                forward_weights: upload(&device, forward_weights),
-                reverse_weights: upload(&device, reverse_weights),
+                forward_weights: [
+                    upload(&device, forward_weights.lows),
+                    upload(&device, forward_weights.chunks),
+                ],
+                reverse_weights: [
+                    upload(&device, reverse_weights.lows),
+                    upload(&device, reverse_weights.chunks),
+                ],
+                low_bits: forward_weights.low_bits,
                 abc: device.new_buffer((3 * n * 32) as u64, MTLResourceOptions::StorageModeShared),
             },
             compile_ms,
@@ -226,12 +247,14 @@ impl Quotient {
         }
     }
 
-    fn scale_by(&self, encoder: &ComputeCommandEncoderRef, offset: u64, weights: &Buffer) {
+    fn scale_by(&self, encoder: &ComputeCommandEncoderRef, offset: u64, weights: &[Buffer; 2]) {
         encoder.set_compute_pipeline_state(&self.scale);
         encoder.set_buffer(0, Some(&self.abc), offset);
-        encoder.set_buffer(1, Some(weights), 0);
+        encoder.set_buffer(1, Some(&weights[0]), 0);
         let count = self.n as u32;
         encoder.set_bytes(2, 4, &count as *const u32 as *const c_void);
+        encoder.set_buffer(3, Some(&weights[1]), 0);
+        encoder.set_bytes(4, 4, &self.low_bits as *const u32 as *const c_void);
         self.dispatch(encoder, &self.scale, self.n);
     }
 }

@@ -22,7 +22,7 @@ use objc::{msg_send, sel, sel_impl};
 use rayon::prelude::*;
 
 pub mod quotient;
-pub use quotient::Quotient;
+pub use quotient::{Quotient, Weights};
 
 /// The shaders as a library: the metallib build.rs compiled, else compiled
 /// from source now. The G2 kernels are instantiated only when asked for:

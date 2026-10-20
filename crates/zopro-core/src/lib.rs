@@ -13,6 +13,7 @@ pub mod time {
     pub use web_time::Instant;
 }
 pub use wasm_bindgen_rayon::init_thread_pool;
+pub mod alloc;
 pub mod artifact;
 mod decompress;
 #[cfg(not(target_arch = "wasm32"))]
@@ -546,11 +547,23 @@ impl GpuBuilder {
             return None;
         }
         let started = crate::time::Instant::now();
-        let (roots, inverse_roots, forward, reverse) = plan.tables()?;
-        let quotient =
-            zopro_metal::Quotient::new(plan.size(), &roots, &inverse_roots, &forward, &reverse)
-                .ok()?
-                .0;
+        let (roots, inverse_roots, forward, reverse) = plan.compact_tables()?;
+        fn weights(w: &fft::WeightTables) -> zopro_metal::Weights<'_> {
+            zopro_metal::Weights {
+                lows: &w.lows,
+                chunks: &w.chunks,
+                low_bits: w.low_bits,
+            }
+        }
+        let quotient = zopro_metal::Quotient::new(
+            plan.size(),
+            &roots,
+            &inverse_roots,
+            weights(&forward),
+            weights(&reverse),
+        )
+        .ok()?
+        .0;
         let scratch = zopro_metal::Scratch::new().ok()?;
         Some(Self {
             started,
@@ -1279,6 +1292,14 @@ impl Key {
             let started = crate::time::Instant::now();
             let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
             let pending = quotient.as_mut().map(|q| q.start(&a, &b, &c));
+            // The GPU has its copy of a, b and c: the CPU's go now rather
+            // than after the MSMs (48 MB at 16 -> 2).
+            let abc = if pending.is_some() {
+                drop((a, b, c));
+                None
+            } else {
+                Some((a, b, c))
+            };
             let (quotient_tx, quotient_rx) = std::sync::mpsc::channel::<()>();
             // A quotient on the CPU holds nothing up.
             let quotient_tx = pending.is_some().then_some(quotient_tx);
@@ -1337,9 +1358,10 @@ impl Key {
                         bs2
                     })
                 });
-                let h = match (quotient.as_mut(), pending) {
-                    (Some(q), Some(pending)) => q.finish(pending)?,
-                    _ => self.quotient(a, b, c),
+                let h = match (quotient.as_mut(), pending, abc) {
+                    (Some(q), Some(pending), _) => q.finish(pending)?,
+                    (_, _, Some((a, b, c))) => self.quotient(a, b, c),
+                    _ => unreachable!("the quotient on the GPU or on the CPU"),
                 };
                 drop((quotient, quotient_tx));
                 trace("quotient", started);

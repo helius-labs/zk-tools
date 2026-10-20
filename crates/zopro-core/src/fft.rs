@@ -9,6 +9,14 @@ pub(crate) type Quad = FrLanes;
 /// weights.
 pub type Tables = (Vec<Fr>, Vec<Fr>, Vec<Fr>, Vec<Fr>);
 
+/// One direction's weights as a GPU computes them, as the CPU does: the
+/// weight of element i is chunks[i >> low_bits] * lows[i & (2^low_bits - 1)].
+pub struct WeightTables {
+    pub lows: Vec<Fr>,
+    pub chunks: Vec<Fr>,
+    pub low_bits: u32,
+}
+
 // Quads per parallel task in the wide passes (1024 elements).
 const TASK: usize = 256;
 
@@ -63,6 +71,14 @@ impl Weights {
         Self {
             lows: Vec::new(),
             chunks: Vec::new(),
+        }
+    }
+    fn tables(&self) -> WeightTables {
+        let lows = scalars(&self.lows, self.lows.len() * 4);
+        WeightTables {
+            low_bits: lows.len().trailing_zeros(),
+            lows,
+            chunks: self.chunks.iter().map(|chunk| chunk.get()[0]).collect(),
         }
     }
     /// The n weights, for a GPU's tables.
@@ -258,6 +274,20 @@ impl Plan {
             scalars(&self.inverse_roots.layers[0], self.n / 2),
             self.forward_weights.expand(self.n),
             self.reverse_weights.expand(self.n),
+        ))
+    }
+    /// The roots and inverse roots of `tables`, and each direction's
+    /// weights in their two small tables rather than n elements (32 MB for
+    /// both at 2^19). None below eight elements.
+    pub fn compact_tables(&self) -> Option<(Vec<Fr>, Vec<Fr>, WeightTables, WeightTables)> {
+        if self.small.is_some() {
+            return None;
+        }
+        Some((
+            scalars(&self.roots.layers[0], self.n / 2),
+            scalars(&self.inverse_roots.layers[0], self.n / 2),
+            self.forward_weights.tables(),
+            self.reverse_weights.tables(),
         ))
     }
     pub fn size(&self) -> usize {
