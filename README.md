@@ -6,6 +6,7 @@ The Zolana local provers: the Go bridges that `zolana-web-sdk` and `zolana-mobil
 
 - `prover-wasm/` (module `github.com/helius-labs/zk-tools`): the js/wasm bridge with its Arkworks kernel adapter, built by the web SDK. `testdata/transfer-2x2.json` is the demo request.
 - `cgo/` (module `github.com/zkmopro/rust-gnark`): the c-archive bridge the mobile SDK's `rust-gnark` crate compiles.
+- `zopro/`: the Rust Groth16 prover the SDKs are moving to, without gnark at run time; experimental (see its README). The web SDK's `runtime.lock.json` and the mobile SDK's `Cargo.toml` pin a commit of this repository.
 
 Both require `github.com/helius-labs/zolana/prover/server`, the upstream prover, at a commit pinned in their `go.mod`; `go.sum` checks it. They currently pin helius-labs/zolana#420, which gives that module a fetchable path, and move to `main` once it merges.
 
