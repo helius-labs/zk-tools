@@ -14,6 +14,10 @@ fn read(dir: &Path, name: &str) -> Vec<u8> {
     fs::read(dir.join(name)).unwrap_or_else(|error| panic!("{name}: {error}"))
 }
 
+/// The anonymous footprint's peak since it was last read, in MB, while
+/// key-file samples it.
+static ANON_PEAK: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 /// The kernel's traces, to stderr as TRACE lines.
 struct Stderr;
 impl log::Log for Stderr {
@@ -21,8 +25,11 @@ impl log::Log for Stderr {
         true
     }
     fn log(&self, record: &log::Record) {
+        // With key-file's sampler running, the anonymous peak of the stage.
+        let peak = ANON_PEAK.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+        let peak = if peak > 0 { format!(" anon peak {peak} MB") } else { String::new() };
         eprintln!(
-            "{}",
+            "{}{peak}",
             record.args().to_string().replace("ZOPRO_TRACE", "TRACE")
         );
     }
@@ -142,16 +149,12 @@ fn key_file(path: &Path, dir: &Path, rounds: usize) {
     // The largest anonymous footprint since the last stage, sampled every
     // 2 ms: Linux keeps a peak only of the whole resident set, which counts
     // the mapped key's pages too.
-    let anon_peak = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
-    {
-        let anon_peak = anon_peak.clone();
-        std::thread::spawn(move || loop {
-            anon_peak.fetch_max(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
-            std::thread::sleep(std::time::Duration::from_millis(2));
-        });
-    }
+    std::thread::spawn(|| loop {
+        ANON_PEAK.fetch_max(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+        std::thread::sleep(std::time::Duration::from_millis(2));
+    });
     let stage = |name: &str, started: Instant| {
-        let peak = anon_peak.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+        let peak = ANON_PEAK.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
         println!(
             "MEMORY {name} footprint_mb={} anon_peak_mb={peak} rss_peak_mb={} ms={}",
             footprint_mb(),

@@ -28,9 +28,78 @@ pub struct Plan {
     released: bool,
     roots: Twiddles,
     inverse_roots: Twiddles,
-    forward_weights: Vec<Quad>,
-    reverse_weights: Vec<Quad>,
+    forward_weights: Weights,
+    reverse_weights: Weights,
     small: Option<(Direct, Fr)>,
+}
+
+/// A transform's weights, factor * base^bitrev(i) for element i, in two
+/// small tables rather than a vector of n (32 MB for both directions at
+/// 2^19): element i = c 2^low + t, the chunk c's 2^low elements, has
+/// bitrev(i) = bitrev_low(t) 2^(log - low) + bitrev_(log - low)(c), so its
+/// weight is chunks[c] * lows[t]. Scaling multiplies by both, one product
+/// more per element.
+struct Weights {
+    /// base^(bitrev_low(t) 2^(log - low)), as quads.
+    lows: Vec<Quad>,
+    /// factor * base^bitrev_(log - low)(c), each in all four lanes.
+    chunks: Vec<Quad>,
+}
+impl Weights {
+    fn new(n: usize, base: Fr, factor: Fr) -> Self {
+        let log = n.trailing_zeros() as usize;
+        let low = log.min((4 * TASK).trailing_zeros() as usize);
+        let lows = bit_reversed_powers(base.pow(&[1u64 << (log - low)]), low);
+        let chunks = bit_reversed_powers(base, log - low)
+            .into_iter()
+            .map(|power| Quad::new(&[factor * power; 4]))
+            .collect();
+        Self {
+            lows: quads(&lows),
+            chunks,
+        }
+    }
+    fn empty() -> Self {
+        Self {
+            lows: Vec::new(),
+            chunks: Vec::new(),
+        }
+    }
+    /// The n weights, for a GPU's tables.
+    fn expand(&self, n: usize) -> Vec<Fr> {
+        let lows = scalars(&self.lows, self.lows.len() * 4);
+        let mut out = vec![Fr::ZERO; n];
+        out.par_chunks_mut(lows.len())
+            .zip(&self.chunks)
+            .for_each(|(out, chunk)| {
+                let chunk = chunk.get()[0];
+                for (out, low) in out.iter_mut().zip(&lows) {
+                    *out = chunk * *low;
+                }
+            });
+        out
+    }
+}
+
+/// base^bitrev_bits(i) for i below 2^bits.
+fn bit_reversed_powers(base: Fr, bits: usize) -> Vec<Fr> {
+    let mut powers = Vec::with_capacity(1 << bits);
+    let mut power = Fr::ONE;
+    for _ in 0..1usize << bits {
+        powers.push(power);
+        power *= base;
+    }
+    (0..1usize << bits)
+        .map(|i| powers[bit_reverse(i, bits)])
+        .collect()
+}
+
+fn bit_reverse(i: usize, bits: usize) -> usize {
+    if bits == 0 {
+        0
+    } else {
+        i.reverse_bits() >> (usize::BITS as usize - bits)
+    }
 }
 
 // One direction's twiddles. layers[k] holds generator^(j·2^k), four j per
@@ -75,6 +144,39 @@ pub(crate) fn quads(values: &[Fr]) -> Vec<Quad> {
         .collect()
 }
 
+/// `values` as quads, natively in place: there a quad's memory is its four
+/// elements', so a transform holds its values once. A length or capacity
+/// not a multiple of four, or WebAssembly's lane form, takes a copy.
+fn into_quads(values: Vec<Fr>) -> Vec<Quad> {
+    #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
+    if values.len().is_multiple_of(4) && values.capacity().is_multiple_of(4) {
+        const _: () = assert!(
+            std::mem::size_of::<Quad>() == 4 * std::mem::size_of::<Fr>()
+                && std::mem::align_of::<Quad>() == std::mem::align_of::<Fr>()
+        );
+        let mut values = std::mem::ManuallyDrop::new(values);
+        let (ptr, len, capacity) = (values.as_mut_ptr(), values.len(), values.capacity());
+        // SAFETY: a quad is four elements in a row (Lanes, repr(transparent)
+        // over [Fr; 4]), so the allocation holds len / 4 quads and its
+        // layout is capacity / 4 quads'.
+        return unsafe { Vec::from_raw_parts(ptr.cast::<Quad>(), len / 4, capacity / 4) };
+    }
+    quads(&values)
+}
+
+/// The elements of `quads`, as into_quads takes them.
+fn from_quads(quads: Vec<Quad>) -> Vec<Fr> {
+    #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
+    {
+        let mut quads = std::mem::ManuallyDrop::new(quads);
+        let (ptr, len, capacity) = (quads.as_mut_ptr(), quads.len(), quads.capacity());
+        // SAFETY: as into_quads.
+        unsafe { Vec::from_raw_parts(ptr.cast::<Fr>(), len * 4, capacity * 4) }
+    }
+    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
+    scalars(&quads, quads.len() * 4)
+}
+
 /// The first `n` elements of `quads`.
 pub(crate) fn scalars(quads: &[Quad], n: usize) -> Vec<Fr> {
     let mut values: Vec<Fr> = quads.par_iter().flat_map_iter(|quad| quad.get()).collect();
@@ -97,8 +199,8 @@ impl Plan {
                 released: false,
                 roots: Twiddles::empty(),
                 inverse_roots: Twiddles::empty(),
-                forward_weights: Vec::new(),
-                reverse_weights: Vec::new(),
+                forward_weights: Weights::empty(),
+                reverse_weights: Weights::empty(),
                 small: Some((Direct { generator, coset }, den)),
             };
         }
@@ -115,31 +217,12 @@ impl Plan {
         };
         let started = crate::time::Instant::now();
         let n_inv = Fr::from(n as u64).inverse().unwrap();
-        let mut forward_weights = powers(coset, n);
-        let mut reverse_weights = powers(coset.inverse().unwrap(), n);
+        let forward_weights = Weights::new(n, coset, n_inv);
+        let reverse_weights = Weights::new(n, coset.inverse().unwrap(), n_inv * den);
         let started = super::trace("plan-weights", started);
-        for v in &mut forward_weights {
-            *v *= n_inv;
-        }
-        let reverse_scale = n_inv * den;
-        for v in &mut reverse_weights {
-            *v *= reverse_scale;
-        }
-        let started = super::trace("plan-scale", started);
-        let log = n.trailing_zeros();
-        for i in 0..n {
-            let j = i.reverse_bits() >> (usize::BITS - log);
-            if i < j {
-                forward_weights.swap(i, j);
-                reverse_weights.swap(i, j);
-            }
-        }
-        let started = super::trace("plan-bitrev", started);
         let roots = Twiddles::new(powers(generator, n / 2));
         let inverse_roots = Twiddles::new(powers(generator.inverse().unwrap(), n / 2));
-        let started = super::trace("plan-roots", started);
-        let (forward_weights, reverse_weights) = (quads(&forward_weights), quads(&reverse_weights));
-        super::trace("plan-quads", started);
+        super::trace("plan-roots", started);
         Self {
             n,
             params: (generator, coset, den),
@@ -158,8 +241,8 @@ impl Plan {
         if self.small.is_none() {
             self.roots = Twiddles::empty();
             self.inverse_roots = Twiddles::empty();
-            self.forward_weights = Vec::new();
-            self.reverse_weights = Vec::new();
+            self.forward_weights = Weights::empty();
+            self.reverse_weights = Weights::empty();
             self.released = true;
         }
     }
@@ -173,8 +256,8 @@ impl Plan {
         Some((
             scalars(&self.roots.layers[0], self.n / 2),
             scalars(&self.inverse_roots.layers[0], self.n / 2),
-            scalars(&self.forward_weights, self.n),
-            scalars(&self.reverse_weights, self.n),
+            self.forward_weights.expand(self.n),
+            self.reverse_weights.expand(self.n),
         ))
     }
     pub fn size(&self) -> usize {
@@ -188,7 +271,7 @@ impl Plan {
         if let Some((direct, _)) = &self.small {
             return quads(&direct.coset_evaluations(&direct.coefficients(&values)));
         }
-        let mut values = quads(&values);
+        let mut values = into_quads(values);
         dif(&mut values, &self.inverse_roots, 0);
         scale(&mut values, &self.forward_weights);
         dit(&mut values, &self.roots, 0);
@@ -238,18 +321,18 @@ impl Plan {
         assert_eq!(values.len() * 4, self.n);
         dif(&mut values, &self.inverse_roots, 0);
         scale(&mut values, &self.reverse_weights);
-        scalars(&values, self.n)
+        from_quads(values)
     }
 }
 
-// values[i] *= weights[i].
-fn scale(values: &mut [Quad], weights: &[Quad]) {
+// values[i] *= the i-th weight; a task's quads are a weights chunk's.
+fn scale(values: &mut [Quad], weights: &Weights) {
     values
-        .par_chunks_mut(TASK)
-        .zip(weights.par_chunks(TASK))
-        .for_each(|(values, weights)| {
-            for (value, weight) in values.iter_mut().zip(weights) {
-                *value = value.mul(weight);
+        .par_chunks_mut(weights.lows.len())
+        .zip(&weights.chunks)
+        .for_each(|(values, chunk)| {
+            for (value, low) in values.iter_mut().zip(&weights.lows) {
+                *value = value.mul(low).mul(chunk);
             }
         });
 }

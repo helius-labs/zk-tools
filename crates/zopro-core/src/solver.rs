@@ -777,15 +777,24 @@ impl Plan {
     }
 
     pub(crate) fn solve(&self, witness: &[Fr]) -> Result<Solution, String> {
+        self.solve_in(witness, self.n_constraints)
+    }
+
+    /// `solve`, with room in a, b and c for `domain` elements: the quotient
+    /// pads them to the domain in place rather than reallocating them.
+    pub(crate) fn solve_in(&self, witness: &[Fr], domain: usize) -> Result<Solution, String> {
         if witness.len() != self.n_inputs - 1 {
             return Err("invalid witness size".into());
         }
         let mut w = vec![Fr::ZERO; self.n_wires + self.sums.len()];
         w[0] = Fr::ONE;
         w[1..self.n_inputs].copy_from_slice(witness);
-        let mut a = vec![Fr::ZERO; self.n_constraints];
-        let mut b = a.clone();
-        let mut c = a.clone();
+        let row = || {
+            let mut row = Vec::with_capacity(domain.max(self.n_constraints));
+            row.resize(self.n_constraints, Fr::ZERO);
+            row
+        };
+        let (mut a, mut b, mut c) = (row(), row(), row());
         let view = View {
             w: w.as_mut_ptr(),
             a: a.as_mut_ptr(),

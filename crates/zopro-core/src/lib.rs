@@ -889,7 +889,7 @@ impl Key {
             zopro_wgpu::profile::record_cpu(name, clock.elapsed().as_secs_f64() * 1000.0);
             clock = crate::time::Instant::now();
         };
-        let solution = plan.solve(&frs(witness)).map_err(|e| JsError::new(&e))?;
+        let solution = plan.solve_in(&frs(witness), self.domain).map_err(|e| JsError::new(&e))?;
         let sa: Vec<_> = plan.a_indices.iter().map(|&i| solution.w[i as usize]).collect();
         let sb: Vec<_> = plan.b_indices.iter().map(|&i| solution.w[i as usize]).collect();
         let sk: Vec<Fr> = solution.w[plan.n_public..].to_vec();
@@ -1041,7 +1041,7 @@ impl Key {
             return Err("invalid witness encoding".into());
         }
         let started = crate::time::Instant::now();
-        let solution = plan.solve(&frs(witness))?;
+        let solution = plan.solve_in(&frs(witness), self.domain)?;
         trace("solve", started);
         let sa: Vec<_> = plan.a_indices.iter().map(|&i| solution.w[i as usize]).collect();
         let sb: Vec<_> = plan.b_indices.iter().map(|&i| solution.w[i as usize]).collect();
@@ -1279,7 +1279,7 @@ impl Key {
     #[doc(hidden)]
     pub fn msm_scalars(&self, witness: &[u8]) -> Result<[Vec<Fr>; 3], String> {
         let plan = self.solver.as_ref().ok_or("no prepared solver")?;
-        let solution = plan.solve(&frs(witness))?;
+        let solution = plan.solve_in(&frs(witness), self.domain)?;
         Ok([
             plan.a_indices.iter().map(|&i| solution.w[i as usize]).collect(),
             plan.b_indices.iter().map(|&i| solution.w[i as usize]).collect(),
