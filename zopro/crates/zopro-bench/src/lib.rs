@@ -5,6 +5,7 @@
 //!
 //!   RAYON_NUM_THREADS=4 zopro-bench <dump dir> [rounds]
 //!   zopro-bench stress <cycles> <dump dir>...
+//!   zopro-bench zolana <key.zopro> <request.json> [rounds]   (tools/bench.sh)
 use std::{env, fs, path::Path, time::Instant};
 
 use zopro_bn254::Fr;
@@ -14,9 +15,9 @@ fn read(dir: &Path, name: &str) -> Vec<u8> {
     fs::read(dir.join(name)).unwrap_or_else(|error| panic!("{name}: {error}"))
 }
 
-/// The anonymous footprint's peak since it was last read, in MB, while
-/// key-file samples it.
-static ANON_PEAK: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+/// The footprint's peak since it was last read, in MB, while sample_peak
+/// runs.
+static PEAK: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// The kernel's traces, to stderr as TRACE lines.
 struct Stderr;
@@ -25,9 +26,9 @@ impl log::Log for Stderr {
         true
     }
     fn log(&self, record: &log::Record) {
-        // With key-file's sampler running, the anonymous peak of the stage.
-        let peak = ANON_PEAK.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
-        let peak = if peak > 0 { format!(" anon peak {peak} MB") } else { String::new() };
+        // With sample_peak running, the stage's peak.
+        let peak = PEAK.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+        let peak = if peak > 0 { format!(" stage peak {peak} MB") } else { String::new() };
         eprintln!(
             "{}{peak}",
             record.args().to_string().replace("ZOPRO_TRACE", "TRACE")
@@ -67,6 +68,11 @@ pub fn run() {
         let args: Vec<String> = env::args().collect();
         let rounds = args.get(4).map(|v| v.parse().unwrap()).unwrap_or(3);
         return key_file(Path::new(&args[2]), Path::new(&args[3]), rounds);
+    }
+    if dir == "zolana" {
+        let args: Vec<String> = env::args().collect();
+        let rounds = args.get(4).map(|v| v.parse().unwrap()).unwrap_or(5);
+        return zolana(Path::new(&args[2]), Path::new(&args[3]), rounds);
     }
     if dir == "stress" {
         let cycles = env::args().nth(2).expect("cycles").parse().expect("cycles");
@@ -139,69 +145,71 @@ pub fn run() {
     );
 }
 
-/// Loads a zopro key as the mobile SDK does (its image mapped, written
-/// from the key file first when there is none), proves and verifies the dump's
-/// witness `rounds` times, and prints the anonymous footprint and its peak
-/// after each stage.
-///
-///   zopro-bench key-file <key.zopro> <dump dir> [rounds]
-fn key_file(path: &Path, dir: &Path, rounds: usize) {
-    // The largest anonymous footprint since the last stage, sampled every
-    // 2 ms: Linux keeps a peak only of the whole resident set, which counts
-    // the mapped key's pages too.
-    std::thread::spawn(|| loop {
-        ANON_PEAK.fetch_max(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
-        std::thread::sleep(std::time::Duration::from_millis(2));
+/// Samples the footprint every 2 ms into PEAK, once per process: Linux
+/// keeps a peak only of the whole resident set, which counts a mapped key's
+/// pages too.
+fn sample_peak() {
+    static STARTED: std::sync::Once = std::sync::Once::new();
+    STARTED.call_once(|| {
+        std::thread::spawn(|| loop {
+            PEAK.fetch_max(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        });
     });
-    let stage = |name: &str, started: Instant| {
-        let peak = ANON_PEAK.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
-        println!(
-            "MEMORY {name} footprint_mb={} anon_peak_mb={peak} rss_peak_mb={} ms={}",
-            footprint_mb(),
-            peak_footprint_mb(),
-            started.elapsed().as_millis()
-        );
-    };
-    stage("start", Instant::now());
+}
+
+/// Prints a stage's footprint, its peak since the last stage and its time,
+/// and returns the time (ms) and the peak (MB).
+fn stage(name: &str, started: Instant) -> (u128, u64) {
+    let ms = started.elapsed().as_millis();
+    let peak = PEAK.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+    println!(
+        "MEMORY {name} footprint_mb={} peak_mb={peak} rss_peak_mb={} ms={ms}",
+        footprint_mb(),
+        peak_footprint_mb(),
+    );
+    (ms, peak)
+}
+
+/// A zopro key loaded as the mobile SDK loads it: its image mapped (its
+/// pages the file's, which the system may drop and read again), written
+/// from the key file first when there is none. With the write's time and
+/// peak when this load wrote the image, and the mapping's.
+fn load_mapped(path: &Path) -> (zopro_prover::Prover, Option<(u128, u64)>, (u128, u64)) {
     let map = |path: &Path| -> Option<memmap2::Mmap> {
         let file = fs::File::open(path).ok()?;
         // SAFETY: nothing writes the file while it is mapped (an image is
         // written beside it and renamed over).
         unsafe { memmap2::Mmap::map(&file) }.ok()
     };
-    // As the mobile SDK does: the key's image, mapped, when an earlier
-    // load wrote one beside the key; else the key file, mapped (its pages
-    // are the file's, which the system may drop and read again), loaded,
-    // and its image written for the next load.
     let image_path = path.with_extension("image");
+    let written = map(&image_path).is_none().then(|| {
+        let started = Instant::now();
+        let bytes = map(path).expect("the key file");
+        let partial = image_path.with_extension("partial");
+        let mut out = std::io::BufWriter::new(fs::File::create(&partial).unwrap());
+        zopro_prover::Prover::write_image(&bytes, &mut out).expect("the key's image");
+        out.into_inner().unwrap().sync_all().unwrap();
+        fs::rename(&partial, &image_path).unwrap();
+        stage("write-image", started)
+    });
     let started = Instant::now();
-    let mut prover = match map(&image_path) {
-        Some(image) => {
-            let prover = zopro_prover::Prover::load_image(std::sync::Arc::new(image))
-                .expect("the key's image");
-            stage("image", started);
-            prover
-        }
-        None => {
-            let bytes = map(path).expect("the key file");
-            let partial = image_path.with_extension("partial");
-            let mut out = std::io::BufWriter::new(fs::File::create(&partial).unwrap());
-            zopro_prover::Prover::write_image(&bytes, &mut out).expect("the key's image");
-            out.into_inner().unwrap().sync_all().unwrap();
-            fs::rename(&partial, &image_path).unwrap();
-            stage("write-image", started);
-            let started = Instant::now();
-            let image = map(&image_path).expect("the key's image");
-            let prover = zopro_prover::Prover::load_image(std::sync::Arc::new(image))
-                .expect("the key's image");
-            stage("image", started);
-            prover
-        }
-    };
+    let image = map(&image_path).expect("the key's image");
+    let prover =
+        zopro_prover::Prover::load_image(std::sync::Arc::new(image)).expect("the key's image");
+    (prover, written, stage("image", started))
+}
+
+/// Loads a zopro key as the mobile SDK does (load_mapped), proves and
+/// verifies the dump's witness `rounds` times, and prints the footprint
+/// and its peak after each stage.
+///
+///   zopro-bench key-file <key.zopro> <dump dir> [rounds]
+fn key_file(path: &Path, dir: &Path, rounds: usize) {
+    sample_peak();
+    stage("start", Instant::now());
+    let (mut prover, _, _) = load_mapped(path);
     stage("loaded", Instant::now());
-    // From here the peak is the proofs' own.
-    #[cfg(any(target_os = "linux", target_os = "android"))]
-    let _ = fs::write("/proc/self/clear_refs", "5");
     let witness: Vec<Fr> = read(dir, "witness")
         .chunks(32)
         .map(|x| {
@@ -225,6 +233,43 @@ fn key_file(path: &Path, dir: &Path, rounds: usize) {
         prove[prove.len() / 2],
         footprint_mb(),
         peak_footprint_mb()
+    );
+}
+
+/// Proves a Zolana request with its zopro key as the mobile SDK does
+/// (load_mapped), `rounds` times, each proof verified, and prints one line:
+/// the image's write (a key's first load) when this run wrote it, the
+/// mapped load, the memory the loaded key holds, and the proofs' times and
+/// peak. Memory is the process's own: anonymous on Linux and Android, the
+/// physical footprint on Apple's systems.
+///
+///   zopro-bench zolana <key.zopro> <request.json> [rounds]
+fn zolana(path: &Path, request: &Path, rounds: usize) {
+    sample_peak();
+    stage("start", Instant::now());
+    let (prover, written, (load_ms, _)) = load_mapped(path);
+    let mut prover = zopro_zolana::Prover::new(prover).expect("a Zolana key");
+    let held = footprint_mb();
+    PEAK.store(held, std::sync::atomic::Ordering::Relaxed);
+    let request = fs::read_to_string(request).expect("the request");
+    let (mut witness, mut prove) = (Vec::new(), Vec::new());
+    for _ in 0..rounds {
+        let proved = prover.prove(&request).expect("a verified proof");
+        witness.push(proved.witness_ms);
+        prove.push(proved.prove_ms);
+    }
+    let peak = PEAK.load(std::sync::atomic::Ordering::Relaxed).max(footprint_mb());
+    witness.sort();
+    prove.sort();
+    let (write_ms, write_peak) = written.map_or(("-".into(), "-".into()), |(ms, peak)| {
+        (ms.to_string(), peak.to_string())
+    });
+    println!(
+        "ZOPRO zolana {} rounds={rounds} write_ms={write_ms} write_peak_mb={write_peak} load_ms={load_ms} held_mb={held} witness_ms={} prove_ms_min={} prove_ms_median={} peak_mb={peak}",
+        path.file_stem().unwrap().to_string_lossy(),
+        witness[witness.len() / 2],
+        prove[0],
+        prove[prove.len() / 2],
     );
 }
 
