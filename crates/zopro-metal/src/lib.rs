@@ -162,6 +162,30 @@ unsafe impl<T> Send for Shared<T> {}
 unsafe impl<T> Sync for Shared<T> {}
 
 fn compile(device: &Device, g2: bool, smaller: bool) -> Result<metal::Library, String> {
+    // ZOPRO_METAL_SHADERS=<dir>: the shaders from that directory, compiled
+    // now, for trying kernel changes without a build (tools/kernel-lab).
+    if let Some(dir) = std::env::var_os("ZOPRO_METAL_SHADERS") {
+        let dir = std::path::Path::new(&dir);
+        let mut source = String::new();
+        for name in ["field", "curve", "buckets", "quotient"] {
+            let file = dir.join(format!("{name}.metal"));
+            source.push_str(
+                &std::fs::read_to_string(&file)
+                    .map_err(|e| format!("{}: {e}", file.display()))?,
+            );
+            source.push('\n');
+        }
+        if g2 {
+            source.push_str("BUCKET_KERNELS(fp2_t, g2)\n");
+        }
+        let options = metal::CompileOptions::new();
+        if smaller {
+            let _: () = unsafe { objc::msg_send![&*options, setOptimizationLevel: 1i64] };
+        }
+        return device
+            .new_library_with_source(&source, &options)
+            .map_err(|e| format!("shader: {e}"));
+    }
     #[cfg(metallib)]
     {
         let _ = g2;
