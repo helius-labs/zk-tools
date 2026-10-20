@@ -32,7 +32,7 @@ pub mod verify;
 
 // Stage times as ZOPRO_TRACE log lines (`--features trace`): the native
 // bench prints them, a phone's bench puts them in the device log.
-fn trace(label: &str, started: crate::time::Instant) -> crate::time::Instant {
+pub(crate) fn trace(label: &str, started: crate::time::Instant) -> crate::time::Instant {
     #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
     log::info!(
         "ZOPRO_TRACE {label} {:.1} ms{}",
@@ -789,28 +789,10 @@ impl Key {
     // Unsupported plans retain gnark's solver. A runtime witness failure is
     // returned to the caller and never retried with a different solver.
     pub fn set_solver(&mut self, program: &[u8], coefficients: &[u8]) -> bool {
-        self.solver = None;
-        if !self.commitments.is_empty() {
-            return false;
-        }
         let started = crate::time::Instant::now();
         let parsed = solver::Plan::new(program, coefficients);
         trace("solver-plan", started);
-        if let Ok(plan) = parsed {
-            if plan.matches(
-                self.lengths[0],
-                self.lengths[1],
-                self.lengths[2],
-                self.domain,
-            ) {
-                let started = crate::time::Instant::now();
-                plan.prepare();
-                trace("solver-schedule", started);
-                self.solver = Some(plan);
-                return true;
-            }
-        }
-        false
+        self.set_solver_plan(parsed)
     }
     // The prepared solver as an image a host keeps, and loads again with
     // set_solver_image instead of building the plan from the program.
@@ -1092,6 +1074,22 @@ impl Key {
     }
 }
 impl Key {
+    /// A built solver plan, when it matches the key's dimensions.
+    pub(crate) fn set_solver_plan(&mut self, parsed: Result<solver::Plan, &'static str>) -> bool {
+        self.solver = None;
+        if !self.commitments.is_empty() {
+            return false;
+        }
+        let Ok(plan) = parsed else { return false };
+        if !plan.matches(self.lengths[0], self.lengths[1], self.lengths[2], self.domain) {
+            return false;
+        }
+        let started = crate::time::Instant::now();
+        plan.prepare();
+        trace("solver-schedule", started);
+        self.solver = Some(plan);
+        true
+    }
     /// `new` for hosts outside JavaScript, from either encoding of the
     /// points, with a plain error.
     pub fn build(points: Points, domain_params: &[u8]) -> Result<Key, &'static str> {
