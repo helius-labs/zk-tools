@@ -523,16 +523,24 @@ impl<C: Curve> Msm<C> {
         let pipeline = |name: &str| pipeline(&device, C::G2, name);
         let first = pipeline(C::FIRST)?;
         let tree_pipeline = pipeline(C::TREE)?;
+        // The windows reduce on the host on iOS: a GPU reduction kernel
+        // holds its threads' spilled registers in memory the driver charges
+        // to the app from its first run (the SIMD-group one 185 MB on an M5
+        // Pro, the threadgroup one 70 MB on an iPad Pro's A12Z), and the host
+        // reduced 16 -> 2 on that iPad as fast (on the M5 Pro, 3-6 % slower).
+        // ZOPRO_METAL_HOST_REDUCE=1 or 0 says where anywhere.
+        let host = std::env::var("ZOPRO_METAL_HOST_REDUCE")
+            .map_or(cfg!(target_os = "ios"), |v| v == "1");
         // SIMD-group shuffles need an A13's GPU or later
         // (ZOPRO_METAL_TG_REDUCE=1 takes the fallback anywhere).
         let forced = std::env::var("ZOPRO_METAL_TG_REDUCE").is_ok_and(|v| v == "1");
-        let shuffles = if forced {
+        let shuffles = if host {
+            Err("host reduction".to_string())
+        } else if forced {
             Err("ZOPRO_METAL_TG_REDUCE=1".to_string())
         } else {
             pipeline(C::REDUCE)
         };
-        // ZOPRO_METAL_HOST_REDUCE=1 reduces on the host anywhere.
-        let host = std::env::var("ZOPRO_METAL_HOST_REDUCE").is_ok_and(|v| v == "1");
         let (reduce, tree_reduce) = match shuffles {
             _ if host => (None, false),
             Ok(reduce) => (Some(reduce), false),
