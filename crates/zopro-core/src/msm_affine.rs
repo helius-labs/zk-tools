@@ -104,11 +104,14 @@ fn recode<C: CurveConfig>(
     let n = scalars.len();
     let radix = 1u64 << width;
     let mask = radix - 1;
-    let rows: Vec<Vec<i16>> = scalars
+    let mut digits = vec![0i16; n * windows];
+    let out = Digits(digits.as_mut_ptr());
+    scalars
         .par_chunks(4096)
         .zip(bases.par_chunks(4096))
-        .map(|(chunk, chunk_bases)| {
-            let mut rows = vec![0i16; chunk.len() * windows];
+        .enumerate()
+        .for_each(|(chunk_index, (chunk, chunk_bases))| {
+            let start = chunk_index * 4096;
             for (i, (s, base)) in chunk.iter().zip(chunk_bases).enumerate() {
                 if base.is_identity() {
                     continue;
@@ -124,23 +127,28 @@ fn recode<C: CurveConfig>(
                     }
                     let value = (value & mask) + carry;
                     carry = (value + radix / 2) >> width;
-                    rows[w * chunk.len() + i] = (value as i64 - (carry * radix) as i64) as i16;
+                    let digit = (value as i64 - (carry * radix) as i64) as i16;
+                    // SAFETY: w * n + start + i is below n * windows, and
+                    // only this chunk writes its scalars' digits.
+                    unsafe { out.write(w * n + start + i, digit) };
                 }
             }
-            rows
-        })
-        .collect();
-    let mut digits = vec![0i16; n * windows];
-    let mut start = 0;
-    for rows in rows {
-        let len = rows.len() / windows;
-        for w in 0..windows {
-            digits[w * n + start..w * n + start + len]
-                .copy_from_slice(&rows[w * len..(w + 1) * len]);
-        }
-        start += len;
-    }
+        });
     digits
+}
+
+/// The digits' buffer, written by recode's chunks at disjoint indices.
+#[derive(Clone, Copy)]
+struct Digits(*mut i16);
+// SAFETY: see recode.
+unsafe impl Send for Digits {}
+unsafe impl Sync for Digits {}
+impl Digits {
+    /// # Safety
+    /// `at` is within the buffer and no other thread writes it.
+    unsafe fn write(self, at: usize, digit: i16) {
+        self.0.add(at).write(digit)
+    }
 }
 
 /// One window's sum, the sum of m * B_m over its buckets B_m.

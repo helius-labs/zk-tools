@@ -69,9 +69,25 @@ fn footprint_note() -> String {
         info.ri_lifetime_max_phys_footprint >> 20
     )
 }
+/// The anonymous resident memory (what Android's low-memory killer weighs)
+/// and the peak resident set, file-backed pages included (Linux, Android).
+#[cfg(all(feature = "trace", any(target_os = "linux", target_os = "android")))]
+fn footprint_note() -> String {
+    let Ok(status) = std::fs::read_to_string("/proc/self/status") else {
+        return String::new();
+    };
+    let kb = |field: &str| -> u64 {
+        status
+            .lines()
+            .find_map(|l| l.strip_prefix(field))
+            .and_then(|v| v.trim().trim_end_matches("kB").trim().parse().ok())
+            .unwrap_or(0)
+    };
+    format!(" fp {} peak {} MB", kb("RssAnon:") >> 10, kb("VmHWM:") >> 10)
+}
 #[cfg(all(
     feature = "trace",
-    not(target_vendor = "apple"),
+    not(any(target_vendor = "apple", target_os = "linux", target_os = "android")),
     not(target_arch = "wasm32")
 ))]
 fn footprint_note() -> String {
@@ -456,8 +472,8 @@ impl GpuBuilder {
 fn upload_g1(
     gpu: &mut Option<GpuBuilder>,
     which: usize,
-    bases: Vec<G1Affine>,
-) -> Result<Vec<G1Affine>, &'static str> {
+    bases: Store<G1Affine>,
+) -> Result<Store<G1Affine>, &'static str> {
     match gpu {
         Some(builder) => {
             builder
@@ -474,7 +490,7 @@ fn upload_g1(
             #[cfg(target_arch = "wasm32")]
             return Ok(bases);
             #[allow(unreachable_code)]
-            Ok(Vec::new())
+            Ok(Store::Owned(Vec::new()))
         }
         None => Ok(bases),
     }
@@ -482,8 +498,8 @@ fn upload_g1(
 #[cfg(gpu_any)]
 fn upload_g2(
     gpu: &mut Option<GpuBuilder>,
-    bases: Vec<G2Affine>,
-) -> Result<Vec<G2Affine>, &'static str> {
+    bases: Store<G2Affine>,
+) -> Result<Store<G2Affine>, &'static str> {
     #[cfg(feature = "fullcheck")]
     selftest::full_g2(&bases);
     match gpu {
@@ -496,7 +512,7 @@ fn upload_g2(
             if cfg!(target_arch = "wasm32") || cut == 0 {
                 Ok(bases)
             } else {
-                Ok(bases[cut..].to_vec())
+                Ok(bases.tail(cut))
             }
         }
         None => Ok(bases),
@@ -582,6 +598,146 @@ impl GpuBuilder {
     }
 }
 
+/// A key's five point vectors, A, B, K, Z (G1) and B2 (G2), as a host
+/// has them. The key decodes one vector at a time, so a load holds the
+/// host's bytes and the points decoded so far, not a second encoding.
+#[derive(Clone, Copy)]
+pub enum Points<'a> {
+    /// The kernel's encoding: each coordinate's Montgomery limbs, little
+    /// endian, 64 bytes a G1 point and 128 a G2 point.
+    Kernel([&'a [u8]; 5]),
+    /// gnark's compressed encoding, as a key file stores them (32 and 64
+    /// bytes): decompressed into points with nothing between.
+    Compressed([&'a [u8]; 5]),
+    /// The kernel's encoding inside a host's image of the key (its raw
+    /// form, mapped), at these byte offsets and lengths: on a little-endian
+    /// device that is the points' memory layout, so the key reads them in
+    /// place and the system may drop their pages under memory pressure, to
+    /// read them again, instead of the process holding them.
+    Mapped(&'a Image, [(usize, usize); 5]),
+}
+
+/// A host's image of a key's points (`Points::Mapped`): a mapped file.
+pub type Image = std::sync::Arc<dyn AsRef<[u8]> + Send + Sync>;
+
+/// A key's points: decoded into the process's memory, or read in place
+/// from a host's image.
+pub(crate) enum Store<T> {
+    Owned(Vec<T>),
+    Mapped {
+        image: Image,
+        offset: usize,
+        len: usize,
+        points: std::marker::PhantomData<T>,
+    },
+}
+/// The points an image may hold in place: their memory is the kernel's
+/// encoding on a little-endian device.
+pub(crate) trait InPlace: Sized {
+    const SIZE: usize;
+}
+impl InPlace for G1Affine {
+    const SIZE: usize = 64;
+}
+impl InPlace for G2Affine {
+    const SIZE: usize = 128;
+}
+const _: () = assert!(std::mem::size_of::<G1Affine>() == 64 && std::mem::size_of::<G2Affine>() == 128);
+impl<T: InPlace> Store<T> {
+    /// `bytes` bytes at `offset` in `image`, when they lie in it and are
+    /// aligned for the points.
+    fn mapped(image: &Image, offset: usize, bytes: usize) -> Result<Self, &'static str> {
+        let data = (**image).as_ref();
+        let in_image = offset
+            .checked_add(bytes)
+            .is_some_and(|end| end <= data.len());
+        if !cfg!(target_endian = "little")
+            || !in_image
+            || !bytes.is_multiple_of(T::SIZE)
+            || !(data.as_ptr() as usize + offset).is_multiple_of(std::mem::align_of::<T>())
+        {
+            return Err("a key image that does not fit its points");
+        }
+        Ok(Store::Mapped {
+            image: image.clone(),
+            offset,
+            len: bytes / T::SIZE,
+            points: std::marker::PhantomData,
+        })
+    }
+    /// The points after the first `cut`.
+    fn tail(self, cut: usize) -> Self
+    where
+        T: Clone,
+    {
+        match self {
+            Store::Owned(v) => Store::Owned(v[cut..].to_vec()),
+            Store::Mapped {
+                image,
+                offset,
+                len,
+                points,
+            } => Store::Mapped {
+                image,
+                offset: offset + cut * T::SIZE,
+                len: len - cut,
+                points,
+            },
+        }
+    }
+}
+impl<T> std::ops::Deref for Store<T> {
+    type Target = [T];
+    fn deref(&self) -> &[T] {
+        match self {
+            Store::Owned(v) => v,
+            Store::Mapped {
+                image, offset, len, ..
+            } => {
+                let data = &(**image).as_ref()[*offset..];
+                // SAFETY: `mapped` checked that the bytes lie in the image
+                // and are aligned, and T is a point whose memory is the
+                // kernel's encoding (InPlace); the image is immutable and
+                // the store keeps it alive.
+                unsafe { std::slice::from_raw_parts(data.as_ptr().cast::<T>(), *len) }
+            }
+        }
+    }
+}
+impl Points<'_> {
+    /// The vectors' lengths in points.
+    fn counts(&self) -> Result<[usize; 5], &'static str> {
+        let (lengths, g1, g2) = match self {
+            Points::Kernel(v) => (v.map(<[u8]>::len), 64, 128),
+            Points::Compressed(v) => (v.map(<[u8]>::len), 32, 64),
+            Points::Mapped(_, ranges) => (ranges.map(|(_, len)| len), 64, 128),
+        };
+        let mut counts = [0; 5];
+        for (i, len) in lengths.into_iter().enumerate() {
+            let size = if i == 4 { g2 } else { g1 };
+            if !len.is_multiple_of(size) {
+                return Err("invalid gnark key dimensions");
+            }
+            counts[i] = len / size;
+        }
+        Ok(counts)
+    }
+    fn g1(&self, i: usize) -> Result<Store<G1Affine>, &'static str> {
+        match self {
+            Points::Kernel(v) => Ok(Store::Owned(g1s(v[i]))),
+            Points::Compressed(v) => decompress::g1_affine(v[i]).map(Store::Owned),
+            Points::Mapped(image, ranges) => Store::mapped(image, ranges[i].0, ranges[i].1),
+        }
+    }
+    fn g2(&self) -> Result<Store<G2Affine>, &'static str> {
+        match self {
+            Points::Kernel(v) => Ok(Store::Owned(g2s(v[4]))),
+            Points::Compressed(v) => decompress::g2_affine(v[4]).map(Store::Owned),
+            Points::Mapped(image, ranges) => Store::mapped(image, ranges[4].0, ranges[4].1),
+        }
+    }
+}
+
 #[wasm_bindgen]
 pub struct Key {
     #[cfg(gpu_any)]
@@ -595,13 +751,13 @@ pub struct Key {
     /// The A, B and K vectors' lengths: the vectors themselves are empty
     /// when a GPU holds them.
     lengths: [usize; 3],
-    a: Vec<G1Affine>,
-    b: Vec<G1Affine>,
-    k: Vec<G1Affine>,
-    z: Vec<G1Affine>,
+    a: Store<G1Affine>,
+    b: Store<G1Affine>,
+    k: Store<G1Affine>,
+    z: Store<G1Affine>,
     /// Shared, for a browser's CPU share of the G2 MSM on the pool while
     /// the proof's future awaits the GPU.
-    b2: std::sync::Arc<Vec<G2Affine>>,
+    b2: std::sync::Arc<Store<G2Affine>>,
     /// The FFT domain's size.
     domain: usize,
     plan: fft::Plan,
@@ -619,165 +775,7 @@ impl Key {
         b2: &[u8],
         domain_params: &[u8],
     ) -> Result<Key, JsError> {
-        Self::build(a, b, k, z, b2, domain_params).map_err(JsError::new)
-    }
-    /// `new` for hosts outside JavaScript, with a plain error.
-    pub fn build(
-        a: &[u8],
-        b: &[u8],
-        k: &[u8],
-        z: &[u8],
-        b2: &[u8],
-        domain_params: &[u8],
-    ) -> Result<Key, &'static str> {
-        if [a, b, k, z].iter().any(|v| !v.len().is_multiple_of(64))
-            || !b2.len().is_multiple_of(128)
-            || b.len() / 64 != b2.len() / 128
-            || domain_params.len() != 64
-        {
-            return Err("invalid gnark key dimensions");
-        }
-        let n = z.len() / 64 + 1;
-        if !n.is_power_of_two() {
-            return Err("invalid gnark FFT domain");
-        }
-        let params = frs(domain_params);
-        if n.trailing_zeros() > Fr::TWO_ADICITY {
-            return Err("unsupported FFT domain");
-        }
-        if params[0].is_zero() {
-            return Err("invalid FFT generator");
-        }
-        if params[1].is_zero() {
-            return Err("invalid FFT coset");
-        }
-        let domain = n;
-        let den = (params[1].pow(&[n as u64]) - Fr::ONE)
-            .inverse()
-            .ok_or("invalid quotient denominator")?;
-        let started = crate::time::Instant::now();
-        let plan = fft::Plan::new(n, params[0], params[1], den);
-        trace("plan", started);
-        let lengths = [a.len() / 64, b.len() / 64, k.len() / 64];
-        // One vector at a time: decoded, handed to the GPU, dropped. A GPU
-        // that cannot take the key (it failed to build a kernel, it ran out
-        // of memory) is let go, and the key is decoded again for the CPU.
-        let started = crate::time::Instant::now();
-        #[cfg(gpu_any)]
-        let mut gpu = GpuBuilder::open(&plan);
-        #[cfg(not(gpu_any))]
-        let mut gpu: Option<()> = None;
-        trace("gpu-open", started);
-        #[cfg(not(gpu_any))]
-        let (upload_g1, upload_g2) = (
-            |_: &mut Option<()>, _: usize, v| Ok::<_, &'static str>(v),
-            |_: &mut Option<()>, v| Ok::<_, &'static str>(v),
-        );
-        #[cfg(not(target_arch = "wasm32"))]
-        let head = |n: usize| n.min(selftest::HEAD);
-        #[cfg(target_arch = "wasm32")]
-        let head = |_: usize| 0;
-        let decode = |gpu: &mut Option<_>| -> Result<_, &'static str> {
-            let started = crate::time::Instant::now();
-            let a = g1s(a);
-            let a_head = a[..head(a.len())].to_vec();
-            let started = trace("decode-a", started);
-            let a = upload_g1(gpu, 0, a)?;
-            let started = trace("upload-a", started);
-            let b = upload_g1(gpu, 1, g1s(b))?;
-            let started = trace("decode+upload-b", started);
-            let k = upload_g1(gpu, 2, g1s(k))?;
-            let started = trace("decode+upload-k", started);
-            let z = upload_g1(gpu, 3, g1s(z))?;
-            let started = trace("decode+upload-z", started);
-            let b2 = g2s(b2);
-            let b2_head = b2[..head(b2.len())].to_vec();
-            let started = trace("decode-b2", started);
-            let b2 = upload_g2(gpu, b2)?;
-            trace("upload-b2", started);
-            Ok((a, b, k, z, b2, a_head, b2_head))
-        };
-        #[cfg(not(target_arch = "wasm32"))]
-        selftest::field();
-        #[cfg(gpu_any)]
-        let mut gpu_quotient = true;
-        #[cfg(gpu_any)]
-        let mut built_gpu: Option<Gpu> = None;
-        let (a, b, k, z, b2) = loop {
-            match decode(&mut gpu) {
-                Ok((a, b, k, z, b2, a_head, b2_head)) => {
-                    // A GPU whose MSM disagrees with the CPU is let go, and the
-                    // key is decoded again for the CPU; a quotient that
-                    // disagrees stays on the CPU.
-                    #[cfg(gpu_any)]
-                    if let Some(builder) = gpu.take() {
-                        let mut finished = builder.finish();
-                        #[cfg(not(target_arch = "wasm32"))]
-                        let verdict = selftest::gpu(
-                            &mut finished,
-                            &plan,
-                            &a_head,
-                            &b2_head,
-                            lengths[0],
-                            lengths[1],
-                        );
-                        #[cfg(target_arch = "wasm32")]
-                        let verdict = {
-                            let _ = &mut finished;
-                            selftest_web::Verdict {
-                                msm: true,
-                                quotient: true,
-                            }
-                        };
-                        if !verdict.msm {
-                            drop(finished);
-                            // With Metal, once more with the shaders compiled at
-                            // the size level, where aeglos found the default
-                            // level's compiler at fault.
-                            #[cfg(gpu)]
-                            if zopro_metal::prefer_smaller_code() {
-                                trace("gpu-retry-smaller-code", crate::time::Instant::now());
-                                gpu = GpuBuilder::open(&plan);
-                            }
-                            continue;
-                        }
-                        gpu_quotient = verdict.quotient
-                            && !std::env::var("ZOPRO_GPU_QUOTIENT").is_ok_and(|v| v == "0");
-                        built_gpu = Some(finished);
-                    }
-                    let _ = (a_head, b2_head);
-                    break (a, b, k, z, b2);
-                }
-                Err(_) if gpu.is_some() => gpu = None,
-                Err(e) => return Err(e),
-            }
-        };
-        // The GPU holds the quotient's tables: the CPU's go, unless the CPU
-        // is to compute the quotient.
-        #[cfg(gpu_any)]
-        let mut plan = plan;
-        #[cfg(gpu_any)]
-        if built_gpu.is_some() && gpu_quotient {
-            plan.release_tables();
-        }
-        Ok(Self {
-            #[cfg(gpu_any)]
-            gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
-            #[cfg(gpu_any)]
-            gpu_quotient,
-            #[cfg(all(feature = "trace", gpu))]
-            profiled: Default::default(),
-            lengths,
-            a,
-            b,
-            k,
-            z,
-            b2: std::sync::Arc::new(b2),
-            domain,
-            plan,
-            commitments: Vec::new(),
-            solver: None,
-        })
+        Self::build(Points::Kernel([a, b, k, z, b2]), domain_params).map_err(JsError::new)
     }
     pub fn add_commitment(&mut self, basis: &[u8], sigma: &[u8]) -> Result<(), JsError> {
         if !basis.len().is_multiple_of(64) || basis.len() != sigma.len() {
@@ -1102,6 +1100,179 @@ impl Key {
     }
 }
 impl Key {
+    /// The points as bytes in the kernel's encoding (a, b, k, z, b2), for a
+    /// host's image of the key, when the CPU holds all of them (a GPU took
+    /// none) on a little-endian device, where their memory is that
+    /// encoding.
+    pub fn point_bytes(&self) -> Option<[&[u8]; 5]> {
+        fn bytes<T: InPlace>(points: &[T]) -> &[u8] {
+            // SAFETY: T's memory is T::SIZE plain bytes (InPlace).
+            unsafe { std::slice::from_raw_parts(points.as_ptr().cast::<u8>(), points.len() * T::SIZE) }
+        }
+        let whole = self.a.len() == self.lengths[0]
+            && self.b.len() == self.lengths[1]
+            && self.k.len() == self.lengths[2]
+            && self.z.len() + 1 == self.domain
+            && self.b2.len() == self.lengths[1];
+        (cfg!(target_endian = "little") && whole).then(|| {
+            [
+                bytes(&self.a),
+                bytes(&self.b),
+                bytes(&self.k),
+                bytes(&self.z),
+                bytes(&self.b2),
+            ]
+        })
+    }
+    /// `new` for hosts outside JavaScript, from either encoding of the
+    /// points, with a plain error.
+    pub fn build(points: Points, domain_params: &[u8]) -> Result<Key, &'static str> {
+        let [a, b, k, z, b2] = points.counts()?;
+        if b != b2 || domain_params.len() != 64 {
+            return Err("invalid gnark key dimensions");
+        }
+        let n = z + 1;
+        if !n.is_power_of_two() {
+            return Err("invalid gnark FFT domain");
+        }
+        let params = frs(domain_params);
+        if n.trailing_zeros() > Fr::TWO_ADICITY {
+            return Err("unsupported FFT domain");
+        }
+        if params[0].is_zero() {
+            return Err("invalid FFT generator");
+        }
+        if params[1].is_zero() {
+            return Err("invalid FFT coset");
+        }
+        let domain = n;
+        let den = (params[1].pow(&[n as u64]) - Fr::ONE)
+            .inverse()
+            .ok_or("invalid quotient denominator")?;
+        let started = crate::time::Instant::now();
+        let plan = fft::Plan::new(n, params[0], params[1], den);
+        trace("plan", started);
+        let lengths = [a, b, k];
+        // One vector at a time: decoded, handed to the GPU, dropped. A GPU
+        // that cannot take the key (it failed to build a kernel, it ran out
+        // of memory) is let go, and the key is decoded again for the CPU.
+        let started = crate::time::Instant::now();
+        #[cfg(gpu_any)]
+        let mut gpu = GpuBuilder::open(&plan);
+        #[cfg(not(gpu_any))]
+        let mut gpu: Option<()> = None;
+        trace("gpu-open", started);
+        #[cfg(not(gpu_any))]
+        let (upload_g1, upload_g2) = (
+            |_: &mut Option<()>, _: usize, v| Ok::<_, &'static str>(v),
+            |_: &mut Option<()>, v| Ok::<_, &'static str>(v),
+        );
+        #[cfg(not(target_arch = "wasm32"))]
+        let head = |n: usize| n.min(selftest::HEAD);
+        #[cfg(target_arch = "wasm32")]
+        let head = |_: usize| 0;
+        let decode = |gpu: &mut Option<_>| -> Result<_, &'static str> {
+            let started = crate::time::Instant::now();
+            let a = points.g1(0)?;
+            let a_head = a[..head(a.len())].to_vec();
+            let started = trace("decode-a", started);
+            let a = upload_g1(gpu, 0, a)?;
+            let started = trace("upload-a", started);
+            let b = upload_g1(gpu, 1, points.g1(1)?)?;
+            let started = trace("decode+upload-b", started);
+            let k = upload_g1(gpu, 2, points.g1(2)?)?;
+            let started = trace("decode+upload-k", started);
+            let z = upload_g1(gpu, 3, points.g1(3)?)?;
+            let started = trace("decode+upload-z", started);
+            let b2 = points.g2()?;
+            let b2_head = b2[..head(b2.len())].to_vec();
+            let started = trace("decode-b2", started);
+            let b2 = upload_g2(gpu, b2)?;
+            trace("upload-b2", started);
+            Ok((a, b, k, z, b2, a_head, b2_head))
+        };
+        #[cfg(not(target_arch = "wasm32"))]
+        selftest::field();
+        #[cfg(gpu_any)]
+        let mut gpu_quotient = true;
+        #[cfg(gpu_any)]
+        let mut built_gpu: Option<Gpu> = None;
+        let (a, b, k, z, b2) = loop {
+            match decode(&mut gpu) {
+                Ok((a, b, k, z, b2, a_head, b2_head)) => {
+                    // A GPU whose MSM disagrees with the CPU is let go, and the
+                    // key is decoded again for the CPU; a quotient that
+                    // disagrees stays on the CPU.
+                    #[cfg(gpu_any)]
+                    if let Some(builder) = gpu.take() {
+                        let mut finished = builder.finish();
+                        #[cfg(not(target_arch = "wasm32"))]
+                        let verdict = selftest::gpu(
+                            &mut finished,
+                            &plan,
+                            &a_head,
+                            &b2_head,
+                            lengths[0],
+                            lengths[1],
+                        );
+                        #[cfg(target_arch = "wasm32")]
+                        let verdict = {
+                            let _ = &mut finished;
+                            selftest_web::Verdict {
+                                msm: true,
+                                quotient: true,
+                            }
+                        };
+                        if !verdict.msm {
+                            drop(finished);
+                            // With Metal, once more with the shaders compiled at
+                            // the size level, where aeglos found the default
+                            // level's compiler at fault.
+                            #[cfg(gpu)]
+                            if zopro_metal::prefer_smaller_code() {
+                                trace("gpu-retry-smaller-code", crate::time::Instant::now());
+                                gpu = GpuBuilder::open(&plan);
+                            }
+                            continue;
+                        }
+                        gpu_quotient = verdict.quotient
+                            && !std::env::var("ZOPRO_GPU_QUOTIENT").is_ok_and(|v| v == "0");
+                        built_gpu = Some(finished);
+                    }
+                    let _ = (a_head, b2_head);
+                    break (a, b, k, z, b2);
+                }
+                Err(_) if gpu.is_some() => gpu = None,
+                Err(e) => return Err(e),
+            }
+        };
+        // The GPU holds the quotient's tables: the CPU's go, unless the CPU
+        // is to compute the quotient.
+        #[cfg(gpu_any)]
+        let mut plan = plan;
+        #[cfg(gpu_any)]
+        if built_gpu.is_some() && gpu_quotient {
+            plan.release_tables();
+        }
+        Ok(Self {
+            #[cfg(gpu_any)]
+            gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
+            #[cfg(gpu_any)]
+            gpu_quotient,
+            #[cfg(all(feature = "trace", gpu))]
+            profiled: Default::default(),
+            lengths,
+            a,
+            b,
+            k,
+            z,
+            b2: std::sync::Arc::new(b2),
+            domain,
+            plan,
+            commitments: Vec::new(),
+            solver: None,
+        })
+    }
     /// The A, B and K MSM scalars of a witness, for the bench's profile of
     /// how skewed they are.
     #[doc(hidden)]
@@ -1531,7 +1702,8 @@ mod gpu_tests {
         ];
         let build = || {
             Key::build(
-                &bytes[0], &bytes[1], &bytes[2], &bytes[3], &bytes[4], &params,
+                Points::Kernel([&bytes[0], &bytes[1], &bytes[2], &bytes[3], &bytes[4]]),
+                &params,
             )
             .expect("key")
         };

@@ -22,7 +22,7 @@ use crate::{
     decode_g1, decode_g2, decompress,
     groth16::FixedPoints,
     verify::{compress_g1, compress_g2, VerifyingKey},
-    Key,
+    Key, Points,
 };
 
 const MAGIC: &[u8; 16] = b"zopro-key\0\0\0\0\0\0\0";
@@ -101,7 +101,10 @@ pub fn pack(parts: &Parts) -> Result<Vec<u8>, String> {
     }
     VerifyingKey::decode_raw(parts.verifying_key)?;
     check_fixed(parts.fixed, parts.verifying_key)?;
-    let mut key = Key::build(parts.a, parts.b, parts.k, parts.z, parts.b2, parts.domain)?;
+    let mut key = Key::build(
+        Points::Kernel([parts.a, parts.b, parts.k, parts.z, parts.b2]),
+        parts.domain,
+    )?;
     if !key.set_solver(parts.program, parts.coefficients) {
         return Err("the kernel does not solve this circuit".into());
     }
@@ -249,6 +252,12 @@ impl<'a> Artifact<'a> {
         self.names.lines().collect()
     }
 
+    /// The key's points as the file stores them, compressed: what `key`
+    /// decompresses one vector at a time.
+    pub fn points(&self) -> Points<'a> {
+        Points::Compressed([self.a, self.b, self.k, self.z, self.b2])
+    }
+
     /// The vectors decompressed into the kernel's encoding: a, b, k, z, b2.
     /// Seconds for a wide key on a phone; a host may cache them.
     pub fn vectors(&self) -> Result<[Vec<u8>; 5], &'static str> {
@@ -261,13 +270,12 @@ impl<'a> Artifact<'a> {
         ])
     }
 
-    /// The kernel's key from decompressed `vectors` (`vectors()`, or a
-    /// host's cache of them), its solver from the program, or from
+    /// The kernel's key from `points` (`points()`, or a host's cache of
+    /// them decompressed), its solver from the program, or from
     /// `solver_image` when a host cached the kernel's own
     /// (`Key::solver_image`) and the kernel still reads it.
-    pub fn key(&self, vectors: &[Vec<u8>; 5], solver_image: Option<&[u8]>) -> Result<Key, String> {
-        let [a, b, k, z, b2] = vectors;
-        let mut key = Key::build(a, b, k, z, b2, self.domain)?;
+    pub fn key(&self, points: Points, solver_image: Option<&[u8]>) -> Result<Key, String> {
+        let mut key = Key::build(points, self.domain)?;
         if let Some(image) = solver_image {
             if key.set_solver_image(image) {
                 return Ok(key);

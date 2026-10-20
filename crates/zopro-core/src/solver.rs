@@ -746,7 +746,9 @@ impl Plan {
                 })?;
             }
         }
-        w.truncate(self.n_wires);
+        // The sums are scratch: copied out, the wires alone stay allocated
+        // through the proof (truncating kept the sums' 100 MB at 16 -> 2).
+        let w = w[..self.n_wires].to_vec();
         Ok(Solution { w, a, b, c })
     }
 

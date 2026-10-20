@@ -1,7 +1,7 @@
 //! A small gnark circuit end to end: X³ + X + 5 = Y with X not zero
 //! (`tools/gnark`'s test writes the dump in tests/fixtures/cubic). The key
 //! packs, loads, proves an assignment by name, refuses a wrong one, keeps
-//! its metadata, and loads again from its raw form.
+//! its metadata, and loads again from its raw form, in place too.
 use std::path::Path;
 
 use zopro_bn254::Fr;
@@ -54,6 +54,21 @@ fn loads_from_its_raw_form() {
     let witness = again.witness(&assignment(3, 35)).expect("witness");
     assert!(again.prove(&witness).is_ok());
     assert!(Prover::load_cacheable(&raw[..raw.len() - 1]).is_err());
+}
+
+#[test]
+fn proves_from_its_image_in_place() {
+    let key = key();
+    let (prover, source) = Prover::load_cacheable(&key).expect("load");
+    let mut image = Vec::new();
+    assert!(prover.write_image(&key, &mut image).expect("write"));
+    assert_eq!(image, source.expect("a key file's raw source").export(&prover), "the raw form");
+    let image: zopro_prover::zopro_core::Image = std::sync::Arc::new(image);
+    let mut again = Prover::load_image(image.clone()).expect("load the image");
+    let witness = again.witness(&assignment(3, 35)).expect("witness");
+    assert!(again.prove(&witness).is_ok());
+    let truncated = (*image).as_ref()[..(*image).as_ref().len() - 1].to_vec();
+    assert!(Prover::load_image(std::sync::Arc::new(truncated)).is_err());
 }
 
 #[test]

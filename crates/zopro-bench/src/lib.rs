@@ -8,7 +8,7 @@
 use std::{env, fs, path::Path, time::Instant};
 
 use zopro_bn254::Fr;
-use zopro_core::{decode_g1, decode_g2, Key};
+use zopro_core::{decode_g1, decode_g2, Key, Points};
 
 fn read(dir: &Path, name: &str) -> Vec<u8> {
     fs::read(dir.join(name)).unwrap_or_else(|error| panic!("{name}: {error}"))
@@ -56,6 +56,11 @@ pub fn run() {
     if dir == "scalars" {
         return scalar_profile(Path::new(&env::args().nth(2).expect("the dump directory")));
     }
+    if dir == "key-file" {
+        let args: Vec<String> = env::args().collect();
+        let rounds = args.get(4).map(|v| v.parse().unwrap()).unwrap_or(3);
+        return key_file(Path::new(&args[2]), Path::new(&args[3]), rounds);
+    }
     if dir == "stress" {
         let cycles = env::args().nth(2).expect("cycles").parse().expect("cycles");
         let dirs: Vec<String> = env::args().skip(3).collect();
@@ -85,7 +90,7 @@ pub fn run() {
     let inputs_mb = footprint_mb();
 
     let started = Instant::now();
-    let mut key = Key::new(&a, &b, &k, &z, &b2, domain).expect("key");
+    let mut key = Key::build(Points::Kernel([&a, &b, &k, &z, &b2]), domain).expect("key");
     let key_ms = started.elapsed().as_millis();
     let started = Instant::now();
     // As the mobile SDK does: the solver from its cached image beside the
@@ -123,6 +128,98 @@ pub fn run() {
         dir.file_name().unwrap().to_string_lossy(),
         sorted[0],
         sorted[sorted.len() / 2],
+        peak_footprint_mb()
+    );
+}
+
+/// Loads a zopro key as the mobile SDK does (its image mapped, or the key
+/// file and then its image written), proves and verifies the dump's
+/// witness `rounds` times, and prints the anonymous footprint and its peak
+/// after each stage.
+///
+///   zopro-bench key-file <key.zopro> <dump dir> [rounds]
+fn key_file(path: &Path, dir: &Path, rounds: usize) {
+    // The largest anonymous footprint since the last stage, sampled every
+    // 2 ms: Linux keeps a peak only of the whole resident set, which counts
+    // the mapped key's pages too.
+    let anon_peak = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    {
+        let anon_peak = anon_peak.clone();
+        std::thread::spawn(move || loop {
+            anon_peak.fetch_max(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        });
+    }
+    let stage = |name: &str, started: Instant| {
+        let peak = anon_peak.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+        println!(
+            "MEMORY {name} footprint_mb={} anon_peak_mb={peak} rss_peak_mb={} ms={}",
+            footprint_mb(),
+            peak_footprint_mb(),
+            started.elapsed().as_millis()
+        );
+    };
+    stage("start", Instant::now());
+    let map = |path: &Path| -> Option<memmap2::Mmap> {
+        let file = fs::File::open(path).ok()?;
+        // SAFETY: nothing writes the file while it is mapped (an image is
+        // written beside it and renamed over).
+        unsafe { memmap2::Mmap::map(&file) }.ok()
+    };
+    // As the mobile SDK does: the key's image, mapped, when an earlier
+    // load wrote one beside the key; else the key file, mapped (its pages
+    // are the file's, which the system may drop and read again), loaded,
+    // and its image written for the next load.
+    let image_path = path.with_extension("image");
+    let started = Instant::now();
+    let mut prover = match map(&image_path) {
+        Some(image) => {
+            let prover = zopro_prover::Prover::load_image(std::sync::Arc::new(image))
+                .expect("the key's image");
+            stage("image", started);
+            prover
+        }
+        None => {
+            let bytes = map(path).expect("the key file");
+            let prover = zopro_prover::Prover::load(&bytes).expect("the key");
+            stage("key", started);
+            let started = Instant::now();
+            let partial = image_path.with_extension("partial");
+            let mut out = std::io::BufWriter::new(fs::File::create(&partial).unwrap());
+            if prover.write_image(&bytes, &mut out).unwrap() {
+                drop(out);
+                fs::rename(&partial, &image_path).unwrap();
+            }
+            stage("write-image", started);
+            prover
+        }
+    };
+    stage("loaded", Instant::now());
+    // From here the peak is the proofs' own.
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    let _ = fs::write("/proc/self/clear_refs", "5");
+    let witness: Vec<Fr> = read(dir, "witness")
+        .chunks(32)
+        .map(|x| {
+            Fr::from_montgomery(std::array::from_fn(|i| {
+                u64::from_le_bytes(x[8 * i..8 * i + 8].try_into().unwrap())
+            }))
+        })
+        .collect();
+    let mut prove = Vec::new();
+    for round in 0..rounds {
+        let started = Instant::now();
+        // Proved and verified.
+        prover.prove(&witness).expect("a verified proof");
+        prove.push(started.elapsed().as_millis());
+        stage(&format!("proof{round}"), started);
+    }
+    prove.sort();
+    println!(
+        "ZOPRO key-file {} prove_ms_median={} footprint_mb={} peak_footprint_mb={}",
+        path.file_name().unwrap().to_string_lossy(),
+        prove[prove.len() / 2],
+        footprint_mb(),
         peak_footprint_mb()
     );
 }
@@ -473,7 +570,11 @@ impl Dump {
 
     fn key(&self) -> Key {
         let mut key =
-            Key::build(&self.a, &self.b, &self.k, &self.z, &self.b2, &self.domain).expect("key");
+            Key::build(
+                Points::Kernel([&self.a, &self.b, &self.k, &self.z, &self.b2]),
+                &self.domain,
+            )
+            .expect("key");
         assert!(
             key.set_solver(&self.program, &self.coefficients),
             "solver plan"
@@ -501,9 +602,28 @@ fn footprint_mb() -> u64 {
         0
     }
 }
-#[cfg(not(target_vendor = "apple"))]
+/// The process's anonymous resident memory in MB on Linux and Android:
+/// what their low-memory killers weigh (file-backed pages the system can
+/// drop and read again are left out).
+#[cfg(any(target_os = "linux", target_os = "android"))]
+fn footprint_mb() -> u64 {
+    proc_status_kb("RssAnon:") >> 10
+}
+#[cfg(not(any(target_vendor = "apple", target_os = "linux", target_os = "android")))]
 fn footprint_mb() -> u64 {
     0
+}
+
+/// A field of /proc/self/status, in kB.
+#[cfg(any(target_os = "linux", target_os = "android"))]
+fn proc_status_kb(field: &str) -> u64 {
+    fs::read_to_string("/proc/self/status")
+        .ok()
+        .and_then(|status| {
+            let line = status.lines().find(|l| l.starts_with(field))?;
+            line[field.len()..].trim().trim_end_matches("kB").trim().parse().ok()
+        })
+        .unwrap_or(0)
 }
 
 /// The process's largest physical footprint so far, in MB.
@@ -524,7 +644,13 @@ fn peak_footprint_mb() -> u64 {
         0
     }
 }
-#[cfg(not(target_vendor = "apple"))]
+/// The largest resident set so far, file-backed pages included: Linux
+/// keeps no peak of the anonymous part alone.
+#[cfg(any(target_os = "linux", target_os = "android"))]
+fn peak_footprint_mb() -> u64 {
+    proc_status_kb("VmHWM:") >> 10
+}
+#[cfg(not(any(target_vendor = "apple", target_os = "linux", target_os = "android")))]
 fn peak_footprint_mb() -> u64 {
     0
 }

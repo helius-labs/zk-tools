@@ -16,6 +16,7 @@ use zopro_bn254::Fr;
 use zopro_prover::{
     Assignment,
     zopro_core::{
+        Points,
         artifact::Artifact,
         verify::{Proof, public_witness},
     },
@@ -159,12 +160,12 @@ impl Prover {
     /// From a parsed key, as `zopro_prover::Prover::from_artifact`.
     pub fn from_artifact(
         artifact: &Artifact,
-        vectors: &[Vec<u8>; 5],
+        points: Points,
         solver_image: Option<&[u8]>,
     ) -> Result<Self, String> {
         Self::new(zopro_prover::Prover::from_artifact(
             artifact,
-            vectors,
+            points,
             solver_image,
         )?)
     }
