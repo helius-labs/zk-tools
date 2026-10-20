@@ -1,0 +1,62 @@
+[package]
+name = "zopro-core"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Groth16 BN254 proving from key images: field arithmetic, MSM, FFT and witness solving, for wasm and native"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+zopro-bn254 = { path = "../zopro-bn254" }
+getrandom = "0.2"
+zopro-wgpu = { path = "../zopro-wgpu", optional = true }
+log = "0.4"
+miniz_oxide = "0.8"
+rayon = "1.10"
+wasm-bindgen = "=0.2.128"
+wasm-bindgen-rayon = { version = "1.3", features = ["no-bundler"] }
+
+[features]
+# Prints each proof stage's time to stderr (native only).
+trace = []
+# With trace: every MSM checked over its whole vector at key load (seconds and
+# hundreds of MB per load; for finding a wrong kernel).
+fullcheck = ["trace"]
+# The MSMs on an Apple GPU (macOS, iOS); ZOPRO_GPU=0 keeps them on the CPU.
+metal = ["dep:zopro-metal"]
+# The MSMs and the quotient through wgpu (Vulkan, WebGPU, Metal); G2 stays on the CPU.
+wgpu = ["dep:zopro-wgpu"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
+zopro-metal = { path = "../zopro-metal", optional = true }
+
+# The proof blinding draws through getrandom, which needs its JavaScript
+# source on wasm32-unknown-unknown.
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
+[target.'cfg(target_vendor = "apple")'.dependencies]
+# The process's footprint in trace lines.
+libc = "0.2"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.web-time]
+version = "1.1"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.futures-channel]
+version = "0.3"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies.wasm-bindgen-futures]
+version = "0.4"
+[target.'cfg(target_arch = "wasm32")'.dependencies.js-sys]
+version = "0.3"

@@ -1,0 +1,24 @@
+[package]
+name = "zopro-prover"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "A Groth16 prover over BN254 for gnark circuits, without gnark: a zopro key and the inputs by name give a verified proof in gnark's formats"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+zopro-bn254 = { path = "../zopro-bn254" }
+log = "0.4"
+zopro-core = { path = "../zopro-core" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = "0.3"
+wasm-bindgen = "=0.2.128"
+wasm-bindgen-futures = "0.4"
+
+[features]
+metal = ["zopro-core/metal"]
+wgpu = ["zopro-core/wgpu"]
+trace = ["zopro-core/trace"]
