@@ -10,8 +10,15 @@
 use rayon::prelude::*;
 use zopro_bn254::{Affine, CurveConfig, Field, Fr, Projective};
 
-/// The window width: gnark's cost model, (bits + 1) (n + 2^c) / c, over the
-/// widths whose signed digits fit an i16.
+/// The window width, over the widths whose signed digits fit an i16. The
+/// work is the windows' sum of n batch additions and 2^c bucket sums, a
+/// sum (projective) weighing two additions, as single-threaded G2 MSMs on
+/// an M5 Pro fit. The windows run as the pool's tasks, so among the widths
+/// within 15 % of the least work the one whose windows take the fewest
+/// rounds on the pool's threads wins: 8 → 2's G2 MSM (190 k points) at
+/// width 14 took 19 windows on 18 threads, two rounds, 94 ms a proof; at
+/// 15, 17 windows, one round, 74 ms (24 → 2: 240 and 181). Below that the
+/// least work: 2 → 2 (54 k) at 11 took 43 ms a proof against 12's 31.
 fn width(n: usize) -> usize {
     if let Some(width) = std::env::var("ZOPRO_CPU_WIDTH")
         .ok()
@@ -20,8 +27,12 @@ fn width(n: usize) -> usize {
         return width;
     }
     let bits = Fr::MODULUS_BITS as usize + 1;
+    let threads = rayon::current_num_threads().max(1);
+    let work = |c: usize| (n + (2usize << c)) * bits.div_ceil(c);
+    let least = (4..=15).map(work).min().unwrap();
     (4..=15)
-        .min_by_key(|&c| bits * (n + (1usize << c)) / c)
+        .filter(|&c| work(c) <= least + least * 15 / 100)
+        .min_by_key(|&c| (bits.div_ceil(c).div_ceil(threads), work(c)))
         .unwrap()
 }
 
