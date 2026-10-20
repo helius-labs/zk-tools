@@ -1,0 +1,35 @@
+{
+  "source_commit": "95510d19e59c978bc1e3ab78b519b041310d78f8",
+  "base_branch": "sergei/zopro",
+  "base_commit": "4c0f88f3163a7cd7737dea5ee8d3a46e3cdb200f",
+  "checks": [
+    {
+      "backend": "native x86",
+      "command": "RUSTFLAGS='-C target-cpu=native' cargo test --release -p zopro-bn254 -p zopro-core -p zopro-prover -p zopro-zolana",
+      "passed": 59,
+      "ignored": 1,
+      "failed": 0,
+      "log_sha256": "5af2a907c351b5b66a99e366348dec1adecc682205e33432a8998ba4e97ee568"
+    },
+    {
+      "backend": "portable",
+      "command": "RUSTFLAGS='' cargo test --release -p zopro-bn254 -p zopro-core -p zopro-prover -p zopro-zolana",
+      "passed": 48,
+      "ignored": 1,
+      "failed": 0,
+      "log_sha256": "5484f666b0961ac59013da640d91c8cb89d39468c3eb16027f15e051ca1b05b7"
+    },
+    {
+      "target": "aarch64-linux-android",
+      "passed": true,
+      "log_sha256": "eb22840917bd69c85a73c209f5967e2ae05ab549d46702cf2bdd55ed891a8cc3"
+    },
+    {
+      "target": "wasm32-unknown-unknown SIMD",
+      "passed": true,
+      "log_sha256": "ec8d7daecc3ed86140cea222a5729b694f9099de2434584cd780ef1bfd5a2cea"
+    }
+  ],
+  "performance_rerun_after_rebase": false,
+  "notes": "Performance data in results.json comes from the verified stage13 snapshot before rebasing onto newer Apple allocator/Metal changes. Post-rebase correctness tests and cross-target build checks were rerun; optimization and timing work remains paused."
+}

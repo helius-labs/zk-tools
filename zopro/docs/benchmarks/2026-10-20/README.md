@@ -107,6 +107,12 @@ RUSTFLAGS='' cargo test --release \
   -p zopro-bn254 -p zopro-core -p zopro-prover -p zopro-zolana
 ```
 
+After rebasing this checkpoint onto `sergei/zopro` at `4c0f88f`, the release
+suites passed all 59 native and 48 portable tests (one doctest is ignored
+in each), and the ARM/wasm checks passed again. See
+[validation.json](validation.json). The newer base adds the Apple allocator
+and Metal memory changes; performance was not retimed after the rebase.
+
 ## Work remaining
 
 The optimization goal is paused at this checkpoint. Large transfers,
