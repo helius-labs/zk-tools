@@ -1,10 +1,46 @@
-use zopro_bn254::Fr;
 use rayon::prelude::*;
+use zopro_bn254::Fr;
 
 use crate::simd::FrLanes;
 
 /// A quad: four consecutive elements of a transform, in lane form.
 pub(crate) type Quad = FrLanes;
+#[cfg(all(
+    feature = "inplace-fft",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+mod buffer;
+#[cfg(all(
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+mod pair;
+#[cfg(all(
+    feature = "inplace-fft",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+pub(crate) use buffer::Values;
+#[cfg(not(all(
+    feature = "inplace-fft",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+)))]
+pub(crate) type Values = Vec<Quad>;
 /// A GPU transform's tables: roots, inverse roots, forward and reverse
 /// weights.
 pub type Tables = (Vec<Fr>, Vec<Fr>, Vec<Fr>, Vec<Fr>);
@@ -18,6 +54,21 @@ pub struct WeightTables {
 }
 
 // Quads per parallel task in the wide passes (1024 elements).
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+const TASK: usize = 128;
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+)))]
 const TASK: usize = 256;
 
 // Cached twiddles and coset powers for a prepared proving key, in quads: a
@@ -163,34 +214,103 @@ pub(crate) fn quads(values: &[Fr]) -> Vec<Quad> {
 /// `values` as quads, natively in place: there a quad's memory is its four
 /// elements', so a transform holds its values once. A length or capacity
 /// not a multiple of four, or WebAssembly's lane form, takes a copy.
-fn into_quads(values: Vec<Fr>) -> Vec<Quad> {
-    #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
-    if values.len().is_multiple_of(4) && values.capacity().is_multiple_of(4) {
-        const _: () = assert!(
-            std::mem::size_of::<Quad>() == 4 * std::mem::size_of::<Fr>()
-                && std::mem::align_of::<Quad>() == std::mem::align_of::<Fr>()
-        );
-        let mut values = std::mem::ManuallyDrop::new(values);
-        let (ptr, len, capacity) = (values.as_mut_ptr(), values.len(), values.capacity());
-        // SAFETY: a quad is four elements in a row (Lanes, repr(transparent)
-        // over [Fr; 4]), so the allocation holds len / 4 quads and its
-        // layout is capacity / 4 quads'.
-        return unsafe { Vec::from_raw_parts(ptr.cast::<Quad>(), len / 4, capacity / 4) };
+fn into_quads(values: Vec<Fr>) -> Values {
+    #[cfg(all(
+        feature = "inplace-fft",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    {
+        Values::pack(values)
     }
-    quads(&values)
+    #[cfg(not(all(
+        feature = "inplace-fft",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    )))]
+    {
+        #[cfg(not(any(
+            all(target_arch = "wasm32", target_feature = "simd128"),
+            all(
+                target_arch = "x86_64",
+                target_feature = "avx512ifma",
+                target_feature = "avx512vl",
+                target_feature = "avx512dq",
+                not(no_ifma)
+            )
+        )))]
+        if values.len().is_multiple_of(4) && values.capacity().is_multiple_of(4) {
+            const _: () = assert!(
+                std::mem::size_of::<Quad>() == 4 * std::mem::size_of::<Fr>()
+                    && std::mem::align_of::<Quad>() == std::mem::align_of::<Fr>()
+            );
+            let mut values = std::mem::ManuallyDrop::new(values);
+            let (ptr, len, capacity) = (values.as_mut_ptr(), values.len(), values.capacity());
+            // SAFETY: a quad is four elements in a row (Lanes, repr(transparent)
+            // over [Fr; 4]), so the allocation holds len / 4 quads and its
+            // layout is capacity / 4 quads'.
+            return unsafe { Vec::from_raw_parts(ptr.cast::<Quad>(), len / 4, capacity / 4) };
+        }
+        quads(&values)
+    }
 }
 
 /// The elements of `quads`, as into_quads takes them.
-fn from_quads(quads: Vec<Quad>) -> Vec<Fr> {
-    #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
+fn from_quads(quads: Values) -> Vec<Fr> {
+    #[cfg(all(
+        feature = "inplace-fft",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
     {
-        let mut quads = std::mem::ManuallyDrop::new(quads);
-        let (ptr, len, capacity) = (quads.as_mut_ptr(), quads.len(), quads.capacity());
-        // SAFETY: as into_quads.
-        unsafe { Vec::from_raw_parts(ptr.cast::<Fr>(), len * 4, capacity * 4) }
+        quads.unpack()
     }
-    #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
-    scalars(&quads, quads.len() * 4)
+    #[cfg(not(all(
+        feature = "inplace-fft",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    )))]
+    {
+        #[cfg(not(any(
+            all(target_arch = "wasm32", target_feature = "simd128"),
+            all(
+                target_arch = "x86_64",
+                target_feature = "avx512ifma",
+                target_feature = "avx512vl",
+                target_feature = "avx512dq",
+                not(no_ifma)
+            )
+        )))]
+        {
+            let mut quads = std::mem::ManuallyDrop::new(quads);
+            let (ptr, len, capacity) = (quads.as_mut_ptr(), quads.len(), quads.capacity());
+            // SAFETY: as into_quads.
+            unsafe { Vec::from_raw_parts(ptr.cast::<Fr>(), len * 4, capacity * 4) }
+        }
+        #[cfg(any(
+            all(target_arch = "wasm32", target_feature = "simd128"),
+            all(
+                target_arch = "x86_64",
+                target_feature = "avx512ifma",
+                target_feature = "avx512vl",
+                target_feature = "avx512dq",
+                not(no_ifma)
+            )
+        ))]
+        scalars(&quads, quads.len() * 4)
+    }
 }
 
 /// The first `n` elements of `quads`.
@@ -295,11 +415,11 @@ impl Plan {
     }
 
     /// The coset evaluations of the polynomial with these domain evaluations.
-    pub(crate) fn transform(&self, mut values: Vec<Fr>) -> Vec<Quad> {
+    pub(crate) fn transform(&self, mut values: Vec<Fr>) -> Values {
         assert!(values.len() <= self.n);
         values.resize(self.n, Fr::ZERO);
         if let Some((direct, _)) = &self.small {
-            return quads(&direct.coset_evaluations(&direct.coefficients(&values)));
+            return quads(&direct.coset_evaluations(&direct.coefficients(&values))).into();
         }
         let mut values = into_quads(values);
         dif(&mut values, &self.inverse_roots, 0);
@@ -315,21 +435,71 @@ impl Plan {
             let (generator, coset, den) = self.params;
             return Self::new(self.n, generator, coset, den).quotient(a, b, c);
         }
+        #[cfg(all(
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        if self.small.is_none() && crate::simd::cpu_option("ZOPRO_CPU_QUOTIENT8") {
+            return pair::quotient(self, a, b, c);
+        }
+        if self.small.is_none() && crate::simd::cpu_option("ZOPRO_CPU_QUOTIENT6") {
+            return self.quotient_six(a, b, c);
+        }
         let (mut a, (b, c)) = rayon::join(
             || self.transform(a),
             || rayon::join(|| self.transform(b), || self.transform(c)),
         );
         a.par_iter_mut()
-            .zip(&b)
-            .zip(&c)
+            .zip(b.par_iter())
+            .zip(c.par_iter())
             .for_each(|((a, b), c)| *a = a.mul(b).sub(c));
         let mut h = self.finish(a);
         h.pop();
         h
     }
+    // C has degree below n, so its inverse coset transform is exactly its
+    // ordinary coefficients. Keep those after its first inverse transform,
+    // and subtract them after transforming A*B back. This saves C's forward
+    // transform and coset weights without changing the key or polynomial.
+    fn quotient_six(&self, a: Vec<Fr>, b: Vec<Fr>, mut c: Vec<Fr>) -> Vec<Fr> {
+        assert!(self.small.is_none() && c.len() <= self.n);
+        let (mut a, (b, c)) = rayon::join(
+            || self.transform(a),
+            || {
+                rayon::join(
+                    || self.transform(b),
+                    || {
+                        c.resize(self.n, Fr::ZERO);
+                        let mut c = into_quads(c);
+                        dif(&mut c, &self.inverse_roots, 0);
+                        c
+                    },
+                )
+            },
+        );
+        a.par_iter_mut()
+            .zip(b.par_iter())
+            .for_each(|(a, b)| *a = a.mul(b));
+        drop(b);
+        dif(&mut a, &self.inverse_roots, 0);
+        scale(&mut a, &self.reverse_weights);
+        // The inverse DIF is unnormalized. The first reverse-weight chunk
+        // is n^-1 * den in every lane; C needs no inverse coset powers.
+        let factor = &self.reverse_weights.chunks[0];
+        a.par_iter_mut()
+            .zip(c.par_iter())
+            .for_each(|(a, c)| *a = a.sub(&c.mul(factor)));
+        let mut h = from_quads(a);
+        h.pop();
+        h
+    }
     /// The quotient's coefficients, times the denominator, in bit-reversed
     /// order, from its coset evaluations.
-    pub(crate) fn finish(&self, mut values: Vec<Quad>) -> Vec<Fr> {
+    pub(crate) fn finish(&self, mut values: Values) -> Vec<Fr> {
         if let Some((direct, den)) = &self.small {
             let mut values = direct.coset_coefficients(&scalars(&values, self.n));
             for v in &mut values {
@@ -527,7 +697,9 @@ impl Direct {
     /// The coefficients of the polynomial with these evaluations over the
     /// subgroup.
     pub(crate) fn coefficients(&self, values: &[Fr]) -> Vec<Fr> {
-        let n_inv = Fr::from(values.len() as u64).inverse().expect("a nonzero size");
+        let n_inv = Fr::from(values.len() as u64)
+            .inverse()
+            .expect("a nonzero size");
         let inverse = self.generator.inverse().expect("a nonzero generator");
         Self::evaluate(values, inverse, Fr::ONE)
             .into_iter()
@@ -557,6 +729,88 @@ impl Direct {
 mod tests {
     use super::*;
 
+    /// Independent polynomial convolution, including reduction modulo the
+    /// coset's X^n-coset^n. Arbitrary A/B/C need not satisfy a circuit.
+    #[test]
+    fn quotient_matches_polynomial_product() {
+        for n in [1usize, 2, 4, 8, 16, 32, 256, 1024, 2048, 4096] {
+            for root_power in [1, 3] {
+                let generator = Fr::root_of_unity(n).unwrap().pow(&[root_power]);
+                let coset = Fr::from(5 + root_power);
+                let coset_n = coset.pow(&[n as u64]);
+                let den = (coset_n - Fr::ONE).inverse().unwrap();
+                let plan = Plan::new(n, generator, coset, den);
+                let coefficients = |seed: u64| -> Vec<Fr> {
+                    (0..n)
+                        .map(|i| match (i as u64 + seed) % 5 {
+                            0 => Fr::ZERO,
+                            1 => Fr::ONE,
+                            2 => -Fr::ONE,
+                            _ => Fr::from(i as u64 + seed).pow(&[127]),
+                        })
+                        .collect()
+                };
+                let (a, b, c) = (coefficients(7), coefficients(19), coefficients(31));
+                let mut product = vec![Fr::ZERO; 2 * n - 1];
+                for (i, a) in a.iter().enumerate() {
+                    for (j, b) in b.iter().enumerate() {
+                        product[i + j] += *a * *b;
+                    }
+                }
+                let coefficients: Vec<Fr> = (0..n)
+                    .map(|i| {
+                        (product[i] + product.get(n + i).copied().unwrap_or(Fr::ZERO) * coset_n
+                            - c[i])
+                            * den
+                    })
+                    .collect();
+                let log = n.trailing_zeros() as usize;
+                let expected: Vec<Fr> = (0..n - 1)
+                    .map(|i| coefficients[bit_reverse(i, log)])
+                    .collect();
+                let domain = |v: &[Fr]| Direct::evaluate(v, generator, Fr::ONE);
+                let (a, b, c) = (domain(&a), domain(&b), domain(&c));
+                assert_eq!(
+                    plan.quotient(a.clone(), b.clone(), c.clone()),
+                    expected,
+                    "legacy n={n}"
+                );
+                if n >= 8 {
+                    assert_eq!(
+                        plan.quotient_six(a.clone(), b.clone(), c.clone()),
+                        expected,
+                        "six n={n}"
+                    );
+                    #[cfg(all(
+                        feature = "ifma8",
+                        target_arch = "x86_64",
+                        target_feature = "avx512ifma",
+                        target_feature = "avx512vl",
+                        target_feature = "avx512dq",
+                        not(no_ifma)
+                    ))]
+                    {
+                        type Quotient = fn(&Plan, Vec<Fr>, Vec<Fr>, Vec<Fr>) -> Vec<Fr>;
+                        let paths: [Quotient; 4] = [
+                            pair::quotient_impl::<1>,
+                            pair::quotient_impl::<2>,
+                            pair::quotient_impl::<3>,
+                            pair::quotient_impl::<4>,
+                        ];
+                        for (depth, run) in paths.into_iter().enumerate() {
+                            assert_eq!(
+                                run(&plan, a.clone(), b.clone(), c.clone()),
+                                expected,
+                                "pair n={n} stages={}",
+                                depth + 1
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /// Against the transforms by their definition.
     #[test]
     fn matches_direct_transforms() {
@@ -584,7 +838,7 @@ mod tests {
                             expected,
                             "n {n} len {len}"
                         );
-                        let actual = plan.finish(quads(&expected));
+                        let actual = plan.finish(quads(&expected).into());
                         let coefficients: Vec<Fr> = direct
                             .coset_coefficients(&expected)
                             .into_iter()

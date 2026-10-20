@@ -22,6 +22,7 @@ fn read(dir: &Path, name: &str) -> Vec<u8> {
 /// The footprint's peak since it was last read, in MB, while sample_peak
 /// runs.
 static PEAK: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+static STAGE_PEAK: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
 
 /// The kernel's traces, to stderr as TRACE lines.
 struct Stderr;
@@ -31,8 +32,12 @@ impl log::Log for Stderr {
     }
     fn log(&self, record: &log::Record) {
         // With sample_peak running, the stage's peak.
-        let peak = PEAK.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
-        let peak = if peak > 0 { format!(" stage peak {peak} MB") } else { String::new() };
+        let peak = STAGE_PEAK.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+        let peak = if peak > 0 {
+            format!(" stage peak {peak} MB")
+        } else {
+            String::new()
+        };
         eprintln!(
             "{}{peak}",
             record.args().to_string().replace("ZOPRO_TRACE", "TRACE")
@@ -156,7 +161,9 @@ fn sample_peak() {
     static STARTED: std::sync::Once = std::sync::Once::new();
     STARTED.call_once(|| {
         std::thread::spawn(|| loop {
-            PEAK.fetch_max(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+            let current = footprint_mb();
+            PEAK.fetch_max(current, std::sync::atomic::Ordering::Relaxed);
+            STAGE_PEAK.fetch_max(current, std::sync::atomic::Ordering::Relaxed);
             std::thread::sleep(std::time::Duration::from_millis(2));
         });
     });
@@ -167,6 +174,7 @@ fn sample_peak() {
 fn stage(name: &str, started: Instant) -> (u128, u64) {
     let ms = started.elapsed().as_millis();
     let peak = PEAK.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
+    STAGE_PEAK.store(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
     println!(
         "MEMORY {name} footprint_mb={} peak_mb={peak} rss_peak_mb={} ms={ms}",
         footprint_mb(),
@@ -257,12 +265,25 @@ fn zolana(path: &Path, request: &Path, rounds: usize) {
     PEAK.store(held, std::sync::atomic::Ordering::Relaxed);
     let request = fs::read_to_string(request).expect("the request");
     let (mut witness, mut prove) = (Vec::new(), Vec::new());
-    for _ in 0..rounds {
+    for round in 0..rounds {
         let proved = prover.prove(&request).expect("a verified proof");
         witness.push(proved.witness_ms);
         prove.push(proved.prove_ms);
+        if let Some(dir) = env::var_os("ZOPRO_BENCH_PROOFS") {
+            let dir = Path::new(&dir).join(path.file_stem().unwrap());
+            fs::create_dir_all(&dir).expect("the proof output directory");
+            fs::write(dir.join(format!("{round}.proof")), &proved.proof).expect("the proof");
+            fs::write(dir.join(format!("{round}.public")), &proved.public_inputs)
+                .expect("the public witness");
+            println!(
+                "SAMPLE round={round} witness_ms={} prove_ms={} verify_ms={}",
+                proved.witness_ms, proved.prove_ms, proved.verify_ms
+            );
+        }
     }
-    let peak = PEAK.load(std::sync::atomic::Ordering::Relaxed).max(footprint_mb());
+    let peak = PEAK
+        .load(std::sync::atomic::Ordering::Relaxed)
+        .max(footprint_mb());
     witness.sort();
     prove.sort();
     let (write_ms, write_peak) = written.map_or(("-".into(), "-".into()), |(ms, peak)| {
@@ -336,6 +357,7 @@ fn field() {
             *v *= b2;
         }
     }
+    std::hint::black_box(w);
     let mul2_independent = started.elapsed().as_nanos() as f64 / n as f64;
     let started = Instant::now();
     let mut u = [a, b, a + b, a - b];
@@ -344,7 +366,60 @@ fn field() {
             *v *= b;
         }
     }
+    std::hint::black_box(u);
     let mul_independent = started.elapsed().as_nanos() as f64 / n as f64;
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    {
+        use zopro_bn254::ifma::Ifma;
+        let mut av = Ifma::<zopro_bn254::FqConfig>::new(&[a, b, a + b, a - b]);
+        let bv = Ifma::<zopro_bn254::FqConfig>::new(&[b; 4]);
+        let started = Instant::now();
+        for _ in 0..n / 4 {
+            av = av.mul(&bv);
+        }
+        std::hint::black_box(av);
+        let ns = started.elapsed().as_nanos() as f64 / n as f64;
+        println!("ZOPRO ifma fq_mul_ns_per_lane={ns:.2} {}", av.get()[0].0[0]);
+        let mut av = Ifma::<zopro_bn254::FqConfig, true>::new(&[a, b, a + b, a - b]);
+        let bv = Ifma::<zopro_bn254::FqConfig, true>::new(&[b; 4]);
+        let started = Instant::now();
+        for _ in 0..n / 4 {
+            av = av.mul(&bv);
+        }
+        std::hint::black_box(av);
+        let ns = started.elapsed().as_nanos() as f64 / n as f64;
+        println!(
+            "ZOPRO ifma mixed_fq_mul_ns_per_lane={ns:.2} {}",
+            av.get()[0].0[0]
+        );
+        let mut av = zopro_bn254::ifma8::Ifma8::<zopro_bn254::FqConfig, true>::new(&[
+            a,
+            b,
+            a + b,
+            a - b,
+            a,
+            b,
+            a + b,
+            a - b,
+        ]);
+        let bv = zopro_bn254::ifma8::Ifma8::<zopro_bn254::FqConfig, true>::new(&[b; 8]);
+        let started = Instant::now();
+        for _ in 0..n / 8 {
+            av = av.mul(&bv);
+        }
+        std::hint::black_box(av);
+        let ns = started.elapsed().as_nanos() as f64 / n as f64;
+        println!(
+            "ZOPRO ifma8 mixed_fq_mul_ns_per_lane={ns:.2} {}",
+            av.get()[0].0[0]
+        );
+    }
     println!(
         "ZOPRO field fq_mul_ns={mul:.2} fq_square_ns={square:.2} fq2_mul_ns={mul2:.2} independent: fq_mul_ns={mul_independent:.2} fq2_mul_ns={mul2_independent:.2} {}",
         (x + y + u[0]).0[0] ^ (z + w[0]).c0.0[0]
@@ -419,11 +494,7 @@ fn gpu_one<C: zopro_metal::Curve>(
         }
         let (t, total) = best.unwrap();
         println!("ZOPRO gpu-profile \"{name}\" {}", msm.profile(scalars));
-        assert_eq!(
-            result,
-            cpu,
-            "{name}: the GPU MSM differs from the CPU"
-        );
+        assert_eq!(result, cpu, "{name}: the GPU MSM differs from the CPU");
         println!(
             "ZOPRO gpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} device_ms={:.0} combine_ms={:.1}",
             bases.len(),
@@ -441,6 +512,11 @@ fn gpu(_: &Path) {
 
 /// The MSMs of a dumped shape's B, Z and G2 B through wgpu, random and
 /// skewed scalars, checked against the CPU.
+#[cfg(not(feature = "wgpu"))]
+fn wgpu_bench(_: &Path) {
+    panic!("build zopro-bench with --features wgpu");
+}
+#[cfg(feature = "wgpu")]
 fn wgpu_bench(dir: &Path) {
     let gpu = std::sync::Arc::new(zopro_wgpu::Gpu::new().expect("wgpu"));
     let scalars_for = |n: usize, skewed: bool| -> Vec<Fr> {
@@ -467,6 +543,7 @@ fn wgpu_bench(dir: &Path) {
     }
 }
 
+#[cfg(feature = "wgpu")]
 fn wgpu_one<C: zopro_wgpu::Curve>(
     gpu: &std::sync::Arc<zopro_wgpu::Gpu>,
     name: &str,
@@ -493,11 +570,7 @@ fn wgpu_one<C: zopro_wgpu::Curve>(
         }
     }
     let (t, total, point) = best.unwrap();
-    assert_eq!(
-        point,
-        cpu,
-        "{name}: the wgpu MSM differs from the CPU"
-    );
+    assert_eq!(point, cpu, "{name}: the wgpu MSM differs from the CPU");
     println!(
         "ZOPRO wgpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} device_ms={:.0} combine_ms={:.1}",
         bases.len(),
@@ -558,6 +631,11 @@ fn metal_quotient(dir: &Path) {
 
 /// The quotient of random evaluations through wgpu against the CPU plan's,
 /// on the dumped shape's domain.
+#[cfg(not(feature = "wgpu"))]
+fn wgpu_quotient(_: &Path) {
+    panic!("build zopro-bench with --features wgpu");
+}
+#[cfg(feature = "wgpu")]
 fn wgpu_quotient(dir: &Path) {
     let head = zopro_core::dump::Head::read(dir).expect("dump head");
     let params = zopro_core::decode_frs(&head.domain);
@@ -629,12 +707,11 @@ impl Dump {
     }
 
     fn key(&self) -> Key {
-        let mut key =
-            Key::build(
-                Points::Kernel([&self.a, &self.b, &self.k, &self.z, &self.b2]),
-                &self.domain,
-            )
-            .expect("key");
+        let mut key = Key::build(
+            Points::Kernel([&self.a, &self.b, &self.k, &self.z, &self.b2]),
+            &self.domain,
+        )
+        .expect("key");
         assert!(
             key.set_solver(&self.program, &self.coefficients),
             "solver plan"
@@ -681,7 +758,12 @@ fn proc_status_kb(field: &str) -> u64 {
         .ok()
         .and_then(|status| {
             let line = status.lines().find(|l| l.starts_with(field))?;
-            line[field.len()..].trim().trim_end_matches("kB").trim().parse().ok()
+            line[field.len()..]
+                .trim()
+                .trim_end_matches("kB")
+                .trim()
+                .parse()
+                .ok()
         })
         .unwrap_or(0)
 }

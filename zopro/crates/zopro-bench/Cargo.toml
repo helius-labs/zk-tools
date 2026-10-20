@@ -17,8 +17,7 @@ zopro-prover = { path = "../zopro-prover" }
 zopro-zolana = { path = "../zopro-zolana" }
 zopro-bn254 = { path = "../zopro-bn254" }
 getrandom = "0.2"
-zopro-wgpu = { path = "../zopro-wgpu" }
-wgpu = "30"
+zopro-wgpu = { path = "../zopro-wgpu", optional = true }
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
 zopro-metal = { path = "../zopro-metal" }
@@ -27,4 +26,7 @@ zopro-metal = { path = "../zopro-metal" }
 # The MSMs on an Apple GPU.
 metal = ["zopro-core/metal"]
 # The MSMs through wgpu (G2 on the CPU).
-wgpu = ["zopro-core/wgpu"]
+wgpu = ["zopro-core/wgpu", "dep:zopro-wgpu"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(no_ifma)"] }

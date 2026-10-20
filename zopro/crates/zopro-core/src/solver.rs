@@ -347,6 +347,8 @@ pub(crate) struct Plan {
     n_slots: usize,
     n_constraints: usize,
     ops: Vec<Op>,
+    /// Native dot-product grouping: zero, pairs, or eight lanes.
+    fuse_sums: u8,
     /// The ops in epochs of parallel tasks, built at the first solve.
     schedule: std::sync::OnceLock<Schedule>,
 }
@@ -375,6 +377,14 @@ struct View {
 // before its reads.
 unsafe impl Send for View {}
 unsafe impl Sync for View {}
+fn fused_sums_mode() -> u8 {
+    std::env::var("ZOPRO_CPU_FUSE_SUMS")
+        .ok()
+        .and_then(|v| v.parse::<u8>().ok())
+        .unwrap_or(if crate::simd::cpu_option("ZOPRO_CPU_FUSE_SUMS") { 2 } else { 0 })
+        .min(2)
+}
+
 /// Epochs of the parallel solve (ZOPRO_SOLVE_EPOCHS; 0 solves on one
 /// thread).
 fn solve_epochs() -> usize {
@@ -440,6 +450,49 @@ pub(crate) struct Solution {
 }
 
 impl Plan {
+    // Images from older builds may contain many copies of a fixed constant.
+    // Preserve the first five special coefficients and rewrite every direct
+    // coefficient reference; sum slots and wire identities do not change.
+    fn compact_coefficients(&mut self) {
+        if !crate::simd::cpu_option("ZOPRO_CPU_COMPACT_COEFFS") {
+            return;
+        }
+        let mut ids: FxMap<Fr, u32> = FxMap::default();
+        let mut values = Vec::with_capacity(self.coefficients.len().min(8192));
+        let mut remap = Vec::with_capacity(self.coefficients.len());
+        for &value in &self.coefficients {
+            let index = *ids.entry(value).or_insert_with(|| {
+                let index = values.len() as u32;
+                values.push(value);
+                index
+            });
+            remap.push(index);
+        }
+        if values.len() == self.coefficients.len() {
+            return;
+        }
+        debug_assert_eq!(&values[..5], &self.coefficients[..5]);
+        for term in &mut self.terms {
+            term.coefficient = remap[term.coefficient()];
+        }
+        for sum in &mut self.sums {
+            sum.term.coefficient = remap[sum.term.coefficient()];
+        }
+        for op in &mut self.ops {
+            if let Op::Constraint(step) = op {
+                for expression in &mut step.expressions {
+                    if let Expression::Constant(index) = expression {
+                        *index = remap[*index as usize];
+                    }
+                }
+                if let Some(assignment) = &mut step.assignment {
+                    assignment.coefficient = remap[assignment.coefficient()];
+                }
+            }
+        }
+        self.coefficients = values;
+    }
+
     // Header: version, wires, inputs (including ONE), public (including ONE),
     // constraints, hints, A index count, B index count; followed by both index
     // lists, constraint records [ID, len(L), len(R), len(O), (coefficient,
@@ -538,6 +591,27 @@ impl Plan {
             return Err("invalid solver coefficients");
         }
         let n_coefficients = coefficients.len();
+        let compact = crate::simd::cpu_option("ZOPRO_CPU_COMPACT_COEFFS");
+        let mut constant_ids: FxMap<Fr, u32> = FxMap::default();
+        if compact {
+            for (i, &value) in coefficients.iter().enumerate() {
+                constant_ids.entry(value).or_insert(i as u32);
+            }
+        }
+        let constant_index =
+            |value: Fr, coefficients: &mut Vec<Fr>, ids: &mut FxMap<Fr, u32>| -> usize {
+                if compact {
+                    *ids.entry(value).or_insert_with(|| {
+                        let index = coefficients.len() as u32;
+                        coefficients.push(value);
+                        index
+                    }) as usize
+                } else {
+                    let index = coefficients.len();
+                    coefficients.push(value);
+                    index
+                }
+            };
         let mut solved = vec![false; n_wires];
         solved[..n_inputs].fill(true);
         let mut seen = vec![false; n_constraints];
@@ -571,8 +645,8 @@ impl Plan {
                     }
                 }
                 if constant != Fr::ZERO {
-                    terms.push(Term::new(coefficients.len(), 0));
-                    coefficients.push(constant);
+                    let index = constant_index(constant, &mut coefficients, &mut constant_ids);
+                    terms.push(Term::new(index, 0));
                 }
                 let outputs = read()?..read()?;
                 if outputs.is_empty()
@@ -634,8 +708,8 @@ impl Plan {
                     }
                 }
                 if constant != Fr::ZERO {
-                    terms.push(Term::new(coefficients.len(), 0));
-                    coefficients.push(constant);
+                    let index = constant_index(constant, &mut coefficients, &mut constant_ids);
+                    terms.push(Term::new(index, 0));
                 }
                 expressions[side] = match &terms[start..] {
                     [] => Expression::Zero,
@@ -690,7 +764,7 @@ impl Plan {
         }
         drop(prefixes);
         let n_slots = assign_slots(n_wires, &mut sums, &mut ops);
-        Ok(Self {
+        let mut plan = Self {
             n_wires,
             n_inputs,
             n_public,
@@ -702,8 +776,11 @@ impl Plan {
             n_slots,
             n_constraints,
             ops,
+            fuse_sums: fused_sums_mode(),
             schedule: std::sync::OnceLock::new(),
-        })
+        };
+        plan.compact_coefficients();
+        Ok(plan)
     }
 
     // The plan as an image, for a host to keep and load without building it
@@ -969,7 +1046,7 @@ impl Plan {
         if r.at != image.len() {
             return Err(DAMAGED_IMAGE);
         }
-        Ok(Self {
+        let mut plan = Self {
             n_wires,
             n_inputs,
             n_public,
@@ -981,8 +1058,11 @@ impl Plan {
             n_slots,
             n_constraints,
             ops,
+            fuse_sums: fused_sums_mode(),
             schedule: std::sync::OnceLock::new(),
-        })
+        };
+        plan.compact_coefficients();
+        Ok(plan)
     }
 
     pub(crate) fn matches(&self, a: usize, b: usize, k: usize, domain: usize) -> bool {
@@ -1200,17 +1280,57 @@ impl Plan {
         };
         let mut slot = self.n_wires + step.first_slot();
         let mut chain = Fr::ZERO;
-        for sum in &self.sums[step.sums()] {
-            let term = term_value(&sum.term);
-            chain = match sum.previous() {
+        let sums = &self.sums[step.sums()];
+        let mut i = 0;
+        while i < sums.len() {
+            let first = &sums[i];
+            let mut last = first;
+            let term = if self.fuse_sums >= 2
+                && i + 8 <= sums.len()
+                && sums[i..i + 8].iter().enumerate().all(|(j, sum)| {
+                    (j == 7 || !sum.stored())
+                        && (j == 0 || matches!(sum.previous(), Previous::Chain))
+                        && sum.term.wire() != 0
+                        && sum.term.coefficient() > 4
+                })
+            {
+                let coefficients = core::array::from_fn(|j| {
+                    self.coefficients[sums[i + j].term.coefficient()]
+                });
+                let values = core::array::from_fn(|j| get(sums[i + j].term.wire()));
+                last = &sums[i + 7];
+                i += 7;
+                dot8(coefficients, values)
+            } else if self.fuse_sums != 0
+                && !first.stored()
+                && i + 1 < sums.len()
+                && matches!(sums[i + 1].previous(), Previous::Chain)
+                && first.term.wire() != 0
+                && sums[i + 1].term.wire() != 0
+                && first.term.coefficient() > 4
+                && sums[i + 1].term.coefficient() > 4
+            {
+                last = &sums[i + 1];
+                i += 1;
+                Fr::sum_of_products(
+                    &self.coefficients[first.term.coefficient()],
+                    &get(first.term.wire()),
+                    &self.coefficients[last.term.coefficient()],
+                    &get(last.term.wire()),
+                )
+            } else {
+                term_value(&first.term)
+            };
+            chain = match first.previous() {
                 Previous::None => term,
                 Previous::Chain => chain + term,
                 Previous::Slot(previous) => get(previous) + term,
             };
-            if sum.stored() {
+            if last.stored() {
                 set(slot, chain);
                 slot += 1;
             }
+            i += 1;
         }
         let mut values = [Fr::ZERO; 3];
         for (value, expression) in values.iter_mut().zip(&step.expressions) {
@@ -1286,6 +1406,37 @@ impl Plan {
             3 => -w[term.wire()],
             _ => self.coefficients[term.coefficient()] * w[term.wire()],
         }
+    }
+}
+
+// A linear-expression dot product in the host's R=2^256 representation.
+fn dot8(coefficients: [Fr; 8], values: [Fr; 8]) -> Fr {
+    #[cfg(all(
+        feature = "ifma8",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    {
+        use zopro_bn254::{ifma8::Ifma8, FrConfig};
+        return Ifma8::<FrConfig, true>::new(&coefficients)
+            .mul(&Ifma8::new(&values))
+            .horizontal_sum();
+    }
+    #[cfg(not(all(
+        feature = "ifma8",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    )))]
+    {
+        (0..8).step_by(2).map(|i| {
+            Fr::sum_of_products(&coefficients[i], &values[i], &coefficients[i + 1], &values[i + 1])
+        }).fold(Fr::ZERO, |acc, x| acc + x)
     }
 }
 
@@ -1436,6 +1587,10 @@ mod tests {
     // ONE, X, Y, Z, then U, V and V²: a long linear expression shared by
     // three constraints, interned as sums.
     fn with_sums() -> (Vec<u32>, Vec<u8>) {
+        with_linear_base(vec![2, 1, 3, 2, 5, 3])
+    }
+
+    fn with_linear_base(base: Vec<u32>) -> (Vec<u32>, Vec<u8>) {
         let mut coefficients = small().1;
         coefficients.extend(encode_fields(&[
             Fr::from(3u64),
@@ -1445,7 +1600,6 @@ mod tests {
         let mut program = vec![
             2, 7, 4, 1, 3, 0, 7, 7, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6,
         ];
-        let base = vec![2, 1, 3, 2, 5, 3]; // 2X - Y + 3Z
         let mut first = base.clone();
         first.extend([6, 0]);
         let mut second = base;
@@ -1469,6 +1623,46 @@ mod tests {
             }
         }
         (program, coefficients)
+    }
+
+    #[test]
+    fn fused_sums_preserve_stored_prefixes_and_images() {
+        for terms in [3, 8, 11] {
+            let base: Vec<u32> = (0..terms).flat_map(|i| [5 + i % 3, 1 + i % 3]).collect();
+            let (program, coefficients) = with_linear_base(base.clone());
+            let mut reference = Plan::new(&encode_words(&program), &coefficients).unwrap();
+            reference.fuse_sums = 0;
+            assert!(reference.sums.windows(terms as usize).any(|run| {
+                run.iter().enumerate().all(|(i, s)| {
+                    (i + 1 == run.len() || !s.stored())
+                        && (i == 0 || matches!(s.previous(), Previous::Chain))
+                        && s.term.wire() != 0 && s.term.coefficient() > 4
+                })
+            }));
+            for mode in [1, 2] {
+                let mut fused = Plan::from_image(&reference.image()).unwrap();
+                fused.fuse_sums = mode;
+                for sample in 0..50u64 {
+                    let x = Fr::from(sample);
+                    let y = -x;
+                    let z = x * x;
+                    let inputs = [x, y, z];
+                    let weights = [Fr::from(3u64), Fr::from(5u64), Fr::from(7u64)];
+                    let value: Fr = base.chunks_exact(2)
+                        .map(|term| weights[(term[0] - 5) as usize] * inputs[(term[1] - 1) as usize])
+                        .fold(Fr::ZERO, |acc, x| acc + x);
+                    let u = (value + Fr::from(5u64)).square();
+                    let v = value + u + Fr::from(7u64);
+                    let expected = reference.solve(&inputs).unwrap();
+                    let actual = fused.solve(&inputs).unwrap();
+                    assert_eq!(actual.w, [Fr::ONE, x, y, z, u, v, v * v]);
+                    assert_eq!(actual.w, expected.w);
+                    assert_eq!(actual.a, expected.a);
+                    assert_eq!(actual.b, expected.b);
+                    assert_eq!(actual.c, expected.c);
+                }
+            }
+        }
     }
 
     #[test]

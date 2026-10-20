@@ -23,7 +23,13 @@ keys="${ZOPRO_KEYS_DIR:-$HOME/.cache/zopro-keys}"
 cdn="${ZOPRO_KEYS_URL:-https://d3gbdb0egjwcw9.cloudfront.net}"
 
 features=()
-[[ "$(uname)" == Darwin ]] && features=(--features metal)
+if [[ "$(uname)" == Darwin ]]; then
+  features=(--features metal)
+elif [[ "$(uname -m)" == x86_64 ]]; then
+  # The benchmark runs on the build machine. This enables ADX/IFMA when
+  # supported; distributable binaries should use their deployment CPU.
+  export RUSTFLAGS="${RUSTFLAGS--C target-cpu=native}"
+fi
 log="$(mktemp "${TMPDIR:-/tmp}/zopro-bench.XXXXXX")"
 trap 'rm -f "$log"' EXIT
 # The build's and the bench's own output only when they fail.

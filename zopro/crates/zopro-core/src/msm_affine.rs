@@ -7,6 +7,7 @@
 //! lanes, but a phone's caches do not hold the copies: on a Cortex-A78 it
 //! took five times gnark's last-level cache misses per second. Here a
 //! window touches the bases once, in order, and its bucket array.
+use crate::msm::{BatchAdd, BatchInverse};
 use rayon::prelude::*;
 use zopro_bn254::{Affine, CurveConfig, Field, Fr, Projective};
 
@@ -20,11 +21,25 @@ use zopro_bn254::{Affine, CurveConfig, Field, Fr, Projective};
 /// 15, 17 windows, one round, 74 ms (24 → 2: 240 and 181). Below that the
 /// least work: 2 → 2 (54 k) at 11 took 43 ms a proof against 12's 31.
 fn width(n: usize) -> usize {
+    if n >= (1 << 18) {
+        if let Some(width) = std::env::var("ZOPRO_CPU_LARGE_WIDTH")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+        {
+            return width.clamp(10, 15);
+        }
+    }
     if let Some(width) = std::env::var("ZOPRO_CPU_WIDTH")
         .ok()
         .and_then(|v| v.parse().ok())
     {
         return width;
+    }
+    // Wide bucket tables compete with each other and inversion scratch in
+    // the CPU caches. Native IFMA's affine reduction handles the narrow
+    // final digit efficiently, so large MSMs can use smaller tables.
+    if n >= (1 << 18) && crate::simd::cpu_option("ZOPRO_CPU_CACHE_WIDTH") {
+        return 13;
     }
     let bits = Fr::MODULUS_BITS as usize + 1;
     let threads = rayon::current_num_threads().max(1);
@@ -50,7 +65,7 @@ fn split() -> usize {
 /// inversion is cheap per addition, narrow enough that a random batch rarely
 /// meets a bucket twice.
 fn batch_size(width: usize) -> usize {
-    match width {
+    let size: usize = match width {
         0..=9 => 0,
         10 => 80,
         11 => 150,
@@ -58,10 +73,18 @@ fn batch_size(width: usize) -> usize {
         13 => 350,
         14 => 400,
         _ => 500,
+    };
+    if crate::simd::cpu_option("ZOPRO_CPU_ALIGN_BATCH") {
+        size.next_multiple_of(crate::simd::BATCH_LANES)
+    } else {
+        size
     }
 }
 
-pub(super) fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projective<C> {
+pub(super) fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projective<C>
+where
+    C::Base: BatchInverse,
+{
     let canonical: Vec<[u64; 4]> = scalars.par_iter().map(Fr::to_canonical).collect();
     msm_canonical(bases, &canonical)
 }
@@ -82,11 +105,111 @@ pub(super) fn canonical(scalars: &mut [Fr]) -> &[[u64; 4]] {
 pub(super) fn msm_canonical<C: CurveConfig>(
     bases: &[Affine<C>],
     canonical: &[[u64; 4]],
-) -> Projective<C> {
+) -> Projective<C>
+where
+    C::Base: BatchInverse,
+{
+    if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
+        if let Some((bases, scalars)) = group_scalars(bases, canonical) {
+            return msm_raw(&bases, &scalars);
+        }
+    }
+    msm_raw(bases, canonical)
+}
+
+/// Combine equal scalars using an affine addition tree. Inspect a small
+/// sample first, so random FFT coefficients keep their streaming path.
+fn group_scalars<C: CurveConfig>(
+    bases: &[Affine<C>],
+    scalars: &[[u64; 4]],
+) -> Option<(Vec<Affine<C>>, Vec<[u64; 4]>)>
+where
+    C::Base: BatchInverse,
+{
+    assert_eq!(bases.len(), scalars.len());
+    if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
+        return None;
+    }
+    let sample = scalars.len().min(2048);
+    let unique: std::collections::HashSet<_> = scalars
+        .iter()
+        .step_by(scalars.len().div_ceil(sample))
+        .take(sample)
+        .collect();
+    if unique.len() * 200 > sample * 199 {
+        return None;
+    }
+    let mut groups = std::collections::HashMap::new();
+    let mut values = Vec::new();
+    let mut classes = vec![u32::MAX; scalars.len()];
+    let mut counts: Vec<usize> = Vec::new();
+    for ((base, scalar), class) in bases.iter().zip(scalars).zip(&mut classes) {
+        if *scalar == [0; 4] || base.is_identity() {
+            continue;
+        }
+        let index = *groups.entry(*scalar).or_insert_with(|| {
+            values.push(*scalar);
+            counts.push(0);
+            (values.len() - 1) as u32
+        });
+        *class = index;
+        counts[index as usize] += 1;
+    }
+    drop(groups);
+    if values.len() * 10 > scalars.len() * 8 {
+        return None;
+    }
+    if values.is_empty() {
+        return Some((Vec::new(), Vec::new()));
+    }
+    let mut starts = Vec::with_capacity(counts.len() + 1);
+    starts.push(0);
+    for &count in &counts {
+        starts.push(starts.last().unwrap() + count);
+    }
+    let mut positions = starts[..counts.len()].to_vec();
+    let mut order = vec![0u32; *starts.last().unwrap()];
+    for (i, &class) in classes.iter().enumerate() {
+        if class != u32::MAX {
+            order[positions[class as usize]] = i as u32;
+            positions[class as usize] += 1;
+        }
+    }
+    drop(classes);
+    drop(positions);
+    Some((
+        crate::msm::group_affine(bases, &order, &starts, &counts),
+        values,
+    ))
+}
+
+fn msm_raw<C: CurveConfig>(bases: &[Affine<C>], canonical: &[[u64; 4]]) -> Projective<C>
+where
+    C::Base: BatchInverse,
+{
     assert_eq!(bases.len(), canonical.len(), "validated MSM dimensions");
     let n = bases.len();
     if n == 0 {
         return Projective::<C>::IDENTITY;
+    }
+    // Small MSMs benefit from shorter streaming tasks on a wide pool.
+    // Keep the large quotient MSM's existing path; splitting it did not
+    // show a repeatable gain. Portable and ARM defaults are unchanged.
+    let default_parts = if (1024..(1 << 18)).contains(&n)
+        && rayon::current_num_threads() >= 16
+        && crate::simd::cpu_option("ZOPRO_CPU_MERGE_SPLIT")
+    {
+        2
+    } else {
+        1
+    };
+    let merge_parts = std::env::var("ZOPRO_CPU_MERGE_SPLIT")
+        .ok()
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(default_parts)
+        .clamp(1, 32);
+    if merge_parts > 1 && n >= 1024 {
+        return merge_split(bases, canonical, merge_parts);
     }
     let width = width(n);
     let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
@@ -97,6 +220,11 @@ pub(super) fn msm_canonical<C: CurveConfig>(
         .map(|task| {
             let (w, p) = (task / parts, task % parts);
             let range = p * part..((p + 1) * part).min(n);
+            if let Some(sum) =
+                top_window::<C>(&bases[range.clone()], &canonical[range.clone()], w, width)
+            {
+                return sum;
+            }
             window::<C>(
                 &bases[range.clone()],
                 canonical[range].iter().map(|s| digit(s, w, width)),
@@ -152,13 +280,42 @@ fn window<C: CurveConfig>(
     bases: &[Affine<C>],
     digits: impl Iterator<Item = i16>,
     width: usize,
-) -> Projective<C> {
+) -> Projective<C>
+where
+    C::Base: BatchInverse,
+{
     let half = 1usize << (width - 1);
     let size = batch_size(width);
     if size == 0 {
         return window_projective(bases, digits, half);
     }
-    let mut w = Window::<C>::new(half, size);
+    let w = fill_window::<C>(bases, digits, width, size);
+    if crate::simd::cpu_option("ZOPRO_CPU_REDUCE") {
+        return crate::msm::weighted_affine(&affine_buckets(w));
+    }
+    let mut running = Projective::<C>::IDENTITY;
+    let mut total = Projective::<C>::IDENTITY;
+    for k in (0..half).rev() {
+        running += w.affine[k];
+        let index = w.projective_indices[k];
+        if index != u32::MAX {
+            running += w.projective[index as usize];
+        }
+        total += running;
+    }
+    total
+}
+
+fn fill_window<C: CurveConfig>(
+    bases: &[Affine<C>],
+    digits: impl Iterator<Item = i16>,
+    width: usize,
+    size: usize,
+) -> Window<C>
+where
+    C::Base: BatchInverse,
+{
+    let mut w = Window::<C>::new(1usize << (width - 1), size);
     for (base, digit) in bases.iter().zip(digits) {
         if digit == 0 || base.is_identity() {
             continue;
@@ -180,14 +337,149 @@ fn window<C: CurveConfig>(
     }
     w.execute();
     w.flush_queue();
-    let mut running = Projective::<C>::IDENTITY;
-    let mut total = Projective::<C>::IDENTITY;
-    for k in (0..half).rev() {
-        running += w.affine[k];
-        running += w.projective[k];
-        total += running;
+    w
+}
+
+fn affine_buckets<C: CurveConfig>(mut w: Window<C>) -> Vec<Affine<C>>
+where
+    C::Base: BatchInverse,
+{
+    let combined: Vec<_> = w
+        .projective
+        .iter()
+        .zip(&w.projective_buckets)
+        .map(|(point, &i)| *point + w.affine[i])
+        .collect();
+    for (point, &i) in Projective::<C>::batch_to_affine(&combined)
+        .into_iter()
+        .zip(&w.projective_buckets)
+    {
+        w.affine[i] = point;
     }
-    total
+    w.affine
+}
+
+/// Merge disjoint equal-weight buckets using the streaming affine kernel.
+fn merge_buckets<C: CurveConfig>(left: &mut [Affine<C>], right: &[Affine<C>])
+where
+    C::Base: BatchInverse,
+{
+    assert_eq!(left.len(), right.len());
+    left.par_chunks_mut(512)
+        .zip(right.par_chunks(512))
+        .for_each(|(left, right)| {
+            let mut pairs = Vec::with_capacity(left.len());
+            for (i, (a, &b)) in left.iter_mut().zip(right).enumerate() {
+                if a.is_identity() {
+                    *a = b;
+                } else if b.is_identity() {
+                } else if a.x == b.x {
+                    *a = (*a + b).to_affine();
+                } else {
+                    pairs.push((i as u32, b));
+                }
+            }
+            if !pairs.is_empty() {
+                BatchAdd::<C>::default().apply(left, &pairs);
+            }
+        });
+}
+
+fn merge_split<C: CurveConfig>(
+    bases: &[Affine<C>],
+    scalars: &[[u64; 4]],
+    parts: usize,
+) -> Projective<C>
+where
+    C::Base: BatchInverse,
+{
+    let part = bases.len().div_ceil(parts);
+    let width = width(bases.len());
+    let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
+    let size = batch_size(width).max(32);
+    let sums: Vec<_> = (0..windows)
+        .into_par_iter()
+        .map(|w| {
+            if let Some(sum) = top_window::<C>(bases, scalars, w, width) {
+                return sum;
+            }
+            let mut buckets: Vec<_> = (0..parts)
+                .into_par_iter()
+                .map(|p| {
+                    let range = p * part..((p + 1) * part).min(bases.len());
+                    affine_buckets(fill_window::<C>(
+                        &bases[range.clone()],
+                        scalars[range].iter().map(|s| digit(s, w, width)),
+                        width,
+                        size,
+                    ))
+                })
+                .collect();
+            let mut combined = buckets.swap_remove(0);
+            for other in buckets {
+                merge_buckets(&mut combined, &other);
+            }
+            crate::msm::weighted_affine(&combined)
+        })
+        .collect();
+    let mut result = Projective::<C>::IDENTITY;
+    for sum in sums.iter().rev() {
+        for _ in 0..width {
+            result = result.double();
+        }
+        result += sum;
+    }
+    result
+}
+
+/// A short final digit uses only a few buckets. Streaming these collisions
+/// would send most points through the scalar projective fallback.
+fn top_window<C: CurveConfig>(
+    bases: &[Affine<C>],
+    scalars: &[[u64; 4]],
+    w: usize,
+    width: usize,
+) -> Option<Projective<C>>
+where
+    C::Base: BatchInverse,
+{
+    let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
+    if bases.len() < 1024 || w + 1 != windows {
+        return None;
+    }
+    let bits = Fr::MODULUS_BITS as usize - w * width;
+    if bits > 8 || !crate::simd::cpu_option("ZOPRO_CPU_TOP_TREE") {
+        return None;
+    }
+    let buckets = 1usize << bits;
+    let mut counts = vec![0usize; buckets];
+    for (base, s) in bases.iter().zip(scalars) {
+        let d = digit(s, w, width);
+        debug_assert!(d >= 0 && d as usize <= buckets);
+        if d != 0 && !base.is_identity() {
+            counts[d as usize - 1] += 1;
+        }
+    }
+    let mut starts = Vec::with_capacity(buckets + 1);
+    starts.push(0);
+    for count in counts {
+        starts.push(starts.last().unwrap() + count);
+    }
+    if *starts.last().unwrap() == 0 {
+        return Some(Projective::IDENTITY);
+    }
+    let mut positions = starts[..buckets].to_vec();
+    let mut order = vec![0u32; *starts.last().unwrap()];
+    for (i, (base, s)) in bases.iter().zip(scalars).enumerate() {
+        let d = digit(s, w, width);
+        if d != 0 && !base.is_identity() {
+            let b = d as usize - 1;
+            order[positions[b]] = i as u32;
+            positions[b] += 1;
+        }
+    }
+    let buckets = crate::msm::reduce_indexed_buckets(bases, &order, &starts);
+    Some(crate::msm::weighted_affine(&buckets))
 }
 
 /// Narrow windows: few buckets, so projective buckets without batching.
@@ -214,12 +506,17 @@ fn window_projective<C: CurveConfig>(
 }
 
 /// A window's buckets and its pending batch of affine additions.
-struct Window<C: CurveConfig> {
+struct Window<C: CurveConfig>
+where
+    C::Base: BatchInverse,
+{
     /// The buckets the batches fill.
     affine: Vec<Affine<C>>,
     /// The rare additions a batch cannot take (doublings, and the queue
     /// when it overflows), in projective form.
     projective: Vec<Projective<C>>,
+    projective_indices: Vec<u32>,
+    projective_buckets: Vec<usize>,
     /// The buckets in the current batch.
     busy: Vec<u64>,
     /// The batch: bucket and point to add to it.
@@ -229,18 +526,27 @@ struct Window<C: CurveConfig> {
     /// The batch inversion's scratch.
     denominators: Vec<C::Base>,
     prefixes: Vec<C::Base>,
+    packed: BatchAdd<C>,
+    use_packed: bool,
 }
 
-impl<C: CurveConfig> Window<C> {
+impl<C: CurveConfig> Window<C>
+where
+    C::Base: BatchInverse,
+{
     fn new(half: usize, size: usize) -> Self {
         Self {
             affine: vec![Affine::<C>::IDENTITY; half],
-            projective: vec![Projective::<C>::IDENTITY; half],
+            projective: Vec::new(),
+            projective_indices: vec![u32::MAX; half],
+            projective_buckets: Vec::new(),
             busy: vec![0; half.div_ceil(64)],
             batch: Vec::with_capacity(size),
             queue: Vec::with_capacity(size),
             denominators: Vec::with_capacity(size),
             prefixes: Vec::with_capacity(size),
+            packed: BatchAdd::default(),
+            use_packed: crate::simd::cpu_option("ZOPRO_CPU_PACKED"),
         }
     }
 
@@ -258,7 +564,7 @@ impl<C: CurveConfig> Window<C> {
         }
         if current.x == point.x {
             if current.y == point.y {
-                self.projective[bucket] += point;
+                self.add_projective(bucket, point);
             } else {
                 *current = Affine::<C>::IDENTITY;
             }
@@ -268,10 +574,31 @@ impl<C: CurveConfig> Window<C> {
         self.batch.push((bucket as u32, point));
     }
 
+    /// Most buckets never need the exceptional projective path. Keep only
+    /// those that do, rather than a second dense point array per window.
+    fn add_projective(&mut self, bucket: usize, point: Affine<C>) {
+        let index = self.projective_indices[bucket];
+        if index == u32::MAX {
+            self.projective_indices[bucket] = self.projective.len() as u32;
+            self.projective_buckets.push(bucket);
+            self.projective.push(point.to_projective());
+        } else {
+            self.projective[index as usize] += point;
+        }
+    }
+
     /// The batch's additions, bucket = bucket + point, with one inversion:
     /// λ = (y2 - y1) / (x2 - x1), x3 = λ² - x1 - x2, y3 = λ (x1 - x3) - y1.
     fn execute(&mut self) {
         if self.batch.is_empty() {
+            return;
+        }
+        if self.use_packed {
+            self.packed.apply(&mut self.affine, &self.batch);
+            for (bucket, _) in &self.batch {
+                self.busy[*bucket as usize / 64] = 0;
+            }
+            self.batch.clear();
             return;
         }
         self.denominators.clear();
@@ -312,9 +639,11 @@ impl<C: CurveConfig> Window<C> {
 
     /// The queue's points into the projective buckets, unbatched.
     fn flush_queue(&mut self) {
-        for (bucket, point) in self.queue.drain(..) {
-            self.projective[bucket as usize] += point;
+        for i in 0..self.queue.len() {
+            let (bucket, point) = self.queue[i];
+            self.add_projective(bucket as usize, point);
         }
+        self.queue.clear();
     }
 }
 
@@ -323,6 +652,51 @@ mod tests {
     use super::*;
     use crate::testing::Seeded;
     use zopro_bn254::{G1Config, G2Config};
+
+    #[test]
+    fn equal_scalars_group_correctly() {
+        fn check<C: CurveConfig>()
+        where
+            C::Base: BatchInverse,
+        {
+            let mut rng = Seeded::new(91);
+            let choices = [
+                Fr::ZERO,
+                Fr::ONE,
+                -Fr::ONE,
+                rng.fr(),
+                rng.fr(),
+                rng.fr(),
+                rng.fr(),
+            ];
+            let g = Projective::<C>::generator();
+            let mut point = g;
+            let bases: Vec<_> = (0..512)
+                .map(|i| {
+                    point += g;
+                    match i % 19 {
+                        0 => Affine::IDENTITY,
+                        1 => g.to_affine(),
+                        2 => (-g).to_affine(),
+                        _ => point.to_affine(),
+                    }
+                })
+                .collect();
+            let scalars: Vec<_> = (0..512)
+                .map(|i| choices[i % choices.len()].to_canonical())
+                .collect();
+            let (grouped, values) = group_scalars(&bases, &scalars).expect("repeated scalars");
+            assert_eq!(
+                msm_raw(&grouped, &values).to_affine(),
+                msm_raw(&bases, &scalars).to_affine()
+            );
+            let zero = vec![[0; 4]; 512];
+            let (grouped, values) = group_scalars(&bases, &zero).unwrap();
+            assert!(grouped.is_empty() && values.is_empty());
+        }
+        check::<G1Config>();
+        check::<G2Config>();
+    }
 
     /// Each window's digit against recoding the scalar from its lowest
     /// window up, the carry passed along: for scalars whose windows are
@@ -361,7 +735,11 @@ mod tests {
                 for w in (0..windows).rev() {
                     rebuilt = rebuilt * radix + {
                         let d = digit(words, w, width) as i64;
-                        if d < 0 { -Fr::from(d.unsigned_abs()) } else { Fr::from(d as u64) }
+                        if d < 0 {
+                            -Fr::from(d.unsigned_abs())
+                        } else {
+                            Fr::from(d as u64)
+                        }
                     };
                 }
                 for w in 0..windows {
@@ -374,7 +752,11 @@ mod tests {
                     let value = (value & ((1 << width) - 1)) + carry;
                     carry = (value + half) >> width;
                     let expected = (value as i64 - (carry << width) as i64) as i16;
-                    assert_eq!(digit(words, w, width), expected, "width {width}, window {w}");
+                    assert_eq!(
+                        digit(words, w, width),
+                        expected,
+                        "width {width}, window {w}"
+                    );
                 }
                 assert_eq!(rebuilt.to_canonical(), *words, "width {width}");
             }

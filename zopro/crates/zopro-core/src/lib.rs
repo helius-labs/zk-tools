@@ -2,8 +2,8 @@
     all(target_arch = "wasm32", target_feature = "simd128"),
     feature(asm_experimental_arch)
 )]
-use zopro_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use wasm_bindgen::prelude::*;
+use zopro_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 
 /// The clock: std's natively, the page's in a browser, where std has none.
 pub mod time {
@@ -84,7 +84,11 @@ fn footprint_note() -> String {
             .and_then(|v| v.trim().trim_end_matches("kB").trim().parse().ok())
             .unwrap_or(0)
     };
-    format!(" fp {} peak {} MB", kb("RssAnon:") >> 10, kb("VmHWM:") >> 10)
+    format!(
+        " fp {} peak {} MB",
+        kb("RssAnon:") >> 10,
+        kb("VmHWM:") >> 10
+    )
 }
 #[cfg(all(
     feature = "trace",
@@ -655,7 +659,8 @@ impl InPlace for G1Affine {
 impl InPlace for G2Affine {
     const SIZE: usize = 128;
 }
-const _: () = assert!(std::mem::size_of::<G1Affine>() == 64 && std::mem::size_of::<G2Affine>() == 128);
+const _: () =
+    assert!(std::mem::size_of::<G1Affine>() == 64 && std::mem::size_of::<G2Affine>() == 128);
 impl<T: InPlace> Store<T> {
     /// `bytes` bytes at `offset` in `image`, when they lie in it and are
     /// aligned for the points.
@@ -884,9 +889,19 @@ impl Key {
             zopro_wgpu::profile::record_cpu(name, clock.elapsed().as_secs_f64() * 1000.0);
             clock = crate::time::Instant::now();
         };
-        let solution = plan.solve_in(&frs(witness), self.domain).map_err(|e| JsError::new(&e))?;
-        let sa: Vec<_> = plan.a_indices.iter().map(|&i| solution.w[i as usize]).collect();
-        let sb: Vec<_> = plan.b_indices.iter().map(|&i| solution.w[i as usize]).collect();
+        let solution = plan
+            .solve_in(&frs(witness), self.domain)
+            .map_err(|e| JsError::new(&e))?;
+        let sa: Vec<_> = plan
+            .a_indices
+            .iter()
+            .map(|&i| solution.w[i as usize])
+            .collect();
+        let sb: Vec<_> = plan
+            .b_indices
+            .iter()
+            .map(|&i| solution.w[i as usize])
+            .collect();
         let sk: Vec<Fr> = solution.w[plan.n_public..].to_vec();
         let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
         stage("cpu solve");
@@ -1094,7 +1109,12 @@ impl Key {
             return false;
         }
         let Ok(plan) = parsed else { return false };
-        if !plan.matches(self.lengths[0], self.lengths[1], self.lengths[2], self.domain) {
+        if !plan.matches(
+            self.lengths[0],
+            self.lengths[1],
+            self.lengths[2],
+            self.domain,
+        ) {
             return false;
         }
         let started = crate::time::Instant::now();
@@ -1259,8 +1279,14 @@ impl Key {
         let plan = self.solver.as_ref().ok_or("no prepared solver")?;
         let solution = plan.solve_in(&frs(witness), self.domain)?;
         Ok([
-            plan.a_indices.iter().map(|&i| solution.w[i as usize]).collect(),
-            plan.b_indices.iter().map(|&i| solution.w[i as usize]).collect(),
+            plan.a_indices
+                .iter()
+                .map(|&i| solution.w[i as usize])
+                .collect(),
+            plan.b_indices
+                .iter()
+                .map(|&i| solution.w[i as usize])
+                .collect(),
             solution.w[plan.n_public..].to_vec(),
         ])
     }
@@ -1525,6 +1551,7 @@ impl Key {
             output_g2(&mut out, bs2);
             return Ok(out);
         }
+
         let started = crate::time::Instant::now();
         let mut h = self.quotient(a, b, c);
         let started = trace("quotient", started);
@@ -1742,13 +1769,7 @@ mod gpu_tests {
             let random = |len: usize, rng: &mut StdRng| -> Vec<u8> {
                 fr_bytes(
                     &(0..len)
-                        .map(|i| {
-                            if i % 3 == 0 {
-                                Fr::from(1u64)
-                            } else {
-                                rng.fr()
-                            }
-                        })
+                        .map(|i| if i % 3 == 0 { Fr::from(1u64) } else { rng.fr() })
                         .collect::<Vec<_>>(),
                 )
             };

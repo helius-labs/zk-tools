@@ -5,7 +5,8 @@
 //! GPU kernels and gnark's key dumps share; an affine point is its two
 //! coordinates, the point at infinity (0, 0) as gnark encodes it (neither
 //! curve has a point with x = y = 0). Multiplication is assembly on
-//! AArch64, 29-bit limbs in WebAssembly and 128-bit products elsewhere.
+//! AArch64 and BMI2/ADX x86, AVX-512 IFMA in batches, 29-bit limbs in
+//! WebAssembly, and 128-bit products elsewhere.
 //! The formulas follow arkworks' (MIT OR Apache-2.0), against which the
 //! tests check every operation.
 #![deny(unsafe_op_in_unsafe_fn)]
@@ -17,10 +18,41 @@ pub mod fp;
 pub mod fq12;
 pub mod fq2;
 pub mod fq6;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+pub mod ifma;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+pub mod ifma8;
+#[cfg(all(
+    feature = "fast-inverse",
+    target_arch = "x86_64",
+    target_feature = "bmi2",
+    target_feature = "adx",
+    not(no_asm)
+))]
+mod inverse;
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 mod mont29;
 pub mod pairing;
 pub(crate) mod portable;
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "bmi2",
+    target_feature = "adx",
+    not(no_asm)
+))]
+mod x86_64;
 
 pub use curve::{
     Affine, CurveConfig, G1Affine, G1Config, G1Projective, G2Affine, G2Config, G2Projective,
@@ -84,10 +116,34 @@ const fn shr2(x: [u64; 4]) -> [u64; 4] {
 pub(crate) mod backend {
     #[cfg(all(target_arch = "aarch64", not(no_asm)))]
     pub use crate::arm64::{add, multiply, neg, sub, sum2};
-    #[cfg(not(all(target_arch = "aarch64", not(no_asm))))]
+    #[cfg(not(any(
+        all(target_arch = "aarch64", not(no_asm)),
+        all(
+            target_arch = "x86_64",
+            target_feature = "bmi2",
+            target_feature = "adx",
+            not(no_asm)
+        )
+    )))]
     pub use crate::portable::{add, neg, sub};
-    #[cfg(all(not(target_arch = "wasm32"), not(all(target_arch = "aarch64", not(no_asm)))))]
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        not(all(target_arch = "aarch64", not(no_asm))),
+        not(all(
+            target_arch = "x86_64",
+            target_feature = "bmi2",
+            target_feature = "adx",
+            not(no_asm)
+        ))
+    ))]
     pub use crate::portable::{multiply, sum2};
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "bmi2",
+        target_feature = "adx",
+        not(no_asm)
+    ))]
+    pub use crate::x86_64::{add, multiply, neg, sub, sum2};
 
     #[cfg(target_arch = "wasm32")]
     #[inline]

@@ -7,12 +7,16 @@ description = "BN254 fields, curves and pairing for zopro"
 
 [dependencies]
 
+[features]
+default = ["fast-inverse"]
+fast-inverse = []
+
 [dev-dependencies]
 # The reference the tests check every operation against.
 ark-ref = { package = "ark-bn254", version = "0.5" }
 ark-ec = "0.5"
-ark-ff = "0.5"
+ark-ff = { version = "0.5", features = ["asm"] }
 ark-std = "0.5"
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(no_asm)"] }
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(no_asm)", "cfg(no_ifma)"] }

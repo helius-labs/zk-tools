@@ -36,8 +36,9 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
 ## Layout
 
 - `crates/zopro-bn254`: BN254 without arkworks: Fq and Fr in Montgomery
-  form (assembly on AArch64, 29-bit SIMD-friendly limbs on wasm, 128-bit
-  products elsewhere), the tower to Fq12, G1 and G2 with the point at
+  form (assembly on AArch64 and BMI2/ADX x86, AVX-512 IFMA field batches,
+  29-bit SIMD-friendly limbs on wasm, 128-bit products elsewhere), the tower
+  to Fq12, G1 and G2 with the point at
   infinity as (0, 0), and the pairing that verifies proofs. Its tests check
   every operation against arkworks, which is only a dev-dependency.
 - `crates/zopro-core`: the signed-window MSM, the FFT plan, the witness
@@ -93,6 +94,50 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
   lockfile) and requests, 1 → 2 to 24 → 2 by default: a key's first load,
   its later loads, the memory it holds, and each proof's time and peak.
 
+On x86, `tools/bench.sh` builds for the local CPU (`-C target-cpu=native`)
+unless `RUSTFLAGS` is already set. The native build enables BMI2/ADX and,
+where supported, AVX-512 IFMA. To build another executable the same way:
+
+```sh
+RUSTFLAGS="-C target-cpu=native" cargo build --release -p zopro-bench
+```
+
+Deploy that binary only to compatible CPUs, or build for the deployment CPU.
+For a Genoa/C7a deployment, use `RUSTFLAGS="-C target-cpu=znver4"`; that
+build also runs on the Framework AI 300. Measure on the deployment host
+with its allocated physical cores, including the enclave allocation.
+Build without CPU-specific flags for the portable backend. CPU builds need
+no GPU libraries. Native IFMA MSMs group equal scalars afresh for every
+proof; the gain varies with the witness. `ZOPRO_CPU_DEDUP=0` disables that
+grouping. `ZOPRO_BENCH_PROOFS=directory` saves each benchmark proof and its
+public witness for independent gnark verification. On IFMA builds with at
+least 16 workers, small MSMs split their points into two ranges and merge
+the buckets before weighting. `ZOPRO_CPU_MERGE_SPLIT=1` keeps one range.
+Final windows with at most 256 buckets use a parallel affine tree instead
+of the scalar collision fallback; `ZOPRO_CPU_TOP_TREE=0` disables it.
+Large IFMA MSMs use width-13 bucket tables to reduce cache pressure;
+`ZOPRO_CPU_CACHE_WIDTH=0` restores automatic width selection, and
+`ZOPRO_CPU_LARGE_WIDTH=10..15` explicitly selects it for large MSMs.
+Streaming IFMA batches round up to the SIMD lane count so a full batch
+has no scalar tail; `ZOPRO_CPU_ALIGN_BATCH=0` restores the original sizes.
+Native eight-lane FFTs pair A/B, then A*B/C, and subtract C's coefficients
+after the final inverse transform, saving C's forward coset transform.
+`ZOPRO_CPU_QUOTIENT8=0` selects four lanes; also set
+`ZOPRO_CPU_QUOTIENT6=0` to restore the original seven-transform quotient.
+For domains of at least 2^19 elements, paired FFTs run four wide stages
+per cache tile. `ZOPRO_CPU_FFT_STAGES=1..4` selects the stage count;
+`ZOPRO_CPU_FFT2=0` also restores separate stages.
+Portable, AArch64 and WebAssembly defaults keep their existing FFT path.
+Native plans also intern constant coefficients before sharing expression
+prefixes, reducing key memory and temporary sum slots. Existing solver
+images remain readable and their coefficient tables compact at load;
+`ZOPRO_CPU_COMPACT_COEFFS=0` disables this preparation pass. Other targets
+keep their existing preparation defaults.
+Native solvers combine consecutive coefficient products with eight IFMA
+lanes, and pairs for shorter runs. Stored prefixes retain their original
+values and dependencies. `ZOPRO_CPU_FUSE_SUMS=0` restores scalar products;
+`=1` uses pairs only. Other targets keep scalar products by default.
+
 ## Safety
 
 A GPU can compute wrong results (two iPhones' did, from a threadgroup size
@@ -118,6 +163,10 @@ witness against gnark's byte for byte, and leave raw proofs that
 `tools/zolana`'s test verifies with gnark.
 
 ## Measured
+
+The validated x86 CPU checkpoint, including comparison with M5 Pro Metal,
+measurement details, and reproducible commands, is in the
+[Framework CPU report](docs/benchmarks/2026-10-20/README.md).
 
 `tools/bench.sh` on an M5 Pro (Metal, every proof verified; memory is the
 process's physical footprint, Metal's buffers included):

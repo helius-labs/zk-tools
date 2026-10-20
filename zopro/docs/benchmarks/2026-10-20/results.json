@@ -1,0 +1,769 @@
+{
+  "manifest": {
+    "source_commit": "41fbf26f1f1749a5b9c668e21eb3540882cbb769",
+    "patch_sha256": "fb7aa1d7e81e9bb3ceb6ce3c7cac788dfcc589027bf366c73d512193444aa7c6",
+    "compiler": "rustc 1.99.1; LLVM 23.1.1",
+    "rustflags": "-C target-cpu=native",
+    "threads": 24,
+    "host": "Framework Ryzen AI 9 HX 370, 12 physical cores / 24 threads",
+    "cpu_only": true,
+    "shapes": [
+      "1x2",
+      "2x2",
+      "4x2",
+      "8x2",
+      "12x2",
+      "16x2",
+      "24x2"
+    ],
+    "proofs_per_shape": 5,
+    "independently_verified": 35,
+    "tests": {
+      "native_field": 18,
+      "native_core": 27,
+      "native_integration": 3,
+      "portable_field": 8,
+      "portable_core": 26,
+      "portable_integration": 3,
+      "inverse_debug_invariants": "Fq/Fr: 10,000 random values each plus powers and negatives",
+      "aarch64_linux_android_check": true,
+      "wasm_simd_check": true,
+      "wasm_check_toolchain": "nightly-2026-08-21; -Z build-std=std,panic_abort; +atomics,+bulk-memory,+mutable-globals,+simd128"
+    },
+    "binary_sha256": "d3f6fc97a8b0699bbeaa2429f406abf537854cf5d881c0455a58e195c3dd0273",
+    "key_prefix": "proving-keys/3a1c88f90f609eb1",
+    "metal_parity_reached": false,
+    "c7a_measured": false,
+    "original_repository_updated": true,
+    "cpu_top_tree": true,
+    "cpu_paired_fft": true,
+    "cpu_cache_width": 13,
+    "cpu_cache_width_min_points": 262144,
+    "cpu_fft_fused_stages": 4,
+    "cpu_fft_fused_min_domain": 524288,
+    "cpu_align_batch": true,
+    "cpu_compact_coefficients": true,
+    "legacy_image_proofs_independently_verified": 35,
+    "cpu_fused_solver_sums": 8,
+    "cpu_fused_solver_tail_pairs": true
+  },
+  "measurements": [
+    {
+      "rounds": 5,
+      "write_ms": 209,
+      "write_peak_mb": 22,
+      "load_ms": 25,
+      "held_mb": 16,
+      "witness_ms": 0,
+      "prove_ms_min": 30,
+      "prove_ms_median": 31,
+      "peak_mb": 80,
+      "shape": "1x2",
+      "samples": [
+        {
+          "round": 0,
+          "witness_ms": 0,
+          "prove_ms": 33,
+          "verify_ms": 1
+        },
+        {
+          "round": 1,
+          "witness_ms": 0,
+          "prove_ms": 32,
+          "verify_ms": 1
+        },
+        {
+          "round": 2,
+          "witness_ms": 0,
+          "prove_ms": 30,
+          "verify_ms": 1
+        },
+        {
+          "round": 3,
+          "witness_ms": 0,
+          "prove_ms": 31,
+          "verify_ms": 2
+        },
+        {
+          "round": 4,
+          "witness_ms": 0,
+          "prove_ms": 30,
+          "verify_ms": 1
+        }
+      ],
+      "key_sha256": "5c46969e7909c0848f5ad746603f19094e9fff0ceacc1a56adc3a59314e5c53a",
+      "proof_sha256": [
+        "4d88dfa0c7e227aa9daf52e93d9c70ad22f8c30047cb09648bd3f9e2e473539c",
+        "660d93844d4d77222d6eeff37b78c44b79214dbb37704f943af84188af2609c5",
+        "51d80e92bbb3c6b2ecc6f33c0f389a1c6d7aab6f03c47b959e2c97102528a911",
+        "782303d223c314bc7438f00d2fe67b4a8860cb236ab71eab75f82cc52760baa7",
+        "09e1ba0c3653c85af442f3a7dc42baf208ce3c91f83faa0ea19e110e6425a6cd"
+      ]
+    },
+    {
+      "rounds": 5,
+      "write_ms": 372,
+      "write_peak_mb": 29,
+      "load_ms": 25,
+      "held_mb": 19,
+      "witness_ms": 0,
+      "prove_ms_min": 39,
+      "prove_ms_median": 40,
+      "peak_mb": 128,
+      "shape": "2x2",
+      "samples": [
+        {
+          "round": 0,
+          "witness_ms": 0,
+          "prove_ms": 51,
+          "verify_ms": 2
+        },
+        {
+          "round": 1,
+          "witness_ms": 0,
+          "prove_ms": 40,
+          "verify_ms": 1
+        },
+        {
+          "round": 2,
+          "witness_ms": 0,
+          "prove_ms": 39,
+          "verify_ms": 2
+        },
+        {
+          "round": 3,
+          "witness_ms": 0,
+          "prove_ms": 39,
+          "verify_ms": 1
+        },
+        {
+          "round": 4,
+          "witness_ms": 0,
+          "prove_ms": 41,
+          "verify_ms": 1
+        }
+      ],
+      "key_sha256": "767f1ad5a935e2fcba0094053922ae8e71020e1ea97051f84386440c18b3fa0a",
+      "proof_sha256": [
+        "c47978dda1ee88bab8667ee8b18989125fc3219980c7cdd75617b66bf158e9fb",
+        "81a7e394a178de47b7b17bcac6027296b5bdd0865d4150c8a971fe919a5d9b83",
+        "ea5b66409fc72203b3b1cdf8dd8ee1b44a2742e815a64c2bbf0333b5ff86222a",
+        "3983adcf9cead1582d11099d5467a4562af5bbd86894aa2d9378d80666c1295e",
+        "b2d17a4166c9b11a93d9f21d3208b18b25da988bcf15c249eca5a4c51ab4a45b"
+      ]
+    },
+    {
+      "rounds": 5,
+      "write_ms": 658,
+      "write_peak_mb": 54,
+      "load_ms": 48,
+      "held_mb": 34,
+      "witness_ms": 0,
+      "prove_ms_min": 54,
+      "prove_ms_median": 57,
+      "peak_mb": 186,
+      "shape": "4x2",
+      "samples": [
+        {
+          "round": 0,
+          "witness_ms": 0,
+          "prove_ms": 68,
+          "verify_ms": 2
+        },
+        {
+          "round": 1,
+          "witness_ms": 0,
+          "prove_ms": 57,
+          "verify_ms": 1
+        },
+        {
+          "round": 2,
+          "witness_ms": 0,
+          "prove_ms": 54,
+          "verify_ms": 1
+        },
+        {
+          "round": 3,
+          "witness_ms": 0,
+          "prove_ms": 55,
+          "verify_ms": 1
+        },
+        {
+          "round": 4,
+          "witness_ms": 0,
+          "prove_ms": 57,
+          "verify_ms": 2
+        }
+      ],
+      "key_sha256": "1c63a202faadaaa5e457ae2484f3054e2caf9e6d996a994525d8f297a6e86861",
+      "proof_sha256": [
+        "dc4879d9a2ddf6b26066f030466f907a6b675f6b077737cedac280e80476837f",
+        "f984c27043a438aafcacfbb3d799722530f7549949c6681d516c7255188fbda2",
+        "31ccdaa1c7954ee98ad288d8af3caea2131d20dd188356e4448881dde61b21b0",
+        "3875b1e1d7df97c6226a6df9a97ecce269560d8ed27c6a981c31af52133093f2",
+        "17c859ad1ed00c311ad24124e60556c6ceac9c6fed2effe3ea6e9189ceffa9f5"
+      ]
+    },
+    {
+      "rounds": 5,
+      "write_ms": 1312,
+      "write_peak_mb": 108,
+      "load_ms": 52,
+      "held_mb": 66,
+      "witness_ms": 0,
+      "prove_ms_min": 90,
+      "prove_ms_median": 92,
+      "peak_mb": 285,
+      "shape": "8x2",
+      "samples": [
+        {
+          "round": 0,
+          "witness_ms": 0,
+          "prove_ms": 96,
+          "verify_ms": 1
+        },
+        {
+          "round": 1,
+          "witness_ms": 0,
+          "prove_ms": 91,
+          "verify_ms": 2
+        },
+        {
+          "round": 2,
+          "witness_ms": 0,
+          "prove_ms": 93,
+          "verify_ms": 2
+        },
+        {
+          "round": 3,
+          "witness_ms": 0,
+          "prove_ms": 92,
+          "verify_ms": 2
+        },
+        {
+          "round": 4,
+          "witness_ms": 0,
+          "prove_ms": 90,
+          "verify_ms": 2
+        }
+      ],
+      "key_sha256": "a5573f885df7cc40e249a141424bc507e227a4db68a5a057ea6a6526a0b865ff",
+      "proof_sha256": [
+        "a13bb8233a6a3d166cb9a49d57ae59c7c48d213c0a7bec0871c9920aaf7ad829",
+        "8501122e8aa5010d4ba3689fc616ed7e75bb2588317d492e9d0ee374df7793b9",
+        "d90919a0ac8564ea93714a1fdb94e85336e07dd8c224db68aeb2d77f67691a3f",
+        "459a444a4d6e2c783e70fa73fb0ba8f32ec8a9ce9336c772ee22184a02c3722f",
+        "4a0d4052343a69df83afe04cd7546b686f563937eb115c05f7b831537f9faf05"
+      ]
+    },
+    {
+      "rounds": 5,
+      "write_ms": 2054,
+      "write_peak_mb": 173,
+      "load_ms": 72,
+      "held_mb": 107,
+      "witness_ms": 0,
+      "prove_ms_min": 140,
+      "prove_ms_median": 142,
+      "peak_mb": 397,
+      "shape": "12x2",
+      "samples": [
+        {
+          "round": 0,
+          "witness_ms": 0,
+          "prove_ms": 143,
+          "verify_ms": 2
+        },
+        {
+          "round": 1,
+          "witness_ms": 0,
+          "prove_ms": 142,
+          "verify_ms": 2
+        },
+        {
+          "round": 2,
+          "witness_ms": 0,
+          "prove_ms": 141,
+          "verify_ms": 2
+        },
+        {
+          "round": 3,
+          "witness_ms": 0,
+          "prove_ms": 140,
+          "verify_ms": 2
+        },
+        {
+          "round": 4,
+          "witness_ms": 0,
+          "prove_ms": 151,
+          "verify_ms": 2
+        }
+      ],
+      "key_sha256": "1a30b8ecc8ab6469b22bb64d7e1adf2052e741196699f3576eec9b943c396263",
+      "proof_sha256": [
+        "8511a49b9fa4655f28cace057db9eebf99df95eb5a96ad198475e22cfed43447",
+        "2695a1508ff26560303a59d1748848958f48e1b3983a51b04c66514a1c2fba7f",
+        "ee8c5f6effafade8fbb9787060a2c428cf7fb7f3a42ed53f2bf00b56a0d23709",
+        "e3d77e9910b2106a99cc79626b764f9c4db44d6f04c80db8a03900b77c23e4ad",
+        "62480e49708ba314311e41b4962459547ac849923f0a07d846dcc94d057f8ba5"
+      ]
+    },
+    {
+      "rounds": 5,
+      "write_ms": 2571,
+      "write_peak_mb": 196,
+      "load_ms": 80,
+      "held_mb": 128,
+      "witness_ms": 0,
+      "prove_ms_min": 153,
+      "prove_ms_median": 157,
+      "peak_mb": 466,
+      "shape": "16x2",
+      "samples": [
+        {
+          "round": 0,
+          "witness_ms": 0,
+          "prove_ms": 157,
+          "verify_ms": 2
+        },
+        {
+          "round": 1,
+          "witness_ms": 0,
+          "prove_ms": 157,
+          "verify_ms": 2
+        },
+        {
+          "round": 2,
+          "witness_ms": 0,
+          "prove_ms": 153,
+          "verify_ms": 2
+        },
+        {
+          "round": 3,
+          "witness_ms": 0,
+          "prove_ms": 159,
+          "verify_ms": 2
+        },
+        {
+          "round": 4,
+          "witness_ms": 0,
+          "prove_ms": 159,
+          "verify_ms": 3
+        }
+      ],
+      "key_sha256": "10b34a04b2e0fc648b8fe70ba53cdca61fd7d2295065750b34c1031d5968d3a2",
+      "proof_sha256": [
+        "927d7a9c84d2f2708e8594bdf4ae889c5ebe0eac8936a5ba8ce74dec60812c6b",
+        "e0a5967aeb50c023da70ab23093cb0c2da4ba57462a3ef65ee2bc3a7419f6a3e",
+        "887da7d2472000454d4712d3109b72b77d7f97f79d915e25e46f0bc35a306529",
+        "806299d5fb7ab92a7039babbd12a48bff10e522b84d262905ca2cbcfca527890",
+        "4123e0ac3084571bdd7dc0640a9a50c4d06e802049ebd4577713a7be15be07c5"
+      ]
+    },
+    {
+      "rounds": 5,
+      "write_ms": 4288,
+      "write_peak_mb": 346,
+      "load_ms": 119,
+      "held_mb": 211,
+      "witness_ms": 1,
+      "prove_ms_min": 279,
+      "prove_ms_median": 286,
+      "peak_mb": 725,
+      "shape": "24x2",
+      "samples": [
+        {
+          "round": 0,
+          "witness_ms": 0,
+          "prove_ms": 279,
+          "verify_ms": 2
+        },
+        {
+          "round": 1,
+          "witness_ms": 1,
+          "prove_ms": 280,
+          "verify_ms": 2
+        },
+        {
+          "round": 2,
+          "witness_ms": 1,
+          "prove_ms": 286,
+          "verify_ms": 2
+        },
+        {
+          "round": 3,
+          "witness_ms": 1,
+          "prove_ms": 293,
+          "verify_ms": 2
+        },
+        {
+          "round": 4,
+          "witness_ms": 1,
+          "prove_ms": 288,
+          "verify_ms": 2
+        }
+      ],
+      "key_sha256": "72ddca688f8bc0edf74c1119fd58dd85c877b17adf41c360f9a8a69d9182d561",
+      "proof_sha256": [
+        "69ba0eba79513f4b184f68cc43e68d0cbec87c2506cef89980631f522d8fe881",
+        "021293e8f7fa42e042143a2a1b8580306a6a236bfcb37665ecdc796e096167eb",
+        "03a055e0bda9693f14012f6ddbec949e12f0785b7ea179348d33ebc1e96ff44c",
+        "a98763d3fae7874d5fabeeb8b45d3acf53af461e0966a7ec3d1fff51bd261896",
+        "ebde9d6c16d84364ef698ed0a5afed6519115afbc00affbb8506dd67096fc4a2"
+      ]
+    }
+  ],
+  "gnark_measurements": [
+    {
+      "rounds": "5",
+      "load_ms": "227",
+      "load_peak_mb": "46",
+      "held_mb": "46",
+      "witness_ms": "0",
+      "prove_ms_min": "86",
+      "prove_ms_median": "90",
+      "peak_mb": "161",
+      "shape": "1x2"
+    },
+    {
+      "rounds": "5",
+      "load_ms": "392",
+      "load_peak_mb": "64",
+      "held_mb": "64",
+      "witness_ms": "0",
+      "prove_ms_min": "138",
+      "prove_ms_median": "148",
+      "peak_mb": "243",
+      "shape": "2x2"
+    },
+    {
+      "rounds": "5",
+      "load_ms": "706",
+      "load_peak_mb": "105",
+      "held_mb": "105",
+      "witness_ms": "0",
+      "prove_ms_min": "251",
+      "prove_ms_median": "268",
+      "peak_mb": "341",
+      "shape": "4x2"
+    },
+    {
+      "rounds": "5",
+      "load_ms": "1245",
+      "load_peak_mb": "191",
+      "held_mb": "191",
+      "witness_ms": "1",
+      "prove_ms_min": "484",
+      "prove_ms_median": "491",
+      "peak_mb": "642",
+      "shape": "8x2"
+    },
+    {
+      "rounds": "5",
+      "load_ms": "1994",
+      "load_peak_mb": "299",
+      "held_mb": "299",
+      "witness_ms": "2",
+      "prove_ms_min": "758",
+      "prove_ms_median": "781",
+      "peak_mb": "1134",
+      "shape": "12x2"
+    },
+    {
+      "rounds": "5",
+      "load_ms": "2794",
+      "load_peak_mb": "359",
+      "held_mb": "359",
+      "witness_ms": "2",
+      "prove_ms_min": "900",
+      "prove_ms_median": "908",
+      "peak_mb": "1223",
+      "shape": "16x2"
+    },
+    {
+      "rounds": "5",
+      "load_ms": "4460",
+      "load_peak_mb": "575",
+      "held_mb": "575",
+      "witness_ms": "4",
+      "prove_ms_min": "1489",
+      "prove_ms_median": "1516",
+      "peak_mb": "1772",
+      "shape": "24x2"
+    }
+  ],
+  "independent_verification": [
+    {
+      "shape": "1x2",
+      "proofs": 5,
+      "public_inputs_match": true,
+      "verified": true
+    },
+    {
+      "shape": "2x2",
+      "proofs": 5,
+      "public_inputs_match": true,
+      "verified": true
+    },
+    {
+      "shape": "4x2",
+      "proofs": 5,
+      "public_inputs_match": true,
+      "verified": true
+    },
+    {
+      "shape": "8x2",
+      "proofs": 5,
+      "public_inputs_match": true,
+      "verified": true
+    },
+    {
+      "shape": "12x2",
+      "proofs": 5,
+      "public_inputs_match": true,
+      "verified": true
+    },
+    {
+      "shape": "16x2",
+      "proofs": 5,
+      "public_inputs_match": true,
+      "verified": true
+    },
+    {
+      "shape": "24x2",
+      "proofs": 5,
+      "public_inputs_match": true,
+      "verified": true
+    }
+  ],
+  "stage12_vs_stage13": [
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 22,
+      "held_mb": 10,
+      "witness_ms": 0,
+      "prove_ms_min": 31,
+      "prove_ms_median": 32,
+      "peak_mb": 82,
+      "shape": 1,
+      "label": "stage12",
+      "repeat": 0,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage12",
+      "key_directory": "final-keys",
+      "elapsed": 0.2164527970016934,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 23,
+      "held_mb": 10,
+      "witness_ms": 0,
+      "prove_ms_min": 30,
+      "prove_ms_median": 32,
+      "peak_mb": 71,
+      "shape": 1,
+      "label": "stage13",
+      "repeat": 0,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage13",
+      "key_directory": "final-keys",
+      "elapsed": 0.27730677400541026,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 32,
+      "held_mb": 10,
+      "witness_ms": 0,
+      "prove_ms_min": 30,
+      "prove_ms_median": 31,
+      "peak_mb": 75,
+      "shape": 1,
+      "label": "stage13",
+      "repeat": 1,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage13",
+      "key_directory": "final-keys",
+      "elapsed": 0.22592869299114682,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 22,
+      "held_mb": 10,
+      "witness_ms": 0,
+      "prove_ms_min": 32,
+      "prove_ms_median": 33,
+      "peak_mb": 85,
+      "shape": 1,
+      "label": "stage12",
+      "repeat": 1,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage12",
+      "key_directory": "final-keys",
+      "elapsed": 0.22591248199751135,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 73,
+      "held_mb": 106,
+      "witness_ms": 0,
+      "prove_ms_min": 141,
+      "prove_ms_median": 143,
+      "peak_mb": 366,
+      "shape": 12,
+      "label": "stage12",
+      "repeat": 0,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage12",
+      "key_directory": "final-keys",
+      "elapsed": 0.8287745230045402,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 69,
+      "held_mb": 106,
+      "witness_ms": 0,
+      "prove_ms_min": 138,
+      "prove_ms_median": 139,
+      "peak_mb": 375,
+      "shape": 12,
+      "label": "stage13",
+      "repeat": 0,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage13",
+      "key_directory": "final-keys",
+      "elapsed": 0.8080953079916071,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 67,
+      "held_mb": 106,
+      "witness_ms": 0,
+      "prove_ms_min": 138,
+      "prove_ms_median": 140,
+      "peak_mb": 392,
+      "shape": 12,
+      "label": "stage13",
+      "repeat": 1,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage13",
+      "key_directory": "final-keys",
+      "elapsed": 0.808969709003577,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 95,
+      "held_mb": 107,
+      "witness_ms": 0,
+      "prove_ms_min": 140,
+      "prove_ms_median": 144,
+      "peak_mb": 416,
+      "shape": 12,
+      "label": "stage12",
+      "repeat": 1,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage12",
+      "key_directory": "final-keys",
+      "elapsed": 0.8675864490069216,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 121,
+      "held_mb": 210,
+      "witness_ms": 1,
+      "prove_ms_min": 260,
+      "prove_ms_median": 279,
+      "peak_mb": 758,
+      "shape": 24,
+      "label": "stage12",
+      "repeat": 0,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage12",
+      "key_directory": "final-keys",
+      "elapsed": 1.5357591330102878,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 121,
+      "held_mb": 211,
+      "witness_ms": 1,
+      "prove_ms_min": 257,
+      "prove_ms_median": 268,
+      "peak_mb": 747,
+      "shape": 24,
+      "label": "stage13",
+      "repeat": 0,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage13",
+      "key_directory": "final-keys",
+      "elapsed": 1.5163717070099665,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 114,
+      "held_mb": 211,
+      "witness_ms": 1,
+      "prove_ms_min": 262,
+      "prove_ms_median": 266,
+      "peak_mb": 697,
+      "shape": 24,
+      "label": "stage13",
+      "repeat": 1,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage13",
+      "key_directory": "final-keys",
+      "elapsed": 1.4942669200099772,
+      "samples": []
+    },
+    {
+      "rounds": 5,
+      "write_ms": "-",
+      "write_peak_mb": "-",
+      "load_ms": 123,
+      "held_mb": 211,
+      "witness_ms": 1,
+      "prove_ms_min": 269,
+      "prove_ms_median": 273,
+      "peak_mb": 725,
+      "shape": 24,
+      "label": "stage12",
+      "repeat": 1,
+      "env": {},
+      "binary": "/home/slopa/Work/perf-results/2026-10-20/x86-tuning/zopro-bench-stage12",
+      "key_directory": "final-keys",
+      "elapsed": 1.5467960270034382,
+      "samples": []
+    }
+  ]
+}

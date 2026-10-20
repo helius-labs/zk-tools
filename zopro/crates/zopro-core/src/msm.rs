@@ -1,13 +1,10 @@
-use crate::simd::{fq_mul4, FqLanes, FqLimbs};
-use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fq2, Fr, Projective};
+use crate::simd::{FqBatch, FqLimbs, BATCH_LANES as LANES};
 use rayon::prelude::*;
+use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fq2, Fr, Projective};
 // Signed-window Pippenger. Reduce each bucket as an affine addition tree,
 // sharing one inversion across all buckets at each level. Keep bucket storage
 // contiguous: thousands of small allocations contend on the WASM allocator.
-pub(super) fn msm<C: CurveConfig>(
-    bases: &[Affine<C>],
-    scalars: &[Fr],
-) -> Projective<C>
+pub(super) fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projective<C>
 where
     C::Base: BatchInverse,
 {
@@ -78,6 +75,7 @@ where
             starts[j + 1] = starts[j] + counts[j];
         }
         let mut positions = starts[..bucket_count].to_vec();
+
         let mut points = vec![LimbPoint::<C::Base>::infinity(); starts[bucket_count]];
         for (base, digits) in bases.iter().zip(digits.chunks(count)) {
             let digit = digits[i];
@@ -128,9 +126,6 @@ where
     result
 }
 
-/// The most bytes of window copies a WebAssembly MSM holds at once: at 16
-/// threads a 54 → 1 merge's heap peaked at 2.8 GB rather than 4.0, for 5 %
-/// of its time (256 MB took 50 %); none at 4 threads.
 const COPIES_BUDGET: usize = 512 << 20;
 
 // Smaller bucket groups let idle workers help a long-running window and keep
@@ -168,6 +163,124 @@ where
     // Local weights restart at one. Group i therefore needs an additional
     // i * GROUP times its unweighted total. Reverse running sums compute
     // those offsets without a separate scalar multiplication for each group.
+    let mut sum = Projective::<C>::IDENTITY;
+    let mut offset = Projective::<C>::IDENTITY;
+    let mut running = Projective::<C>::IDENTITY;
+    for (weighted, total) in partials.into_iter().rev() {
+        sum += weighted;
+        offset += running;
+        running += total;
+    }
+    for _ in 0..GROUP.ilog2() {
+        offset = offset.double();
+    }
+    sum + offset
+}
+
+/// Sum each scalar-equivalence class independently. Only worker-local
+/// groups hold point copies; the global ordering uses four-byte indices.
+pub(super) fn group_affine<C: CurveConfig>(
+    bases: &[Affine<C>],
+    order: &[u32],
+    starts: &[usize],
+    counts: &[usize],
+) -> Vec<Affine<C>>
+where
+    C::Base: BatchInverse,
+{
+    const GROUP: usize = 256;
+    let groups: Vec<Vec<Affine<C>>> = counts
+        .par_chunks(GROUP)
+        .enumerate()
+        .map(|(i, counts)| {
+            let first = i * GROUP;
+            let offset = starts[first];
+            let end = starts[first + counts.len()];
+            let mut points: Vec<_> = order[offset..end]
+                .iter()
+                .map(|&index| limbs::<C>(bases[index as usize]))
+                .collect();
+            let starts: Vec<_> = starts[first..first + counts.len()]
+                .iter()
+                .map(|s| s - offset)
+                .collect();
+            let mut counts = counts.to_vec();
+            let mut scratch = Scratch::<C>::default();
+            while counts.iter().any(|&count| count > 1) {
+                reduce_layer(&mut points, &starts, &mut counts, &mut scratch);
+            }
+            starts
+                .iter()
+                .zip(counts)
+                .map(|(&start, count)| {
+                    if count == 0 {
+                        Affine::IDENTITY
+                    } else {
+                        affine::<C>(points[start])
+                    }
+                })
+                .collect()
+        })
+        .collect();
+    groups.into_iter().flatten().collect()
+}
+
+/// Reduce high-occupancy digit buckets in independent point tiles first.
+/// The second tree sees only tile sums, keeping thin final windows in SIMD.
+pub(super) fn reduce_indexed_buckets<C: CurveConfig>(
+    bases: &[Affine<C>],
+    order: &[u32],
+    starts: &[usize],
+) -> Vec<Affine<C>>
+where
+    C::Base: BatchInverse,
+{
+    let tile = 2048 / (core::mem::size_of::<C::Base>() / 32);
+    let mut tasks = Vec::new();
+    let mut partial_starts = Vec::with_capacity(starts.len());
+    partial_starts.push(0);
+    for range in starts.windows(2) {
+        for start in (range[0]..range[1]).step_by(tile) {
+            tasks.push((start, (start + tile).min(range[1])));
+        }
+        partial_starts.push(tasks.len());
+    }
+    let partials: Vec<Affine<C>> = tasks
+        .into_par_iter()
+        .map(|(first, end)| {
+            let mut points: Vec<_> = order[first..end]
+                .iter()
+                .map(|&i| limbs::<C>(bases[i as usize]))
+                .collect();
+            let mut count = [points.len()];
+            let mut scratch = Scratch::<C>::default();
+            while count[0] > 1 {
+                reduce_layer(&mut points, &[0], &mut count, &mut scratch);
+            }
+            affine::<C>(points[0])
+        })
+        .collect();
+    let counts: Vec<_> = partial_starts.windows(2).map(|r| r[1] - r[0]).collect();
+    let partial_order: Vec<_> = (0..partials.len() as u32).collect();
+    group_affine(&partials, &partial_order, &partial_starts, &counts)
+}
+
+/// Reduces already accumulated affine buckets through the same weighted
+/// affine tree used by the lane MSM, splitting work into cache-sized groups.
+pub(super) fn weighted_affine<C: CurveConfig>(buckets: &[Affine<C>]) -> Projective<C>
+where
+    C::Base: BatchInverse,
+{
+    const GROUP: usize = 256;
+    let partials: Vec<_> = buckets
+        .par_chunks(GROUP)
+        .map(|buckets| {
+            let mut points: Vec<_> = buckets.iter().copied().map(limbs::<C>).collect();
+            let starts: Vec<_> = (0..buckets.len()).collect();
+            let mut counts = vec![1; buckets.len()];
+            sum_bucket_group(&mut points, &starts, &mut counts)
+        })
+        .collect();
     let mut sum = Projective::<C>::IDENTITY;
     let mut offset = Projective::<C>::IDENTITY;
     let mut running = Projective::<C>::IDENTITY;
@@ -247,10 +360,7 @@ where
     if point.is_infinity() {
         Affine::IDENTITY
     } else {
-        Affine::new(
-            C::Base::from_limbs(point.x),
-            C::Base::from_limbs(point.y),
-        )
+        Affine::new(C::Base::from_limbs(point.x), C::Base::from_limbs(point.y))
     }
 }
 
@@ -267,17 +377,15 @@ where
     products: Vec<<C::Base as BatchInverse>::Product>,
     sums: Vec<LimbPoint<C::Base>>,
 }
-// Four pairs a + b: coordinates, denominator b.x - a.x, the norm the chains
-// multiply by, and their chains' prefix, later 1/norm.
+// Lane groups retain the scaled numerator instead of every input coordinate
+// and prefix. The reverse pass obtains the slope directly from the norm inverse.
 #[derive(Clone, Copy)]
 struct Group<F: BatchInverse> {
     ax: F::Lanes,
     ay: F::Lanes,
-    bx: F::Lanes,
-    by: F::Lanes,
-    denominator: F::Lanes,
-    norm: FqLanes,
-    prefix: FqLanes,
+    xsum: F::Lanes,
+    norm: FqBatch,
+    numerator: F::Lanes,
 }
 impl<C: CurveConfig> Default for Scratch<C>
 where
@@ -294,7 +402,7 @@ where
     }
 }
 
-// Adds each bucket's points in pairs. Pair k joins prefix chain k % 4: four
+// Adds each bucket's points in pairs. Pair k joins prefix chain k % LANES: four
 // chains of one batch inversion, so that a group of four pairs runs every
 // operation on four lanes, in lane form from loading its coordinates to its
 // sums. Pairs with an identity, a doubling or opposite points take the
@@ -319,26 +427,25 @@ fn reduce_layer<C: CurveConfig>(
     }
     type F<C> = <C as CurveConfig>::Base;
     let m = s.pairs.len();
-    let full = m / 4 * 4;
+    let full = m / LANES * LANES;
     s.groups.clear();
-    let mut chains = FqLanes::one();
-    for k in (0..full).step_by(4) {
-        let a: [&LimbPoint<F<C>>; 4] = core::array::from_fn(|i| &points[s.pairs[k + i]]);
-        let b: [&LimbPoint<F<C>>; 4] = core::array::from_fn(|i| &points[s.pairs[k + i] + 1]);
+    let mut chains = FqBatch::one();
+    for k in (0..full).step_by(LANES) {
+        let a: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[s.pairs[k + i]]);
+        let b: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[s.pairs[k + i] + 1]);
         let (ax, ay) = (F::<C>::load(a.map(|p| &p.x)), F::<C>::load(a.map(|p| &p.y)));
         let (bx, by) = (F::<C>::load(b.map(|p| &p.x)), F::<C>::load(b.map(|p| &p.y)));
         let denominator = F::<C>::lanes_sub(&bx, &ax);
         let norm = F::<C>::lanes_norm(&denominator);
-        let prefix = chains;
+        let numerator =
+            F::<C>::lanes_scaled_numerator(&F::<C>::lanes_sub(&by, &ay), &denominator, &chains);
         chains = chains.mul(&norm);
         s.groups.push(Group {
             ax,
             ay,
-            bx,
-            by,
-            denominator,
+            xsum: F::<C>::lanes_add(&ax, &bx),
             norm,
-            prefix,
+            numerator,
         });
     }
     s.denominators.clear();
@@ -352,34 +459,31 @@ fn reduce_layer<C: CurveConfig>(
         let denominator = b.x - a.x;
         s.denominators.push(denominator);
         s.products
-            .push(F::<C>::prefix(&mut tail[k % 4], denominator));
+            .push(F::<C>::prefix(&mut tail[k % LANES], denominator));
     }
-    let mut inverses = invert4(tail);
+    let mut inverses = invert_lanes(tail);
     for k in (full..m).rev() {
         let t = k - full;
-        F::<C>::reverse(&mut inverses[k % 4], s.denominators[t], &mut s.products[t]);
-    }
-    let mut inverses = FqLanes::new(&inverses);
-    for group in s.groups.iter_mut().rev() {
-        let inverse_norm = inverses.mul(&group.prefix);
-        inverses = inverses.mul(&group.norm);
-        group.prefix = inverse_norm;
-    }
-    s.sums.clear();
-    for group in &s.groups {
-        let inverse = F::<C>::lanes_inverse(&group.denominator, &group.prefix);
-        let slope = F::<C>::lanes_mul(&F::<C>::lanes_sub(&group.by, &group.ay), &inverse);
-        let x = F::<C>::lanes_sub(
-            &F::<C>::lanes_sub(&F::<C>::lanes_square(&slope), &group.ax),
-            &group.bx,
+        F::<C>::reverse(
+            &mut inverses[k % LANES],
+            s.denominators[t],
+            &mut s.products[t],
         );
+    }
+    let mut inverses = FqBatch::new(&inverses);
+    s.sums.clear();
+    s.sums.resize(m, LimbPoint::infinity());
+    for (j, group) in s.groups.iter().enumerate().rev() {
+        let slope = F::<C>::lanes_scale(&group.numerator, &inverses);
+        inverses = inverses.mul(&group.norm);
+        let x = F::<C>::lanes_sub(&F::<C>::lanes_square(&slope), &group.xsum);
         let y = F::<C>::lanes_sub(
             &F::<C>::lanes_mul(&slope, &F::<C>::lanes_sub(&group.ax, &x)),
             &group.ay,
         );
         let (x, y) = (F::<C>::store(&x), F::<C>::store(&y));
-        for i in 0..4 {
-            s.sums.push(LimbPoint { x: x[i], y: y[i] });
+        for i in 0..LANES {
+            s.sums[j * LANES + i] = LimbPoint { x: x[i], y: y[i] };
         }
     }
     for k in full..m {
@@ -391,7 +495,7 @@ fn reduce_layer<C: CurveConfig>(
         let slope = (b.y - a.y) * F::<C>::denominator_inverse(s.denominators[t], s.products[t]);
         let x = slope.square() - a.x - b.x;
         let y = slope * (a.x - x) - a.y;
-        s.sums.push(limbs::<C>(Affine::new(x, y)));
+        s.sums[k] = limbs::<C>(Affine::new(x, y));
     }
     // Each bucket keeps its pair sums in front, in order. A write lands
     // before the pairs still to be read.
@@ -425,11 +529,264 @@ fn reduce_layer<C: CurveConfig>(
 // The inverses of four chains with one field inversion: inverting is far
 // dearer than the few products that share it. Every denominator is
 // nonzero, so is every chain.
-fn invert4(c: [Fq; 4]) -> [Fq; 4] {
-    let (c01, c23) = (c[0] * c[1], c[2] * c[3]);
-    let inverse = (c01 * c23).inverse().unwrap();
-    let (i01, i23) = (inverse * c23, inverse * c01);
-    fq_mul4(&[i01, i01, i23, i23], &[c[1], c[0], c[3], c[2]])
+fn invert_lanes(c: [Fq; LANES]) -> [Fq; LANES] {
+    let mut prefixes = [Fq::ONE; LANES];
+    let mut product = Fq::ONE;
+    for i in 0..LANES {
+        prefixes[i] = product;
+        product *= c[i];
+    }
+    let mut inverse = product.inverse().unwrap();
+    let mut result = [Fq::ZERO; LANES];
+    for i in (0..LANES).rev() {
+        result[i] = inverse * prefixes[i];
+        inverse *= c[i];
+    }
+    result
+}
+
+/// Reuses the lane-form affine addition kernel for a streaming Pippenger
+/// batch. The pair storage and inversion scratch persist across batches.
+pub(super) struct BatchAdd<C: CurveConfig>
+where
+    C::Base: BatchInverse,
+{
+    points: Vec<LimbPoint<C::Base>>,
+    starts: Vec<usize>,
+    counts: Vec<usize>,
+    scratch: Scratch<C>,
+    direct: bool,
+    fq: FqAddScratch,
+    fq2: Fq2AddScratch,
+}
+impl<C: CurveConfig> Default for BatchAdd<C>
+where
+    C::Base: BatchInverse,
+{
+    fn default() -> Self {
+        Self {
+            points: Vec::new(),
+            starts: Vec::new(),
+            counts: Vec::new(),
+            scratch: Scratch::default(),
+            direct: crate::simd::cpu_option("ZOPRO_CPU_DIRECT"),
+            fq: FqAddScratch::default(),
+            fq2: Fq2AddScratch::default(),
+        }
+    }
+}
+impl<C: CurveConfig> BatchAdd<C>
+where
+    C::Base: BatchInverse,
+{
+    pub(super) fn apply(&mut self, buckets: &mut [Affine<C>], batch: &[(u32, Affine<C>)]) {
+        if self.direct {
+            C::Base::stream_add(buckets, batch, self);
+        } else {
+            self.apply_generic(buckets, batch);
+        }
+    }
+    fn apply_generic(&mut self, buckets: &mut [Affine<C>], batch: &[(u32, Affine<C>)]) {
+        self.points.clear();
+        self.starts.clear();
+        self.counts.clear();
+        for (j, (index, point)) in batch.iter().enumerate() {
+            self.starts.push(j * 2);
+            self.counts.push(2);
+            self.points.push(limbs::<C>(buckets[*index as usize]));
+            self.points.push(limbs::<C>(*point));
+        }
+        reduce_layer(
+            &mut self.points,
+            &self.starts,
+            &mut self.counts,
+            &mut self.scratch,
+        );
+        for (j, (index, _)) in batch.iter().enumerate() {
+            buckets[*index as usize] = affine::<C>(self.points[j * 2]);
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct FqAddGroup {
+    ax: FqBatch,
+    ay: FqBatch,
+    xsum: FqBatch,
+    denominator: FqBatch,
+    numerator: FqBatch,
+}
+#[derive(Default)]
+struct FqAddScratch {
+    groups: Vec<FqAddGroup>,
+    tail: Vec<[Fq; 5]>,
+}
+fn stream_g1<C: CurveConfig<Base = Fq>>(
+    buckets: &mut [Affine<C>],
+    batch: &[(u32, Affine<C>)],
+    s: &mut FqAddScratch,
+) {
+    let full = batch.len() / LANES * LANES;
+    let mut chains = FqBatch::one();
+    s.groups.clear();
+    for k in (0..full).step_by(LANES) {
+        let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch[k + i].0 as usize]);
+        let b: [Affine<C>; LANES] = core::array::from_fn(|i| batch[k + i].1);
+        let ax = FqBatch::new(&a.map(|p| p.x));
+        let ay = FqBatch::new(&a.map(|p| p.y));
+        let bx = FqBatch::new(&b.map(|p| p.x));
+        let by = FqBatch::new(&b.map(|p| p.y));
+        let denominator = bx.sub(&ax);
+        let numerator = by.sub(&ay).mul(&chains);
+        chains = chains.mul(&denominator);
+        s.groups.push(FqAddGroup {
+            ax,
+            ay,
+            xsum: ax.add(&bx),
+            denominator,
+            numerator,
+        });
+    }
+    let mut tail = chains.get();
+    s.tail.clear();
+    for k in full..batch.len() {
+        let (index, b) = batch[k];
+        let a = buckets[index as usize];
+        let denominator = b.x - a.x;
+        let numerator = (b.y - a.y) * tail[k % LANES];
+        tail[k % LANES] *= denominator;
+        s.tail.push([a.x, a.y, a.x + b.x, denominator, numerator]);
+    }
+    let mut inverse = invert_lanes(tail);
+    for k in (full..batch.len()).rev() {
+        let [ax, ay, xsum, denominator, numerator] = s.tail[k - full];
+        let slope = numerator * inverse[k % LANES];
+        inverse[k % LANES] *= denominator;
+        let x = slope.square() - xsum;
+        let y = slope * (ax - x) - ay;
+        buckets[batch[k].0 as usize] = Affine::new(x, y);
+    }
+    let mut inverse = FqBatch::new(&inverse);
+    for (j, g) in s.groups.iter().enumerate().rev() {
+        let slope = g.numerator.mul(&inverse);
+        inverse = inverse.mul(&g.denominator);
+        let x = slope.mul(&slope).sub(&g.xsum);
+        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);
+        let (x, y) = (x.get(), y.get());
+        for i in 0..LANES {
+            buckets[batch[j * LANES + i].0 as usize] = Affine::new(x[i], y[i]);
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Fq2AddGroup {
+    ax: [FqBatch; 2],
+    ay: [FqBatch; 2],
+    xsum: [FqBatch; 2],
+    norm: FqBatch,
+    numerator: [FqBatch; 2],
+}
+#[derive(Default)]
+struct Fq2AddScratch {
+    groups: Vec<Fq2AddGroup>,
+    tail: Vec<[Fq2; 5]>,
+}
+#[inline(always)]
+fn fq2_pack(values: [Fq2; LANES]) -> [FqBatch; 2] {
+    [
+        FqBatch::new(&values.map(|v| v.c0)),
+        FqBatch::new(&values.map(|v| v.c1)),
+    ]
+}
+#[inline(always)]
+fn fq2_unpack(values: [FqBatch; 2]) -> [Fq2; LANES] {
+    let (c0, c1) = (values[0].get(), values[1].get());
+    core::array::from_fn(|i| Fq2::new(c0[i], c1[i]))
+}
+fn stream_g2<C: CurveConfig<Base = Fq2>>(
+    buckets: &mut [Affine<C>],
+    batch: &[(u32, Affine<C>)],
+    s: &mut Fq2AddScratch,
+) {
+    let full = batch.len() / LANES * LANES;
+    let mut chains = FqBatch::one();
+    s.groups.clear();
+    for k in (0..full).step_by(LANES) {
+        let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch[k + i].0 as usize]);
+        let b: [Affine<C>; LANES] = core::array::from_fn(|i| batch[k + i].1);
+        let ax = fq2_pack(a.map(|p| p.x));
+        let ay = fq2_pack(a.map(|p| p.y));
+        let bx = fq2_pack(b.map(|p| p.x));
+        let by = fq2_pack(b.map(|p| p.y));
+        let denominator = Fq2::lanes_sub(&bx, &ax);
+        let norm = Fq2::lanes_norm(&denominator);
+        let dy = Fq2::lanes_sub(&by, &ay);
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        let numerator = [
+            dy[0].sum2(&denominator[0], &dy[1], &denominator[1]),
+            dy[1].difference2(&denominator[0], &dy[0], &denominator[1]),
+        ];
+        #[cfg(not(all(
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        )))]
+        let numerator = {
+            let conjugate = [denominator[0], FqBatch::zero().sub(&denominator[1])];
+            Fq2::lanes_mul(&dy, &conjugate)
+        };
+        let numerator = [numerator[0].mul(&chains), numerator[1].mul(&chains)];
+        chains = chains.mul(&norm);
+        let xsum = [ax[0].add(&bx[0]), ax[1].add(&bx[1])];
+        s.groups.push(Fq2AddGroup {
+            ax,
+            ay,
+            xsum,
+            norm,
+            numerator,
+        });
+    }
+    let mut tail = chains.get();
+    s.tail.clear();
+    for k in full..batch.len() {
+        let (index, b) = batch[k];
+        let a = buckets[index as usize];
+        let denominator = b.x - a.x;
+        let norm = denominator.c0.square() + denominator.c1.square();
+        let numerator = ((b.y - a.y) * denominator.conjugate()).mul_by_fp(&tail[k % LANES]);
+        tail[k % LANES] *= norm;
+        s.tail
+            .push([a.x, a.y, a.x + b.x, Fq2::new(norm, Fq::ZERO), numerator]);
+    }
+    let mut inverse = invert_lanes(tail);
+    for k in (full..batch.len()).rev() {
+        let [ax, ay, xsum, norm, numerator] = s.tail[k - full];
+        let slope = numerator.mul_by_fp(&inverse[k % LANES]);
+        inverse[k % LANES] *= norm.c0;
+        let x = slope.square() - xsum;
+        let y = slope * (ax - x) - ay;
+        buckets[batch[k].0 as usize] = Affine::new(x, y);
+    }
+    let mut inverse = FqBatch::new(&inverse);
+    for (j, g) in s.groups.iter().enumerate().rev() {
+        let slope = [g.numerator[0].mul(&inverse), g.numerator[1].mul(&inverse)];
+        inverse = inverse.mul(&g.norm);
+        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &g.xsum);
+        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&g.ax, &x)), &g.ay);
+        let (x, y) = (fq2_unpack(x), fq2_unpack(y));
+        for i in 0..LANES {
+            buckets[batch[j * LANES + i].0 as usize] = Affine::new(x[i], y[i]);
+        }
+    }
 }
 
 // W(B) = 2*W(B[0]+B[1], B[2]+B[3], ...) - sum(B[0], B[2], ...).
@@ -474,6 +831,13 @@ where
 // pass does not compute it again. Exceptional pairs are excluded above.
 
 pub(super) trait BatchInverse: Field {
+    fn stream_add<C: CurveConfig<Base = Self>>(
+        buckets: &mut [Affine<C>],
+        batch: &[(u32, Affine<C>)],
+        s: &mut BatchAdd<C>,
+    ) {
+        s.apply_generic(buckets, batch);
+    }
     type Product: Copy + Send + Default;
     fn prefix(accumulator: &mut Fq, value: Self) -> Self::Product;
     fn reverse(inverse: &mut Fq, value: Self, product: &mut Self::Product);
@@ -485,17 +849,28 @@ pub(super) trait BatchInverse: Field {
     fn limbs_zero(limbs: &Self::Limbs) -> bool;
     /// Four elements in lane form.
     type Lanes: Copy;
-    fn load(values: [&Self::Limbs; 4]) -> Self::Lanes;
-    fn store(lanes: &Self::Lanes) -> [Self::Limbs; 4];
+    fn load(values: [&Self::Limbs; LANES]) -> Self::Lanes;
+    fn store(lanes: &Self::Lanes) -> [Self::Limbs; LANES];
+    fn lanes_add(a: &Self::Lanes, b: &Self::Lanes) -> Self::Lanes;
     fn lanes_sub(a: &Self::Lanes, b: &Self::Lanes) -> Self::Lanes;
+    /// Scale (dy / dx)'s numerator by the preceding norm product.
+    fn lanes_scaled_numerator(dy: &Self::Lanes, dx: &Self::Lanes, prefix: &FqBatch) -> Self::Lanes;
+    fn lanes_scale(value: &Self::Lanes, factor: &FqBatch) -> Self::Lanes;
     fn lanes_mul(a: &Self::Lanes, b: &Self::Lanes) -> Self::Lanes;
     fn lanes_square(a: &Self::Lanes) -> Self::Lanes;
     /// What the inversion chains multiply by: the value, or its Fq norm.
-    fn lanes_norm(value: &Self::Lanes) -> FqLanes;
+    fn lanes_norm(value: &Self::Lanes) -> FqBatch;
     /// 1/value from the inverse of its norm.
-    fn lanes_inverse(value: &Self::Lanes, inverse_norm: &FqLanes) -> Self::Lanes;
+    fn lanes_inverse(value: &Self::Lanes, inverse_norm: &FqBatch) -> Self::Lanes;
 }
 impl BatchInverse for Fq {
+    fn stream_add<C: CurveConfig<Base = Self>>(
+        buckets: &mut [Affine<C>],
+        batch: &[(u32, Affine<C>)],
+        s: &mut BatchAdd<C>,
+    ) {
+        stream_g1(buckets, batch, &mut s.fq);
+    }
     type Product = Fq;
     #[inline(always)]
     fn prefix(accumulator: &mut Fq, value: Self) -> Fq {
@@ -525,37 +900,60 @@ impl BatchInverse for Fq {
     fn limbs_zero(limbs: &FqLimbs) -> bool {
         limbs.is_zero()
     }
-    type Lanes = FqLanes;
+    type Lanes = FqBatch;
     #[inline(always)]
-    fn load(values: [&FqLimbs; 4]) -> FqLanes {
-        FqLanes::load(values)
+    fn load(values: [&FqLimbs; LANES]) -> FqBatch {
+        FqBatch::load(values)
     }
     #[inline(always)]
-    fn store(lanes: &FqLanes) -> [FqLimbs; 4] {
+    fn store(lanes: &FqBatch) -> [FqLimbs; LANES] {
         lanes.store()
     }
     #[inline(always)]
-    fn lanes_sub(a: &FqLanes, b: &FqLanes) -> FqLanes {
+    fn lanes_add(a: &FqBatch, b: &FqBatch) -> FqBatch {
+        a.add(b)
+    }
+    #[inline(always)]
+    fn lanes_scaled_numerator(dy: &FqBatch, _: &FqBatch, prefix: &FqBatch) -> FqBatch {
+        dy.mul(prefix)
+    }
+    #[inline(always)]
+    fn lanes_scale(value: &FqBatch, factor: &FqBatch) -> FqBatch {
+        value.mul(factor)
+    }
+    #[inline(always)]
+    fn lanes_sub(a: &FqBatch, b: &FqBatch) -> FqBatch {
         a.sub(b)
     }
     #[inline(always)]
-    fn lanes_mul(a: &FqLanes, b: &FqLanes) -> FqLanes {
+    fn lanes_mul(a: &FqBatch, b: &FqBatch) -> FqBatch {
         a.mul(b)
     }
     #[inline(always)]
-    fn lanes_square(a: &FqLanes) -> FqLanes {
+    fn lanes_square(a: &FqBatch) -> FqBatch {
         a.mul(a)
     }
     #[inline(always)]
-    fn lanes_norm(value: &FqLanes) -> FqLanes {
+    fn lanes_norm(value: &FqBatch) -> FqBatch {
         *value
     }
     #[inline(always)]
-    fn lanes_inverse(_: &FqLanes, inverse_norm: &FqLanes) -> FqLanes {
+    fn lanes_inverse(_: &FqBatch, inverse_norm: &FqBatch) -> FqBatch {
         *inverse_norm
     }
 }
 impl BatchInverse for Fq2 {
+    fn stream_add<C: CurveConfig<Base = Self>>(
+        buckets: &mut [Affine<C>],
+        batch: &[(u32, Affine<C>)],
+        s: &mut BatchAdd<C>,
+    ) {
+        if crate::simd::cpu_option("ZOPRO_CPU_DIRECT_G2") {
+            stream_g2(buckets, batch, &mut s.fq2);
+        } else {
+            s.apply_generic(buckets, batch);
+        }
+    }
     type Product = [Fq; 2];
     #[inline(always)]
     fn prefix(accumulator: &mut Fq, value: Self) -> Self::Product {
@@ -587,47 +985,123 @@ impl BatchInverse for Fq2 {
     fn limbs_zero(limbs: &[FqLimbs; 2]) -> bool {
         limbs[0].is_zero() && limbs[1].is_zero()
     }
-    type Lanes = [FqLanes; 2];
+    type Lanes = [FqBatch; 2];
     #[inline(always)]
-    fn load(values: [&[FqLimbs; 2]; 4]) -> [FqLanes; 2] {
+    fn load(values: [&[FqLimbs; 2]; LANES]) -> [FqBatch; 2] {
         [
-            FqLanes::load(values.map(|v| &v[0])),
-            FqLanes::load(values.map(|v| &v[1])),
+            FqBatch::load(values.map(|v| &v[0])),
+            FqBatch::load(values.map(|v| &v[1])),
         ]
     }
     #[inline(always)]
-    fn store(lanes: &[FqLanes; 2]) -> [[FqLimbs; 2]; 4] {
+    fn store(lanes: &[FqBatch; 2]) -> [[FqLimbs; 2]; LANES] {
         let (c0, c1) = (lanes[0].store(), lanes[1].store());
         core::array::from_fn(|i| [c0[i], c1[i]])
     }
     #[inline(always)]
-    fn lanes_sub(a: &[FqLanes; 2], b: &[FqLanes; 2]) -> [FqLanes; 2] {
+    fn lanes_add(a: &[FqBatch; 2], b: &[FqBatch; 2]) -> [FqBatch; 2] {
+        [a[0].add(&b[0]), a[1].add(&b[1])]
+    }
+    #[inline(always)]
+    fn lanes_scaled_numerator(
+        dy: &[FqBatch; 2],
+        dx: &[FqBatch; 2],
+        prefix: &FqBatch,
+    ) -> [FqBatch; 2] {
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        let value = [
+            dy[0].sum2(&dx[0], &dy[1], &dx[1]),
+            dy[1].difference2(&dx[0], &dy[0], &dx[1]),
+        ];
+        #[cfg(not(all(
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        )))]
+        let value = Self::lanes_mul(dy, &[dx[0], FqBatch::zero().sub(&dx[1])]);
+        Self::lanes_scale(&value, prefix)
+    }
+    #[inline(always)]
+    fn lanes_scale(value: &[FqBatch; 2], factor: &FqBatch) -> [FqBatch; 2] {
+        [value[0].mul(factor), value[1].mul(factor)]
+    }
+    #[inline(always)]
+    fn lanes_sub(a: &[FqBatch; 2], b: &[FqBatch; 2]) -> [FqBatch; 2] {
         [a[0].sub(&b[0]), a[1].sub(&b[1])]
     }
     // Karatsuba: three Fq products.
     #[inline(always)]
-    fn lanes_mul(a: &[FqLanes; 2], b: &[FqLanes; 2]) -> [FqLanes; 2] {
-        let v0 = a[0].mul(&b[0]);
-        let v1 = a[1].mul(&b[1]);
-        let v2 = a[0].add(&a[1]).mul(&b[0].add(&b[1]));
-        [v0.sub(&v1), v2.sub(&v0).sub(&v1)]
+    fn lanes_mul(a: &[FqBatch; 2], b: &[FqBatch; 2]) -> [FqBatch; 2] {
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        {
+            [
+                a[0].difference2(&b[0], &a[1], &b[1]),
+                a[0].sum2(&b[1], &a[1], &b[0]),
+            ]
+        }
+        #[cfg(not(all(
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        )))]
+        {
+            let v0 = a[0].mul(&b[0]);
+            let v1 = a[1].mul(&b[1]);
+            let v2 = a[0].add(&a[1]).mul(&b[0].add(&b[1]));
+            [v0.sub(&v1), v2.sub(&v0).sub(&v1)]
+        }
     }
     // (c0 + c1 u)^2 = (c0 + c1)(c0 - c1) + 2 c0 c1 u.
     #[inline(always)]
-    fn lanes_square(a: &[FqLanes; 2]) -> [FqLanes; 2] {
+    fn lanes_square(a: &[FqBatch; 2]) -> [FqBatch; 2] {
         let product = a[0].mul(&a[1]);
         [a[0].add(&a[1]).mul(&a[0].sub(&a[1])), product.add(&product)]
     }
     #[inline(always)]
-    fn lanes_norm(value: &[FqLanes; 2]) -> FqLanes {
-        value[0].mul(&value[0]).add(&value[1].mul(&value[1]))
+    fn lanes_norm(value: &[FqBatch; 2]) -> FqBatch {
+        #[cfg(all(
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        {
+            value[0].sum2(&value[0], &value[1], &value[1])
+        }
+        #[cfg(not(all(
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        )))]
+        {
+            value[0].mul(&value[0]).add(&value[1].mul(&value[1]))
+        }
     }
     // (c0 - c1 u) / norm.
     #[inline(always)]
-    fn lanes_inverse(value: &[FqLanes; 2], inverse_norm: &FqLanes) -> [FqLanes; 2] {
+    fn lanes_inverse(value: &[FqBatch; 2], inverse_norm: &FqBatch) -> [FqBatch; 2] {
         [
             value[0].mul(inverse_norm),
-            FqLanes::zero().sub(&value[1].mul(inverse_norm)),
+            FqBatch::zero().sub(&value[1].mul(inverse_norm)),
         ]
     }
 }
@@ -763,4 +1237,3 @@ mod tests {
         check::<zopro_bn254::G2Config>();
     }
 }
-

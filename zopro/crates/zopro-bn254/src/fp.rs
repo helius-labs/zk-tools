@@ -41,7 +41,10 @@ impl<C: FpConfig> Fp<C> {
         if !portable::less(limbs, C::P) {
             return None;
         }
-        Some(Self(portable::multiply(limbs, C::R2, C::P, C::INV), PhantomData))
+        Some(Self(
+            portable::multiply(limbs, C::R2, C::P, C::INV),
+            PhantomData,
+        ))
     }
 
     /// The element of a decimal literal below p (for constants).
@@ -54,7 +57,10 @@ impl<C: FpConfig> Fp<C> {
 
     #[inline]
     pub const fn from_u64(x: u64) -> Self {
-        Self(portable::multiply([x, 0, 0, 0], C::R2, C::P, C::INV), PhantomData)
+        Self(
+            portable::multiply([x, 0, 0, 0], C::R2, C::P, C::INV),
+            PhantomData,
+        )
     }
 
     /// The value, below p.
@@ -105,10 +111,40 @@ impl<C: FpConfig> Fp<C> {
         result
     }
 
-    /// The inverse, `None` for zero: the binary extended Euclidean
-    /// algorithm on the Montgomery form, as arkworks' (starting from 2^512
-    /// leaves the inverse in Montgomery form).
+    /// The inverse, `None` for zero. x86 batches the binary GCD; other
+    /// targets use the binary extended Euclidean algorithm. Starting from
+    /// 2^512 leaves the inverse in Montgomery form in both cases.
     pub fn inverse(&self) -> Option<Self> {
+        #[cfg(all(
+            feature = "fast-inverse",
+            target_arch = "x86_64",
+            target_feature = "bmi2",
+            target_feature = "adx",
+            not(no_asm)
+        ))]
+        {
+            return crate::inverse::inverse(self);
+        }
+        #[cfg(not(all(
+            feature = "fast-inverse",
+            target_arch = "x86_64",
+            target_feature = "bmi2",
+            target_feature = "adx",
+            not(no_asm)
+        )))]
+        {
+            return self.inverse_binary();
+        }
+    }
+
+    #[cfg(not(all(
+        feature = "fast-inverse",
+        target_arch = "x86_64",
+        target_feature = "bmi2",
+        target_feature = "adx",
+        not(no_asm)
+    )))]
+    fn inverse_binary(&self) -> Option<Self> {
         if self.is_zero() {
             return None;
         }
@@ -239,7 +275,10 @@ impl<C: FpConfig> Mul for Fp<C> {
     #[cfg_attr(target_arch = "wasm32", inline)]
     #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     fn mul(self, other: Self) -> Self {
-        Self(backend::multiply(self.0, other.0, C::P, C::INV), PhantomData)
+        Self(
+            backend::multiply(self.0, other.0, C::P, C::INV),
+            PhantomData,
+        )
     }
 }
 impl<C: FpConfig> Neg for Fp<C> {
