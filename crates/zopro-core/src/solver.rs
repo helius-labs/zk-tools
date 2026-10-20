@@ -134,6 +134,78 @@ impl Sum {
         self.previous & STORED != 0
     }
 }
+/// A deflated stream inflated a block at a time, read as bytes counted or
+/// as little-endian u32 words.
+struct Deflated<'a> {
+    state: Box<miniz_oxide::inflate::stream::InflateState>,
+    input: &'a [u8],
+    buffer: Vec<u8>,
+    start: usize,
+    end: usize,
+    done: bool,
+    failed: bool,
+}
+impl<'a> Deflated<'a> {
+    fn new(input: &'a [u8]) -> Self {
+        Self {
+            state: miniz_oxide::inflate::stream::InflateState::new_boxed(miniz_oxide::DataFormat::Raw),
+            input,
+            buffer: vec![0; 1 << 16],
+            start: 0,
+            end: 0,
+            done: false,
+            failed: false,
+        }
+    }
+    /// Inflates more after the bytes not yet read; false at the end.
+    fn fill(&mut self) -> bool {
+        if self.done {
+            return false;
+        }
+        self.buffer.copy_within(self.start..self.end, 0);
+        self.end -= self.start;
+        self.start = 0;
+        let result = miniz_oxide::inflate::stream::inflate(
+            &mut self.state,
+            self.input,
+            &mut self.buffer[self.end..],
+            miniz_oxide::MZFlush::None,
+        );
+        self.input = &self.input[result.bytes_consumed..];
+        self.end += result.bytes_written;
+        match result.status {
+            Ok(miniz_oxide::MZStatus::StreamEnd) => self.done = true,
+            Ok(_) if result.bytes_written > 0 || result.bytes_consumed > 0 => {}
+            // No progress, or an error: a stream that ends before its end.
+            _ => {
+                self.failed = true;
+                self.done = true;
+            }
+        }
+        true
+    }
+    /// How many bytes the next block holds, `None` at the end.
+    fn block(&mut self) -> Option<usize> {
+        self.start = self.end;
+        while self.start == self.end {
+            if !self.fill() {
+                return None;
+            }
+        }
+        Some(self.end - self.start)
+    }
+    fn word(&mut self) -> Option<u32> {
+        while self.end - self.start < 4 {
+            if !self.fill() {
+                return None;
+            }
+        }
+        let word = u32::from_le_bytes(self.buffer[self.start..self.start + 4].try_into().unwrap());
+        self.start += 4;
+        Some(word)
+    }
+}
+
 /// Gives the sums that need one a slot, in order, and rewrites the built
 /// plan's sum ids (n_wires + index, u32::MAX for none) into slots, CHAIN
 /// and NONE (see Sum). A sum needs no slot when an expression does not read
@@ -375,14 +447,50 @@ impl Plan {
     // (coefficient, wire)..., first output, end of outputs]. Records arrive in
     // gnark's level order, while a constraint's ID selects the FFT row.
     pub(crate) fn new(program: &[u8], coefficients: &[u8]) -> Result<Self, &'static str> {
-        if !program.len().is_multiple_of(4) || !coefficients.len().is_multiple_of(32) {
+        if !program.len().is_multiple_of(4) {
             return Err("invalid solver encoding");
         }
-        let mut words = program
-            .as_chunks::<4>()
-            .0
-            .iter()
-            .map(|v| u32::from_le_bytes(*v) as usize);
+        let words = program.as_chunks::<4>().0.iter().map(|v| u32::from_le_bytes(*v));
+        Self::build(program.len(), words, coefficients)
+    }
+
+    /// From the program deflated, as a key file keeps it, inflated a block
+    /// at a time rather than whole (80 MB at 16 -> 2): once to measure it,
+    /// for the bounds `build` checks, then into the plan.
+    pub(crate) fn from_deflated(program: &[u8], coefficients: &[u8]) -> Result<Self, &'static str> {
+        let mut measured = Deflated::new(program);
+        let mut len = 0;
+        while let Some(block) = measured.block() {
+            len += block;
+        }
+        if measured.failed || !len.is_multiple_of(4) {
+            return Err("the key's program is damaged");
+        }
+        let mut words = Deflated::new(program);
+        let plan = Self::build(len, std::iter::from_fn(|| words.word()), coefficients)?;
+        if words.failed {
+            return Err("the key's program is damaged");
+        }
+        Ok(plan)
+    }
+
+    /// The plan from the program's `len` bytes as `words`.
+    fn build(
+        len: usize,
+        words: impl Iterator<Item = u32>,
+        coefficients: &[u8],
+    ) -> Result<Self, &'static str> {
+        if !coefficients.len().is_multiple_of(32) {
+            return Err("invalid solver encoding");
+        }
+        struct Program(usize);
+        impl Program {
+            fn len(&self) -> usize {
+                self.0
+            }
+        }
+        let program = Program(len);
+        let mut words = words.map(|v| v as usize);
         let mut read = || words.next().ok_or("truncated solver program");
         if read()? != 2 {
             return Err("unsupported solver program version");
@@ -1631,6 +1739,23 @@ mod tests {
             assert!(Plan::from_image(&image[..end]).is_err(), "{end}");
         }
         assert!(Plan::from_image(&[image.as_slice(), &[0]].concat()).is_err());
+    }
+
+    /// From the program deflated, a block at a time, the plan the whole
+    /// program builds; a damaged or cut stream is an error.
+    #[test]
+    fn builds_from_the_deflated_program() {
+        let (program, coefficients) = with_sums();
+        let program = encode_words(&program);
+        let whole = Plan::new(&program, &coefficients).unwrap().image();
+        let deflated = miniz_oxide::deflate::compress_to_vec(&program, 6);
+        assert_eq!(Plan::from_deflated(&deflated, &coefficients).unwrap().image(), whole);
+        // Longer than a block.
+        let mut long = program.clone();
+        long.extend(std::iter::repeat_n(0u8, 1 << 17));
+        assert!(Plan::from_deflated(&miniz_oxide::deflate::compress_to_vec(&long, 6), &coefficients).is_err());
+        assert!(Plan::from_deflated(&deflated[..deflated.len() / 2], &coefficients).is_err());
+        assert!(Plan::from_deflated(&[0xff; 64], &coefficients).is_err());
     }
 
     fn reloaded(plan: &Plan) -> Plan {

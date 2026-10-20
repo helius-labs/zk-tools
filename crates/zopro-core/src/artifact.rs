@@ -293,11 +293,7 @@ impl<'a> Artifact<'a> {
     /// The kernel's solver image of the key's program (`Key::solver_image`),
     /// built without the key: a host's image of the key keeps it.
     pub fn solver_image(&self) -> Result<Vec<u8>, String> {
-        let plan = {
-            let program = inflate(self.program)?;
-            let coefficients = inflate(self.coefficients)?;
-            crate::solver::Plan::new(&program, &coefficients)?
-        };
+        let plan = crate::solver::Plan::from_deflated(self.program, &inflate(self.coefficients)?)?;
         let [a, b, k, z, _] = self.points;
         if !plan.matches(a as usize, b as usize, k as usize, z as usize + 1) {
             return Err("the key's program does not match its points".into());
@@ -316,8 +312,10 @@ impl<'a> Artifact<'a> {
                 return Ok(key);
             }
         }
-        let (program, coefficients) = (inflate(self.program)?, inflate(self.coefficients)?);
-        if !key.set_solver(&program, &coefficients) {
+        let started = crate::time::Instant::now();
+        let plan = crate::solver::Plan::from_deflated(self.program, &inflate(self.coefficients)?);
+        crate::trace("solver-plan", started);
+        if !key.set_solver_plan(plan) {
             return Err("the kernel does not solve the key's program".into());
         }
         Ok(key)
