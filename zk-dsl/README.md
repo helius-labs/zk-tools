@@ -86,3 +86,7 @@ R1CS changes. `--test` requests reproducible keys from a fixed public seed. Key
 reuse also checks the setup kind, so switching modes regenerates local keys.
 Imported ceremony keys are preserved and must be explicitly replaced when the
 circuit changes; `--test` does not overwrite them.
+
+A crate using `--test` declares `insecure-test-setup = []` in its Cargo features.
+The build enables it for circuit export, wasm and SBF so the generated test-key
+compile guard is acknowledged only by explicit test builds.

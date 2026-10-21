@@ -99,7 +99,7 @@ pub fn build(opts: &BuildOptions) -> Result<()> {
         let sbf = if opts.sbf.skip_sbf {
             Ok(())
         } else {
-            build_sbf(&opts.sbf, &circuits)
+            build_sbf(&opts.sbf, &circuits, opts.compile.test)
         };
         let wasm = wasm.map_or(Ok(()), |wasm| {
             wasm.join().unwrap_or(Err(BuildError::WasmBuildPanicked))
@@ -108,7 +108,19 @@ pub fn build(opts: &BuildOptions) -> Result<()> {
     })
 }
 
-fn build_sbf(opts: &SbfOptions, circuits: &CircuitCrate) -> Result<()> {
+fn with_test_feature(features: &str, test: bool) -> String {
+    let mut features = features
+        .split(',')
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .collect::<Vec<_>>();
+    if test && !features.contains(&"insecure-test-setup") {
+        features.push("insecure-test-setup");
+    }
+    features.join(",")
+}
+
+fn build_sbf(opts: &SbfOptions, circuits: &CircuitCrate, test: bool) -> Result<()> {
     let mut build_sbf = Command::new(cargo());
     build_sbf
         .args(["build-sbf", "--manifest-path"])
@@ -116,8 +128,9 @@ fn build_sbf(opts: &SbfOptions, circuits: &CircuitCrate) -> Result<()> {
     if let Some(dir) = &opts.sbf_out_dir {
         build_sbf.arg("--sbf-out-dir").arg(dir);
     }
-    if let Some(features) = &opts.sbf_features {
-        build_sbf.args(["--", "--features", features]);
+    let features = with_test_feature(opts.sbf_features.as_deref().unwrap_or_default(), test);
+    if !features.is_empty() {
+        build_sbf.args(["--", "--features", &features]);
     }
     let status = build_sbf.status().map_err(|error| BuildError::Spawn {
         command: "cargo build-sbf".into(),
@@ -396,7 +409,7 @@ fn compile_r1cs(
         .arg(&circuits.manifest)
         .args([
             "--features",
-            &format!("{},r1cs-export", opts.r1cs_features),
+            &with_test_feature(&format!("{},r1cs-export", opts.r1cs_features), opts.test),
             "--",
             HOOK_PREFIX,
             "--nocapture",
@@ -790,7 +803,7 @@ fn compile_wasm(opts: &CompileOptions, circuits: &CircuitCrate) -> Result<()> {
     if opts.verifier {
         features.push(format!("{library}/wasm-verify"));
     }
-    let features = features.join(",");
+    let features = with_test_feature(&features.join(","), opts.test);
     let digest = hex::encode(Sha256::digest(features.as_bytes()));
     let variant = if threads { "threads" } else { "single" };
     let target_dir = circuits.target_dir.join(format!(
@@ -1566,6 +1579,26 @@ mod tests {
             unrelated.circuit_library(),
             Err(BuildError::NoCircuitLibrary(_))
         ));
+    }
+
+    #[test]
+    fn only_explicit_test_builds_enable_the_test_key_compile_guard() {
+        assert_eq!(
+            [
+                with_test_feature("", false),
+                with_test_feature("", true),
+                with_test_feature("circuits,r1cs-export", true),
+                with_test_feature("bpf-entrypoint", true),
+                with_test_feature("wasm,insecure-test-setup", true),
+            ],
+            [
+                "",
+                "insecure-test-setup",
+                "circuits,r1cs-export,insecure-test-setup",
+                "bpf-entrypoint,insecure-test-setup",
+                "wasm,insecure-test-setup"
+            ]
+        );
     }
 
     #[test]
