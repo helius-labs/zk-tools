@@ -28,7 +28,7 @@ impl<const N: usize> HashBytes for Bytes<N> {
 impl HashBytes for SolanaAddress {
     #[track_caller]
     fn hash_bytes(&self) -> Result<CircuitVar, CircuitError> {
-        self.as_bytes().hash_bytes()
+        self.cached_hash(|| self.as_bytes().hash_bytes())
     }
 }
 

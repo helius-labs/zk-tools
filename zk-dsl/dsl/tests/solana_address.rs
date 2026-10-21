@@ -99,6 +99,50 @@ fn conditional_address_equality_checks_only_when_enabled() {
     );
 }
 
+#[test]
+fn address_hashes_are_shared_by_clones_and_selection_uses_a_fresh_cache() {
+    let actual = [false, true].map(|flag| {
+        let cs = ConstraintSystem::new_ref();
+        let allocator = Allocator::R1cs(cs.clone());
+        let left = Address::new_from_array([1; 32])
+            .instantiate(&allocator)
+            .unwrap();
+        let right = Address::new_from_array([2; 32])
+            .instantiate(&allocator)
+            .unwrap();
+        let left_hash = left.hash_bytes().unwrap();
+        right.hash_bytes().unwrap();
+        let cloned = left.clone();
+        let before = cs.num_constraints();
+        let clone_hash = cloned.hash_bytes().unwrap();
+        let clone_adds_no_rows = cs.num_constraints() == before;
+        let selected = SolanaAddress::select(&flag.instantiate(&allocator).unwrap(), &left, &right);
+        let selected_hash = selected.hash_bytes().unwrap();
+        let before = cs.num_constraints();
+        selected.hash_bytes().unwrap();
+        let selected_adds_no_rows = cs.num_constraints() == before;
+        let expected_hash = hash_bytes(&[if flag { 1 } else { 2 }; 32])
+            .unwrap()
+            .instantiate(&Allocator::native())
+            .unwrap();
+        selected_hash
+            .assert_equal(&expected_hash, "selection hashes the selected address")
+            .unwrap();
+        (
+            left.is_clone_of(&cloned),
+            clone_adds_no_rows,
+            clone_hash
+                .assert_equal(&left_hash, "clones share the hash")
+                .is_ok(),
+            !selected.is_clone_of(&left) && !selected.is_clone_of(&right),
+            selected_adds_no_rows,
+            cs.is_satisfied().unwrap(),
+        )
+    });
+    let expected = [(true, true, true, true, true, true); 2];
+    assert_eq!(actual, expected);
+}
+
 struct AddressHash<T>(T);
 struct AddressHashCircuit<T>(T);
 
