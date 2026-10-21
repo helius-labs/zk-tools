@@ -1,0 +1,63 @@
+[workspace]
+resolver = "2"
+members = [
+    "zk-dsl/dsl",
+    "zk-dsl/gadgets",
+    "zk-dsl/macros",
+    "zk-dsl/macros-core",
+    "zk-dsl/tests/standalone",
+]
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/helius-labs/zk-tools"
+
+[workspace.dependencies]
+borsh = { version = "1.5", default-features = false, features = ["derive"] }
+console_error_panic_hook = "0.1.7"
+groth16-solana = { git = "https://github.com/Lightprotocol/groth16-solana", rev = "70a93803e5f55b8425301d506c625169ef557c9d", features = ["bsb22"] }
+hex = "0.4"
+js-sys = "0.3"
+num-bigint = "0.4.6"
+pinocchio = "0.11"
+proc-macro2 = "1.0"
+proptest = "1"
+quote = "1.0"
+rayon = "1"
+serde = { version = "1.0", features = ["derive"] }
+serde_bytes = "0.11.19"
+serde_json = "1.0"
+serde-wasm-bindgen = "0.6.5"
+sha2 = "0.10"
+solana-address = { version = "2.6", features = ["atomic", "borsh", "bytemuck", "copy", "decode", "wincode"] }
+solana-bn254 = "3.2.1"
+syn = { version = "2.0", features = ["visit-mut", "full"] }
+thiserror = { version = "2.0", default-features = false }
+tsify = { version = "0.5.8", default-features = false, features = ["js"] }
+wasm-bindgen = "0.2.104"
+wincode = { version = "0.5", default-features = false, features = ["derive", "alloc"] }
+zolana-hasher = { git = "https://github.com/helius-labs/zolana", rev = "26482c9a2ef1c82382bbc28bab4fc8cf2f194018", default-features = false }
+zolana-zk-dsl = { path = "zk-dsl/dsl", version = "0.1.0" }
+zolana-zk-gadgets = { path = "zk-dsl/gadgets", version = "0.1.0" }
+zolana-zk-macros = { path = "zk-dsl/macros", version = "0.1.0" }
+zolana-zk-macros-core = { path = "zk-dsl/macros-core", version = "0.1.0" }
+
+[profile.dev]
+opt-level = 0
+debug = "line-tables-only"
+
+[profile.dev.package.syn]
+opt-level = 3
+
+[profile.dev.package.proc-macro2]
+opt-level = 3
+
+[profile.dev.package.quote]
+opt-level = 3
+
+[profile.dev.package.ark-ff-macros]
+opt-level = 3
+
+[profile.dev.package.ark-ff-asm]
+opt-level = 3
