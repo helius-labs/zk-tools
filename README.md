@@ -6,6 +6,7 @@ The Zolana local provers: the Go bridges that `zolana-web-sdk` and `zolana-mobil
 
 - `prover-wasm/` (module `github.com/helius-labs/zk-tools`): the js/wasm bridge with its Arkworks kernel adapter, built by the web SDK. `testdata/transfer-2x2.json` is the demo request.
 - `cgo/` (module `github.com/zkmopro/rust-gnark`): the c-archive bridge the mobile SDK's `rust-gnark` crate compiles.
+- `zk/` (Cargo workspace at the root): the generic zero-knowledge crates zolana's ZK program SDK builds on: the circuit DSL with its Groth16 prover, the gadgets and the core derives. See [`zk/README.md`](zk/README.md). `test-vectors/` holds the shared vectors their tests check against, copied from zolana.
 
 Both require `github.com/helius-labs/zolana/prover/server`, the upstream prover, at a commit pinned in their `go.mod`; `go.sum` checks it. They currently pin helius-labs/zolana#420, which gives that module a fetchable path, and move to `main` once it merges.
 
@@ -17,6 +18,7 @@ Both require `github.com/helius-labs/zolana/prover/server`, the upstream prover,
 ## Validation
 
 ```sh
+just check-zk && just test-zk && just clippy-zk
 go vet ./... && go test ./...
 GOOS=js GOARCH=wasm CGO_ENABLED=0 go build -o /tmp/zolana-prover.wasm ./prover-wasm
 (cd cgo && go test ./... && go build -buildmode=c-archive -o /tmp/libgnark.a .)
