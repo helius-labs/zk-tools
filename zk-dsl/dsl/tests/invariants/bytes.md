@@ -6,7 +6,7 @@ range-checked and its length is fixed by N. Shared exporter/statement invariants
 live in `cross-cutting.md`.
 
 Source references use `src/circuit/builtins/types/bytes.rs`,
-`zk/gadgets/src/hash_bytes.rs`, and `src/conversion/bytes.rs`.
+`zk-dsl/gadgets/src/hash_bytes.rs`, and `src/conversion/bytes.rs`.
 No SPEC_DIVERGENCE was found against `../spec.md`.
 
 Split and pack errors keep the conversion caller's location when they pass through the
@@ -643,7 +643,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-01: Native chunk-boundary hashes**
   - Kind: native equivalence
   - Statement: Every hardcoded hash vector at widths 0,1,31,32,62,63 returns exactly the native zolana_hasher::primitives::hash_bytes result through Bytes<N>::hash_bytes, both for constants and for checked proof inputs.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Severity: High
   - Suggested test: positive/negative; `tests/unit/bytes/hash/native.rs`.
   - Covered by: `tests/unit/bytes/hash/native.rs::hardcoded_chunk_boundaries_match_native_hash_bytes_and_refuse_wrong_hashes`.
@@ -651,7 +651,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-02: Fixed-width semantics**
   - Kind: semantics
   - Statement: Every tested leading-zero alias across lengths returns exactly the same one-chunk packed value.
-  - Location: `zk/gadgets/src/hash_bytes.rs:27-36` (`packed`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:27-36` (`packed`).
   - Severity: High
   - Suggested test: positive/negative; `tests/unit/bytes/hash/native.rs`.
   - Covered by: `tests/unit/bytes/hash/native.rs::zero_chunks_and_leading_zeros_follow_fixed_width_packing`.
@@ -659,7 +659,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-03: Checked big-endian packing**
   - Kind: semantics
   - Statement: For the two-byte inputs [1,2] and [1,0], Bytes<2>::hash_bytes returns exactly its big-endian value, 258 and 256 respectively.
-  - Location: `zk/gadgets/src/hash_bytes.rs:27-36` (`packed`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:27-36` (`packed`).
   - Severity: High
   - Suggested test: positive/negative; `tests/unit/bytes/hash/native.rs`.
   - Covered by: `tests/unit/bytes/hash/native.rs::checked_single_chunk_bytes_hash_to_their_big_endian_value`.
@@ -675,7 +675,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-05: Small hash golden rows**
   - Kind: constraint
   - Statement: For every tested width N in {0,1,2}, the checked hash fixture exports exactly nine range-check rows per byte followed by one hand-derived big-endian hash-claim row.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-36` (`hash_bytes`, `packed`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-36` (`hash_bytes`, `packed`).
   - Severity: Medium
   - Suggested test: positive/negative; `tests/unit/bytes/hash/r1cs.rs`.
   - Covered by: `tests/unit/bytes/hash/r1cs.rs::empty_and_single_chunk_hashes_have_exact_byte_and_packing_rows`.
@@ -683,7 +683,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-06: Hash pins**
   - Kind: constraint
   - Statement: The checked 31-byte, 32-byte and 63-byte hash exports equal exactly their pinned sizes and SHA-256 digests.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-36` (`hash_bytes`, `packed`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-36` (`hash_bytes`, `packed`).
   - Severity: Medium
   - Suggested test: positive/negative; `tests/unit/bytes/hash/r1cs.rs`.
   - Covered by: `tests/unit/bytes/hash/r1cs.rs::hash_counts_and_large_exports_are_pinned`.
@@ -691,7 +691,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-07: Hash shape**
   - Kind: shape
   - Statement: At every tested chunk boundary, every honest hash fixture has exactly identical setup and proving matrices.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Severity: High
   - Suggested test: positive/negative; `tests/unit/bytes/hash/r1cs.rs`.
   - Covered by: `tests/unit/bytes/hash/r1cs.rs::every_chunk_boundary_has_identical_setup_and_proving_rows_and_rejects_tampering`.
@@ -699,7 +699,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-08: Hash completeness**
   - Kind: completeness
   - Statement: At every tested chunk boundary, the native reference output satisfies every SDK exported hash row.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Severity: High
   - Suggested test: positive/negative; `tests/unit/bytes/hash/r1cs.rs`.
   - Covered by: `tests/unit/bytes/hash/r1cs.rs::every_chunk_boundary_has_identical_setup_and_proving_rows_and_rejects_tampering`.
@@ -707,7 +707,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-09: Hash output soundness**
   - Kind: soundness
   - Statement: For every tested chunk boundary, incrementing the hash output is refused with exactly the named hash rule.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Severity: Critical
   - Suggested test: positive/negative; `tests/unit/bytes/hash/r1cs.rs`.
   - Covered by: `tests/unit/bytes/hash/r1cs.rs::every_chunk_boundary_has_identical_setup_and_proving_rows_and_rejects_tampering`.
@@ -715,7 +715,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-10: Hash preimage soundness**
   - Kind: soundness
   - Statement: For every byte position of every tested chunk-boundary fixture of the checked Bytes<N> hash, changing that preimage wire leaves a proving row unsatisfied.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Severity: Critical
   - Suggested test: positive/negative; `tests/unit/bytes/hash/r1cs.rs`.
   - Covered by: `tests/unit/bytes/hash/r1cs.rs::every_chunk_boundary_has_identical_setup_and_proving_rows_and_rejects_tampering`.
@@ -723,7 +723,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-11: Hash native refusal**
   - Kind: error
   - Statement: Every hardcoded hash edge vector with its claimed output incremented returns exactly the named RuleBroken error.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Error: `CircuitErrorKind::RuleBroken`.
   - Severity: Medium
   - Suggested test: positive/negative; `tests/unit/bytes/hash/native.rs`.
@@ -732,7 +732,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-12: Hash circomlib reference**
   - Kind: equivalence
   - Statement: For every tested two-chunk and three-chunk hash claim, the SDK and the Num2Bits plus Poseidon(2) circom reference accept exactly the same relation.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Severity: High
   - Suggested test: external; `tests/unit/bytes/hash/external.rs`.
   - Covered by: `tests/unit/bytes/hash/external.rs::hash_bytes_matches_circomlib_poseidon_at_two_and_three_chunks`.
@@ -740,7 +740,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-13: Hash proof interop**
   - Kind: interop
   - Statement: snarkjs verifies the two-chunk hash Groth16 proof with exactly zero public inputs.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Severity: Medium
   - Suggested test: external; `tests/unit/bytes/hash/external.rs`.
   - Covered by: `tests/unit/bytes/hash/external.rs::snarkjs_checks_tampering_and_proves_a_two_chunk_hash`.
@@ -748,7 +748,7 @@ native reference's documented contract.
 - [x] **INV-HASH-BYTES-14: Random hash**
   - Kind: native equivalence
   - Statement: For every generated 63-byte input, the SDK hash constraints accept exactly the native reference output and refuse its increment.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Severity: High
   - Suggested test: property (proptest); `tests/unit/bytes/hash/properties.rs`.
   - Covered by: `tests/unit/bytes/hash/properties.rs::random_multichunk_hashes_match_native_and_reject_changed_outputs`.
@@ -756,7 +756,7 @@ native reference's documented contract.
 - [ ] **INV-HASH-BYTES-15: Checked single-chunk determinism**
   - Kind: soundness
   - Statement: Every checked 31-byte hash output and its bit witnesses are fixed by the input byte values.
-  - Location: `zk/gadgets/src/hash_bytes.rs:27-36` (`packed`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:27-36` (`packed`).
   - Severity: Critical
   - Suggested test: external; `tests/unit/bytes/hash/picus.rs`.
   - Partial coverage: The checked-byte replacement is compile-checked with a 15-second Picus limit; its test permits Unknown without claiming determinism and rejects Unsafe. No Safe verdict for this replacement has been established in the API migration. Test: `tests/unit/bytes/hash/picus.rs::picus_checks_a_checked_single_chunk_hash_with_a_bounded_timeout`.
@@ -764,7 +764,7 @@ native reference's documented contract.
 - [ ] **INV-HASH-BYTES-16: Multi-chunk determinism**
   - Kind: soundness
   - Statement: The checked two-chunk hash is fixed by its byte inputs.
-  - Location: `zk/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
+  - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Severity: Critical
   - Suggested test: external; `tests/unit/bytes/hash/picus.rs`.
   - Partial coverage: SDK Picus returns Unknown at 15 seconds; circom Picus returns Safe. Full SDK witness uniqueness remains unproved. Test: `tests/unit/bytes/hash/picus.rs::picus_checks_two_chunk_hashes_with_a_bounded_timeout`.

@@ -61,17 +61,17 @@ applies to, and the per-builtin files reference these IDs. For now the only buil
 ## External harness execution
 
 - [x] **INV-XC-06: Picus timeout cleanup terminates detached solver descendants**
-  - Covered by: `zk/test-harness/picus.rs` `timeout_cleanup_kills_a_solver_in_a_separate_process_group`
+  - Covered by: `zk-dsl/test-harness/picus.rs` `timeout_cleanup_kills_a_solver_in_a_separate_process_group`
   - Kind: interop
   - Statement: when Racket launches a solver in a process group distinct from its own, timeout cleanup terminates that solver as well as the parent process.
-  - Location: `zk/test-harness/picus.rs` (`terminate_tree`)
+  - Location: `zk-dsl/test-harness/picus.rs` (`terminate_tree`)
   - Severity: Medium
-  - Suggested test: external (Racket, ps, kill); `zk/test-harness/picus.rs`
+  - Suggested test: external (Racket, ps, kill); `zk-dsl/test-harness/picus.rs`
 
 - [x] **INV-XC-07: cached circom modules keep witness calculations independent**
-  - Covered by: `zk/test-harness/circom.rs` `cached_modules_keep_calculations_and_assertion_handlers_independent`
+  - Covered by: `zk-dsl/test-harness/circom.rs` `cached_modules_keep_calculations_and_assertion_handlers_independent`
   - Kind: interop
   - Statement: concurrent and repeated calculations on cached addition code accept exactly the honest claims, abort wrong claims in Abort mode, and return an unsatisfying witness in Ignore mode without affecting the next calculation; changing wasm bytes at the same path selects a new compiled artifact.
-  - Location: `zk/test-harness/circom.rs` (`cached_module`, `Compiled::calculate`)
+  - Location: `zk-dsl/test-harness/circom.rs` (`cached_module`, `Compiled::calculate`)
   - Severity: Medium
-  - Suggested test: external (circom, Wasmer); `zk/test-harness/circom.rs`
+  - Suggested test: external (circom, Wasmer); `zk-dsl/test-harness/circom.rs`

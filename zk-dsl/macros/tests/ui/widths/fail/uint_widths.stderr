@@ -4,7 +4,7 @@ error[E0080]: evaluation panicked: a Uint holds between 1 and 253 bits
   |           $crate::panicking::panic_fmt($crate::const_format_args!($($t)+));
   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `zolana_zk_dsl::circuit::Uint::<0>::VALID` failed here
   |
- ::: $WORKSPACE/zk/dsl/src/circuit/builtins/types/uint.rs
+ ::: $WORKSPACE/zk-dsl/dsl/src/circuit/builtins/types/uint.rs
   |
   |       const VALID: () = assert!(
   |  _______________________-
@@ -14,7 +14,7 @@ error[E0080]: evaluation panicked: a Uint holds between 1 and 253 bits
   | |_____- in this macro invocation
 
 note: erroneous constant encountered
- --> $WORKSPACE/zk/dsl/src/circuit/builtins/types/uint.rs
+ --> $WORKSPACE/zk-dsl/dsl/src/circuit/builtins/types/uint.rs
   |
   |         let () = Self::VALID;
   |                  ^^^^^^^^^^^
@@ -31,7 +31,7 @@ error[E0080]: evaluation panicked: a sum of two Uint<BITS> needs more than BITS 
   |           $crate::panicking::panic_fmt($crate::const_format_args!($($t)+));
   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `zolana_zk_dsl::circuit::Uint::<64>::add::<64>::{constant#0}` failed here
   |
- ::: $WORKSPACE/zk/dsl/src/circuit/builtins/types/uint.rs
+ ::: $WORKSPACE/zk-dsl/dsl/src/circuit/builtins/types/uint.rs
   |
   | /             assert!(
   | |                 OUT > BITS && OUT <= MAX_BITS,
@@ -40,7 +40,7 @@ error[E0080]: evaluation panicked: a sum of two Uint<BITS> needs more than BITS 
   | |_____________- in this macro invocation
 
 note: erroneous constant encountered
- --> $WORKSPACE/zk/dsl/src/circuit/builtins/types/uint.rs
+ --> $WORKSPACE/zk-dsl/dsl/src/circuit/builtins/types/uint.rs
   |
   | /         const {
   | |             assert!(
@@ -62,7 +62,7 @@ error[E0080]: evaluation panicked: a product of two Uint<BITS> needs at least 2 
   |           $crate::panicking::panic_fmt($crate::const_format_args!($($t)+));
   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `zolana_zk_dsl::circuit::Uint::<64>::mul::<100>::{constant#0}` failed here
   |
- ::: $WORKSPACE/zk/dsl/src/circuit/builtins/types/uint.rs
+ ::: $WORKSPACE/zk-dsl/dsl/src/circuit/builtins/types/uint.rs
   |
   | /             assert!(
   | |                 OUT >= 2 * BITS && OUT <= MAX_BITS,
@@ -71,7 +71,7 @@ error[E0080]: evaluation panicked: a product of two Uint<BITS> needs at least 2 
   | |_____________- in this macro invocation
 
 note: erroneous constant encountered
- --> $WORKSPACE/zk/dsl/src/circuit/builtins/types/uint.rs
+ --> $WORKSPACE/zk-dsl/dsl/src/circuit/builtins/types/uint.rs
   |
   | /         const {
   | |             assert!(
@@ -93,7 +93,7 @@ error[E0080]: evaluation panicked: checked_mul multiplies values of at most 126 
   |           $crate::panicking::panic_fmt($crate::const_format_args!($($t)+));
   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `zolana_zk_dsl::circuit::Uint::<128>::checked_mul::{constant#0}` failed here
   |
- ::: $WORKSPACE/zk/dsl/src/circuit/builtins/types/uint.rs
+ ::: $WORKSPACE/zk-dsl/dsl/src/circuit/builtins/types/uint.rs
   |
   | /             assert!(
   | |                 2 * BITS <= MAX_BITS,
@@ -102,7 +102,7 @@ error[E0080]: evaluation panicked: checked_mul multiplies values of at most 126 
   | |_____________- in this macro invocation
 
 note: erroneous constant encountered
- --> $WORKSPACE/zk/dsl/src/circuit/builtins/types/uint.rs
+ --> $WORKSPACE/zk-dsl/dsl/src/circuit/builtins/types/uint.rs
   |
   | /         const {
   | |             assert!(
@@ -124,7 +124,7 @@ error[E0080]: evaluation panicked: subtraction and comparison work on at most 25
   |           $crate::panicking::panic_fmt($crate::const_format_args!($($t)+));
   |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ evaluation of `zolana_zk_dsl::circuit::Uint::<253>::ORDERED` failed here
   |
- ::: $WORKSPACE/zk/dsl/src/circuit/builtins/types/uint.rs
+ ::: $WORKSPACE/zk-dsl/dsl/src/circuit/builtins/types/uint.rs
   |
   |       const ORDERED: () = assert!(
   |  _________________________-
@@ -134,7 +134,7 @@ error[E0080]: evaluation panicked: subtraction and comparison work on at most 25
   | |_____- in this macro invocation
 
 note: erroneous constant encountered
- --> $WORKSPACE/zk/dsl/src/circuit/builtins/types/uint.rs
+ --> $WORKSPACE/zk-dsl/dsl/src/circuit/builtins/types/uint.rs
   |
   |         let () = Self::ORDERED;
   |                  ^^^^^^^^^^^^^

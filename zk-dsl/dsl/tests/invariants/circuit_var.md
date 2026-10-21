@@ -162,7 +162,7 @@ non-canonical claim (p - 1) + 1 = p.
   - Covered by: `tests/unit/circuit_var/add/picus.rs` `picus_finds_every_form_safe_and_the_sum_fixed_by_its_operands`; `tests/unit/circuit_var/add/picus.rs` `picus_finds_the_sum_of_a_plus_a_and_a_plus_five_fixed`
   - Kind: soundness
   - Statement: for every operand form, `run-picus --solver cvc5` reports exactly Safe for the `export_picus_r1cs` file, and exactly Safe once the sum is moved from the private inputs to the outputs: no two witnesses with the same left and right (or a, for `Double` and `PlusFive`) differ in the sum.
-  - Location: `src/prover/snarkjs.rs:20-45` (`fn picus_r1cs`), `src/client/zk_circuit.rs:19-25` (`fn export_picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict`, `fn promote`)
+  - Location: `src/prover/snarkjs.rs:20-45` (`fn picus_r1cs`), `src/client/zk_circuit.rs:19-25` (`fn export_picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict`, `fn promote`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/add/picus.rs`
 
@@ -170,7 +170,7 @@ non-canonical claim (p - 1) + 1 = p.
   - Covered by: `tests/unit/circuit_var/add/picus.rs` `picus_finds_b_free_once_a_plus_b_minus_b_inlines_to_a`; `tests/unit/circuit_var/add/picus.rs` `picus_finds_an_operand_free_when_no_sum_is_asserted`
   - Kind: soundness
   - Statement: Picus distinguishes a free variable from a fixed one on the add fixtures: in `AddThenSubtract`, whose row inlines to a - sum = 0, a and the sum are each exactly Safe once moved to the outputs and b is exactly Unsafe; in `Unasserted`, the export with no outputs is exactly Safe and `right` moved to the outputs is exactly Unsafe.
-  - Location: `src/prover/snarkjs.rs:20-45` (`fn picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict`, `fn promote`)
+  - Location: `src/prover/snarkjs.rs:20-45` (`fn picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict`, `fn promote`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/add/picus.rs`
 
@@ -252,7 +252,7 @@ non-canonical claim (p - 1) + 1 = p.
   - Covered by: `tests/unit/circuit_var/add/external.rs` `circom_witness_calculation_fails_for_every_invalid_vector`
   - Kind: equivalence
   - Statement: for every invalid vector, including the sum p passed unreduced, circom's witness calculation aborts with exactly "Assert Failed" from `sum === left + right`. ark-circom's own runtime ignores circom's `exceptionHandler`, so the harness installs one that aborts as circom's runtime does; snarkjs's `wtns calculate` reduces p to 0 first and accepts that claim.
-  - Location: `tests/unit/circuit_var/add/add.circom`, `zk/test-harness/circom.rs` (`fn calculator`)
+  - Location: `tests/unit/circuit_var/add/add.circom`, `zk-dsl/test-harness/circom.rs` (`fn calculator`)
   - Severity: Medium
   - Suggested test: external (circom); `tests/unit/circuit_var/add/external.rs`
 
@@ -462,7 +462,7 @@ non-canonical claim 1 - 1 = p.
   - Covered by: `tests/unit/circuit_var/sub/picus.rs` `picus_finds_every_form_safe_and_the_difference_fixed_by_its_operands`; `tests/unit/circuit_var/sub/picus.rs` `picus_finds_a_free_once_a_minus_a_cancels`
   - Kind: soundness
   - Statement: for every operand form, `run-picus --solver cvc5` reports exactly Safe for the `export_picus_r1cs` file and exactly Safe once the difference is moved to the outputs, and it reports exactly Safe for `MinusFive` with its difference moved to the outputs: no two witnesses with the same operands differ in the difference. Every call runs under a 120 s limit.
-  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
+  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/sub/picus.rs`
 
@@ -470,7 +470,7 @@ non-canonical claim 1 - 1 = p.
   - Covered by: `tests/unit/circuit_var/sub/picus.rs` `picus_finds_a_free_once_a_minus_a_cancels`; `tests/unit/circuit_var/sub/picus.rs` `picus_finds_an_operand_free_when_no_difference_is_asserted`
   - Kind: soundness
   - Statement: in `SelfMinusSelf`, whose row reads `difference = 0`, a moved to the outputs is exactly Unsafe and the difference moved to the outputs is exactly Safe; in `Unasserted`, the export with no outputs is exactly Safe and `right` moved to the outputs is exactly Unsafe.
-  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
+  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/sub/picus.rs`
 
@@ -552,7 +552,7 @@ non-canonical claim 1 - 1 = p.
   - Covered by: `tests/unit/circuit_var/sub/external.rs` `circom_witness_calculation_fails_for_every_invalid_vector`
   - Kind: equivalence
   - Statement: for every invalid vector, and for the difference p passed unreduced, circom's witness calculation aborts with exactly "Assert Failed" from `difference === left - right`.
-  - Location: `tests/unit/circuit_var/sub/sub.circom`, `zk/test-harness/circom.rs` (`fn calculator`)
+  - Location: `tests/unit/circuit_var/sub/sub.circom`, `zk-dsl/test-harness/circom.rs` (`fn calculator`)
   - Severity: Medium
   - Suggested test: external (circom); `tests/unit/circuit_var/sub/external.rs`
 
@@ -787,7 +787,7 @@ non-canonical claim 1 * 0 = p.
   - Covered by: `tests/unit/circuit_var/mul/picus.rs` `picus_finds_every_form_safe_and_the_product_fixed_by_its_operands`; `tests/unit/circuit_var/mul/picus.rs` `picus_finds_the_square_and_the_product_of_a_sum_fixed`
   - Kind: soundness
   - Statement: for every operand form, Picus reports exactly Safe for the `export_picus_r1cs` file (whose output is w in the variable forms) and exactly Safe once the claimed product is moved to the outputs; the product of `Square` and of `SumTimes` moved to the outputs is exactly Safe. Every call runs under a 120 s limit.
-  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict_within`, `fn promote`, `fn picus_wire`)
+  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict_within`, `fn promote`, `fn picus_wire`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/mul/picus.rs`
 
@@ -795,7 +795,7 @@ non-canonical claim 1 * 0 = p.
   - Covered by: `tests/unit/circuit_var/mul/picus.rs` `picus_finds_a_free_once_times_zero_drops_it`; `tests/unit/circuit_var/mul/picus.rs` `picus_finds_an_operand_free_when_no_product_is_asserted`
   - Kind: soundness
   - Statement: in `TimesZero`, a moved to the outputs is exactly Unsafe and the product moved to the outputs exactly Safe; `UnassertedVariables`, whose outputs are its six product witnesses, is exactly Safe while `right` moved to the outputs is exactly Unsafe, and `left` of `UnassertedConstants` moved to the outputs is exactly Unsafe.
-  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
+  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/mul/picus.rs`
 
@@ -886,7 +886,7 @@ non-canonical claim 1 * 0 = p.
   - Covered by: `tests/unit/circuit_var/mul/external.rs` `circom_witness_calculation_fails_for_every_invalid_vector`
   - Kind: equivalence
   - Statement: for every invalid vector, and for the product p passed unreduced, circom's witness calculation aborts with exactly "Assert Failed".
-  - Location: `tests/unit/circuit_var/mul/mul.circom`, `zk/test-harness/circom.rs` (`fn calculator`)
+  - Location: `tests/unit/circuit_var/mul/mul.circom`, `zk-dsl/test-harness/circom.rs` (`fn calculator`)
   - Severity: Medium
   - Suggested test: external (circom); `tests/unit/circuit_var/mul/external.rs`
 
@@ -1084,7 +1084,7 @@ computes both forms and asserts nothing. The valid vectors are -0 = 0, -1 = p - 
   - Covered by: `tests/unit/circuit_var/neg/picus.rs` `picus_finds_the_negation_and_the_value_each_fixed_by_the_other`
   - Kind: soundness
   - Statement: for both forms and for `DoubleNegation`, Picus reports exactly Safe for the `export_picus_r1cs` file, exactly Safe with the negation moved to the outputs and exactly Safe with the value moved to the outputs, each call under a 120 s limit.
-  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
+  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/neg/picus.rs`
 
@@ -1092,7 +1092,7 @@ computes both forms and asserts nothing. The valid vectors are -0 = 0, -1 = p - 
   - Covered by: `tests/unit/circuit_var/neg/picus.rs` `picus_finds_the_value_free_once_a_plus_minus_a_cancels`
   - Kind: soundness
   - Statement: in `PlusNegation`, the value moved to the outputs is exactly Unsafe and the negation moved to the outputs exactly Safe.
-  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
+  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/neg/picus.rs`
 
@@ -1165,7 +1165,7 @@ computes both forms and asserts nothing. The valid vectors are -0 = 0, -1 = p - 
   - Covered by: `tests/unit/circuit_var/neg/external.rs` `circom_witness_calculation_fails_for_every_invalid_vector`
   - Kind: equivalence
   - Statement: for every invalid vector, and for the negation p passed unreduced, circom's witness calculation aborts with exactly "Assert Failed".
-  - Location: `tests/unit/circuit_var/neg/neg.circom`, `zk/test-harness/circom.rs` (`fn calculator`)
+  - Location: `tests/unit/circuit_var/neg/neg.circom`, `zk-dsl/test-harness/circom.rs` (`fn calculator`)
   - Severity: Medium
   - Suggested test: external (circom); `tests/unit/circuit_var/neg/external.rs`
 
@@ -1358,7 +1358,7 @@ vectors claim 1 / 0 = 0, 1 and p - 1. The circom reference `inverse.circom` comp
   - Covered by: `tests/unit/circuit_var/inverse/picus.rs` `picus_finds_the_sdk_and_the_circom_inverse_deterministic`
   - Kind: soundness
   - Statement: Picus reports exactly Safe for `Inverse`'s `export_picus_r1cs` with the claim moved to the outputs next to w, and exactly Safe for `inverse.circom` with its `inverse` input moved to the outputs, each under a 120 s limit.
-  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/inverse/picus.rs`
 
@@ -1366,7 +1366,7 @@ vectors claim 1 / 0 = 0, 1 and p - 1. The circom reference `inverse.circom` comp
   - Covered by: `tests/unit/circuit_var/inverse/picus.rs` `picus_finds_the_inverse_witness_fixed_by_x_and_x_fixed_by_the_claim`
   - Kind: soundness
   - Statement: Picus reports exactly Safe for `Unasserted`'s and `Inverse`'s Picus exports, whose only output is w, and exactly Safe for `Inverse` with x also moved to the outputs.
-  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict_within`, `fn promote`, `fn picus_wire`)
+  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict_within`, `fn promote`, `fn picus_wire`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/inverse/picus.rs`
 
@@ -1451,7 +1451,7 @@ vectors claim 1 / 0 = 0, 1 and p - 1. The circom reference `inverse.circom` comp
   - Covered by: `tests/unit/circuit_var/inverse/external.rs` `circom_accepts_exactly_the_cases_the_sdk_accepts`
   - Kind: equivalence
   - Statement: for every valid, invalid and zero vector, the SDK native run, the SDK R1CS, circom's witness calculation and circom's R1CS (checked against the witness calculated with failed asserts ignored) all accept exactly when the vector is valid; the SDK R1CS is checked against the honest assignment with the claim overwritten for an invalid vector and against `[1, 0, claim, 0]` for a zero vector.
-  - Location: `src/circuit/builtins/field/arithmetic.rs:7-19` (`fn inverse`), `tests/unit/circuit_var/inverse/inverse.circom`, `zk/test-harness/equivalence.rs` (`fn assert_relation_equivalent`)
+  - Location: `src/circuit/builtins/field/arithmetic.rs:7-19` (`fn inverse`), `tests/unit/circuit_var/inverse/inverse.circom`, `zk-dsl/test-harness/equivalence.rs` (`fn assert_relation_equivalent`)
   - Severity: High
   - Suggested test: external (circom); `tests/unit/circuit_var/inverse/external.rs`
 
@@ -1628,7 +1628,7 @@ quotient === product`.
   - Covered by: `tests/unit/circuit_var/div/picus.rs` `picus_finds_the_sdk_and_the_circom_quotient_deterministic`
   - Kind: soundness
   - Statement: Picus reports exactly Safe for `Div`'s `export_picus_r1cs` with the quotient moved to the outputs next to i and q, exactly Safe for `div.circom` with its `quotient` input moved to the outputs, and exactly Safe for `FourOver`'s Picus export, each under a 120 s limit.
-  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `src/prover/snarkjs.rs:19-45` (`fn picus_r1cs`), `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/div/picus.rs`
 
@@ -1713,7 +1713,7 @@ quotient === product`.
   - Covered by: `tests/unit/circuit_var/div/external.rs` `circom_accepts_exactly_the_cases_the_sdk_accepts`
   - Kind: equivalence
   - Statement: for every valid, invalid and zero vector, the SDK native run, the SDK R1CS, circom's witness calculation and circom's R1CS all accept exactly when the vector is valid; the SDK R1CS is checked against the honest assignment with the quotient overwritten for an invalid vector and against `[1, dividend, 0, quotient, 0, quotient]` for a zero vector.
-  - Location: `src/circuit/builtins/field/arithmetic.rs:21-24` (`fn div`), `tests/unit/circuit_var/div/div.circom`, `zk/test-harness/equivalence.rs` (`fn assert_relation_equivalent`)
+  - Location: `src/circuit/builtins/field/arithmetic.rs:21-24` (`fn div`), `tests/unit/circuit_var/div/div.circom`, `zk-dsl/test-harness/equivalence.rs` (`fn assert_relation_equivalent`)
   - Severity: High
   - Suggested test: external (circom); `tests/unit/circuit_var/div/external.rs`
 
@@ -1881,7 +1881,7 @@ is `Pow<5>`, whose witnesses are x^2, x^4 and x^5. The valid vectors are 0^5 = 0
   - Covered by: `tests/unit/circuit_var/pow/picus.rs` `picus_finds_the_sdk_and_the_circom_power_deterministic`
   - Kind: soundness
   - Statement: Picus reports exactly Safe for `Pow5`'s `export_picus_r1cs` with the power moved to the outputs next to the witnesses, and exactly Safe for `pow.circom` with its `power` input moved to the outputs, each under a 120 s limit.
-  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/pow/picus.rs`
 
@@ -1889,7 +1889,7 @@ is `Pow<5>`, whose witnesses are x^2, x^4 and x^5. The valid vectors are 0^5 = 0
   - Covered by: `tests/unit/circuit_var/pow/picus.rs` `picus_finds_x_free_in_x_to_the_0_and_fixed_by_the_power_in_x_to_the_1`
   - Kind: soundness
   - Statement: under a 120 s limit Picus reports exactly Unsafe for `Pow<0>` with x moved to the outputs, exactly Safe for `Pow<0>` with the power moved to the outputs, and exactly Safe for `Pow<1>` with x moved to the outputs.
-  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
+  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict_within`, `fn promote`)
   - Severity: High
   - Suggested test: external (Picus); `tests/unit/circuit_var/pow/picus.rs`
 
@@ -1954,7 +1954,7 @@ is `Pow<5>`, whose witnesses are x^2, x^4 and x^5. The valid vectors are 0^5 = 0
   - Covered by: `tests/unit/circuit_var/pow/external.rs` `circom_witness_calculation_fails_for_every_invalid_vector`
   - Kind: equivalence
   - Statement: for every invalid vector, circom's witness calculation with aborting asserts fails with exactly an "Assert Failed" error, as the SDK's native run refuses it (INV-CV-POW-16).
-  - Location: `tests/unit/circuit_var/pow/pow.circom`, `zk/test-harness/circom.rs` (`fn calculate`)
+  - Location: `tests/unit/circuit_var/pow/pow.circom`, `zk-dsl/test-harness/circom.rs` (`fn calculate`)
   - Severity: High
   - Suggested test: external (circom); `tests/unit/circuit_var/pow/external.rs`
 
@@ -2195,7 +2195,7 @@ constraint per bit (`from_bits.circom`) and `is_bool.circom`.
   - Covered by: `tests/unit/circuit_var/bits/picus.rs` `picus_finds_check_bits_and_num2bits_deterministic`
   - Kind: soundness
   - Statement: under a 120 s limit Picus reports exactly Safe for `CheckBits<4>`'s Picus export, whose outputs are the four bit witnesses, and exactly Safe for circomlib's `Num2Bits(4)` reference.
-  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/bits/picus.rs`
 
@@ -2203,7 +2203,7 @@ constraint per bit (`from_bits.circom`) and `is_bool.circom`.
   - Covered by: `tests/unit/circuit_var/bits/picus.rs` `picus_finds_the_claimed_bits_fixed_by_x_in_both`
   - Kind: soundness
   - Statement: under a 120 s limit Picus reports exactly Safe for `ToBits<4>` with the claimed bits (wires 2..=5) moved to the outputs, and exactly Safe for `to_bits.circom` with `main.bits[0..4]` moved to the outputs.
-  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/bits/picus.rs`
 
@@ -2211,7 +2211,7 @@ constraint per bit (`from_bits.circom`) and `is_bool.circom`.
   - Covered by: `tests/unit/circuit_var/bits/picus.rs` `picus_finds_the_value_fixed_by_its_bits_in_both`
   - Kind: soundness
   - Statement: under a 120 s limit Picus reports exactly Safe for `FromBits<4>` with the value (wire 5) moved to the outputs, and exactly Safe for `from_bits.circom` with `main.value` moved to the outputs.
-  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/circuit_var/bits/picus.rs`
 
@@ -2219,7 +2219,7 @@ constraint per bit (`from_bits.circom`) and `is_bool.circom`.
   - Covered by: `tests/unit/circuit_var/bits/picus.rs` `picus_finds_the_1_and_5_bit_decompositions_deterministic`
   - Kind: soundness
   - Statement: under a 120 s limit Picus reports exactly Safe for the Picus exports of `CheckBits<1>` and `CheckBits<5>`.
-  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk/test-harness/picus.rs` (`fn verdict_within`)
+  - Location: `src/prover/snarkjs.rs:24-50` (`fn picus_r1cs`), `zk-dsl/test-harness/picus.rs` (`fn verdict_within`)
   - Severity: High
   - Suggested test: external (Picus); `tests/unit/circuit_var/bits/picus.rs`
 
@@ -2283,7 +2283,7 @@ constraint per bit (`from_bits.circom`) and `is_bool.circom`.
   - Covered by: `tests/unit/circuit_var/bits/external.rs` `check_bits_accepts_exactly_the_values_circomlib_num2bits_accepts`
   - Kind: equivalence
   - Statement: for every width-4 vector, the SDK native run, the SDK R1CS, circom's witness calculation and circom's R1CS all accept exactly the fitting values, and the sizes are exactly 5 constraints over 6 variables for the SDK and 10 over 11 for `Num2Bits(4)`.
-  - Location: `src/circuit/builtins/field/bits.rs:64-91` (`fn range_check`, `fn bits_le`), `tests/unit/circuit_var/bits/check_bits.circom`, `zk/test-harness/equivalence.rs` (`fn assert_relation_equivalent`)
+  - Location: `src/circuit/builtins/field/bits.rs:64-91` (`fn range_check`, `fn bits_le`), `tests/unit/circuit_var/bits/check_bits.circom`, `zk-dsl/test-harness/equivalence.rs` (`fn assert_relation_equivalent`)
   - Severity: High
   - Suggested test: external (circomlib); `tests/unit/circuit_var/bits/external.rs`
 

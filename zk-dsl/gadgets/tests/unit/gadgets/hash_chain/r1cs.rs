@@ -76,13 +76,13 @@ const DIGESTS: [&str; 5] = [
 const ZERO_TEST_LABEL: &str = "a hash chain of the nonzero values";
 
 const VALUE_ZERO_TEST: Site = Site {
-    file: "zk/gadgets/src/hash_chain.rs",
+    file: "zk-dsl/gadgets/src/hash_chain.rs",
     line: 14,
     column: 26,
 };
 
 const CHAIN_ZERO_TEST: Site = Site {
-    file: "zk/gadgets/src/hash_chain.rs",
+    file: "zk-dsl/gadgets/src/hash_chain.rs",
     line: 18,
     column: 32,
 };

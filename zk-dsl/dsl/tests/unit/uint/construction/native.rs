@@ -11,7 +11,7 @@ use crate::uint::{
     Widths,
 };
 
-const UINT_FILE: &str = "zk/dsl/src/circuit/builtins/types/uint.rs";
+const UINT_FILE: &str = "zk-dsl/dsl/src/circuit/builtins/types/uint.rs";
 
 type Forms = (Result<(), Refused>, Result<(), Refused>);
 

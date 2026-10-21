@@ -181,7 +181,7 @@ The conversion fixture `Converted<FORM>` asserts `convert(x) == out` for five fo
   - Covered by: `tests/unit/bool/external.rs` `not_is_relation_equivalent_to_circomlib_not`; `tests/unit/bool/external.rs` `every_two_operand_gate_is_relation_equivalent_to_its_circom_reference`
   - Kind: equivalence
   - Statement: for every non-boolean vector (and every non-boolean pair), the SDK natively, the SDK export against a witness whose every other wire is consistent, circom's witness calculation and circom's R1CS against its own witness all refuse the operand, and all four accept every boolean operand with its honest claim.
-  - Location: `src/circuit/builtins/field/bits.rs:50-62` (`fn assert_bool`), `tests/unit/bool/circom/not.circom`, `zk/test-harness/equivalence.rs` (`fn assert_relation_equivalent`)
+  - Location: `src/circuit/builtins/field/bits.rs:50-62` (`fn assert_bool`), `tests/unit/bool/circom/not.circom`, `zk-dsl/test-harness/equivalence.rs` (`fn assert_relation_equivalent`)
   - Severity: High
   - Suggested test: external (circom); `tests/unit/bool/external.rs`
 
@@ -321,7 +321,7 @@ booleanity line per input, since circomlib's gates constrain none; `implies.circ
   - Covered by: `tests/unit/bool/picus.rs` `picus_finds_every_gate_output_fixed_by_its_operands_in_the_sdk_and_in_circom`; `tests/unit/bool/picus.rs` `picus_finds_every_conversion_and_constant_operand_output_fixed`
   - Kind: soundness
   - Statement: for every two-operand gate, `not` and every constant operand form, Picus reports exactly Safe for the SDK's Picus export with `out` promoted to an output (the product witness is an output already).
-  - Location: `src/prover/snarkjs.rs:20-45` (`fn picus_r1cs`), `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `src/prover/snarkjs.rs:20-45` (`fn picus_r1cs`), `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: Critical
   - Suggested test: external (Picus); `tests/unit/bool/picus.rs`
 
@@ -403,7 +403,7 @@ booleanity line per input, since circomlib's gates constrain none; `implies.circ
   - Covered by: `tests/unit/bool/external.rs` `every_two_operand_gate_is_relation_equivalent_to_its_circom_reference`; `tests/unit/bool/external.rs` `not_is_relation_equivalent_to_circomlib_not`
   - Kind: equivalence
   - Statement: every two-operand gate exports exactly 4 constraints and 5 variables against circom's 6 and 7 under `--O0` (which keeps one copy row per component input); `not` exports exactly 2 and 3 against circom's 4 and 5.
-  - Location: `zk/test-harness/equivalence.rs` (`fn sizes`)
+  - Location: `zk-dsl/test-harness/equivalence.rs` (`fn sizes`)
   - Severity: Medium
   - Suggested test: external (circom); `tests/unit/bool/external.rs`
 
@@ -411,7 +411,7 @@ booleanity line per input, since circomlib's gates constrain none; `implies.circ
   - Covered by: `tests/unit/bool/picus.rs` `picus_finds_every_gate_output_fixed_by_its_operands_in_the_sdk_and_in_circom`
   - Kind: equivalence
   - Statement: for every two-operand gate and `not`, Picus reports exactly Safe for the circom reference with `main.out` promoted to an output, the same verdict as for the SDK export (INV-BOOL-GATE-14).
-  - Location: `zk/test-harness/equivalence.rs` (`fn picus_verdicts`), `tests/unit/bool/circom/`
+  - Location: `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`), `tests/unit/bool/circom/`
   - Severity: High
   - Suggested test: external (Picus); `tests/unit/bool/picus.rs`
 
@@ -607,7 +607,7 @@ over circomlib `IsZero`, each with a booleanity line per flag.
   - Covered by: `tests/unit/bool/external.rs` `all_of_three_flags_is_relation_equivalent_to_circomlib_multi_and`; `tests/unit/bool/external.rs` `any_of_three_flags_is_relation_equivalent_to_a_reference_over_circomlib_is_zero`
   - Kind: equivalence
   - Statement: both folds of three flags export exactly 6 constraints and 7 variables, against exactly 19 and 20 for `MultiAND(3)` (a tree of two-input ANDs) and exactly 11 and 12 for the `IsZero` reference.
-  - Location: `zk/test-harness/equivalence.rs` (`fn sizes`)
+  - Location: `zk-dsl/test-harness/equivalence.rs` (`fn sizes`)
   - Severity: Medium
   - Suggested test: external (circom); `tests/unit/bool/external.rs`
 
@@ -615,7 +615,7 @@ over circomlib `IsZero`, each with a booleanity line per flag.
   - Covered by: `tests/unit/bool/picus.rs` `picus_finds_every_fold_and_select_output_fixed_in_the_sdk_and_in_circom`
   - Kind: equivalence
   - Statement: Picus reports exactly Safe for `multi_and.circom` and `any.circom` with `main.out` promoted, the same verdict as for the SDK exports.
-  - Location: `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: High
   - Suggested test: external (Picus); `tests/unit/bool/picus.rs`
 
@@ -786,7 +786,7 @@ branches as constants. The reference is circomlib `Mux1` with `c[0]` the false b
   - Covered by: `tests/unit/bool/external.rs` `select_is_relation_equivalent_to_circomlib_mux1`
   - Kind: equivalence
   - Statement: `Choose<0>` exports exactly 5 constraints and 6 variables against exactly 12 and 13 for the `Mux1` reference.
-  - Location: `zk/test-harness/equivalence.rs` (`fn sizes`)
+  - Location: `zk-dsl/test-harness/equivalence.rs` (`fn sizes`)
   - Severity: Medium
   - Suggested test: external (circom); `tests/unit/bool/external.rs`
 
@@ -794,7 +794,7 @@ branches as constants. The reference is circomlib `Mux1` with `c[0]` the false b
   - Covered by: `tests/unit/bool/picus.rs` `picus_finds_every_fold_and_select_output_fixed_in_the_sdk_and_in_circom`
   - Kind: equivalence
   - Statement: Picus reports exactly Safe for `select.circom` with `main.out` promoted, the same verdict as for the SDK export.
-  - Location: `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: High
   - Suggested test: external (Picus); `tests/unit/bool/picus.rs`
 
@@ -956,7 +956,7 @@ reference `assert_true_if.circom` is our own: booleanity lines and `(a - 1) * b 
   - Covered by: `tests/unit/bool/picus.rs` `picus_finds_the_flag_of_assert_true_if_free_in_the_sdk_and_in_circom`
   - Kind: equivalence
   - Statement: Picus reports exactly Unsafe for `assert_true_if.circom` with `main.a` promoted and with `main.b` promoted, the same verdicts as for the SDK export (INV-BOOL-ASSERT-09).
-  - Location: `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: High
   - Suggested test: external (Picus); `tests/unit/bool/picus.rs`
 
@@ -1135,7 +1135,7 @@ for `is_equal` is circomlib `IsEqual` with a booleanity line per input.
   - Covered by: `tests/unit/bool/picus.rs` `picus_finds_every_gate_output_fixed_by_its_operands_in_the_sdk_and_in_circom`
   - Kind: equivalence
   - Statement: Picus reports exactly Safe for `is_equal.circom` with `main.out` promoted, the same verdict as for the SDK export.
-  - Location: `zk/test-harness/equivalence.rs` (`fn picus_verdicts`)
+  - Location: `zk-dsl/test-harness/equivalence.rs` (`fn picus_verdicts`)
   - Severity: High
   - Suggested test: external (Picus); `tests/unit/bool/picus.rs`
 

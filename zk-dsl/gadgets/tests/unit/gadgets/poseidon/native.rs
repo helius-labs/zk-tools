@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-pub const POSEIDON_FILE: &str = "zk/gadgets/src/poseidon.rs";
+pub const POSEIDON_FILE: &str = "zk-dsl/gadgets/src/poseidon.rs";
 
 pub const UNSUPPORTED: Refusal = (
     "CircuitError.UnsupportedHashInputCount",

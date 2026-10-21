@@ -23,3 +23,23 @@ jobs:
       - run: GOOS=js GOARCH=wasm CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/zolana-prover.wasm ./prover-wasm
       - run: cd cgo && go vet ./... && go test ./...
       - run: cd cgo && CGO_ENABLED=1 go build -buildmode=c-archive -o /tmp/libgnark.a .
+
+  zk:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      # rustup installs the channel rust-toolchain.toml pins.
+      - run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: taiki-e/install-action@43aecc8d72668fbcfe75c31400bc4f890f1c5853 # v2
+        with:
+          tool: just
+      - run: cargo fmt --all --check
+      - run: just check-zk
+      - run: just clippy-zk
+      - run: just test-zk
