@@ -1,4 +1,4 @@
-use super::{Bool, Bytes, CircuitVar, Uint};
+use super::{Bool, Bytes, CircuitVar, SolanaAddress, Uint};
 
 /// A circuit's result and its binding to the proof's public inputs.
 ///
@@ -68,6 +68,14 @@ impl<const N: usize> PublicValue for Bytes<N> {
 
     fn public_inputs(&self, inputs: &mut Vec<CircuitVar>) {
         inputs.extend(self.packed());
+    }
+}
+
+impl PublicValue for SolanaAddress {
+    const PUBLIC_INPUTS: usize = <Bytes<32> as PublicValue>::PUBLIC_INPUTS;
+
+    fn public_inputs(&self, inputs: &mut Vec<CircuitVar>) {
+        self.as_bytes().public_inputs(inputs);
     }
 }
 

@@ -61,6 +61,8 @@ impl Circuit for WithdrawalCircuit {
 }
 ```
 
+Rust `Address` inputs instantiate as `SolanaAddress`, a circuit wrapper around `Bytes<32>`.
+
 Each public field is bound directly as Groth16 public inputs, in declaration order, with no
 hashing: integers, bools and 32-byte field values (`Field`, `[u8; 32]` below the modulus) take
 one input each, `Bytes<N>` and `Address` pack into 31-byte big-endian chunks

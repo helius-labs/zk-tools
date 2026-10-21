@@ -44,17 +44,19 @@ impl<const N: usize> FromCircuit for client::Bytes<N> {
 }
 
 impl ProofInput for Address {
-    type Circuit = circuit::Bytes<32>;
+    type Circuit = circuit::SolanaAddress;
 
-    fn instantiate(&self, allocator: &Allocator) -> Result<circuit::Bytes<32>, CircuitError> {
-        client::Bytes(*self.as_array()).instantiate(allocator)
+    fn instantiate(&self, allocator: &Allocator) -> Result<Self::Circuit, CircuitError> {
+        Ok(client::Bytes(*self.as_array())
+            .instantiate(allocator)?
+            .into())
     }
 }
 
 impl FromCircuit for Address {
-    fn from_circuit(circuit: &circuit::Bytes<32>) -> Result<Self, CircuitError> {
+    fn from_circuit(circuit: &circuit::SolanaAddress) -> Result<Self, CircuitError> {
         Ok(Address::new_from_array(
-            client::Bytes::<32>::from_circuit(circuit)?.0,
+            client::Bytes::<32>::from_circuit(circuit.as_bytes())?.0,
         ))
     }
 }

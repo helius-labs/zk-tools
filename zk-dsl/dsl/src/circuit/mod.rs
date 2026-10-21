@@ -7,7 +7,7 @@ pub(crate) mod output;
 
 pub use builtins::{
     constant, from_bits_le, system_of, value, zero, Assert, Bool, Bytes, CircuitSystem, CircuitVar,
-    ConstraintSystem, Field, Select, Uint, U128, U16, U32, U64, U8,
+    ConstraintSystem, Field, Select, SolanaAddress, Uint, U128, U16, U32, U64, U8,
 };
 pub use circuit_type::{CircuitDefault, CircuitType};
 pub use labels::{CircuitLabel, CircuitSize, FailedConstraint, LabelKind, Scope, VariableRole};

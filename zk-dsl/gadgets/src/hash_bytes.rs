@@ -2,7 +2,7 @@ use zolana_zk_dsl::{
     circuit::{
         builtins::{field::var::system_of, types::bytes::packed},
         labels::Scope,
-        zero, Bytes, CircuitVar,
+        zero, Bytes, CircuitVar, SolanaAddress,
     },
     CircuitError,
 };
@@ -22,6 +22,13 @@ impl<const N: usize> HashBytes for Bytes<N> {
     #[track_caller]
     fn hash_bytes(&self) -> Result<CircuitVar, CircuitError> {
         hash_bytes(self.bytes())
+    }
+}
+
+impl HashBytes for SolanaAddress {
+    #[track_caller]
+    fn hash_bytes(&self) -> Result<CircuitVar, CircuitError> {
+        self.as_bytes().hash_bytes()
     }
 }
 

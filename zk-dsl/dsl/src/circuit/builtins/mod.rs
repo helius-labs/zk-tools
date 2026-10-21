@@ -10,5 +10,6 @@ pub use ops::{assert::Assert, select::Select};
 pub use types::{
     boolean::Bool,
     bytes::Bytes,
+    solana_address::SolanaAddress,
     uint::{Uint, U128, U16, U32, U64, U8},
 };
