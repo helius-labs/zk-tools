@@ -1099,6 +1099,9 @@ pub fn export_verifier(opts: &ExportVerifierOptions) -> Result<()> {
             })?;
         let loaded = Groth16Keys::load_checked(&pk, checksum)
             .map_err(BuildError::prover("checking", &pk))?;
+        loaded
+            .check_setup_kind(opts.setup)
+            .map_err(BuildError::prover("checking setup provenance of", &pk))?;
         if matches!(opts.setup, SetupKind::Production | SetupKind::SingleParty) {
             let r1cs = circuits.build_dir.join(renamed(&pk, "r1cs")?);
             if loaded.circuit_digest() != &load_r1cs(&r1cs)?.digest() {

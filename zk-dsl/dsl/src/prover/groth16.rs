@@ -277,21 +277,27 @@ impl Groth16Keys {
     }
 
     #[cfg(feature = "setup")]
+    pub(crate) fn check_setup_kind(&self, setup: SetupKind) -> Result<(), ProverError> {
+        if matches!(setup, SetupKind::Production) && !self.imported_zkey {
+            return Err(ProverErrorKind::ProductionKeyRequired.into());
+        }
+        if setup != self.setup_kind() {
+            return Err(ProverErrorKind::SetupKindMismatch.into());
+        }
+        if matches!(setup, SetupKind::Production | SetupKind::SingleParty)
+            && self.circuit_digest == [0u8; 32]
+        {
+            return Err(ProverErrorKind::ProductionCircuitDigestRequired.into());
+        }
+        Ok(())
+    }
+
+    #[cfg(feature = "setup")]
     pub fn export_verifying_key(&self, export: &VerifyingKeyExport<'_>) -> Result<(), ProverError> {
         use groth16_solana::vk::circom::parse_vk_json_to_rust_string;
         use sha2::{Digest, Sha256};
 
-        if export.setup != self.setup_kind() {
-            return Err(ProverErrorKind::SetupKindMismatch.into());
-        }
-        if matches!(export.setup, SetupKind::Production | SetupKind::SingleParty) {
-            if matches!(export.setup, SetupKind::Production) && !self.imported_zkey {
-                return Err(ProverErrorKind::ProductionKeyRequired.into());
-            }
-            if self.circuit_digest == [0u8; 32] {
-                return Err(ProverErrorKind::ProductionCircuitDigestRequired.into());
-            }
-        }
+        self.check_setup_kind(export.setup)?;
         let checksum: [u8; 32] = Sha256::digest(self.to_bytes()?).into();
         let mut source = parse_vk_json_to_rust_string(
             &circom_vk_json(&self.proving_key.vk).to_string(),
