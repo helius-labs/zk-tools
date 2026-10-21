@@ -46,10 +46,12 @@ pub enum BuildError {
     NoCircuits(PathBuf),
     #[error("skipping the r1cs, the keys and the wasm leaves nothing to compile")]
     NothingToCompile,
-    #[error(
-        "only the test setup runs here; pass `test` for local keys, or run a ceremony and import its zkey"
-    )]
-    TestSetupNotAcknowledged,
+    #[error("{} is an imported ceremony key; --test cannot replace it", .0.display())]
+    ImportedKeyTestMode(PathBuf),
+    #[error("{} must match the committed ceremony verifying key; restore or import its proving key", .0.display())]
+    ImportedKeyUnavailable(PathBuf),
+    #[error("{} does not match the local ceremony proving key; restore the matching key or explicitly re-export the imported key", .0.display())]
+    ImportedKeyChecksumMismatch(PathBuf),
     #[error("no .{extension} files in {}; run `{producer}` first or pass the files", dir.display())]
     NoInputs {
         extension: &'static str,

@@ -301,6 +301,8 @@ pub enum ProverErrorKind {
     KeyChecksumMismatch,
     #[error("production export requires an imported ceremony zkey; this key has no verified ceremony provenance")]
     ProductionKeyRequired,
+    #[error("the requested setup kind does not match the proving key provenance")]
+    SetupKindMismatch,
     #[error("production export requires a proving key bound to its circuit matrices")]
     ProductionCircuitDigestRequired,
     #[cfg(feature = "setup")]

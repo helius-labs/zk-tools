@@ -24,8 +24,8 @@ mod verifier_codegen;
 pub use verifier_codegen::{binding_base, render_verifier, rust_type};
 
 /// The text a verifying key module carries when it was not generated from an
-/// insecure test setup. A build keeps such a module instead of overwriting it
-/// with a test key.
+/// insecure test setup. Legacy modules without a `ZOLANA_SETUP_KIND` label
+/// are treated as imported keys; new single-party keys are labeled separately.
 pub const PRODUCTION_KEY: &str = "VERIFYINGKEY_INSECURE_TEST_SETUP: bool = false";
 
 /// Writes the r1cs of `C` and its verifier module `glue` for the hook of

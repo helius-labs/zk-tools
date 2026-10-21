@@ -53,3 +53,20 @@ fn a_key_without_a_circuit_digest_is_rejected() {
     bytes.truncate(bytes.len() - 32);
     assert!(Groth16Keys::from_bytes(&bytes).is_err());
 }
+
+#[test]
+fn random_single_party_keys_survive_serialization_and_verify_honest_proofs() {
+    use zolana_program::{R1cs, SetupKind};
+
+    let r1cs = R1cs::from_bytes(&Old::export_r1cs().unwrap()).unwrap();
+    let keys = Groth16Keys::new_with_random_setup(&r1cs).unwrap();
+    let reloaded = Groth16Keys::from_bytes(&keys.to_bytes().unwrap()).unwrap();
+    assert_eq!(
+        (keys.setup_kind(), reloaded.setup_kind()),
+        (SetupKind::SingleParty, SetupKind::SingleParty)
+    );
+    let prover = Groth16Prover::<Old>::new(reloaded).unwrap();
+    let proof = prover.prove(&Old { x: 7, y: 7 }).unwrap();
+    prover.verify(&proof).unwrap();
+    assert!(prover.prove(&Old { x: 7, y: 8 }).is_err());
+}

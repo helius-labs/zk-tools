@@ -15,7 +15,35 @@ use ark_std::{rand::rngs::OsRng, UniformRand};
 use groth16_solana::groth16::Groth16Verifyingkey;
 
 #[cfg(feature = "setup")]
-pub use groth16_solana::vk::setup::SetupKind;
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SetupKind {
+    /// A verified imported ceremony key.
+    Production,
+    /// Fresh randomness sampled locally for a single-party setup.
+    SingleParty,
+    /// Reproducible setup whose secret randomness is public.
+    InsecureTest,
+}
+
+#[cfg(feature = "setup")]
+impl SetupKind {
+    pub(crate) fn label(self) -> &'static str {
+        match self {
+            Self::Production => "imported-ceremony",
+            Self::SingleParty => "single-party",
+            Self::InsecureTest => "insecure-test",
+        }
+    }
+
+    fn verifier_kind(self) -> groth16_solana::vk::setup::SetupKind {
+        match self {
+            Self::Production | Self::SingleParty => {
+                groth16_solana::vk::setup::SetupKind::Production
+            }
+            Self::InsecureTest => groth16_solana::vk::setup::SetupKind::InsecureTest,
+        }
+    }
+}
 
 #[cfg(feature = "client")]
 use super::proof_inputs::public_inputs;
@@ -40,6 +68,7 @@ pub struct Groth16Keys {
     proving_key: ProvingKey,
     verifying_key: SolanaVerifyingKey,
     imported_zkey: bool,
+    single_party: bool,
     circuit_digest: [u8; 32],
 }
 
@@ -49,6 +78,7 @@ impl From<ProvingKey> for Groth16Keys {
             verifying_key: SolanaVerifyingKey::from(&proving_key.vk),
             proving_key,
             imported_zkey: false,
+            single_party: false,
             circuit_digest: [0u8; 32],
         }
     }
@@ -80,10 +110,29 @@ impl Groth16Keys {
         }
     }
 
-    /// Serializes the ceremony-import flag, proving key and its circuit digest.
+    #[cfg(feature = "setup")]
+    pub fn setup_kind(&self) -> SetupKind {
+        if self.imported_zkey {
+            SetupKind::Production
+        } else if self.single_party {
+            SetupKind::SingleParty
+        } else {
+            SetupKind::InsecureTest
+        }
+    }
+
+    /// Serializes the setup provenance, proving key and its circuit digest.
+    /// Tags 0 and 1 preserve the previous test/imported bool encoding.
     pub fn to_bytes(&self) -> Result<Vec<u8>, ProverError> {
         let mut bytes = Vec::new();
-        self.imported_zkey
+        let provenance: u8 = if self.imported_zkey {
+            1
+        } else if self.single_party {
+            2
+        } else {
+            0
+        };
+        provenance
             .serialize_uncompressed(&mut bytes)
             .map_err(ProverErrorKind::KeySerialization)?;
         self.proving_key
@@ -95,8 +144,15 @@ impl Groth16Keys {
 
     /// Reads canonical key bytes, validating curve and subgroup membership.
     pub fn from_bytes(mut bytes: &[u8]) -> Result<Self, ProverError> {
-        let imported_zkey = bool::deserialize_uncompressed(&mut bytes)
-            .map_err(ProverErrorKind::KeySerialization)?;
+        let provenance =
+            u8::deserialize_uncompressed(&mut bytes).map_err(ProverErrorKind::KeySerialization)?;
+        if provenance > 2 {
+            return Err(ProverErrorKind::KeySerialization(
+                ark_serialize::SerializationError::InvalidData,
+            )
+            .into());
+        }
+        let imported_zkey = provenance == 1;
         let proving_key = ProvingKey::deserialize_uncompressed(&mut bytes)
             .map_err(ProverErrorKind::KeySerialization)?;
         let Ok(circuit_digest) = <[u8; 32]>::try_from(bytes) else {
@@ -107,6 +163,7 @@ impl Groth16Keys {
         };
         Ok(Self {
             imported_zkey,
+            single_party: provenance == 2,
             circuit_digest,
             ..Self::from(proving_key)
         })
@@ -158,6 +215,15 @@ impl Groth16Keys {
         Ok(keys)
     }
 
+    /// Generates a single-party setup using fresh cryptographic randomness.
+    #[cfg(feature = "setup")]
+    pub fn new_with_random_setup(r1cs: &R1cs) -> Result<Self, ProverError> {
+        Ok(Self {
+            single_party: true,
+            ..Self::setup_with_rng(r1cs.matrices(), &mut OsRng)?
+        })
+    }
+
     #[cfg(feature = "setup")]
     pub fn new_with_test_setup(r1cs: &R1cs) -> Result<Self, ProverError> {
         Self::test_setup(r1cs.matrices())
@@ -165,17 +231,24 @@ impl Groth16Keys {
 
     #[cfg(feature = "setup")]
     fn test_setup(matrices: &R1csMatrices) -> Result<Self, ProverError> {
-        use ark_groth16::Groth16;
         use ark_std::rand::{rngs::StdRng, SeedableRng};
+        Self::setup_with_rng(matrices, &mut StdRng::seed_from_u64(TEST_SETUP_SEED))
+    }
 
+    #[cfg(feature = "setup")]
+    fn setup_with_rng(
+        matrices: &R1csMatrices,
+        rng: &mut (impl ark_std::rand::RngCore + ark_std::rand::CryptoRng),
+    ) -> Result<Self, ProverError> {
         use super::{reduction::CircomReduction, synthesis::Replay};
+        use ark_groth16::Groth16;
 
         Ok(Self {
             circuit_digest: matrices.digest(),
             ..Self::from(
                 Groth16::<Bn254, CircomReduction>::generate_random_parameters_with_reduction(
                     Replay(matrices),
-                    &mut StdRng::seed_from_u64(TEST_SETUP_SEED),
+                    rng,
                 )?,
             )
         })
@@ -208,8 +281,11 @@ impl Groth16Keys {
         use groth16_solana::vk::circom::parse_vk_json_to_rust_string;
         use sha2::{Digest, Sha256};
 
-        if matches!(export.setup, SetupKind::Production) {
-            if !self.imported_zkey {
+        if export.setup != self.setup_kind() {
+            return Err(ProverErrorKind::SetupKindMismatch.into());
+        }
+        if matches!(export.setup, SetupKind::Production | SetupKind::SingleParty) {
+            if matches!(export.setup, SetupKind::Production) && !self.imported_zkey {
                 return Err(ProverErrorKind::ProductionKeyRequired.into());
             }
             if self.circuit_digest == [0u8; 32] {
@@ -219,10 +295,14 @@ impl Groth16Keys {
         let checksum: [u8; 32] = Sha256::digest(self.to_bytes()?).into();
         let mut source = parse_vk_json_to_rust_string(
             &circom_vk_json(&self.proving_key.vk).to_string(),
-            export.setup,
+            export.setup.verifier_kind(),
             &checksum,
         )
         .map_err(ProverErrorKind::VerifyingKeyExport)?;
+        source.push_str(&format!(
+            "\npub const ZOLANA_SETUP_KIND: &str = \"{}\";\n",
+            export.setup.label()
+        ));
         source.push_str(&format!(
             "\npub const ZOLANA_CIRCUIT_SHA256: &str = \"{}\";\n",
             hex::encode(self.circuit_digest)
@@ -664,7 +744,7 @@ mod tests {
         };
         let source = parse_vk_json_to_rust_string(
             &circom_vk_json(&vk).to_string(),
-            SetupKind::InsecureTest,
+            SetupKind::InsecureTest.verifier_kind(),
             &[0; 32],
         )
         .expect("verifying key source");

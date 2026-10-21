@@ -73,10 +73,16 @@ Poseidon hash of its public fields and its transfer-aware transaction hash.
 
 The build is `zolana_zk_dsl::build`, which `zolana zk compile` and
 `zolana build-zk-program` run: it exports each circuit's r1cs through the hook `ZkCircuit`
-emits (feature `r1cs-export` of the crate, forwarding the DSL's), writes test keys, and
+emits (feature `r1cs-export` of the crate, forwarding the DSL's), generates or reuses proving and verifying keys, and
 generates `src/verifier/<circuit>.rs` with the circuit's on-chain `PublicInputs`, their
 encoding and `verify`, plus `<circuit>.vk.rs`. The SBF program links only the DSL's
 `verifier` feature and those modules. The wasm package exports `<circuit>ProofInputs`, which
 builds proof inputs from the circuit's typed inputs, and the `<Circuit>Prover` class, whose
 `prove` returns `{ proof, compressedProof, publicInputs }`. `tests/standalone` is a complete
 example.
+
+Builds generate fresh single-party keys only when keys are missing or the circuit's
+R1CS changes. `--test` requests reproducible keys from a fixed public seed. Key
+reuse also checks the setup kind, so switching modes regenerates local keys.
+Imported ceremony keys are preserved and must be explicitly replaced when the
+circuit changes; `--test` does not overwrite them.

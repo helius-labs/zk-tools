@@ -1,11 +1,11 @@
 //! Builds a crate of zk circuits: exports each circuit's r1cs through the hook
-//! its derive emits, runs the deterministic test setup, writes the committed
+//! its derive emits, generates or reuses setup keys, writes the committed
 //! verifier modules, builds the wasm package with wasm-pack, and builds the
 //! Solana program that verifies the proofs. Also imports ceremony keys and
 //! exports their verifying keys.
 //!
 //! A circuit crate depends on `zolana-zk-dsl` (circuits deriving `ZkCircuit`)
-//! or on `zolana-program` (ZK programs deriving `ZkProgram`); the build reads
+//! or on `zolana-program` (ZK programs deriving `ZkProgramCircuit`); the build reads
 //! which from cargo metadata and enables that crate's wasm features.
 
 mod error;
@@ -85,7 +85,7 @@ fn wasm_output_complete(out: &Path, library: &str, target: WasmTarget, threads: 
 }
 
 /// Builds a Solana program that verifies zk circuits: compiles its circuits
-/// (r1cs, test keys, verifier modules), then builds its wasm package and its
+/// (r1cs, keys, verifier modules), then builds its wasm package and its
 /// SBF program in parallel.
 pub fn build(opts: &BuildOptions) -> Result<()> {
     let circuits = CircuitCrate::resolve(&opts.compile.package)?;
@@ -134,7 +134,7 @@ fn build_sbf(opts: &SbfOptions, circuits: &CircuitCrate) -> Result<()> {
     Ok(())
 }
 
-/// Compiles the circuits of a crate: r1cs, test keys and verifier modules,
+/// Compiles the circuits of a crate: r1cs, keys and verifier modules,
 /// then its wasm package. With `check`, compares the verifier modules instead
 /// of writing them and builds no wasm.
 pub fn compile(opts: &CompileOptions) -> Result<()> {
@@ -349,7 +349,7 @@ fn compile_circuits(opts: &CompileOptions, circuits: &CircuitCrate) -> Result<()
         } else {
             exported
         };
-        write_test_keys(&r1cs, circuits)?;
+        write_keys(&r1cs, circuits, opts.test)?;
     }
     if opts.skip_r1cs && opts.skip_keys && !opts.check {
         return Ok(());
@@ -439,23 +439,127 @@ fn compile_r1cs(
     Ok(written)
 }
 
-fn write_test_keys(r1cs: &[PathBuf], circuits: &CircuitCrate) -> Result<()> {
+fn write_keys(r1cs: &[PathBuf], circuits: &CircuitCrate, test: bool) -> Result<()> {
     let out = output_dir(circuits.build_dir.clone())?;
     for path in r1cs {
-        if is_production_key(&circuits.verifier_dir.join(renamed(path, "vk.rs")?)) {
-            continue;
-        }
-        let keys = Groth16Keys::new_with_test_setup(&load_r1cs(path)?)
-            .map_err(BuildError::prover("setting up", path))?;
+        let circuit = load_r1cs(path)?;
         let pk = out.join(renamed(path, "pk")?);
-        save_key(&keys, &pk)?;
-        export_module(&keys, &pk, &out, SetupKind::InsecureTest)?;
+        let committed = circuits.verifier_dir.join(renamed(path, "vk.rs")?);
+        check_production_digest(&committed, path, circuit.digest())?;
+        let protected = is_production_key(&committed);
+        let keys = ensure_key(&pk, path, &circuit, test, protected)?;
+        if protected {
+            check_imported_checksum(&committed, &keys)?;
+        }
+        export_module(&keys, &pk, &out, keys.setup_kind())?;
     }
     Ok(())
 }
 
+/// Loads validated local key material before deciding whether a new setup is
+/// needed. Imported ceremony keys require an explicit import to replace them.
+fn ensure_key(
+    pk: &Path,
+    path: &Path,
+    circuit: &R1cs,
+    test: bool,
+    protected: bool,
+) -> Result<Groth16Keys> {
+    let expected = if test {
+        SetupKind::InsecureTest
+    } else {
+        SetupKind::SingleParty
+    };
+    let existing = match std::fs::read(pk) {
+        Ok(bytes) => {
+            let manifest = pk.with_extension("pk.sha256");
+            let keys = if manifest.is_file() {
+                let checksums = key_checksums(&manifest)?;
+                let canonical = pk
+                    .canonicalize()
+                    .map_err(BuildError::file("resolving", pk))?;
+                let checksum =
+                    checksums
+                        .get(&canonical)
+                        .ok_or_else(|| BuildError::MissingChecksum {
+                            key: pk.to_path_buf(),
+                            manifest,
+                        })?;
+                Groth16Keys::from_bytes_checked(&bytes, checksum)
+            } else {
+                Groth16Keys::from_bytes(&bytes)
+            }
+            .map_err(BuildError::prover("loading", pk))?;
+            Some(keys)
+        }
+        Err(error) if error.kind() == ErrorKind::NotFound => None,
+        Err(error) => return Err(BuildError::file("reading", pk)(error)),
+    };
+    if protected || existing.as_ref().is_some_and(Groth16Keys::is_imported_zkey) {
+        let keys = existing.ok_or_else(|| BuildError::ImportedKeyUnavailable(pk.to_path_buf()))?;
+        if !keys.is_imported_zkey() {
+            return Err(BuildError::ImportedKeyUnavailable(pk.to_path_buf()));
+        }
+        if test {
+            return Err(BuildError::ImportedKeyTestMode(pk.to_path_buf()));
+        }
+        if keys.circuit_digest() != &circuit.digest() {
+            return Err(BuildError::ProductionKeyCircuitMismatch {
+                module: pk.to_path_buf(),
+                r1cs: path.to_path_buf(),
+            });
+        }
+        save_key(&keys, pk)?;
+        println!("{}: imported ceremony key reused", pk.display());
+        return Ok(keys);
+    }
+    if let Some(keys) = existing {
+        if keys.circuit_digest() == &circuit.digest() && keys.setup_kind() == expected {
+            save_key(&keys, pk)?;
+            println!("{}: {} key reused", pk.display(), expected.label());
+            return Ok(keys);
+        }
+    }
+    let keys = if test {
+        Groth16Keys::new_with_test_setup(circuit)
+    } else {
+        Groth16Keys::new_with_random_setup(circuit)
+    }
+    .map_err(BuildError::prover("setting up", path))?;
+    save_key(&keys, pk)?;
+    println!("{}: {} key generated", pk.display(), expected.label());
+    Ok(keys)
+}
+
 fn is_production_key(module: &Path) -> bool {
-    std::fs::read_to_string(module).is_ok_and(|text| text.contains(PRODUCTION_KEY))
+    std::fs::read_to_string(module).is_ok_and(|text| {
+        text.contains(PRODUCTION_KEY)
+            && !text.contains("ZOLANA_SETUP_KIND: &str = \"single-party\"")
+    })
+}
+
+fn check_imported_checksum(module: &Path, keys: &Groth16Keys) -> Result<()> {
+    let source = std::fs::read_to_string(module).map_err(BuildError::file("reading", module))?;
+    let checksum = source
+        .split_once("VERIFYINGKEY_PROVING_KEY_SHA256: [u8; 32] = [")
+        .and_then(|(_, rest)| rest.split_once(']'))
+        .map(|(bytes, _)| {
+            bytes
+                .split(',')
+                .filter(|v| !v.trim().is_empty())
+                .map(|v| v.trim().trim_end_matches("u8").parse::<u8>())
+                .collect::<core::result::Result<Vec<_>, _>>()
+        });
+    let bytes = keys
+        .to_bytes()
+        .map_err(BuildError::prover("serializing", module))?;
+    let current: [u8; 32] = Sha256::digest(bytes).into();
+    if !matches!(checksum, Some(Ok(checksum)) if checksum == current) {
+        return Err(BuildError::ImportedKeyChecksumMismatch(
+            module.to_path_buf(),
+        ));
+    }
+    Ok(())
 }
 
 fn production_key_digest(module: &Path) -> Result<[u8; 32]> {
@@ -845,21 +949,31 @@ fn type_thread_pool(declarations: &Path) -> Result<()> {
     .map_err(BuildError::file("writing", declarations))
 }
 
-/// Runs the deterministic test setup on the crate's r1cs files and writes
-/// their proving keys. Its secrets are public: the keys accept forged proofs.
+/// Generates or reuses keys for the crate's r1cs files. Test setups use a
+/// fixed public seed; the default uses fresh single-party randomness.
 pub fn setup(opts: &SetupOptions) -> Result<()> {
-    if !opts.test {
-        return Err(BuildError::TestSetupNotAcknowledged);
-    }
-    let build = CircuitCrate::resolve(&opts.package)?.build_dir;
-    let inputs = inputs_or_all(opts.r1cs.clone(), &build, "r1cs", "zolana zk compile")?;
-    let out = output_dir(opts.out.clone().unwrap_or(build))?;
+    let circuits = CircuitCrate::resolve(&opts.package)?;
+    let inputs = inputs_or_all(
+        opts.r1cs.clone(),
+        &circuits.build_dir,
+        "r1cs",
+        "zolana zk compile",
+    )?;
+    let out = output_dir(
+        opts.out
+            .clone()
+            .unwrap_or_else(|| circuits.build_dir.clone()),
+    )?;
     for path in inputs {
-        let keys = Groth16Keys::new_with_test_setup(&load_r1cs(&path)?)
-            .map_err(BuildError::prover("setting up", &path))?;
+        let circuit = load_r1cs(&path)?;
         let pk = out.join(renamed(&path, "pk")?);
-        save_key(&keys, &pk)?;
-        println!("{}", pk.display());
+        let committed = circuits.verifier_dir.join(renamed(&path, "vk.rs")?);
+        check_production_digest(&committed, &path, circuit.digest())?;
+        let protected = is_production_key(&committed);
+        let keys = ensure_key(&pk, &path, &circuit, opts.test, protected)?;
+        if protected {
+            check_imported_checksum(&committed, &keys)?;
+        }
     }
     Ok(())
 }
@@ -886,14 +1000,13 @@ fn save_key(keys: &Groth16Keys, path: &Path) -> Result<()> {
     let bytes = keys
         .to_bytes()
         .map_err(BuildError::prover("serializing", path))?;
-    std::fs::write(path, &bytes).map_err(BuildError::file("writing", path))?;
+    write_if_changed(path, &bytes)?;
     let name = file_name(path)?;
     let manifest = path.with_extension("pk.sha256");
-    std::fs::write(
+    write_if_changed(
         &manifest,
-        format!("{}  {name}\n", hex::encode(Sha256::digest(&bytes))),
+        format!("{}  {name}\n", hex::encode(Sha256::digest(&bytes))).as_bytes(),
     )
-    .map_err(BuildError::file("writing", &manifest))
 }
 
 /// Reads a sha256sum manifest: one `<sha256>  <file>` line per key, file names
@@ -973,7 +1086,7 @@ pub fn export_verifier(opts: &ExportVerifierOptions) -> Result<()> {
             })?;
         let loaded = Groth16Keys::load_checked(&pk, checksum)
             .map_err(BuildError::prover("checking", &pk))?;
-        if matches!(opts.setup, SetupKind::Production) && loaded.is_imported_zkey() {
+        if matches!(opts.setup, SetupKind::Production | SetupKind::SingleParty) {
             let r1cs = circuits.build_dir.join(renamed(&pk, "r1cs")?);
             if loaded.circuit_digest() != &load_r1cs(&r1cs)?.digest() {
                 return Err(BuildError::ProductionKeyCircuitMismatch { module: pk, r1cs });
@@ -1072,6 +1185,329 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    use crate::{
+        circuit::{Assert, Circuit, CircuitType, U64},
+        conversion::{Allocator, Placeholder, ProofInput},
+        CircuitError, ZkCircuit,
+    };
+
+    struct KeyInputs<const DIFFERENT: bool>;
+    struct KeyCircuit<const DIFFERENT: bool> {
+        x: U64,
+        y: U64,
+    }
+    impl<const DIFFERENT: bool> CircuitType for KeyCircuit<DIFFERENT> {}
+    impl<const DIFFERENT: bool> ProofInput for KeyInputs<DIFFERENT> {
+        type Circuit = KeyCircuit<DIFFERENT>;
+        fn instantiate(
+            &self,
+            allocator: &Allocator,
+        ) -> core::result::Result<Self::Circuit, CircuitError> {
+            Ok(KeyCircuit {
+                x: 0u64.instantiate(allocator)?,
+                y: 0u64.instantiate(allocator)?,
+            })
+        }
+    }
+    impl<const DIFFERENT: bool> Placeholder for KeyInputs<DIFFERENT> {
+        fn placeholder() -> core::result::Result<Self, CircuitError> {
+            Ok(Self)
+        }
+    }
+    impl<const DIFFERENT: bool> Circuit for KeyCircuit<DIFFERENT> {
+        type Output = ();
+        fn circuit(&self) -> core::result::Result<(), CircuitError> {
+            if DIFFERENT {
+                self.x.assert_not_equal(&self.y, "different")
+            } else {
+                self.x.assert_equal(&self.y, "equal")
+            }
+        }
+    }
+    type EqualInputs = KeyInputs<false>;
+    type ChangedInputs = KeyInputs<true>;
+
+    struct KeyFixture {
+        dir: PathBuf,
+        circuits: CircuitCrate,
+        path: PathBuf,
+    }
+
+    impl KeyFixture {
+        fn new(label: &str) -> Self {
+            let dir = std::env::temp_dir().join(format!(
+                "zolana-build-keys-{label}-{}-{:?}",
+                std::process::id(),
+                std::thread::current().id()
+            ));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).unwrap();
+            let mut circuits = crate_with(json!([]));
+            circuits.build_dir = dir.clone();
+            circuits.verifier_dir = dir.join("verifier");
+            let path = dir.join("sample.r1cs");
+            std::fs::write(&path, EqualInputs::export_r1cs().unwrap()).unwrap();
+            Self {
+                dir,
+                circuits,
+                path,
+            }
+        }
+        fn pk(&self) -> PathBuf {
+            self.dir.join("sample.pk")
+        }
+        fn keys(&self, test: bool) -> Groth16Keys {
+            ensure_key(
+                &self.pk(),
+                &self.path,
+                &load_r1cs(&self.path).unwrap(),
+                test,
+                false,
+            )
+            .unwrap()
+        }
+        fn imported(&self) -> Groth16Keys {
+            // Test fixture: emulate serialized imported-key provenance.
+            let mut bytes = self.keys(false).to_bytes().unwrap();
+            bytes[0] = 1;
+            let keys = Groth16Keys::from_bytes(&bytes).unwrap();
+            save_key(&keys, &self.pk()).unwrap();
+            keys
+        }
+    }
+    impl Drop for KeyFixture {
+        fn drop(&mut self) {
+            std::fs::remove_dir_all(&self.dir).unwrap();
+        }
+    }
+
+    #[test]
+    fn random_setup_is_fresh_and_test_setup_is_reproducible() {
+        let random_a = KeyFixture::new("random-a").keys(false);
+        let random_b = KeyFixture::new("random-b").keys(false);
+        let test_a = KeyFixture::new("test-a").keys(true);
+        let test_b = KeyFixture::new("test-b").keys(true);
+        assert_eq!(
+            (
+                random_a.setup_kind(),
+                test_a.setup_kind(),
+                random_a.to_bytes().unwrap() == random_b.to_bytes().unwrap(),
+                test_a.to_bytes().unwrap() == test_b.to_bytes().unwrap()
+            ),
+            (SetupKind::SingleParty, SetupKind::InsecureTest, false, true)
+        );
+    }
+
+    #[test]
+    fn unchanged_keys_and_checksum_keep_their_bytes_and_mtime() {
+        for test in [false, true] {
+            let fixture = KeyFixture::new("reuse");
+            let before = fixture.keys(test).to_bytes().unwrap();
+            let checksum = fixture.pk().with_extension("pk.sha256");
+            let old = std::time::UNIX_EPOCH + std::time::Duration::from_secs(100);
+            for path in [&fixture.pk(), &checksum] {
+                std::fs::File::options()
+                    .write(true)
+                    .open(path)
+                    .unwrap()
+                    .set_modified(old)
+                    .unwrap();
+            }
+            let after = fixture.keys(test).to_bytes().unwrap();
+            assert_eq!(
+                (
+                    before == after,
+                    std::fs::metadata(fixture.pk()).unwrap().modified().unwrap(),
+                    std::fs::metadata(checksum).unwrap().modified().unwrap()
+                ),
+                (true, old, old)
+            );
+        }
+    }
+
+    #[test]
+    fn changed_r1cs_and_setup_mode_regenerate_local_keys() {
+        let fixture = KeyFixture::new("changes");
+        let random = fixture.keys(false).to_bytes().unwrap();
+        let test = fixture.keys(true).to_bytes().unwrap();
+        let random_again = fixture.keys(false).to_bytes().unwrap();
+        std::fs::write(&fixture.path, ChangedInputs::export_r1cs().unwrap()).unwrap();
+        let changed = fixture.keys(false);
+        assert_eq!(
+            (
+                random != test,
+                test != random_again,
+                random_again != changed.to_bytes().unwrap(),
+                changed.circuit_digest() == &load_r1cs(&fixture.path).unwrap().digest()
+            ),
+            (true, true, true, true)
+        );
+    }
+
+    #[test]
+    fn missing_verifier_and_checksum_are_restored_without_new_setup() {
+        let fixture = KeyFixture::new("restore");
+        write_keys(&[fixture.path.clone()], &fixture.circuits, false).unwrap();
+        let before = std::fs::read(fixture.pk()).unwrap();
+        let vk = fixture.dir.join("sample.vk.rs");
+        let expected_vk = std::fs::read(&vk).unwrap();
+        std::fs::remove_file(&vk).unwrap();
+        std::fs::remove_file(fixture.pk().with_extension("pk.sha256")).unwrap();
+        write_keys(&[fixture.path.clone()], &fixture.circuits, false).unwrap();
+        assert_eq!(
+            (
+                std::fs::read(fixture.pk()).unwrap(),
+                std::fs::read(vk).unwrap()
+            ),
+            (before, expected_vk)
+        );
+        assert!(!is_production_key(&fixture.dir.join("sample.vk.rs")));
+    }
+
+    #[test]
+    fn imported_keys_are_reused_but_never_replaced_by_test_or_changed_circuits() {
+        let fixture = KeyFixture::new("imported");
+        let keys = fixture.imported();
+        let before = std::fs::read(fixture.pk()).unwrap();
+        export_module(
+            &keys,
+            &fixture.pk(),
+            &fixture.circuits.verifier_dir,
+            SetupKind::Production,
+        )
+        .unwrap();
+        let vk = fixture.circuits.verifier_dir.join("sample.vk.rs");
+        let original_module = std::fs::read(&vk).unwrap();
+        write_keys(&[fixture.path.clone()], &fixture.circuits, false).unwrap();
+        let test = write_keys(&[fixture.path.clone()], &fixture.circuits, true);
+        std::fs::write(&fixture.path, ChangedInputs::export_r1cs().unwrap()).unwrap();
+        let changed = write_keys(&[fixture.path.clone()], &fixture.circuits, false);
+        assert_eq!(
+            (
+                matches!(test, Err(BuildError::ImportedKeyTestMode(_))),
+                matches!(
+                    changed,
+                    Err(BuildError::ProductionKeyCircuitMismatch { .. })
+                ),
+                std::fs::read(fixture.pk()).unwrap(),
+                std::fs::read(vk).unwrap()
+            ),
+            (true, true, before, original_module)
+        );
+    }
+
+    #[test]
+    fn single_party_committed_modules_allow_missing_keys_and_changed_circuits() {
+        let fixture = KeyFixture::new("random-committed");
+        write_keys(&[fixture.path.clone()], &fixture.circuits, false).unwrap();
+        std::fs::create_dir_all(&fixture.circuits.verifier_dir).unwrap();
+        let committed = fixture.circuits.verifier_dir.join("sample.vk.rs");
+        std::fs::copy(fixture.dir.join("sample.vk.rs"), &committed).unwrap();
+        let before = std::fs::read(fixture.pk()).unwrap();
+        std::fs::remove_file(fixture.pk()).unwrap();
+        write_keys(&[fixture.path.clone()], &fixture.circuits, false).unwrap();
+        let restored = std::fs::read(fixture.pk()).unwrap();
+        std::fs::write(&fixture.path, ChangedInputs::export_r1cs().unwrap()).unwrap();
+        write_keys(&[fixture.path.clone()], &fixture.circuits, false).unwrap();
+        let changed = Groth16Keys::from_bytes(&std::fs::read(fixture.pk()).unwrap()).unwrap();
+        assert_eq!(
+            (
+                before != restored,
+                restored != changed.to_bytes().unwrap(),
+                changed.circuit_digest() == &load_r1cs(&fixture.path).unwrap().digest()
+            ),
+            (true, true, true)
+        );
+    }
+
+    #[test]
+    fn a_different_imported_key_cannot_replace_the_committed_key_implicitly() {
+        let fixture = KeyFixture::new("wrong-import");
+        let keys = fixture.imported();
+        export_module(
+            &keys,
+            &fixture.pk(),
+            &fixture.circuits.verifier_dir,
+            SetupKind::Production,
+        )
+        .unwrap();
+        std::fs::remove_file(fixture.pk()).unwrap();
+        fixture.imported();
+        assert!(matches!(
+            write_keys(&[fixture.path.clone()], &fixture.circuits, false),
+            Err(BuildError::ImportedKeyChecksumMismatch(_))
+        ));
+    }
+
+    #[test]
+    fn imported_keys_stay_protected_without_a_committed_module() {
+        let fixture = KeyFixture::new("unexported-import");
+        fixture.imported();
+        let circuit = load_r1cs(&fixture.path).unwrap();
+        assert!(matches!(
+            ensure_key(&fixture.pk(), &fixture.path, &circuit, true, false),
+            Err(BuildError::ImportedKeyTestMode(_))
+        ));
+        std::fs::write(&fixture.path, ChangedInputs::export_r1cs().unwrap()).unwrap();
+        assert!(matches!(
+            ensure_key(
+                &fixture.pk(),
+                &fixture.path,
+                &load_r1cs(&fixture.path).unwrap(),
+                false,
+                false
+            ),
+            Err(BuildError::ProductionKeyCircuitMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn missing_imported_keys_and_wrong_checksums_fail_without_replacement() {
+        let fixture = KeyFixture::new("missing-import");
+        let circuit = load_r1cs(&fixture.path).unwrap();
+        assert!(matches!(
+            ensure_key(&fixture.pk(), &fixture.path, &circuit, false, true),
+            Err(BuildError::ImportedKeyUnavailable(_))
+        ));
+        fixture.keys(false);
+        let before = std::fs::read(fixture.pk()).unwrap();
+        std::fs::write(
+            fixture.pk().with_extension("pk.sha256"),
+            format!("{}  sample.pk\n", "00".repeat(32)),
+        )
+        .unwrap();
+        assert!(matches!(
+            ensure_key(&fixture.pk(), &fixture.path, &circuit, false, false),
+            Err(BuildError::Prover { .. })
+        ));
+        assert_eq!(std::fs::read(fixture.pk()).unwrap(), before);
+    }
+
+    #[test]
+    fn exported_single_party_keys_have_no_test_guard_and_cannot_be_mislabeled() {
+        let fixture = KeyFixture::new("labels");
+        let random = fixture.keys(false);
+        export_module(&random, &fixture.pk(), &fixture.dir, SetupKind::SingleParty).unwrap();
+        let module = std::fs::read_to_string(fixture.dir.join("sample.vk.rs")).unwrap();
+        assert_eq!(
+            (
+                module.contains("ZOLANA_SETUP_KIND: &str = \"single-party\""),
+                module.contains(PRODUCTION_KEY),
+                module.contains("compile_error!")
+            ),
+            (true, true, false)
+        );
+        for kind in [SetupKind::Production, SetupKind::InsecureTest] {
+            assert!(random
+                .export_verifying_key(&VerifyingKeyExport {
+                    output_dir: &fixture.dir,
+                    output_filename: "wrong.rs",
+                    setup: kind,
+                })
+                .is_err());
+        }
+    }
 
     fn crate_with(declared: Value) -> CircuitCrate {
         CircuitCrate {

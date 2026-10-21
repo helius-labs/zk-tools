@@ -25,7 +25,9 @@ pub struct CompileOptions {
     pub package: PackageSelection,
     /// Do not write the .r1cs files.
     pub skip_r1cs: bool,
-    /// Do not run the test setup or write the verifying keys.
+    /// Use reproducible fixed-seed keys instead of a random single-party setup.
+    pub test: bool,
+    /// Do not generate keys or write the verifying keys.
     pub skip_keys: bool,
     /// Do not build the wasm package.
     pub skip_wasm: bool,
@@ -58,6 +60,7 @@ impl Default for CompileOptions {
             package: PackageSelection::default(),
             skip_r1cs: false,
             skip_keys: false,
+            test: false,
             skip_wasm: false,
             check: false,
             r1cs_features: "circuits".into(),
@@ -100,8 +103,7 @@ pub struct BuildOptions {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct SetupOptions {
     pub package: PackageSelection,
-    /// Acknowledges that the setup's secrets are public: its keys accept
-    /// forged proofs and must never be deployed.
+    /// Use reproducible fixed-seed keys instead of a random single-party setup.
     pub test: bool,
     /// The .r1cs files (default: every .r1cs in the build directory).
     pub r1cs: Vec<PathBuf>,
