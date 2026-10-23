@@ -1,10 +1,14 @@
-//! The SDKs' proof requests: JSON whose shape the Go prover checked field by
-//! field — every field present, none unknown, strings of 1 to 256 bytes,
-//! counts as unsigned 32-bit numbers, no more than 32 levels or 8 MB — and
-//! whose values are field elements in hex (`0x` optional, as big.Int reads
-//! base 16: a sign allowed, no underscores) below the scalar field's order.
+//! The SDKs' proof requests: JSON whose shape zolana's strict parse
+//! (`request.ParseStrict`) checks field by field — every field present
+//! once, none unknown, strings of 1 to 256 bytes, counts as unsigned 32-bit
+//! numbers, no more than 32 levels or 8 MB — and whose values are field
+//! elements in hex (`0x` optional, then as big.Int reads base 16: a sign
+//! allowed, no underscores) below the scalar field's order.
+use std::fmt;
+
+use serde::de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor};
+use serde_json::{Map, Value};
 use zopro_bn254::Fr;
-use serde_json::Value;
 
 /// The Go prover's errors, kept apart for the SDKs' messages.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,12 +46,17 @@ impl From<&'static str> for Error {
 const MAX_BYTES: usize = 8 << 20;
 const MAX_DEPTH: usize = 32;
 
-/// The request as a JSON value, its size and depth within bounds.
+/// The request as a JSON value, its size and depth within bounds and no
+/// object's key repeated.
 pub fn parse(request: &str) -> Result<Value, Error> {
     if request.len() > MAX_BYTES {
         return Err(Error::Request);
     }
-    let value: Value = serde_json::from_str(request).map_err(|_| Error::Request)?;
+    let mut deserializer = serde_json::Deserializer::from_str(request);
+    let value = Unique
+        .deserialize(&mut deserializer)
+        .and_then(|value| deserializer.end().map(|()| value))
+        .map_err(|_| Error::Request)?;
     fn depth(value: &Value) -> usize {
         match value {
             Value::Object(map) => 1 + map.values().map(depth).max().unwrap_or(0),
@@ -59,6 +68,70 @@ pub fn parse(request: &str) -> Result<Value, Error> {
         return Err(Error::Request);
     }
     Ok(value)
+}
+
+/// A JSON value as serde_json reads it, but an object that repeats a key is
+/// an error rather than its last value.
+struct Unique;
+
+impl<'de> DeserializeSeed<'de> for Unique {
+    type Value = Value;
+
+    fn deserialize<D: de::Deserializer<'de>>(self, deserializer: D) -> Result<Value, D::Error> {
+        deserializer.deserialize_any(self)
+    }
+}
+
+impl<'de> Visitor<'de> for Unique {
+    type Value = Value;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("a JSON value")
+    }
+
+    fn visit_unit<E>(self) -> Result<Value, E> {
+        Ok(Value::Null)
+    }
+
+    fn visit_bool<E>(self, value: bool) -> Result<Value, E> {
+        Ok(Value::Bool(value))
+    }
+
+    fn visit_i64<E>(self, value: i64) -> Result<Value, E> {
+        Ok(value.into())
+    }
+
+    fn visit_u64<E>(self, value: u64) -> Result<Value, E> {
+        Ok(value.into())
+    }
+
+    fn visit_f64<E>(self, value: f64) -> Result<Value, E> {
+        Ok(serde_json::Number::from_f64(value).map_or(Value::Null, Value::Number))
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Value, E> {
+        Ok(Value::String(value.to_owned()))
+    }
+
+    fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Value, A::Error> {
+        let mut items = Vec::new();
+        while let Some(item) = seq.next_element_seed(Unique)? {
+            items.push(item);
+        }
+        Ok(Value::Array(items))
+    }
+
+    fn visit_map<A: MapAccess<'de>>(self, mut map: A) -> Result<Value, A::Error> {
+        let mut object = Map::new();
+        while let Some(key) = map.next_key::<String>()? {
+            if object.contains_key(&key) {
+                return Err(de::Error::custom("a repeated key"));
+            }
+            let value = map.next_value_seed(Unique)?;
+            object.insert(key, value);
+        }
+        Ok(Value::Object(object))
+    }
 }
 
 /// An object with exactly `fields`.
@@ -104,15 +177,15 @@ pub fn elements(value: &Value) -> Result<Vec<Fr>, Error> {
         .collect()
 }
 
-/// `s` as big.Int reads it in base 16 (an optional sign, `0x` optional,
-/// hex digits), between 0 and the field's order.
+/// `s` as zolana's `FromHex` reads it (`0x` optional, then as big.Int reads
+/// base 16: an optional sign, hex digits), between 0 and the field's order.
 pub fn hex_element(s: &str) -> Result<Fr, Error> {
+    let s = s.strip_prefix("0x").unwrap_or(s);
     let (negative, digits) = match s.as_bytes().first() {
         Some(b'-') => (true, &s[1..]),
         Some(b'+') => (false, &s[1..]),
         _ => (false, s),
     };
-    let digits = digits.strip_prefix("0x").unwrap_or(digits);
     if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_hexdigit()) {
         return Err(Error::Request);
     }
@@ -143,14 +216,4 @@ pub fn small(value: &Fr) -> Option<u64> {
 
 pub fn is_zero(value: &Fr) -> bool {
     value.is_zero()
-}
-
-trait IsZero {
-    fn is_zero(&self) -> bool;
-}
-
-impl IsZero for Fr {
-    fn is_zero(&self) -> bool {
-        *self == Fr::from(0u64)
-    }
 }

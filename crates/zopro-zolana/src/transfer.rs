@@ -1,9 +1,11 @@
 //! The transfer requests (`transfer-confidential`, `transfer-ring`,
 //! `transfer-ring-authority`) onto the spp_transaction circuits' inputs, as
-//! the Go prover's transfer_eddsa_only package did: the same checks, the
-//! same defaults, no hashing. The client computes every value.
-use zopro_bn254::Fr;
+//! the Go prover's transfer_eddsa package does: the same checks, the same
+//! defaults, no hashing. The client computes every value, the signer vector
+//! included (the owner signers, deduplicated and zero-padded, without the fee
+//! payer).
 use serde_json::Value;
+use zopro_bn254::Fr;
 
 use crate::{
     Assignment, Circuit,

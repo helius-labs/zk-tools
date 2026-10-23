@@ -54,7 +54,7 @@ fn transfer_2x2() {
     check(
         "2x2",
         "transfer_confidential_2_2",
-        include_str!("fixtures/transfer-2x2.dump.request.json"),
+        include_str!("fixtures/transfer-2x2.request.json"),
     );
 }
 
