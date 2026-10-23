@@ -262,6 +262,14 @@ impl Plan {
             self.released = true;
         }
     }
+    /// Builds the tables `release_tables` dropped again, for a key that let
+    /// its GPU go: every quotient is the CPU's from then on.
+    pub fn restore_tables(&mut self) {
+        if self.released {
+            let (generator, coset, den) = self.params;
+            *self = Self::new(self.n, generator, coset, den);
+        }
+    }
     /// The tables a GPU transform needs: the first n/2 powers of the
     /// generator and of its inverse, and both bit-reversed weight vectors.
     /// None below eight elements.

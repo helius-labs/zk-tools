@@ -1,13 +1,17 @@
 //! A small gnark circuit end to end: X³ + X + 5 = Y with X not zero
 //! (`tools/gnark`'s test writes the dump in tests/fixtures/cubic). The key
 //! packs, loads, proves an assignment by name, refuses a wrong one, keeps
-//! its metadata, and loads again from its raw form, in place too.
+//! its metadata, loads again from its raw form, in place too, and proves
+//! on the CPU once its GPU is let go.
 use std::path::Path;
 
 use zopro_bn254::Fr;
 use zopro_prover::{
     Assignment, Error, Prover,
-    zopro_core::{artifact::pack, dump::Dump},
+    zopro_core::{
+        artifact::{Artifact, pack},
+        dump::Dump,
+    },
 };
 
 fn key() -> Vec<u8> {
@@ -69,6 +73,46 @@ fn proves_from_its_image_in_place() {
     assert!(again.prove(&witness).is_ok());
     let truncated = (*image).as_ref()[..(*image).as_ref().len() - 1].to_vec();
     assert!(Prover::load_image(std::sync::Arc::new(truncated)).is_err());
+}
+
+/// A prover whose GPU is let go proves on the CPU (a GPU that fails, or
+/// whose proof does not verify, takes this path in `prove`): from its image
+/// with the image's points; from the key file's bytes, which only the GPU
+/// holds, with the points given again. Skipped without a GPU.
+#[test]
+fn proves_on_the_cpu_after_the_gpu() {
+    let key = key();
+    let mut image = Vec::new();
+    Prover::write_image(&key, &mut image).expect("write");
+    let mut prover = Prover::load_image(std::sync::Arc::new(image)).expect("load the image");
+    if !prover.has_gpu() {
+        eprintln!("no GPU: skipped");
+        return;
+    }
+    let witness = prover.witness(&assignment(3, 35)).expect("witness");
+    let check = |prover: &mut Prover, on: &str| {
+        let proved = prover
+            .prove(&witness)
+            .unwrap_or_else(|e| panic!("{on}: {e}"));
+        assert!(prover.verify(&proved.proof, &[Fr::from(35u64)]), "{on}");
+    };
+    check(&mut prover, "GPU, image");
+    prover
+        .drop_gpu()
+        .expect("the CPU proves with the image's points");
+    assert!(!prover.has_gpu());
+    check(&mut prover, "CPU after the GPU, image");
+
+    let mut prover = Prover::load(&key).expect("load");
+    assert!(prover.drop_gpu().is_err(), "no points for the CPU");
+    assert!(prover.has_gpu(), "the prover keeps its GPU");
+    check(&mut prover, "GPU, kept");
+    let artifact = Artifact::parse(&key).expect("parse");
+    prover
+        .drop_gpu_with(artifact.points())
+        .expect("the CPU proves with the key file's points");
+    assert!(!prover.has_gpu());
+    check(&mut prover, "CPU after the GPU, key file");
 }
 
 #[test]
