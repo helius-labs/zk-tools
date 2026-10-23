@@ -1,6 +1,6 @@
 # zopro's gnark tools
 
-What zopro needs from gnark, offline, with gnark alone (v0.16.3, the version
+What zopro needs from gnark, offline, with gnark alone (v0.16.4, the version
 that wrote the keys): a Groth16 BN254 constraint system's and its keys' parts
 as zopro's kernel takes them (a dump), which `zopro-bench pack` packs into a
 zopro key.

@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -17,10 +19,10 @@ import (
 	native "github.com/consensys/gnark/backend/groth16/bn254"
 	"github.com/consensys/gnark/backend/witness"
 	cs "github.com/consensys/gnark/constraint/bn254"
+	"github.com/helius-labs/zolana/prover/server/prover/common"
+	mergeprover "github.com/helius-labs/zolana/prover/server/prover/merge"
+	transfer "github.com/helius-labs/zolana/prover/server/prover/transfer_eddsa"
 	zoprognark "zopro/tools/gnark"
-	"zolana/prover/prover/common"
-	mergeprover "zolana/prover/prover/merge"
-	transfer "zolana/prover/prover/transfer_eddsa_only"
 )
 
 // Zolana's gnark keys for zopro: ZOPRO_DUMP=dir ZOPRO_KEYS=<gnark keys>
@@ -28,9 +30,9 @@ import (
 // dir/<shape>, with the key's Zolana metadata: its shape and the sha256 of
 // the key file, which proofs report. With ZOPRO_REQUESTS, a directory of
 // requests (transfer-<shape>.json, merge-<inputs>x1.json), it also writes the
-// request's witness and public inputs and times gnark's own proof at the
-// GOMAXPROCS the test runs with; a raw proof zopro wrote to dir/<shape>/proof
-// is verified by gnark instead.
+// request's witness (also by input name, witness.json) and public inputs and
+// times gnark's own proof at the GOMAXPROCS the test runs with; a raw proof
+// zopro wrote to dir/<shape>/proof is verified by gnark instead.
 func TestZoproDump(t *testing.T) {
 	dir := os.Getenv("ZOPRO_DUMP")
 	if dir == "" {
@@ -122,9 +124,14 @@ func TestZoproDump(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+				named, err := namedWitness(r1cs, w.Vector().(fr.Vector))
+				if err != nil {
+					t.Fatal(err)
+				}
 				for name, data := range map[string][]byte{
-					"witness": zoprognark.EncodeFields(w.Vector().(fr.Vector)),
-					"public":  zoprognark.EncodeFields(public.Vector().(fr.Vector)),
+					"witness":      zoprognark.EncodeFields(w.Vector().(fr.Vector)),
+					"public":       zoprognark.EncodeFields(public.Vector().(fr.Vector)),
+					"witness.json": named,
 				} {
 					if err := os.WriteFile(filepath.Join(out, name), data, 0o644); err != nil {
 						t.Fatal(err)
@@ -152,6 +159,21 @@ func TestZoproDump(t *testing.T) {
 			t.Logf("ZOPRO gnark %s constraints=%d domain=%d threads=%d prove_ms=%d", shape, r1cs.GetNbConstraints(), pk.Domain.Cardinality, runtime.GOMAXPROCS(0), best.Milliseconds())
 		})
 	}
+}
+
+// The witness by gnark's input names, in decimal: zopro-zolana's tests hold
+// their assignments against it.
+func namedWitness(r1cs *cs.R1CS, values fr.Vector) ([]byte, error) {
+	names := append(append([]string{}, r1cs.Public[1:]...), r1cs.Secret...)
+	if len(names) != len(values) {
+		return nil, fmt.Errorf("%d input names for %d values", len(names), len(values))
+	}
+	named := make(map[string]string, len(names))
+	for i, name := range names {
+		// Canonical: an Element's String would print q-1 as -1.
+		named[name] = values[i].BigInt(new(big.Int)).String()
+	}
+	return json.Marshal(named)
 }
 
 // A proof as the Rust bench writes it: Ar, Krs and Bs in gnark's raw

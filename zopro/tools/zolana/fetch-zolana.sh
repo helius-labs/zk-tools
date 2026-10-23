@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Checks out zolana's prover at the release the keys come from into
-# tools/gnark/zolana (gitignored), which go.mod builds against: at this
-# release its Go module still calls itself zolana/prover.
+# tools/zolana/zolana (gitignored), which go.mod builds against in place of
+# its Go module, github.com/helius-labs/zolana/prover/server.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repository="https://github.com/helius-labs/zolana.git"
-revision="0fde5f1e1e209b85896362c9293ec0b60bbf7563" # v0.4.0-alpha
+revision="88854ef0429d318f0b27d72e17bbce0fdc67fa70" # v0.5.0-alpha
 dir="$here/zolana"
 if [[ ! -d "$dir/.git" ]]; then
   git init -q "$dir"
