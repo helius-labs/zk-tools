@@ -112,7 +112,11 @@ zero scalars), and
 zopro-core checks a GPU key's proof parts against a CPU key's byte for
 byte. GPU tests skip without a GPU. `zopro-prover`'s `tests/cubic.rs` proves a small
 gnark circuit end to end from a committed dump (`tools/gnark`'s test writes
-it with `ZOPRO_CUBIC`). With `ZOPRO_DUMP` (dumps from `tools/zolana`), the
+it with `ZOPRO_CUBIC`). zopro-core's `tests/blinding.rs` proves its witness
+twice with one key, on the CPU and on the GPU: a proof that skips or
+reuses its blinding still verifies, so the test checks that both proofs
+verify, differ in A, B and C, and are not the unblinded proof (r = s = 0).
+With `ZOPRO_DUMP` (dumps from `tools/zolana`), the
 Zolana tests prove the 2 → 2 transfer and the 24-note merge, check the
 witness against gnark's byte for byte, and leave raw proofs that
 `tools/zolana`'s test verifies with gnark.
