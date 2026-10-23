@@ -57,8 +57,11 @@ impl ZolanaProver {
     }
 
     /// Proves on the CPU from now on.
-    pub fn drop_gpu(&mut self) {
-        self.prover.prover_mut().drop_gpu();
+    pub fn drop_gpu(&mut self) -> Result<(), JsError> {
+        self.prover
+            .prover_mut()
+            .drop_gpu()
+            .map_err(|e| JsError::new(&e))
     }
 
     /// A Promise of `{proof, witnessMs, proveMs, verifyMs}`, `proof` the

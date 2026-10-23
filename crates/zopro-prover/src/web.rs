@@ -62,8 +62,8 @@ impl WebProver {
     }
 
     /// Proves on the CPU from now on.
-    pub fn drop_gpu(&mut self) {
-        self.prover.drop_gpu();
+    pub fn drop_gpu(&mut self) -> Result<(), JsError> {
+        self.prover.drop_gpu().map_err(|e| JsError::new(&e))
     }
 
     /// A Promise of `{proof, publicWitness, proveMs, verifyMs}` for an

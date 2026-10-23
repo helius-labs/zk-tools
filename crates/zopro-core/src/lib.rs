@@ -469,6 +469,11 @@ impl GpuBuilder {
 /// Hands a decoded vector to the GPU and keeps nothing of it, or keeps it
 /// when there is no GPU. A GPU that cannot take the key fails the build:
 /// the caller then proves another way.
+///
+/// The CPU keeps points read in place from a host's image: they cost the
+/// process nothing (the image stays mapped for the CPU's share of G2, and
+/// the system may drop their pages), and they are what the CPU proves with
+/// once the GPU is let go (`Key::drop_gpu`).
 #[cfg(gpu_any)]
 fn upload_g1(
     gpu: &mut Option<GpuBuilder>,
@@ -491,7 +496,10 @@ fn upload_g1(
             #[cfg(target_arch = "wasm32")]
             return Ok(bases);
             #[allow(unreachable_code)]
-            Ok(Store::Owned(Vec::new()))
+            match bases {
+                Store::Mapped { .. } => Ok(bases),
+                Store::Owned(_) => Ok(Store::Owned(Vec::new())),
+            }
         }
         None => Ok(bases),
     }
@@ -505,15 +513,17 @@ fn upload_g2(
     selftest::full_g2(&bases);
     match gpu {
         Some(builder) => {
-            // The CPU keeps the points after those the GPU took; in a
-            // browser it keeps them all, for solve_parts on the CPU.
+            // The CPU keeps the points after those the GPU took; all of
+            // them in an image (see upload_g1) and in a browser, for
+            // solve_parts on the CPU.
             let cut = builder
                 .g2(&bases)
                 .map_err(|_| "the GPU could not take the key")?;
-            if cfg!(target_arch = "wasm32") || cut == 0 {
-                Ok(bases)
-            } else {
-                Ok(bases.tail(cut))
+            match bases {
+                Store::Owned(points) if cut > 0 && !cfg!(target_arch = "wasm32") => {
+                    Ok(Store::Owned(points[cut..].to_vec()))
+                }
+                bases => Ok(bases),
             }
         }
         None => Ok(bases),
@@ -678,27 +688,6 @@ impl<T: InPlace> Store<T> {
             points: std::marker::PhantomData,
         })
     }
-    /// The points after the first `cut`.
-    #[cfg(gpu_any)]
-    fn tail(self, cut: usize) -> Self
-    where
-        T: Clone,
-    {
-        match self {
-            Store::Owned(v) => Store::Owned(v[cut..].to_vec()),
-            Store::Mapped {
-                image,
-                offset,
-                len,
-                points,
-            } => Store::Mapped {
-                image,
-                offset: offset + cut * T::SIZE,
-                len: len - cut,
-                points,
-            },
-        }
-    }
 }
 impl<T> std::ops::Deref for Store<T> {
     type Target = [T];
@@ -763,14 +752,16 @@ pub struct Key {
     #[cfg(all(feature = "trace", gpu))]
     profiled: std::sync::atomic::AtomicBool,
     /// The A, B and K vectors' lengths: the vectors themselves are empty
-    /// when a GPU holds them.
+    /// when a GPU holds the only copy of them (points decoded natively from
+    /// a host's bytes).
     lengths: [usize; 3],
     a: Store<G1Affine>,
     b: Store<G1Affine>,
     k: Store<G1Affine>,
     z: Store<G1Affine>,
-    /// Shared, for a browser's CPU share of the G2 MSM on the pool while
-    /// the proof's future awaits the GPU.
+    /// All of G2, or the points after those a GPU took when it holds the
+    /// only copy of them (`cpu_b2`). Shared, for a browser's CPU share of
+    /// the G2 MSM on the pool while the proof's future awaits the GPU.
     b2: std::sync::Arc<Store<G2Affine>>,
     /// The FFT domain's size.
     domain: usize,
@@ -845,13 +836,22 @@ impl Key {
     pub fn solve_parts(&self, witness: &[u8]) -> Result<Vec<u8>, JsError> {
         self.solve(witness).map_err(|error| JsError::new(&error))
     }
-    /// Proves on the CPU from now on: a host whose GPU proof failed to
-    /// verify lets the GPU go.
-    pub fn drop_gpu(&mut self) {
+    /// Proves on the CPU from now on: a host whose GPU failed, or whose GPU
+    /// proof did not verify, lets the GPU go. The CPU proves with the
+    /// points in the key's image (`Points::Mapped`), or in a browser with
+    /// its own copy. Natively, points decoded from a host's bytes have
+    /// their only copy on the GPU: the key keeps its GPU and fails, and
+    /// `drop_gpu_with` takes the points again.
+    pub fn drop_gpu(&mut self) -> Result<(), &'static str> {
         #[cfg(gpu_any)]
-        {
+        if self.gpu.is_some() {
+            if !self.cpu_points() {
+                return Err("the key's points are on the GPU alone (drop_gpu_with)");
+            }
             self.gpu = None;
+            self.plan.restore_tables();
         }
+        Ok(())
     }
     /// Whether the key holds a GPU (in a browser, the page's: solve_parts_gpu
     /// proves with it).
@@ -1252,6 +1252,31 @@ impl Key {
             solver: None,
         })
     }
+    /// `drop_gpu` for a key whose points are on the GPU alone: the CPU
+    /// takes them from `points`, those the key was built from
+    /// (`Artifact::points` of its key file, or a host's cache of them),
+    /// decoded before the GPU goes. On an error the key is as it was.
+    pub fn drop_gpu_with(&mut self, points: Points) -> Result<(), &'static str> {
+        #[cfg(gpu_any)]
+        if self.gpu.is_some() && !self.cpu_points() {
+            let [a, b, k] = self.lengths;
+            if points.counts()? != [a, b, k, self.domain - 1, b] {
+                return Err("the points of another key");
+            }
+            let (a, b, k, z, b2) = (
+                points.g1(0)?,
+                points.g1(1)?,
+                points.g1(2)?,
+                points.g1(3)?,
+                points.g2()?,
+            );
+            (self.a, self.b, self.k, self.z) = (a, b, k, z);
+            self.b2 = std::sync::Arc::new(b2);
+        }
+        #[cfg(not(gpu_any))]
+        let _ = points;
+        self.drop_gpu()
+    }
     /// The A, B and K MSM scalars of a witness, for the bench's profile of
     /// how skewed they are.
     #[doc(hidden)]
@@ -1353,7 +1378,7 @@ impl Key {
                     scope.spawn(move || {
                         let _ = sorted_rx.recv();
                         let started = crate::time::Instant::now();
-                        let bs2 = msm_g2(&self.b2, &sb[cut..]);
+                        let bs2 = msm_g2(self.cpu_b2(cut), &sb[cut..]);
                         trace("cpu-msm-b2", started);
                         bs2
                     })
@@ -1507,7 +1532,7 @@ impl Key {
                     });
                     let _ = sorted_rx.recv();
                     let started = crate::time::Instant::now();
-                    let cpu_b2 = (cut < sb.len()).then(|| msm_g2(&self.b2, &sb[cut..]));
+                    let cpu_b2 = (cut < sb.len()).then(|| msm_g2(self.cpu_b2(cut), &sb[cut..]));
                     trace("cpu-msm-b2", started);
                     Ok((gpu_work.join().expect("gpu work")?, cpu_b2))
                 })?;
@@ -1557,6 +1582,23 @@ impl Key {
     }
     fn quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
         self.plan.quotient(a, b, c)
+    }
+    /// Whether the CPU holds every point, as it must to prove without a
+    /// GPU.
+    #[cfg(gpu_any)]
+    fn cpu_points(&self) -> bool {
+        let [a, b, k] = self.lengths;
+        self.a.len() == a
+            && self.b.len() == b
+            && self.k.len() == k
+            && self.z.len() == self.domain - 1
+            && self.b2.len() == b
+    }
+    /// The G2 points the CPU takes when a GPU took the first `cut`: the
+    /// last of those it keeps, all or those after the GPU's.
+    #[cfg(all(gpu_any, not(target_arch = "wasm32")))]
+    fn cpu_b2(&self, cut: usize) -> &[G2Affine] {
+        &self.b2[self.b2.len() + cut - self.lengths[1]..]
     }
     /// The CPU's five MSMs at once. Natively the batch-affine ones take the
     /// scalars as canonical limbs, converted in place: a proof holds no

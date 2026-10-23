@@ -101,7 +101,9 @@ small inputs with the CPU's, and a GPU that disagrees is let go (Metal first
 retries with size-optimized shaders); the hosts verify every proof before it
 leaves and, on a GPU's failure, prove again on the CPU. A kernel or buffer
 the driver refuses, a lost device or an aborted command buffer is an error,
-never a panic.
+never a panic. The CPU proves again with the points in the key's image
+(`Prover::load_image`); natively a key loaded from bytes holds its points
+on the GPU alone, so `drop_gpu` fails and `drop_gpu_with` gives them back.
 
 ## Tests
 
@@ -116,12 +118,16 @@ it with `ZOPRO_CUBIC`). zopro-core's `tests/blinding.rs` proves its witness
 twice with one key, on the CPU and on the GPU: a proof that skips or
 reuses its blinding still verifies, so the test checks that both proofs
 verify, differ in A, B and C, and are not the unblinded proof (r = s = 0).
+zopro-core's `tests/fallback.rs` and `tests/cubic.rs` prove on the GPU,
+let it go and prove on the CPU, from the key's image and from its file's
+bytes.
 With `ZOPRO_DUMP` (dumps from `tools/zolana`), the
 Zolana tests prove the 2 → 2 transfer and the 24-note merge, check the
 witness against gnark's byte for byte, and leave raw proofs that
 `tools/zolana`'s test verifies with gnark. With `ZOPRO_KEYS_DIR` (the key
 set's zopro keys, as `tools/bench.sh` downloads them), zopro-zolana proves
-the 2 → 2 request twice with its key: both proofs verify and differ.
+the 2 → 2 request twice with its key: both proofs verify and differ; and
+from the key's image on the GPU, then on the CPU once the GPU is let go.
 
 ## Measured
 

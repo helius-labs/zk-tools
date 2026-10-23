@@ -152,9 +152,19 @@ impl Prover {
         self.key.has_gpu()
     }
 
-    /// Proves on the CPU from now on.
-    pub fn drop_gpu(&mut self) {
-        self.key.drop_gpu();
+    /// Proves on the CPU from now on, with the points in the key's image
+    /// (`load_image`), or in a browser with the CPU's own copy. Natively a
+    /// key loaded from bytes has its points on the GPU alone: it keeps its
+    /// GPU and fails, and `drop_gpu_with` gives it the points again.
+    pub fn drop_gpu(&mut self) -> Result<(), String> {
+        self.key.drop_gpu().map_err(str::to_owned)
+    }
+
+    /// `drop_gpu` with the points the key was loaded from
+    /// (`Artifact::points` of its key file, or its raw form's vectors), for
+    /// a key loaded from bytes. On an error the prover is as it was.
+    pub fn drop_gpu_with(&mut self, points: Points) -> Result<(), String> {
+        self.key.drop_gpu_with(points).map_err(str::to_owned)
     }
 
     /// The witness vector of `assignment`, in the key's order.
@@ -164,7 +174,8 @@ impl Prover {
 
     /// Proves `witness` (the key's order): the proof is verified before it
     /// is returned; a GPU proof that fails, or fails to verify, is proved
-    /// again on the CPU, and the GPU is let go.
+    /// again on the CPU, and the GPU is let go (`drop_gpu`). A key whose
+    /// points are on the GPU alone keeps it, and the proof fails.
     pub fn prove(&mut self, witness: &[Fr]) -> Result<Proved, Error> {
         let encoded = self.encode(witness)?;
         loop {
@@ -172,8 +183,7 @@ impl Prover {
             let parts = match self.key.solve(&encoded) {
                 Ok(parts) => parts,
                 Err(error) if self.key.has_gpu() => {
-                    log::warn!("zopro: the GPU failed ({error}); proving on the CPU from now on");
-                    self.key.drop_gpu();
+                    self.fall_back(&format!("the GPU failed ({error})"))?;
                     continue;
                 }
                 Err(error) => return Err(Error::Prove(error)),
@@ -187,11 +197,23 @@ impl Prover {
                 &self.verifying_key,
                 prove_ms,
             ) {
-                Err(_) if self.key.has_gpu() => {
-                    log::warn!("zopro: a GPU proof did not verify; proving on the CPU from now on");
-                    self.key.drop_gpu();
-                }
+                Err(_) if self.key.has_gpu() => self.fall_back("a GPU proof did not verify")?,
                 result => return result,
+            }
+        }
+    }
+
+    /// Lets a GPU that failed go, for the CPU to prove, or says why the CPU
+    /// cannot.
+    fn fall_back(&mut self, failure: &str) -> Result<(), Error> {
+        match self.key.drop_gpu() {
+            Ok(()) => {
+                log::warn!("zopro: {failure}; proving on the CPU from now on");
+                Ok(())
+            }
+            Err(error) => {
+                log::warn!("zopro: {failure}; {error}");
+                Err(Error::Prove(format!("{failure}; {error}")))
             }
         }
     }
