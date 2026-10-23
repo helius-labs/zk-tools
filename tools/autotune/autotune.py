@@ -112,7 +112,7 @@ def main():
     p.add_argument("--bench", default="target/release/zopro-bench")
     p.add_argument("--dumps", default="/tmp/zopro-dump")
     p.add_argument("--udid")
-    p.add_argument("--shapes", default="2x2,8x2,24x2,merge-54x1")
+    p.add_argument("--shapes", default="2x2,8x2,24x2,merge-52x1")
     p.add_argument("--rounds", type=int, default=5)
     p.add_argument("--env", action="append", default=[], help="fixed K=V for every run")
     p.add_argument("--out", default=None)
@@ -124,7 +124,7 @@ def main():
     target = Target(args)
 
     def measure(shape, env, why):
-        rounds = args.rounds if "54" not in shape else max(3, args.rounds - 2)
+        rounds = args.rounds if "52" not in shape else max(3, args.rounds - 2)
         median, failure, seconds = target.run(shape, env, rounds)
         record = {"shape": shape, "env": env, "median_ms": median, "failure": failure, "why": why, "seconds": round(seconds, 1), "at": time.strftime("%H:%M:%S")}
         log.write(json.dumps(record) + "\n")
