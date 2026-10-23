@@ -16,7 +16,7 @@ log = "0.4"
 miniz_oxide = "0.8"
 rayon = "1.10"
 wasm-bindgen = "=0.2.128"
-wasm-bindgen-rayon = { version = "1.3", features = ["no-bundler"] }
+wasm-bindgen-rayon = "1.3"
 
 [features]
 # Prints each proof stage's time to stderr (native only).
@@ -28,6 +28,9 @@ fullcheck = ["trace"]
 metal = ["dep:zopro-metal"]
 # The MSMs and the quotient through wgpu (Vulkan, WebGPU, Metal); G2 stays on the CPU.
 wgpu = ["dep:zopro-wgpu"]
+# In a browser, the thread pool's worker helpers for a page served without a
+# bundler (wasm-bindgen --target web as is); without it, the helpers a bundler emits.
+no-bundler = ["wasm-bindgen-rayon/no-bundler"]
 
 [profile.release]
 opt-level = 3

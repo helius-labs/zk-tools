@@ -157,5 +157,8 @@ cargo rustc --release --target wasm32-unknown-unknown --crate-type cdylib
 --features wgpu` in `crates/zopro-prover` (or `crates/zopro-zolana` for
 Zolana's runtime) with `nightly-2025-11-15`, then
 `wasm-bindgen --target web` (0.2.128). Without LTO: zopro-core's SIMD
-assembly does not assemble with `simd128` in an rlib built for LTO. The web
-SDK's `scripts/build-runtime.sh` does both.
+assembly does not assemble with `simd128` in an rlib built for LTO. The
+thread pool's worker helpers are those a bundler emits; a page served
+without a bundler adds the `no-bundler` feature, whose helpers start the
+threads from `blob:` URLs (which extension pages refuse). The web SDK's
+`scripts/build-runtime.sh` does both, for a bundler.
