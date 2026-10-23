@@ -119,7 +119,9 @@ verify, differ in A, B and C, and are not the unblinded proof (r = s = 0).
 With `ZOPRO_DUMP` (dumps from `tools/zolana`), the
 Zolana tests prove the 2 → 2 transfer and the 24-note merge, check the
 witness against gnark's byte for byte, and leave raw proofs that
-`tools/zolana`'s test verifies with gnark.
+`tools/zolana`'s test verifies with gnark. With `ZOPRO_KEYS_DIR` (the key
+set's zopro keys, as `tools/bench.sh` downloads them), zopro-zolana proves
+the 2 → 2 request twice with its key: both proofs verify and differ.
 
 ## Measured
 
