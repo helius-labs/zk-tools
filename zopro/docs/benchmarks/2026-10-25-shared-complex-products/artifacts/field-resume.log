@@ -1,0 +1,20 @@
+   Compiling xtask v0.1.0 (/home/ubuntu/src/zk-tools/zopro/xtask)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.26s
+     Running `xtask/target/debug/xtask workflow /tmp/zopro-complex-shared-product/field-plan.json /tmp/zopro-complex-shared-product/field --resume`
+RUN compiler
+REUSE /tmp/zopro-complex-shared-product/field/compiler
+DONE compiler
+RUN field
+REUSE /tmp/zopro-complex-shared-product/field/field
+DONE field
+RUN generator
+DONE generator
+{
+  "source_files": 170,
+  "status": "complete",
+  "steps": [
+    "compiler",
+    "field",
+    "generator"
+  ]
+}

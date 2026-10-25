@@ -1,0 +1,89 @@
+{
+  "purpose": "User asks to prioritize C7a high-core CPU utilization after the current arithmetic experiment.",
+  "latency_evidence": {
+    "report": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-25-canonical-grain-c7a-aeglos/README.md",
+    "source_stage": "167-file canonical scalar grain checkpoint; predates current local170 and shared-complex prototype",
+    "primary_zopro_ms": {
+      "w32": 13.5,
+      "w64": 13.872,
+      "w96": 15.483
+    },
+    "primary_aeglos_sorted_ms": {
+      "w32": 11.677,
+      "w64": 8.452,
+      "w96": 7.95
+    }
+  },
+  "profile_evidence": {
+    "report": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-25-c7a-warm-profile/README.md",
+    "source_stage": "Earlier167-file balanced-GCD checkpoint; distinct from later canonical sweep",
+    "primary32": {
+      "user_cpu_ms": 291.766,
+      "system_cpu_ms": 25.65,
+      "mean_cores": 21.49,
+      "ipc": 1.405,
+      "voluntary_switches": 478.46
+    },
+    "primary96": {
+      "user_cpu_ms": 903.893,
+      "system_cpu_ms": 116.479,
+      "mean_cores": 55.73,
+      "ipc": 0.626,
+      "voluntary_switches": 1811.37
+    },
+    "primary96_epoch_top_two_cycle_share_percent": 47.46
+  },
+  "counterexample": {
+    "report": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-23-empty-epoch-collection-aws/README.md",
+    "epoch_cycle_share_percent": {
+      "off": 50.49,
+      "on": 24.87
+    },
+    "paired_primary96_latency_ratio": 1.07357,
+    "meaning": "Lower epoch CPU share alone did not lower latency; user CPU dropped while kernel time and sleeping/waking increased. Preserve rejection."
+  },
+  "bounded_workers": {
+    "report": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-25-worker-groups-c7a/README.md",
+    "aws_best_accepted_ms": 13.304,
+    "aws_balanced_request96_ms": 11.441,
+    "aws_cpu_ms_accepted": 295.69,
+    "aws_cpu_ms_balanced_request": 335.7,
+    "local_balanced_request_regressed": true,
+    "universal_qualification_complete": false,
+    "adopted": false
+  },
+  "current_source_audit": {
+    "g2_primary_phi_windows_bits": 12,
+    "g2_primary_phi_parts": 2,
+    "ordinary_small_msm_default_parts_above16workers": 2,
+    "deferred_signed_g1_parts": "Explicit accepted environment=1",
+    "claim": "These key policies do not directly multiply their partition counts from32 to96. Full runtime task/arithmetic counts remain a separate diagnostic; source audit is not a profile."
+  },
+  "next_diagnostic": {
+    "scope": "After current fixed local SDK experiment finishes, separate phase CPU work from idle search before any new scheduler mutation.",
+    "phases": [
+      "SDK input/assignment",
+      "witness solver",
+      "quotient FFT",
+      "MSM queries",
+      "assembly",
+      "verification"
+    ],
+    "accounting": [
+      "CLOCK_MONOTONIC boundaries",
+      "getrusage SELF deltas: user/system CPU,switches,faults",
+      "aligned per-thread perf samples,period weights,loss checks"
+    ],
+    "storage": "Bounded caller-owned phase stamps; no scalar values, extra key plan or per-worker trace heap.",
+    "workers": [
+      32,
+      64,
+      96
+    ],
+    "hardware": "Meaningful96-core latency/scaling comparison needs actual C7a; local96workers on32logical CPUs can only validate instrumentation/correctness.",
+    "controls": "Pin source/binary/key/request/library/verifier; keep unprofiled timing separate; retain rejected cases and all samples.",
+    "no_new_aws_launched": true
+  },
+  "interpretation": "Scaling efficiency is degraded. Synchronization/work distribution are supported priorities; RAM capacity, bandwidth, cache contention and removable critical-path fractions are not established by these profiles.",
+  "goal_achieved": false
+}

@@ -1,0 +1,92 @@
+{
+  "declared_at": "2026-10-25T21:59:14.727312477Z",
+  "accepted_manifest": "/tmp/zopro-grouping-module/production-source-manifest.json",
+  "source_snapshot": "/tmp/zopro-complex-shared-product/sdk-candidate/.xtask/snapshot.json",
+  "scope": "Use shared raw complex products only for native IFMA8 Fq2 lane multiplication and conjugate-numerator multiplication. No heap/table, key, solver, grouping policy or scheduler change.",
+  "configuration": "ON adds --cfg zopro_shared_complex_products; omission remains OFF. No per-call environment read.",
+  "inherited_field_validation": "/tmp/zopro-complex-shared-product/component-result.json",
+  "native_full_core_both": true,
+  "prover_raw_and_cubic_both": true,
+  "performance": {
+    "workers": [
+      32,
+      16
+    ],
+    "affinity": {
+      "w32": "0-31",
+      "w16": "0-15 (one logical CPU per physical core)"
+    },
+    "shapes": [
+      "1x2",
+      "2x2",
+      "4x2",
+      "8x2",
+      "12x2",
+      "16x2",
+      "24x2",
+      "merge-24x1",
+      "merge-54x1"
+    ],
+    "primary16_extra": true,
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "blocks": 7,
+    "rounds": 31,
+    "primes": 3,
+    "profiles": {
+      "cases": [
+        "1x2-w32",
+        "merge-54x1-w32"
+      ],
+      "blocks": 3,
+      "rounds": {
+        "primary": 101,
+        "merge54": 9
+      }
+    },
+    "expected_sdk": 8184,
+    "expected_exports": 228,
+    "expected_profiles": 18,
+    "gates": {
+      "primary32_on_median_lt": 1,
+      "primary32_wins_gte": 4,
+      "all_nine32_paired_geomean_lt": 1,
+      "each_ten_case_median_lte": 1.02,
+      "every_block_lte": 1.05,
+      "off_calibration_factor_max": 1.03,
+      "comparison_controls": [
+        "accepted",
+        "off"
+      ]
+    },
+    "minimum_gain_floor": false,
+    "no_unchanged_reroll": true
+  },
+  "preflight": {
+    "variants": [
+      "off",
+      "on"
+    ],
+    "all_nine_workers4": true,
+    "rounds": 1,
+    "primes": 3,
+    "expected_sdk": 72,
+    "expected_exports": 18
+  },
+  "expected_totals": {
+    "sdk": 8256,
+    "independent_exports": 246,
+    "proof_public_members": 492
+  },
+  "qualification_if_timing_passes": [
+    "portable proof coverage",
+    "small stacks/concurrency",
+    "actual linked G2 code generation",
+    "bounded memory/pressure and large-circuit validation"
+  ],
+  "adopted": false,
+  "goal_achieved": false
+}

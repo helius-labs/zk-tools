@@ -1,0 +1,73 @@
+{
+  "declared_at": "2026-10-25 21:43 UTC",
+  "accepted_manifest": "/tmp/zopro-grouping-module/production-source-manifest.json",
+  "hypothesis": "Share three exact raw Karatsuba products across both Fq2 output coefficients; retain two Montgomery cancellations with signed CIOS carries. No new tables or heap.",
+  "scope": "Private field-component test only. No prover integration or speedup claim yet. Different from old symmetric norm/square and truncated REDC candidates.",
+  "identity": "x=A-B, y=C-A-B with A=a0*b0,B=a1*b1,C=(a0+a1)*(b0+b1); exact sums below4p. Arithmetic carry propagation, real output biased byp after REDC; each output below3p then reduced by2p.",
+  "bounds": {
+    "inputs": "normalized radix52, at most2p; p<2^254",
+    "real_redc": "(-4p²/R, p+4p²/R); after+p lies in(0,3p)",
+    "imag_redc": "[0,p+8p²/R), below3p",
+    "coefficient_bound": "conservative abs<=32*2^52 before final mixed packing; mixed packing<2^62, within signed i64",
+    "outputs": "normalized and below2p",
+    "transient_heap_bytes": 0,
+    "number_raw_products": 3,
+    "number_reductions": 2
+  },
+  "correctness": {
+    "required_tests": [
+      "ifma::tests::complex_product_shared_matches_arkworks",
+      "ifma8::tests::complex_product_shared_matches_arkworks"
+    ],
+    "unfiltered_full_native_field": true,
+    "fields": [
+      "Fq",
+      "Fr"
+    ],
+    "radix_bits": [
+      256,
+      260
+    ],
+    "lane_widths": [
+      4,
+      8
+    ],
+    "boundary_and_lazy_inputs": true,
+    "repeated_complex_products": 8,
+    "reference": "Independent Arkworks field algebra"
+  },
+  "benchmark": {
+    "status": "not started",
+    "cpu": 2,
+    "blocks": 31,
+    "variants": [
+      "accepted",
+      "fresh-old",
+      "shared"
+    ],
+    "patterns": [
+      "chain",
+      "streams4",
+      "scaled",
+      "affine-expression"
+    ],
+    "primes": 3,
+    "prime_iterations": 2000,
+    "iterations": 100000,
+    "field": "Fq",
+    "radix": 256,
+    "lanes": 8,
+    "output_checks": "Every final canonical output word must match all variants and blocks; not a checksum-only comparison.",
+    "gates": {
+      "geomean_lt": 1,
+      "winning_blocks_gte": 21,
+      "individual_median_ratio_lte": 1.03,
+      "control_calibration_ratio_max": 1.03
+    },
+    "minimum_gain_floor": false,
+    "no_unchanged_reroll": true
+  },
+  "memory": "Fixed vector/local temporaries only. Compiler stack and spilling must be inspected; no physical phone or whole-prover memory result yet.",
+  "adopted": false,
+  "goal_achieved": false
+}

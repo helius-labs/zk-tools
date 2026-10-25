@@ -1,0 +1,5217 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-complex-shared-product/timing-pins.json",
+  "environment": {
+    "RAYON_NUM_THREADS": "1"
+  },
+  "steps": [
+    {
+      "kind": "command",
+      "name": "b00-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b00-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b01-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b02-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b03-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b04-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b05-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b06-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b07-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b08-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b09-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-scaled-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-scaled-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-scaled-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "scaled",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-affine-expression-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-affine-expression-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-affine-expression-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "affine-expression",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-chain-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-chain-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-chain-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "chain",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-streams4-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/accepted-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-streams4-fresh-old",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "old",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-streams4-shared",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-complex-shared-product/candidate-component",
+        "shared",
+        "streams4",
+        "100000"
+      ],
+      "timeout_seconds": 120
+    }
+  ]
+}
