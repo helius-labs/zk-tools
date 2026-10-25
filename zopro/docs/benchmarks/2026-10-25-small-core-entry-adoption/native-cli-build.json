@@ -1,0 +1,42 @@
+{
+  "completed": 1792938298.7190108,
+  "command": [
+    "rustc",
+    "--edition=2021",
+    "-O",
+    "-C",
+    "target-cpu=native",
+    "-L",
+    "dependency=/tmp/zopro-small-core-entry-native/target-candidate/release/deps",
+    "--extern",
+    "zopro_prover=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libzopro_prover.rlib",
+    "--extern",
+    "zopro_zolana=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libzopro_zolana.rlib",
+    "--extern",
+    "memmap2=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libmemmap2-a73dfb0f726ed553.rlib",
+    "--extern",
+    "serde_json=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libserde_json-a0f8ac7ef152b2d2.rlib",
+    "--extern",
+    "libc=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/liblibc-8aaeb44b4118cb0f.rlib",
+    "-C",
+    "lto=fat",
+    "-C",
+    "codegen-units=1",
+    "--extern",
+    "rayon=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/librayon-937fb1ed3378fde7.rlib",
+    "/tmp/zopro-small-core-entry-native-compat/memory-sdk.rs",
+    "-o",
+    "/tmp/zopro-small-core-entry-native-compat/native-sdk"
+  ],
+  "binary": "/tmp/zopro-small-core-entry-native-compat/native-sdk",
+  "binary_sha256": "99dc1eacdd718c370d95a0bd7147698ca0f0dc2e67880565c7904d873592fdf4",
+  "libraries": {
+    "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libzopro_prover.rlib": "c4968b5a82dd93a223b1cff512a8c87202381c8ba122d4f8e13246ad82a52267",
+    "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libzopro_zolana.rlib": "af43013105e2339255717379e6e9d3098ead08525e7d34ca75ab668ffc6a1dd9",
+    "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libmemmap2-a73dfb0f726ed553.rlib": "847632054b70da0299a93a118dc4d37c130b536f417580d6b78184d349afd1e0",
+    "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libserde_json-a0f8ac7ef152b2d2.rlib": "e488d4de173fa07a052d9525433638d0eea951c7c8e361f96f9a99baafae4741",
+    "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/liblibc-8aaeb44b4118cb0f.rlib": "4f289fe142cd3081ebf9be6d2e54cdf29917cc73fff1f52564f86451740c3280",
+    "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/librayon-937fb1ed3378fde7.rlib": "c46159ccb986c1392a4a430b8fc37857b9fe37dfaf2e7cf591ec99003fdcfe97"
+  },
+  "prover_rebuilt": false
+}

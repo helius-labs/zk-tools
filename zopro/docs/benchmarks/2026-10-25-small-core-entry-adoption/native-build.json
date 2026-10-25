@@ -1,0 +1,79 @@
+{
+  "completed": 1792937182.7932057,
+  "builds": {
+    "candidate": {
+      "binary": "/tmp/zopro-small-core-entry-native/candidate-sdk",
+      "binary_sha256": "92b0cdd36fcb0256090a689836ec4e4e4e4f3bca331d25f07632060bc7c3cef3",
+      "libraries": {
+        "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libzopro_prover.rlib": "c4968b5a82dd93a223b1cff512a8c87202381c8ba122d4f8e13246ad82a52267",
+        "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libzopro_zolana.rlib": "af43013105e2339255717379e6e9d3098ead08525e7d34ca75ab668ffc6a1dd9",
+        "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libmemmap2-a73dfb0f726ed553.rlib": "847632054b70da0299a93a118dc4d37c130b536f417580d6b78184d349afd1e0",
+        "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libserde_json-a0f8ac7ef152b2d2.rlib": "e488d4de173fa07a052d9525433638d0eea951c7c8e361f96f9a99baafae4741",
+        "/tmp/zopro-small-core-entry-native/target-candidate/release/deps/liblibc-8aaeb44b4118cb0f.rlib": "4f289fe142cd3081ebf9be6d2e54cdf29917cc73fff1f52564f86451740c3280"
+      },
+      "command": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-L",
+        "dependency=/tmp/zopro-small-core-entry-native/target-candidate/release/deps",
+        "--extern",
+        "zopro_prover=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libzopro_prover.rlib",
+        "--extern",
+        "zopro_zolana=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libzopro_zolana.rlib",
+        "--extern",
+        "memmap2=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libmemmap2-a73dfb0f726ed553.rlib",
+        "--extern",
+        "serde_json=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/libserde_json-a0f8ac7ef152b2d2.rlib",
+        "--extern",
+        "libc=/tmp/zopro-small-core-entry-native/target-candidate/release/deps/liblibc-8aaeb44b4118cb0f.rlib",
+        "/tmp/zopro-small-core-entry-native/sdk.rs",
+        "-o",
+        "/tmp/zopro-small-core-entry-native/candidate-sdk"
+      ],
+      "rustflags": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry",
+      "tests": {
+        "zopro-bn254": 33,
+        "zopro-core": 104
+      },
+      "raw_tests": 2,
+      "cubic_tests": 6
+    },
+    "accepted": {
+      "binary": "/tmp/zopro-small-core-entry-native/accepted-sdk",
+      "binary_sha256": "b10ab443667ff719d717d77307a166322544c011af156e1b800a7afa3df3b99c",
+      "libraries": {
+        "/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps/libzopro_prover.rlib": "3e1a7ca29571725271bdd3d1ea219ed6d2c8d7c2b962558173bac13698be1905",
+        "/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps/libzopro_zolana.rlib": "7a987db395b0e790d83d05d14c88cb17ee2440b4b52e73758e64717b75397ed4",
+        "/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps/libmemmap2-b130f166e3e1fa31.rlib": "277430a0a4db6ce076b0fa4c6f34ac4cec1ac3a1d5120c70ba406467a914f13c",
+        "/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps/libserde_json-40bcd7bc7e40a3ba.rlib": "fbbf3f6424540ce6a6fa71f9ff81b05efe6d9bd80dad2fa901caf2b0425cf1c9",
+        "/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps/liblibc-546beae520172641.rlib": "6c393b339c1b87cf5f70aa4fce54d79b5e38a8968d79dfd0a4b02fd234693fc4"
+      },
+      "command": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-L",
+        "dependency=/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps",
+        "--extern",
+        "zopro_prover=/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps/libzopro_prover.rlib",
+        "--extern",
+        "zopro_zolana=/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps/libzopro_zolana.rlib",
+        "--extern",
+        "memmap2=/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps/libmemmap2-b130f166e3e1fa31.rlib",
+        "--extern",
+        "serde_json=/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps/libserde_json-40bcd7bc7e40a3ba.rlib",
+        "--extern",
+        "libc=/tmp/zopro-canonical-grain-sdk/target-candidate/release/deps/liblibc-546beae520172641.rlib",
+        "/tmp/zopro-small-core-entry-native/sdk.rs",
+        "-o",
+        "/tmp/zopro-small-core-entry-native/accepted-sdk"
+      ]
+    }
+  },
+  "driver_sha256": "0ea6dca546ff86f88c939ad0496714745be3c0ac767a892f0af46e07d9a3fbed"
+}

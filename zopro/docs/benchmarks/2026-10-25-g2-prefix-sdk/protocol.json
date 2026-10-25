@@ -1,0 +1,139 @@
+{
+  "declared": 1792953210.1475825,
+  "scope": "New G2-only complete-SDK hypothesis. Combined G1/G2 component remains failed and is not adopted. G1 stays on accepted algorithm; only native G2 streaming dispatch changes.",
+  "parent_failed_report": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-25-prefix-records-component/README.md",
+  "evidence_sha256": "b1feccbe81e28454d667e11b6d641fd0531d77c18b90fd4b916e26f1bdc4652d",
+  "rustflags": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records",
+  "driver_sha256": "b703f5b307a1896e894a4b2333533686bbcf4a1ae837a28b92b94950a7462920",
+  "runtime_flag": "ZOPRO_CPU_G2_PREFIX_RECORDS",
+  "default": "OFF experimental, option read at scratch construction",
+  "trace_flag": "ZOPRO_CPU_G2_PREFIX_TRACE",
+  "preflight": "All9nativeOFF/ON4worker fullSDK plus defaultmissingflagprimary32;3primes+1captured each. Trace must confirm actual G2 stream selection for all9 shapes, tracing absent in timed cells.",
+  "cases": [
+    {
+      "shape": "1x2",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "2x2",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "4x2",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "8x2",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "12x2",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "16x2",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "24x2",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "merge-24x1",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "merge-54x1",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "1x2",
+      "workers": 16,
+      "rounds": 31
+    }
+  ],
+  "blocks": 7,
+  "variants": [
+    "accepted",
+    "off",
+    "on"
+  ],
+  "gate": "Fresh7block full9+primary16 campaign. Primary32 ON/accepted and ON/OFF pairedmedian<1 with>=4/7wins. All9geometricpairedON/accepted and ON/OFF<1. Every10case<=1.02pairedmedian and<=1.05everyblock vsboth. OFF/accepted<=1.03. No component result substitutes this gate; no minimum gain floor or unchanged reroll.",
+  "expected_sdk": 7216,
+  "expected_distinct_gnark": 229,
+  "limitations": "No promotion from component or SDK pilot alone. Portable, concurrency, memory transitions/cold+warm limits, resource forecasts, codegen/stack and actual250/4999 qualification remain required. No2x speed prediction.",
+  "adopted": false,
+  "goal_achieved": false,
+  "accepted_binary": "/tmp/zopro-small-core-entry-adoption/native-sdk",
+  "accepted_binary_sha256": "99dc1eacdd718c370d95a0bd7147698ca0f0dc2e67880565c7904d873592fdf4",
+  "pilot": {
+    "cases": [
+      {
+        "shape": "1x2",
+        "workers": 32,
+        "rounds": 31
+      },
+      {
+        "shape": "2x2",
+        "workers": 32,
+        "rounds": 31
+      },
+      {
+        "shape": "4x2",
+        "workers": 32,
+        "rounds": 31
+      },
+      {
+        "shape": "8x2",
+        "workers": 32,
+        "rounds": 31
+      },
+      {
+        "shape": "12x2",
+        "workers": 32,
+        "rounds": 31
+      },
+      {
+        "shape": "16x2",
+        "workers": 32,
+        "rounds": 31
+      },
+      {
+        "shape": "24x2",
+        "workers": 32,
+        "rounds": 31
+      },
+      {
+        "shape": "merge-24x1",
+        "workers": 32,
+        "rounds": 31
+      },
+      {
+        "shape": "merge-54x1",
+        "workers": 32,
+        "rounds": 31
+      },
+      {
+        "shape": "1x2",
+        "workers": 16,
+        "rounds": 31
+      }
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "blocks": 7
+  },
+  "controller_sha256": "105723be8a5a7b35429ce88b0dd8d8f42ba15b03ae76c5c87804120700a47e04"
+}

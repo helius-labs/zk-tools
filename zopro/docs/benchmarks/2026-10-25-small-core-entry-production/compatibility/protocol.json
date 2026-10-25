@@ -1,0 +1,59 @@
+{
+  "created": "2026-10-25T14:17:36.186811+00:00",
+  "purpose": "Preserve exact existing accepted benchmark CLI and pinned16-worker receipts while linking unchanged native small-core-entry libraries. Compatibility check only, not a timing re-screen.",
+  "parent": "/tmp/zopro-small-core-entry-native",
+  "source_sha256": "b703f5b307a1896e894a4b2333533686bbcf4a1ae837a28b92b94950a7462920",
+  "source_original": "/tmp/zopro-canonical-grain-qualification/workspace/crates/zopro-bench/examples/memory-sdk.rs",
+  "build_manifest_sha256": "c7b4271ba1fbe628c4061ca2a1c92a11ee4999045f28e3428f685dd9bac1cb00",
+  "cases": [
+    {
+      "shape": "1x2",
+      "workers": 32
+    },
+    {
+      "shape": "2x2",
+      "workers": 32
+    },
+    {
+      "shape": "4x2",
+      "workers": 32
+    },
+    {
+      "shape": "8x2",
+      "workers": 32
+    },
+    {
+      "shape": "12x2",
+      "workers": 32
+    },
+    {
+      "shape": "16x2",
+      "workers": 32
+    },
+    {
+      "shape": "24x2",
+      "workers": 32
+    },
+    {
+      "shape": "merge-24x1",
+      "workers": 32
+    },
+    {
+      "shape": "merge-54x1",
+      "workers": 32
+    },
+    {
+      "shape": "1x2",
+      "workers": 16
+    }
+  ],
+  "arguments": "shape 1 1 4 output",
+  "sdk": 40,
+  "distinct_gnark": 10,
+  "runtime": "New flag deliberately omitted to verify default enabled behavior when compiled with zopro_small_core_entry.",
+  "status": "Prepared only; do not compile or run during native large job58714.",
+  "adopted": false,
+  "compiler_profile": "Match Cargo profile.release: opt-level3, fat LTO, codegen-units1, target-cpu=native. Exact accepted CLI source is reused.",
+  "profile_audit": "Workspace Cargo.toml profile.release has lto=true andcodegen-units=1; earlier direct timing harness rustc-O did not set these final-consumer flags. Production CLI gets a separate matched-binary timing comparison after compatibility checks.",
+  "updated": "2026-10-25T14:22:12.160906+00:00"
+}

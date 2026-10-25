@@ -1,0 +1,79 @@
+{
+  "completed": 1792953391.4793167,
+  "binary": "/tmp/zopro-g2-prefix-sdk/native-sdk",
+  "binary_sha256": "682ea11ce101edb368eb258ca24f615e91cf101d43dcf39a95df2b0c55c93b22",
+  "command": [
+    "rustc",
+    "--edition=2021",
+    "-O",
+    "-C",
+    "target-cpu=native",
+    "-C",
+    "lto=fat",
+    "-C",
+    "codegen-units=1",
+    "-L",
+    "dependency=/tmp/zopro-g2-prefix-sdk/target-native/release/deps",
+    "--extern",
+    "zopro_core=/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libzopro_core.rlib",
+    "--extern",
+    "zopro_bn254=/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libzopro_bn254-505b170cdc507df1.rlib",
+    "--extern",
+    "zopro_prover=/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libzopro_prover.rlib",
+    "--extern",
+    "zopro_zolana=/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libzopro_zolana.rlib",
+    "--extern",
+    "memmap2=/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libmemmap2-965af0fecf05a7bb.rlib",
+    "--extern",
+    "serde_json=/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libserde_json-cae5e7ec1f017ce1.rlib",
+    "--extern",
+    "libc=/tmp/zopro-g2-prefix-sdk/target-native/release/deps/liblibc-5a6fe4d81836844f.rlib",
+    "--extern",
+    "rayon=/tmp/zopro-g2-prefix-sdk/target-native/release/deps/librayon-8c351a88ff22669b.rlib",
+    "/tmp/zopro-g2-prefix-sdk/sdk.rs",
+    "-o",
+    "/tmp/zopro-g2-prefix-sdk/native-sdk"
+  ],
+  "libraries": {
+    "zopro_core": {
+      "path": "/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libzopro_core.rlib",
+      "sha256": "cd60bb8dd1ecde20619b9a2894eabb47044cd3098adf349568db337620ec659d"
+    },
+    "zopro_bn254": {
+      "path": "/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libzopro_bn254-505b170cdc507df1.rlib",
+      "sha256": "dd4ceaccb1fd3169b1785beb8078fe5a2c4bc3330c44a5d8dc8dd447619f7ab5"
+    },
+    "zopro_prover": {
+      "path": "/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libzopro_prover.rlib",
+      "sha256": "8de8df1d6e82d8c956064028d3855072822ab298b1ed05ab857e4f6b51ec87a7"
+    },
+    "zopro_zolana": {
+      "path": "/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libzopro_zolana.rlib",
+      "sha256": "1d8a76fadc5b477386a5649f1d21104e7e6b7576aab7fc11308dd71b3a78b2f7"
+    },
+    "memmap2": {
+      "path": "/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libmemmap2-965af0fecf05a7bb.rlib",
+      "sha256": "a6fffdd0b3b6ca6f3ab261ba25faecae2dba3a145e2178046874854cf77d405f"
+    },
+    "serde_json": {
+      "path": "/tmp/zopro-g2-prefix-sdk/target-native/release/deps/libserde_json-cae5e7ec1f017ce1.rlib",
+      "sha256": "994c75d30594152a3636e3e8b91998c28919834d4ad1cd7e714944d27e7b15b3"
+    },
+    "libc": {
+      "path": "/tmp/zopro-g2-prefix-sdk/target-native/release/deps/liblibc-5a6fe4d81836844f.rlib",
+      "sha256": "1c05b85983496aa8e78e217245b072feeb2e1076038b370fcb7eca849c9e4cab"
+    },
+    "rayon": {
+      "path": "/tmp/zopro-g2-prefix-sdk/target-native/release/deps/librayon-8c351a88ff22669b.rlib",
+      "sha256": "bf7ab8bf274c84025bc411d349fd1a65105f41c57b184396781dc43ee353a282"
+    }
+  },
+  "rustflags": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records",
+  "source_pins_sha256": "5bf09f0f841929bc41219e8bedd9a640ae7b35d0f17f9ebcad7f3a9ee233cfef",
+  "driver_sha256": "b703f5b307a1896e894a4b2333533686bbcf4a1ae837a28b92b94950a7462920",
+  "native_core_tests": 106,
+  "raw_tests": 2,
+  "cubic_tests": 6,
+  "field_source_unchanged": true,
+  "production_changed": false
+}

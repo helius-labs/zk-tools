@@ -1,0 +1,42 @@
+{
+  "completed": 1792952980.3016245,
+  "command": [
+    "rustc",
+    "--edition=2021",
+    "-O",
+    "-C",
+    "target-cpu=native",
+    "-C",
+    "lto=fat",
+    "-C",
+    "codegen-units=1",
+    "-L",
+    "dependency=/tmp/zopro-prefix-records/target-native/release/deps",
+    "--extern",
+    "zopro_core=/tmp/zopro-prefix-records/target-native/release/deps/libzopro_core.rlib",
+    "--extern",
+    "serde_json=/tmp/zopro-prefix-records/target-native/release/deps/libserde_json-7b78e3f3884f79a8.rlib",
+    "--extern",
+    "libc=/tmp/zopro-prefix-records/target-native/release/deps/liblibc-bcc7720fd6c7df86.rlib",
+    "/tmp/zopro-prefix-records/component.rs",
+    "-o",
+    "/tmp/zopro-prefix-records/component"
+  ],
+  "libraries": {
+    "zopro_core": {
+      "path": "/tmp/zopro-prefix-records/target-native/release/deps/libzopro_core.rlib",
+      "sha256": "cb69b02074b584973f2a357497cfd425e7cb922063178f93c3966b57b7619178"
+    },
+    "serde_json": {
+      "path": "/tmp/zopro-prefix-records/target-native/release/deps/libserde_json-7b78e3f3884f79a8.rlib",
+      "sha256": "849bc03f9ce50b1e78313e86b1cc77203fec498fef150e7df90e6eb0714d6379"
+    },
+    "libc": {
+      "path": "/tmp/zopro-prefix-records/target-native/release/deps/liblibc-bcc7720fd6c7df86.rlib",
+      "sha256": "891b6d4772e3263323a0ae475a8a466a8d5f922ed716b1d2d85da51c8978a15a"
+    }
+  },
+  "binary_sha256": "0eff7fc1159bd16ac80e77aa1e72c0dc41b737ef7f9e7d27cfe745477427b7f3",
+  "source_pins_sha256": "e04d61c8f1cc04e943e7e7332358fe25d52e09c2fd8f5b9458262721e34098ed",
+  "core_tests": 106
+}

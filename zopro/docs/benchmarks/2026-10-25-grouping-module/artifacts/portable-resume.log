@@ -1,0 +1,24 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running `xtask/target/debug/xtask workflow /tmp/zopro-grouping-module/portable-plan.json /tmp/zopro-grouping-module/portable --resume`
+RUN core
+REUSE /tmp/zopro-grouping-module/portable/core
+DONE core
+RUN prover
+REUSE /tmp/zopro-grouping-module/portable/prover
+DONE prover
+RUN libraries
+REUSE /tmp/zopro-grouping-module/portable/libraries
+DONE libraries
+RUN portable
+REUSE /tmp/zopro-grouping-module/portable/portable
+DONE portable
+{
+  "source_files": 170,
+  "status": "complete",
+  "steps": [
+    "core",
+    "prover",
+    "libraries",
+    "portable"
+  ]
+}

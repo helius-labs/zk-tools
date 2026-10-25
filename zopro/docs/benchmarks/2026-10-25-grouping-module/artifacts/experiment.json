@@ -1,0 +1,69 @@
+{
+  "declared_at": "2026-10-25 21:02:10 UTC",
+  "scope": "Private behavior-preserving scalar-grouping module extraction. User requests focused Rust modules and automatic CPU profiling. No arithmetic, grouping policy, memory admission, query geometry, runtime option or solver format changes.",
+  "accepted_manifest": "/tmp/zopro-g2-prefix-adoption/production-source-manifest.json",
+  "candidate_snapshot": "/tmp/zopro-grouping-module/candidate/.xtask/snapshot.json",
+  "native_workflow": "/tmp/zopro-grouping-module/native-plan.json",
+  "portable_workflow": "/tmp/zopro-grouping-module/portable-plan.json",
+  "validation": {
+    "focused_tests": 5,
+    "native_full": true,
+    "portable_full": true,
+    "worker_counts": [
+      1,
+      2,
+      4
+    ],
+    "concurrent_callers": 4,
+    "worker_stack_bytes": 524288,
+    "oracle": "Independent scalar-weighted generator sums and ordered-value class metadata; panic completion and pool reuse."
+  },
+  "performance": {
+    "variants": [
+      "accepted",
+      "refactor"
+    ],
+    "cases": [
+      "1x2",
+      "2x2",
+      "4x2",
+      "8x2",
+      "12x2",
+      "16x2",
+      "24x2",
+      "merge-24x1",
+      "merge-54x1"
+    ],
+    "workers": 32,
+    "blocks": 7,
+    "rounds": 31,
+    "primes": 3,
+    "profile_blocks": 3,
+    "profile_cases": [
+      "1x2",
+      "merge-54x1"
+    ],
+    "profile_rounds": {
+      "primary": 101,
+      "merge54": 9
+    },
+    "expected_sdk": 4980,
+    "expected_exports": 138,
+    "expected_profiles": 12,
+    "acceptance": {
+      "all_nine_paired_geomean_lte": 1.005,
+      "primary_paired_median_lte": 1.01,
+      "each_paired_case_median_lte": 1.02,
+      "each_block_ratio_lte": 1.05
+    },
+    "interpretation": "A structural refactor may pass a declared nonregression tolerance without a speedup claim. All timings retained; no unchanged reroll or post-run gate change."
+  },
+  "memory": {
+    "changed_arrays": false,
+    "changed_types_or_drop_order": false,
+    "new_key_tables": false,
+    "inherited_analysis": "Original grouping allocation capacities and reservations remain; function bodies, field types and field order are audited. Existing accepted large-circuit qualification remains provenance, not a newly measured candidate result."
+  },
+  "goal_achieved": false,
+  "adopted": false
+}

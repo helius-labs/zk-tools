@@ -11,6 +11,8 @@ use crate::msm::{BatchAdd, BatchInverse};
 use rayon::prelude::*;
 use zopro_bn254::{Affine, CurveConfig, Field, Fr, Projective};
 mod grouping_cost;
+mod grouping;
+pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
 
 #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
 mod g2_horner;
@@ -114,6 +116,12 @@ where
 /// `scalars` in place as their canonical limbs, for msm_canonical: a
 /// proof's scalars, which it needs no more after its MSMs.
 pub(super) fn canonical(scalars: &mut [Fr]) -> &[[u64; 4]] {
+    #[cfg(zopro_canonical_task_grain)]
+    scalars
+        .par_iter_mut()
+        .with_min_len(128)
+        .for_each(|s| *s = Fr::from_montgomery(s.to_canonical()));
+    #[cfg(not(zopro_canonical_task_grain))]
     scalars
         .par_iter_mut()
         .for_each(|s| *s = Fr::from_montgomery(s.to_canonical()));
@@ -139,15 +147,6 @@ where
     msm_raw(bases, canonical)
 }
 
-pub(super) struct ScalarGroups {
-    len: usize,
-    values: Vec<[u64; 4]>,
-    order: Vec<u32>,
-    starts: Vec<usize>,
-    counts: Vec<usize>,
-    // Drop the charge after all owned buffers.
-    _reservation: crate::preparation::Reservation,
-}
 
 pub(super) fn msm_grouped<C: CurveConfig>(
     bases: &[Affine<C>],
@@ -178,23 +177,6 @@ where
         &groups.counts,
     );
     msm_raw(&combined, &groups.values)
-}
-
-/// Group before converting representations, so only distinct witness
-/// scalars need Montgomery reduction. The grouping is fresh per proof.
-pub(super) fn group_witness(scalars: &[Fr]) -> Option<ScalarGroups> {
-    if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
-        return None;
-    }
-    // SAFETY: Fr is repr(transparent) over four u64 limbs. This shared
-    // view only compares/hashes the existing Montgomery representations.
-    let words =
-        unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
-    let mut groups = scalar_groups(words)?;
-    groups.values.par_iter_mut().for_each(|value| {
-        *value = Fr::from_montgomery(*value).to_canonical();
-    });
-    Some(groups)
 }
 
 pub(super) fn msm_in_place<C: CurveConfig>(bases: &[Affine<C>], scalars: &mut [Fr]) -> Projective<C>
@@ -237,119 +219,6 @@ where
         crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts),
         groups.values,
     ))
-}
-
-pub(super) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
-    scalar_groups_policy(scalars, std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1"))
-}
-
-type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
-
-fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSample<'_>, usize)> {
-    let sample = scalars.len().min(2048);
-    let stride = scalars.len().div_ceil(sample);
-    let unique: GroupSample<'_> = scalars.iter().step_by(stride).take(sample).collect();
-    // A strided sample of a partial domain may contain fewer than 2048
-    // observations. OFF retains the original denominator for comparison.
-    let observed = if zero_aware { scalars.len().div_ceil(stride).min(sample) } else { sample };
-    if unique.len() * 200 > observed * 199 {
-        return None;
-    }
-    let percent = if (32768..65536).contains(&scalars.len())
-        && crate::simd::cpu_option("ZOPRO_CPU_SMALL_GROUPS")
-    {
-        95
-    } else {
-        80
-    };
-    if zero_aware {
-        let zeros = scalars.iter().step_by(stride).take(sample).filter(|s| **s == [0; 4]).count();
-        let nonzero = observed - zeros;
-        let unique_nonzero = unique.len() - usize::from(zeros != 0);
-        // Scattered zeros alone do not justify a full hash map when all
-        // sampled nonzero values are distinct and the zero density cannot
-        // meet the existing grouping cutoff. Repeated nonzero samples and
-        // dense-zero samples retain the original grouping decision.
-        let decline = unique_nonzero == nonzero && nonzero * 100 > observed * percent;
-        if std::env::var_os("ZOPRO_CPU_GROUP_TRACE").is_some() {
-            eprintln!("ZERO_AWARE_GROUP n={} sampled={} zeros={} unique_nonzero={} percent={} decline={}",
-                scalars.len(), observed, zeros, unique_nonzero, percent, decline);
-        }
-        if decline { return None; }
-    }
-    Some((unique, percent))
-}
-
-fn scalar_groups_policy(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
-    if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
-        return None;
-    }
-    let (unique, percent) = grouping_sample(scalars, zero_aware)?;
-    let reservation = grouping_cost::reserve(scalars.len(), percent)?;
-    // Bound the initial allocation by the sample and by the grouping
-    // cutoff. Small high-diversity inputs otherwise grow and rehash the
-    // entire table several times before either succeeding or declining.
-    let capacity = if crate::simd::cpu_option("ZOPRO_CPU_RESERVE_GROUPS") {
-        (unique.len() * 16)
-            .min(scalars.len() * percent / 100)
-            .min(32768)
-    } else {
-        0
-    };
-    let mut groups =
-        std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());
-    let mut values = Vec::new();
-    let mut classes = vec![u32::MAX; scalars.len()];
-    let mut counts: Vec<usize> = Vec::new();
-    for (scalar, class) in scalars.iter().zip(&mut classes) {
-        if *scalar == [0; 4] {
-            continue;
-        }
-        let index = *groups.entry(*scalar).or_insert_with(|| {
-            values.push(*scalar);
-            counts.push(0);
-            (values.len() - 1) as u32
-        });
-        *class = index;
-        counts[index as usize] += 1;
-    }
-    drop(groups);
-    if values.len() * 100 > scalars.len() * percent {
-        return None;
-    }
-    if values.is_empty() {
-        return Some(ScalarGroups {
-            _reservation: reservation,
-            len: scalars.len(),
-            values,
-            order: Vec::new(),
-            starts: vec![0],
-            counts,
-        });
-    }
-    let mut starts = Vec::with_capacity(counts.len() + 1);
-    starts.push(0);
-    for &count in &counts {
-        starts.push(starts.last().unwrap() + count);
-    }
-    let mut positions = starts[..counts.len()].to_vec();
-    let mut order = vec![0u32; *starts.last().unwrap()];
-    for (i, &class) in classes.iter().enumerate() {
-        if class != u32::MAX {
-            order[positions[class as usize]] = i as u32;
-            positions[class as usize] += 1;
-        }
-    }
-    drop(classes);
-    drop(positions);
-    Some(ScalarGroups {
-        _reservation: reservation,
-        len: scalars.len(),
-        values,
-        order,
-        starts,
-        counts,
-    })
 }
 
 /// MSM of canonical words after the caller has already chosen grouping.
@@ -1917,70 +1786,3 @@ mod exclusive_g2_tests {
 
 #[cfg(any(test, all(zopro_real_kh, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma))))]
 pub(super) mod fused_kh;
-
-
-#[cfg(test)]
-mod zero_aware_group_tests {
-    use super::*;
-    use zopro_bn254::{G1Config,G2Config};
-    #[test]
-    fn sample_keeps_repeated_and_dense_zero_inputs() {
-        let mut cases=0;
-        for n in [256usize,1025,2048,2049,32768,53874,65536,98674,189618] {
-            for kind in 0..5 {
-                let words:Vec<_>=(0..n).map(|i|match kind {
-                    0=>[i as u64+1,0,0,0],
-                    1=>if i%50==0 {[0;4]} else {[i as u64+1,0,0,0]},
-                    2=>if i%2==0 {[0;4]} else {[i as u64+1,0,0,0]},
-                    3=>[0;4],
-                    _=>[(i%17)as u64+1,0,0,0],
-                }).collect();
-                assert_eq!(grouping_sample(&words,true).is_some(),kind>=2,"n={n} kind={kind}");
-                if kind==1 {assert!(grouping_sample(&words,false).is_some());}
-                cases+=1;
-            }
-        }
-        // Exact full-sample boundary: 20% zeros meets the existing 80%
-        // nonzero-cardinality cutoff; 19% cannot meet it.
-        for zeros in [0usize,2,19,190,199,200,201,500,1000] {
-            let words:Vec<_>=(0..1000).map(|i|if i<zeros {[0;4]}else{[i as u64+1,0,0,0]}).collect();
-            assert_eq!(grouping_sample(&words,true).is_some(),zeros>=200,"zeros={zeros}");cases+=1;
-        }
-        // These entirely unique, partial-stride samples used to admit an
-        // expensive map that could only be rejected afterwards.
-        for n in [53874usize,98674] {
-            let words:Vec<_>=(0..n).map(|i|[i as u64+1,0,0,0]).collect();
-            assert!(grouping_sample(&words,false).is_some());
-            assert!(grouping_sample(&words,true).is_none());cases+=1;
-        }
-        assert_eq!(cases,56);println!("ZERO_AWARE_ADMISSION_CASES={cases}");
-    }
-    #[test]
-    fn policies_match_independent_weighted_generator_sum() {
-        fn check<C:CurveConfig>()->usize where C::Base:BatchInverse {
-            let mut cases=0;
-            for n in [256usize,1025] {
-                let generator=Projective::<C>::generator();
-                let points:Vec<_>=(0..n).map(|i|generator*Fr::from(i as u64+1)).collect();
-                let bases=Projective::<C>::batch_to_affine(&points);
-                for kind in 0..5 {
-                    let scalars:Vec<_>=(0..n).map(|i|match kind {
-                        0=>Fr::ZERO,
-                        1=>Fr::from((i%17)as u64+1),
-                        2=>if i%2==0 {Fr::ZERO}else{Fr::from(i as u64+13).pow(&[11])},
-                        3=>if i%50==0 {Fr::ZERO}else{Fr::from(i as u64+13).pow(&[11])},
-                        _=>Fr::from(i as u64+13).pow(&[11]),
-                    }).collect();
-                    let sum=scalars.iter().enumerate().fold(Fr::ZERO,|a,(i,&v)|a+v*Fr::from(i as u64+1));
-                    let expected=(generator*sum).to_affine();let words:Vec<_>=scalars.iter().map(Fr::to_canonical).collect();
-                    for policy in [false,true] {
-                        let actual=scalar_groups_policy(&words,policy).map_or_else(||msm_raw(&bases,&words),|g|msm_grouped(&bases,&g));
-                        assert_eq!(actual.to_affine(),expected,"n={n} kind={kind} policy={policy}");cases+=1;
-                    }
-                }
-            }
-            cases
-        }
-        let cases=check::<G1Config>()+check::<G2Config>();assert_eq!(cases,40);println!("ZERO_AWARE_MSM_IDENTITIES={cases}");
-    }
-}

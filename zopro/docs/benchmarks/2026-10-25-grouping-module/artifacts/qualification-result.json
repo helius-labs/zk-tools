@@ -1,0 +1,90 @@
+{
+  "counts": {
+    "sdk_requests": 5032,
+    "candidate_requests": 2542,
+    "baseline_requests": 2490,
+    "distinct_independent_exports": 151,
+    "candidate_exports": 82,
+    "baseline_exports": 69,
+    "proof_public_members": 302,
+    "profiles": 12,
+    "profile_samples": 345101
+  },
+  "native": {
+    "core_tests": 109,
+    "raw_tests": 2,
+    "cubic_tests": 6,
+    "unfiltered": true
+  },
+  "portable": {
+    "core_tests": 92,
+    "raw_tests": 2,
+    "cubic_tests": 6,
+    "unfiltered": true
+  },
+  "concurrency": {
+    "pool_workers": [
+      1,
+      2,
+      4
+    ],
+    "concurrent_callers": 4,
+    "iterations": 3,
+    "worker_stack_bytes": 524288,
+    "curves": [
+      "G1",
+      "G2"
+    ],
+    "panic_completion_and_reuse": true
+  },
+  "performance": {
+    "gates": {
+      "all_nine_geomean": true,
+      "primary": true,
+      "every_case": true,
+      "every_block": true
+    },
+    "paired_geomean": 0.9918994667098534,
+    "passed": true
+  },
+  "compatibility": {
+    "sdk_requests": 52,
+    "distinct_exports": 13,
+    "all_nine_portable_workers4": true,
+    "native_primary_and_merge54_workers": [
+      1,
+      4
+    ]
+  },
+  "resource_scope": {
+    "same_grouping_algorithm": true,
+    "same_owned_arrays": true,
+    "same_reservations": true,
+    "same_struct_types_and_drop_order": true,
+    "new_key_tables": false,
+    "large_proofs_this_candidate": 0,
+    "inherited_large_qualification": "/tmp/zopro-g2-prefix-adoption/production-source-manifest.json",
+    "minimum_ram_established": false
+  },
+  "tooling": {
+    "unit_tests": 20,
+    "clippy": true,
+    "fmt": true,
+    "ci_added": true,
+    "remote_ci_run": false
+  },
+  "production_source_files": 170,
+  "source_promoted": true,
+  "all_scope_checks_passed": true,
+  "goal_achieved": false,
+  "production_source_normalization": {
+    "file": "crates/zopro-core/src/msm_affine.rs",
+    "qualified_sha256": "82f5bd73e32419988bf4d18d3e8aecc8d1772d30d4a52438ef41ec2d05d38d86",
+    "production_sha256": "1568013e274b6fd2733ae2a34a34e7055032ad50e0dab82842eaaf32b308eaa2",
+    "change": "Remove two empty trailing lines after the final module declaration.",
+    "code_statements_changed": false,
+    "compiled_source_snapshot": "/tmp/zopro-grouping-module/candidate/.xtask/snapshot.json",
+    "tests_repeated": false,
+    "reason": "Whitespace-only production cleanup after qualification; the exact measured candidate source and native artifacts remain retained."
+  }
+}

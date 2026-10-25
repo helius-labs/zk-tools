@@ -1,0 +1,10 @@
+warning: unused variable: `mode`
+  --> /tmp/zopro-small-core-entry-native-compat/memory-sdk.rs:60:22
+   |
+60 |   for _ in 0..3{for &mode in &modes{std::hint::black_box(sdk.prove(&request).unwrap());}}
+   |                      ^^^^ help: if this is intentional, prefix it with an underscore: `_mode`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: 1 warning emitted
+

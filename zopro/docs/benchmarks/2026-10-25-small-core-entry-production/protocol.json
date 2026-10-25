@@ -1,0 +1,72 @@
+{
+  "created": "2026-10-25T14:22:12.161967+00:00",
+  "purpose": "Final production-consumer comparison with exact accepted native Cargo-built SDK binary and new fat-LTO/one-codegen-unit standard CLI, identical source/arguments, current native libraries. Includes previous pinned16 scope. This is a distinct consumer/profile qualification, not an unchanged timing reroll.",
+  "native_parent": "/tmp/zopro-small-core-entry-native",
+  "compat_parent": "/tmp/zopro-small-core-entry-native-compat",
+  "accepted_binary": "/tmp/zopro-canonical-grain-adoption/native-sdk",
+  "accepted_binary_sha256": "8ed034546e0c7a9ee19348ff6ffab4c037d2a14eb8383b313ca98f966c1a5a9b",
+  "cases": [
+    {
+      "shape": "1x2",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "2x2",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "4x2",
+      "workers": 32,
+      "rounds": 31
+    },
+    {
+      "shape": "8x2",
+      "workers": 32,
+      "rounds": 17
+    },
+    {
+      "shape": "12x2",
+      "workers": 32,
+      "rounds": 17
+    },
+    {
+      "shape": "16x2",
+      "workers": 32,
+      "rounds": 17
+    },
+    {
+      "shape": "24x2",
+      "workers": 32,
+      "rounds": 11
+    },
+    {
+      "shape": "merge-24x1",
+      "workers": 32,
+      "rounds": 11
+    },
+    {
+      "shape": "merge-54x1",
+      "workers": 32,
+      "rounds": 7
+    },
+    {
+      "shape": "1x2",
+      "workers": 16,
+      "rounds": 31
+    }
+  ],
+  "blocks": 7,
+  "variants": [
+    "accepted",
+    "off",
+    "on"
+  ],
+  "priming": 3,
+  "expected_sdk": 4914,
+  "expected_distinct_gnark": 210,
+  "required_gate": "Positive primary against exact accepted and identical OFF, paired primary wins>=4/7, full9 geometric ratio<=1 and>=4/7winningblocks versus eachcontrol; preserve inherited2percent per-cell nonregression band across all9pluspinned16. No new minimum gain. Retain all unfavorable observations. No promotion until exact native resource/large/compatibility checks pass.",
+  "adopted": false,
+  "goal_achieved": false
+}

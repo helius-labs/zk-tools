@@ -1081,6 +1081,26 @@ impl Key {
         self.solve_inner(witness, false)
     }
     fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<Vec<u8>, String> {
+        #[cfg(all(zopro_small_core_entry, zopro_real_kh, target_arch="x86_64",
+            target_os="linux", target_feature="avx512ifma", target_feature="avx512vl",
+            target_feature="avx512dq", feature="ifma8", not(no_ifma)))]
+        if self.solver.is_some() && self.canonical_wires && !self.has_gpu()
+            && affine_msm() && self.equal_witness.is_none()
+            && rayon::current_thread_index().is_none()
+            && crate::simd::cpu_option("ZOPRO_CPU_SMALL_CORE_ENTRY")
+            && self.lagrange.as_ref().is_some_and(|q|q.folded.as_ref().is_some_and(|f|
+                msm_affine::fused_kh::eligible(omit_b,q.product_scale,f.private.len(),self.plan.size())))
+        {
+            // Reuse the existing worker pool; create the proof scope only once,
+            // in the recursive worker call. Larger query paths retain their entry.
+            if std::env::var_os("ZOPRO_SMALL_CORE_ENTRY_TRACE").is_some() {
+                eprintln!("SMALL_CORE_ENTRY entered");
+            }
+            return rayon::join(||{
+                assert!(rayon::current_thread_index().is_some());
+                self.solve_inner(witness,omit_b)
+            },||()).0;
+        }
         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
         let plan = self.solver.as_ref().ok_or("no prepared solver")?;
         if !witness.len().is_multiple_of(32) {

@@ -675,6 +675,8 @@ where
             fq2: Fq2AddScratch {
                 vector_inverse,
                 canonical,
+                #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_enabled:std::env::var("ZOPRO_CPU_G2_PREFIX_RECORDS").as_deref()==Ok("1"),
+                #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_trace:std::env::var_os("ZOPRO_CPU_G2_PREFIX_TRACE").is_some(),
                 ..Default::default()
             },
         }
@@ -906,6 +908,10 @@ struct Fq2AddScratch {
     vector_inverse: bool,
     canonical: bool,
     groups: Vec<Fq2AddGroup>,
+    #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_records:Vec<[FqBatch;2]>,
+    #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_enabled:bool,
+    #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_trace:bool,
+    #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_traced:bool,
     tail: Vec<[Fq2; 5]>,
 }
 #[inline(always)]
@@ -936,6 +942,10 @@ fn stream_g2_impl<C: CurveConfig<Base = Fq2>, const FAST: bool>(
     batch: &[(u32, Affine<C>)],
     s: &mut Fq2AddScratch,
 ) {
+    #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] {
+        if s.prefix_trace && !s.prefix_traced {eprintln!("G2_PREFIX_RECORDS enabled={} batch={}",s.prefix_enabled,batch.len());s.prefix_traced=true;}
+        if s.prefix_enabled {return g2_prefix::apply::<C,FAST>(buckets,batch,s);}
+    }
     let full = batch.len() / LANES * LANES;
     let mut chains = FqBatch::one();
     s.groups.clear();
@@ -2137,3 +2147,6 @@ mod direct_chain_inverse_tests {
         println!("DIRECT_CHAIN_INVERSE_ORACLES={checks}");
     }
 }
+
+#[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+mod g2_prefix;

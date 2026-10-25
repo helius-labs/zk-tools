@@ -1,0 +1,29 @@
+   Compiling xtask v0.1.0 (/home/ubuntu/src/zk-tools/zopro/xtask)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.25s
+     Running `xtask/target/debug/xtask workflow /tmp/zopro-grouping-module/native-plan.json /tmp/zopro-grouping-module/native --resume`
+RUN compiler
+REUSE /tmp/zopro-grouping-module/native/compiler
+DONE compiler
+RUN core
+REUSE /tmp/zopro-grouping-module/native/core
+DONE core
+RUN prover
+REUSE /tmp/zopro-grouping-module/native/prover
+DONE prover
+RUN libraries
+REUSE /tmp/zopro-grouping-module/native/libraries
+DONE libraries
+RUN candidate
+REUSE /tmp/zopro-grouping-module/native/candidate
+DONE candidate
+{
+  "source_files": 170,
+  "status": "complete",
+  "steps": [
+    "compiler",
+    "core",
+    "prover",
+    "libraries",
+    "candidate"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "600s",
+    "cargo",
+    "build",
+    "--manifest-path",
+    "/tmp/zopro-grouping-module/candidate/Cargo.toml",
+    "--offline",
+    "--locked",
+    "--release",
+    "-p",
+    "zopro-bench",
+    "--lib",
+    "--message-format=json"
+  ],
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/tmp/zopro-grouping-module/target-native",
+    "MALLOC_ARENA_MAX": "32",
+    "MALLOC_MMAP_THRESHOLD_": "1073741824",
+    "MALLOC_TRIM_THRESHOLD_": "-1",
+    "RAYON_NUM_THREADS": "4",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records",
+    "ZOPRO_BASIS_KEY_DIR": "/tmp/zopro-canonical-grain-adoption/images",
+    "ZOPRO_CPU_BOUNDED_SCHEDULE": "1",
+    "ZOPRO_CPU_CANONICAL_WIRES": "1",
+    "ZOPRO_CPU_DEFER_SIGNED_Y": "1",
+    "ZOPRO_CPU_DEFER_SIGN_PARTS": "1",
+    "ZOPRO_CPU_DEFER_SIGN_WIDTH": "12",
+    "ZOPRO_CPU_FFT_COLUMN_ROOTS": "1",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_LAGRANGE": "1",
+    "ZOPRO_CPU_LAGRANGE_DIR": "/tmp/zopro-lagrange-cache",
+    "ZOPRO_CPU_LAGRANGE_FOLD": "1",
+    "ZOPRO_CPU_PROOF_CONCURRENCY": "1",
+    "ZOPRO_CPU_RESOURCE_SCHEDULE": "1",
+    "ZOPRO_CPU_SMALL_CORE_ENTRY": "1",
+    "ZOPRO_CPU_ZERO_AWARE_GROUPS": "1"
+  }
+}
