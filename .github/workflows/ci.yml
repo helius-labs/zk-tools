@@ -13,6 +13,19 @@ defaults:
     working-directory: zopro
 
 jobs:
+  xtask:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zopro/xtask
+      - run: cargo fmt --manifest-path xtask/Cargo.toml -- --check
+      - run: cargo test --manifest-path xtask/Cargo.toml --locked
+      - run: cargo clippy --manifest-path xtask/Cargo.toml --locked --all-targets -- -D warnings
   cpu:
     runs-on: ubuntu-latest
     steps:

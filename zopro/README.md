@@ -93,6 +93,9 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
   keys (downloaded once into `~/.cache/zopro-keys`, checked against the
   lockfile) and requests, 1 → 2 to 24 → 2 by default: a key's first load,
   its later loads, the memory it holds, and each proof's time and peak.
+- `xtask`: prepares pinned candidate snapshots, runs build and test plans,
+  and compares SDK latency with automatic warm CPU profiles and independent
+  proof verification. See the [CPU experiment workflow](xtask/README.md).
 
 On x86, `tools/bench.sh` builds for the local CPU (`-C target-cpu=native`)
 unless `RUSTFLAGS` is already set. The native build enables BMI2/ADX and,
