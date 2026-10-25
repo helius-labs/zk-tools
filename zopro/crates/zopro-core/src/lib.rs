@@ -12,6 +12,10 @@ pub mod time {
     #[cfg(target_arch = "wasm32")]
     pub use web_time::Instant;
 }
+/// The thread pool, in a browser build with shared memory; a build without
+/// it (no SharedArrayBuffer, a page that is not cross-origin isolated) runs
+/// on the calling thread alone.
+#[cfg(all(target_arch = "wasm32", target_feature = "atomics"))]
 pub use wasm_bindgen_rayon::init_thread_pool;
 pub mod alloc;
 pub mod artifact;
@@ -308,8 +312,14 @@ fn g2_gpu_share(spirv: bool) -> f64 {
 /// pool, the GPU's does not. Measured best in Chrome on an M5 Pro: 0.55 at
 /// 4 threads, 0.3 at 8 and 0.1 at 16 (a 54 → 1 merge at 16 threads: 702 ms
 /// at 0.1, 735 at 0.3, 864 at 0.55; at 4: 984 at 0.55, 1380 at 0.3).
+/// Without shared memory the CPU's share would take the one thread that
+/// plans and awaits the GPU, so the GPU takes all of G2 (8x2 there: 234
+/// ms, against 382 with a quarter on the CPU).
 #[cfg(all(gpu_wgpu, target_arch = "wasm32"))]
 fn web_g2_share(threads: usize) -> f64 {
+    if cfg!(not(target_feature = "atomics")) {
+        return 1.0;
+    }
     (2.2 / threads.max(1) as f64).min(0.75)
 }
 #[cfg(gpu_wgpu)]
@@ -937,19 +947,27 @@ impl Key {
             (!b2.sorts_on_gpu()).then(|| b2.start(&sb2))
         });
         stage("cpu counts submit, host sorts");
-        // The CPU's share of G2 on the pool, while this thread awaits the
-        // GPU.
+        // The CPU's share of G2: on the pool while this thread awaits the
+        // GPU, or, in a build without shared memory, where the pool is this
+        // thread and never runs a spawned job, on this thread once the GPU
+        // has every MSM.
         let cpu_b2 = (cut < sb.len()).then(|| {
-            let (tx, rx) = futures_channel::oneshot::channel();
             let (bases, scalars) = (self.b2.clone(), sb[cut..].to_vec());
-            rayon::spawn(move || {
+            move || {
                 let started = crate::time::Instant::now();
                 let sum = msm_g2(&bases[cut..], &scalars);
                 zopro_wgpu::profile::record_cpu(
                     "cpu g2 share",
                     started.elapsed().as_secs_f64() * 1000.0,
                 );
-                let _ = tx.send(sum);
+                sum
+            }
+        });
+        #[cfg(target_feature = "atomics")]
+        let cpu_b2 = cpu_b2.map(|share| {
+            let (tx, rx) = futures_channel::oneshot::channel();
+            rayon::spawn(move || {
+                let _ = tx.send(share());
             });
             rx
         });
@@ -992,6 +1010,8 @@ impl Key {
                 gpu.z.lock().unwrap().start(&h)
             };
             stage("plan z");
+            #[cfg(not(target_feature = "atomics"))]
+            let cpu_b2 = cpu_b2.map(|share| share());
             let (ar, _) = gpu.a.lock().unwrap().finish_async(pa).await.map_err(fail)?;
             let (bs1, _) = gpu.b.lock().unwrap().finish_async(pb).await.map_err(fail)?;
             let (kr, _) = gpu.k.lock().unwrap().finish_async(pk).await.map_err(fail)?;
@@ -1003,6 +1023,7 @@ impl Key {
             };
             let (hz, _) = gpu.z.lock().unwrap().finish_async(pz).await.map_err(fail)?;
             stage("wait msms");
+            #[cfg(target_feature = "atomics")]
             let cpu_b2 = match cpu_b2 {
                 Some(rx) => Some(rx.await.map_err(|_| fail("the CPU's G2 share".into()))?),
                 None => None,

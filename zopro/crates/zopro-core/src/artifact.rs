@@ -262,12 +262,21 @@ impl<'a> Artifact<'a> {
     /// Seconds for a wide key on a phone; a host may cache them.
     pub fn vectors(&self) -> Result<[Vec<u8>; 5], &'static str> {
         Ok([
-            kernel_g1(&decompress::g1(self.a)?),
-            kernel_g1(&decompress::g1(self.b)?),
-            kernel_g1(&decompress::g1(self.k)?),
-            kernel_g1(&decompress::g1(self.z)?),
-            kernel_g2(&decompress::g2(self.b2)?),
+            kernel_points(self.a, false)?,
+            kernel_points(self.b, false)?,
+            kernel_points(self.k, false)?,
+            kernel_points(self.z, false)?,
+            kernel_points(self.b2, true)?,
         ])
+    }
+
+    /// Where the vectors lie in the key file `bytes` this parsed: each
+    /// one's byte offset and length, a, b, k, z, b2. A host that splits the
+    /// decompression across workers gives each a run of whole points
+    /// (`kernel_points`) and the joined results to the prover.
+    pub fn vector_ranges(&self, bytes: &[u8]) -> [(usize, usize); 5] {
+        [self.a, self.b, self.k, self.z, self.b2]
+            .map(|vector| (vector.as_ptr() as usize - bytes.as_ptr() as usize, vector.len()))
     }
 
     /// Writes the points decompressed into the kernel's encoding, a, b, k,
@@ -344,6 +353,17 @@ fn check_fixed(fixed: &[u8], verifying_key: &[u8]) -> Result<FixedPoints, &'stat
         return Err("the fixed points are not the verifying key's");
     }
     Ok(fixed)
+}
+
+/// Compressed points as a key file stores them (G1 32 bytes a point, G2
+/// 64) in the kernel's encoding (64, 128): what `Artifact::vectors` makes
+/// of a vector, for any run of its whole points.
+pub fn kernel_points(compressed: &[u8], g2: bool) -> Result<Vec<u8>, &'static str> {
+    Ok(if g2 {
+        kernel_g2(&decompress::g2(compressed)?)
+    } else {
+        kernel_g1(&decompress::g1(compressed)?)
+    })
 }
 
 /// Raw big-endian G1 points (64 bytes) in the kernel's encoding: each

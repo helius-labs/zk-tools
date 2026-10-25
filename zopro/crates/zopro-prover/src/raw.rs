@@ -47,16 +47,29 @@ impl Prover {
                 None,
             ));
         }
+        let vectors = Artifact::parse(bytes)?.vectors()?;
+        let (prover, source) = Self::load_decompressed(bytes, vectors)?;
+        Ok((prover, Some(source)))
+    }
+
+    /// From a key file and its vectors decompressed elsewhere (a, b, k, z,
+    /// b2, each `artifact::kernel_points` of the vector's points), with the
+    /// source of its raw form: `load_cacheable` for a host that splits the
+    /// decompression across workers.
+    pub fn load_decompressed(bytes: &[u8], vectors: [Vec<u8>; 5]) -> Result<(Self, Source), String> {
         let (_, at) = Artifact::head(bytes)?;
         let artifact = Artifact::parse(bytes)?;
-        let vectors = artifact.vectors()?;
+        let sizes = [64, 64, 64, 64, 128];
+        if (0..5).any(|i| vectors[i].len() != artifact.points[i] as usize * sizes[i]) {
+            return Err("decompressed vectors that are not the key's".into());
+        }
         let [a, b, k, z, b2] = &vectors;
         let prover = Self::from_artifact(&artifact, Points::Kernel([a, b, k, z, b2]), None)?;
         let source = Source {
             head: bytes[..at].to_vec(),
             vectors,
         };
-        Ok((prover, Some(source)))
+        Ok((prover, source))
     }
 
     /// From a raw form a host mapped (`write_image` wrote it): the key

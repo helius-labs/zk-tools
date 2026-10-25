@@ -1,15 +1,16 @@
 //! A small gnark circuit end to end: X³ + X + 5 = Y with X not zero
 //! (`tools/gnark`'s test writes the dump in tests/fixtures/cubic). The key
 //! packs, loads, proves an assignment by name, refuses a wrong one, keeps
-//! its metadata, loads again from its raw form, in place too, and proves
-//! on the CPU once its GPU is let go.
+//! its metadata, loads again from its raw form, in place too, and from
+//! vectors decompressed in runs, and proves on the CPU once its GPU is let
+//! go.
 use std::path::Path;
 
 use zopro_bn254::Fr;
 use zopro_prover::{
     Assignment, Error, Prover,
     zopro_core::{
-        artifact::{Artifact, pack},
+        artifact::{Artifact, kernel_points, pack},
         dump::Dump,
     },
 };
@@ -58,6 +59,33 @@ fn loads_from_its_raw_form() {
     let witness = again.witness(&assignment(3, 35)).expect("witness");
     assert!(again.prove(&witness).is_ok());
     assert!(Prover::load_cacheable(&raw[..raw.len() - 1]).is_err());
+}
+
+/// A page without a thread pool decompresses the key's vectors in runs of
+/// points across workers and loads the key from the joined results: the
+/// same raw form as a load of the key file, and a key that proves.
+#[test]
+fn loads_vectors_decompressed_in_runs() {
+    let key = key();
+    let (prover, source) = Prover::load_cacheable(&key).expect("load");
+    let whole = source.expect("a key file's raw source").export(&prover);
+    let artifact = Artifact::parse(&key).expect("parse");
+    let mut i = 0;
+    let vectors = artifact.vector_ranges(&key).map(|(at, len)| {
+        let (g2, size) = (i == 4, if i == 4 { 64 } else { 32 });
+        i += 1;
+        key[at..at + len]
+            .chunks(3 * size)
+            .flat_map(|run| kernel_points(run, g2).expect("decompress"))
+            .collect::<Vec<u8>>()
+    });
+    let mut short = vectors.clone();
+    short[1].truncate(short[1].len() - 64);
+    assert!(Prover::load_decompressed(&key, short).is_err());
+    let (mut prover, source) = Prover::load_decompressed(&key, vectors).expect("load");
+    let witness = prover.witness(&assignment(3, 35)).expect("witness");
+    assert!(prover.prove(&witness).is_ok());
+    assert_eq!(source.export(&prover), whole, "the raw form");
 }
 
 #[test]

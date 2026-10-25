@@ -1,5 +1,6 @@
 //! The prover in a browser, over wasm-bindgen, beside the kernel's thread
-//! pool (`initThreadPool`) and WebGPU (`init_gpu`) that zopro-core exports.
+//! pool (`initThreadPool`, in a build with shared memory) and WebGPU
+//! (`init_gpu`) that zopro-core exports.
 //!
 //! ```js
 //! const prover = new WebProver(keyFileOrRawForm);
@@ -8,13 +9,39 @@
 use js_sys::{Object, Promise, Reflect, Uint8Array};
 use wasm_bindgen::prelude::*;
 
-use crate::{Assignment, Error, Proved, Prover, raw, witness};
+use crate::{
+    Assignment, Error, Proved, Prover, raw, witness,
+    zopro_core::artifact::{self, Artifact},
+};
 
 /// The raw form `export_raw` writes, for a page's cache to check.
 #[wasm_bindgen]
 pub fn raw_format() -> String {
     raw::FORMAT.into()
 }
+
+/// Where a key file's vectors of compressed points lie: byte offset and
+/// length of a, b, k, z (G1, 32 bytes a point) and b2 (G2, 64), in turn.
+/// A page without a thread pool splits each into runs of whole points,
+/// decompresses them in workers (`kernel_points`) and loads the key from
+/// the results (`from_vectors`).
+#[wasm_bindgen]
+pub fn key_vectors(key: &[u8]) -> Result<Vec<u32>, JsError> {
+    let artifact = Artifact::parse(key).map_err(JsError::new)?;
+    Ok(artifact
+        .vector_ranges(key)
+        .iter()
+        .flat_map(|&(at, len)| [at as u32, len as u32])
+        .collect())
+}
+
+/// Compressed points of a key file's vector (G2 for b2) in the kernel's
+/// encoding.
+#[wasm_bindgen]
+pub fn kernel_points(compressed: &[u8], g2: bool) -> Result<Vec<u8>, JsError> {
+    artifact::kernel_points(compressed, g2).map_err(JsError::new)
+}
+
 
 #[wasm_bindgen]
 pub struct WebProver {
@@ -29,6 +56,24 @@ impl WebProver {
     pub fn new(key: &[u8]) -> Result<WebProver, JsError> {
         let (prover, source) = Prover::load_cacheable(key).map_err(|e| JsError::new(&e))?;
         Ok(Self { prover, source })
+    }
+
+    /// Loads a zopro key file whose vectors a page decompressed
+    /// (`key_vectors`, `kernel_points`), each joined in order.
+    pub fn from_vectors(
+        key: &[u8],
+        a: Vec<u8>,
+        b: Vec<u8>,
+        k: Vec<u8>,
+        z: Vec<u8>,
+        b2: Vec<u8>,
+    ) -> Result<WebProver, JsError> {
+        let (prover, source) =
+            Prover::load_decompressed(key, [a, b, k, z, b2]).map_err(|e| JsError::new(&e))?;
+        Ok(Self {
+            prover,
+            source: Some(source),
+        })
     }
 
     /// The raw form to cache, once per load of a key file; empty after, and
