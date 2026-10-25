@@ -16,6 +16,9 @@ log = "0.4"
 miniz_oxide = "0.8"
 rayon = "1.10"
 wasm-bindgen = "=0.2.128"
+
+# The thread pool only in a build with shared memory (atomics).
+[target.'cfg(target_feature = "atomics")'.dependencies]
 wasm-bindgen-rayon = "1.3"
 
 [features]

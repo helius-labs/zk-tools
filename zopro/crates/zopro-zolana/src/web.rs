@@ -27,6 +27,25 @@ impl ZolanaProver {
         Ok(Self { prover, source })
     }
 
+    /// Loads a zopro key file whose vectors a page decompressed in workers
+    /// (`key_vectors`, `kernel_points`), each joined in order.
+    pub fn from_vectors(
+        key: &[u8],
+        a: Vec<u8>,
+        b: Vec<u8>,
+        k: Vec<u8>,
+        z: Vec<u8>,
+        b2: Vec<u8>,
+    ) -> Result<ZolanaProver, JsError> {
+        let (prover, source) = zopro_prover::Prover::load_decompressed(key, [a, b, k, z, b2])
+            .map_err(|e| JsError::new(&e))?;
+        let prover = Prover::new(prover).map_err(|e| JsError::new(&e))?;
+        Ok(Self {
+            prover,
+            source: Some(source),
+        })
+    }
+
     /// The raw form to cache, once per load of a key file; empty after.
     pub fn export_raw(&mut self) -> Uint8Array {
         match self.source.take() {
