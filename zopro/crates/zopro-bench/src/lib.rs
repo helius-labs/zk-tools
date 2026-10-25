@@ -265,8 +265,12 @@ fn zolana(path: &Path, request: &Path, rounds: usize) {
     PEAK.store(held, std::sync::atomic::Ordering::Relaxed);
     let request = fs::read_to_string(request).expect("the request");
     let (mut witness, mut prove) = (Vec::new(), Vec::new());
+    let mut verified = Vec::new();
     for round in 0..rounds {
+        let started = Instant::now();
         let proved = prover.prove(&request).expect("a verified proof");
+        let verified_ms = started.elapsed().as_secs_f64() * 1000.0;
+        verified.push(verified_ms);
         witness.push(proved.witness_ms);
         prove.push(proved.prove_ms);
         if let Some(dir) = env::var_os("ZOPRO_BENCH_PROOFS") {
@@ -276,7 +280,7 @@ fn zolana(path: &Path, request: &Path, rounds: usize) {
             fs::write(dir.join(format!("{round}.public")), &proved.public_inputs)
                 .expect("the public witness");
             println!(
-                "SAMPLE round={round} witness_ms={} prove_ms={} verify_ms={}",
+                "SAMPLE round={round} witness_ms={} prove_ms={} verify_ms={} verified_ms={verified_ms:.3}",
                 proved.witness_ms, proved.prove_ms, proved.verify_ms
             );
         }
@@ -286,15 +290,17 @@ fn zolana(path: &Path, request: &Path, rounds: usize) {
         .max(footprint_mb());
     witness.sort();
     prove.sort();
+    verified.sort_by(f64::total_cmp);
     let (write_ms, write_peak) = written.map_or(("-".into(), "-".into()), |(ms, peak)| {
         (ms.to_string(), peak.to_string())
     });
     println!(
-        "ZOPRO zolana {} rounds={rounds} write_ms={write_ms} write_peak_mb={write_peak} load_ms={load_ms} held_mb={held} witness_ms={} prove_ms_min={} prove_ms_median={} peak_mb={peak}",
+        "ZOPRO zolana {} rounds={rounds} write_ms={write_ms} write_peak_mb={write_peak} load_ms={load_ms} held_mb={held} witness_ms={} prove_ms_min={} prove_ms_median={} peak_mb={peak} verified_ms_median={:.3}",
         path.file_stem().unwrap().to_string_lossy(),
         witness[witness.len() / 2],
         prove[0],
         prove[prove.len() / 2],
+        verified[verified.len() / 2],
     );
 }
 

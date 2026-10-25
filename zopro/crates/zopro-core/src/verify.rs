@@ -2,8 +2,8 @@
 //! the client checks every proof it hands out, and encodes it as gnark's
 //! verifier and the chain read it.
 use zopro_bn254::{
-    pairing::{pairing_product_is_one, G2Prepared},
-    Fq, Fq2, Fr, G1Affine, G2Affine,
+    pairing::{final_exponentiation, multi_miller_loop, pairing, G2Prepared},
+    Fq, Fq12, Fq2, Fr, G1Affine, G1Projective, G2Affine,
 };
 
 use crate::decompress::{coordinate, largest, largest2};
@@ -81,12 +81,14 @@ pub fn compress_g2(point: &G2Affine) -> [u8; 64] {
 /// uncompressed), with the pairings of its fixed points prepared.
 #[derive(Clone)]
 pub struct VerifyingKey {
-    alpha: G1Affine,
-    beta2: G2Prepared,
+    /// The fixed pairing e(-alpha, beta), prepared once with the key.
+    negative_alpha_beta: Fq12,
     gamma2: G2Prepared,
     delta2: G2Prepared,
     /// The public inputs' points, the constant one's first.
     k: Vec<G1Affine>,
+    /// Fixed-base windows, excluding the constant input.
+    k_windows: Option<Vec<G1Affine>>,
 }
 
 /// A raw verifying key's alpha, beta and delta, which a proving key's
@@ -139,9 +141,11 @@ impl VerifyingKey {
         if k.is_empty() {
             return Err("verifying key without public inputs");
         }
+        let k_windows = (k.len() <= 17 && crate::simd::cpu_option("ZOPRO_CPU_PREPARE_PUBLIC"))
+            .then(|| prepare_public_windows(&k[1..]));
         Ok(Self {
-            alpha,
-            beta2: G2Prepared::new(&beta2),
+            k_windows,
+            negative_alpha_beta: pairing(&-alpha, &beta2),
             gamma2: G2Prepared::new(&gamma2),
             delta2: G2Prepared::new(&delta2),
             k,
@@ -159,18 +163,80 @@ impl VerifyingKey {
         if public.len() != self.public_inputs() {
             return false;
         }
-        let mut scalars = Vec::with_capacity(self.k.len());
-        scalars.push(Fr::ONE);
-        scalars.extend_from_slice(public);
-        let inputs = zopro_bn254::curve::msm(&self.k, &scalars).to_affine();
+        let inputs = if let Some(windows) = &self.k_windows {
+            public_inputs_prepared(self.k[0], windows, public)
+        } else {
+            let mut scalars = Vec::with_capacity(self.k.len());
+            scalars.push(Fr::ONE);
+            scalars.extend_from_slice(public);
+            zopro_bn254::curve::msm(&self.k, &scalars).to_affine()
+        };
         let bs = G2Prepared::new(&proof.bs);
-        pairing_product_is_one(&[
+        let pairs = [
             (-proof.ar, &bs),
-            (self.alpha, &self.beta2),
             (inputs, &self.gamma2),
             (proof.krs, &self.delta2),
-        ])
+        ];
+        final_exponentiation(proof_miller_product(
+            &pairs,
+            crate::simd::cpu_option("ZOPRO_CPU_VERIFY_PARALLEL"),
+        )) == Some(self.negative_alpha_beta)
     }
+}
+
+// The product of independent Miller loops equals their shared recurrence.
+// Use available native workers after proving; one worker retains the shared
+// loop, which does less total squaring. Final exponentiation is unchanged.
+fn proof_miller_product(pairs: &[(G1Affine, &G2Prepared); 3], parallel: bool) -> Fq12 {
+    #[cfg(not(target_arch = "wasm32"))]
+    if parallel && rayon::current_num_threads() >= 3 {
+        let (a, (b, c)) = rayon::join(
+            || multi_miller_loop(&pairs[..1]),
+            || {
+                rayon::join(
+                    || multi_miller_loop(&pairs[1..2]),
+                    || multi_miller_loop(&pairs[2..]),
+                )
+            },
+        );
+        return a * b * c;
+    }
+    let _ = parallel;
+    multi_miller_loop(pairs)
+}
+
+// Four-bit fixed-base windows: 64 * 15 points per public input. The
+// preparation cap above bounds this table to 960 KiB per verifying key.
+fn prepare_public_windows(bases: &[G1Affine]) -> Vec<G1Affine> {
+    let mut points = Vec::with_capacity(bases.len() * 64 * 15);
+    for base in bases {
+        let mut shifted = base.to_projective();
+        for _ in 0..64 {
+            let mut multiple = shifted;
+            for _ in 1..16 {
+                points.push(multiple);
+                multiple += shifted;
+            }
+            for _ in 0..4 {
+                shifted = shifted.double();
+            }
+        }
+    }
+    G1Projective::batch_to_affine(&points)
+}
+
+fn public_inputs_prepared(constant: G1Affine, windows: &[G1Affine], public: &[Fr]) -> G1Affine {
+    let mut result = constant.to_projective();
+    for (table, scalar) in windows.chunks_exact(64 * 15).zip(public) {
+        let words = scalar.to_canonical();
+        for window in 0..64 {
+            let digit = ((words[window / 16] >> (4 * (window % 16))) & 15) as usize;
+            if digit != 0 {
+                result += table[window * 15 + digit - 1];
+            }
+        }
+    }
+    result.to_affine()
 }
 
 /// A Groth16 proof's three points.
@@ -241,4 +307,84 @@ pub fn hex_of(bytes: &[u8]) -> String {
         out.push_str(&format!("{byte:02x}"));
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn parallel_miller_product_matches_shared_loop() {
+        use zopro_bn254::{G2Affine, G2Projective};
+        let mut rng = crate::testing::Seeded::new(0x1234568ab);
+        for threads in [1, 3, 8] {
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .build()
+                .unwrap();
+            pool.install(|| {
+                for _ in 0..8 {
+                    let p: [_; 3] = core::array::from_fn(|_| {
+                        (G1Projective::generator() * rng.fr()).to_affine()
+                    });
+                    let q: [_; 3] = core::array::from_fn(|_| {
+                        (G2Projective::generator() * rng.fr()).to_affine()
+                    });
+                    let qs = q.map(|q| G2Prepared::new(&q));
+                    let identity = G2Prepared::new(&G2Affine::IDENTITY);
+                    for mask in 0..64 {
+                        let pairs = core::array::from_fn(|i| {
+                            (
+                                if mask >> i & 1 == 0 {
+                                    p[i]
+                                } else {
+                                    G1Affine::IDENTITY
+                                },
+                                if mask >> (i + 3) & 1 == 0 {
+                                    &qs[i]
+                                } else {
+                                    &identity
+                                },
+                            )
+                        });
+                        let expected = multi_miller_loop(&pairs);
+                        let actual = proof_miller_product(&pairs, true);
+                        assert_eq!(actual, expected);
+                        assert_eq!(final_exponentiation(actual), final_exponentiation(expected));
+                    }
+                }
+            });
+        }
+    }
+
+    #[test]
+    fn prepared_public_inputs_match_reference() {
+        let g = G1Affine::GENERATOR;
+        for bases in [
+            vec![],
+            vec![g],
+            vec![g, G1Affine::IDENTITY, (g * Fr::from(7u64)).to_affine()],
+        ] {
+            let windows = prepare_public_windows(&bases);
+            let all: Vec<_> = std::iter::once(g).chain(bases.iter().copied()).collect();
+            for value in [
+                Fr::ZERO,
+                Fr::ONE,
+                -Fr::ONE,
+                Fr::from(15u64),
+                Fr::from(16u64),
+                crate::random_fr(),
+            ] {
+                let public: Vec<_> = (0..bases.len())
+                    .map(|i| value + Fr::from(i as u64))
+                    .collect();
+                let scalars: Vec<_> = std::iter::once(Fr::ONE)
+                    .chain(public.iter().copied())
+                    .collect();
+                assert_eq!(
+                    public_inputs_prepared(g, &windows, &public),
+                    zopro_bn254::curve::msm(&all, &scalars).to_affine()
+                );
+            }
+        }
+    }
 }

@@ -26,9 +26,9 @@ const headMagic = "zopro-dump\x00\x00\x00\x00\x00\x00"
 // Montgomery limbs per coordinate, G2's c0 before c1).
 type headFields struct {
 	NbPublic, NbSecret, Constraints, VerifyingKeyLength uint32
-	Alpha, Beta, Delta                                   curve.G1Affine
-	Beta2, Delta2                                        curve.G2Affine
-	Generator, CosetGenerator                            fr.Element
+	Alpha, Beta, Delta                                  curve.G1Affine
+	Beta2, Delta2                                       curve.G2Affine
+	Generator, CosetGenerator                           fr.Element
 }
 
 // Dump writes dir/{head,a,b,k,z,b2,program,coefficients,public-names,
@@ -37,12 +37,49 @@ type headFields struct {
 // It fails for a system the kernel cannot prove alone (commitments, or
 // hints other than gnark's InvZeroHint and bits.nBits).
 func Dump(dir string, r1cs *cs.R1CS, pk *native.ProvingKey, vk *native.VerifyingKey, metadata []byte) error {
+	if err := DumpSolver(dir, r1cs, pk, vk, metadata); err != nil {
+		return err
+	}
+	for name, data := range map[string][]byte{
+		"a": bytesOf(pk.G1.A), "b": bytesOf(pk.G1.B), "k": bytesOf(pk.G1.K),
+		"z": bytesOf(pk.G1.Z), "b2": bytesOf(pk.G2.B),
+	} {
+		if err := os.WriteFile(filepath.Join(dir, name), data, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// DumpSolver writes the non-vector dump files. The caller supplies a matching
+// set of a/b/k/z/b2 files separately; pk needs only its fixed points, domain and
+// infinity masks. This lets an importer release point arrays before loading
+// the constraint system. The program is written incrementally.
+func DumpSolver(dir string, r1cs *cs.R1CS, pk *native.ProvingKey, vk *native.VerifyingKey, metadata []byte) error {
 	if len(r1cs.Public) == 0 || r1cs.Public[0] != "1" {
 		return errors.New("the first public input is not the constant one")
 	}
-	program := kernelSolverProgram(r1cs, pk.InfinityA, pk.InfinityB)
-	if program == nil {
-		return errors.New("the kernel does not solve this constraint system alone")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	program, err := os.CreateTemp(dir, ".program-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(program.Name())
+	writeErr := writeKernelSolverProgram(program, r1cs, pk.InfinityA, pk.InfinityB)
+	if writeErr == nil {
+		writeErr = program.Chmod(0o644)
+	}
+	closeErr := program.Close()
+	if writeErr != nil {
+		return writeErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if err := os.Rename(program.Name(), filepath.Join(dir, "program")); err != nil {
+		return err
 	}
 	var raw bytes.Buffer
 	if _, err := vk.WriteRawTo(&raw); err != nil {
@@ -69,12 +106,6 @@ func Dump(dir string, r1cs *cs.R1CS, pk *native.ProvingKey, vk *native.Verifying
 	head.Write(raw.Bytes())
 	files := map[string][]byte{
 		"head":         head.Bytes(),
-		"a":            bytesOf(pk.G1.A),
-		"b":            bytesOf(pk.G1.B),
-		"k":            bytesOf(pk.G1.K),
-		"z":            bytesOf(pk.G1.Z),
-		"b2":           bytesOf(pk.G2.B),
-		"program":      bytesOf(program),
 		"coefficients": EncodeFields(r1cs.Coefficients),
 		// The inputs' names in gnark's order, the constant one apart: the
 		// prover takes values by name.

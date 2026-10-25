@@ -363,14 +363,35 @@ impl G2Affine {
         Self::new(self.x.conjugate() * PSI_X, self.y.conjugate() * PSI_Y)
     }
 
-    /// In the prime-order subgroup, for a point on the curve: psi(P) =
-    /// [6 x^2] P (El Housni, Guillevic and Piellard), as arkworks checks.
+    /// For a point on the curve, [r]P = 0 iff
+    /// [x+1]P + psi([x]P) + psi^2([x]P) = psi^3([2x]P).
+    /// The short relation is the check used by gnark-crypto (ePrint 2022/348,
+    /// sections 3 and 5.1); it needs only a 64-bit seed multiplication.
     pub fn is_in_subgroup(&self) -> bool {
-        const SIX_X_SQUARED: [u64; 2] = [17887900258952609094, 8020209761171036667];
+        const X: u64 = 4965661367192848881;
         if self.is_identity() {
             return true;
         }
-        self.mul_limbs(&SIX_X_SQUARED) == self.psi().to_projective()
+        let mut a = G2Projective::IDENTITY;
+        for bit in (0..64).rev() {
+            a = a.double();
+            if X >> bit & 1 != 0 {
+                a = a.add_affine(self);
+            }
+        }
+        let b = a.psi();
+        let c = b.psi();
+        a.add_affine(self) + b + c == c.psi().double()
+    }
+}
+
+impl G2Projective {
+    pub(crate) fn psi(&self) -> Self {
+        Self::new(
+            self.x.conjugate() * PSI_X,
+            self.y.conjugate() * PSI_Y,
+            self.z.conjugate(),
+        )
     }
 }
 

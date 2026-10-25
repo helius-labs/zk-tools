@@ -19,10 +19,10 @@
 //! ```
 use zopro_bn254::Fr;
 use zopro_core::{
-    Key, Points,
     artifact::Artifact,
-    groth16::{self, FixedPoints},
-    verify::{Proof, VerifyingKey, public_witness},
+    groth16::PreparedFixedPoints,
+    verify::{public_witness, Proof, VerifyingKey},
+    Key, Points,
 };
 
 pub mod raw;
@@ -76,7 +76,7 @@ impl Proved {
 pub struct Prover {
     key: Key,
     verifying_key: VerifyingKey,
-    fixed: FixedPoints,
+    fixed: PreparedFixedPoints,
     name: String,
     metadata: Vec<u8>,
     /// The inputs' names in the key's order, public then secret, the
@@ -115,7 +115,7 @@ impl Prover {
         Ok(Self {
             key: artifact.key(points, solver_image)?,
             verifying_key,
-            fixed: artifact.fixed_points()?,
+            fixed: PreparedFixedPoints::new(artifact.fixed_points()?),
             name: artifact.name.to_owned(),
             metadata: artifact.metadata.to_vec(),
             names,
@@ -168,6 +168,26 @@ impl Prover {
     pub fn prove(&mut self, witness: &[Fr]) -> Result<Proved, Error> {
         let encoded = self.encode(witness)?;
         loop {
+            if !self.key.has_gpu() {
+                let started = zopro_core::time::Instant::now();
+                let raw = self
+                    .key
+                    .solve_rerandomized(&encoded, &self.fixed)
+                    .map_err(Error::Prove)?;
+                let prove_ms = started.elapsed().as_millis() as u64;
+                let verify_started = zopro_core::time::Instant::now();
+                let public = witness[..self.public].to_vec();
+                let proof = Proof::from_raw(&raw).map_err(|_| Error::Unverified)?;
+                if !self.verifying_key.verify(&proof, &public) {
+                    return Err(Error::Unverified);
+                }
+                return Ok(Proved {
+                    proof,
+                    public,
+                    prove_ms,
+                    verify_ms: verify_started.elapsed().as_millis() as u64,
+                });
+            }
             let started = zopro_core::time::Instant::now();
             let parts = match self.key.solve(&encoded) {
                 Ok(parts) => parts,
@@ -213,7 +233,7 @@ impl Prover {
                 .key
                 .solve_parts_gpu(&encoded)
                 .map_err(|_| Error::Prove("the GPU could not start".into()))?;
-            let (witness, public, fixed) = (witness.to_vec(), self.public, self.fixed);
+            let (witness, public, fixed) = (witness.to_vec(), self.public, self.fixed.clone());
             let verifying_key = self.verifying_key.clone();
             return Ok(Box::pin(async move {
                 let parts = wasm_bindgen_futures::JsFuture::from(parts)
@@ -259,13 +279,13 @@ fn finish(
     parts: &[u8],
     witness: &[Fr],
     public: usize,
-    fixed: &FixedPoints,
+    fixed: &PreparedFixedPoints,
     verifying_key: &VerifyingKey,
     prove_ms: u64,
 ) -> Result<Proved, Error> {
     let started = zopro_core::time::Instant::now();
     let public = witness[..public].to_vec();
-    let proof = Proof::from_raw(&groth16::assemble(parts, fixed)).map_err(|_| Error::Unverified)?;
+    let proof = Proof::from_raw(&fixed.assemble(parts)).map_err(|_| Error::Unverified)?;
     if !verifying_key.verify(&proof, &public) {
         return Err(Error::Unverified);
     }

@@ -71,6 +71,51 @@ impl Fq12 {
         Self::new(c0, product + product)
     }
 
+    /// Granger–Scott squaring for the order p^4 - p^2 + 1 subgroup.
+    /// Call only after the easy part of final exponentiation has mapped
+    /// a nonzero value into that subgroup; general Fq12 values use square.
+    pub(crate) fn cyclotomic_square(&self) -> Self {
+        fn fp4_square(a: Fq2, b: Fq2) -> (Fq2, Fq2) {
+            (
+                a.square() + b.square().mul_by_nonresidue(),
+                (a * b).double(),
+            )
+        }
+        fn three_minus_two(t: Fq2, old: Fq2) -> Fq2 {
+            (t - old).double() + t
+        }
+        fn three_plus_two(t: Fq2, old: Fq2) -> Fq2 {
+            (t + old).double() + t
+        }
+        let (a0, a1) = fp4_square(self.c0.c0, self.c1.c1);
+        let (b0, b1) = fp4_square(self.c1.c0, self.c0.c2);
+        let (c0, c1) = fp4_square(self.c0.c1, self.c1.c2);
+        Self::new(
+            Fq6::new(
+                three_minus_two(a0, self.c0.c0),
+                three_minus_two(b0, self.c0.c1),
+                three_minus_two(c0, self.c0.c2),
+            ),
+            Fq6::new(
+                three_plus_two(c1.mul_by_nonresidue(), self.c1.c0),
+                three_plus_two(a1, self.c1.c1),
+                three_plus_two(b1, self.c1.c2),
+            ),
+        )
+    }
+
+    /// Exponentiation in the same subgroup as cyclotomic_square.
+    pub(crate) fn cyclotomic_pow_u64(&self, exponent: u64) -> Self {
+        let mut result = Self::ONE;
+        for bit in (0..(64 - exponent.leading_zeros())).rev() {
+            result = result.cyclotomic_square();
+            if (exponent >> bit) & 1 == 1 {
+                result *= *self;
+            }
+        }
+        result
+    }
+
     pub fn conjugate(&self) -> Self {
         Self::new(self.c0, -self.c1)
     }

@@ -89,6 +89,7 @@ pub struct Plan {
     inverse_roots: Twiddles,
     forward_weights: Weights,
     reverse_weights: Weights,
+    twisted: Option<(Twiddles, Weights)>,
     small: Option<(Direct, Fr)>,
 }
 
@@ -174,8 +175,13 @@ fn bit_reverse(i: usize, bits: usize) -> usize {
 // `pair` is (1, t, 1, t) for the layer two apart; the layer one apart
 // multiplies by one.
 struct Twiddles {
+    // Optional key-only roots in five-stage column order; empty uses layers.
+    #[allow(dead_code)]
+    columns: Vec<Vec<Quad>>,
     layers: Vec<Vec<Quad>>,
     pair: Quad,
+    single: Option<Quad>,
+    reservations: Vec<crate::preparation::Reservation>,
 }
 impl Twiddles {
     fn new(mut layer: Vec<Fr>) -> Self {
@@ -187,14 +193,87 @@ impl Twiddles {
         }
         debug_assert_eq!(layer.len(), 2);
         Self {
+            reservations: Vec::new(),
+            columns: Vec::new(),
             layers,
             pair: Quad::new(&[layer[0], layer[1], layer[0], layer[1]]),
+            single: None,
         }
     }
     fn empty() -> Self {
         Self {
+            reservations: Vec::new(),
+            columns: Vec::new(),
             layers: Vec::new(),
             pair: Quad::one(),
+            single: None,
+        }
+    }
+    /// Each packed five-stage column reads31 roots. Store those roots
+    /// together so large transforms read one contiguous region per column.
+    #[allow(dead_code)]
+    fn prepare_columns(&mut self) {
+        if !self.columns.is_empty() {
+            return;
+        }
+        let n = self.layers.first().map_or(0, |layer| layer.len().saturating_mul(8));
+        // At most one extra root per existing root; allow collection scratch.
+        let Some(reservation) = crate::preparation::Reservation::acquire(n, n.checked_mul(256)) else { return };
+        let mut columns = vec![Vec::new(); self.layers.len()];
+        for level in (0..self.layers.len()).step_by(5) {
+            if level + 4 >= self.layers.len() {
+                break;
+            }
+            let q = self.layers[level].len() / 16;
+            if q <= 32 {
+                break;
+            }
+            let roots: Vec<Quad> = (0..q)
+                .into_par_iter()
+                .flat_map_iter(|column| {
+                    let mut roots = Vec::with_capacity(31);
+                    for stage in 0..5 {
+                        let gap = 16 >> stage;
+                        for j in 0..gap {
+                            roots.push(self.layers[level + stage][j * q + column]);
+                        }
+                    }
+                    roots
+                })
+                .collect();
+            assert_eq!(roots.len(), 31 * q);
+            columns[level] = roots;
+        }
+        #[cfg(zopro_live_preparation_charge)]
+        let reservation = reservation.retain(
+            crate::preparation::allocation_bytes(&columns).and_then(|outer| {
+                columns.iter().try_fold(outer, |bytes, roots| {
+                    bytes.checked_add(crate::preparation::allocation_bytes(roots)?)
+                })
+            }),
+        );
+        self.columns = columns;
+        self.reservations.push(reservation);
+    }
+    /// Fold coefficient weights g^i into the DIT butterfly twiddles.
+    /// Layer k contributes g^(2^k) for the coefficient's kth bit.
+    fn twisted(&self, mut factor: Fr) -> Self {
+        let layers = self
+            .layers
+            .iter()
+            .map(|layer| {
+                let scale = Quad::new(&[factor; 4]);
+                let layer = layer.par_iter().map(|root| root.mul(&scale)).collect();
+                factor *= factor;
+                layer
+            })
+            .collect();
+        Self {
+            reservations: Vec::new(),
+            columns: Vec::new(),
+            layers,
+            pair: self.pair.mul(&Quad::new(&[factor; 4])),
+            single: Some(Quad::new(&[factor * factor; 4])),
         }
     }
 }
@@ -337,6 +416,7 @@ impl Plan {
                 inverse_roots: Twiddles::empty(),
                 forward_weights: Weights::empty(),
                 reverse_weights: Weights::empty(),
+                twisted: None,
                 small: Some((Direct { generator, coset }, den)),
             };
         }
@@ -356,8 +436,36 @@ impl Plan {
         let forward_weights = Weights::new(n, coset, n_inv);
         let reverse_weights = Weights::new(n, coset.inverse().unwrap(), n_inv * den);
         let started = super::trace("plan-weights", started);
-        let roots = Twiddles::new(powers(generator, n / 2));
-        let inverse_roots = Twiddles::new(powers(generator.inverse().unwrap(), n / 2));
+        let mut roots = Twiddles::new(powers(generator, n / 2));
+        let mut inverse_roots = Twiddles::new(powers(generator.inverse().unwrap(), n / 2));
+        let mut twisted = (n >= (1 << 20) && crate::simd::cpu_option("ZOPRO_CPU_TWISTED_FFT")
+            || std::env::var("ZOPRO_CPU_TWISTED_FFT").is_ok_and(|v| v == "1"))
+        .then(|| crate::preparation::Reservation::acquire(n, n.checked_mul(256)))
+        .flatten()
+        .map(|reservation| {
+            let mut forward = roots.twisted(coset);
+            forward.reservations.push(reservation);
+            (
+                forward,
+                Weights::new(n, coset.inverse().unwrap(), n_inv * n_inv * n_inv * den),
+            )
+        });
+        #[cfg(all(
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        if n >= (1 << 18) && std::env::var("ZOPRO_CPU_FFT_COLUMN_ROOTS").as_deref() == Ok("1") {
+            inverse_roots.prepare_columns();
+            if let Some((forward, _)) = &mut twisted {
+                forward.prepare_columns();
+            } else {
+                roots.prepare_columns();
+            }
+        }
         super::trace("plan-roots", started);
         Self {
             n,
@@ -367,6 +475,7 @@ impl Plan {
             inverse_roots,
             forward_weights,
             reverse_weights,
+            twisted,
             small: None,
         }
     }
@@ -379,6 +488,7 @@ impl Plan {
             self.inverse_roots = Twiddles::empty();
             self.forward_weights = Weights::empty();
             self.reverse_weights = Weights::empty();
+            self.twisted = None;
             self.released = true;
         }
     }
@@ -427,6 +537,105 @@ impl Plan {
         dit(&mut values, &self.roots, 0);
         values
     }
+    fn basis_weights(&self)->&Weights {
+        #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+        if crate::simd::cpu_option("ZOPRO_CPU_QUOTIENT8") {if let Some((_,w))=&self.twisted{return w;}}
+        &self.reverse_weights
+    }
+    pub(crate) fn basis_query_scale(&self)->Fr {
+        self.basis_weights().chunks[0].get()[0]*self.reverse_weights.chunks[0].get()[0].inverse().unwrap()
+    }
+    pub(crate) fn basis_hash_weights(&self,hash:&mut impl FnMut(Fr)) {
+        for q in &self.inverse_roots.layers[0]{for v in q.get(){hash(v);}}
+        let weights=self.basis_weights();
+        for c in &weights.chunks {let c=c.get()[0];for q in &weights.lows{for low in q.get(){hash(c*low);}}}
+        hash(self.reverse_weights.chunks[0].get()[0]);
+    }
+    pub(crate) fn quotient_query_weights(&self) -> (Vec<Fr>, Vec<Fr>, Fr) {
+        assert!(!self.released && self.n >= 8);
+        let mut weights = &self.reverse_weights;
+        #[cfg(all(
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        if crate::simd::cpu_option("ZOPRO_CPU_QUOTIENT8") {
+            weights = self
+                .twisted
+                .as_ref()
+                .map(|(_, weights)| weights)
+                .unwrap_or(weights);
+        }
+        (
+            scalars(&self.inverse_roots.layers[0], self.n / 2),
+            weights.expand(self.n),
+            self.reverse_weights.chunks[0].get()[0],
+        )
+    }
+
+    pub(crate) fn fused_product_output(&self) -> bool {
+        #[cfg(all(
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        {
+            return pair::fused_output_enabled(self);
+        }
+        #[cfg(not(all(
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        )))]
+        {
+            false
+        }
+    }
+
+    pub(crate) fn coset_product_ordered(&self, a: Vec<Fr>, b: Vec<Fr>, fused: bool) -> Vec<Fr> {
+        #[cfg(all(
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        if fused {
+            return pair::fused_output_product(self, a, b);
+        }
+        debug_assert!(!fused);
+        self.coset_product(a, b)
+    }
+
+    pub(crate) fn coset_product(&self, a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
+        #[cfg(all(
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        if crate::simd::cpu_option("ZOPRO_CPU_QUOTIENT8") {
+            return pair::coset_product(self, a, b);
+        }
+        let (a, b) = rayon::join(|| self.transform(a), || self.transform(b));
+        a.par_iter()
+            .zip(b.par_iter())
+            .flat_map_iter(|(a, b)| a.mul(b).get())
+            .collect()
+    }
+
     /// The quotient's coefficients times the denominator, bit-reversed as
     /// gnark's Z key, the first n - 1, from the domain evaluations a, b, c
     /// (padded to n).
@@ -813,6 +1022,72 @@ mod tests {
 
     /// Against the transforms by their definition.
     #[test]
+    fn quotient_pads_independent_input_lengths() {
+        for n in [8usize, 32, 256, 2048] {
+            let generator = Fr::root_of_unity(n).unwrap();
+            let coset = Fr::from(5u64);
+            let den = (coset.pow(&[n as u64]) - Fr::ONE).inverse().unwrap();
+            let plan = Plan::new(n, generator, coset, den);
+            let direct = Direct { generator, coset };
+            for lengths in [
+                [0, 0, 0],
+                [1, 3, 5],
+                [n - 1, n / 2 + 1, n / 4 - 1],
+                [n, 0, n - 3],
+            ] {
+                let inputs: [Vec<Fr>; 3] = lengths.map(|len| {
+                    (0..len)
+                        .map(|i| Fr::from(i as u64 + 7).pow(&[19]))
+                        .collect()
+                });
+                let coefficients: [Vec<Fr>; 3] = inputs.clone().map(|mut values| {
+                    values.resize(n, Fr::ZERO);
+                    direct.coefficients(&values)
+                });
+                let [a, b, c] = coefficients;
+                let mut expected = vec![Fr::ZERO; n];
+                let coset_n = coset.pow(&[n as u64]);
+                for (i, a) in a.iter().enumerate() {
+                    for (j, b) in b.iter().enumerate() {
+                        let degree = i + j;
+                        expected[degree % n] +=
+                            *a * *b * if degree < n { Fr::ONE } else { coset_n };
+                    }
+                }
+                for (value, c) in expected.iter_mut().zip(c) {
+                    *value = (*value - c) * den;
+                }
+                let expected: Vec<_> = (0..n - 1)
+                    .map(|i| expected[bit_reverse(i, n.trailing_zeros() as usize)])
+                    .collect();
+                let [a, b, c] = inputs;
+                assert_eq!(plan.quotient(a.clone(), b.clone(), c.clone()), expected);
+                #[cfg(all(
+                    feature = "ifma8",
+                    target_arch = "x86_64",
+                    target_feature = "avx512ifma",
+                    target_feature = "avx512vl",
+                    target_feature = "avx512dq",
+                    not(no_ifma)
+                ))]
+                for run in [
+                    pair::quotient_impl::<1>,
+                    pair::quotient_impl::<2>,
+                    pair::quotient_impl::<3>,
+                    pair::quotient_impl::<4>,
+                ] {
+                    assert_eq!(
+                        run(&plan, a.clone(), b.clone(), c.clone()),
+                        expected,
+                        "n={n} lengths={lengths:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// Against the transforms by their definition.
+    #[test]
     fn matches_direct_transforms() {
         for n in [1, 2, 4, 8, 16, 256, 1024] {
             for root_power in [1, 3] {
@@ -857,5 +1132,260 @@ mod tests {
                 }
             }
         }
+    }
+}
+
+// Fused columns write32 groups of four fields per column. Queries use
+// this same permutation; the original cache representation stays natural.
+pub(crate) fn product_output_index(n: usize, output: usize) -> usize {
+    let q = n / 128;
+    let column = output / 128;
+    let row = (output % 128) / 4;
+    let lane = output % 4;
+    (row * q + column) * 4 + lane
+}
+
+#[cfg(all(
+    test,
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+mod column_root_tests {
+    use super::*;
+    #[test]
+    fn cached_columns_match_independent_quad_products() {
+        for n in [8192usize, 262144, 1048576] {
+            let generator = Fr::root_of_unity(n).unwrap().pow(&[3]);
+            let coset = Fr::from(7);
+            let den = denominator(n, coset).unwrap();
+            let mut plan = Plan::new(n, generator, coset, den);
+            for twisted in [false, true] {
+                plan.roots.columns.clear();
+                plan.inverse_roots.columns.clear();
+                plan.twisted = twisted.then(|| {
+                    (
+                        plan.roots.twisted(coset),
+                        Weights::new(
+                            n,
+                            coset.inverse().unwrap(),
+                            Fr::from(n as u64).inverse().unwrap().pow(&[3]) * den,
+                        ),
+                    )
+                });
+                let a: Vec<_> = (0..n - 3)
+                    .map(|i| Fr::from((i as u64 * 131 + 17) % 65537).square())
+                    .collect();
+                let b: Vec<_> = (0..n / 2 + 1)
+                    .map(|i| Fr::from((i as u64 * 257 + 31) % 131071).square())
+                    .collect();
+                let left = plan.transform(a.clone());
+                let right = plan.transform(b.clone());
+                let factor = if twisted {
+                    Fr::from(n as u64).square()
+                } else {
+                    Fr::ONE
+                };
+                let natural: Vec<_> = left
+                    .iter()
+                    .zip(right.iter())
+                    .flat_map(|(a, b)| a.mul(b).get().map(|x| x * factor))
+                    .collect();
+                let expected: Vec<_> = (0..n)
+                    .map(|i| natural[product_output_index(n, i)])
+                    .collect();
+                assert_eq!(
+                    pair::fused_output_product(&plan, a.clone(), b.clone()),
+                    expected
+                );
+                plan.inverse_roots.prepare_columns();
+                if let Some((roots, _)) = &mut plan.twisted {
+                    roots.prepare_columns();
+                } else {
+                    plan.roots.prepare_columns();
+                }
+                assert_eq!(
+                    pair::fused_output_product(&plan, a, b),
+                    expected,
+                    "n={n}, twisted={twisted}"
+                );
+                assert_eq!(
+                    pair::fused_output_product(&plan, Vec::new(), Vec::new()),
+                    vec![Fr::ZERO; n]
+                );
+            }
+        }
+    }
+}
+
+#[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+impl Plan {
+    /// Study-only conversion: release the coset-specific table before
+    /// preparing ordinary-domain columns. This plan is then derivative-only.
+    pub fn prepare_euler_study(&mut self) {
+        assert!(!self.released && self.n >= 8);
+        self.twisted = None;
+        if self.n >= (1 << 18) && std::env::var("ZOPRO_CPU_FFT_COLUMN_ROOTS").as_deref() == Ok("1") {
+            self.roots.prepare_columns();
+        }
+    }
+    pub fn euler_product_study(&self,a:Vec<Fr>,b:Vec<Fr>)->Vec<Fr> {
+        pair::euler_product_study(self,a,b)
+    }
+    pub fn current_product_study(&self,a:Vec<Fr>,b:Vec<Fr>)->Vec<Fr> {
+        self.coset_product_ordered(a,b,false)
+    }
+    pub fn study_configuration(&self)->(bool,bool,usize,usize) {
+        (false, self.twisted.is_some(), self.roots.columns.len(), self.inverse_roots.columns.len())
+    }
+}
+#[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+#[cfg(test)]
+mod euler_study_tests {
+    use super::*;
+    #[test]
+    fn independent_euler_coefficients_and_partial_rows() {
+        let mut count = 0;
+        for n in [8usize,16,32,64,128] {
+            for power in [1,3] {
+                let root = Fr::root_of_unity(n).unwrap().pow(&[power]);
+                let coset = Fr::from(5u64);
+                let mut plan = Plan::new(n,root,coset,denominator(n,coset).unwrap());
+                plan.prepare_euler_study();
+                let direct = Direct{generator:root,coset:Fr::ONE};
+                for (na,nb) in [(0,0),(1,1),(n/2,n/2+1),(n-3,n),(n,n)] {
+                    for seed in 0..4u64 {
+                        let make = |len:usize,s:u64|->Vec<Fr>{(0..len).map(|i|match (i as u64+s)%5 {
+                            0=>Fr::ZERO,1=>Fr::ONE,2=>-Fr::ONE,_=>Fr::from(i as u64+s+2).pow(&[127])
+                        }).collect()};
+                        let a=make(na,seed+3);let b=make(nb,seed+19);
+                        let derivative = |v:&[Fr]| {
+                            let mut padded=v.to_vec();padded.resize(n,Fr::ZERO);
+                            let mut coeff=direct.coefficients(&padded);
+                            for (k,c) in coeff.iter_mut().enumerate(){*c *= Fr::from(k as u64);}
+                            Direct::evaluate(&coeff,root,Fr::ONE)
+                        };
+                        let da=derivative(&a);let db=derivative(&b);
+                        let expected:Vec<_>=(0..na.max(nb)).map(|i|Fr::from(n as u64)*
+                            (da[i]*b.get(i).copied().unwrap_or(Fr::ZERO)+db[i]*a.get(i).copied().unwrap_or(Fr::ZERO))).collect();
+                        assert_eq!(plan.euler_product_study(a,b),expected,"n={n} power={power} na={na} nb={nb} seed={seed}");
+                        count+=1;
+                    }
+                }
+            }
+        }
+        assert_eq!(count,200);println!("EULER_SMALL_IDENTITIES={count}");
+    }
+    #[test]
+    fn euler_large_sparse_coefficient_oracle() {
+        let mut count=0;
+        for n in [8192usize,32768,65536,262144] {
+            for power in [1,3] {
+                let root=Fr::root_of_unity(n).unwrap().pow(&[power]);let coset=Fr::from(5u64);
+                let mut plan=Plan::new(n,root,coset,denominator(n,coset).unwrap());plan.prepare_euler_study();
+                let terms_a=[(0,Fr::ONE),(1,Fr::from(7u64)),(n/2+3,Fr::from(13u64)),(n-1,-Fr::ONE)];
+                let terms_b=[(2,Fr::from(11u64)),(n/3,Fr::from(19u64)),(n-2,Fr::from(23u64))];
+                let eval=|terms:&[(usize,Fr)]| {
+                    let mut v=vec![Fr::ZERO;n];let mut d=vec![Fr::ZERO;n];
+                    for &(k,c) in terms {let step=root.pow(&[k as u64]);let mut x=c;let f=Fr::from(k as u64);
+                        for (v,d) in v.iter_mut().zip(&mut d){*v+=x;*d+=x*f;x*=step;}}
+                    (v,d)
+                };
+                let (a,da)=eval(&terms_a);let (b,db)=eval(&terms_b);
+                let expected:Vec<_>=a.iter().zip(&b).zip(&da).zip(&db).map(|(((a,b),da),db)|Fr::from(n as u64)*(*da**b+*a**db)).collect();
+                assert_eq!(plan.euler_product_study(a,b),expected,"n={n} power={power}");count+=1;
+            }
+        }
+        assert_eq!(count,8);println!("EULER_LARGE_IDENTITIES={count}");
+    }
+}
+
+
+impl Plan {
+    pub(crate) fn prepare_euler_basis(&mut self) {
+        assert!(!self.released && self.n >= 8);
+        self.twisted = None;
+        if self.n >= (1 << 18) && std::env::var("ZOPRO_CPU_FFT_COLUMN_ROOTS").as_deref() == Ok("1") {
+            self.roots.prepare_columns();
+        }
+    }
+    /// N*(E(A)B+A*E(B)), in original domain order, E(f)=X*f'.
+    pub(crate) fn euler_product_values(&self, a:Vec<Fr>, b:Vec<Fr>)->Vec<Fr> {
+        assert!(!self.released && self.n>=8 && self.twisted.is_none());
+        assert!(a.len()<=self.n && b.len()<=self.n);
+        #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+        { return pair::euler_product_study(self,a,b); }
+        #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
+        {
+            let count=a.len().max(b.len());if count==0{return a;}
+            let derivative=|v:&[Fr]| {
+                let mut values=v.to_vec();values.resize(self.n,Fr::ZERO);
+                let mut values=into_quads(values);
+                dif(&mut values,&self.inverse_roots,0);
+                let log=self.n.trailing_zeros() as usize;
+                values.par_iter_mut().enumerate().for_each(|(i,value)| {
+                    let weight=Quad::new(&core::array::from_fn(|j|Fr::from(bit_reverse(4*i+j,log)as u64)));
+                    *value=value.mul(&weight);
+                });
+                dit(&mut values,&self.roots,0);
+                scalars(&values,self.n)
+            };
+            // Sequential transforms bound the portable path's live buffers.
+            let mut da=derivative(&a);
+            for i in 0..count{da[i]*=b.get(i).copied().unwrap_or(Fr::ZERO);}
+            let db=derivative(&b);
+            for i in 0..count{da[i]+=a.get(i).copied().unwrap_or(Fr::ZERO)*db[i];}
+            da.truncate(count);da
+        }
+    }
+    /// Original bit-reversed quotient coefficients become N^2*h(x_i).
+    /// Their full N-point MSM against the stored Euler query preserves H
+    /// for arbitrary A/B/C, including unsatisfied inputs and padded rows.
+    pub(crate) fn original_h_euler_values(&self, mut h:Vec<Fr>)->Vec<Fr> {
+        assert!(!self.released && h.len()+1==self.n && self.n>=8);
+        h.push(Fr::ZERO);
+        let mut values=into_quads(h);
+        dit(&mut values,&self.roots,0);
+        let factor=Quad::new(&[Fr::from(self.n as u64).square();4]);
+        values.par_iter_mut().for_each(|value|*value=value.mul(&factor));
+        scalars(&values,self.n)
+    }
+}
+
+#[cfg(test)]
+mod euler_basis_tests {
+    use super::*;
+    #[test]
+    fn euler_product_matches_direct_coefficients_native_or_portable() {
+        let mut count=0;
+        for n in [8usize,32,128] {
+            let root=Fr::root_of_unity(n).unwrap();let coset=Fr::from(5u64);
+            let mut plan=Plan::new(n,root,coset,denominator(n,coset).unwrap());plan.prepare_euler_basis();
+            let direct=Direct{generator:root,coset:Fr::ONE};
+            for len in [0,n/2+1,n] {for seed in [1u64,7,19] {
+                let a:Vec<_>=(0..len).map(|i|Fr::from(i as u64+seed).pow(&[13])).collect();
+                let b:Vec<_>=(0..len).map(|i|-Fr::from(i as u64+seed+37).pow(&[17])).collect();
+                let derivative=|v:&[Fr]|{let mut v=v.to_vec();v.resize(n,Fr::ZERO);let mut c=direct.coefficients(&v);for(k,c)in c.iter_mut().enumerate(){*c*=Fr::from(k as u64);}Direct::evaluate(&c,root,Fr::ONE)};
+                let da=derivative(&a);let db=derivative(&b);let expected:Vec<_>=(0..len).map(|i|Fr::from(n as u64)*(da[i]*b[i]+a[i]*db[i])).collect();
+                assert_eq!(plan.euler_product_values(a,b),expected);count+=1;
+            }}
+        }
+        assert_eq!(count,27);println!("EULER_PORTABLE_IDENTITIES={count}");
+    }
+    #[test]
+    fn euler_generic_h_preserves_arbitrary_coefficients() {
+        let mut count=0;
+        for n in [8usize,16,32,128,1024] {for power in [1,3] {
+            let root=Fr::root_of_unity(n).unwrap().pow(&[power]);let coset=Fr::from(5u64);
+            let mut plan=Plan::new(n,root,coset,denominator(n,coset).unwrap());plan.prepare_euler_basis();
+            let mut coeff:Vec<_>=(0..n).map(|i|Fr::from(i as u64+13).pow(&[7])).collect();coeff[n-1]=Fr::ZERO;
+            let raw:Vec<_>=(0..n-1).map(|i|coeff[bit_reverse(i,n.trailing_zeros()as usize)]).collect();
+            let expected:Vec<_>=Direct::evaluate(&coeff,root,Fr::ONE).into_iter().map(|x|x*Fr::from(n as u64).square()).collect();
+            assert_eq!(plan.original_h_euler_values(raw),expected);count+=1;
+        }}
+        assert_eq!(count,10);println!("EULER_GENERIC_H_IDENTITIES={count}");
     }
 }

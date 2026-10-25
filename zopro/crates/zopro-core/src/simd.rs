@@ -315,12 +315,33 @@ pub(crate) struct FqBatch(zopro_bn254::ifma8::Ifma8<FqConfig, true>);
 ))]
 impl FqBatch {
     #[inline(always)]
+    pub(crate) fn signed_difference_scaled(&self, ay:&Self, scale:&Self, negative:u8)->Self {
+        Self(self.0.signed_difference_scaled(&ay.0,&scale.0,negative))
+    }
+    #[inline(always)]
     pub(crate) fn new(a: &[Fq; 8]) -> Self {
         Self(zopro_bn254::ifma8::Ifma8::new(a))
     }
     #[inline(always)]
     pub(crate) fn get(&self) -> [Fq; 8] {
         self.0.get()
+    }
+    /// Invert eight nonzero values with a product tree and one scalar inverse.
+    #[inline]
+    pub(crate) fn inverse_nonzero(&self) -> Self {
+        use zopro_bn254::ifma8::Ifma8;
+        let swapped = Self(Ifma8::shuffle_pair::<1, 0, 3, 2>(&self.0, &self.0));
+        let pairs = self.mul(&swapped);
+        let other_pair = Self(Ifma8::shuffle_pair::<2, 3, 0, 1>(&pairs.0, &pairs.0));
+        let quads = pairs.mul(&other_pair);
+        let products = quads.get();
+        let inverse = (products[0] * products[4]).inverse().unwrap();
+        let (lo, hi) = quads.0.halves();
+        let other_quad = Self(Ifma8::from_halves(&hi, &lo));
+        Self::new(&[inverse; 8])
+            .mul(&other_quad)
+            .mul(&other_pair)
+            .mul(&swapped)
     }
     #[inline(always)]
     pub(crate) fn one() -> Self {
@@ -341,6 +362,14 @@ impl FqBatch {
     #[inline(always)]
     pub(crate) fn sub(&self, b: &Self) -> Self {
         Self(self.0.sub(&b.0))
+    }
+    #[inline(always)]
+    pub(crate) fn add_canonical(&self, b: &Self) -> Self {
+        Self(self.0.add_canonical(&b.0))
+    }
+    #[inline(always)]
+    pub(crate) fn sub_canonical(&self, b: &Self) -> Self {
+        Self(self.0.sub_canonical(&b.0))
     }
     #[inline(always)]
     pub(crate) fn sum2(&self, b: &Self, c: &Self, d: &Self) -> Self {
@@ -736,4 +765,28 @@ pub(crate) fn cpu_option(name: &str) -> bool {
         target_feature = "avx512dq",
         not(no_ifma)
     )))
+}
+
+#[cfg(all(
+    test,
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+#[test]
+fn packed_inverses_match_scalar_inverses() {
+    for seed in 1..33u64 {
+        let values = core::array::from_fn(|i| match i {
+            0 => Fq::ONE,
+            1 => -Fq::ONE,
+            _ => Fq::from(seed + i as u64).pow(&[127]),
+        });
+        let inverses = FqBatch::new(&values).inverse_nonzero().get();
+        for i in 0..8 {
+            assert_eq!(inverses[i], values[i].inverse().unwrap());
+        }
+    }
 }

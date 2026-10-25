@@ -144,7 +144,7 @@ pub fn multi_miller_loop(pairs: &[(G1Affine, &G2Prepared)]) -> Fq12 {
 
 /// f^x, then inverted (x is positive): the hard part's f^-x.
 fn exp_by_neg_x(f: Fq12) -> Fq12 {
-    f.pow_u64(X).conjugate()
+    f.cyclotomic_pow_u64(X).conjugate()
 }
 
 /// f^((p^12 - 1) / r), `None` for zero.
@@ -155,12 +155,40 @@ pub fn final_exponentiation(f: Fq12) -> Option<Fq12> {
     let f2 = r;
     r = r.frobenius(2) * f2;
     let y0 = exp_by_neg_x(r);
+    let y1 = y0.cyclotomic_square();
+    let y2 = y1.cyclotomic_square();
+    let y3 = y2 * y1;
+    let y4 = exp_by_neg_x(y3);
+    let y5 = y4.cyclotomic_square();
+    let y6 = exp_by_neg_x(y5);
+    let y3 = y3.conjugate();
+    let y6 = y6.conjugate();
+    let y7 = y6 * y4;
+    let y8 = y7 * y3;
+    let y9 = y8 * y1;
+    let y10 = y8 * y4;
+    let y11 = y10 * r;
+    let y12 = y9.frobenius(1);
+    let y13 = y12 * y11;
+    let y14 = y8.frobenius(2) * y13;
+    let y15 = (r.conjugate() * y9).frobenius(3);
+    Some(y15 * y14)
+}
+
+#[cfg(test)]
+pub(crate) fn final_exponentiation_reference(f: Fq12) -> Option<Fq12> {
+    let f1 = f.conjugate();
+    let f2 = f.inverse()?;
+    let mut r = f1 * f2;
+    let f2 = r;
+    r = r.frobenius(2) * f2;
+    let y0 = r.pow_u64(X).conjugate();
     let y1 = y0.square();
     let y2 = y1.square();
     let y3 = y2 * y1;
-    let y4 = exp_by_neg_x(y3);
+    let y4 = y3.pow_u64(X).conjugate();
     let y5 = y4.square();
-    let y6 = exp_by_neg_x(y5);
+    let y6 = y5.pow_u64(X).conjugate();
     let y3 = y3.conjugate();
     let y6 = y6.conjugate();
     let y7 = y6 * y4;

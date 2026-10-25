@@ -15,6 +15,42 @@ pub struct Ifma8<C: FpConfig, const MIXED: bool = false>(
     pub(crate) PhantomData<C>,
 );
 
+/// Four vector words containing the same numerical Montgomery values.
+/// Storage is compact; unpacking does not change radix or reduce values.
+#[derive(Clone, Copy)]
+pub struct PackedIfma8<C: FpConfig, const MIXED: bool = false>([__m512i; 4], PhantomData<C>);
+
+impl<C: FpConfig, const MIXED: bool> PackedIfma8<C, MIXED> {
+    #[inline(always)]
+    pub fn expand(&self) -> Ifma8<C, MIXED> {
+        // SAFETY: this module requires AVX-512 IFMA/VL. The private
+        // constructor only receives normalized values below 2^256.
+        unsafe {
+            let [w0, w1, w2, w3] = self.0;
+            let mask = Ifma8::<C, MIXED>::splat(MASK);
+            Ifma8(
+                [
+                    _mm512_and_si512(w0, mask),
+                    _mm512_and_si512(
+                        _mm512_or_si512(_mm512_srli_epi64::<52>(w0), _mm512_slli_epi64::<12>(w1)),
+                        mask,
+                    ),
+                    _mm512_and_si512(
+                        _mm512_or_si512(_mm512_srli_epi64::<40>(w1), _mm512_slli_epi64::<24>(w2)),
+                        mask,
+                    ),
+                    _mm512_and_si512(
+                        _mm512_or_si512(_mm512_srli_epi64::<28>(w2), _mm512_slli_epi64::<36>(w3)),
+                        mask,
+                    ),
+                    _mm512_srli_epi64::<16>(w3),
+                ],
+                PhantomData,
+            )
+        }
+    }
+}
+
 #[inline(always)]
 const fn split(x: [u64; 4]) -> [u64; 5] {
     [
@@ -26,7 +62,48 @@ const fn split(x: [u64; 4]) -> [u64; 5] {
     ]
 }
 
+// floor(2^288/p), computed at compile time. BN254's two primes are
+// in [2^253,2^254), so the reciprocal is below 2^35.
+const fn small_reciprocal(p: [u64; 4]) -> u64 {
+    assert!(p[3] >= 1u64 << 61 && p[3] < 1u64 << 62);
+    let mut rem = [1u64, 0, 0, 0];
+    let mut quotient = 0u64;
+    let mut i = 0;
+    while i < 288 {
+        rem = crate::portable::add4(rem, rem).0;
+        let ge = !crate::portable::less(rem, p);
+        if ge {
+            rem = crate::portable::sub4(rem, p).0;
+        }
+        quotient = (quotient << 1) | ge as u64;
+        i += 1;
+    }
+    assert!(quotient < 1u64 << 35);
+    quotient
+}
+
 impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
+    /// Pack normalized values without converting their Montgomery radix.
+    /// BN254 operation outputs are below 2p < 2^256, including lazy values.
+    #[inline(always)]
+    pub fn compact(&self) -> PackedIfma8<C, MIXED> {
+        // SAFETY: all five limbs are normalized radix-52 digits. Only
+        // the low 48 bits of the last limb belong to a 256-bit value.
+        unsafe {
+            debug_assert_eq!(_mm512_cmpge_epu64_mask(self.0[4], Self::splat(1 << 48)), 0);
+            let [t0, t1, t2, t3, t4] = self.0;
+            PackedIfma8(
+                [
+                    _mm512_or_si512(t0, _mm512_slli_epi64::<52>(t1)),
+                    _mm512_or_si512(_mm512_srli_epi64::<12>(t1), _mm512_slli_epi64::<40>(t2)),
+                    _mm512_or_si512(_mm512_srli_epi64::<24>(t2), _mm512_slli_epi64::<28>(t3)),
+                    _mm512_or_si512(_mm512_srli_epi64::<36>(t3), _mm512_slli_epi64::<16>(t4)),
+                ],
+                PhantomData,
+            )
+        }
+    }
+
     const ONE: [u64; 4] = crate::portable::power_of_two(260, C::P);
     // A downward reciprocal of an upper bound on p's leading radix limb.
     // For x < 16p this estimates floor(x/p) from below by at most one.
@@ -151,15 +228,31 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
                 Self::reduce(t, C::P)
             }
         };
-        let limbs: [[u64; 8]; 5] = x.0.map(|v| unsafe { core::mem::transmute(v) });
-        core::array::from_fn(|i| {
-            Fp::from_montgomery([
-                limbs[0][i] | (limbs[1][i] << 52),
-                (limbs[1][i] >> 12) | (limbs[2][i] << 40),
-                (limbs[2][i] >> 24) | (limbs[3][i] << 28),
-                (limbs[3][i] >> 36) | (limbs[4][i] << 16),
-            ])
-        })
+        // Fully initialize eight repr-transparent Fp values in four stores.
+        unsafe {
+            let [t0, t1, t2, t3, t4] = x.0;
+            let w0 = _mm512_or_si512(t0, _mm512_slli_epi64::<52>(t1));
+            let w1 = _mm512_or_si512(_mm512_srli_epi64::<12>(t1), _mm512_slli_epi64::<40>(t2));
+            let w2 = _mm512_or_si512(_mm512_srli_epi64::<24>(t2), _mm512_slli_epi64::<28>(t3));
+            let w3 = _mm512_or_si512(_mm512_srli_epi64::<36>(t3), _mm512_slli_epi64::<16>(t4));
+            let a = _mm512_unpacklo_epi64(w0, w1);
+            let b = _mm512_unpackhi_epi64(w0, w1);
+            let c = _mm512_unpacklo_epi64(w2, w3);
+            let d = _mm512_unpackhi_epi64(w2, w3);
+            let low = _mm512_set_epi64(11, 10, 3, 2, 9, 8, 1, 0);
+            let high = _mm512_set_epi64(15, 14, 7, 6, 13, 12, 5, 4);
+            let even_lo = _mm512_permutex2var_epi64(a, low, c);
+            let even_hi = _mm512_permutex2var_epi64(a, high, c);
+            let odd_lo = _mm512_permutex2var_epi64(b, low, d);
+            let odd_hi = _mm512_permutex2var_epi64(b, high, d);
+            let mut out = core::mem::MaybeUninit::<[Fp<C>; 8]>::uninit();
+            let p = out.as_mut_ptr().cast::<__m512i>();
+            _mm512_storeu_si512(p, _mm512_shuffle_i64x2::<0x44>(even_lo, odd_lo));
+            _mm512_storeu_si512(p.add(1), _mm512_shuffle_i64x2::<0xee>(even_lo, odd_lo));
+            _mm512_storeu_si512(p.add(2), _mm512_shuffle_i64x2::<0x44>(even_hi, odd_hi));
+            _mm512_storeu_si512(p.add(3), _mm512_shuffle_i64x2::<0xee>(even_hi, odd_hi));
+            out.assume_init()
+        }
     }
     #[inline(always)]
     pub fn zero() -> Self {
@@ -186,6 +279,61 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
                 t[j] = _mm512_mask_blend_epi64(keep, d[j], t[j]);
             }
             Self(t, PhantomData)
+        }
+    }
+    /// Skip the fused result's final subtraction when its high limbs
+    /// prove every lane is already below 2p. Equal high limbs remain
+    /// ambiguous and take the full reduction, preserving the exact result.
+    #[inline(always)]
+    fn reduce_fused(t: [__m512i; 5]) -> Self {
+        let modulus = const { crate::portable::add4(C::P, C::P).0 };
+        let high = Self::splat(split(modulus)[4]);
+        let needs = unsafe { _mm512_cmpge_epu64_mask(t[4], high) };
+        if needs == 0 {
+            Self(t, PhantomData)
+        } else {
+            core::hint::cold_path();
+            Self::reduce(t, modulus)
+        }
+    }
+    /// Multiply by ordinary unsigned integers below 2^28, preserving
+    /// the input's Montgomery radix. Inputs are normalized and below 2p.
+    /// Let R=2^260, mu=floor(R*2^28/p), c=floor(k*mu/2^28),
+    /// a4=floor(a/2^208), q=floor(a4*c/2^52). Truncating the low
+    /// four limbs adds less than c/2^52 to the quotient error, so
+    /// 0<=ak/p-a4*c/2^52 < 1/16+1/131072 < 1. Therefore
+    /// 0<=ak-qp < (1+1/16+1/131072)*p < 2p, without correction.
+    #[inline(always)]
+    pub fn mul_u28(&self, factors: &[u64; LANES]) -> Self {
+        unsafe {
+            let zero = Self::splat(0);
+            let mask = Self::splat(MASK);
+            let k = _mm512_loadu_si512(factors.as_ptr().cast());
+            debug_assert_eq!(_mm512_cmpge_epu64_mask(k, Self::splat(1 << 28)), 0);
+            let mu = const { small_reciprocal(C::P) };
+            // k<2^28, mu<2^35: the full product fits below2^63.
+            let c = _mm512_srli_epi64::<28>(_mm512_mullo_epi64(k, Self::splat(mu)));
+            let q = _mm512_madd52hi_epu64(zero, self.0[4], c);
+            let p = split(C::P).map(Self::splat);
+            let mut out = [zero; 5];
+            let mut carry = zero;
+            for j in 0..5 {
+                let lo = _mm512_sub_epi64(
+                    _mm512_madd52lo_epu64(zero, self.0[j], k),
+                    _mm512_madd52lo_epu64(zero, p[j], q),
+                );
+                let value = _mm512_add_epi64(lo, carry);
+                out[j] = _mm512_and_si512(value, mask);
+                carry = _mm512_add_epi64(
+                    _mm512_sub_epi64(
+                        _mm512_madd52hi_epu64(zero, self.0[j], k),
+                        _mm512_madd52hi_epu64(zero, p[j], q),
+                    ),
+                    _mm512_srai_epi64::<52>(value),
+                );
+            }
+            debug_assert_eq!(_mm512_cmpneq_epi64_mask(carry, zero), 0);
+            Self(out, PhantomData)
         }
     }
     #[inline(always)]
@@ -311,7 +459,7 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
                 out[j] = _mm512_and_si512(out[j], mask);
             }
             if FUSED && MIXED {
-                Self::reduce(out, crate::portable::add4(C::P, C::P).0)
+                Self::reduce_fused(out)
             } else {
                 Self(out, PhantomData)
             }
@@ -358,12 +506,24 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
                             t[$k] = _mm512_madd52hi_epu64(t[$k], m, p[$j]);
                         };
                     }
-                    reduction!(0, 1);
-                    reduction!(1, 2);
-                    reduction!(2, 3);
-                    reduction!(3, 4);
-                    reduction!(4, 5);
-                    t[1] = _mm512_add_epi64(t[1], _mm512_srli_epi64::<52>(t[0]));
+                    if cfg!(zopro_cios_cancel_carry) {
+                        // The cancelled low digit contributes ceil(t0/B).
+                        // Compute it without waiting for m*p0's low half.
+                        let carry = _mm512_srli_epi64::<52>(_mm512_add_epi64(t[0], mask));
+                        let low = _mm512_madd52hi_epu64(carry, m, p[0]);
+                        reduction!(1, 2);
+                        reduction!(2, 3);
+                        reduction!(3, 4);
+                        reduction!(4, 5);
+                        t[1] = _mm512_add_epi64(t[1], low);
+                    } else {
+                        reduction!(0, 1);
+                        reduction!(1, 2);
+                        reduction!(2, 3);
+                        reduction!(3, 4);
+                        reduction!(4, 5);
+                        t[1] = _mm512_add_epi64(t[1], _mm512_srli_epi64::<52>(t[0]));
+                    }
                     t = [t[1], t[2], t[3], t[4], t[5], zero];
                 }};
             }
@@ -408,20 +568,57 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
                         t[$k] = _mm512_madd52hi_epu64(t[$k], m, p[$j]);
                     };
                 }
-                reduction!(0, 1);
-                reduction!(1, 2);
-                reduction!(2, 3);
-                reduction!(3, 4);
-                reduction!(4, 5);
-                for j in 0..5 {
-                    t[j + 1] = _mm512_add_epi64(t[j + 1], _mm512_srli_epi64::<52>(t[j]));
-                    t[j] = _mm512_and_si512(t[j], mask);
-                }
-                for j in 0..5 {
-                    t[j] = _mm512_or_si512(
-                        _mm512_srli_epi64::<48>(t[j]),
-                        _mm512_and_si512(_mm512_slli_epi64::<4>(t[j + 1]), mask),
-                    );
+                if cfg!(zopro_cios_cancel_carry) {
+                    let mask48 = Self::splat((1u64 << 48) - 1);
+                    let carry = _mm512_srli_epi64::<48>(_mm512_add_epi64(t[0], mask48));
+                    // m<2^48, so shifting by4 remains an exact IFMA input.
+                    let low = _mm512_madd52hi_epu64(carry, _mm512_slli_epi64::<4>(m), p[0]);
+                    reduction!(1, 2);
+                    reduction!(2, 3);
+                    reduction!(3, 4);
+                    reduction!(4, 5);
+                    // Divide the unnormalized coefficients by2^48 directly.
+                    // Splitting each higher coefficient at48 bits avoids
+                    // the original extra normalization before radix packing.
+                    t = [
+                        _mm512_add_epi64(
+                            low,
+                            _mm512_slli_epi64::<4>(_mm512_and_si512(t[1], mask48)),
+                        ),
+                        _mm512_add_epi64(
+                            _mm512_srli_epi64::<48>(t[1]),
+                            _mm512_slli_epi64::<4>(_mm512_and_si512(t[2], mask48)),
+                        ),
+                        _mm512_add_epi64(
+                            _mm512_srli_epi64::<48>(t[2]),
+                            _mm512_slli_epi64::<4>(_mm512_and_si512(t[3], mask48)),
+                        ),
+                        _mm512_add_epi64(
+                            _mm512_srli_epi64::<48>(t[3]),
+                            _mm512_slli_epi64::<4>(_mm512_and_si512(t[4], mask48)),
+                        ),
+                        _mm512_add_epi64(
+                            _mm512_srli_epi64::<48>(t[4]),
+                            _mm512_slli_epi64::<4>(t[5]),
+                        ),
+                        zero,
+                    ];
+                } else {
+                    reduction!(0, 1);
+                    reduction!(1, 2);
+                    reduction!(2, 3);
+                    reduction!(3, 4);
+                    reduction!(4, 5);
+                    for j in 0..5 {
+                        t[j + 1] = _mm512_add_epi64(t[j + 1], _mm512_srli_epi64::<52>(t[j]));
+                        t[j] = _mm512_and_si512(t[j], mask);
+                    }
+                    for j in 0..5 {
+                        t[j] = _mm512_or_si512(
+                            _mm512_srli_epi64::<48>(t[j]),
+                            _mm512_and_si512(_mm512_slli_epi64::<4>(t[j + 1]), mask),
+                        );
+                    }
                 }
             } else {
                 row!(4);
@@ -433,10 +630,42 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
             // Inputs are below 2p, so REDC is below p + 4p²/2^260 < 2p.
             let result = [t[0], t[1], t[2], t[3], t[4]];
             if FUSED && MIXED {
-                Self::reduce(result, crate::portable::add4(C::P, C::P).0)
+                Self::reduce_fused(result)
             } else {
                 Self(result, PhantomData)
             }
+        }
+    }
+    /// Inputs must each be below p. The unreduced sum remains below 2p.
+    #[inline(always)]
+    pub fn add_canonical(&self, b: &Self) -> Self {
+        unsafe {
+            let mask = Self::splat(MASK);
+            let mut t = core::array::from_fn(|j| _mm512_add_epi64(self.0[j], b.0[j]));
+            for j in 0..4 {
+                t[j + 1] = _mm512_add_epi64(t[j + 1], _mm512_srli_epi64::<52>(t[j]));
+                t[j] = _mm512_and_si512(t[j], mask);
+            }
+            Self(t, PhantomData)
+        }
+    }
+    /// Inputs must each be below p. p+a-b is nonnegative and below 2p.
+    #[inline(always)]
+    pub fn sub_canonical(&self, b: &Self) -> Self {
+        unsafe {
+            let p = split(C::P).map(Self::splat);
+            let mask = Self::splat(MASK);
+            let mut t = [Self::splat(0); 5];
+            let mut carry = Self::splat(0);
+            for j in 0..5 {
+                let v = _mm512_add_epi64(
+                    _mm512_sub_epi64(_mm512_add_epi64(p[j], self.0[j]), b.0[j]),
+                    carry,
+                );
+                carry = _mm512_srai_epi64::<52>(v);
+                t[j] = _mm512_and_si512(v, mask);
+            }
+            Self(t, PhantomData)
         }
     }
     #[inline(always)]
@@ -478,6 +707,38 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
 }
 
 impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
+    /// (sign*by-ay)*scale, for canonical by/ay and scale<2p, mixed R256.
+    /// The transient numerator is <=2p (the upper edge is negative zero).
+    /// For BN254 p<2^254, REDC(2p*2p)<p+4p^2/2^256<2p. It never escapes
+    /// before multiplication; normalized radix limbs meet the same carry bounds.
+    #[inline(always)]
+    pub fn signed_difference_scaled(&self, ay: &Self, scale: &Self, negative: u8) -> Self {
+        assert!(MIXED);
+        assert!(C::P[3] < (1u64 << 62));
+        unsafe {
+            let p = split(C::P);
+            let twice = split(crate::portable::add4(C::P, C::P).0);
+            let flip = _mm512_maskz_mov_epi64(negative, Self::splat(MASK));
+            let mut carry = _mm512_maskz_mov_epi64(negative, Self::splat(1));
+            let mut t = [Self::splat(0); 5];
+            let mask = Self::splat(MASK);
+            for j in 0..5 {
+                let offset =
+                    _mm512_mask_blend_epi64(negative, Self::splat(p[j]), Self::splat(twice[j]));
+                let signed = _mm512_xor_si512(self.0[j], flip);
+                let v = _mm512_add_epi64(
+                    _mm512_sub_epi64(_mm512_add_epi64(offset, signed), ay.0[j]),
+                    carry,
+                );
+                t[j] = _mm512_and_si512(v, mask);
+                carry = _mm512_srai_epi64::<52>(v);
+            }
+            Self(t, PhantomData).mul(scale)
+        }
+    }
+}
+
+impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
     /// Join two four-lane values without changing their Montgomery radix.
     #[inline(always)]
     pub fn from_halves(lo: &crate::ifma::Ifma<C, MIXED>, hi: &crate::ifma::Ifma<C, MIXED>) -> Self {
@@ -492,7 +753,12 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
     }
     /// Sum all eight independent field lanes.
     #[inline(always)]
+    #[allow(unexpected_cfgs)]
     pub fn horizontal_sum(&self) -> Fp<C> {
+        #[cfg(zopro_horizontal_limb_sum)]
+        if MIXED {
+            return self.horizontal_sum_limb_table();
+        }
         unsafe {
             let mut value = *self;
             for index in [
@@ -552,10 +818,443 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
         }
     }
 }
+impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
+    #[inline(always)]
+    fn horizontal_sum_limb_table(&self) -> Fp<C> {
+        if !MIXED {
+            return self.horizontal_sum();
+        }
+        // Eight normalized lanes below2p sum below16p. Each limb sum
+        // below2^55 fits signed64; carry normalization fits five52bit limbs.
+        let mut digits: [u64; 5] = unsafe { self.0.map(|x| _mm512_reduce_add_epi64(x) as u64) };
+        for j in 0..4 {
+            let carry = digits[j] >> 52;
+            digits[j] &= MASK;
+            digits[j + 1] += carry;
+        }
+        let q = ((digits[4] as u128 * Self::RECIPROCAL as u128) >> 52) as usize;
+        debug_assert!(q < 16);
+        let multiples = const {
+            let p = split(C::P);
+            let mut table = [[0u64; 5]; 16];
+            let mut q = 0;
+            while q < 16 {
+                let mut carry = 0u64;
+                let mut j = 0;
+                while j < 5 {
+                    let v = p[j] * q as u64 + carry;
+                    table[q][j] = v & MASK;
+                    carry = v >> 52;
+                    j += 1;
+                }
+                assert!(carry == 0);
+                q += 1;
+            }
+            table
+        };
+        let mut borrow = 0i64;
+        for j in 0..5 {
+            let v = digits[j] as i64 - multiples[q][j] as i64 + borrow;
+            digits[j] = v as u64 & MASK;
+            borrow = v >> 52;
+        }
+        debug_assert_eq!(borrow, 0);
+        debug_assert!(digits[4] < 1 << 48);
+        let words = [
+            digits[0] | digits[1] << 52,
+            digits[1] >> 12 | digits[2] << 40,
+            digits[2] >> 24 | digits[3] << 28,
+            digits[3] >> 36 | digits[4] << 16,
+        ];
+        Fp::from_montgomery(crate::portable::reduce_once(words, C::P))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::{FqConfig, FrConfig};
+    #[test]
+    fn compact_storage_roundtrip() {
+        fn check<C: FpConfig, const MIXED: bool>() {
+            assert_eq!(core::mem::size_of::<PackedIfma8<C, MIXED>>(), 4 * LANES * 8);
+            let twice = crate::portable::add4(C::P, C::P).0;
+            let mut edges = vec![
+                [0; 4],
+                [1, 0, 0, 0],
+                crate::portable::sub4(C::P, [1, 0, 0, 0]).0,
+                C::P,
+                crate::portable::add4(C::P, [1, 0, 0, 0]).0,
+                crate::portable::sub4(twice, [1, 0, 0, 0]).0,
+            ];
+            for bit in 0..254 {
+                let mut words = [0; 4];
+                words[bit / 64] = 1u64 << (bit % 64);
+                edges.push(words);
+            }
+            let mut seed = 0x82718dcfad29u64;
+            for _ in 0..128 {
+                let mut bytes = [0; 64];
+                for chunk in bytes.chunks_mut(8) {
+                    seed ^= seed << 13;
+                    seed ^= seed >> 7;
+                    seed ^= seed << 17;
+                    chunk.copy_from_slice(&seed.to_le_bytes());
+                }
+                let mut words = Fp::<C>::from_random_bytes(&bytes).0;
+                if seed & 1 != 0 {
+                    words = crate::portable::add4(words, C::P).0;
+                }
+                edges.push(words);
+            }
+            for first in 0..edges.len() {
+                let words = core::array::from_fn(|i| edges[(first + i) % edges.len()]);
+                let raw = Ifma8::<C, MIXED>::raw(&words);
+                let packed = raw.compact();
+                let columns: [[u64; LANES]; 4] =
+                    packed.0.map(|v| unsafe { core::mem::transmute(v) });
+                for lane in 0..LANES {
+                    for j in 0..4 {
+                        assert_eq!(columns[j][lane], words[lane][j]);
+                    }
+                }
+                let expanded = packed.expand();
+                let before: [[u64; LANES]; 5] = raw.0.map(|v| unsafe { core::mem::transmute(v) });
+                let after: [[u64; LANES]; 5] =
+                    expanded.0.map(|v| unsafe { core::mem::transmute(v) });
+                assert_eq!(before, after);
+                assert_eq!(expanded.get(), raw.get());
+                assert_eq!(expanded.mul(&expanded).get(), raw.mul(&raw).get());
+                assert_eq!(expanded.add(&expanded).get(), raw.add(&raw).get());
+            }
+        }
+        check::<FqConfig, false>();
+        check::<FrConfig, false>();
+        check::<FqConfig, true>();
+        check::<FrConfig, true>();
+    }
+    #[test]
+    fn signed_difference_scaled_matches_arkworks() {
+        fn check<C: FpConfig, A: ark_ff::PrimeField>() {
+            use ark_ff::Field;
+            let inv_r = A::from(2u64).pow([256]).inverse().unwrap();
+            let convert = |v: Fp<C>| {
+                A::from_le_bytes_mod_order(
+                    &v.0.into_iter()
+                        .flat_map(u64::to_le_bytes)
+                        .collect::<Vec<_>>(),
+                ) * inv_r
+            };
+            let p = C::P;
+            let twice = crate::portable::add4(p, p).0;
+            let canonical = [
+                [0; 4],
+                C::R,
+                crate::portable::sub4(p, [1, 0, 0, 0]).0,
+                crate::portable::sub4(p, [2, 0, 0, 0]).0,
+            ];
+            let scales = [
+                [0; 4],
+                p,
+                crate::portable::sub4(twice, [1, 0, 0, 0]).0,
+                C::R,
+            ];
+            let mut seed = 0x8123023fe913u64;
+            for round in 0..512 {
+                let mut random = || {
+                    let mut bytes = [0; 64];
+                    for b in bytes.chunks_mut(8) {
+                        seed ^= seed << 13;
+                        seed ^= seed >> 7;
+                        seed ^= seed << 17;
+                        b.copy_from_slice(&seed.to_le_bytes());
+                    }
+                    Fp::<C>::from_random_bytes(&bytes)
+                };
+                let by = core::array::from_fn(|i| {
+                    if round < 32 {
+                        Fp::from_montgomery(canonical[(round + i) % 4])
+                    } else {
+                        random()
+                    }
+                });
+                let ay = core::array::from_fn(|i| {
+                    if round < 32 {
+                        Fp::from_montgomery(canonical[(round / 4 + i) % 4])
+                    } else {
+                        random()
+                    }
+                });
+                let scale = core::array::from_fn(|i| {
+                    if round < 32 {
+                        Fp::from_montgomery(scales[(round / 8 + i) % 4])
+                    } else {
+                        random()
+                    }
+                });
+                let negative = (round as u8).wrapping_mul(37);
+                let got = Ifma8::<C, true>::new(&by)
+                    .signed_difference_scaled(&Ifma8::new(&ay), &Ifma8::new(&scale), negative)
+                    .get();
+                for i in 0..LANES {
+                    let y = convert(by[i]);
+                    let want = ((if negative >> i & 1 != 0 { -y } else { y }) - convert(ay[i]))
+                        * convert(scale[i]);
+                    assert!(crate::portable::less(got[i].0, p));
+                    assert_eq!(convert(got[i]), want);
+                }
+            }
+            // All lanes exercise the exact 2p transient numerator boundary.
+            let zero = Ifma8::<C, true>::zero();
+            let raw = core::array::from_fn(|_| {
+                Fp::<C>::from_montgomery(crate::portable::sub4(twice, [1, 0, 0, 0]).0)
+            });
+            assert_eq!(
+                zero.signed_difference_scaled(&zero, &Ifma8::new(&raw), 255)
+                    .get(),
+                [Fp::<C>::ZERO; LANES]
+            );
+        }
+        check::<crate::FqConfig, ark_ref::Fq>();
+        check::<crate::FrConfig, ark_ref::Fr>();
+    }
+    #[test]
+    fn small_integer_multiply_matches_arkworks() {
+        fn check<C: FpConfig, A: ark_ff::PrimeField, const MIXED: bool>() {
+            use ark_ff::Field;
+            let input_inverse = A::from(2u64)
+                .pow([if MIXED { 256 } else { 260 }])
+                .inverse()
+                .unwrap();
+            let output_inverse = A::from(2u64).pow([256]).inverse().unwrap();
+            let numeric = |v: [u64; 4]| {
+                A::from_le_bytes_mod_order(
+                    &v.into_iter().flat_map(u64::to_le_bytes).collect::<Vec<_>>(),
+                )
+            };
+            let p = C::P;
+            let twice = crate::portable::add4(p, p).0;
+            let mut edges = vec![
+                [0; 4],
+                [1, 0, 0, 0],
+                p,
+                crate::portable::sub4(p, [1, 0, 0, 0]).0,
+                crate::portable::add4(p, [1, 0, 0, 0]).0,
+                crate::portable::sub4(twice, [1, 0, 0, 0]).0,
+            ];
+            for bit in [51, 52, 103, 104, 155, 156, 207, 208, 252, 253] {
+                let mut v = [0u64; 4];
+                v[bit / 64] = 1u64 << (bit % 64);
+                edges.extend([
+                    crate::portable::sub4(v, [1, 0, 0, 0]).0,
+                    v,
+                    crate::portable::add4(v, [1, 0, 0, 0]).0,
+                ]);
+            }
+            let mut factors = vec![0u64, 1, 2, 3, (1 << 28) - 1];
+            for bit in 1..28 {
+                factors.extend([(1 << bit) - 1, 1 << bit, (1 << bit) + 1]);
+            }
+            let mut pairs = Vec::new();
+            for &a in &edges {
+                for &k in &factors {
+                    pairs.push((a, k));
+                }
+            }
+            let mut seed = 0x6a2c382713f99u64;
+            let mut next = || {
+                seed ^= seed << 13;
+                seed ^= seed >> 7;
+                seed ^= seed << 17;
+                seed
+            };
+            for round in 0..4096 {
+                let mut bytes = [0u8; 64];
+                for chunk in bytes.chunks_mut(8) {
+                    chunk.copy_from_slice(&next().to_le_bytes());
+                }
+                let a = Fp::<C>::from_random_bytes(&bytes).0;
+                pairs.push((
+                    if round % 2 == 0 {
+                        a
+                    } else {
+                        crate::portable::add4(a, p).0
+                    },
+                    next() & ((1 << 28) - 1),
+                ));
+            }
+            let limit = split(twice);
+            let mut checked = 0;
+            for chunk in pairs.chunks(LANES) {
+                let v = core::array::from_fn(|i| chunk[i % chunk.len()].0);
+                let k: [u64; LANES] = core::array::from_fn(|i| chunk[i % chunk.len()].1);
+                let mut got = Ifma8::<C, MIXED>::raw(&v);
+                let mut expected: [A; LANES] = v.map(|a| numeric(a) * input_inverse);
+                // Reusing lazy outputs also checks closure of the <2p bound.
+                for round in 0..8 {
+                    let factors = core::array::from_fn(|i| (k[i] + round * 1597) & ((1 << 28) - 1));
+                    got = got.mul_u28(&factors);
+                    let words: [[u64; LANES]; 5] =
+                        got.0.map(|x| unsafe { core::mem::transmute(x) });
+                    let host = got.get();
+                    for lane in 0..LANES {
+                        expected[lane] *= A::from(factors[lane]);
+                        assert_eq!(numeric(host[lane].0) * output_inverse, expected[lane]);
+                        assert!(crate::portable::less(host[lane].0, p));
+                        for j in 0..5 {
+                            assert!(words[j][lane] < 1u64 << 52);
+                        }
+                        assert!((0..5)
+                            .rev()
+                            .map(|j| words[j][lane])
+                            .cmp((0..5).rev().map(|j| limit[j]))
+                            .is_lt());
+                    }
+                    checked += LANES;
+                }
+            }
+            eprintln!("EULER_SMALL_FIELD_LANES={checked}");
+        }
+        check::<crate::FqConfig, ark_ref::Fq, false>();
+        check::<crate::FqConfig, ark_ref::Fq, true>();
+        check::<crate::FrConfig, ark_ref::Fr, false>();
+        check::<crate::FrConfig, ark_ref::Fr, true>();
+    }
+    #[test]
+    fn cios_carry_matches_arkworks() {
+        fn check<C: FpConfig, A: ark_ff::PrimeField, const MIXED: bool>() {
+            use ark_ff::Field;
+            let inv = A::from(2u64)
+                .pow([if MIXED { 256 } else { 260 }])
+                .inverse()
+                .unwrap();
+            let out_inv = A::from(2u64).pow([256]).inverse().unwrap();
+            let numeric = |v: [u64; 4]| {
+                let mut bytes = [0u8; 32];
+                for (chunk, word) in bytes.chunks_mut(8).zip(v) {
+                    chunk.copy_from_slice(&word.to_le_bytes());
+                }
+                A::from_le_bytes_mod_order(&bytes)
+            };
+            let p = C::P;
+            let twice = crate::portable::add4(p, p).0;
+            let mut edges = vec![
+                [0; 4],
+                [1, 0, 0, 0],
+                [2, 0, 0, 0],
+                p,
+                crate::portable::sub4(p, [1, 0, 0, 0]).0,
+                crate::portable::add4(p, [1, 0, 0, 0]).0,
+                crate::portable::sub4(twice, [1, 0, 0, 0]).0,
+            ];
+            for bit in [48, 52, 104, 156, 208, 253] {
+                let mut v = [0u64; 4];
+                v[bit / 64] = 1u64 << (bit % 64);
+                edges.extend([
+                    crate::portable::sub4(v, [1, 0, 0, 0]).0,
+                    v,
+                    crate::portable::add4(v, [1, 0, 0, 0]).0,
+                ]);
+            }
+            assert!(edges.iter().all(|v| crate::portable::less(*v, twice)));
+            let mut inputs = Vec::new();
+            for (i, &a) in edges.iter().enumerate() {
+                for (j, &b) in edges.iter().enumerate() {
+                    inputs.push([
+                        a,
+                        b,
+                        if (i + j) % 7 == 0 {
+                            twice
+                        } else {
+                            edges[(i * 13 + j) % edges.len()]
+                        },
+                        edges[(i + j * 17) % edges.len()],
+                    ]);
+                }
+            }
+            let mut seed = 0x43494f5343415252u64;
+            for round in 0..4096 {
+                let mut tuple = [[0u64; 4]; 4];
+                for (j, value) in tuple.iter_mut().enumerate() {
+                    let mut bytes = [0u8; 64];
+                    for chunk in bytes.chunks_mut(8) {
+                        seed ^= seed << 13;
+                        seed ^= seed >> 7;
+                        seed ^= seed << 17;
+                        chunk.copy_from_slice(&seed.to_le_bytes());
+                    }
+                    let v = Fp::<C>::from_random_bytes(&bytes).0;
+                    *value = if (round + j) % 2 == 0 {
+                        v
+                    } else {
+                        crate::portable::add4(v, p).0
+                    };
+                }
+                inputs.push(tuple);
+            }
+            let limit = split(twice);
+            let mut checked = 0usize;
+            for chunk in inputs.chunks(LANES) {
+                let words: [[[u64; 4]; LANES]; 4] =
+                    core::array::from_fn(|j| core::array::from_fn(|i| chunk[i % chunk.len()][j]));
+                let v = words.map(|x| Ifma8::<C, MIXED>::raw(&x));
+                let a: [A; LANES] = words[0].map(|x| numeric(x) * inv);
+                let b: [A; LANES] = words[1].map(|x| numeric(x) * inv);
+                let c: [A; LANES] = words[2].map(|x| numeric(x) * inv);
+                let d: [A; LANES] = words[3].map(|x| numeric(x) * inv);
+                let mut verify = |got: Ifma8<C, MIXED>, want: [A; LANES]| {
+                    let raw: [[u64; LANES]; 5] = got.0.map(|x| unsafe { core::mem::transmute(x) });
+                    let host = got.get();
+                    for i in 0..LANES {
+                        assert_eq!(numeric(host[i].0) * out_inv, want[i]);
+                        assert!(crate::portable::less(host[i].0, p));
+                        for j in 0..5 {
+                            assert!(raw[j][i] < 1u64 << 52);
+                        }
+                        assert!((0..5)
+                            .rev()
+                            .map(|j| raw[j][i])
+                            .cmp((0..5).rev().map(|j| limit[j]))
+                            .is_lt());
+                    }
+                    checked += LANES;
+                };
+                verify(
+                    v[0].product_cios::<false>(&v[1], &v[2], &v[3]),
+                    core::array::from_fn(|i| a[i] * b[i]),
+                );
+                verify(
+                    v[0].product_cios::<true>(&v[1], &v[2], &v[3]),
+                    core::array::from_fn(|i| a[i] * b[i] + c[i] * d[i]),
+                );
+                verify(
+                    v[0].difference2(&v[1], &v[2], &v[3]),
+                    core::array::from_fn(|i| a[i] * b[i] - c[i] * d[i]),
+                );
+                let mut chain = v[0];
+                let mut expected = a;
+                for step in 0..8 {
+                    if step % 2 == 0 {
+                        chain = chain.product_cios::<false>(&v[1], &v[2], &v[3]);
+                        for i in 0..LANES {
+                            expected[i] *= b[i];
+                        }
+                    } else {
+                        chain = chain.product_cios::<true>(&v[1], &v[2], &v[3]);
+                        for i in 0..LANES {
+                            expected[i] = expected[i] * b[i] + c[i] * d[i];
+                        }
+                    }
+                    verify(chain, expected);
+                }
+            }
+            eprintln!("CIOS_CARRY_FIELD_LANES={checked}");
+        }
+        check::<crate::FqConfig, ark_ref::Fq, false>();
+        check::<crate::FqConfig, ark_ref::Fq, true>();
+        check::<crate::FrConfig, ark_ref::Fr, false>();
+        check::<crate::FrConfig, ark_ref::Fr, true>();
+    }
     fn check<C: FpConfig, const MIXED: bool>() {
         let mut seed = 0xfedcba987654321u64;
         let mut random = || {
@@ -605,6 +1304,14 @@ mod tests {
             assert_eq!(av.add(&bv).get(), core::array::from_fn(|i| a[i] + b[i]));
             assert_eq!(av.sub(&bv).get(), core::array::from_fn(|i| a[i] - b[i]));
             assert_eq!(
+                av.add_canonical(&bv).get(),
+                core::array::from_fn(|i| a[i] + b[i])
+            );
+            assert_eq!(
+                av.sub_canonical(&bv).get(),
+                core::array::from_fn(|i| a[i] - b[i])
+            );
+            assert_eq!(
                 av.sum2(&bv, &bv, &av).get(),
                 core::array::from_fn(|i| (a[i] * b[i]).double())
             );
@@ -629,6 +1336,122 @@ mod tests {
             a = b;
         }
     }
+    fn check_fused_reduction<C: FpConfig>() {
+        let twice = crate::portable::add4(C::P, C::P).0;
+        let four = crate::portable::add4(twice, twice).0;
+        let high_boundary = [0, 0, 0, split(twice)[4] << 16];
+        let boundaries = [
+            [0; 4],
+            C::P,
+            crate::portable::sub4(twice, [1, 0, 0, 0]).0,
+            twice,
+            crate::portable::add4(twice, [1, 0, 0, 0]).0,
+            crate::portable::sub4(four, [1, 0, 0, 0]).0,
+            crate::portable::sub4(high_boundary, [1, 0, 0, 0]).0,
+            high_boundary,
+            crate::portable::add4(high_boundary, [1, 0, 0, 0]).0,
+        ];
+        let limit = split(twice);
+        for round in 0..boundaries.len() * 2 {
+            let values = core::array::from_fn(|i| {
+                boundaries[if round < boundaries.len() {
+                    round
+                } else {
+                    (round + i) % boundaries.len()
+                }]
+            });
+            let raw = Ifma8::<C, true>::raw(&values);
+            let expected = Ifma8::<C, true>::reduce(raw.0, twice);
+            let actual = Ifma8::<C, true>::reduce_fused(raw.0);
+            let expected: [[u64; LANES]; 5] =
+                expected.0.map(|x| unsafe { core::mem::transmute(x) });
+            let actual: [[u64; LANES]; 5] = actual.0.map(|x| unsafe { core::mem::transmute(x) });
+            assert_eq!(actual, expected);
+            for lane in 0..LANES {
+                for j in 0..5 {
+                    assert!(actual[j][lane] < 1 << 52);
+                }
+                assert!((0..5)
+                    .rev()
+                    .map(|j| actual[j][lane])
+                    .cmp((0..5).rev().map(|j| limit[j]))
+                    .is_lt());
+            }
+        }
+    }
+    #[test]
+    fn fused_reduction_boundaries() {
+        check_fused_reduction::<FqConfig>();
+        check_fused_reduction::<FrConfig>();
+    }
+
+    fn check_limb_horizontal<C: FpConfig, A: ark_ff::PrimeField>() {
+        use ark_ff::Field;
+        let inv_r = A::from(2u64).pow([256]).inverse().unwrap();
+        let convert = |v: Fp<C>| {
+            A::from_le_bytes_mod_order(
+                &v.0.into_iter()
+                    .flat_map(u64::to_le_bytes)
+                    .collect::<Vec<_>>(),
+            ) * inv_r
+        };
+        let twice = crate::portable::add4(C::P, C::P).0;
+        let edges = [
+            [0; 4],
+            C::P,
+            crate::portable::sub4(C::P, [1, 0, 0, 0]).0,
+            crate::portable::sub4(twice, [1, 0, 0, 0]).0,
+        ];
+        let mut seed = 0x193a73e2fa91u64;
+        for round in 0..512 {
+            let mut random = || {
+                let mut bytes = [0u8; 64];
+                for b in bytes.chunks_mut(8) {
+                    seed ^= seed << 13;
+                    seed ^= seed >> 7;
+                    seed ^= seed << 17;
+                    b.copy_from_slice(&seed.to_le_bytes());
+                }
+                Fp::<C>::from_random_bytes(&bytes)
+            };
+            let a = core::array::from_fn(|i| {
+                if round < 16 {
+                    Fp::<C>::from_montgomery(edges[(round + i) % 4])
+                } else {
+                    random()
+                }
+            });
+            let b = core::array::from_fn(|i| {
+                if round < 16 {
+                    Fp::<C>::from_montgomery(edges[(round + 2 * i) % 4])
+                } else {
+                    random()
+                }
+            });
+            let aa = a.map(&convert);
+            let bb = b.map(&convert);
+            let av = Ifma8::<C, true>::new(&a);
+            let bv = Ifma8::<C, true>::new(&b);
+            for (value, want) in [
+                (av, aa),
+                (av.add(&bv), core::array::from_fn(|i| aa[i] + bb[i])),
+                (av.sub(&bv), core::array::from_fn(|i| aa[i] - bb[i])),
+                (av.mul(&bv), core::array::from_fn(|i| aa[i] * bb[i])),
+            ] {
+                let expected: A = want.into_iter().sum();
+                for got in [value.horizontal_sum_limb_table(), value.horizontal_sum()] {
+                    assert!(crate::portable::less(got.0, C::P));
+                    assert_eq!(convert(got), expected);
+                }
+            }
+        }
+    }
+    #[test]
+    fn limb_horizontal_sum_matches_arkworks() {
+        check_limb_horizontal::<FqConfig, ark_ref::Fq>();
+        check_limb_horizontal::<FrConfig, ark_ref::Fr>();
+    }
+
     #[test]
     fn fq() {
         check::<FqConfig, false>();

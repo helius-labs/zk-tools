@@ -18,6 +18,10 @@ rayon = "1.10"
 wasm-bindgen = "=0.2.128"
 wasm-bindgen-rayon = { version = "1.3", features = ["no-bundler"] }
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ahash = "0.8"
+sha2 = "0.10"
+
 [features]
 # These paths are compiled only for x86 with AVX-512 IFMA enabled.
 default = ["ifma8", "inplace-fft"]
@@ -51,7 +55,7 @@ zopro-metal = { path = "../zopro-metal", optional = true }
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
 
-[target.'cfg(target_vendor = "apple")'.dependencies]
+[target.'cfg(any(target_vendor = "apple", target_os = "linux"))'.dependencies]
 # The process's footprint in trace lines; alloc's mappings.
 libc = "0.2"
 
@@ -67,4 +71,4 @@ version = "0.4"
 version = "0.3"
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(no_ifma)"] }
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(no_ifma)", "cfg(zopro_booth_digits)", "cfg(zopro_live_preparation_charge)", "cfg(zopro_folded_query_reclaim)", "cfg(zopro_bounded_schedule)", "cfg(zopro_resource_schedule)"] }

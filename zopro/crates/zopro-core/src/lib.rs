@@ -20,16 +20,44 @@ mod decompress;
 pub mod dump;
 pub mod fft;
 pub mod groth16;
+#[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+mod lagrange;
 mod msm;
 #[cfg(not(target_arch = "wasm32"))]
 mod msm_affine;
+#[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+use msm_affine::{g2_query_grouped as msm_grouped_b2, g2_query_raw as msm_raw_b2};
+#[cfg(all(not(target_arch = "wasm32"), not(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))))]
+use msm_affine::{msm_grouped as msm_grouped_b2, msm_raw as msm_raw_b2};
 #[cfg(not(target_arch = "wasm32"))]
 mod selftest;
 mod simd;
 mod solver;
+mod preparation;
 #[cfg(test)]
 mod testing;
 pub mod verify;
+
+/// Initialize fresh field storage in parallel, including first page touches.
+/// Capacity beyond `len` remains uninitialized for the quotient's padding.
+pub(crate) fn zero_frs(len: usize, capacity: usize) -> Vec<Fr> {
+    let mut values = Vec::with_capacity(capacity.max(len));
+    if len < 16384 || !crate::simd::cpu_option("ZOPRO_CPU_PARALLEL_ALLOC") {
+        values.resize(len, Fr::ZERO);
+        return values;
+    }
+    use rayon::prelude::*;
+    values.spare_capacity_mut()[..len]
+        .par_chunks_mut(1024)
+        .for_each(|chunk| {
+            for value in chunk {
+                value.write(Fr::ZERO);
+            }
+        });
+    // SAFETY: every element below len was initialized by the completed tasks.
+    unsafe { values.set_len(len) };
+    values
+}
 
 // Stage times as ZOPRO_TRACE log lines (`--features trace`): the native
 // bench prints them, a phone's bench puts them in the device log.
@@ -639,6 +667,8 @@ pub type Image = std::sync::Arc<dyn AsRef<[u8]> + Send + Sync>;
 
 /// A key's points: decoded into the process's memory, or read in place
 /// from a host's image.
+#[cfg(all(not(target_arch="wasm32"),target_endian="little"))]
+pub mod basis;
 pub(crate) enum Store<T> {
     Owned(Vec<T>),
     Mapped {
@@ -705,6 +735,17 @@ impl<T: InPlace> Store<T> {
         }
     }
 }
+impl<T: Clone> Store<T> {
+    /// Copy only when an optional rewrite needs mutable storage.
+    fn make_mut(&mut self) -> &mut [T] {
+        if matches!(self, Self::Mapped { .. }) { *self = Self::Owned(self.to_vec()); }
+        let Self::Owned(values) = self else { unreachable!() };
+        values
+    }
+}
+impl<T> Store<T> {
+    pub(crate) fn owned_bytes(&self)->Option<usize>{match self{Self::Owned(v)=>v.capacity().checked_mul(core::mem::size_of::<T>()),Self::Mapped{..}=>Some(0)}}
+}
 impl<T> std::ops::Deref for Store<T> {
     type Target = [T];
     fn deref(&self) -> &[T] {
@@ -759,6 +800,9 @@ impl Points<'_> {
 
 #[wasm_bindgen]
 pub struct Key {
+    basis_only: bool,
+    // Audited native workspace, or conservative prompt release when unknown.
+    proof_workspace: Option<usize>,
     #[cfg(gpu_any)]
     gpu: Option<GpuHold>,
     /// Whether the GPU's quotient agreed with the CPU's at load.
@@ -777,11 +821,20 @@ pub struct Key {
     /// Shared, for a browser's CPU share of the G2 MSM on the pool while
     /// the proof's future awaits the GPU.
     b2: std::sync::Arc<Store<G2Affine>>,
+    #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+    canonical_wires: bool,
     /// The FFT domain's size.
     domain: usize,
     plan: fft::Plan,
     commitments: Vec<(Vec<G1Affine>, Vec<G1Affine>)>,
     solver: Option<solver::Plan>,
+    // A replacement query needs its original C metadata even if solving is
+    // disabled. Move the existing plan here on invalidation, never clone it.
+    basis_fallback: Option<Box<solver::Plan>>,
+    #[cfg(not(target_arch = "wasm32"))]
+    equal_witness: Option<msm_affine::PreparedEqualWitness>,
+    #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+    lagrange: Option<lagrange::Queries>,
 }
 #[wasm_bindgen]
 impl Key {
@@ -801,7 +854,11 @@ impl Key {
             return Err(JsError::new("invalid commitment basis"));
         }
         self.commitments.push((g1s(basis), g1s(sigma)));
-        self.solver = None;
+        self.invalidate_solver();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.equal_witness = None;
+        }
         Ok(())
     }
     // Unsupported plans retain gnark's solver. A runtime witness failure is
@@ -820,32 +877,7 @@ impl Key {
     // A solver from solver_image's bytes, if they are an image of this
     // kernel's version for a key of these dimensions.
     pub fn set_solver_image(&mut self, image: &[u8]) -> bool {
-        let started = crate::time::Instant::now();
-        self.solver = None;
-        if !self.commitments.is_empty() {
-            return false;
-        }
-        let parsed = solver::Plan::from_image(image);
-        trace("solver-image", started);
-        #[cfg(feature = "trace")]
-        if let Ok(plan) = &parsed {
-            log::info!("ZOPRO_TRACE solver-plan-size {}", plan.footprint());
-        }
-        if let Ok(plan) = parsed {
-            if plan.matches(
-                self.lengths[0],
-                self.lengths[1],
-                self.lengths[2],
-                self.domain,
-            ) {
-                let started = crate::time::Instant::now();
-                plan.prepare();
-                trace("solver-schedule", started);
-                self.solver = Some(plan);
-                return true;
-            }
-        }
-        false
+        self.set_solver_image_with_owner(image, None)
     }
     pub fn solve_parts(&self, witness: &[u8]) -> Result<Vec<u8>, JsError> {
         self.solve(witness).map_err(|error| JsError::new(&error))
@@ -1046,16 +1078,47 @@ impl Key {
     }
     /// `solve_parts` for hosts outside JavaScript, with a plain error.
     pub fn solve(&self, witness: &[u8]) -> Result<Vec<u8>, String> {
+        self.solve_inner(witness, false)
+    }
+    fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<Vec<u8>, String> {
+        let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
         let plan = self.solver.as_ref().ok_or("no prepared solver")?;
         if !witness.len().is_multiple_of(32) {
             return Err("invalid witness encoding".into());
         }
         let started = crate::time::Instant::now();
-        let solver::Solution { mut w, a, b, c } = plan.solve_in(&frs(witness), self.domain)?;
-        trace("solve", started);
-        let mut sa: Vec<_> = plan.a_indices.iter().map(|&i| w[i as usize]).collect();
-        let mut sb: Vec<_> = plan.b_indices.iter().map(|&i| w[i as usize]).collect();
-        self.compute_parts(&mut sa, &mut sb, &mut w[plan.n_public..], a, b, c)
+        let slots: &[usize] = &[];
+        #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+        let slots = self
+            .lagrange
+            .as_ref()
+            .and_then(|q| q.folded.as_ref())
+            .map_or(slots, |folded| &folded.slots);
+        let materialize_c = true;
+        #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+        let materialize_c = materialize_c
+            && !(self.lagrange.as_ref().is_some_and(|q| q.folded.is_some())
+                && crate::simd::cpu_option("ZOPRO_CPU_FOLD_SKIP_C"));
+        #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+        if self.canonical_wires && !self.has_gpu() && affine_msm() && self.equal_witness.is_none() {
+            if let Some(queries)=&self.lagrange {
+                if let Some(folded)=&queries.folded {
+                    return self.solve_canonical_wires(plan,&frs(witness),materialize_c,queries,folded,omit_b,_reclaim.as_ref());
+                }
+            }
+        }
+        let solver::Solution { mut w, a, b, c } =
+            plan.solve_in_with_slots(&frs(witness), self.domain, slots, materialize_c)?;
+        if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
+        let started = trace("solve", started);
+        use rayon::prelude::*;
+        let (mut sa, mut sb): (Vec<_>, Vec<_>) = rayon::join(
+            || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
+            || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
+        );
+        trace("extract-scalars", started);
+        let (public, private) = w.split_at_mut(plan.n_public);
+        self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
     }
     pub fn commitment(
         &self,
@@ -1096,15 +1159,155 @@ impl Key {
         {
             return Err(JsError::new("witness does not match prepared gnark key"));
         }
+        let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
         let (mut sa, mut sb, mut sk) = (frs(sa), frs(sb), frs(sk));
-        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c))
+        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false)
             .map_err(|e| JsError::new(&e))
     }
 }
 impl Key {
+    pub(crate) fn set_solver_image_with_owner(&mut self, image: &[u8], owner: Option<&Image>) -> bool {
+        let started = crate::time::Instant::now();
+        self.invalidate_solver();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.equal_witness = None;
+        }
+        if !self.commitments.is_empty() {
+            return false;
+        }
+        let parsed = solver::Plan::from_image_with_owner(image, owner);
+        trace("solver-image", started);
+        #[cfg(feature = "trace")]
+        if let Ok(plan) = &parsed {
+            log::info!("ZOPRO_TRACE solver-plan-size {}", plan.footprint());
+        }
+        if let Ok(plan) = parsed {
+            if plan.matches(
+                self.lengths[0],
+                self.lengths[1],
+                self.lengths[2],
+                self.domain,
+            ) {
+                if !self.basis_plan_matches(&plan){return false;}
+                self.basis_fallback = None;
+                self.prepare_plan(&plan);
+                self.solver = Some(plan);
+                return true;
+            }
+        }
+        false
+    }
+    fn prepare_plan(&mut self, plan: &solver::Plan) {
+        self.proof_workspace = None;
+        #[cfg(zopro_live_preparation_charge)]
+        {
+            self.prepare_solver_queries(plan);
+            #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+            if std::env::var("ZOPRO_CPU_LAGRANGE_FOLD").as_deref() == Ok("1")
+                && self.lagrange.as_ref().is_some_and(|q| q.folded.is_none()) {
+                // Without folding, the extra constraint MSM costs more than
+                // these optional queries save. Return their credit first.
+                self.lagrange = None;
+            }
+        }
+        let started = crate::time::Instant::now();
+        #[cfg(all(zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+        {
+            use msm_affine::workspace::{forecast,Geometry};
+            let mut k=self.k.len();let mut h=self.z.len();let mut correction=0;
+            if let Some(q)=&self.lagrange {
+                if let Some(f)=&q.folded{k=k.max(f.private.len());}
+                h=h.max(q.product.len());correction=q.constraints.len();
+            }
+            let geometry=Geometry{wires:plan.value_count()-plan.stored_slot_count(),slots:plan.stored_slot_count(),inputs:plan.input_count(),public:plan.n_public,domain:self.domain,a:self.a.len(),b:self.b.len(),k,h,correction};
+            let estimate=if self.has_gpu()||self.equal_witness.is_some(){None}else{forecast(geometry)};
+            let estimate=estimate.and_then(|mut value|{
+                if self.lagrange.as_ref().is_some_and(|q|q.euler){
+                    let extra=self.domain.checked_mul(core::mem::size_of::<Fr>())?
+                        .checked_add(256*core::mem::size_of::<fft::Quad>())?.checked_add(4096)?;
+                    value.fields=value.fields.checked_add(extra)?;value.total=value.total.checked_add(extra)?;
+                }Some(value)
+            });
+            if std::env::var_os("ZOPRO_CPU_WORKSPACE_TRACE").is_some(){eprintln!("TYPED_WORKSPACE geometry={geometry:?} estimate={estimate:?}");}
+            self.proof_workspace = estimate.map(|v|v.total);
+            plan.prepare_with_workspace(estimate.map(|v|v.total),true);
+        }
+        #[cfg(not(all(zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
+        plan.prepare();
+        trace("solver-schedule", started);
+        #[cfg(not(zopro_live_preparation_charge))]
+        self.prepare_solver_queries(plan);
+    }
+
+    fn prepare_solver_queries(&mut self, plan: &solver::Plan) {
+        if self.basis_only {return;}
+        let _ = plan;
+        #[cfg(all(zopro_folded_query_reclaim, not(target_arch = "wasm32"), target_endian = "little"))]
+        if self.lagrange.as_ref().is_some_and(|q| q.constraints.is_empty()) {
+            // A second solver installation needs a fresh linear-C correction.
+            // Reserve its full builder peak before replacing the old queries;
+            // if it cannot fit, keep the existing allocation-free fallback.
+            self.lagrange = lagrange::Queries::load_or_prepare(&self.plan, &self.z);
+        }
+        #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+        if let Some(queries) = &mut self.lagrange {
+            queries.folded = None;
+            if std::env::var("ZOPRO_CPU_LAGRANGE_FOLD").is_ok_and(|v| v == "1") {
+                queries.fold(plan, &self.k);
+            }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.equal_witness = None;
+            let mode = std::env::var("ZOPRO_CPU_PREPARED_EQUAL")
+                .ok()
+                .and_then(|v| v.parse::<usize>().ok())
+                .unwrap_or(if crate::simd::cpu_option("ZOPRO_CPU_PREPARED_EQUAL") { 2 } else { 0 })
+                .min(2);
+            if !self.has_gpu() && self.a.len().max(self.b.len()) >= 32768 && mode > 0 {
+                let started = crate::time::Instant::now();
+                let Some(reservation) = preparation::Reservation::acquire(self.domain, plan.preparation_peak()) else { return };
+                let groups = plan.equal_wire_groups();
+                let mut prepared = msm_affine::PreparedEqualWitness::new(
+                    &self.a,
+                    &self.b,
+                    &self.b2,
+                    &plan.a_indices,
+                    &plan.b_indices,
+                    &groups,
+                    plan.value_count(),
+                );
+                if mode == 2 {
+                    let (k, indices, folded) =
+                        (&self.k[..], plan.private_value_indices(&[]), false);
+                    #[cfg(target_endian = "little")]
+                    let (k, indices, folded) = self
+                        .lagrange
+                        .as_ref()
+                        .and_then(|q| q.folded.as_ref())
+                        .map_or((k, indices, folded), |q| {
+                            (&q.private[..], plan.private_value_indices(&q.slots), true)
+                        });
+                    if let Some(prepared) = &mut prepared {
+                        prepared.prepare_k(k, &indices, &groups, plan.value_count(), folded);
+                    }
+                }
+                if let Some(prepared) = &mut prepared { prepared.reservation = Some(reservation); }
+                self.equal_witness = prepared;
+                trace("prepare-equal-witness", started);
+            }
+        }
+
+    }
+
     /// A built solver plan, when it matches the key's dimensions.
     pub(crate) fn set_solver_plan(&mut self, parsed: Result<solver::Plan, &'static str>) -> bool {
-        self.solver = None;
+        self.invalidate_solver();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.equal_witness = None;
+        }
         if !self.commitments.is_empty() {
             return false;
         }
@@ -1117,15 +1320,18 @@ impl Key {
         ) {
             return false;
         }
-        let started = crate::time::Instant::now();
-        plan.prepare();
-        trace("solver-schedule", started);
+        if !self.basis_plan_matches(&plan){return false;}
+        self.basis_fallback = None;
+        self.prepare_plan(&plan);
         self.solver = Some(plan);
         true
     }
     /// `new` for hosts outside JavaScript, from either encoding of the
     /// points, with a plain error.
     pub fn build(points: Points, domain_params: &[u8]) -> Result<Key, &'static str> {
+        Self::build_impl(points,domain_params,false)
+    }
+    fn build_impl(points:Points,domain_params:&[u8],basis_only:bool)->Result<Key,&'static str>{
         let [a, b, k, z, b2] = points.counts()?;
         if b != b2 || domain_params.len() != 64 {
             return Err("invalid gnark key dimensions");
@@ -1157,7 +1363,7 @@ impl Key {
         // of memory) is let go, and the key is decoded again for the CPU.
         let started = crate::time::Instant::now();
         #[cfg(gpu_any)]
-        let mut gpu = GpuBuilder::open(&plan);
+        let mut gpu = if basis_only {None}else{GpuBuilder::open(&plan)};
         #[cfg(not(gpu_any))]
         let mut gpu: Option<()> = None;
         trace("gpu-open", started);
@@ -1253,7 +1459,8 @@ impl Key {
         if built_gpu.is_some() && gpu_quotient {
             plan.release_tables();
         }
-        Ok(Self {
+        let mut key = Self {
+            basis_only,
             #[cfg(gpu_any)]
             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
             #[cfg(gpu_any)]
@@ -1266,11 +1473,28 @@ impl Key {
             k,
             z,
             b2: std::sync::Arc::new(b2),
+            #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+            canonical_wires: !cfg!(target_arch="wasm32") && lengths.iter().copied().max().unwrap_or(0)<(1<<16) && std::env::var("ZOPRO_CPU_CANONICAL_WIRES").as_deref()==Ok("1"),
             domain,
             plan,
             commitments: Vec::new(),
+            proof_workspace: None,
             solver: None,
-        })
+            basis_fallback: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            equal_witness: None,
+            #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+            lagrange: None,
+        };
+        #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+        if !basis_only && key.domain >= 8
+            && !key.has_gpu()
+            && std::env::var("ZOPRO_CPU_LAGRANGE").is_ok_and(|v| v == "1")
+        {
+            key.lagrange = lagrange::Queries::load_or_prepare(&key.plan, &key.z);
+        }
+
+        Ok(key)
     }
     /// The A, B and K MSM scalars of a witness, for the bench's profile of
     /// how skewed they are.
@@ -1300,6 +1524,8 @@ impl Key {
         a: Vec<Fr>,
         b: Vec<Fr>,
         c: Vec<Fr>,
+        public: Option<&[Fr]>,
+        omit_b: bool,
     ) -> Result<Vec<u8>, String> {
         #[cfg(gpu)]
         if let Some(gpu) = &self.gpu {
@@ -1552,19 +1778,67 @@ impl Key {
             return Ok(out);
         }
 
+        #[cfg(all(not(target_arch="wasm32"),target_endian="little"))]
+        if self.basis_only && public.is_none(){return self.basis_parts(sa,sb,sk,a,b,c,omit_b);}
+        #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+        if let Some(queries) = self.lagrange.as_ref().filter(|q| {
+            // A folded-only query has no independent constraint correction;
+            // the generic public=None API retains the full original quotient.
+            public.is_some() && q.folded.is_some() || !q.constraints.is_empty()
+        }) {
+            if let (Some(folded), Some(public)) = (&queries.folded, public) {
+                drop(c);
+                let started = crate::time::Instant::now();
+                let mut product = queries.product_values(&self.plan,a,b);
+                let started = trace("quotient-product", started);
+                let product_points=&queries.product[..product.len()];
+                let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
+                    || folded.public_term(public),
+                );
+                trace("msms", started);
+                let mut out = Vec::with_capacity(384);
+                for point in [ar, bs1, kr + correction, queries.finish_product(hz)] {
+                    output_g1(&mut out, point);
+                }
+                output_g2(&mut out, bs2);
+                return Ok(out);
+            }
+            let started = crate::time::Instant::now();
+            let mut product = queries.product_values(&self.plan,a,b);
+            let started = trace("quotient-product", started);
+            let (((ar, bs1), (kr, (positive, bs2))), negative) = rayon::join(
+                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b),
+                || msm_g1(&queries.constraints[..c.len()], &c),
+            );
+            trace("msms", started);
+            let mut out = Vec::with_capacity(384);
+            for point in [ar, bs1, kr, positive - negative] {
+                output_g1(&mut out, point);
+            }
+            output_g2(&mut out, bs2);
+            return Ok(out);
+        }
+
         let started = crate::time::Instant::now();
         let mut h = self.quotient(a, b, c);
         let started = trace("quotient", started);
-        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h);
+        // Diagnostic replays need the original field values: cpu_msms consumes
+        // scalar storage, including the exclusive G2 decomposition.
+        #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
+        let trace_scalars = std::env::var("ZOPRO_TRACE_MSMS")
+            .is_ok_and(|v| v == "1")
+            .then(|| (sa.to_vec(), sb.to_vec(), sk.to_vec(), h.to_vec()));
+        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b);
         trace("msms", started);
         // Each MSM alone, on the whole pool, for its own share: this adds
         // to the proof time, so only with ZOPRO_TRACE_MSMS=1.
         #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]
-        if std::env::var("ZOPRO_TRACE_MSMS").is_ok_and(|v| v == "1") {
+        if let Some((sa, sb, sk, h)) = trace_scalars {
             for (label, bases, scalars) in [
-                ("msm-a", &self.a, &*sa),
-                ("msm-b", &self.b, &*sb),
-                ("msm-k", &self.k, &*sk),
+                ("msm-a", &self.a, &sa[..]),
+                ("msm-b", &self.b, &sb[..]),
+                ("msm-k", &self.k, &sk[..]),
                 ("msm-z", &self.z, &h[..]),
             ] {
                 let started = crate::time::Instant::now();
@@ -1572,7 +1846,7 @@ impl Key {
                 trace(label, started);
             }
             let started = crate::time::Instant::now();
-            let _ = msm_g2(&self.b2, sb);
+            let _ = msm_g2(&self.b2, &sb);
             trace("msm-b2", started);
         }
         let mut out = Vec::with_capacity(384);
@@ -1595,30 +1869,126 @@ impl Key {
         sb: &mut [Fr],
         sk: &mut [Fr],
         h: &mut [Fr],
+        z: &[G1Affine],
+        k: &[G1Affine],
+        folded_k: bool,
+        omit_b: bool,
     ) -> (
         (G1Projective, G1Projective),
         (G1Projective, (G1Projective, G2Projective)),
     ) {
+        let _ = folded_k;
         #[cfg(not(target_arch = "wasm32"))]
         if affine_msm() {
-            use msm_affine::{canonical, msm_canonical as msm};
-            let (sa, sb, sk, h) = (canonical(sa), canonical(sb), canonical(sk), canonical(h));
-            return rayon::join(
-                || rayon::join(|| msm(&self.a[..], sa), || msm(&self.b[..], sb)),
+            let montgomery_h =
+                h.len() >= (1 << 18) && crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
+            if let Some(prepared) = &self.equal_witness {
+                let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                    || {
+                        rayon::join(
+                            || {
+                                rayon::join(
+                                    || prepared.msm_a(&self.a, sa),
+                                    || prepared.msm_k(k, sk, folded_k),
+                                )
+                            },
+                            || {
+                                if montgomery_h {
+                                    msm_affine::msm_montgomery(z, h)
+                                } else {
+                                    msm_affine::msm_in_place(z, h)
+                                }
+                            },
+                        )
+                    },
+                    || if omit_b { (G1Projective::IDENTITY, msm_affine::msm_in_place(&self.b2, sb)) } else { prepared.msms_b(&self.b, &self.b2, sb) },
+                );
+                return ((ar, bs1), (kr, (hz, bs2)));
+            }
+            if sa.len().max(sb.len()).max(sk.len()) < (1 << 16)
+                || !crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+            {
+                use msm_affine::{
+                    canonical, msm_canonical as msm, msm_grouped, msm_raw, scalar_groups,
+                };
+                let (sa, sb, sk) = (canonical(sa), msm_affine::canonical_exclusive(sb), canonical(sk));
+                let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                    || {
+                        rayon::join(
+                            || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+                            || {
+                                if montgomery_h {
+                                    msm_affine::msm_montgomery(z, h)
+                                } else {
+                                    msm(z, canonical(h))
+                                }
+                            },
+                        )
+                    },
+                    || {
+                        if omit_b && (1024..65536).contains(&self.b2.len()) {
+                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
+                        }
+                        let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                            .then(|| scalar_groups(sb))
+                            .flatten();
+                        rayon::join(
+                            || {
+                                if omit_b { return G1Projective::IDENTITY; }
+                                groups.as_ref().map_or_else(
+                                    || msm_raw(&self.b[..], sb),
+                                    |g| msm_grouped(&self.b[..], g),
+                                )
+                            },
+                            || {
+                                groups.as_ref().map_or_else(
+                                    || msm_raw_b2(&self.b2[..], sb),
+                                    |g| msm_grouped_b2(&self.b2[..], g),
+                                )
+                            },
+                        )
+                    },
+                );
+                return ((ar, bs1), (kr, (hz, bs2)));
+            }
+            use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
+            let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
                 || {
                     rayon::join(
-                        || msm(&self.k[..], sk),
-                        || rayon::join(|| msm(&self.z[..], h), || msm(&self.b2[..], sb)),
+                        || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+                        || {
+                            if montgomery_h {
+                                msm_affine::msm_montgomery(z, h)
+                            } else {
+                                msm(z, h)
+                            }
+                        },
                     )
                 },
+                || {
+                    if omit_b && (1024..65536).contains(&self.b2.len()) {
+                        let words=msm_affine::canonical_exclusive(sb);
+                        return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
+                    }
+                    if let Some(groups) = group_witness(sb) {
+                        rayon::join(
+                            || if omit_b { G1Projective::IDENTITY } else { msm_grouped(&self.b[..], &groups) },
+                            || msm_grouped_b2(&self.b2[..], &groups),
+                        )
+                    } else {
+                        let sb = canonical(sb);
+                        rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
+                    }
+                },
             );
+            return ((ar, bs1), (kr, (hz, bs2)));
         }
         rayon::join(
-            || rayon::join(|| msm_g1(&self.a, sa), || msm_g1(&self.b, sb)),
+            || rayon::join(|| msm_g1(&self.a, sa), || if omit_b { G1Projective::IDENTITY } else { msm_g1(&self.b, sb) }),
             || {
                 rayon::join(
-                    || msm_g1(&self.k, sk),
-                    || rayon::join(|| msm_g1(&self.z, h), || msm_g2(&self.b2, sb)),
+                    || msm_g1(k, sk),
+                    || rayon::join(|| msm_g1(z, h), || msm_g2(&self.b2, sb)),
                 )
             },
         )
@@ -1791,5 +2161,180 @@ mod gpu_tests {
                 .unwrap_or_else(|_| panic!("gpu parts"));
             assert_eq!(got, expected, "round {round}");
         }
+    }
+}
+
+#[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+impl Key {
+    fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>)->Result<Vec<u8>,String>{
+        use rayon::prelude::*;
+        use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
+        let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
+        if let Some(scope) = reclaim { scope.release_unused(&mut w); }
+        drop(c);
+        // The correction consumes Montgomery public values before the one
+        // in-place conversion. All later accesses to w use canonical words.
+        let correction=folded.public_term(&w[..plan.n_public]);
+        let words=canonical(&mut w);
+        let (sa_vec,mut sb_vec):(Vec<_>,Vec<_>)=rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect());
+        let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
+        let mut product=queries.product_values(&self.plan,a,b);
+        let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
+        #[cfg(all(zopro_real_kh, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+        if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len()) {
+            if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
+                eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+            }
+            let ((ar,kh),bs2)=rayon::join(
+                || rayon::join(|| msm(&self.a[..],sa),
+                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                || {
+                    if (1024..65536).contains(&self.b2.len()) {
+                        msm_affine::g2_query_exclusive(&self.b2,sb)
+                    } else {
+                        let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                            .then(||scalar_groups(sb)).flatten();
+                        groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),
+                            |g|msm_grouped_b2(&self.b2,g))
+                    }
+                });
+            let mut out=Vec::with_capacity(384);
+            for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY] {output_g1(&mut out,point);}
+            output_g2(&mut out,bs2);
+            return Ok(out);
+        }
+        let (((ar,kr),hz),(bs1,bs2))={
+        let montgomery_h=h.len()>=(1<<18)&&crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
+                rayon::join(
+                    || {
+                        rayon::join(
+                            || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+                            || {
+                                if montgomery_h {
+                                    msm_affine::msm_montgomery(z, h)
+                                } else {
+                                    msm(z, canonical(h))
+                                }
+                            },
+                        )
+                    },
+                    || {
+                        if omit_b && (1024..65536).contains(&self.b2.len()) {
+                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
+                        }
+                        let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                            .then(|| scalar_groups(sb))
+                            .flatten();
+                        rayon::join(
+                            || {
+                                if omit_b { return G1Projective::IDENTITY; }
+                                groups.as_ref().map_or_else(
+                                    || msm_raw(&self.b[..], sb),
+                                    |g| msm_grouped(&self.b[..], g),
+                                )
+                            },
+                            || {
+                                groups.as_ref().map_or_else(
+                                    || msm_raw_b2(&self.b2[..], sb),
+                                    |g| msm_grouped_b2(&self.b2[..], g),
+                                )
+                            },
+                        )
+                    },
+                )
+        };
+
+        let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(out)
+    }
+}
+
+impl Key {
+    /// Solve on the CPU and return a freshly randomized raw Groth16 proof.
+    /// The ordinary five-part solving APIs retain their complete outputs.
+    pub fn solve_rerandomized(
+        &self,
+        witness: &[u8],
+        fixed: &groth16::PreparedFixedPoints,
+    ) -> Result<Vec<u8>, String> {
+        if self.has_gpu() {
+            return Err("randomized solving requires the CPU".into());
+        }
+        if !fixed.rerandomization_key_valid() {
+            return Err("zero delta in proving key".into());
+        }
+        let parts = self.solve_inner(witness, true)?;
+        if let Some(proof) = fixed.assemble_rerandomized(&parts) {
+            return Ok(proof);
+        }
+        // A0 = identity: restore the complete ordinary prover and condition
+        // its fresh output on A != identity, matching the fast distribution.
+        let parts = self.solve_inner(witness, false)?;
+        Ok(fixed.assemble_nonzero(&parts))
+    }
+}
+
+impl Key {
+    fn invalidate_solver(&mut self) {
+        self.proof_workspace = None;
+        if self.basis_only {
+            if let Some(plan) = self.solver.take() {
+                self.basis_fallback = Some(Box::new(plan));
+            }
+        } else {
+            self.solver = None;
+        }
+    }
+    fn basis_plan_matches(&self,plan:&solver::Plan)->bool {
+        #[cfg(all(not(target_arch="wasm32"),target_endian="little"))]
+        if self.basis_only{return self.lagrange.as_ref().is_some_and(|q|q.basis==Some(plan.basis_c_digest()));}
+        let _=plan;!self.basis_only
+    }
+}
+#[cfg(all(not(target_arch="wasm32"),target_endian="little"))]
+impl Key {
+    pub fn build_cpu_basis(points:Points,domain_params:&[u8],image:&Image,product:(usize,usize),private:(usize,usize),public:(usize,usize),slots:Vec<usize>,stored_scale:Fr,digest:[u8;32],solver_image:&[u8])->Result<Self,String>{Self::build_cpu_basis_kind(points,domain_params,image,product,private,public,slots,stored_scale,digest,solver_image,false)}
+    pub fn build_cpu_euler_basis(points:Points,domain_params:&[u8],image:&Image,product:(usize,usize),private:(usize,usize),public:(usize,usize),slots:Vec<usize>,stored_scale:Fr,digest:[u8;32],solver_image:&[u8])->Result<Self,String>{Self::build_cpu_basis_kind(points,domain_params,image,product,private,public,slots,stored_scale,digest,solver_image,true)}
+    fn build_cpu_basis_kind(points:Points,domain_params:&[u8],image:&Image,product:(usize,usize),private:(usize,usize),public:(usize,usize),slots:Vec<usize>,stored_scale:Fr,digest:[u8;32],solver_image:&[u8],euler:bool)->Result<Self,String>{
+        let mut key=Self::build_impl(points,domain_params,true)?;
+        if stored_scale.is_zero()||key.domain<8{return Err("invalid CPU basis scale/domain".into());}
+        if euler{key.plan.prepare_euler_basis();}
+        let scale=if euler{stored_scale.inverse().unwrap()}else{key.plan.basis_query_scale()*stored_scale.inverse().unwrap()};
+        let mut queries=lagrange::Queries::mapped_basis(image,product,private,public,slots,scale,digest)?;queries.euler=euler;
+        let folded=queries.folded.as_ref().unwrap();
+        let plan=solver::Plan::from_image_with_owner(solver_image,Some(image))?;
+        if !plan.matches(key.lengths[0],key.lengths[1],key.lengths[2],key.domain)
+            || product.1/64!=key.domain || folded.private.len()!=key.lengths[2]+folded.slots.len()
+            || public.1/64!=plan.n_public || plan.basis_c_digest()!=digest
+            || folded.slots.windows(2).any(|w|w[0]>=w[1])
+            || folded.slots.iter().any(|&i|i<plan.basis_wires()||i>=plan.value_count()) {
+            return Err("CPU basis dimensions or C representation mismatch".into());
+        }
+        let mut selected=std::collections::BTreeSet::new();
+        plan.for_each_c(|_,wire,_|{if wire>=plan.basis_wires(){selected.insert(wire);}});
+        if !selected.into_iter().eq(folded.slots.iter().copied()){return Err("CPU basis selected slots mismatch".into());}
+        key.k=Store::Owned(Vec::new());key.z=Store::Owned(Vec::new());
+        key.lagrange=Some(queries);key.prepare_plan(&plan);key.solver=Some(plan);
+        Ok(key)
+    }
+    fn basis_parts(&self,sa:&mut[Fr],sb:&mut[Fr],sk:&mut[Fr],a:Vec<Fr>,b:Vec<Fr>,c:Vec<Fr>,omit_b:bool)->Result<Vec<u8>,String>{
+        use rayon::prelude::*;
+        let plan=self.solver.as_ref().or(self.basis_fallback.as_deref()).ok_or("CPU basis requires its C metadata")?;
+        let q=self.lagrange.as_ref().ok_or("missing CPU basis queries")?;
+        let f=q.folded.as_ref().ok_or("missing folded query")?;
+        // The arbitrary-parts API does not promise that C is the solver's C.
+        // Restore K and H independently; do not assume a satisfied witness.
+        let cp=plan.basis_c_private(sk);
+        let correction_values=if q.euler{self.plan.euler_product_values(cp,vec![Fr::ONE;self.domain])}else{self.plan.coset_product(cp,vec![Fr::ONE;self.domain])};
+        let correction=q.finish_product(msm_g1(&q.product,&correction_values));
+        drop(correction_values);
+        let mut product=if q.euler {
+            self.plan.original_h_euler_values(self.plan.quotient(a,b,c))
+        }else{
+            let mut product=self.plan.coset_product(a,b);
+            let c_coset=self.plan.coset_product(c,vec![Fr::ONE;self.domain]);
+            product.par_iter_mut().zip(c_coset.par_iter()).for_each(|(p,c)|*p-=*c);product
+        };
+        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b);
+        let mut out=Vec::with_capacity(384);for p in [ar,bs1,kr+correction,q.finish_product(hz)]{output_g1(&mut out,p);}output_g2(&mut out,bs2);Ok(out)
     }
 }
