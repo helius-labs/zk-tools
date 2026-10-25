@@ -1,0 +1,25 @@
+[package]
+name = "zopro-zolana"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+description = "Zolana's proof requests on zopro: a request and a zopro key give the proof the prover server returns"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+zopro-bn254 = { path = "../zopro-bn254" }
+serde = "1"
+serde_json = "1"
+zopro-prover = { path = "../zopro-prover" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = "0.3"
+wasm-bindgen = "=0.2.128"
+
+[features]
+metal = ["zopro-prover/metal"]
+wgpu = ["zopro-prover/wgpu"]
+trace = ["zopro-prover/trace"]
+no-bundler = ["zopro-prover/no-bundler"]
