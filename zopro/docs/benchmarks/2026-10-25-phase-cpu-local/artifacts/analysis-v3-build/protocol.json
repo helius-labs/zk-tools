@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-phase-cpu/analysis-v3-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "analysis-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-phase-cpu/analyze-v3.rs",
+        "--extern",
+        "serde_json=/tmp/zopro-phase-cpu/target-native/release/deps/libserde_json-d4bc8edb5a29109a.rlib",
+        "--extern",
+        "rustc_demangle=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps/librustc_demangle-f73128297d24057b.rlib",
+        "-L",
+        "dependency=/tmp/zopro-phase-cpu/target-native/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps",
+        "-O",
+        "-o",
+        "/tmp/zopro-phase-cpu/analyze-v3"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "analysis-tests-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-phase-cpu/analyze-v3.rs",
+        "--extern",
+        "serde_json=/tmp/zopro-phase-cpu/target-native/release/deps/libserde_json-d4bc8edb5a29109a.rlib",
+        "--extern",
+        "rustc_demangle=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps/librustc_demangle-f73128297d24057b.rlib",
+        "-L",
+        "dependency=/tmp/zopro-phase-cpu/target-native/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps",
+        "-O",
+        "--test",
+        "-o",
+        "/tmp/zopro-phase-cpu/analyze-v3-tests"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "analysis-tests",
+      "argv": [
+        "/tmp/zopro-phase-cpu/analyze-v3-tests",
+        "--test-threads=1"
+      ],
+      "environment": {},
+      "required_tests": [
+        "tests::missing_clock_coverage_cannot_pass_on_sample_count_alone",
+        "tests::merge_coarse_path_is_explicit_and_does_not_validate_primary"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 60
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-phase-cpu/analysis-v2-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "analysis-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-phase-cpu/analyze-v2.rs",
+        "--extern",
+        "serde_json=/tmp/zopro-phase-cpu/target-native/release/deps/libserde_json-d4bc8edb5a29109a.rlib",
+        "--extern",
+        "rustc_demangle=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps/librustc_demangle-f73128297d24057b.rlib",
+        "-L",
+        "dependency=/tmp/zopro-phase-cpu/target-native/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps",
+        "-O",
+        "-o",
+        "/tmp/zopro-phase-cpu/analyze-v2"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "analysis-tests-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-phase-cpu/analyze-v2.rs",
+        "--extern",
+        "serde_json=/tmp/zopro-phase-cpu/target-native/release/deps/libserde_json-d4bc8edb5a29109a.rlib",
+        "--extern",
+        "rustc_demangle=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps/librustc_demangle-f73128297d24057b.rlib",
+        "-L",
+        "dependency=/tmp/zopro-phase-cpu/target-native/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps",
+        "-O",
+        "--test",
+        "-o",
+        "/tmp/zopro-phase-cpu/analyze-v2-tests"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "analysis-tests",
+      "argv": [
+        "/tmp/zopro-phase-cpu/analyze-v2-tests",
+        "--test-threads=1"
+      ],
+      "required_tests": [
+        "tests::merge_coarse_path_is_explicit_and_does_not_validate_primary"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 60
+    },
+    {
+      "kind": "command",
+      "name": "transfer-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-phase-cpu/aws/serve.rs",
+        "-O",
+        "-C",
+        "target-cpu=znver4",
+        "-o",
+        "/tmp/zopro-phase-cpu/aws/context/serve-results"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "analysis",
+      "argv": [
+        "/tmp/zopro-phase-cpu/analyze-v2",
+        "/tmp/zopro-phase-cpu/perf",
+        "/tmp/zopro-phase-cpu/analysis-workflow",
+        "/tmp/zopro-phase-cpu/analysis-v2"
+      ],
+      "timeout_seconds": 300
+    }
+  ]
+}

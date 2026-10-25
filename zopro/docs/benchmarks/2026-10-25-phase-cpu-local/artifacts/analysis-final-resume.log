@@ -1,0 +1,31 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.00s
+     Running `xtask/target/debug/xtask workflow /tmp/zopro-phase-cpu/analysis-plan.json /tmp/zopro-phase-cpu/analysis-workflow --resume`
+RUN analysis-build
+REUSE /tmp/zopro-phase-cpu/analysis-workflow/analysis-build
+DONE analysis-build
+RUN analysis-tests-build
+REUSE /tmp/zopro-phase-cpu/analysis-workflow/analysis-tests-build
+DONE analysis-tests-build
+RUN analysis-tests
+REUSE /tmp/zopro-phase-cpu/analysis-workflow/analysis-tests
+DONE analysis-tests
+RUN decode-b0-1x2-w16
+DONE decode-b0-1x2-w16
+RUN decode-b0-1x2-w32
+DONE decode-b0-1x2-w32
+RUN decode-b0-merge-54x1-w32
+DONE decode-b0-merge-54x1-w32
+RUN decode-b1-1x2-w16
+DONE decode-b1-1x2-w16
+RUN decode-b1-1x2-w32
+DONE decode-b1-1x2-w32
+RUN decode-b1-merge-54x1-w32
+DONE decode-b1-merge-54x1-w32
+RUN decode-b2-1x2-w16
+DONE decode-b2-1x2-w16
+RUN decode-b2-1x2-w32
+DONE decode-b2-1x2-w32
+RUN decode-b2-merge-54x1-w32
+DONE decode-b2-merge-54x1-w32
+RUN analysis
+xtask: command failed (exit status: 101); see /tmp/zopro-phase-cpu/analysis-workflow/analysis/stderr.log

@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-phase-cpu/analysis-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "analysis-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-phase-cpu/analyze.rs",
+        "--extern",
+        "serde_json=/tmp/zopro-phase-cpu/target-native/release/deps/libserde_json-d4bc8edb5a29109a.rlib",
+        "--extern",
+        "rustc_demangle=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps/librustc_demangle-f73128297d24057b.rlib",
+        "-L",
+        "dependency=/tmp/zopro-phase-cpu/target-native/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps",
+        "-O",
+        "-o",
+        "/tmp/zopro-phase-cpu/analyze"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "analysis-tests-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-phase-cpu/analyze.rs",
+        "--extern",
+        "serde_json=/tmp/zopro-phase-cpu/target-native/release/deps/libserde_json-d4bc8edb5a29109a.rlib",
+        "--extern",
+        "rustc_demangle=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps/librustc_demangle-f73128297d24057b.rlib",
+        "-L",
+        "dependency=/tmp/zopro-phase-cpu/target-native/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps",
+        "-O",
+        "--test",
+        "-o",
+        "/tmp/zopro-phase-cpu/analyze-tests"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "analysis-tests",
+      "argv": [
+        "/tmp/zopro-phase-cpu/analyze-tests",
+        "--test-threads=1"
+      ],
+      "required_tests": [
+        "tests::nanosecond_times_are_exact_and_malformed_values_fail",
+        "tests::boundary_windows_and_request_gaps_are_not_forced_into_phases",
+        "tests::phase_cpu_deltas_conserve_process_work_and_reject_negative_counters"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 60
+    },
+    {
+      "kind": "command",
+      "name": "decode-b0-1x2-w16",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/raw-on/b0-1x2-w16.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b0-1x2-w32",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/raw-on/b0-1x2-w32.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b0-merge-54x1-w32",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/raw-on/b0-merge-54x1-w32.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b1-1x2-w16",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/raw-on/b1-1x2-w16.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b1-1x2-w32",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/raw-on/b1-1x2-w32.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b1-merge-54x1-w32",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/raw-on/b1-merge-54x1-w32.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b2-1x2-w16",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/raw-on/b2-1x2-w16.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b2-1x2-w32",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/raw-on/b2-1x2-w32.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b2-merge-54x1-w32",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/raw-on/b2-merge-54x1-w32.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "analysis",
+      "argv": [
+        "/tmp/zopro-phase-cpu/analyze",
+        "/tmp/zopro-phase-cpu/perf",
+        "/tmp/zopro-phase-cpu/analysis-workflow",
+        "/tmp/zopro-phase-cpu/analysis"
+      ],
+      "timeout_seconds": 300
+    }
+  ]
+}

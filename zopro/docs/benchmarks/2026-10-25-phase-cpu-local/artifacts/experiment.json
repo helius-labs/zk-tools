@@ -1,0 +1,56 @@
+{
+  "status": "prospective diagnostic, no optimization adoption",
+  "purpose": "Locate process CPU growth by sequential request phase before selecting another C7a scaling mechanism.",
+  "source_manifest": "/tmp/zopro-grouping-module/production-source-manifest.json",
+  "arithmetic_and_execution_policy_changed": false,
+  "audit": "Removal of the diagnostic insertions recovers three production call-site files byte for byte.",
+  "recorder": {
+    "capacity": 32,
+    "events_expected": 16,
+    "allocation": "Fixed process-global buffer; one active diagnostic request; snapshots and formatting outside request timers.",
+    "clock": "CLOCK_MONOTONIC brackets RUSAGE_SELF calls; timed perf samples inside clock brackets are excluded as boundary-ambiguous.",
+    "thread_scope": "All process threads; caller migration is recorded by Linux TID. Concurrent app requests are outside scope."
+  },
+  "local_matrix": {
+    "variants": [
+      "accepted",
+      "diagnostic-off",
+      "diagnostic-on"
+    ],
+    "blocks": 3,
+    "cases": [
+      "1x2-w16 pinned0-15",
+      "1x2-w32 pinned0-31",
+      "merge-54x1-w32 pinned0-31"
+    ],
+    "latency_rounds": {
+      "primary": 17,
+      "merge54": 9
+    },
+    "profile_rounds": {
+      "primary": 101,
+      "merge54": 9
+    },
+    "priming": 3,
+    "frequency_hz": 999,
+    "sdk_requests": 2448,
+    "independent_exports": 54,
+    "profiles": 27
+  },
+  "preflight": {
+    "sdk_requests": 8,
+    "independent_exports": 2,
+    "workers": 4
+  },
+  "validity": {
+    "phase_sequence": "Exactly16 ordered stamps per enabled request; none when disabled; no overflow; nonnegative accounting deltas; complete request coverage.",
+    "calibration": "Describe every OFF/accepted and ON/OFF ratio; flag factors above1.05 OFF/accepted or1.03 ON/OFF forprimary,1.05 ON/OFF formerge54. No latency adoption or unchanged reroll.",
+    "samples": "One PID, zero lost events; retain out-of-request and ambiguous samples rather than forcing attribution.",
+    "reporting": "Per-phase process CPU and weighted sampled categories are diagnostic; CPU occupancy includes spinning. No physical96-core scaling claim from local32logicalCPUs."
+  },
+  "aws": {
+    "launched": false,
+    "status": "dev SSO token expired; local instrumentation can progress without AWS."
+  },
+  "goal_achieved": false
+}

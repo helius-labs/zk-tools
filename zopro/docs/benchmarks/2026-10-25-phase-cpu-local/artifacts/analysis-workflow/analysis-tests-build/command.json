@@ -1,0 +1,24 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "300s",
+    "rustc",
+    "--edition=2024",
+    "/tmp/zopro-phase-cpu/analyze.rs",
+    "--extern",
+    "serde_json=/tmp/zopro-phase-cpu/target-native/release/deps/libserde_json-d4bc8edb5a29109a.rlib",
+    "--extern",
+    "rustc_demangle=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps/librustc_demangle-f73128297d24057b.rlib",
+    "-L",
+    "dependency=/tmp/zopro-phase-cpu/target-native/release/deps",
+    "-L",
+    "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/debug/deps",
+    "-O",
+    "--test",
+    "-o",
+    "/tmp/zopro-phase-cpu/analyze-tests"
+  ],
+  "environment": {}
+}

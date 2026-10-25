@@ -1,0 +1,125 @@
+{
+  "distinct_verified_exports": 8,
+  "latency": {
+    "1x2-w32": {
+      "accepted": {
+        "median_ms": 8.823098,
+        "median_ratio": 1.0,
+        "paired_ratios": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "winning_blocks": 0
+      },
+      "diagnostic-on": {
+        "median_ms": 8.657005,
+        "median_ratio": 0.9488454055480285,
+        "paired_ratios": [
+          1.046660331782319,
+          0.9404329443562106,
+          0.9488454055480285
+        ],
+        "winning_blocks": 2
+      }
+    }
+  },
+  "processes": 8,
+  "profile_comparison": {
+    "1x2-w32": {
+      "accepted": {
+        "captures": 1,
+        "category_delta_percentage_points": {
+          "G1_arithmetic": 0.0,
+          "G2_arithmetic": 0.0,
+          "epoch": 0.0,
+          "fft": 0.0,
+          "grouping": 0.0,
+          "inverse": 0.0,
+          "other": 0.0,
+          "scheduler": 0.0,
+          "solver": 0.0
+        },
+        "category_percent": {
+          "G1_arithmetic": 37.732077060524254,
+          "G2_arithmetic": 29.774465826296893,
+          "epoch": 10.012917047364883,
+          "fft": 5.215068732550976,
+          "grouping": 0.7032569755920436,
+          "inverse": 6.484057100086077,
+          "other": 4.973976960032236,
+          "scheduler": 3.3751081835007954,
+          "solver": 1.7290721140518384
+        },
+        "cpu_ms_per_request": 195.80254455445547,
+        "cpu_ratio_to_baseline": 1.0,
+        "max_process_rss_mib": 126.0,
+        "mean_occupied_logical_cpus": 22.525782104837642,
+        "period": 84596336851,
+        "samples": 15946,
+        "system_cpu_ms_per_request": 5.816475247524752,
+        "wall_ms_per_request": 8.69237497029703
+      },
+      "diagnostic-on": {
+        "captures": 1,
+        "category_delta_percentage_points": {
+          "G1_arithmetic": 0.9945812176555862,
+          "G2_arithmetic": -0.8028364086095294,
+          "epoch": -0.2922975358275668,
+          "fft": -0.6452090332639635,
+          "grouping": -0.17658773602214783,
+          "inverse": 1.0935569899046067,
+          "other": -0.2173310902645289,
+          "scheduler": 0.1802637810214467,
+          "solver": -0.13414018459389898
+        },
+        "category_percent": {
+          "G1_arithmetic": 38.72665827817984,
+          "G2_arithmetic": 28.971629417687364,
+          "epoch": 9.720619511537317,
+          "fft": 4.569859699287012,
+          "grouping": 0.5266692395698958,
+          "inverse": 7.577614089990684,
+          "other": 4.756645869767707,
+          "scheduler": 3.555371964522242,
+          "solver": 1.5949319294579394
+        },
+        "cpu_ms_per_request": 197.7239405940594,
+        "cpu_ratio_to_baseline": 1.0098129268134692,
+        "max_process_rss_mib": 129.5,
+        "mean_occupied_logical_cpus": 22.659524815461474,
+        "period": 86659611139,
+        "samples": 16336,
+        "system_cpu_ms_per_request": 6.533079207920792,
+        "wall_ms_per_request": 8.725864386138614
+      }
+    }
+  },
+  "profiles": 2,
+  "qualification": false,
+  "references": [
+    {
+      "case": "1x2-w32",
+      "cpu_meets_10x": false,
+      "cpu_ms": 37.0,
+      "cpu_speedup": 4.193538369402675,
+      "metal_ms": 24.0,
+      "metal_speedup": 2.7201329963693026,
+      "ms": 8.823098,
+      "shape": "1x2",
+      "variant": "accepted"
+    },
+    {
+      "case": "1x2-w32",
+      "cpu_meets_10x": false,
+      "cpu_ms": 37.0,
+      "cpu_speedup": 4.273995452237812,
+      "metal_ms": 24.0,
+      "metal_speedup": 2.7723213744245268,
+      "ms": 8.657005,
+      "shape": "1x2",
+      "variant": "diagnostic-on"
+    }
+  ],
+  "status": "complete"
+}

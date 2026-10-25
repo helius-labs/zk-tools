@@ -1,0 +1,13 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running `xtask/target/debug/xtask workflow /tmp/zopro-phase-cpu/analysis-plan.json /tmp/zopro-phase-cpu/analysis-workflow --resume`
+RUN analysis-build
+REUSE /tmp/zopro-phase-cpu/analysis-workflow/analysis-build
+DONE analysis-build
+RUN analysis-tests-build
+REUSE /tmp/zopro-phase-cpu/analysis-workflow/analysis-tests-build
+DONE analysis-tests-build
+RUN analysis-tests
+REUSE /tmp/zopro-phase-cpu/analysis-workflow/analysis-tests
+DONE analysis-tests
+RUN decode-b0-1x2-w16
+xtask: no matching successful checkpoint: /tmp/zopro-phase-cpu/analysis-workflow/decode-b0-1x2-w16; existing process is not restarted

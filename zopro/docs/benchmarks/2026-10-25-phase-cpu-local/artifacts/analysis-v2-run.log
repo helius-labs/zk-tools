@@ -1,0 +1,23 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running `xtask/target/debug/xtask workflow /tmp/zopro-phase-cpu/analysis-v2-plan.json /tmp/zopro-phase-cpu/analysis-v2-workflow`
+RUN analysis-build
+DONE analysis-build
+RUN analysis-tests-build
+DONE analysis-tests-build
+RUN analysis-tests
+DONE analysis-tests
+RUN transfer-build
+DONE transfer-build
+RUN analysis
+DONE analysis
+{
+  "source_files": 238,
+  "status": "complete",
+  "steps": [
+    "analysis-build",
+    "analysis-tests-build",
+    "analysis-tests",
+    "transfer-build",
+    "analysis"
+  ]
+}

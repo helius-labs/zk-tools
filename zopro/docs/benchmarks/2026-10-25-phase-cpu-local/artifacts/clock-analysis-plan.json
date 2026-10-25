@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-phase-cpu/clock-analysis-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "decode-b0-1x2-w32",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/clock-raw/primary.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "analysis",
+      "argv": [
+        "/tmp/zopro-phase-cpu/analyze-v3",
+        "/tmp/zopro-phase-cpu/clock-perf",
+        "/tmp/zopro-phase-cpu/clock-analysis-workflow",
+        "/tmp/zopro-phase-cpu/clock-analysis"
+      ],
+      "timeout_seconds": 120
+    }
+  ]
+}
