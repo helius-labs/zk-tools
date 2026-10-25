@@ -1,6 +1,6 @@
 # CPU prover checkpoint — October 25, 2026
 
-This checkpoint adds CPU basis/Euler images, streamed solver-image handling, bounded solver scheduling, SIMD arithmetic, rerandomized proof assembly and memory-aware buffer reclamation. The tables below describe the accepted implementation and its measured configurations. The original objective of a tenfold latency improvement than every supplied M5 CPU reference has not been reached.
+This checkpoint adds CPU basis/Euler images, streamed solver-image handling, bounded solver scheduling, SIMD arithmetic, rerandomized proof assembly and memory-aware buffer reclamation. The tables below describe the accepted implementation and its measured configurations. The original objective—latency at most one tenth of each supplied M5 CPU reference—has not been reached.
 
 Gnark and Aeglos provide the reference implementations and independent verification used in this work. The implementations make different preparation, arithmetic and memory tradeoffs. These results describe the versions, fixtures and machines below; they are not a general ranking of the projects.
 
@@ -73,7 +73,7 @@ RSS is the maximum whole-process value across three processes at each selected w
 
 Native candidate and disabled builds pass 33 field, 104 core, two raw-image and six cubic tests each. The local fixed qualification contains 9,340 SDK requests and 310 distinct independently Gnark-verified exports. The AWS matrix and its preflight contain 9,456 SDK requests and 468 distinct independently verified exports. Every timed SDK call verifies its generated proof. Exported proof/public hashes, image/source identity and fixture public inputs were checked; verifying the same export remotely and locally is counted once.
 
-Further qualification covers portable fallback proofs, concurrent callers, cold and warm memory-pressure transitions and the 210,853,022-constraint forester 4999 circuit. In the fixed large-circuit comparison, the accepted implementation’s two input variants measured 153.525 and 154.558 seconds by pooled medians under a 95 GiB cgroup cap, with approximately 94.69 GiB process peak RSS and no swap or OOM. Those finite checks do not establish minimum physical RAM, phone feasibility for this circuit or performance under arbitrary memory limits. No comparable Aeglos proving time for this large circuit is asserted here.
+Further qualification covers portable fallback proofs, concurrent callers, cold and warm memory-pressure transitions and the 210,853,022-constraint forester 4999 circuit. In the fixed large-circuit comparison, the accepted implementation’s two input variants measured 153.525 and 154.558 seconds by pooled medians under a 95 GiB cgroup cap, with approximately 94.69 GiB process peak RSS and no swap or OOM. Those finite checks do not establish minimum physical RAM, phone feasibility for this circuit or performance under arbitrary memory limits.
 
 CPU sampling, setup-time experiments and unadopted prototypes are excluded from the latency tables. The checkpoint does not establish TEE overhead, production tail latency, concurrent throughput or physical-phone performance. Aeglos and Gnark may perform differently with other versions, workloads and preparation policies.
 
