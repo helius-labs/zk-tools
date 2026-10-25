@@ -1,0 +1,28 @@
+{
+  "InstanceIds": [
+    "i-0e421a4dee64f0e16"
+  ],
+  "DocumentName": "AWS-RunShellScript",
+  "Comment": "Resume profiles with bounded container memlock; reuse latency",
+  "Parameters": {
+    "commands": [
+      "set -eu",
+      "systemctl is-active zopro-phase-cpu-ttl.timer",
+      "docker run --rm --name zopro-phase-cpu-record-probe --network none --cpuset-cpus 0-95 --ulimit memlock=268435456:268435456 --cap-drop ALL --cap-add PERFMON --security-opt seccomp=unconfined --security-opt no-new-privileges --entrypoint /usr/lib/linux-tools/6.8.0-147-generic/perf 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:bd04f1c9512b73de409578a9f42d0b2eb420f564e386ead60fee49984635e255 record --clockid mono -e cycles:u -m 512 -o /tmp/record-probe.data -- true > /var/tmp/zopro-phase-cpu-c7a/record-probe.log 2>&1",
+      "cat /var/tmp/zopro-phase-cpu-c7a/record-probe.log",
+      "test ! -s /var/tmp/zopro-phase-cpu-c7a/output/perf/profile/b0/1x2-w32/accepted/run/stdout.log",
+      "grep -q '\"returncode\": 255' /var/tmp/zopro-phase-cpu-c7a/output/perf/profile/b0/1x2-w32/accepted/run/exit.json",
+      "mv /var/tmp/zopro-phase-cpu-c7a/output/perf/profile/b0/1x2-w32/accepted/run /var/tmp/zopro-phase-cpu-c7a/output/perf/profile/b0/1x2-w32/accepted/failed-initial-profile-run",
+      "if test -f /var/tmp/zopro-phase-cpu-c7a/output/perf/profile/b0/1x2-w32/accepted/perf.data; then mv /var/tmp/zopro-phase-cpu-c7a/output/perf/profile/b0/1x2-w32/accepted/perf.data /var/tmp/zopro-phase-cpu-c7a/output/perf/profile/b0/1x2-w32/accepted/failed-initial-profile.data; fi",
+      "printf '%s\\n' '{\"reason\":\"First perf record failed before SDK execution: permission mapping pages\",\"original_profile_sdk_requests\":0,\"latency_processes_reused\":54,\"change\":\"Container RLIMIT_MEMLOCK=268435456 bytes; same source,image,commands,clock and buffers. No global kernel settings changed.\",\"failed_records_retained\":true}' > /var/tmp/zopro-phase-cpu-c7a/output/profiler-resource-amendment.json",
+      "finish() { bench_rc=$?; trap - EXIT; docker inspect zopro-phase-cpu-c7a-resume --format '{{.State.ExitCode}} {{.State.OOMKilled}}' > /var/tmp/zopro-phase-cpu-c7a/resume-container-exit.txt || true; cat /proc/stat > /var/tmp/zopro-phase-cpu-c7a/host-stat-after-resume.txt; tail -n 20 /var/tmp/zopro-phase-cpu-c7a/bench-resume.log; exit \"$bench_rc\"; }",
+      "trap finish EXIT",
+      "docker run --name zopro-phase-cpu-c7a-resume --network none --cpuset-cpus 0-95 --memory 30g --memory-swap 30g --pids-limit 1024 --ulimit memlock=268435456:268435456 --cap-drop ALL --cap-add PERFMON --security-opt seccomp=unconfined --security-opt no-new-privileges -v /var/tmp/zopro-phase-cpu-c7a/output:/output --entrypoint /bin/sh 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:bd04f1c9512b73de409578a9f42d0b2eb420f564e386ead60fee49984635e255 -c 'set -eu\nmkdir /output/hardware-resume\nsnapshot() { prefix=$1; for resource in cpu.stat cpu.max memory.events memory.max memory.swap.current; do if test -f /sys/fs/cgroup/$resource; then cat /sys/fs/cgroup/$resource > /output/hardware-resume/$prefix-$resource; fi; done; }\nsnapshot before\ntrap '\\''snapshot after'\\'' EXIT\n/experiment/zopro-xtask perf /experiment/perf.json /output/perf --resume\n/experiment/zopro-xtask workflow /experiment/comparison.json /output/comparison' > /var/tmp/zopro-phase-cpu-c7a/bench-resume.log 2>&1",
+      "test -f /var/tmp/zopro-phase-cpu-c7a/output/perf/result.json",
+      "test -f /var/tmp/zopro-phase-cpu-c7a/output/comparison/result.json"
+    ],
+    "executionTimeout": [
+      "3600"
+    ]
+  }
+}

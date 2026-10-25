@@ -1,0 +1,450 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-phase-cpu/aws/analysis-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "compare-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-phase-cpu/aws/compare.rs",
+        "--extern",
+        "serde_json=/tmp/zopro-phase-cpu/target-native/release/deps/libserde_json-d4bc8edb5a29109a.rlib",
+        "-L",
+        "dependency=/tmp/zopro-phase-cpu/target-native/release/deps",
+        "-O",
+        "-o",
+        "/tmp/zopro-phase-cpu/aws/compare"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "compare-tests-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-phase-cpu/aws/compare.rs",
+        "--extern",
+        "serde_json=/tmp/zopro-phase-cpu/target-native/release/deps/libserde_json-d4bc8edb5a29109a.rlib",
+        "-L",
+        "dependency=/tmp/zopro-phase-cpu/target-native/release/deps",
+        "-O",
+        "--test",
+        "-o",
+        "/tmp/zopro-phase-cpu/aws/compare-tests"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "compare-tests",
+      "argv": [
+        "/tmp/zopro-phase-cpu/aws/compare-tests",
+        "--test-threads=1"
+      ],
+      "environment": {},
+      "required_tests": [
+        "tests::counter_parser_requires_all_four_events_without_multiplexing",
+        "tests::block_medians_use_all_processes_and_reject_nonfinite_inputs"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 60
+    },
+    {
+      "kind": "command",
+      "name": "decode-b0-1x2-w32",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b0/1x2-w32/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b0-1x2-w64",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b0/1x2-w64/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b0-1x2-w96",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b0/1x2-w96/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b0-merge-54x1-w32",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b0/merge-54x1-w32/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b0-merge-54x1-w64",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b0/merge-54x1-w64/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b0-merge-54x1-w96",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b0/merge-54x1-w96/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b1-1x2-w32",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b1/1x2-w32/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b1-1x2-w64",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b1/1x2-w64/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b1-1x2-w96",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b1/1x2-w96/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b1-merge-54x1-w32",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b1/merge-54x1-w32/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b1-merge-54x1-w64",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b1/merge-54x1-w64/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b1-merge-54x1-w96",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b1/merge-54x1-w96/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b2-1x2-w32",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b2/1x2-w32/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b2-1x2-w64",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b2/1x2-w64/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b2-1x2-w96",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b2/1x2-w96/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b2-merge-54x1-w32",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b2/merge-54x1-w32/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b2-merge-54x1-w64",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b2/merge-54x1-w64/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "decode-b2-merge-54x1-w96",
+      "argv": [
+        "perf",
+        "script",
+        "--symfs",
+        "/tmp/zopro-phase-cpu/aws/symfs",
+        "--ns",
+        "--no-demangle",
+        "-i",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf/profile/b2/merge-54x1-w96/diagnostic-on/perf.data",
+        "-F",
+        "pid,tid,time,period,ip,sym"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "phase-analysis",
+      "argv": [
+        "/tmp/zopro-phase-cpu/analyze-v3",
+        "/tmp/zopro-phase-cpu/aws/remote-results/output/perf",
+        "/tmp/zopro-phase-cpu/aws/analysis-workflow",
+        "/tmp/zopro-phase-cpu/aws/phase-analysis"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "comparison-analysis",
+      "argv": [
+        "/tmp/zopro-phase-cpu/aws/compare",
+        "/tmp/zopro-phase-cpu/aws",
+        "/tmp/zopro-phase-cpu/aws/comparison-analysis"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    }
+  ]
+}

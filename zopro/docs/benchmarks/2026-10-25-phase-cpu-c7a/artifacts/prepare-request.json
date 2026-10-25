@@ -1,0 +1,31 @@
+{
+  "InstanceIds": [
+    "i-0e421a4dee64f0e16"
+  ],
+  "DocumentName": "AWS-RunShellScript",
+  "Comment": "Temporary CPU profile image and native preflight",
+  "Parameters": {
+    "commands": [
+      "set -eu",
+      "cloud-init status --wait",
+      "test -f /var/lib/cloud/instance/boot-finished",
+      "systemctl is-active zopro-phase-cpu-ttl.timer",
+      "docker info > /dev/null",
+      "install -d -m 700 /var/tmp/zopro-phase-cpu-c7a/docker-auth",
+      "trap 'if test -f /var/tmp/zopro-phase-cpu-c7a/docker-auth/config.json; then unlink /var/tmp/zopro-phase-cpu-c7a/docker-auth/config.json; fi; rmdir /var/tmp/zopro-phase-cpu-c7a/docker-auth' EXIT",
+      "/usr/local/bin/aws ecr get-login-password --region eu-north-1 | docker --config /var/tmp/zopro-phase-cpu-c7a/docker-auth login --username AWS --password-stdin 558215002830.dkr.ecr.eu-north-1.amazonaws.com > /var/tmp/zopro-phase-cpu-c7a/docker-login.log 2>&1",
+      "docker --config /var/tmp/zopro-phase-cpu-c7a/docker-auth pull 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:bd04f1c9512b73de409578a9f42d0b2eb420f564e386ead60fee49984635e255 > /var/tmp/zopro-phase-cpu-c7a/docker-pull.log 2>&1",
+      "docker image inspect 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:bd04f1c9512b73de409578a9f42d0b2eb420f564e386ead60fee49984635e255 --format '{{.Id}}'",
+      "mkdir -p /var/tmp/zopro-phase-cpu-c7a/output",
+      "docker run --rm --name zopro-phase-cpu-c7a-preflight --network none --cpuset-cpus 0-95 --memory 30g --memory-swap 30g --pids-limit 1024 --cap-drop ALL --security-opt no-new-privileges -v /var/tmp/zopro-phase-cpu-c7a/output:/output 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:bd04f1c9512b73de409578a9f42d0b2eb420f564e386ead60fee49984635e255 preflight > /var/tmp/zopro-phase-cpu-c7a/preflight.log 2>&1",
+      "cat /var/tmp/zopro-phase-cpu-c7a/output/preflight/result.json",
+      "docker run --rm --name zopro-phase-cpu-c7a-perf-probe --network none --cap-drop ALL --cap-add PERFMON --security-opt seccomp=unconfined --security-opt no-new-privileges --entrypoint /usr/lib/linux-tools/6.8.0-147-generic/perf 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:bd04f1c9512b73de409578a9f42d0b2eb420f564e386ead60fee49984635e255 stat -e cycles:u,instructions:u -- true > /var/tmp/zopro-phase-cpu-c7a/perf-probe.log 2>&1",
+      "cat /var/tmp/zopro-phase-cpu-c7a/perf-probe.log",
+      "cat /var/tmp/zopro-phase-cpu-c7a/hardware.txt",
+      "cat /proc/loadavg"
+    ],
+    "executionTimeout": [
+      "900"
+    ]
+  }
+}

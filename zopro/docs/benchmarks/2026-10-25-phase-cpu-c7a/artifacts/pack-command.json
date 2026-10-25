@@ -1,0 +1,58 @@
+{
+    "Command": {
+        "CommandId": "5dff612b-d6c0-4796-9764-07fb8c3f5ecf",
+        "DocumentName": "AWS-RunShellScript",
+        "DocumentVersion": "$DEFAULT",
+        "Comment": "Archive completed CPU results and serve through loopback SSM tunnel",
+        "ExpiresAfter": "2026-10-26T00:24:23.064000+00:00",
+        "Parameters": {
+            "commands": [
+                "set -eu",
+                "test -f /var/tmp/zopro-phase-cpu-c7a/output/perf/result.json",
+                "test -f /var/tmp/zopro-phase-cpu-c7a/output/comparison/result.json",
+                "tar -C /var/tmp/zopro-phase-cpu-c7a --exclude='*/ctl' --exclude='*/ack' -czf /var/tmp/zopro-phase-cpu-c7a/review-results.tar.gz output hardware.txt bench.log bench-resume.log container-exit.txt resume-container-exit.txt host-stat-before.txt host-stat-after.txt host-stat-after-resume.txt host-cpu-pressure-before.txt host-cpu-pressure-after.txt host-memory-pressure-before.txt host-memory-pressure-after.txt perf-probe.log record-probe.log",
+                "sha256sum /var/tmp/zopro-phase-cpu-c7a/review-results.tar.gz",
+                "stat -c '%s' /var/tmp/zopro-phase-cpu-c7a/review-results.tar.gz",
+                "docker cp zopro-phase-cpu-c7a-resume:/experiment/serve-results /var/tmp/zopro-phase-cpu-c7a/serve-results",
+                "systemd-run --unit=zopro-phase-cpu-transfer --collect --property=RuntimeMaxSec=180 /var/tmp/zopro-phase-cpu-c7a/serve-results /var/tmp/zopro-phase-cpu-c7a/review-results.tar.gz",
+                "systemctl is-active zopro-phase-cpu-transfer.service",
+                "systemctl is-active zopro-phase-cpu-ttl.timer"
+            ],
+            "executionTimeout": [
+                "300"
+            ]
+        },
+        "InstanceIds": [
+            "i-0e421a4dee64f0e16"
+        ],
+        "Targets": [],
+        "RequestedDateTime": "2026-10-25T23:19:23.064000+00:00",
+        "Status": "Pending",
+        "StatusDetails": "Pending",
+        "OutputS3Region": "eu-north-1",
+        "OutputS3BucketName": "",
+        "OutputS3KeyPrefix": "",
+        "MaxConcurrency": "50",
+        "MaxErrors": "0",
+        "TargetCount": 1,
+        "CompletedCount": 0,
+        "ErrorCount": 0,
+        "DeliveryTimedOutCount": 0,
+        "ServiceRole": "",
+        "NotificationConfig": {
+            "NotificationArn": "",
+            "NotificationEvents": [],
+            "NotificationType": ""
+        },
+        "CloudWatchOutputConfig": {
+            "CloudWatchLogGroupName": "",
+            "CloudWatchOutputEnabled": false
+        },
+        "TimeoutSeconds": 3600,
+        "AlarmConfiguration": {
+            "IgnorePollAlarmFailure": false,
+            "Alarms": []
+        },
+        "TriggeredAlarms": []
+    }
+}

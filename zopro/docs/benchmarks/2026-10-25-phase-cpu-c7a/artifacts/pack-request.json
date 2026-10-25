@@ -1,0 +1,24 @@
+{
+  "InstanceIds": [
+    "i-0e421a4dee64f0e16"
+  ],
+  "DocumentName": "AWS-RunShellScript",
+  "Comment": "Archive completed CPU results and serve through loopback SSM tunnel",
+  "Parameters": {
+    "commands": [
+      "set -eu",
+      "test -f /var/tmp/zopro-phase-cpu-c7a/output/perf/result.json",
+      "test -f /var/tmp/zopro-phase-cpu-c7a/output/comparison/result.json",
+      "tar -C /var/tmp/zopro-phase-cpu-c7a --exclude='*/ctl' --exclude='*/ack' -czf /var/tmp/zopro-phase-cpu-c7a/review-results.tar.gz output hardware.txt bench.log bench-resume.log container-exit.txt resume-container-exit.txt host-stat-before.txt host-stat-after.txt host-stat-after-resume.txt host-cpu-pressure-before.txt host-cpu-pressure-after.txt host-memory-pressure-before.txt host-memory-pressure-after.txt perf-probe.log record-probe.log",
+      "sha256sum /var/tmp/zopro-phase-cpu-c7a/review-results.tar.gz",
+      "stat -c '%s' /var/tmp/zopro-phase-cpu-c7a/review-results.tar.gz",
+      "docker cp zopro-phase-cpu-c7a-resume:/experiment/serve-results /var/tmp/zopro-phase-cpu-c7a/serve-results",
+      "systemd-run --unit=zopro-phase-cpu-transfer --collect --property=RuntimeMaxSec=180 /var/tmp/zopro-phase-cpu-c7a/serve-results /var/tmp/zopro-phase-cpu-c7a/review-results.tar.gz",
+      "systemctl is-active zopro-phase-cpu-transfer.service",
+      "systemctl is-active zopro-phase-cpu-ttl.timer"
+    ],
+    "executionTimeout": [
+      "300"
+    ]
+  }
+}

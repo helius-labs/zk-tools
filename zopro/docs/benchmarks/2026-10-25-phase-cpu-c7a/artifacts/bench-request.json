@@ -1,0 +1,25 @@
+{
+  "InstanceIds": [
+    "i-0e421a4dee64f0e16"
+  ],
+  "DocumentName": "AWS-RunShellScript",
+  "Comment": "Fixed CPU scaling phase profiles and primary comparison",
+  "Parameters": {
+    "commands": [
+      "set -eu",
+      "systemctl is-active zopro-phase-cpu-ttl.timer",
+      "cat /proc/stat > /var/tmp/zopro-phase-cpu-c7a/host-stat-before.txt",
+      "cat /proc/pressure/cpu > /var/tmp/zopro-phase-cpu-c7a/host-cpu-pressure-before.txt",
+      "cat /proc/pressure/memory > /var/tmp/zopro-phase-cpu-c7a/host-memory-pressure-before.txt",
+      "finish() { bench_rc=$?; trap - EXIT; docker inspect zopro-phase-cpu-c7a --format '{{.State.ExitCode}} {{.State.OOMKilled}}' > /var/tmp/zopro-phase-cpu-c7a/container-exit.txt || true; cat /proc/stat > /var/tmp/zopro-phase-cpu-c7a/host-stat-after.txt; cat /proc/pressure/cpu > /var/tmp/zopro-phase-cpu-c7a/host-cpu-pressure-after.txt; cat /proc/pressure/memory > /var/tmp/zopro-phase-cpu-c7a/host-memory-pressure-after.txt; tail -n 20 /var/tmp/zopro-phase-cpu-c7a/bench.log; exit \"$bench_rc\"; }",
+      "trap finish EXIT",
+      "docker run --name zopro-phase-cpu-c7a --network none --cpuset-cpus 0-95 --memory 30g --memory-swap 30g --pids-limit 1024 --cap-drop ALL --cap-add PERFMON --security-opt seccomp=unconfined --security-opt no-new-privileges -v /var/tmp/zopro-phase-cpu-c7a/output:/output 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:bd04f1c9512b73de409578a9f42d0b2eb420f564e386ead60fee49984635e255 bench > /var/tmp/zopro-phase-cpu-c7a/bench.log 2>&1",
+      "test -f /var/tmp/zopro-phase-cpu-c7a/output/perf/result.json",
+      "test -f /var/tmp/zopro-phase-cpu-c7a/output/comparison/result.json",
+      "du -sh /var/tmp/zopro-phase-cpu-c7a/output"
+    ],
+    "executionTimeout": [
+      "3600"
+    ]
+  }
+}

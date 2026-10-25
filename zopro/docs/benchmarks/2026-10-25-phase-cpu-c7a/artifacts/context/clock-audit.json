@@ -1,0 +1,11 @@
+{
+  "default_clock_alignment_passed": false,
+  "on_profile_samples": 205901,
+  "samples_assigned_to_phases": 0,
+  "process_cpu_phase_accounting_valid": true,
+  "evidence": "b0 primary32 perf starts4339711.789614650; CLOCK_MONOTONIC first request starts4339740.569372224. All weighted samples fall outside request intervals. The perf header records no CLOCKID/CLOCK_DATA features.",
+  "reader_defect": "The original reader checked sample count and weighted conservation but did not require positive request coverage. Its complete status does not validate sample alignment.",
+  "correction": "Explicit monotonic_clock option passes perf record --clockid mono. Analyzer v3 requires at least90percent weighted coverage of known request interiors. Keep original invalid attribution and all captures; never shift clocks by an inferred constant.",
+  "next_validation": "New clock-only local diagnostic:6 one-round latency calibration processes and2 profiles,232SDK8exports. No optimization adoption, unchanged latency reroll or replacement of the original fixed comparison.",
+  "goal_achieved": false
+}

@@ -114,6 +114,11 @@ the default perf clock can have a different origin. Existing protocols keep
 their original clock unless this option is explicit. Check actual sample
 coverage of request intervals before drawing conclusions from attribution.
 
+Container profiling also needs a bounded locked-memory allowance for the perf
+rings. At 96 CPUs the current buffer setting works with a 256 MiB container
+memlock limit. This allowance belongs to the observer; keep its memory scope
+separate from the SDK's process RSS and from prover memory-pressure tests.
+
 Use the following structure, replacing paths and hashes with actual artifacts:
 
 ```json
