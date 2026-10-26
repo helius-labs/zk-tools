@@ -1,0 +1,53 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "46895e9d-d825-48c7-839a-3166368f60df",
+    "Comment": "Owned ready-c7a-20261026-113912 inspect-profile",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T12:55:01.077000+00:00",
+    "InstanceIds": [
+      "i-0ac0e0bb7b93ae5d8"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "cat /var/tmp/zopro-ready-c7a-20261026-113912/output/measure/performance/profile/b0/1x2-w32/accepted/run/stderr.log",
+        "cat /var/tmp/zopro-ready-c7a-20261026-113912/output/measure/performance/profile/b0/1x2-w32/accepted/run/stdout.log",
+        "docker inspect zopro-ready-c7a --format '{{.State.Status}} {{.State.ExitCode}}'",
+        "docker run --rm --network none --entrypoint /bin/sh 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:261b8bc3a2ca4decb96439d273951334b23463407f4a40e4c5d4202cc8089759 -c 'uname -r; ls /usr/lib/linux-tools/*/perf /usr/bin/perf /usr/local/bin/perf* 2>/dev/null || true'"
+      ],
+      "executionTimeout": [
+        "120"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T11:53:01.077000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}

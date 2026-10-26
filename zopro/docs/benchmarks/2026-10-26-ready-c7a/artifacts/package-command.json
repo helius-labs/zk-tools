@@ -1,0 +1,54 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "f839c4ee-a246-44ee-8866-e220013f26a9",
+    "Comment": "Owned ready-c7a-20261026-113912 package",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T13:12:34.522000+00:00",
+    "InstanceIds": [
+      "i-0ac0e0bb7b93ae5d8"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "docker inspect zopro-ready-c7a > /var/tmp/zopro-ready-c7a-20261026-113912/container-inspect.json",
+        "cat /proc/swaps > /var/tmp/zopro-ready-c7a-20261026-113912/post-host-state.txt",
+        "tar --exclude=output/lagrange-cache -czf /var/tmp/zopro-ready-c7a-20261026-113912/results.tar.gz -C /var/tmp/zopro-ready-c7a-20261026-113912 output runner.log resume-runner.log hardware.txt post-host-state.txt container-inspect.json initial-container-inspect.json",
+        "sha256sum /var/tmp/zopro-ready-c7a-20261026-113912/results.tar.gz",
+        "stat -c %s /var/tmp/zopro-ready-c7a-20261026-113912/results.tar.gz"
+      ],
+      "executionTimeout": [
+        "600"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T12:02:34.522000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}

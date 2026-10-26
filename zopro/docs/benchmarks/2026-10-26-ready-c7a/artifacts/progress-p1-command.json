@@ -1,0 +1,51 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "027df736-eb13-4727-8b12-132b6e01e831",
+    "Comment": "Owned ready-c7a-20261026-113912 progress-p1",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T12:52:36.682000+00:00",
+    "InstanceIds": [
+      "i-0ac0e0bb7b93ae5d8"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "cat /var/tmp/zopro-ready-c7a-20261026-113912/output/measure/performance/progress.json || true",
+        "tail -n8 /var/tmp/zopro-ready-c7a-20261026-113912/output/measure/workflow.log || true"
+      ],
+      "executionTimeout": [
+        "60"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T11:51:36.682000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}

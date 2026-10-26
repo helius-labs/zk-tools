@@ -1,0 +1,50 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "6dff61bb-e886-4427-a01d-991a1afde4a6",
+    "Comment": "Owned ready-c7a-20261026-113912 profile-availability",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T12:57:19.730000+00:00",
+    "InstanceIds": [
+      "i-0ac0e0bb7b93ae5d8"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "docker run --rm --network none --cap-drop ALL --cap-add PERFMON --ulimit memlock=-1 --security-opt no-new-privileges --security-opt seccomp=unconfined --entrypoint /bin/sh 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:261b8bc3a2ca4decb96439d273951334b23463407f4a40e4c5d4202cc8089759 -c '/usr/lib/linux-tools/6.8.0-147-generic/perf --version; sha256sum /usr/lib/linux-tools/6.8.0-147-generic/perf; /usr/lib/linux-tools/6.8.0-147-generic/perf stat -e cycles:u -- /bin/true'"
+      ],
+      "executionTimeout": [
+        "120"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T11:55:19.730000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}

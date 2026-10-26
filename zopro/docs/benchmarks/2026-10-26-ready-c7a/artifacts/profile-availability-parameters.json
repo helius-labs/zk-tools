@@ -1,0 +1,9 @@
+{
+  "commands": [
+    "set -eu",
+    "docker run --rm --network none --cap-drop ALL --cap-add PERFMON --ulimit memlock=-1 --security-opt no-new-privileges --security-opt seccomp=unconfined --entrypoint /bin/sh 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:261b8bc3a2ca4decb96439d273951334b23463407f4a40e4c5d4202cc8089759 -c '/usr/lib/linux-tools/6.8.0-147-generic/perf --version; sha256sum /usr/lib/linux-tools/6.8.0-147-generic/perf; /usr/lib/linux-tools/6.8.0-147-generic/perf stat -e cycles:u -- /bin/true'"
+  ],
+  "executionTimeout": [
+    "120"
+  ]
+}

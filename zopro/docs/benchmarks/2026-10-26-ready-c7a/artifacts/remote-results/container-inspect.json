@@ -1,0 +1,222 @@
+[
+    {
+        "Id": "87857c146dde2181caab07380d49abfc0180628caa529690a2a4af8502ccaced",
+        "Created": "2026-10-26T11:56:47.775450502Z",
+        "Path": "/bin/sh",
+        "Args": [
+            "-c",
+            "set -eu; export PATH=/usr/lib/linux-tools/6.8.0-147-generic:$PATH; cat /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.swap.events > /output/measure/profile-resume-before.txt; /usr/local/bin/ready-xtask perf /output/measure/config.json /output/measure/performance --resume > /output/measure/resume-workflow.log 2>&1; cp /output/measure/performance/result.json /output/measure/complete.json; cat /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.swap.events > /output/measure/profile-resume-after.txt; echo resumed-profiles-complete"
+        ],
+        "State": {
+            "Status": "exited",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-10-26T11:56:47.805431577Z",
+            "FinishedAt": "2026-10-26T11:57:04.354988666Z"
+        },
+        "Image": "sha256:261b8bc3a2ca4decb96439d273951334b23463407f4a40e4c5d4202cc8089759",
+        "ResolvConfPath": "/var/lib/docker/containers/87857c146dde2181caab07380d49abfc0180628caa529690a2a4af8502ccaced/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/87857c146dde2181caab07380d49abfc0180628caa529690a2a4af8502ccaced/hostname",
+        "HostsPath": "/var/lib/docker/containers/87857c146dde2181caab07380d49abfc0180628caa529690a2a4af8502ccaced/hosts",
+        "LogPath": "/var/lib/docker/containers/87857c146dde2181caab07380d49abfc0180628caa529690a2a4af8502ccaced/87857c146dde2181caab07380d49abfc0180628caa529690a2a4af8502ccaced-json.log",
+        "Name": "/zopro-ready-c7a",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/var/tmp/zopro-ready-c7a-20261026-113912/output:/output"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "none",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": [
+                "CAP_PERFMON"
+            ],
+            "CapDrop": [
+                "ALL"
+            ],
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": [
+                "no-new-privileges",
+                "seccomp=unconfined"
+            ],
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 32212254720,
+            "NanoCpus": 96000000000,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 64424509440,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": 2048,
+            "Ulimits": [
+                {
+                    "Name": "memlock",
+                    "Hard": -1,
+                    "Soft": -1
+                }
+            ],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "Storage": {
+            "RootFS": {
+                "Snapshot": {
+                    "Name": "overlayfs"
+                }
+            }
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/var/tmp/zopro-ready-c7a-20261026-113912/output",
+                "Destination": "/output",
+                "Mode": "",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "87857c146dde",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "Cmd": [
+                "-c",
+                "set -eu; export PATH=/usr/lib/linux-tools/6.8.0-147-generic:$PATH; cat /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.swap.events > /output/measure/profile-resume-before.txt; /usr/local/bin/ready-xtask perf /output/measure/config.json /output/measure/performance --resume > /output/measure/resume-workflow.log 2>&1; cp /output/measure/performance/result.json /output/measure/complete.json; cat /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.swap.events > /output/measure/profile-resume-after.txt; echo resumed-profiles-complete"
+            ],
+            "Image": "558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:261b8bc3a2ca4decb96439d273951334b23463407f4a40e4c5d4202cc8089759",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": [
+                "/bin/sh"
+            ],
+            "Labels": {
+                "org.opencontainers.image.version": "24.04"
+            }
+        },
+        "NetworkSettings": {
+            "SandboxID": "",
+            "SandboxKey": "",
+            "Ports": {},
+            "Networks": {
+                "none": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": null,
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "c8e577a93c8999d72267ae175f66cc1805754c7fbf35dadaf3c2367d75bd96d9",
+                    "EndpointID": "",
+                    "Gateway": "",
+                    "IPAddress": "",
+                    "MacAddress": "",
+                    "IPPrefixLen": 0,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": null
+                }
+            }
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:2cf8ab04861026fabbc3fb44816c035661a7a5ef20368f5056a0d9453ad62cdc",
+            "size": 8303,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

@@ -1,0 +1,57 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "3631883d-a247-48e9-954f-ed12376306f7",
+    "Comment": "Owned ready-c7a-20261026-113912 resume-profiles",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T13:26:47.499000+00:00",
+    "InstanceIds": [
+      "i-0ac0e0bb7b93ae5d8"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "test ! -d /var/tmp/zopro-ready-c7a-20261026-113912/output/measure/performance/profile/b0/1x2-w32/accepted/proofs",
+        "test ! -f /var/tmp/zopro-ready-c7a-20261026-113912/output/measure/performance/profile/b0/1x2-w32/accepted/perf.data",
+        "docker inspect zopro-ready-c7a > /var/tmp/zopro-ready-c7a-20261026-113912/initial-container-inspect.json",
+        "docker rename zopro-ready-c7a zopro-ready-c7a-initial-perf-wrapper-failure",
+        "mv /var/tmp/zopro-ready-c7a-20261026-113912/output/measure/performance/profile/b0/1x2-w32/accepted/run /var/tmp/zopro-ready-c7a-20261026-113912/output/measure/perf-wrapper-failure-run",
+        "docker run --name zopro-ready-c7a --network none --cpus 96 --memory 30g --pids-limit 2048 --cap-drop ALL --cap-add PERFMON --ulimit memlock=-1 --security-opt no-new-privileges --security-opt seccomp=unconfined -v /var/tmp/zopro-ready-c7a-20261026-113912/output:/output --entrypoint /bin/sh 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:261b8bc3a2ca4decb96439d273951334b23463407f4a40e4c5d4202cc8089759 -c 'set -eu; export PATH=/usr/lib/linux-tools/6.8.0-147-generic:$PATH; cat /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.swap.events > /output/measure/profile-resume-before.txt; /usr/local/bin/ready-xtask perf /output/measure/config.json /output/measure/performance --resume > /output/measure/resume-workflow.log 2>&1; cp /output/measure/performance/result.json /output/measure/complete.json; cat /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.swap.events > /output/measure/profile-resume-after.txt; echo resumed-profiles-complete' > /var/tmp/zopro-ready-c7a-20261026-113912/resume-runner.log 2>&1",
+        "docker inspect zopro-ready-c7a > /var/tmp/zopro-ready-c7a-20261026-113912/container-inspect.json",
+        "cat /var/tmp/zopro-ready-c7a-20261026-113912/resume-runner.log"
+      ],
+      "executionTimeout": [
+        "1800"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T11:56:47.499000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}

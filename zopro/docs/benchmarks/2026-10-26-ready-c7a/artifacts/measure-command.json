@@ -1,0 +1,53 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "f1126d9b-c232-43a6-945b-f413222dd308",
+    "Comment": "Owned ready-c7a-20261026-113912 measure",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T13:46:40.889000+00:00",
+    "InstanceIds": [
+      "i-0ac0e0bb7b93ae5d8"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "mkdir -p /var/tmp/zopro-ready-c7a-20261026-113912/output",
+        "docker run --name zopro-ready-c7a --network none --cpus 96 --memory 30g --pids-limit 2048 --cap-drop ALL --cap-add PERFMON --ulimit memlock=-1 --security-opt no-new-privileges --security-opt seccomp=unconfined -v /var/tmp/zopro-ready-c7a-20261026-113912/output:/output 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:261b8bc3a2ca4decb96439d273951334b23463407f4a40e4c5d4202cc8089759 measure > /var/tmp/zopro-ready-c7a-20261026-113912/runner.log 2>&1",
+        "docker inspect zopro-ready-c7a > /var/tmp/zopro-ready-c7a-20261026-113912/container-inspect.json",
+        "cat /var/tmp/zopro-ready-c7a-20261026-113912/output/measure/complete.json"
+      ],
+      "executionTimeout": [
+        "3600"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T11:46:40.889000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}
