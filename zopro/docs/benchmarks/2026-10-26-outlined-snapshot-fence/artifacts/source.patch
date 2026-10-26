@@ -1,0 +1,12 @@
+diff --git a/tmp/zopro-front-snapshot-fence/candidate/vendor/rayon-core-1.13.0/src/registry/front_snapshot.rs b/tmp/zopro-outlined-snapshot-fence/candidate/vendor/rayon-core-1.13.0/src/registry/front_snapshot.rs
+index c0260570..eef4c572 100644
+--- a/tmp/zopro-front-snapshot-fence/candidate/vendor/rayon-core-1.13.0/src/registry/front_snapshot.rs
++++ b/tmp/zopro-outlined-snapshot-fence/candidate/vendor/rayon-core-1.13.0/src/registry/front_snapshot.rs
+@@ -2,6 +2,7 @@
+ use super::*;
+ 
+ impl WorkerThread {
++    #[inline(never)]
+     pub(super) fn steal_front_snapshot_tiles(&self) -> Option<JobRef> {
+         debug_assert!(self.local_deque_is_empty());
+         let thread_infos = &self.registry.thread_infos.as_slice();

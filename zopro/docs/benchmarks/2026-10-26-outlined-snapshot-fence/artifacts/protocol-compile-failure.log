@@ -1,0 +1,17 @@
+error[E0283]: type annotations needed
+  --> /tmp/zopro-outlined-snapshot-fence/protocol-initial.rs:16:454
+   |
+16 | ...name}-prove"),"argv":[root.join("native/candidate-sdk"),image.into(),case["request"].clone(),json!("1"),json!(proof.join(stem))],...
+   |                                                                  ^^^^
+   |
+   = note: the type must implement `From<&str>`
+   = note: required for `&str` to implement `Into<_>`
+help: try using a fully qualified path to specify the expected types
+   |
+16 - let mut steps=Vec::new();for mode in ["off","on"]{for case in template["cases"].as_array().unwrap(){let shape=case["shape"].as_str().unwrap();let image=case["image"].as_str().unwrap();let stem=Path::new(image).file_stem().unwrap().to_str().unwrap();let name=format!("{mode}-w4-{shape}");let proof=root.join("preflight-proofs").join(&name);steps.push(json!({"kind":"command","name":format!("{name}-prove"),"argv":[root.join("native/candidate-sdk"),image.into(),case["request"].clone(),json!("1"),json!(proof.join(stem))],"environment":{"RAYON_NUM_THREADS":"4","ZOPRO_CPU_FRONT_SNAPSHOT_FENCE":if mode=="on"{"1"}else{"0"}},"timeout_seconds":600}));steps.push(json!({"kind":"command","name":format!("{name}-verify"),"argv":["/tmp/zopro-gnark-verify/verify","/tmp/zopro-keys",proof.to_str().unwrap(),"/home/ubuntu/src/zk-tools/zopro/tools/zolana/zopro-keys.lock"],"timeout_seconds":600}));}}
+16 + let mut steps=Vec::new();for mode in ["off","on"]{for case in template["cases"].as_array().unwrap(){let shape=case["shape"].as_str().unwrap();let image=case["image"].as_str().unwrap();let stem=Path::new(image).file_stem().unwrap().to_str().unwrap();let name=format!("{mode}-w4-{shape}");let proof=root.join("preflight-proofs").join(&name);steps.push(json!({"kind":"command","name":format!("{name}-prove"),"argv":[root.join("native/candidate-sdk"),<&str as Into<T>>::into(image),case["request"].clone(),json!("1"),json!(proof.join(stem))],"environment":{"RAYON_NUM_THREADS":"4","ZOPRO_CPU_FRONT_SNAPSHOT_FENCE":if mode=="on"{"1"}else{"0"}},"timeout_seconds":600}));steps.push(json!({"kind":"command","name":format!("{name}-verify"),"argv":["/tmp/zopro-gnark-verify/verify","/tmp/zopro-keys",proof.to_str().unwrap(),"/home/ubuntu/src/zk-tools/zopro/tools/zolana/zopro-keys.lock"],"timeout_seconds":600}));}}
+   |
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0283`.

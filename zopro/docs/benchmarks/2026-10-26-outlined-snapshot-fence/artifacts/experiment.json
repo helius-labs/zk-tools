@@ -1,0 +1,103 @@
+{
+  "declared_at": "2026-10-26 03:58:50 UTC",
+  "status": "declared before implementation, compilation or timing",
+  "parent_commit": "41f4a8ed8619a3012ae08e922216b5bb62908de5",
+  "accepted_manifest": "/tmp/zopro-grouping-module/production-source-manifest.json",
+  "change": "Add exactly #[inline(never)] to Rayon's steal_front_snapshot_tiles method. Every other prepared source byte matches the previous inlined prototype. No algorithm, tile8, first scalar, guard/fence/retry, graph, allocation, kernel, registry flag or thread-count change.",
+  "purpose": "Test one observed codegen boundary: previous containing wait_until_cold is5757bytes versus accepted1661, scalar steal356both. Code size is not evidence of cache misses or cause; direct old-inlined control tests whether outlining affects complete SDK latency.",
+  "static_gate": {
+    "before_sdk_timing": true,
+    "out_of_line_helper_present": true,
+    "parent_contains_call_to_helper": true,
+    "outlined_wait_cold_bytes_lt_inlined": true,
+    "outlined_wait_cold_bytes_lte_twice_accepted": true,
+    "all_parent_source_equal_after_removing_one_attribute": true,
+    "if_fail": "Close and publish without SDK timing. No alternative boundary/attribute sweep."
+  },
+  "activation": "Same cfg zopro_front_snapshot_fence and explicit ZOPRO_CPU_FRONT_SNAPSHOT_FENCE=1 sampled once per Registry; absent/0 OFF. Original accepted production remains unchanged.",
+  "memory": "Existing bounded8reference/8WorkerIndex scratch; no new table/buffer/copy/queue field/per-proof heap allocation. Normal shrink/epoch retirement unchanged. Actual stack/codegen observations and whole-process RSS are not universal memory qualification.",
+  "tests": "Reuse unchanged five actual Loom models (three-preemption bound) plus44 deque/113Rayon (2ignored upstream)/109core each runtime mode and ONraw2/cubic6. No new test mirroring the attribute. Strict full prepared-source identity audit and actual linked symbol/call/code-size gate before SDK timing.",
+  "preflight": {
+    "shapes": "all nine",
+    "workers": 4,
+    "variants": [
+      "off",
+      "on"
+    ],
+    "rounds": 1,
+    "primes": 3,
+    "sdk": 72,
+    "exports": 18
+  },
+  "latency": {
+    "blocks": 7,
+    "cases": "all nine32workers plus physical16primary",
+    "variants": [
+      "accepted",
+      "off",
+      "on",
+      "inlined"
+    ],
+    "controls": [
+      "accepted",
+      "off",
+      "inlined"
+    ],
+    "rounds_w32": 31,
+    "rounds_w16": 101,
+    "primes": 3,
+    "sdk": 11480,
+    "exports": 280,
+    "affinity": {
+      "w32": "0-31",
+      "w16": "0-15"
+    },
+    "gates": {
+      "primary_paired_median_lt": 1,
+      "primary_wins_gte": 4,
+      "original8_paired_geomean_lt": 1,
+      "every_case_paired_median_lte": 1.02,
+      "every_block_lte": 1.05,
+      "off_accepted_calibration_factor_lte": 1.03
+    },
+    "minimum_gain_floor": false,
+    "unchanged_reroll": false
+  },
+  "profiles": {
+    "after_all_latency": true,
+    "cases": [
+      "1x2-w32",
+      "12x2-w32",
+      "merge-54x1-w32"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on",
+      "inlined"
+    ],
+    "rounds": {
+      "primary": 101,
+      "12x2": 51,
+      "merge54": 9
+    },
+    "primes": 3,
+    "sdk": 680,
+    "exports": 12,
+    "captures": 12,
+    "frequency_hz": 999,
+    "monotonic_clock": true
+  },
+  "totals": {
+    "sdk": 12232,
+    "distinct_exports": 310,
+    "proof_public_members": 620
+  },
+  "controls": "Frozen acceptedSDK03e1260...; new outlined binary OFF/ON; exact prior inlinedSDK3b94be2... ON. Pin actual linked libraries, all source maps and previous proof identities. Old negative is preserved; fresh inlined rows are a direct control for the new one-attribute experiment, not an unchanged reroll.",
+  "validity": "Freeze complete source/compiler/tool/helpers/protocol/keys/images/fixtures/verifier and library/binary identities. Mandatory preflight fixture/freshness check. Fresh complete solving/randomness/proving/internal verification/serialization timed; loading/3primes excluded. All latency before profiles, no other owned CPU workload. Gnark each export, all exit/stdout/stderr/hash/freshness receipts retained.",
+  "history": "README/design audit finds only the preceding proposal for this exact snapshot boundary. No tile size, inlining-boundary, backoff, GC or failed scheduler combination search.",
+  "if_positive": "Resource/portable/concurrentSDK/pressure/very-large-circuit and target-host qualification before clean adoption. Goal stays all-eight supplied CPU10x, CPU/Metal all shapes. No cloud in this local screen.",
+  "publish": "Commit and PUSH every completed experiment including static-gate failure or negative timing. Polite factual report. Raw captures/expanded streams local hashes, not Git. No questions/subagents/C-ASM rewrites/large key tables.",
+  "adopted": false,
+  "goal_achieved": false
+}
