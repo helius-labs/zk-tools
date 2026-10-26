@@ -1,0 +1,169 @@
+diff --git a/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/fft/pair.rs b/tmp/zopro-fft-pass-grain/candidate/crates/zopro-core/src/fft/pair.rs
+index 6f5005e4..080346a4 100644
+--- a/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/fft/pair.rs
++++ b/tmp/zopro-fft-pass-grain/candidate/crates/zopro-core/src/fft/pair.rs
+@@ -1758,6 +1758,8 @@ fn column_kernel<const CACHED: bool, const FORWARD: bool>(
+ // Unnormalized inverse FFT means the returned prefix is
+ // n * (E(A) * B + A * E(B)), where E(f) = X f'.
+ pub(super) fn euler_product_study(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
++    #[cfg(zopro_fft_pass_grain)]
++    if fft_pass_grain_enabled() { return euler_product_grained(plan, a, b); }
+     assert!(plan.n >= 8 && a.len() <= plan.n && b.len() <= plan.n);
+     assert!(!plan.released && plan.twisted.is_none());
+     let count = a.len().max(b.len());
+@@ -1866,3 +1868,155 @@ mod euler_pointwise_tests {
+         eprintln!("EULER_POINTWISE_FIELD_COMPARISONS={checked}");
+     }
+ }
++
++// Bound only the cheap independent FFT packing/product passes. The original
++// disabled bodies and all mathematical transform kernels are retained.
++#[cfg(zopro_fft_pass_grain)]
++fn fft_pass_grain_enabled() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(|| std::env::var("ZOPRO_CPU_FFT_PASS_GRAIN").is_ok_and(|v|v=="1"))
++}
++
++#[cfg(any(zopro_fft_pass_grain,test))]
++fn euler_product_grained(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
++    assert!(plan.n >= 8 && a.len() <= plan.n && b.len() <= plan.n);
++    assert!(!plan.released && plan.twisted.is_none());
++    let count = a.len().max(b.len());
++    a.resize(count, Fr::ZERO);
++    if count == 0 { return a; }
++    let mut values: Vec<PackedPair> = (0..plan.n / 4).into_par_iter().with_min_len(32).map(|i| {
++        let mut lanes = [Fr::ZERO; 8];
++        for j in 0..4 {
++            lanes[j] = a.get(4*i+j).copied().unwrap_or(Fr::ZERO);
++            lanes[4+j] = b.get(4*i+j).copied().unwrap_or(Fr::ZERO);
++        }
++        PackedPair::store(Pair::new(&lanes))
++    }).collect();
++    stored_transform::<PackedPair, false>(&mut values, &plan.inverse_roots, 0);
++    if cfg!(zopro_euler_leading_weights) && plan.n <= 1usize<<28 {
++        let log=plan.n.trailing_zeros() as usize;let low=log.min(10);
++        // <=8KiB of ordinary integer weights replaces <=40KiB of field weights.
++        let lows:Vec<[u64;4]>=(0..(1usize<<low)/4).map(|i|
++            core::array::from_fn(|j|(bit_reverse(4*i+j,low)<<(log-low))as u64)).collect();
++        values.par_chunks_mut(lows.len()).enumerate().for_each(|(i,chunk)| {
++            let high=bit_reverse(i,log-low) as u64;
++            for (value,low) in chunk.iter_mut().zip(&lows) {
++                let factors=core::array::from_fn(|j|low[j%4]+high);
++                *value=PackedPair::store(value.load().mul_u28(&factors));
++            }
++        });
++    } else {
++    // k in bit-reversed order splits additively into <=1024 low-index
++    // weights and one scalar per chunk. No n-element weight table.
++    let log = plan.n.trailing_zeros() as usize;
++    let low = log.min(10);
++    let lows: Vec<Quad> = (0..(1usize << low)/4).map(|i| {
++        Quad::new(&core::array::from_fn(|j| {
++            Fr::from((bit_reverse(4*i+j, low) << (log-low)) as u64)
++        }))
++    }).collect();
++    values.par_chunks_mut(lows.len()).enumerate().for_each(|(i, chunk)| {
++        let high = Fr::from(bit_reverse(i, log-low) as u64);
++        let high = Quad::new(&[high;4]);
++        for (value, low) in chunk.iter_mut().zip(&lows) {
++            *value = PackedPair::store(value.load().mul(&broadcast(&low.add(&high))));
++        }
++    });
++    drop(lows);
++    }
++    stored_transform::<PackedPair, true>(&mut values, &plan.roots, 0);
++    euler_combine_grained(&mut a, &b, &values);
++    a
++}
++
++#[cfg(any(zopro_fft_pass_grain,test))]
++fn euler_combine_grained(a: &mut [Fr], b: &[Fr], values: &[PackedPair]) {
++    if cfg!(zopro_euler_pointwise8) {
++        a.par_chunks_mut(8).zip(values.par_chunks(2)).with_min_len(16).enumerate().for_each(|(i,(out,values))| {
++            let (da0,db0) = values[0].load().halves();
++            let (da1,db1) = values[1].load().halves();
++            let da = Pair::from_halves(&da0,&da1);
++            let db = Pair::from_halves(&db0,&db1);
++            let aa = Pair::new(&core::array::from_fn(|j| out.get(j).copied().unwrap_or(Fr::ZERO)));
++            let bb = Pair::new(&core::array::from_fn(|j| b.get(8*i+j).copied().unwrap_or(Fr::ZERO)));
++            let product = da.sum2(&bb,&aa,&db).get();
++            out.copy_from_slice(&product[..out.len()]);
++        });
++    } else {
++    a.par_chunks_mut(4).zip(values.par_iter()).with_min_len(32).enumerate().for_each(|(i,(out,value))| {
++        let (da,db) = Quad::unpair(&value.load());
++        let aa = Quad::new(&core::array::from_fn(|j| out.get(j).copied().unwrap_or(Fr::ZERO)));
++        let bb = Quad::new(&core::array::from_fn(|j| b.get(4*i+j).copied().unwrap_or(Fr::ZERO)));
++        let product = da.mul(&bb).add(&aa.mul(&db)).get();
++        out.copy_from_slice(&product[..out.len()]);
++    });
++    }
++}
++
++
++#[cfg(test)]
++mod pass_grain_tests {
++    use super::*;
++
++    #[test]
++    fn packing_and_product_match_sparse_polynomial_oracle_across_pools() {
++        for workers in [1,4,32] {
++            rayon::ThreadPoolBuilder::new().num_threads(workers).stack_size(512*1024)
++                .build().unwrap().install(|| {
++                for n in [8usize,128,1024,8192,65536] {
++                    let root=Fr::root_of_unity(n).unwrap().pow(&[3]);
++                    let coset=Fr::from(5u64);
++                    let mut plan=Plan::new(n,root,coset,super::super::denominator(n,coset).unwrap());
++                    plan.prepare_euler_study();
++                    let eval=|terms:&[(usize,Fr)]| {
++                        let mut values=vec![Fr::ZERO;n];let mut derivative=vec![Fr::ZERO;n];
++                        for &(k,c) in terms {
++                            let step=root.pow(&[k as u64]);let mut x=c;
++                            for (v,d) in values.iter_mut().zip(&mut derivative){
++                                *v+=x;*d+=Fr::from(k as u64)*x;x*=step;
++                            }
++                        }
++                        (values,derivative)
++                    };
++                    let (a,da)=eval(&[(0,Fr::ONE),(1,Fr::from(7u64)),(n/2+1,Fr::from(13u64)),(n-1,-Fr::ONE)]);
++                    let (b,db)=eval(&[(2,Fr::from(11u64)),(n/3,Fr::from(19u64)),(n-2,Fr::from(23u64))]);
++                    let expected:Vec<_>=(0..n).map(|i|Fr::from(n as u64)*(da[i]*b[i]+a[i]*db[i])).collect();
++                    assert_eq!(euler_product_grained(&plan,a,b),expected,"workers={workers},n={n}");
++                    assert!(euler_product_grained(&plan,Vec::new(),Vec::new()).is_empty());
++                }
++            });
++        }
++    }
++
++    #[test]
++    fn partial_pointwise_rows_match_scalar_oracle_for_concurrent_small_stack_callers() {
++        let pool=rayon::ThreadPoolBuilder::new().num_threads(8).stack_size(512*1024).build().unwrap();
++        std::thread::scope(|scope| {
++            let mut callers=Vec::new();
++            for caller in 0..3u64 {
++                let pool=&pool;
++                callers.push(scope.spawn(move || pool.install(|| {
++                    for n in [0usize,1,3,4,7,8,9,127,128,129,255,256,257,1023,1024,1025,4095,4096,4097] {
++                        let count=n.div_ceil(8)*8;
++                        let rows:Vec<[Fr;4]>=(0..count).map(|i|core::array::from_fn(|j| {
++                            match (i+j+caller as usize)%7 {
++                                0=>Fr::ZERO,1=>Fr::ONE,2=>-Fr::ONE,
++                                _=>Fr::from(3+i as u64*17+j as u64+caller*101).pow(&[37]),
++                            }
++                        })).collect();
++                        let values:Vec<PackedPair>=rows.chunks(4).map(|q|PackedPair::store(
++                            Pair::new(&core::array::from_fn(|j|q[j%4][if j<4 {2}else{3}])))).collect();
++                        for nb in [0,n/3,n] {
++                            let mut a:Vec<_>=rows[..n].iter().map(|r|r[0]).collect();
++                            let b:Vec<_>=rows[..nb].iter().map(|r|r[1]).collect();
++                            let expected:Vec<_>=(0..n).map(|i|rows[i][2]*b.get(i).copied().unwrap_or(Fr::ZERO)+a[i]*rows[i][3]).collect();
++                            euler_combine_grained(&mut a,&b,&values);
++                            assert_eq!(a,expected,"caller={caller},n={n},nb={nb}");
++                        }
++                    }
++                })));
++            }
++            for caller in callers {caller.join().unwrap();}
++        });
++    }
++}

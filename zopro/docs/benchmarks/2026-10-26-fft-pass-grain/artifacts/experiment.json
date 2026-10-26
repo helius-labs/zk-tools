@@ -1,0 +1,93 @@
+{
+  "declared_at": "2026-10-26T01:32:24Z",
+  "status": "declared before implementation/compilation/timing",
+  "accepted_manifest": "/tmp/zopro-grouping-module/production-source-manifest.json",
+  "mechanism": "Bound splitting only of Euler paired FFT input packing and derivative output combination to128 scalar rows per Rayon leaf (32 packed inputs;16 eight-row outputs or32 four-row outputs). Original OFF bodies retained behind a separate ON helper. FFT transforms, coefficient weights, point queries and arithmetic remain unchanged.",
+  "activation": "Private cfg zopro_fft_pass_grain plus explicit ZOPRO_CPU_FFT_PASS_GRAIN=1, sampled once per process; absent/0 OFF",
+  "memory": "No new buffer/table/copy/plan/per-proof allocation. Existing iterators, vector lengths/capacities and reserve/drop order retained; task grouping may still change allocation overlap elsewhere.",
+  "history": "Different iterator boundary from accepted canonical128 conversion and failed weighted reducer2/4 grain. Bounded victim-scan target experiment closed/pushed6fde397d; that runtime is not included.",
+  "tests": "Native unfiltered core OFF and ON, raw/cubic; new independent sparse polynomial oracle across pool sizes/boundaries plus concurrent small-stack/pointwise identity tests. Field kernels unchanged; inherited33field qualification, no new field run claimed.",
+  "preflight": {
+    "shapes": "all nine",
+    "workers": 4,
+    "variants": [
+      "off",
+      "on"
+    ],
+    "rounds": 1,
+    "primes": 3,
+    "sdk": 72,
+    "exports": 18
+  },
+  "latency": {
+    "blocks": 7,
+    "cases": [
+      "1x2-w32",
+      "2x2-w32",
+      "merge-54x1-w32",
+      "1x2-w16"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds": 31,
+    "primes": 3,
+    "sdk": 2856,
+    "exports": 84,
+    "affinity": {
+      "w32": "0-31",
+      "w16": "0-15 physical cores"
+    },
+    "gates": {
+      "controls": [
+        "accepted",
+        "off"
+      ],
+      "primary_paired_median_lt": 1,
+      "primary_wins_gte": 4,
+      "four_case_paired_geomean_lt": 1,
+      "every_case_paired_median_lte": 1.02,
+      "every_block_lte": 1.05,
+      "off_calibration_factor_lte": 1.03
+    },
+    "minimum_gain_floor": false,
+    "unchanged_reroll": false
+  },
+  "profiles": {
+    "after_all_latency": true,
+    "blocks": 1,
+    "cases": [
+      "1x2-w32",
+      "2x2-w32",
+      "merge-54x1-w32"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds": {
+      "primary": 101,
+      "2x2": 101,
+      "merge54": 9
+    },
+    "primes": 3,
+    "sdk": 660,
+    "exports": 9,
+    "captures": 9,
+    "frequency_hz": 999,
+    "monotonic_clock": true
+  },
+  "total": {
+    "sdk": 3588,
+    "distinct_exports": 111,
+    "proof_public_members": 222
+  },
+  "validity": "Before timing, preflight fixture binding/identity audit runs in workflow AND as required perf check. All latency before profiles; no owned build/benchmark/audit overlaps. Start/end source/key/binary/link pins. All exports Gnark verified. Preserve failures and all observations.",
+  "if_positive": "All-nine latency, portable/concurrent/actual pressure+large qualification before adoption; target C7a comparison follows local positive qualification. No unconditional new AWS launch in this experiment.",
+  "publish": "Commit/push each completed experiment including negative results, preserving raw captures locally with hashes and excluding them from Git.",
+  "adopted": false,
+  "goal_achieved": false
+}
