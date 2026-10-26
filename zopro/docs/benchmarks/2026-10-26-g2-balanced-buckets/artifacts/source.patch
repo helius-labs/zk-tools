@@ -1,0 +1,155 @@
+diff --git a/crates/zopro-core/src/msm_affine/g2_phi.rs b/tmp/zopro-g2-balanced-buckets/overlay/crates/zopro-core/src/msm_affine/g2_phi.rs
+index 48b8d5b..61d6813 100644
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/tmp/zopro-g2-balanced-buckets/overlay/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -8,6 +8,25 @@ use zopro_bn254::Fr;
+ const MIN_QUERY: usize = 1024;
+ const MAX_QUERY: usize = 1 << 16;
+ 
++/// Couple partition count to digit width instead of duplicating wide buckets.
++/// Both layouts hold 4,096 ordinary bucket slots per window. The narrower
++/// layout has one extra window and more merge work; SDK timing decides whether
++/// its shorter fill tasks pay for that work.
++#[inline]
++fn geometry_for(workers: usize, enabled: bool) -> (usize, usize) {
++    if enabled && workers >= 32 {
++        (11, 4)
++    } else {
++        (12, 2)
++    }
++}
++
++#[inline]
++pub(super) fn balanced_requested() -> bool {
++    cfg!(zopro_g2_balanced_buckets)
++        && std::env::var("ZOPRO_CPU_G2_BALANCED_BUCKETS").as_deref() == Ok("1")
++}
++
+ // Lattice rows (V1X,-V1Y_ABS),(V2X,V2Y) annihilate (1,lambda) mod r.
+ // Reciprocals are rounded at 320 bits. Truncating input below bits128/64
+ // contributes <2^-62 to coordinate error; including nearest rounding gives
+@@ -223,12 +242,94 @@ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Pro
+     if !(MIN_QUERY..MAX_QUERY).contains(&bases.len()) {
+         return super::g2_horner::raw(bases, words);
+     }
+-    hb_raw(bases, words, 12, 2)
++    let (bits, parts) = geometry_for(rayon::current_num_threads(), balanced_requested());
++    hb_raw(bases, words, bits, parts)
+ }
+ 
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    #[test]
++    fn coupled_geometry_bounds_and_worker_cutoff() {
++        for workers in [1, 2, 16, 31, 32, 64, 96, 128] {
++            assert_eq!(geometry_for(workers, false), (12, 2));
++            let (bits, parts) = geometry_for(workers, true);
++            assert_eq!(parts * (1usize << (bits - 1)), 4096);
++            assert_eq!((bits, parts), if workers >= 32 { (11, 4) } else { (12, 2) });
++            assert!(127usize.div_ceil(bits) * parts <= 48);
++        }
++    }
++
++    fn balanced_oracle(n: usize, kind: usize) {
++        let mut expected = Fr::ZERO;
++        let mut points = Vec::with_capacity(n);
++        let mut words = Vec::with_capacity(n);
++        let points_by_weight: Vec<_> = (0..33)
++            .map(|i| (G2Affine::GENERATOR * Fr::from(i as u64)).to_affine())
++            .collect();
++        let mut state = 0x1579_bd02_468a_ce13u64;
++        for i in 0..n {
++            let weight = if i % 29 == 0 { 0 } else { i % 32 + 1 };
++            let signed = if i % 3 == 0 { -Fr::from(weight as u64) } else { Fr::from(weight as u64) };
++            let point = if i % 3 == 0 { -points_by_weight[weight] } else { points_by_weight[weight] };
++            let scalar = match kind {
++                0 => Fr::ZERO,
++                1 => if i % 2 == 0 { Fr::ONE } else { -Fr::ONE },
++                2 => {
++                    let mut limbs = [0u64; 4];
++                    for limb in &mut limbs {
++                        state ^= state << 13;
++                        state ^= state >> 7;
++                        state ^= state << 17;
++                        *limb = state;
++                    }
++                    limbs[3] &= 0x1fff_ffff_ffff_ffff;
++                    Fr::from_canonical(limbs).unwrap()
++                }
++                _ => -Fr::from((i % 4097 + 1) as u64),
++            };
++            expected += signed * scalar;
++            points.push(point);
++            words.push(scalar.to_canonical());
++        }
++        let got = hb_raw(&points, &mut words, 11, 4).to_affine();
++        assert_eq!(got, (G2Affine::GENERATOR * expected).to_affine(), "n={n}, kind={kind}");
++    }
++
++    #[test]
++    fn narrow_four_part_msm_matches_weighted_generator_oracle() {
++        for workers in [1, 4, 32] {
++            let pool = rayon::ThreadPoolBuilder::new()
++                .num_threads(workers)
++                .stack_size(512 * 1024)
++                .build()
++                .unwrap();
++            pool.install(|| {
++                for n in [1024, 1025, 4097] {
++                    for kind in 0..4 {
++                        balanced_oracle(n, kind);
++                    }
++                }
++            });
++        }
++    }
++
++    #[test]
++    fn narrow_four_part_msm_concurrent_callers_share_small_stack_pool() {
++        let pool = rayon::ThreadPoolBuilder::new()
++            .num_threads(4)
++            .stack_size(512 * 1024)
++            .build()
++            .unwrap();
++        std::thread::scope(|scope| {
++            for caller in 0..4 {
++                let pool = &pool;
++                scope.spawn(move || pool.install(|| balanced_oracle(1025 + caller, caller)));
++            }
++        });
++        assert_eq!(pool.install(|| rayon::current_num_threads()), 4);
++    }
++
+     #[test]
+     fn decomposition_and_endomorphism_match_independent_field_oracles() {
+         let lambda = Fr::from_decimal("4407920970296243842393367215006156084916469457145843978461");
+diff --git a/crates/zopro-core/src/msm_affine/workspace.rs b/tmp/zopro-g2-balanced-buckets/overlay/crates/zopro-core/src/msm_affine/workspace.rs
+index 2e5983d..265a432 100644
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/tmp/zopro-g2-balanced-buckets/overlay/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -204,15 +204,20 @@ where
+         )?,
+     )?;
+     p.leaf = p.leaf.max(t.leaf);
+-    for bits in [12usize] {
++    let layouts = [(12usize, 2usize), (11usize, 4usize)];
++    #[cfg(all(zopro_g2_balanced_buckets, zopro_g2_horner_buckets))]
++    let count = 1 + usize::from(super::g2_phi::balanced_requested());
++    #[cfg(not(all(zopro_g2_balanced_buckets, zopro_g2_horner_buckets)))]
++    let count = 1;
++    for (bits, parts) in layouts.into_iter().take(count) {
+         let windows=127usize.div_ceil(bits);
+         let top_bits=126-(windows-1)*bits;
+-        let mut q=shape::<C>(1<<(bits-1),windows,2,batch_size(bits).max(32))?;
+-        let top=top::<C>(n.div_ceil(2),top_bits+1)?;
++        let mut q=shape::<C>(1<<(bits-1),windows,parts,batch_size(bits).max(32))?;
++        let top=top::<C>(n.div_ceil(parts),top_bits+1)?;
+         // Two sign classes and split-off negative sums. High component remains
+         // live while low is reduced; retain a conservative original scalar copy.
+         let extra=mul(vector::<Affine<C>>(1<<top_bits,false)?,3)?;
+-        q.held=add(q.held,add(mul(add(top.held,extra)?,2)?,vector::<[u64;4]>(n,false)?)?)?;
++        q.held=add(q.held,add(mul(add(top.held,extra)?,parts)?,vector::<[u64;4]>(n,false)?)?)?;
+         q.leaf=q.leaf.max(top.leaf);p=p.maximum(q);
+     }
+     Some(p)

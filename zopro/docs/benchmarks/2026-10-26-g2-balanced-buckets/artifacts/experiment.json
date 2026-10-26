@@ -1,0 +1,104 @@
+{
+  "status": "declared before candidate compilation and timing",
+  "accepted_manifest": "/tmp/zopro-grouping-module/production-source-manifest.json",
+  "mechanism": "For eligible exclusive G2 queries with at least 32 Rayon workers, couple four point partitions with 11-bit signed windows, replacing two partitions with 12-bit windows. Preserve decomposition, kernels, top-digit handling and Rayon runtime.",
+  "activation": "Private cfg zopro_g2_balanced_buckets and explicit ZOPRO_CPU_G2_BALANCED_BUCKETS=1; omission and zero select OFF. Under 32 workers retain 12-bit/two-part geometry.",
+  "memory": "No persistent tables or new point/scalar copies. Ordinary per-window bucket slots remain 4096; 12 rather than 11 windows and extra merges can raise total held storage. Forecast takes the maximum of original and candidate layouts, including per-part signed top scratch. No total-RSS or pressure claim before measurement.",
+  "history": "Prior unchanged guard-sharing, empty-probe, timed-search and fixed-width four-part experiments remain rejected. This candidate changes width jointly with parts in the cube-root exclusive-query path.",
+  "build": "One isolated native SDK binary contains runtime OFF/ON. Full native core/raw/cubic suites plus new known-generator oracle, concurrent-caller and small-stack tests; field arithmetic unchanged with inherited qualification.",
+  "preflight": {
+    "cases": [
+      "1x2",
+      "2x2",
+      "merge-54x1"
+    ],
+    "workers": [
+      4,
+      32
+    ],
+    "variants": [
+      "off",
+      "on"
+    ],
+    "rounds": 1,
+    "primes": 3,
+    "sdk": 48,
+    "exports": 12
+  },
+  "timing": {
+    "blocks": 7,
+    "cases": [
+      "1x2-w32",
+      "2x2-w32",
+      "merge-54x1-w32",
+      "1x2-w16"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds": 31,
+    "primes": 3,
+    "affinity": {
+      "w32": "0-31",
+      "w16": "0-15 physical cores"
+    },
+    "gates": {
+      "controls": [
+        "accepted",
+        "off"
+      ],
+      "primary32_paired_median_lt": 1.0,
+      "primary32_wins_gte": 4,
+      "four_case_paired_geomean_lt": 1.0,
+      "every_case_paired_median_lte": 1.02,
+      "every_block_lte": 1.05,
+      "off_accepted_calibration_factor_lte": 1.03
+    },
+    "minimum_gain_floor": false,
+    "no_unchanged_reroll": true,
+    "sdk": 2856,
+    "exports": 84
+  },
+  "profiles": {
+    "separate_after_all_latency": true,
+    "blocks": 1,
+    "cases": [
+      "1x2-w32",
+      "2x2-w32",
+      "merge-54x1-w32"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds": {
+      "primary": 101,
+      "2x2": 101,
+      "merge54": 9
+    },
+    "frequency_hz": 999,
+    "monotonic_clock": true,
+    "sdk": 660,
+    "exports": 9,
+    "captures": 9
+  },
+  "counts": {
+    "sdk": 3564,
+    "distinct_independent_exports": 105,
+    "proof_public_members": 210
+  },
+  "qualification_if_positive": [
+    "full-nine latency",
+    "portable paths",
+    "pressure and allocation forecast audit",
+    "large circuit compatibility",
+    "target C7a scaling"
+  ],
+  "adopted": false,
+  "goal_achieved": false,
+  "publish": "Commit and push source, protocol, verification, profiles and conclusion after experiment; no raw perf payload in Git.",
+  "declared_at": "2026-10-26T00:08:46Z"
+}
