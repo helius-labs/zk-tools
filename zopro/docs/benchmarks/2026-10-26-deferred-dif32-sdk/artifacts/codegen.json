@@ -1,0 +1,141 @@
+{
+  "scope": "Actual linked packed stored-column wrappers, including scalar/header work and inlined branches. Candidate DIF wrapper retains OFF and ON and cached/uncached alternatives, so static IFMA sites are not executed counts. Stack-reference lines are not spill-cost or whole-stack bounds.",
+  "symbols": [
+    {
+      "binary_sha256": "03e1260e89068c2bec37a2471c34e93628a9f081903e1b7eee9cab9c306aaf3d",
+      "build": "accepted",
+      "calls": [
+        "  3bbc44:\te8 a2 0a d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3bbc53:\te8 93 0a d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3bbc67:\te8 7f 0a d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3bbc7c:\te8 6a 0a d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3bbc93:\te8 53 0a d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3bbcaa:\te8 3c 0a d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3bbcbc:\te8 2a 0a d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>"
+      ],
+      "ifma_sites": 200,
+      "instructions": 2893,
+      "literal_rsp_subtractions": [
+        "  3b8001:\t48 81 ec c0 0f 00 00 \tsub    $0xfc0,%rsp",
+        "  3b8010:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3b801f:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3b802e:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3b803d:\t48 81 ec c0 02 00 00 \tsub    $0x2c0,%rsp"
+      ],
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x3b7ff0",
+        "--stop-address=0x3bbcc1",
+        "/tmp/zopro-grouping-module/native/candidate-sdk"
+      ],
+      "rsp_operand_lines": 693,
+      "size_bytes": 15569,
+      "symbol": "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>"
+    },
+    {
+      "binary_sha256": "03e1260e89068c2bec37a2471c34e93628a9f081903e1b7eee9cab9c306aaf3d",
+      "build": "accepted",
+      "calls": [
+        "  3b1fef:\te8 f7 a6 d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3b1ffe:\te8 e8 a6 d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3b2012:\te8 d4 a6 d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3b2027:\te8 bf a6 d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3b203e:\te8 a8 a6 d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3b2055:\te8 91 a6 d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>",
+        "  3b2067:\te8 7f a6 d3 ff       \tcall   ec6eb <core::panicking::panic_bounds_check>"
+      ],
+      "ifma_sites": 200,
+      "instructions": 2893,
+      "literal_rsp_subtractions": [
+        "  3ae381:\t48 81 ec c0 0f 00 00 \tsub    $0xfc0,%rsp",
+        "  3ae390:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3ae39f:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3ae3ae:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3ae3bd:\t48 81 ec c0 02 00 00 \tsub    $0x2c0,%rsp"
+      ],
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x3ae370",
+        "--stop-address=0x3b206c",
+        "/tmp/zopro-grouping-module/native/candidate-sdk"
+      ],
+      "rsp_operand_lines": 687,
+      "size_bytes": 15612,
+      "symbol": "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>"
+    },
+    {
+      "binary_sha256": "35cabbdfa0e5ab2e3e20f5ee359fdf787bb76f5a5fea5914f3071d4f865bde9c",
+      "build": "candidate",
+      "calls": [
+        "  3bd042:\te8 84 f7 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd054:\te8 72 f7 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd069:\te8 5d f7 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd080:\te8 46 f7 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd094:\te8 32 f7 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd0a8:\te8 1e f7 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd0bf:\te8 07 f7 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd0d3:\te8 f3 f6 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd0ea:\te8 dc f6 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd0fc:\te8 ca f6 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd111:\te8 b5 f6 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd120:\te8 a6 f6 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd12f:\te8 97 f6 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd143:\te8 83 f6 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3bd152:\te8 74 f6 d2 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>"
+      ],
+      "ifma_sites": 400,
+      "instructions": 3861,
+      "literal_rsp_subtractions": [
+        "  3b81a1:\t48 81 ec c0 0f 00 00 \tsub    $0xfc0,%rsp",
+        "  3b81b0:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3b81bf:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3b81ce:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3b81dd:\t48 81 ec c0 02 00 00 \tsub    $0x2c0,%rsp"
+      ],
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x3b8190",
+        "--stop-address=0x3bd157",
+        "/tmp/zopro-deferred-dif32-sdk/native/candidate-sdk"
+      ],
+      "rsp_operand_lines": 751,
+      "size_bytes": 20423,
+      "symbol": "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>"
+    },
+    {
+      "binary_sha256": "35cabbdfa0e5ab2e3e20f5ee359fdf787bb76f5a5fea5914f3071d4f865bde9c",
+      "build": "candidate",
+      "calls": [
+        "  3b218f:\te8 37 a6 d3 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3b219e:\te8 28 a6 d3 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3b21b2:\te8 14 a6 d3 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3b21c7:\te8 ff a5 d3 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3b21de:\te8 e8 a5 d3 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3b21f5:\te8 d1 a5 d3 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>",
+        "  3b2207:\te8 bf a5 d3 ff       \tcall   ec7cb <core::panicking::panic_bounds_check>"
+      ],
+      "ifma_sites": 200,
+      "instructions": 2893,
+      "literal_rsp_subtractions": [
+        "  3ae521:\t48 81 ec c0 0f 00 00 \tsub    $0xfc0,%rsp",
+        "  3ae530:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3ae53f:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3ae54e:\t48 81 ec 00 10 00 00 \tsub    $0x1000,%rsp",
+        "  3ae55d:\t48 81 ec c0 02 00 00 \tsub    $0x2c0,%rsp"
+      ],
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x3ae510",
+        "--stop-address=0x3b220c",
+        "/tmp/zopro-deferred-dif32-sdk/native/candidate-sdk"
+      ],
+      "rsp_operand_lines": 687,
+      "size_bytes": 15612,
+      "symbol": "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>"
+    }
+  ]
+}
