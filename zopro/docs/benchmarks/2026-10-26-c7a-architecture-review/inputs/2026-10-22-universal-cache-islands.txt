@@ -1,0 +1,21 @@
+# Cache-group query pools: rejected
+
+This private experiment partitions the existing A/K/H and B1/B2 query groups into two persistent Rayon pools pinned to disjoint last-level caches. The arithmetic kernels remain unchanged. It adds no key-derived tables or duplicate solver plan. Linux affinity is applied only to owned workers and checked using each worker's actual mask. Missing topology or unsupported worker configuration falls back to the original join.
+
+The prototype has 32 active query workers in addition to the existing 32 FFT/solver workers. Actual SDK diagnostics confirm 65 process threads, compared with 33 for OFF, with 16 pinned query workers on each cache group. Their stacks, TLS and allocator retention have not been integrated into the resource forecast. Diagnostic VmSize, VmRSS and VmHWM are archived; no memory-pressure qualification is claimed.
+
+Both native generator/builds, field/core/SDK suites and explicit OFF/ON runtime tests pass. Two new tests cover partition disjointness and worker budgets, nested outer pools and panic propagation/reuse. The actual SDK activation run adds 16 verified proofs and two independently verified gnark samples.
+
+The fixed primary screen used three reversing fresh-process repetitions of 23 fresh full-SDK proofs for frozen retained, fresh OFF and islands, totaling 207 proofs. The first sample includes lazy pool startup. No owned CPU builds, profiles, audits or archival jobs overlapped timing. The predeclared gate required at least 5% paired improvement versus both controls and two winning repetitions against each. Resident memory was descriptive; any speed-positive result still required accurate worker-cost modeling and pressure/concurrency qualification.
+
+|Case|Median of process medians, ms|Peak sampled RssAnon, MiB|
+|---|---:|---:|
+|frozen|11.205|124|
+|off|11.154|120|
+|islands|11.326|85|
+
+Against frozen: paired median ratio 1.016510, 1/3 wins.
+
+Against off: paired median ratio 1.009931, 0/3 wins.
+
+The latency gate fails. Lower sampled resident memory is observed, but is not a qualified universal memory improvement, particularly with the extra persistent workers. The candidate is rejected for the latency objective. Nine measured samples independently pass gnark; proof/public lengths, fixture binding, hashes and distinct blinded proof hashes are checked. No unchanged rerun or relaxed threshold follows. No all-nine, portable, memory-pressure, concurrent-throughput or AWS qualification follows. Retained production f5c720 is unchanged; the 9 ms and original all-eight 10x goals remain unmet.

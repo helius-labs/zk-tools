@@ -1,0 +1,172 @@
+# Zopro and Aeglos: fresh c7a.24xlarge and Ryzen comparison
+
+Measured on 23 October 2026 using retained Zopro f5c720 and Aeglos 0290613. The AWS advantage for Aeglos reproduces with the current retained implementation. Zopro wins the fresh local comparison at each prover's best tested worker count; Aeglos wins the AWS comparison at each prover's best tested count. This is evidence about these two hosts and tested configurations, not every CPU.
+
+The crosshost control uses exactly the same image and executable hashes on both hosts, including the Zopro build targeting znver4. The separate all-nine native Ryzen run is linked below. No experimental optimization was promoted by this comparison.
+
+## Fresh latency comparison
+
+Each number is the median of three fresh-process medians. Each process excludes key loading and three priming proofs, then measures 31 full requests for 1x2 or 17 for other circuits. Request assignment, fresh witness solving, fresh proof randomness, proving, verification and serialization are inside both timers. The fastest tested worker count is selected separately per prover: 16/32 locally, 16/32/64/96 on AWS.
+
+| Circuit | Native Ryzen Zopro ms (workers) | Native Ryzen Aeglos ms (workers) | AWS Zopro ms (workers) | AWS Aeglos ms (workers) | AWS Zopro/Aeglos |
+|---|---:|---:|---:|---:|---:|
+| 1x2 | 11.097 (32) | 12.761 (32) | 16.670 (32) | 7.963 (96) | 2.094 |
+| 2x2 | 15.365 (32) | 20.867 (32) | 22.601 (32) | 11.682 (96) | 1.935 |
+| 4x2 | 20.948 (32) | 37.641 (32) | 26.587 (64) | 18.649 (96) | 1.426 |
+| 8x2 | 33.790 (32) | 82.164 (16) | 36.205 (64) | 31.342 (96) | 1.155 |
+| 12x2 | 51.648 (32) | 178.350 (16) | 58.407 (64) | 48.710 (96) | 1.199 |
+| 16x2 | 55.967 (32) | 230.353 (16) | 58.425 (64) | 56.926 (96) | 1.026 |
+| 24x2 | 109.524 (32) | 447.283 (16) | 102.315 (64) | 87.324 (96) | 1.172 |
+| merge-24x1 | 108.784 (32) | 429.250 (16) | 106.963 (64) | 84.685 (96) | 1.263 |
+| merge-54x1 | 301.194 (32) | 993.802 (16) | 310.649 (32) | 174.225 (96) | 1.783 |
+
+Ratios below 1 favor Zopro. [The native local report](../2026-10-23-current-local-aeglos-all-nine/README.md) has its complete protocol and raw results. These best-configuration comparisons do not imply Zopro wins every local worker count: Aeglos wins local 1x2 at 16 workers.
+
+## Same executable control and worker scaling
+
+Ryzen has 16 physical cores, 32 hardware threads and 64 MiB L3 in two instances. The c7a.24xlarge host reports an EPYC 9R14 with 96 physical cores, one thread per core and 384 MiB L3 in twelve instances. Both report one NUMA node. Container limits were 30 GiB RAM on both, 32 logical CPUs locally and 96 on AWS. Worker counts were varied inside these limits; CPU affinity was not pinned. Therefore equal worker counts do not imply equal physical resources.
+
+| Circuit | Workers | Same-image Ryzen Zopro ms | Same-image Ryzen Aeglos ms | AWS Zopro ms | AWS Aeglos ms |
+|---|---:|---:|---:|---:|---:|
+| 1x2 | 16 | 15.075 | 13.033 | 24.565 | 19.275 |
+| 1x2 | 32 | 11.093 | 12.718 | 16.670 | 11.626 |
+| 1x2 | 64 | — | — | 17.294 | 8.636 |
+| 1x2 | 96 | — | — | 18.554 | 7.963 |
+| merge-54x1 | 16 | 320.518 | 992.750 | 440.273 | 612.443 |
+| merge-54x1 | 32 | 295.820 | 999.662 | 310.649 | 308.616 |
+| merge-54x1 | 64 | — | — | 373.349 | 198.365 |
+| merge-54x1 | 96 | — | — | 424.618 | 174.225 |
+
+## Why the machines disagree
+
+The same-image control reproduces the local advantage: 1x2 is 11.093 ms for Zopro versus 12.718 ms for Aeglos at 32 workers; 54→1 is 295.820 ms for Zopro at 32 versus 992.750 ms for Aeglos at its better local count of 16. These are close to the independently built native-local results. A stale implementation or different compiler target does not account for the reversal.
+
+Aeglos scales substantially across the server’s additional physical cores. Its AWS 54→1 latency falls from 612.443 ms at 16 workers to 174.225 ms at 96. On Ryzen, increasing workers from 16 to 32 adds SMT threads and leaves its latency near one second. Its local 54→1 profile spends about 90% of elapsed proving time in MSM. Aeglos's source uses shifted base tables and gathered point accesses; its local profiles spend approximately 40–42% of sampled user cycles in pair loading. The larger server cache and memory system are plausible contributors, but this experiment does not isolate their individual effects or measure DRAM bandwidth. The CPU's physical-core count alone also does not explain the whole difference: Aeglos already performs better on AWS at 16 workers.
+
+Zopro has two distinct scaling problems in these measurements:
+
+1. **Small proofs accumulate scheduling overhead.** On AWS, 1x2 improves up to 32 workers, then regresses. Crossbeam epoch operations account for 50.21% of sampled user cycles at 96 workers, versus 10.54% at AWS 32 and 8.18% at local 32. Its voluntary context switches rise from about 586 to 1,644 per proof on AWS 32→96. These samples establish substantial overhead, not a claim that removing that percentage would remove the same percentage of wall time. Aeglos's pool also spends cycles waiting, so zero-wait scheduling is not the comparison standard.
+2. **Large proofs encounter severe page-table lock contention.** The unprofiled 54→1 runs show the following process CPU totals per proof. CPU time is summed across threads.
+
+| AWS workers | Zopro user CPU ms | Zopro kernel CPU ms | Zopro minor faults | Aeglos kernel CPU ms | Aeglos minor faults |
+|---:|---:|---:|---:|---:|---:|
+| 32 | 5,831 | 2,641 | 160,007 | 25 | 2,719 |
+| 64 | 8,159 | 9,072 | 244,645 | 41 | 2,697 |
+| 96 | 11,161 | 16,604 | 296,715 | 109 | 3,686 |
+
+A separate kernel-only profile at 96 workers attributes 92.16% of sampled kernel cycles to `__pv_queued_spin_lock_slowpath`. A follow-up call-chain profile puts approximately 91% under `do_anonymous_page → pte_offset_map_lock → _raw_spin_lock`. This identifies contention during anonymous-page faults. It is more specific than attributing the entire regression to the Rust scheduler. Both kernel profiles and the follow-up call-chain recording report zero lost samples. The raw call chains are in [the kernel diagnostic](kernel-callchain/remote-results/output/kernel-callchain/kernel-zopro-merge-54x1-w96-flat.txt).
+
+## Targeted page-touch diagnostic
+
+After identifying the page-table contention, a separate, predeclared diagnostic compared the unchanged executable, an inactive allocation hook, and the active hook. The active hook touches one byte per page for allocations of at least 1 MiB before the allocation returns to parallel code. It introduces no additional allocation or retained buffer. Reallocation preserves existing contents. Local boundary checks covered malloc/calloc/realloc contents and aligned allocations before the experiment.
+
+This is a Linux/glibc interposition experiment, not a portable production implementation. It affects allocation initialization, including inside the measured proof loop; that work is included in the timings. All three cases used 96 workers, three reversing fresh-process repetitions, three excluded priming requests and 17 measured requests per process.
+
+| Case | Median ms | User CPU ms/proof | Kernel CPU ms/proof | Minor faults/proof | Max whole-process RSS MiB |
+|---|---:|---:|---:|---:|---:|
+| Unchanged executable | 421.539 | 11,136 | 16,468 | 294,842 | 3,105.6 |
+| Hook inactive | 422.029 | 11,112 | 16,549 | 296,754 | 2,681.5 |
+| Touch pages before return | 285.807 | 11,235 | 513 | 77,408 | 2,791.1 |
+
+The active hook wins all three paired repetitions against both controls, reducing paired median latency by 32.2% versus the unchanged executable and 31.9% versus the inactive hook. It passes the diagnostic's necessary 10% improvement and ≤1.2× native peak-RSS gate. Peak RSS varies with allocation placement; the active run is approximately 4.1% above the inactive hook, so the lower maximum versus the unchanged control is not evidence of a memory-saving technique.
+
+This is **about 8.0% lower latency than the best unchanged configuration, 310.649 ms at 32 workers**, not a 32% improvement over that best configuration. It still takes about 1.64× Aeglos's 174.225 ms. CPU cost per proof remains higher than unchanged Zopro at 32 workers, so this does not establish better concurrent throughput. The causal result supports improving initialization and reuse of budgeted proof workspace. It does not qualify the hook for production, mobile devices, larger circuits or memory pressure.
+
+## Next implementation targets
+
+First locate the allocations and parallel writes responsible for the page faults, then implement bounded workspace reuse or controlled initialization at those ownership boundaries. Preserve the existing memory admission and release policy, and measure peak memory as well as latency. Independently address excessive work stealing and synchronization for small proofs. The small-proof result needs its own scheduling fix; the 54→1 page-touch result does not establish an improvement for 1x2. Test a concrete implementation on both hosts, across all circuits and under memory pressure before adoption.
+
+The main latency run had no OOM or memory-limit events and accumulated only 0.255 seconds of throttled CPU time across all 216 processes. Those mechanisms do not explain its large scaling regression. All conclusions remain specific to the measured hosts, software and warm single-proof workload.
+
+
+## Memory
+
+Maximum whole-process RSS across the three repetitions of each prover's fastest AWS configuration. This includes key loading, preparation, priming and warm proofs; it is neither incremental proof scratch nor an enforced memory limit. Aeglos retains its existing 24 GiB native preparation budget, which does not cover the whole process.
+
+| Circuit | Zopro MiB | Aeglos MiB |
+|---|---:|---:|
+| 1x2 | 136.1 | 461.0 |
+| 2x2 | 206.6 | 804.6 |
+| 4x2 | 298.7 | 1347.8 |
+| 8x2 | 539.1 | 2461.2 |
+| 12x2 | 764.0 | 3726.9 |
+| 16x2 | 917.3 | 4588.0 |
+| 24x2 | 1452.1 | 6709.0 |
+| merge-24x1 | 1380.3 | 6604.8 |
+| merge-54x1 | 2432.4 | 13039.3 |
+
+## Separate runtime profiles
+
+Profiles were collected only after the host's latency runs ended. Each profile process excludes loading and three priming proofs, then samples 201 primary or 31 merge requests. `perf stat` and `perf record` use separate processes. Profile timings below are diagnostic and are not mixed into the latency tables. FIFO enable/disable acknowledgements bound the counters to the warm loop.
+
+| Host | Circuit | Prover | Workers | Stat median ms | CPU ms/proof | Voluntary switches/proof | IPC | Generic cache misses/1k instructions |
+|---|---|---|---:|---:|---:|---:|---:|---:|
+| local | 1x2 | zopro | 16 | 13.905 | 182.5 | 351.1 | 2.129 | 0.96 |
+| local | 1x2 | aeglos | 16 | 13.005 | 200.4 | 56.6 | 1.659 | 4.46 |
+| local | 1x2 | zopro | 32 | 11.220 | 254.9 | 544.4 | 1.683 | 1.34 |
+| local | 1x2 | aeglos | 32 | 12.789 | 377.3 | 65.6 | 0.987 | 5.58 |
+| local | merge-54x1 | zopro | 16 | 321.568 | 4592.5 | 1150.7 | 1.346 | 2.56 |
+| local | merge-54x1 | aeglos | 16 | 993.384 | 15755.6 | 229.2 | 0.711 | 6.37 |
+| local | merge-54x1 | zopro | 32 | 298.578 | 8474.3 | 2139.5 | 0.843 | 4.42 |
+| local | merge-54x1 | aeglos | 32 | 1001.415 | 31441.8 | 357.7 | 0.363 | 8.81 |
+| aws | 1x2 | zopro | 32 | 19.300 | 430.0 | 620.2 | 1.497 | 1.43 |
+| aws | 1x2 | aeglos | 32 | 12.710 | 354.4 | 57.0 | 1.546 | 3.07 |
+| aws | 1x2 | zopro | 96 | 23.504 | 1330.7 | 1621.7 | 0.646 | 4.17 |
+| aws | 1x2 | aeglos | 96 | 9.121 | 610.5 | 102.2 | 1.224 | 2.81 |
+| aws | merge-54x1 | zopro | 32 | 331.620 | 8954.8 | 2624.8 | 1.380 | 2.46 |
+| aws | merge-54x1 | aeglos | 32 | 335.888 | 10476.6 | 173.6 | 1.639 | 3.91 |
+| aws | merge-54x1 | zopro | 96 | 411.079 | 26094.5 | 8123.6 | 0.864 | 4.50 |
+| aws | merge-54x1 | aeglos | 96 | 199.959 | 17382.2 | 473.9 | 1.482 | 4.83 |
+
+CPU time is summed over threads. Generic cache events are not a DRAM bandwidth measurement, and event meanings differ between CPU models. Multiplexing percentages and raw counters are preserved in the stat files. Flat percentages below are sampled aggregate user cycles, not exclusive elapsed time or a prediction of removable latency. Symbols below the 0.1% reporting threshold are omitted; category totals are descriptive.
+
+| Host | Circuit | Prover | Workers | Crossbeam epoch % | Other Rayon % | Aeglos pool % | Aeglos pair load % | Aeglos pair finish % | Samples lost |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|
+| local | 1x2 | zopro | 16 | 2.37 | 0.89 | 0.00 | 0.00 | 0.00 | 0 |
+| local | 1x2 | aeglos | 16 | 0.00 | 0.00 | 11.87 | 25.85 | 20.78 | 0 |
+| local | 1x2 | zopro | 32 | 8.18 | 3.09 | 0.00 | 0.00 | 0.00 | 0 |
+| local | 1x2 | aeglos | 32 | 0.00 | 0.00 | 12.53 | 33.22 | 16.32 | 0 |
+| local | merge-54x1 | zopro | 16 | 0.52 | 0.45 | 0.00 | 0.00 | 0.00 | 0 |
+| local | merge-54x1 | aeglos | 16 | 0.00 | 0.00 | 0.76 | 42.21 | 23.49 | 0 |
+| local | merge-54x1 | zopro | 32 | 2.03 | 1.07 | 0.00 | 0.00 | 0.00 | 0 |
+| local | merge-54x1 | aeglos | 32 | 0.00 | 0.00 | 0.92 | 40.22 | 25.43 | 0 |
+| aws | 1x2 | zopro | 32 | 10.54 | 5.51 | 0.00 | 0.00 | 0.00 | 0 |
+| aws | 1x2 | aeglos | 32 | 0.00 | 0.00 | 20.49 | 15.07 | 19.08 | 0 |
+| aws | 1x2 | zopro | 96 | 50.21 | 12.46 | 0.00 | 0.00 | 0.00 | 0 |
+| aws | 1x2 | aeglos | 96 | 0.00 | 0.00 | 26.46 | 13.63 | 17.43 | 0 |
+| aws | merge-54x1 | zopro | 32 | 3.49 | 1.07 | 0.00 | 0.00 | 0.00 | 0 |
+| aws | merge-54x1 | aeglos | 32 | 0.00 | 0.00 | 1.45 | 20.26 | 25.12 | 0 |
+| aws | merge-54x1 | zopro | 96 | 26.56 | 5.03 | 0.00 | 0.00 | 0.00 | 0 |
+| aws | merge-54x1 | aeglos | 96 | 0.00 | 0.00 | 4.07 | 18.44 | 23.36 | 0 |
+
+## Supplied M5 references
+
+These are the user's supplied historical CPU and Metal numbers, not fresh Apple measurements. Speedups use fresh best-tested AWS Zopro latency. No M5 reference was supplied for 54→1.
+
+| Circuit | M5 CPU ms | M5 Metal ms | AWS Zopro vs CPU | AWS Zopro vs Metal |
+|---|---:|---:|---:|---:|
+| 1x2 | 37 | 24 | 2.22× | 1.44× |
+| 2x2 | 59 | 30 | 2.61× | 1.33× |
+| 4x2 | 109 | 48 | 4.10× | 1.81× |
+| 8x2 | 189 | 74 | 5.22× | 2.04× |
+| 12x2 | 284 | 101 | 4.86× | 1.73× |
+| 16x2 | 335 | 124 | 5.73× | 2.12× |
+| 24x2 | 528 | 176 | 5.16× | 1.72× |
+| merge-24x1 | 507 | 175 | 4.74× | 1.64× |
+
+## Validation and artifacts
+
+AWS: 216 latency processes plus 16 profile processes; 5,864 measured and 696 priming requests, all internally verified. All 232 distinct exported measured proofs passed Gnark on AWS and were independently reverified locally after retrieval. The exact-image local control adds 58 processes including all-nine preflight, 2,450 measured and 174 priming requests, and 58 distinct Gnark-verified measured proofs. Total: 9,184 requests and 290 distinct exported proofs. The separate native all-nine report adds 2,328 requests and 108 distinct proofs; these are not counted again here.
+
+Proof hashes, fixed public inputs, source hashes and exact executable hashes were checked. Raw perf records were parsed for lost-event records. Phase-specific CPU throttling and memory-event snapshots are in `crosshost-analysis.json`. The temporary instance, its tagged EBS volume and the new benchmark ECR tag were removed after retrieval and verification; lifecycle receipts are included. No production source change was made.
+
+- [Complete analysis](crosshost-analysis.json): all worker counts, process medians, stages, CPU usage, counters, profiles and audit results.
+- [AWS comparison](results.json), [AWS raw results](aws-results/output/latency/rows.json), [AWS profiles](aws-results/output/profile/rows.json).
+- [Exact-image local results](local-results/local/rows.json), [local profiles](local-results/local-profile/rows.json).
+- `binaries.tar.gz`, `source-snapshots.tar.gz`, driver sources, image manifests, fixtures, scripts, proof/public files and `SHA256SUMS` preserve reproduction evidence. Key contents are identified by the key lock and are not duplicated in this report.
+
+Initial preparation failures are preserved: a manifest dictionary/string assertion before building or timing, and local output-directory permissions before any preflight proof. Both were corrected without changing the measured prover sources or binaries. These failures are not counted as measured runs.
+
+After the main protocol, three supplementary diagnostics add 240 requests and 12 distinct independently verified measured proofs: two kernel-only profiles, one kernel call-chain profile and nine page-touch comparison processes. Including these, this report preserves 9,424 requests and 302 distinct exported proofs; 244 actual AWS samples were independently reverified locally. Supplementary results are kept separate from the main latency table. An AWS SSM rate-limit error interrupted result retrieval; completed chunks and command handles were retained, retrieval resumed with fewer concurrent requests and bounded throttling retries, and archive SHA-256 checks passed. No latency run was repeated for this transport failure.
+
+This measures warm single-proof latency, not concurrent throughput, cold startup, phone execution, TEE operation, or a 211-million-constraint circuit. Zopro's ≤9 ms target and the original all-eight 10× M5 CPU target remain unmet.

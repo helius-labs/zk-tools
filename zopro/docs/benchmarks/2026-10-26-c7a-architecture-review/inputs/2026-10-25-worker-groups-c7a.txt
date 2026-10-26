@@ -1,0 +1,64 @@
+# Caller-owned CPU worker groups: C7a primary circuit
+
+The exact retained accepted version measures13.304ms at32workers. Per-request single measures13.113ms at32workers; per-request balanced measures11.441ms at96workers. Pinned Aeglos Sorted measures8.088ms at96workers. These are the best tested worker counts for this primary-circuit diagnostic. No implementation is adopted by this run.
+
+## Method
+
+Dedicated c7a.24xlarge,96 physical cores,30GiB container. Primary1x2 only,16/32/64/96 workers unpinned. Eight modes run in three fixed rotated/reversed fresh-process blocks,31 measured full verified SDK requests after three primes. Timing includes assignment, fresh randomness, proving, verification and serialization. It excludes loading and preparation. Whole-process RSS includes loading, executor creation, preparation and priming. No other owned build, profile or CPU benchmark overlaps remote timing. All samples are retained.
+
+Accepted links the exact canonical128 znver4 libraries; control is fresh without the executor cfg. Outside and the four owned modes share one candidate binary. All Zopro versions use the same wrapper source. Single owns N root workers. Balanced divides a fixed total N into the largest root group and A/G2 groups, using the accepted kernels after the same product FFT. Owned receipts check N distinct workers, N+one OS threads, stable TIDs and exact group sizes. No global pool mutation, per-key/per-proof pools, retained key table or duplicate execution plan is introduced.
+
+Whole-loop modes enter the executor once around requests. Per-request modes include ThreadPool.install and return/wait in every request timer, matching a normal caller boundary. Whole-loop modes are diagnostic controls. Aeglos uses the previously pinned0290613 Sorted build.
+
+## Full scaling
+
+Each cell is median of three process medians in ms.
+
+| Workers | accepted | control | outside | single | single-request | balanced | balanced-request | aeglos-default |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 16 | 19.656 | 19.606 | 19.659 | 19.308 | 19.300 | 25.217 | 25.307 | 19.272 |
+| 32 | 13.304 | 13.412 | 13.425 | 13.168 | 13.113 | 16.582 | 16.773 | 11.631 |
+| 64 | 14.009 | 14.134 | 13.902 | 13.394 | 13.637 | 13.192 | 13.212 | 8.597 |
+| 96 | 15.461 | 15.705 | 15.779 | 14.791 | 14.799 | 11.352 | 11.441 | 8.088 |
+
+## Best tested counts and memory
+
+Warm CPU is the median measured user+system CPU per request. Peak RSS is the maximum whole process through final worker receipts at that selected count. Neither RSS nor configured limits establish minimum physical RAM.
+
+| Version | Workers | Request ms | CPU ms/request | Peak MiB |
+|---|---:|---:|---:|---:|
+| accepted | 32 | 13.304 | 295.69 | 109.1 |
+| control | 32 | 13.412 | 296.08 | 115.8 |
+| outside | 32 | 13.425 | 297.31 | 112.3 |
+| single | 32 | 13.168 | 291.84 | 106.8 |
+| single-request | 32 | 13.113 | 292.79 | 103.8 |
+| balanced | 96 | 11.352 | 335.44 | 70.8 |
+| balanced-request | 96 | 11.441 | 335.70 | 68.5 |
+| aeglos-default | 96 | 8.088 | 518.16 | 460.7 |
+
+The user-supplied historical M5 primary references are37ms CPU and24ms Metal. No fresh Apple timing is made.
+
+| Version | CPU reference/request | Metal reference/request |
+|---|---:|---:|
+| accepted | 2.78× | 1.80× |
+| control | 2.76× | 1.79× |
+| outside | 2.76× | 1.79× |
+| single | 2.81× | 1.82× |
+| single-request | 2.82× | 1.83× |
+| balanced | 3.26× | 2.11× |
+| balanced-request | 3.23× | 2.10× |
+| aeglos-default | 4.57× | 2.97× |
+
+## Qualification and limitations
+
+The frozen target-matched candidate passes33 field and111 core tests; the control33/104. Baseline x86-64/noIFMA/noASM passes11 field and91 core tests; each also passes two raw and six cubic tests. SDK proofs, stable thread ownership, detached key lifetime, borrowed buffers, concurrent callers, panic propagation and full worker-budget forecasting are checked. Native proofs at96 workers on the local32-logical host establish correctness only; the measurements above use96 physical C7a cores.
+
+Local outside/single per-request is9.061/8.706ms. Balanced per-request is10.424ms, with lower CPU and RSS; this negative local latency observation remains retained. The first warm pressure condition,88MiB soft/192MiB hard plus32MiB ballast, times out in both accepted baseline and some candidate modes. Counters show sustained memory.high throttling with no OOM. Those failures remain failures. A separately declared128MiB soft/192MiB hard condition with the same ballast passes all nine matched baseline/candidate cases at32/96 workers with no swap or OOM. It establishes feasibility at those stated limits, not minimum RAM or an arbitrary architectural cap. Concurrent native and portable SDK proofs also verify.
+
+The exact local container preflight completes32 SDK requests and8 distinct independently Gnark-verified exports. AWS completes3,264 SDK requests with96 distinct exports verified remotely and again locally after retrieval. Combined:3,296 requests and104 distinct independent exports, counting repeat verification once. Fixture public inputs, fresh proof identities, source, executable, image and transport hashes are checked.
+
+Full-suite performance/API, large circuits and physical phones remain unqualified for this candidate. Only the existing small fused-query path dispatches query helpers; balanced mode can reduce parallelism on other circuits and is not a universal default. The original all-eight10× CPU objective remains unmet. Resource event deltas are retained without an unchanged retry: `[]`.
+
+Cleanup confirms the owned temporary instance terminated, no owned EBS remains and the private benchmark ECR tag is absent. Existing infrastructure is unchanged.
+
+[Results](lifecycle/results.json), [samples and worker receipts](remote-results/output/latency/rows.json), [protocol](remote-results/output/latency/protocol.json), [source pins](lifecycle/source-manifest.json), [cleanup](lifecycle/cleanup-complete.json).

@@ -1,0 +1,87 @@
+# Latest accepted Zopro and Aeglos on c7a.24xlarge
+
+Fresh comparison of accepted Zopro with direct chain inversion and balanced GCD runs, the exact October 24 Euler Zopro executable, and pinned Aeglos 0290613 using its Sorted and Windowed engines. The dual-CIOS experiment was rejected before this run and is not included. Intervening allocator, solver/image-format and MSM changes are also present; this comparison does not isolate their individual contributions. No prover source is changed by this comparison.
+
+Latest Zopro beats the faster tested Aeglos engine on 6 of nine circuits: 8x2, 12x2, 16x2, 24x2, merge-24x1, merge-54x1. Relative to the October 24 binary measured in this same run, latency changes range from -44.88% to +0.21%, selecting each build's fastest tested worker count. Aeglos default / Zopro peak-RSS ratios at their respective selected counts range from 3.61 to 7.33. The tables retain every circuit and worker configuration; best-count selection is descriptive.
+
+The small 1→2 proof remains slower: 13.627 ms versus Aeglos Sorted's 7.966 ms. For 54→1, latest Zopro takes 129.985 ms versus 173.566 ms, with 1.75 versus 12.79 GiB peak RSS. The earlier Zopro executable takes 235.831 ms on this same server.
+
+The server build uses 167 pinned accepted files and target-cpu=znver4. It passes 33 field and 104 core tests. Both Zopro versions use the exact October 24 SDK driver; the previous version keeps its original image files and latest Zopro uses its accepted images. The 16-worker AWS run is unpinned, unlike the separate local pinned-16 diagnostic. Both Aeglos modes use the same previously measured executable; the engine switch is recorded.
+
+## Full request latency
+
+Dedicated c7a.24xlarge, 96 physical cores, 30 GiB container. All nine circuits run at 16/32/64/96 workers with three rotating/reversing fresh-process repetitions. Each process excludes key loading and three priming requests, then measures 31 requests for 1x2 or 17 for other circuits. Timers include fresh assignment/witness solving, proof randomness, proving, verification and serialization. No owned CPU workload overlaps remote latency measurement. Per-prover retained runtime policies are recorded.
+
+Each cell is the median of three process medians at that engine's fastest tested worker count, shown in parentheses. Same-worker observations and all individual samples remain in results.json and the raw archive.
+
+| Circuit | Latest Zopro ms (workers) | Oct24 Zopro ms (workers) | Aeglos Sorted ms (workers) | Aeglos Windowed ms (workers) |
+|---|---:|---:|---:|---:|
+| 1x2 | 13.627 (32) | 13.936 (32) | 7.966 (96) | 26.809 (32) |
+| 2x2 | 17.555 (32) | 17.852 (32) | 12.084 (96) | 40.452 (64) |
+| 4x2 | 21.588 (64) | 21.568 (64) | 18.565 (96) | 62.196 (64) |
+| 8x2 | 28.298 (64) | 28.238 (64) | 31.418 (96) | 102.447 (64) |
+| 12x2 | 35.988 (64) | 37.169 (64) | 49.276 (96) | 163.502 (32) |
+| 16x2 | 40.158 (64) | 42.696 (64) | 57.150 (96) | 178.162 (32) |
+| 24x2 | 57.526 (64) | 61.240 (64) | 87.765 (96) | 264.164 (64) |
+| merge-24x1 | 62.197 (64) | 63.226 (64) | 85.384 (96) | 254.971 (64) |
+| merge-54x1 | 129.985 (64) | 235.831 (32) | 173.566 (96) | 418.382 (96) |
+
+## Scaling
+
+| Circuit | Workers | Latest Zopro ms | Oct24 Zopro ms | Aeglos Sorted ms |
+|---|---:|---:|---:|---:|
+| 1x2 | 16 | 19.809 | 20.343 | 19.291 |
+| 1x2 | 32 | 13.627 | 13.936 | 11.606 |
+| 1x2 | 64 | 14.354 | 14.256 | 8.602 |
+| 1x2 | 96 | 16.052 | 16.396 | 7.966 |
+| merge-54x1 | 16 | 230.598 | 297.205 | 614.626 |
+| merge-54x1 | 32 | 142.758 | 235.831 | 308.228 |
+| merge-54x1 | 64 | 129.985 | 287.538 | 198.431 |
+| merge-54x1 | 96 | 134.928 | 335.083 | 173.566 |
+
+These measurements establish latency across worker counts, not the cause of scaling differences. Profile captures, if linked below, are a separate follow-up and do not replace this comparison. Earlier page-fault and scheduler findings must not be described as profiles of this executable.
+
+## Whole-process peak RSS
+
+Maximum across the three processes at each engine's selected worker count. Includes loading, preparation, priming and warm requests. This is not incremental proof workspace, a cgroup peak, a configured limit or minimum required RAM. Aeglos's native preparation budget does not cover all process allocations.
+
+| Circuit | Latest Zopro MiB | Oct24 Zopro MiB | Aeglos Sorted MiB | Aeglos Windowed MiB |
+|---|---:|---:|---:|---:|
+| 1x2 | 114.9 | 112.1 | 464.6 | 377.7 |
+| 2x2 | 225.9 | 221.1 | 815.1 | 716.8 |
+| 4x2 | 268.3 | 283.1 | 1365.4 | 1156.8 |
+| 8x2 | 450.9 | 507.9 | 2459.9 | 1926.0 |
+| 12x2 | 641.0 | 677.7 | 3642.8 | 2240.6 |
+| 16x2 | 777.5 | 836.2 | 4606.1 | 2754.7 |
+| 24x2 | 1208.0 | 1320.3 | 6769.6 | 4123.3 |
+| merge-24x1 | 1109.6 | 1221.1 | 6585.8 | 3936.8 |
+| merge-54x1 | 1787.3 | 1800.2 | 13099.8 | 7169.0 |
+
+## Supplied M5 references
+
+These CPU and Metal figures are supplied historical references, not fresh Apple measurements. No reference was supplied for 54→1.
+
+| Circuit | AWS Zopro ms | M5 CPU ms | CPU speedup | M5 Metal ms | Metal speedup |
+|---|---:|---:|---:|---:|---:|
+| 1x2 | 13.627 | 37 | 2.72× | 24 | 1.76× |
+| 2x2 | 17.555 | 59 | 3.36× | 30 | 1.71× |
+| 4x2 | 21.588 | 109 | 5.05× | 48 | 2.22× |
+| 8x2 | 28.298 | 189 | 6.68× | 74 | 2.62× |
+| 12x2 | 35.988 | 284 | 7.89× | 101 | 2.81× |
+| 16x2 | 40.158 | 335 | 8.34× | 124 | 3.09× |
+| 24x2 | 57.526 | 528 | 9.18× | 176 | 3.06× |
+| merge-24x1 | 62.197 | 507 | 8.15× | 175 | 2.81× |
+
+All eight CPU speedups at least 10×: **False**. These runs do not establish mobile performance, concurrent throughput, TEE overhead or large-circuit feasibility at these memory levels.
+
+## Verification and cleanup
+
+The exact-image local preflight passes 144 SDK requests with 36 distinct Gnark exports. AWS completes 8,016 measured plus 1,296 priming requests: 9,312 requests. One distinct measured export from each of 432 processes verifies remotely and again locally after retrieval; repeat verification is not counted as additional proofs. Combined: 9,456 SDK requests and 468 distinct independently verified exports. Public inputs, proof sizes, source/image/executable hashes and transport hashes are checked. AWS proof hashes are disjoint from the local preflight, preceding dual-CIOS timing and previous AWS exports.
+
+Resource-event deltas: `{"throttled_usec": 162767}`. All per-process event and quota snapshots are preserved. Nonzero throttling or memory events are reported without an unchanged timing retry. Peak RSS and cgroup counters cover different scopes.
+
+The owned instance is terminated, tagged EBS storage is absent and the private benchmark ECR tag is deleted. Cleanup is recorded. Accepted production source remains unchanged.
+
+[Complete results](results.json), [raw samples](remote-results/output/latency/rows.json), [protocol](remote-results/output/latency/protocol.json), [proof inventory](remote-results/output/latency/proof-inventory.json), [cleanup](lifecycle/cleanup-complete.json), [server build](lifecycle/build-complete.json), [image pins](lifecycle/image-manifest.json), [October 24 comparison](../2026-10-24-current-aws-aeglos/README.md), [rejected dual-CIOS experiment](../2026-10-25-dual-cios-sdk/README.md).
+
+A [separate warm-loop diagnostic](../2026-10-25-c7a-warm-profile/README.md) followed the fixed timing matrix; its instrumented runs are excluded from all latency figures above. The diagnostic image tag was also deleted.

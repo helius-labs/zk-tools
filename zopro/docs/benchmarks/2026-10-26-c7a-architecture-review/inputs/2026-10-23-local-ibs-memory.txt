@@ -1,0 +1,59 @@
+# AMD IBS memory profiles: retained Zopro and Aeglos
+
+On this Ryzen 9 9950X, Aeglos has a greater sampled memory-access cost than Zopro. After excluding software prefetch instructions, RAM serves 0.76–0.95% of sampled user demand loads in Aeglos's primary proof, versus 0.01–0.06% for Zopro. Aeglos's point-loading functions own most of its primary sampled demand-load miss-latency weight. This adds hardware evidence to the local memory-access explanation; it does not prove bandwidth saturation, quantify removable wall time, or explain the whole AWS reversal.
+
+No optimization or source change was made. The original all-eight 10× CPU goal and 9 ms target remain unmet. The [crosshost report](../2026-10-23-aws-local-crosshost-aeglos/README.md) contains the independently measured proof latencies and M5 CPU/Metal comparisons; timings collected under IBS are diagnostic only.
+
+## Protocol
+
+Exact retained native Zopro f5c720 and Aeglos 0290613 binaries from the [all-nine local comparison](../2026-10-23-current-local-aeglos-all-nine/README.md). Each prover runs 1x2 and 54→1 with 16 and 32 workers, giving eight owned processes. Key loading and three priming requests precede FIFO-acknowledged profiling. Capture covers 31 primary or five merge requests; disable is acknowledged before proof/result output. All 168 requests use the complete SDK and verify internally. Eight distinct exported proofs independently pass Gnark, with fixture public inputs, sizes and hashes checked.
+
+Kernel 6.8.0-139-generic, perf 6.8.12, ibs_op/cnt_ctl=1/ with period 524,288, data source, weight and raw-register capture. Profiling targets only the owned child processes and inherited threads. No build, test, second profile or archive overlaps capture. All decoding and independent verification happen afterward. No global perf settings or cloud resources were changed.
+
+IBS samples operations broadly, so non-load operations and stores are excluded from the demand-load table. Kernel/user samples are separated by the 64-bit instruction address. Raw SwPf flags identify software prefetch instructions; their sampled addresses never overlap demand-load addresses in these records. Prefetches are reported separately and excluded from the main memory-access fractions. Each user profile contains exactly one process ID.
+
+## Sampled user demand loads
+
+| Shape | Prover | Workers | Demand-load samples | Software-prefetch samples | RAM-served samples | RAM / demand samples | Median positive RAM-miss weight, cycles |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1x2 | zopro | 16 | 18,380 | 0 | 11 | 0.0598% | 519.0 |
+| 1x2 | aeglos | 16 | 16,110 | 317 | 123 | 0.7635% | 790.0 |
+| 1x2 | zopro | 32 | 19,631 | 0 | 2 | 0.0102% | 474.5 |
+| 1x2 | aeglos | 32 | 17,032 | 348 | 161 | 0.9453% | 1826.0 |
+| merge-54x1 | zopro | 16 | 44,303 | 0 | 434 | 0.9796% | 561.0 |
+| merge-54x1 | aeglos | 16 | 87,850 | 1,710 | 1,547 | 1.7610% | 2809.0 |
+| merge-54x1 | zopro | 32 | 45,546 | 0 | 435 | 0.9551% | 740.0 |
+| merge-54x1 | aeglos | 32 | 87,797 | 1,761 | 1,740 | 1.9818% | 2774.5 |
+
+These are sample fractions, not measured fractions of elapsed time. The primary Zopro RAM rows contain only 11 and two samples, so their relative ratios and tail quantiles are imprecise. Counts are shown to expose that limitation. The larger-proof rows have hundreds or thousands of RAM samples. Hardware miss-latency weights describe the sampled operation; overlapping requests and queueing prevent adding them up as exclusive execution stalls.
+
+| Aeglos shape | Workers | PairBatch::load share of positive demand-load miss weight | RAM share of positive demand-load miss weight |
+|---|---:|---:|---:|
+| 1x2 | 16 | 82.51% | 84.26% |
+| 1x2 | 32 | 90.17% | 82.22% |
+| merge-54x1 | 16 | 59.77% | 58.36% |
+| merge-54x1 | 32 | 59.51% | 53.24% |
+
+For Zopro 54→1, the two leading FFT fused_32 directions account for about 28.2% (16 workers) and 25.7% (32 workers) of positive demand-load miss weight. Solver and MSM accesses contribute as well. This suggests examining existing FFT/workspace access patterns when pursuing a memory-specific improvement. It does not show that FFT occupies that fraction of wall time, nor override the separate small-proof critical-path measurements.
+
+The data is consistent with Aeglos's precomputed, gathered point accesses being more costly on this workstation. The previously measured AWS host has more physical cores and a different cache/memory system; this local experiment cannot assign their individual contributions. Zopro's small proof already has few sampled RAM-served loads, so treating insufficient RAM or generic DRAM traffic as its main universal bottleneck is unsupported.
+
+## Raw-record validation and corrections
+
+The eight records contain 2,188,919 operation samples and zero lost samples. For both user and kernel scopes, the independent raw-register parser matches perf script's load counts and miss-weight totals exactly. It also validates the separate demand/prefetch counts and weights. The report preserves complete per-source, TLB and function distributions, including kernel samples.
+
+The initial decoder stopped because sudo perf rejected an owned-user data file after capture had returned its ownership. Decoding resumed with the explicit force option for these checked, owned captures; no profile was rerun. The first raw analyzer then correctly stopped at a mismatch: it had included DcMissLat register values even when DcMiss was clear. Such values are invalid for the measured miss weight, including observed stale values on software prefetches. Applying the validity mask matches Linux's conversion and the captured perf weights.
+
+A second validation found that raw IBS RIP differs from the recorded perf instruction address in 249 samples (0.0114%). The analyzer now uses the recorded sample address for classification, as perf does, while retaining the mismatch count. The kernel can substitute the interrupted instruction address for an invalid raw RIP. Function attribution is therefore not claimed precise for every sample. The final refinement separates demand-load symbol weights from software-prefetch weights. Original failed analyses and logs are preserved; none of these analysis corrections changes a captured sample or reruns a proof.
+
+The [Linux IBS documentation](https://man7.org/linux/man-pages/man1/perf-amd-ibs.1.html) describes the operation sampling and memory metadata. The [kernel implementation](https://codebrowser.dev/linux/linux/arch/x86/events/amd/ibs.c.html#1116) requires a load and the data-cache-miss flag before assigning the miss-latency weight. The linked source browser shows current upstream code; exact v6.8 raw-source retrieval failed with a timeout and HTTP 429, so this is not presented as a byte-identical audit of the running kernel. Agreement with the actual captured records is independently checked.
+
+## Research and artifacts
+
+The accompanying review revisited the primary abstracts of [Noël and Plantard's memory-constrained MSM method](https://link.springer.com/article/10.1007/s13389-026-00393-z) and [Fan et al.'s generalized precomputed bucket construction](https://eprint.iacr.org/2024/750). Those concern different bucket/memory tradeoffs already represented in the prior experiment review. No performance claim from those papers is used as a prediction for this prover, and no new implementation was copied from the review.
+
+[Full analysis](results.json), [protocol and source pins](protocol.json), [capture rows](rows.json), [verification receipt](complete.json), [proof inventory](proof-inventory.json), and [compressed-artifact inventory](compressed-artifacts.json) are archived. Each case directory includes perf.data.gz, raw.txt.gz, samples.txt.gz, memory reports, analysis, stdout/stderr, and a Gnark-verified proof. The binaries, harnesses, source pins and reproduction/analysis scripts are included. SHA256SUMS validates archive files; compressed-artifacts.json records original sizes and hashes.
+
+A small Python hashing workload was used only to verify IBS availability before the protocol; its separate preflight files are retained and are not counted as prover samples or proofs. No ARM, mobile, huge-circuit, memory-pressure, concurrent-throughput or AWS qualification is claimed.
+
+Archiving initially stopped on the root-owned preflight data file. Ownership of that owned file was returned to the workspace user, and the partial archive resumed. Every compressed artifact is checked after decompression against its original hash and size. No profiling was repeated.

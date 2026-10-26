@@ -1,0 +1,85 @@
+# Task creation and join outcomes by proof stage
+
+Scalar conversion accounts for about **15,843 of 36,157 joins per primary proof** at32 workers. Its three process averages range from15,599 to15,965. Most of these joins execute the sibling inline. The selected next experiment limits splitting of this conversion to chunks of at least128 scalars (4KiB of existing storage), while preserving the current proof dependencies. This is distinct from the earlier failed weighted-reducer task-grain experiment.
+
+For54-to-1, the diagnostic OFF executable is3.81% slower than accepted; ON adds1.09% over OFF. Primary calibration also varies by block. These results locate task creation and do not provide replacement latency figures or a prediction of recoverable time.
+
+This private diagnostic counts Rayon joins, their completion paths and idle-search/sleep attempts in the accepted prover. It changes no scheduling decision, arithmetic or accepted production source. It qualifies no new speed improvement.
+
+Phase tags are set at solver, product FFT, query, grouping, weighted reduction, fill, merge and canonical-conversion function entries and propagated through both Rayon join branches. Counters use fixed thread-local arrays (1,536 bytes per participating thread), with no per-event allocation or output. Reset and snapshot broadcasts run outside the proof timers, with collection disabled. Counts cover join-created jobs; they do not enumerate every possible scheduler job. Untagged operations remain under “other”, including the large G2 dispatcher above its tagged arithmetic children.
+
+The original declared plan uses three cases, three rotated/reversed process blocks and 17 measured plus three prime proofs per process. Accepted uses the frozen executable; OFF and ON use one diagnostic executable. The 16-worker case pins physical cores 0–15 and verifies affinity before and after. Loading is excluded from timing. These times measure instrumentation effects and do not replace qualification results.
+
+| Case | Accepted ms | Diagnostic OFF ms | Diagnostic ON ms | ON/OFF | OFF/accepted |
+|---|---:|---:|---:|---:|---:|
+| 1x2-w32 | 9.142768 | 9.125756 | 9.052147 | 0.9919 | 0.9981 |
+| 1x2-w16 | 10.278172 | 10.447011 | 10.404741 | 0.9960 | 1.0164 |
+| merge-54x1-w32 | 174.931612 | 181.594705 | 183.571147 | 1.0109 | 1.0381 |
+
+Per-proof counts below are medians of three capture totals divided by 17. Phase medians need not sum to median totals. “Ready” means the sibling completed without the explicit wait path, possibly while the worker executed other local jobs. “Wait” can execute useful work. Inclusive wait nanoseconds contain nested waits and are **not** additive CPU time, idle time, or a critical-path estimate. `b_migrated` in raw data is FnContext.migrated, including external injection; it is not an exclusive steal count.
+
+| Case | Joins | Inline sibling | Ready sibling | Explicit wait | Other local jobs in join | Idle-search entries | Condvar waits |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1x2-w32 | 36157.00 | 33659.29 | 644.12 | 1853.59 | 0.00 | 3451.06 | 413.18 |
+| 1x2-w16 | 14636.76 | 13309.29 | 320.29 | 1013.47 | 0.00 | 1872.59 | 277.65 |
+| merge-54x1-w32 | 177054.24 | 165483.47 | 3039.94 | 8254.65 | 0.00 | 14795.65 | 1495.53 |
+
+## 1x2-w32: join attribution
+
+| Phase | Joins/proof | Explicit waits/proof | Condvar waits/proof |
+|---|---:|---:|---:|
+| other | 9504.88 | 267.76 | 296.88 |
+| solver | 183.00 | 89.47 | 1.76 |
+| product_fft | 8755.35 | 681.00 | 0.00 |
+| g1_query | 30.00 | 12.59 | 17.47 |
+| fused_kh | 206.59 | 54.94 | 31.06 |
+| g2_query | 552.12 | 23.00 | 39.53 |
+| g1_weighted | 432.00 | 51.12 | 15.18 |
+| g2_weighted | 70.00 | 42.18 | 1.65 |
+| g2_fill | 427.82 | 106.47 | 6.24 |
+| g2_merge | 30.00 | 16.82 | 0.82 |
+| canonical | 15843.35 | 507.29 | 0.00 |
+
+## 1x2-w16: join attribution
+
+| Phase | Joins/proof | Explicit waits/proof | Condvar waits/proof |
+|---|---:|---:|---:|
+| other | 3315.29 | 130.82 | 182.00 |
+| solver | 182.94 | 59.94 | 3.06 |
+| product_fft | 4611.82 | 431.82 | 0.65 |
+| g1_query | 30.00 | 9.29 | 13.53 |
+| fused_kh | 125.12 | 14.35 | 22.59 |
+| g2_query | 52.00 | 13.35 | 36.24 |
+| g1_weighted | 432.00 | 17.94 | 3.47 |
+| g2_weighted | 70.00 | 33.24 | 3.18 |
+| g2_fill | 357.88 | 73.12 | 12.06 |
+| g2_merge | 30.00 | 12.47 | 2.06 |
+| canonical | 5517.41 | 218.12 | 0.00 |
+
+## merge-54x1-w32: join attribution
+
+| Phase | Joins/proof | Explicit waits/proof | Condvar waits/proof |
+|---|---:|---:|---:|
+| other | 41286.00 | 588.12 | 825.82 |
+| solver | 2601.18 | 1146.94 | 216.06 |
+| product_fft | 130234.29 | 5790.65 | 95.76 |
+| g1_query | 522.71 | 109.29 | 116.00 |
+| g2_query | 83.00 | 44.35 | 111.41 |
+| g1_group | 698.29 | 66.59 | 42.88 |
+| g2_group | 424.00 | 49.71 | 49.82 |
+| g1_weighted | 945.00 | 205.65 | 14.53 |
+| g2_weighted | 161.00 | 96.06 | 8.29 |
+| g1_merge | 294.00 | 89.47 | 4.41 |
+| g2_merge | 69.00 | 41.47 | 3.76 |
+
+## Validation and limits
+
+The private Rayon library passes 102 unit tests, including a new phase-propagation and join-outcome test. The native core passes 104 tests. Six preflight processes contribute 24 SDK calls and six independently Gnark-verified exports. The 27 capture processes contribute 540 SDK calls and 27 exports: total **564 SDK calls, 33 distinct Gnark proofs and 66 proof/public files**. Every ON capture checks joins = inline + ready + explicit-wait outcomes in every phase; OFF counters are all zero. Proofs are distinct from 6941 checked prior exports and public inputs match fixtures.
+
+The first build failed before any test or proof because the inserted module declaration captured an upstream macro_use attribute. Placement was corrected and documentation/debug lints relaxed only in the private diagnostic module. The failed source and logs are retained. No successful test or capture was repeated after that repair.
+
+The pinned Aeglos source uses a nonnested pool and shared task passes across MSM calls. Its Sorted engine also uses prepared shifted bases. These are source observations, not evidence that adopting the whole design would help Zopro. The prior joint-phase experiment lost overlap and regressed; the queue experiments lowered epoch samples but increased system time and switches. This census identifies candidate boundaries for further work and cannot predict the gain from removing any counted join. No new Aeglos or AWS measurement is included.
+
+All 167 accepted production pins remain unchanged. No portable, memory-pressure, concurrent-request, large-circuit or AWS qualification of a new candidate occurs here. The original all-eight 10× M5 CPU goal remains unmet.
+
+[Analysis](analysis.json), [raw observations](rows.json), [protocol](protocol.json), [source patch](source.patch), [Aeglos source pins](aeglos-source.json), [proof inventory](proof-inventory.json), [artifact hashes](SHA256SUMS).

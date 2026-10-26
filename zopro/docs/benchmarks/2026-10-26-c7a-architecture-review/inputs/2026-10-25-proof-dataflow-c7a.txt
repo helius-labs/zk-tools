@@ -1,0 +1,58 @@
+# Scoped proof execution: C7a primary-circuit experiment
+
+This experiment tests whether a private scoped proof graph improves primary-circuit CPU scaling. A prior local screen was negative: coarse jobs took9.300ms and overlap/fusion10.065/10.030ms, compared with9.080ms for the accepted version. This AWS run retains that negative observation and separately tests the96-physical-core hypothesis. No implementation is adopted by this diagnostic.
+
+The result is negative. Accepted Zopro is13.386ms at32 workers, versus14.016ms coarse,14.731ms pipeline, and14.628ms fused. Aeglos Sorted is8.018ms at96 workers. At96 workers, fusion reduces warm CPU time by6.2% but increases latency by7.1%. None of these modes is adopted.
+
+## Method
+
+Dedicated c7a.24xlarge,96 physical cores,30GiB container. Primary1x2 only;16/32/64/96 workers, with16 unpinned. Three fixed rotated/reversed fresh-process blocks,31 measured verified SDK requests after three primes. Request timing includes assignment, fresh proof randomness, proof generation, verification and serialization. Key loading and preparation are excluded from warm timings and included in whole-process RSS. All Zopro versions use the same linked rusage wrapper and identical Euler image. No other owned build, profile or CPU benchmark overlaps the remote latency matrix.
+
+Accepted uses the exact retained canonical128 znver4 libraries. Control is freshly compiled without the new cfg; compiled-off uses the new binary with runtime mode0. Coarse, pipeline and fused are modes1/2/3 of that same binary. Coarse introduces scoped window jobs and bounded scalar-gather task splitting; pipeline overlaps K with the product FFT and feeds H through the same K window states; fused also combines G2 bucket merging with bounded512-bucket weighted reductions. It creates no retained key tables. The baseline FFT and curve arithmetic are retained. Aeglos uses the previously pinned0290613 Sorted binary.
+
+## Measured request latency
+
+Each cell is the median of three process medians in milliseconds. All same-worker samples are retained.
+
+| Workers | accepted | control | compiled-off | coarse | pipeline | fused | aeglos-default |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 16 | 19.678 | 19.696 | 19.687 | 19.622 | 21.280 | 20.878 | 19.286 |
+| 32 | 13.386 | 13.441 | 13.507 | 14.016 | 14.731 | 14.628 | 11.596 |
+| 64 | 13.975 | 13.954 | 13.774 | 14.405 | 15.902 | 15.855 | 8.523 |
+| 96 | 15.459 | 15.651 | 15.481 | 15.861 | 16.933 | 16.552 | 8.018 |
+
+## Best tested worker count
+
+| Version | Workers | Request ms | Warm CPU ms/request | Whole-process peak MiB |
+|---|---:|---:|---:|---:|
+| accepted | 32 | 13.386 | 296.58 | 112.1 |
+| control | 32 | 13.441 | 296.89 | 110.7 |
+| compiled-off | 32 | 13.507 | 298.32 | 108.4 |
+| coarse | 32 | 14.016 | 301.33 | 108.4 |
+| pipeline | 32 | 14.731 | 301.21 | 118.8 |
+| fused | 32 | 14.628 | 296.45 | 120.9 |
+| aeglos-default | 96 | 8.018 | 530.70 | 460.9 |
+
+CPU time is the median of three warm-loop user+system CPU times divided by requests. It is not wall time. Peak RSS is the maximum across three entire processes at the selected count; it is not incremental scratch, a configured RAM budget or minimum required RAM. Both wrappers report warm-loop CPU counters; the individual summaries are retained.
+
+The supplied historical primary M5 references are37ms CPU and24ms Metal. No fresh Apple measurement is made. For each version, the CPU and Metal reference ratios are:
+
+- accepted: 2.76× CPU, 1.79× Metal.
+- control: 2.75× CPU, 1.79× Metal.
+- compiled-off: 2.74× CPU, 1.78× Metal.
+- coarse: 2.64× CPU, 1.71× Metal.
+- pipeline: 2.51× CPU, 1.63× Metal.
+- fused: 2.53× CPU, 1.64× Metal.
+- aeglos-default: 4.61× CPU, 2.99× Metal.
+
+## Validation and limitations
+
+The new target build passes33 field and112 core tests; the fresh control passes33 field and104 core tests. The new tests include independent generator oracles for complete A/K+H/G2 execution and panic propagation. The exact container preflight completes28 SDK requests and7 distinct Gnark-verified exports. AWS completes2,856 SDK requests, with84 distinct exports verified remotely and again locally after retrieval. Combined counts are2,884 SDK requests and91 distinct independently verified exports; repeated verification is counted once. Public inputs, randomized-proof identity, source, image, executable and transport hashes are checked.
+
+The earlier local pressure diagnostic passed cold and warm88MiB high/192MiB maximum limits under both allocator policies, with no swap or OOM events. The optional path requires a conservative forecast for retained K states, per-worker scratch and graph metadata, plus admitted headroom in the active proof scope. After a warm pressure transition, subsequent proofs use the prior implementation. This is not a general memory-budget API or a physical-phone measurement. Portable backend, large circuits, production concurrency and full-suite adoption qualification remain outstanding.
+
+The all-eight10× CPU goal remains unmet. This single-circuit diagnostic cannot establish a twofold general gain or reverse the negative local result. Resource event deltas are retained without an unchanged retry: `[]`.
+
+Cleanup confirms the owned temporary instance terminated, no owned EBS remains, and the benchmark ECR tag is absent. Existing infrastructure is unchanged.
+
+[Complete results](lifecycle/results.json), [samples and warm counters](remote-results/output/latency/rows.json), [protocol](remote-results/output/latency/protocol.json), [source and build pins](lifecycle/source-manifest.json), [cleanup](lifecycle/cleanup-complete.json).

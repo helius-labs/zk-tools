@@ -1,0 +1,250 @@
+{
+  "aeglos_source_pins": {
+    "commit": "0290613e8eeca17a4ce88f6f2d726e8e06a5385d",
+    "files": {
+      "cpu/msm.hpp": "cd594d1da53ff7de25eba40ab718a3a875911e74517b65329d9d1782aae982c3",
+      "cpu/msm_impl.hpp": "6a57cf5dd2312a1bcbadefa6b409c600dc33dd38cc138d11e3849b23d99aac85",
+      "cpu/pool.cpp": "f7071560101b476762d7c9e4810fde10f414895fc5047846053e9c9f5d519c23",
+      "cpu/pool.hpp": "3bec2f24453ec277ff6d3badc13d6166ccc0baf25c33f8d02b8da39432521f9b"
+    },
+    "scope": "Read-only source comparison; not a new Aeglos capture. Pool run is nonnested and drains a shared index; Msm run batches calls through common recode/count/scatter/accumulate/merge/sums passes. Sorted engine uses prepared shifted bases, unlike the universal low-memory streaming path."
+  },
+  "all_shapes": [
+    {
+      "aeglos_sorted": {
+        "ms": 7.966389,
+        "native_retained_mib": 254.64892578125,
+        "workers": 96
+      },
+      "aeglos_windowed": {
+        "ms": 26.808818,
+        "workers": 32
+      },
+      "shape": "1x2",
+      "zopro": {
+        "ms": 13.626861,
+        "workers": 32
+      }
+    },
+    {
+      "aeglos_sorted": {
+        "ms": 12.083592,
+        "native_retained_mib": 445.4615478515625,
+        "workers": 96
+      },
+      "aeglos_windowed": {
+        "ms": 40.452324,
+        "workers": 64
+      },
+      "shape": "2x2",
+      "zopro": {
+        "ms": 17.554902000000002,
+        "workers": 32
+      }
+    },
+    {
+      "aeglos_sorted": {
+        "ms": 18.565262,
+        "native_retained_mib": 802.8399047851562,
+        "workers": 96
+      },
+      "aeglos_windowed": {
+        "ms": 62.195779,
+        "workers": 64
+      },
+      "shape": "4x2",
+      "zopro": {
+        "ms": 21.587912,
+        "workers": 64
+      }
+    },
+    {
+      "aeglos_sorted": {
+        "ms": 31.41804,
+        "native_retained_mib": 1431.0899047851562,
+        "workers": 96
+      },
+      "aeglos_windowed": {
+        "ms": 102.44748,
+        "workers": 64
+      },
+      "shape": "8x2",
+      "zopro": {
+        "ms": 28.297752,
+        "workers": 64
+      }
+    },
+    {
+      "aeglos_sorted": {
+        "ms": 49.276354,
+        "native_retained_mib": 2236.7762451171875,
+        "workers": 96
+      },
+      "aeglos_windowed": {
+        "ms": 163.501853,
+        "workers": 32
+      },
+      "shape": "12x2",
+      "zopro": {
+        "ms": 35.987733,
+        "workers": 64
+      }
+    },
+    {
+      "aeglos_sorted": {
+        "ms": 57.149735,
+        "native_retained_mib": 2727.0882568359375,
+        "workers": 96
+      },
+      "aeglos_windowed": {
+        "ms": 178.161802,
+        "workers": 32
+      },
+      "shape": "16x2",
+      "zopro": {
+        "ms": 40.158083999999995,
+        "workers": 64
+      }
+    },
+    {
+      "aeglos_sorted": {
+        "ms": 87.765149,
+        "native_retained_mib": 4170.46630859375,
+        "workers": 96
+      },
+      "aeglos_windowed": {
+        "ms": 264.164465,
+        "workers": 64
+      },
+      "shape": "24x2",
+      "zopro": {
+        "ms": 57.525656,
+        "workers": 64
+      }
+    },
+    {
+      "aeglos_sorted": {
+        "ms": 85.383676,
+        "native_retained_mib": 4028.3707275390625,
+        "workers": 96
+      },
+      "aeglos_windowed": {
+        "ms": 254.971007,
+        "workers": 64
+      },
+      "shape": "merge-24x1",
+      "zopro": {
+        "ms": 62.197213,
+        "workers": 64
+      }
+    },
+    {
+      "aeglos_sorted": {
+        "ms": 173.565703,
+        "native_retained_mib": 8217.112243652344,
+        "workers": 96
+      },
+      "aeglos_windowed": {
+        "ms": 418.381788,
+        "workers": 96
+      },
+      "shape": "merge-54x1",
+      "zopro": {
+        "ms": 129.984756,
+        "workers": 64
+      }
+    }
+  ],
+  "archived_rows_checked": 432,
+  "input_sha256": {
+    "zopro/docs/benchmarks/2026-10-22-universal-cache-islands/README.md": "85a186e453bc0c0f6c6d0c30dcc4244cdc496bdb0379c1e6ac487fe71beb8a99",
+    "zopro/docs/benchmarks/2026-10-22-universal-indexed-g1-tree/README.md": "a7ef0c059b53e3453be03d3e6a6d3e3f18bc3f1e60abd66ebc5cef5a07f40cb6",
+    "zopro/docs/benchmarks/2026-10-23-aws-local-crosshost-aeglos/README.md": "ee768298074bde152e7dbcbdc5ebe1ff0bcd62a7ca5bbaa253125d6f5a9047b1",
+    "zopro/docs/benchmarks/2026-10-23-local-ibs-memory/README.md": "d569423639302c989473ff6b624d705420e839d09477ad64bc1471c761f1921d",
+    "zopro/docs/benchmarks/2026-10-23-shift128-g1-component/README.md": "85e73aba1dbe94113874edec4377442fc3fc6df6562abb2683b32dcd2071367c",
+    "zopro/docs/benchmarks/2026-10-25-c7a-warm-profile/README.md": "bad84fab0021a629b233ae0bb2edfb674daa54f467f57bbf89d6f5701a373c09",
+    "zopro/docs/benchmarks/2026-10-25-latest-c7a-aeglos/README.md": "34a10085d8663739c118fe0591457a1cbdb455535d6dc4f028bdb06fecf15a33",
+    "zopro/docs/benchmarks/2026-10-25-latest-c7a-aeglos/remote-results/output/latency/rows.json": "1770db633fffc2c745490921ce54b693e335b565dc5e8b28a9c1272d44303667",
+    "zopro/docs/benchmarks/2026-10-25-proof-dataflow-c7a/README.md": "b40bcad96cd202f04070c2cf04ff4facac031671b32b9595a2f04dcb75da7e05",
+    "zopro/docs/benchmarks/2026-10-25-task-census/README.md": "28a8f8d8eaad1799c281411607a21aa55521b542f98941b045cdbd705f91c7d0",
+    "zopro/docs/benchmarks/2026-10-25-task-census/aeglos-source.json": "037a749ec274172f2947b5775867d384d1f3cf444f0c1cd173134f731b07937d",
+    "zopro/docs/benchmarks/2026-10-25-worker-groups-c7a/README.md": "715c636348b9e63d72f766ed4eeff56f754819e09a92a30eb2c3bca866a52dde"
+  },
+  "new_gnark_exports": 0,
+  "new_sdk_requests": 0,
+  "primary_scaling": [
+    {
+      "aeglos_request_minus_msm_ms": 4.041920000000001,
+      "aeglos_request_minus_msm_process_medians_ms": [
+        4.05265,
+        4.041621000000001,
+        4.041920000000001
+      ],
+      "aeglos_stages_median_of_process_medians": {
+        "assembly_ms": 0.28996,
+        "fft_ms": 1.32446,
+        "msm_ms": 15.23831,
+        "native_bytes": 267018752.0,
+        "verified_ms": 19.29127,
+        "witness_ms": 1.50738
+      },
+      "workers": 16,
+      "zopro_request_ms": 19.809061999999997
+    },
+    {
+      "aeglos_request_minus_msm_ms": 3.498391,
+      "aeglos_request_minus_msm_process_medians_ms": [
+        3.48311,
+        3.534799999999999,
+        3.498391
+      ],
+      "aeglos_stages_median_of_process_medians": {
+        "assembly_ms": 0.26777,
+        "fft_ms": 0.84393,
+        "msm_ms": 8.115631,
+        "native_bytes": 267002368.0,
+        "verified_ms": 11.606352,
+        "witness_ms": 1.47445
+      },
+      "workers": 32,
+      "zopro_request_ms": 13.626861
+    },
+    {
+      "aeglos_request_minus_msm_ms": 3.6451010000000004,
+      "aeglos_request_minus_msm_process_medians_ms": [
+        3.7174700000000005,
+        3.6279000000000003,
+        3.6451010000000004
+      ],
+      "aeglos_stages_median_of_process_medians": {
+        "assembly_ms": 0.28841,
+        "fft_ms": 0.760971,
+        "msm_ms": 4.943441,
+        "native_bytes": 267018752.0,
+        "verified_ms": 8.602221,
+        "witness_ms": 1.55828
+      },
+      "workers": 64,
+      "zopro_request_ms": 14.354222
+    },
+    {
+      "aeglos_request_minus_msm_ms": 4.002599999999999,
+      "aeglos_request_minus_msm_process_medians_ms": [
+        4.095169,
+        4.002599999999999,
+        4.0022210000000005
+      ],
+      "aeglos_stages_median_of_process_medians": {
+        "assembly_ms": 0.30643,
+        "fft_ms": 0.8926,
+        "msm_ms": 3.852781,
+        "native_bytes": 267018752.0,
+        "verified_ms": 7.966389,
+        "witness_ms": 1.60301
+      },
+      "workers": 96,
+      "zopro_request_ms": 16.051591000000002
+    }
+  ],
+  "scope": "Reanalysis only of Oct25 167-source C7a comparison; no fresh prover measurements, proofs or cloud resources. Not a benchmark of current 170-source build."
+}

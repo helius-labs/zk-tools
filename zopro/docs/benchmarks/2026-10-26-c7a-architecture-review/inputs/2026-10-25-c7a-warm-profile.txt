@@ -1,0 +1,32 @@
+# Warm-loop CPU profiles on the fresh C7a comparison server
+
+Separate diagnostic after the fixed latency matrix finished. Latest accepted Zopro and the same pinned Aeglos Sorted executable run on the same owned c7a.24xlarge at 32/96 workers for 1x2 and merge54. The predeclared trigger was the remaining primary scaling gap. These instrumented timings do not replace the unprofiled comparison.
+
+The Zopro diagnostic wrapper links the exact server libraries used by the timing binary. The existing Aeglos driver already contains the same FIFO control hooks. Both enable counters after loading and three prime proofs, wait for acknowledgement, then disable before exporting. No source/library arithmetic changes, global CPU settings or kernel settings are made. All events follow only the launched process and inherited threads. The profile container adds PERFMON and permits perf syscalls through its own seccomp setting.
+
+Three fixed counter repetitions use cycles, instructions, branches and branch misses in user mode; every event runs at least 99% of the measured interval. One separate 199 Hz cycle capture per case records no lost events. Flat reports use no percentage cutoff; raw compressed perf data and headers are retained. Software metrics come from getrusage around the warm loop. Counter attribution and summed CPU work do not establish critical-path wall time, DRAM bandwidth saturation or exact instruction causality.
+
+| Circuit | Workers | Engine | User CPU ms/proof | System CPU ms/proof | Mean cores used | Minor faults/proof | Voluntary switches/proof | IPC |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| 1x2 | 32 | current | 291.766 | 25.650 | 21.49 | 94.06 | 478.46 | 1.405 |
+| 1x2 | 32 | aeglos-default | 322.734 | 7.060 | 28.10 | 15.22 | 52.02 | 1.544 |
+| 1x2 | 96 | current | 903.893 | 116.479 | 55.73 | 117.56 | 1811.37 | 0.626 |
+| 1x2 | 96 | aeglos-default | 513.150 | 24.816 | 65.29 | 51.61 | 102.35 | 1.251 |
+| merge-54x1 | 32 | current | 3509.523 | 170.679 | 24.69 | 20252.06 | 2250.65 | 1.424 |
+| merge-54x1 | 32 | aeglos-default | 9594.047 | 25.675 | 31.19 | 2615.76 | 159.65 | 1.656 |
+| merge-54x1 | 96 | current | 7186.233 | 648.202 | 53.26 | 28593.06 | 7691.65 | 0.891 |
+| merge-54x1 | 96 | aeglos-default | 14966.473 | 97.649 | 86.21 | 3091.71 | 460.94 | 1.487 |
+
+At 96 workers, Zopro's primary uses 17.7 times as many voluntary context switches per proof as Aeglos, with 116.5 versus 24.8 ms of kernel CPU time summed across threads. At 32 workers, total CPU work is similar (317.4 versus 329.8 ms/proof), while Zopro has less average CPU occupancy. At 96 workers, Zopro uses 1.90 times Aeglos's summed CPU time. These observations support synchronization and work distribution as research priorities; they do not identify a proven fix or establish that RAM capacity is the limiting factor.
+
+The leading Zopro primary/96 symbols are retained in analysis.json. Crossbeam epoch guard entry and epoch advancement are prominent. Earlier [empty-epoch collection](../2026-10-23-empty-epoch-collection-aws/README.md) and [fixed-time work search](../2026-10-23-timed-steal-aws/README.md) changes failed their latency gates; this new profile does not revive those rejected changes. The next scheduling experiment must change a distinct mechanism and pass latency plus memory checks.
+
+For 54→1, Zopro uses less summed CPU time than Aeglos at both measured worker counts, despite greater system time and switching. The unprofiled parent comparison already establishes its latency and RAM advantage. The profile does not isolate which intervening accepted changes produced that improvement.
+
+The diagnostic completes 3,584 SDK requests and 32 distinct exports verified by Gnark remotely and again locally. Local wrapper/image checks add 20 SDK requests and five distinct exports. The 32 remote proofs are disjoint from 473 checked exports belonging to the main comparison and these preflights. Reverification is not counted twice. All 167 production source hashes and the exact server-library hashes are unchanged.
+
+The first retrieval attempt used an incorrect remote directory suffix and stopped before transferring data. The path was corrected and the same completed archive was retrieved; no timing, proof or profile capture was repeated. Original scripts and failure logs are retained.
+
+The parent comparison owns the instance and both benchmark image tags and records their cleanup. This report makes no production adoption or mobile-performance claim. The full tenfold objective remains separate from this diagnostic.
+
+[Analysis](analysis.json), [protocol](protocol.json), [raw rows](remote-results/output/profile/rows.json), [proof hashes](remote-results/output/profile/proof-inventory.json), [artifact hashes](SHA256SUMS.json).

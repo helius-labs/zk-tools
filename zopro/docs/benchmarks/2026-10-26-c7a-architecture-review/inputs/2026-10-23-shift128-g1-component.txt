@@ -1,0 +1,29 @@
+# One high-half shift for G1 quotient MSMs
+
+Rejected at the component stage. One immutable `[2^128]P` per original base reduces the scalar representation from 22 signed 12-bit windows to 11. Both highest halves use indexed reduction to avoid narrow-digit collisions. Neither partition variant improves on the retained implementation. No SDK or production change was made.
+
+| Points | Grouped | Retained ms | Retained 2 parts ms | Shift 1 part ms | Shift 2 parts ms |
+|---:|---|---:|---:|---:|---:|
+| 4096 | False | 0.4385 | 0.5497 | 0.4628 | 0.5334 |
+| 4096 | True | 0.5123 | 0.6014 | 0.5290 | 0.6135 |
+| 8192 | False | 0.5810 | 0.6756 | 0.7622 | 0.6917 |
+| 8192 | True | 0.6267 | 0.7334 | 0.7244 | 0.7955 |
+| 32768 | False | 1.5713 | 1.6422 | 2.7617 | 1.6368 |
+| 32768 | True | 1.5521 | 1.6448 | 2.1861 | 1.6815 |
+| 65535 | False | 2.9985 | 2.9955 | 5.4538 | 3.0490 |
+| 65535 | True | 1.8690 | 1.9669 | 2.5737 | 2.0721 |
+
+Native Ryzen, 32 workers, 31 reversing rounds and three priming calls per mode/size/input type: 992 measured and 96 priming component calls. Distinct generator multiples and full-width scalars; setup and oracle construction are outside timing. Grouped diagnostics include grouping both arrays. The predeclared eligibility target is raw quotient inputs, requiring at least 10% paired improvement against both retained controls at 32,768 points with 21/31 wins, and at most 5% regression elsewhere. Grouped results cannot justify witness-query integration.
+
+232 independent weighted-generator oracle calls passed at two and 32 workers, including 128-bit boundaries, identity/inverse/repeated points, and full-width/grouped scalars. Every measured output was checked after the timer. Source inspection confirms the primary folded quotient has 32,768 points; synthetic component data is still not actual SDK proof data.
+
+| Points | Setup ms | Retained table bytes |
+|---:|---:|---:|
+| 4096 | 3.664 | 262144 |
+| 8192 | 6.845 | 524288 |
+| 32768 | 27.954 | 2097152 |
+| 65535 | 56.262 | 4194240 |
+
+The shifted table costs 64 bytes per point, below 4 MiB in the tested range. Setup also creates temporary projective points and normalization scratch; setup peak memory is unmeasured. Existing-budget admission and fallback would be mandatory before integration, which is not justified by these results. No physical-phone, memory-pressure, AWS, or full-proof speed claim is made.
+
+The source review compared Aeglos’s complete-window shifted tables with this single-half approach. Aeglos source hashes are recorded in the protocol. Prior G1 GLV/Horner and G2 shift experiments were not rerun or relabeled. [Raw results](results.json), source/library hashes, executable, and commands are archived. Production pins are unchanged; 9 ms and the full 10× goal remain unmet.
