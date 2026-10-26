@@ -1,0 +1,105 @@
+{
+  "source_pins": "/tmp/zopro-lazy-linear/measurement-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "script",
+        "--show-lost-events",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/frozen/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,ip,sym,period"
+      ],
+      "kind": "command",
+      "name": "samples-frozen",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "report",
+        "--stdio",
+        "--header",
+        "--percent-limit",
+        "0",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/frozen/perf.data"
+      ],
+      "kind": "command",
+      "name": "report-frozen",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "script",
+        "--show-lost-events",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/fresh/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,ip,sym,period"
+      ],
+      "kind": "command",
+      "name": "samples-fresh",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "report",
+        "--stdio",
+        "--header",
+        "--percent-limit",
+        "0",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/fresh/perf.data"
+      ],
+      "kind": "command",
+      "name": "report-fresh",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "script",
+        "--show-lost-events",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/lazy/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,ip,sym,period"
+      ],
+      "kind": "command",
+      "name": "samples-lazy",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "report",
+        "--stdio",
+        "--header",
+        "--percent-limit",
+        "0",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/lazy/perf.data"
+      ],
+      "kind": "command",
+      "name": "report-lazy",
+      "timeout_seconds": 180
+    }
+  ],
+  "version": 1
+}

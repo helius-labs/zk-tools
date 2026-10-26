@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-lazy-linear/measurement-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "samples-frozen",
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "script",
+        "--show-lost-events",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/frozen/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,ip,sym,period"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "report-frozen",
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "report",
+        "--stdio",
+        "--header",
+        "--percent-limit",
+        "0",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/frozen/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "samples-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "script",
+        "--show-lost-events",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/fresh/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,ip,sym,period"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "report-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "report",
+        "--stdio",
+        "--header",
+        "--percent-limit",
+        "0",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/fresh/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "samples-lazy",
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "script",
+        "--show-lost-events",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/lazy/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,ip,sym,period"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "report-lazy",
+      "argv": [
+        "sudo",
+        "-n",
+        "/usr/bin/perf",
+        "report",
+        "--stdio",
+        "--header",
+        "--percent-limit",
+        "0",
+        "-i",
+        "/tmp/zopro-lazy-linear/profiles/lazy/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    }
+  ]
+}

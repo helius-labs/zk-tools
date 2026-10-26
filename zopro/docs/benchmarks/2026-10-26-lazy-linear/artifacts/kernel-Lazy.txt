@@ -1,0 +1,741 @@
+
+/tmp/zopro-lazy-linear/probe:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000024320 <_RINvCs4W6t0ZobjTU_5probe6kernelNtB2_9Fq256LazyKh3_EB2_>:
+   24320:	48 81 ec f8 03 00 00                            	sub    $0x3f8,%rsp
+   24327:	48 85 c9                                        	test   %rcx,%rcx
+   2432a:	0f 84 80 12 00 00                               	je     255b0 <_RINvCs4W6t0ZobjTU_5probe6kernelNtB2_9Fq256LazyKh3_EB2_+0x1290>
+   24330:	62 71 fd 48 6f 62 09                            	vmovdqa64 0x240(%rdx),%zmm12
+   24337:	62 71 fd 48 6f 42 0e                            	vmovdqa64 0x380(%rdx),%zmm8
+   2433e:	62 f1 7c 48 28 02                               	vmovaps (%rdx),%zmm0
+   24344:	62 53 0d 48 25 f6 ff                            	vpternlogd $0xff,%zmm14,%zmm14,%zmm14
+   2434b:	c4 41 01 ef ff                                  	vpxor  %xmm15,%xmm15,%xmm15
+   24350:	62 f1 fd 48 6f 6a 05                            	vmovdqa64 0x140(%rdx),%zmm5
+   24357:	62 e1 fd 48 6f 42 0a                            	vmovdqa64 0x280(%rdx),%zmm16
+   2435e:	62 f1 fd 48 6f 7a 06                            	vmovdqa64 0x180(%rdx),%zmm7
+   24365:	62 e1 fd 48 6f 62 0b                            	vmovdqa64 0x2c0(%rdx),%zmm20
+   2436c:	62 71 fd 48 6f 4a 07                            	vmovdqa64 0x1c0(%rdx),%zmm9
+   24373:	62 e1 fd 48 6f 6a 0c                            	vmovdqa64 0x300(%rdx),%zmm21
+   2437a:	62 71 fd 48 6f 52 08                            	vmovdqa64 0x200(%rdx),%zmm10
+   24381:	62 f1 fd 48 6f 4a 01                            	vmovdqa64 0x40(%rdx),%zmm1
+   24388:	62 f1 fd 48 6f 52 02                            	vmovdqa64 0x80(%rdx),%zmm2
+   2438f:	62 f1 fd 48 6f 5a 03                            	vmovdqa64 0xc0(%rdx),%zmm3
+   24396:	62 f1 fd 48 6f 62 04                            	vmovdqa64 0x100(%rdx),%zmm4
+   2439d:	62 e1 fd 48 6f 1e                               	vmovdqa64 (%rsi),%zmm19
+   243a3:	62 e1 fd 48 6f 56 01                            	vmovdqa64 0x40(%rsi),%zmm18
+   243aa:	62 71 fd 48 6f 5e 02                            	vmovdqa64 0x80(%rsi),%zmm11
+   243b1:	62 f1 fd 48 6f 76 03                            	vmovdqa64 0xc0(%rsi),%zmm6
+   243b8:	62 62 fd 48 59 35 8e f5 fd ff                   	vpbroadcastq -0x20a72(%rip),%zmm30        # 3950 <__abi_tag+0x3654>
+   243c2:	62 62 fd 48 59 2d 1c f5 fd ff                   	vpbroadcastq -0x20ae4(%rip),%zmm29        # 38e8 <__abi_tag+0x35ec>
+   243cc:	62 61 fd 48 6f 3d aa 33 fe ff                   	vmovdqa64 -0x1cc56(%rip),%zmm31        # 7780 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x34c0>
+   243d6:	48 b8 31 e1 72 4e 64 30 00 00                   	movabs $0x30644e72e131,%rax
+   243e0:	62 51 9d 48 d4 e8                               	vpaddq %zmm8,%zmm12,%zmm13
+   243e6:	62 f1 7c 48 11 84 24 b0 ff ff ff                	vmovups %zmm0,-0x50(%rsp)
+   243f1:	62 71 fe 48 7f 84 24 f0 02 00 00                	vmovdqu64 %zmm8,0x2f0(%rsp)
+   243fc:	c4 41 39 ef c0                                  	vpxor  %xmm8,%xmm8,%xmm8
+   24401:	62 e1 fe 48 7f 84 24 b0 03 00 00                	vmovdqu64 %zmm16,0x3b0(%rsp)
+   2440c:	62 e1 fe 48 7f a4 24 70 03 00 00                	vmovdqu64 %zmm20,0x370(%rsp)
+   24417:	62 e1 fe 48 7f ac 24 30 03 00 00                	vmovdqu64 %zmm21,0x330(%rsp)
+   24422:	62 71 9d 58 d4 25 6c f4 fd ff                   	vpaddq -0x20b94(%rip){1to8},%zmm12,%zmm12        # 3898 <__abi_tag+0x359c>
+   2442c:	62 51 95 48 d4 f6                               	vpaddq %zmm14,%zmm13,%zmm14
+   24432:	62 52 8d 48 3d f0                               	vpmaxsq %zmm8,%zmm14,%zmm14
+   24438:	62 72 8d 58 b5 3d 5e f4 fd ff                   	vpmadd52huq -0x20ba2(%rip){1to8},%zmm14,%zmm15        # 38a0 <__abi_tag+0x35a4>
+   24442:	62 71 fd 48 6f 42 0d                            	vmovdqa64 0x340(%rdx),%zmm8
+   24449:	62 72 85 48 36 35 ed 32 fe ff                   	vpermq -0x1cd13(%rip),%zmm15,%zmm14        # 7740 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x3480>
+   24453:	62 f2 85 48 36 05 23 33 fe ff                   	vpermq -0x1ccdd(%rip),%zmm15,%zmm0        # 7780 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x34c0>
+   2445d:	62 e2 85 48 36 35 59 33 fe ff                   	vpermq -0x1cca7(%rip),%zmm15,%zmm22        # 77c0 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x3500>
+   24467:	62 71 fe 48 7f 84 24 b0 02 00 00                	vmovdqu64 %zmm8,0x2b0(%rsp)
+   24472:	62 51 d5 48 fb f6                               	vpsubq %zmm14,%zmm5,%zmm14
+   24478:	62 f1 d5 58 d4 2d 9e f4 fd ff                   	vpaddq -0x20b62(%rip){1to8},%zmm5,%zmm5        # 3920 <__abi_tag+0x3624>
+   24482:	62 31 8d 48 d4 f0                               	vpaddq %zmm16,%zmm14,%zmm14
+   24488:	62 d1 f5 40 72 e6 34                            	vpsraq $0x34,%zmm14,%zmm17
+   2448f:	62 e1 f5 40 fb c0                               	vpsubq %zmm0,%zmm17,%zmm16
+   24495:	62 b1 c5 48 d4 c4                               	vpaddq %zmm20,%zmm7,%zmm0
+   2449b:	62 e1 fd 40 d4 c0                               	vpaddq %zmm0,%zmm16,%zmm16
+   244a1:	62 b1 b5 48 d4 c5                               	vpaddq %zmm21,%zmm9,%zmm0
+   244a7:	62 e1 fd 48 6f 6e 04                            	vmovdqa64 0x100(%rsi),%zmm21
+   244ae:	62 b1 f5 40 72 e0 34                            	vpsraq $0x34,%zmm16,%zmm17
+   244b5:	62 a1 f5 40 fb ce                               	vpsubq %zmm22,%zmm17,%zmm17
+   244bb:	62 e2 85 48 36 35 3b 33 fe ff                   	vpermq -0x1ccc5(%rip),%zmm15,%zmm22        # 7800 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x3540>
+   244c5:	62 72 85 48 36 3d 71 33 fe ff                   	vpermq -0x1cc8f(%rip),%zmm15,%zmm15        # 7840 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x3580>
+   244cf:	62 e1 f5 40 d4 e0                               	vpaddq %zmm0,%zmm17,%zmm20
+   244d5:	62 d1 ad 48 d4 c0                               	vpaddq %zmm8,%zmm10,%zmm0
+   244db:	62 b1 f5 40 72 e4 34                            	vpsraq $0x34,%zmm20,%zmm17
+   244e2:	62 a1 f5 40 fb ce                               	vpsubq %zmm22,%zmm17,%zmm17
+   244e8:	62 e1 f5 40 d4 f0                               	vpaddq %zmm0,%zmm17,%zmm22
+   244ee:	62 b1 f5 40 72 e6 34                            	vpsraq $0x34,%zmm22,%zmm17
+   244f5:	62 51 f5 40 fb ff                               	vpsubq %zmm15,%zmm17,%zmm15
+   244fb:	62 e2 fd 48 59 0d 1b f3 fd ff                   	vpbroadcastq -0x20ce5(%rip),%zmm17        # 3820 <__abi_tag+0x3524>
+   24505:	62 51 95 48 d4 c7                               	vpaddq %zmm15,%zmm13,%zmm8
+   2450b:	62 31 8d 48 db e9                               	vpandq %zmm17,%zmm14,%zmm13
+   24511:	62 b1 fd 40 db c1                               	vpandq %zmm17,%zmm16,%zmm0
+   24517:	62 31 dd 40 db f1                               	vpandq %zmm17,%zmm20,%zmm14
+   2451d:	62 71 fe 48 7f ac 24 30 02 00 00                	vmovdqu64 %zmm13,0x230(%rsp)
+   24528:	62 f1 fe 48 7f 84 24 f0 01 00 00                	vmovdqu64 %zmm0,0x1f0(%rsp)
+   24533:	62 b1 cd 40 db c1                               	vpandq %zmm17,%zmm22,%zmm0
+   24539:	62 71 fe 48 7f b4 24 b0 01 00 00                	vmovdqu64 %zmm14,0x1b0(%rsp)
+   24544:	62 e1 fd 48 6f 35 72 32 fe ff                   	vmovdqa64 -0x1cd8e(%rip),%zmm22        # 77c0 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x3500>
+   2454e:	62 f1 fe 48 7f 84 24 70 01 00 00                	vmovdqu64 %zmm0,0x170(%rsp)
+   24559:	62 f1 c5 58 d4 05 1d f4 fd ff                   	vpaddq -0x20be3(%rip){1to8},%zmm7,%zmm0        # 3980 <__abi_tag+0x3684>
+   24563:	62 71 fe 48 7f a4 24 30 01 00 00                	vmovdqu64 %zmm12,0x130(%rsp)
+   2456e:	62 f1 fe 48 7f ac 24 f0 00 00 00                	vmovdqu64 %zmm5,0xf0(%rsp)
+   24579:	62 f1 b5 58 d4 3d d5 f3 fd ff                   	vpaddq -0x20c2b(%rip){1to8},%zmm9,%zmm7        # 3958 <__abi_tag+0x365c>
+   24583:	62 b1 bd 48 db e9                               	vpandq %zmm17,%zmm8,%zmm5
+   24589:	62 f1 fe 48 7f 84 24 b0 00 00 00                	vmovdqu64 %zmm0,0xb0(%rsp)
+   24594:	62 f1 ad 58 d4 05 32 f3 fd ff                   	vpaddq -0x20cce(%rip){1to8},%zmm10,%zmm0        # 38d0 <__abi_tag+0x35d4>
+   2459e:	62 f1 fe 48 7f bc 24 70 00 00 00                	vmovdqu64 %zmm7,0x70(%rsp)
+   245a9:	62 f1 fe 48 7f 84 24 30 00 00 00                	vmovdqu64 %zmm0,0x30(%rsp)
+   245b4:	62 71 fe 48 7f 84 24 70 02 00 00                	vmovdqu64 %zmm8,0x270(%rsp)
+   245bf:	62 71 fd 48 6f 05 37 32 fe ff                   	vmovdqa64 -0x1cdc9(%rip),%zmm8        # 7800 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x3540>
+   245c9:	62 f1 fe 48 7f ac 24 f0 ff ff ff                	vmovdqu64 %zmm5,-0x10(%rsp)
+   245d4:	66 66 66 2e 0f 1f 84 00 00 00 00 00             	data16 data16 cs nopw 0x0(%rax,%rax,1)
+   245e0:	62 f1 fe 48 6f 84 24 b0 ff ff ff                	vmovdqu64 -0x50(%rsp),%zmm0
+   245eb:	62 61 fd 28 6f 25 eb f0 fd ff                   	vmovdqa64 -0x20f15(%rip),%ymm28        # 36e0 <__abi_tag+0x33e4>
+   245f5:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   245fa:	c4 41 31 ef c9                                  	vpxor  %xmm9,%xmm9,%xmm9
+   245ff:	c4 41 29 ef d2                                  	vpxor  %xmm10,%xmm10,%xmm10
+   24604:	62 a1 7d 00 ef c0                               	vpxord %xmm16,%xmm16,%xmm16
+   2460a:	c4 41 19 ef e4                                  	vpxor  %xmm12,%xmm12,%xmm12
+   2460f:	62 01 2d 00 ef d2                               	vpxord %xmm26,%xmm26,%xmm26
+   24615:	c4 41 09 ef f6                                  	vpxor  %xmm14,%xmm14,%xmm14
+   2461a:	62 01 25 00 ef db                               	vpxord %xmm27,%xmm27,%xmm27
+   24620:	62 62 d5 40 b5 d9                               	vpmadd52huq %zmm1,%zmm21,%zmm27
+   24626:	62 f2 fd 48 59 2d f8 f1 fd ff                   	vpbroadcastq -0x20e08(%rip),%zmm5        # 3828 <__abi_tag+0x352c>
+   24630:	48 ff c9                                        	dec    %rcx
+   24633:	62 72 e5 40 b5 e8                               	vpmadd52huq %zmm0,%zmm19,%zmm13
+   24639:	62 72 ed 40 b5 c8                               	vpmadd52huq %zmm0,%zmm18,%zmm9
+   2463f:	62 72 a5 48 b5 d0                               	vpmadd52huq %zmm0,%zmm11,%zmm10
+   24645:	62 e2 cd 48 b5 c0                               	vpmadd52huq %zmm0,%zmm6,%zmm16
+   2464b:	62 61 fe 28 7f 64 24 fc                         	vmovdqu64 %ymm28,-0x80(%rsp)
+   24653:	48 89 44 24 a0                                  	mov    %rax,-0x60(%rsp)
+   24658:	62 72 e5 40 b4 e0                               	vpmadd52luq %zmm0,%zmm19,%zmm12
+   2465e:	62 62 d5 40 b5 d0                               	vpmadd52huq %zmm0,%zmm21,%zmm26
+   24664:	62 62 fd 48 59 44 24 f2                         	vpbroadcastq -0x70(%rsp),%zmm24
+   2466c:	62 e2 fd 48 59 7c 24 f3                         	vpbroadcastq -0x68(%rsp),%zmm23
+   24674:	62 62 fd 48 59 4c 24 f1                         	vpbroadcastq -0x78(%rsp),%zmm25
+   2467c:	62 e2 fd 48 59 64 24 f4                         	vpbroadcastq -0x60(%rsp),%zmm20
+   24684:	62 61 fe 28 7f 64 24 fc                         	vmovdqu64 %ymm28,-0x80(%rsp)
+   2468c:	48 89 44 24 a0                                  	mov    %rax,-0x60(%rsp)
+   24691:	62 72 ed 40 b4 e8                               	vpmadd52luq %zmm0,%zmm18,%zmm13
+   24697:	62 72 a5 48 b4 c8                               	vpmadd52luq %zmm0,%zmm11,%zmm9
+   2469d:	62 72 cd 48 b4 d0                               	vpmadd52luq %zmm0,%zmm6,%zmm10
+   246a3:	62 e2 d5 40 b4 c0                               	vpmadd52luq %zmm0,%zmm21,%zmm16
+   246a9:	62 f2 fd 48 59 05 ad f1 fd ff                   	vpbroadcastq -0x20e53(%rip),%zmm0        # 3860 <__abi_tag+0x3564>
+   246b3:	62 12 9d 48 b4 f6                               	vpmadd52luq %zmm30,%zmm12,%zmm14
+   246b9:	62 31 9d 48 d4 e1                               	vpaddq %zmm17,%zmm12,%zmm12
+   246bf:	62 d1 9d 48 73 d4 34                            	vpsrlq $0x34,%zmm12,%zmm12
+   246c6:	62 12 8d 48 b5 d0                               	vpmadd52huq %zmm24,%zmm14,%zmm10
+   246cc:	62 a2 8d 48 b5 c7                               	vpmadd52huq %zmm23,%zmm14,%zmm16
+   246d2:	62 12 8d 48 b5 c9                               	vpmadd52huq %zmm25,%zmm14,%zmm9
+   246d8:	62 12 8d 48 b4 e9                               	vpmadd52luq %zmm25,%zmm14,%zmm13
+   246de:	62 22 8d 48 b5 d4                               	vpmadd52huq %zmm20,%zmm14,%zmm26
+   246e4:	62 72 8d 48 b5 e0                               	vpmadd52huq %zmm0,%zmm14,%zmm12
+   246ea:	62 32 8d 48 b4 d7                               	vpmadd52luq %zmm23,%zmm14,%zmm10
+   246f0:	62 a2 8d 48 b4 c4                               	vpmadd52luq %zmm20,%zmm14,%zmm16
+   246f6:	62 12 8d 48 b4 c8                               	vpmadd52luq %zmm24,%zmm14,%zmm9
+   246fc:	62 62 cd 48 b5 d1                               	vpmadd52huq %zmm1,%zmm6,%zmm26
+   24702:	62 51 95 48 d4 e4                               	vpaddq %zmm12,%zmm13,%zmm12
+   24708:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   2470d:	62 72 e5 40 b4 e1                               	vpmadd52luq %zmm1,%zmm19,%zmm12
+   24713:	62 72 ed 40 b5 d1                               	vpmadd52huq %zmm1,%zmm18,%zmm10
+   24719:	62 e2 a5 48 b5 c1                               	vpmadd52huq %zmm1,%zmm11,%zmm16
+   2471f:	62 72 e5 40 b5 c9                               	vpmadd52huq %zmm1,%zmm19,%zmm9
+   24725:	62 62 d5 40 b4 d1                               	vpmadd52luq %zmm1,%zmm21,%zmm26
+   2472b:	62 12 9d 48 b4 ee                               	vpmadd52luq %zmm30,%zmm12,%zmm13
+   24731:	62 72 a5 48 b4 d1                               	vpmadd52luq %zmm1,%zmm11,%zmm10
+   24737:	62 e2 cd 48 b4 c1                               	vpmadd52luq %zmm1,%zmm6,%zmm16
+   2473d:	62 72 ed 40 b4 c9                               	vpmadd52luq %zmm1,%zmm18,%zmm9
+   24743:	62 31 9d 48 d4 e1                               	vpaddq %zmm17,%zmm12,%zmm12
+   24749:	62 d1 9d 48 73 d4 34                            	vpsrlq $0x34,%zmm12,%zmm12
+   24750:	62 22 95 48 b5 d7                               	vpmadd52huq %zmm23,%zmm13,%zmm26
+   24756:	62 12 95 48 b5 d1                               	vpmadd52huq %zmm25,%zmm13,%zmm10
+   2475c:	62 82 95 48 b5 c0                               	vpmadd52huq %zmm24,%zmm13,%zmm16
+   24762:	62 72 95 48 b5 e0                               	vpmadd52huq %zmm0,%zmm13,%zmm12
+   24768:	62 12 95 48 b4 c9                               	vpmadd52luq %zmm25,%zmm13,%zmm9
+   2476e:	62 22 95 48 b5 dc                               	vpmadd52huq %zmm20,%zmm13,%zmm27
+   24774:	62 22 95 48 b4 d4                               	vpmadd52luq %zmm20,%zmm13,%zmm26
+   2477a:	62 12 95 48 b4 d0                               	vpmadd52luq %zmm24,%zmm13,%zmm10
+   24780:	62 a2 95 48 b4 c7                               	vpmadd52luq %zmm23,%zmm13,%zmm16
+   24786:	62 51 b5 48 d4 e4                               	vpaddq %zmm12,%zmm9,%zmm12
+   2478c:	62 62 cd 48 b5 da                               	vpmadd52huq %zmm2,%zmm6,%zmm27
+   24792:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   24797:	c4 41 31 ef c9                                  	vpxor  %xmm9,%xmm9,%xmm9
+   2479c:	62 72 d5 40 b5 ca                               	vpmadd52huq %zmm2,%zmm21,%zmm9
+   247a2:	62 72 e5 40 b4 e2                               	vpmadd52luq %zmm2,%zmm19,%zmm12
+   247a8:	62 62 a5 48 b5 d2                               	vpmadd52huq %zmm2,%zmm11,%zmm26
+   247ae:	62 72 e5 40 b5 d2                               	vpmadd52huq %zmm2,%zmm19,%zmm10
+   247b4:	62 e2 ed 40 b5 c2                               	vpmadd52huq %zmm2,%zmm18,%zmm16
+   247ba:	62 62 d5 40 b4 da                               	vpmadd52luq %zmm2,%zmm21,%zmm27
+   247c0:	62 12 9d 48 b4 ee                               	vpmadd52luq %zmm30,%zmm12,%zmm13
+   247c6:	62 31 9d 48 d4 e1                               	vpaddq %zmm17,%zmm12,%zmm12
+   247cc:	62 d1 9d 48 73 d4 34                            	vpsrlq $0x34,%zmm12,%zmm12
+   247d3:	62 62 cd 48 b4 d2                               	vpmadd52luq %zmm2,%zmm6,%zmm26
+   247d9:	62 72 ed 40 b4 d2                               	vpmadd52luq %zmm2,%zmm18,%zmm10
+   247df:	62 e2 a5 48 b4 c2                               	vpmadd52luq %zmm2,%zmm11,%zmm16
+   247e5:	62 22 95 48 b5 df                               	vpmadd52huq %zmm23,%zmm13,%zmm27
+   247eb:	62 72 95 48 b5 e0                               	vpmadd52huq %zmm0,%zmm13,%zmm12
+   247f1:	62 32 95 48 b5 cc                               	vpmadd52huq %zmm20,%zmm13,%zmm9
+   247f7:	62 02 95 48 b5 d0                               	vpmadd52huq %zmm24,%zmm13,%zmm26
+   247fd:	62 82 95 48 b5 c1                               	vpmadd52huq %zmm25,%zmm13,%zmm16
+   24803:	62 12 95 48 b4 d1                               	vpmadd52luq %zmm25,%zmm13,%zmm10
+   24809:	62 22 95 48 b4 dc                               	vpmadd52luq %zmm20,%zmm13,%zmm27
+   2480f:	62 72 cd 48 b5 cb                               	vpmadd52huq %zmm3,%zmm6,%zmm9
+   24815:	62 22 95 48 b4 d7                               	vpmadd52luq %zmm23,%zmm13,%zmm26
+   2481b:	62 82 95 48 b4 c0                               	vpmadd52luq %zmm24,%zmm13,%zmm16
+   24821:	62 51 ad 48 d4 e4                               	vpaddq %zmm12,%zmm10,%zmm12
+   24827:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   2482c:	c4 41 29 ef d2                                  	vpxor  %xmm10,%xmm10,%xmm10
+   24831:	62 72 d5 40 b5 d3                               	vpmadd52huq %zmm3,%zmm21,%zmm10
+   24837:	62 72 e5 40 b4 e3                               	vpmadd52luq %zmm3,%zmm19,%zmm12
+   2483d:	62 62 a5 48 b5 db                               	vpmadd52huq %zmm3,%zmm11,%zmm27
+   24843:	62 72 d5 40 b4 cb                               	vpmadd52luq %zmm3,%zmm21,%zmm9
+   24849:	62 62 ed 40 b5 d3                               	vpmadd52huq %zmm3,%zmm18,%zmm26
+   2484f:	62 e2 e5 40 b5 c3                               	vpmadd52huq %zmm3,%zmm19,%zmm16
+   24855:	62 12 9d 48 b4 ee                               	vpmadd52luq %zmm30,%zmm12,%zmm13
+   2485b:	62 62 cd 48 b4 db                               	vpmadd52luq %zmm3,%zmm6,%zmm27
+   24861:	62 31 9d 48 d4 e1                               	vpaddq %zmm17,%zmm12,%zmm12
+   24867:	62 d1 9d 48 73 d4 34                            	vpsrlq $0x34,%zmm12,%zmm12
+   2486e:	62 62 a5 48 b4 d3                               	vpmadd52luq %zmm3,%zmm11,%zmm26
+   24874:	62 e2 ed 40 b4 c3                               	vpmadd52luq %zmm3,%zmm18,%zmm16
+   2487a:	62 32 95 48 b5 cf                               	vpmadd52huq %zmm23,%zmm13,%zmm9
+   24880:	62 02 95 48 b5 d8                               	vpmadd52huq %zmm24,%zmm13,%zmm27
+   24886:	62 72 95 48 b5 e0                               	vpmadd52huq %zmm0,%zmm13,%zmm12
+   2488c:	62 32 95 48 b5 d4                               	vpmadd52huq %zmm20,%zmm13,%zmm10
+   24892:	62 02 95 48 b5 d1                               	vpmadd52huq %zmm25,%zmm13,%zmm26
+   24898:	62 82 95 48 b4 c1                               	vpmadd52luq %zmm25,%zmm13,%zmm16
+   2489e:	62 32 95 48 b4 cc                               	vpmadd52luq %zmm20,%zmm13,%zmm9
+   248a4:	62 22 95 48 b4 df                               	vpmadd52luq %zmm23,%zmm13,%zmm27
+   248aa:	62 72 cd 48 b5 d4                               	vpmadd52huq %zmm4,%zmm6,%zmm10
+   248b0:	62 02 95 48 b4 d0                               	vpmadd52luq %zmm24,%zmm13,%zmm26
+   248b6:	62 51 fd 40 d4 e4                               	vpaddq %zmm12,%zmm16,%zmm12
+   248bc:	62 72 a5 48 b5 cc                               	vpmadd52huq %zmm4,%zmm11,%zmm9
+   248c2:	62 72 e5 40 b4 e4                               	vpmadd52luq %zmm4,%zmm19,%zmm12
+   248c8:	62 62 ed 40 b5 dc                               	vpmadd52huq %zmm4,%zmm18,%zmm27
+   248ce:	62 72 d5 40 b4 d4                               	vpmadd52luq %zmm4,%zmm21,%zmm10
+   248d4:	62 62 e5 40 b5 d4                               	vpmadd52huq %zmm4,%zmm19,%zmm26
+   248da:	62 72 cd 48 b4 cc                               	vpmadd52luq %zmm4,%zmm6,%zmm9
+   248e0:	c5 c9 ef f6                                     	vpxor  %xmm6,%xmm6,%xmm6
+   248e4:	62 92 9d 48 b4 f6                               	vpmadd52luq %zmm30,%zmm12,%zmm6
+   248ea:	62 62 a5 48 b4 dc                               	vpmadd52luq %zmm4,%zmm11,%zmm27
+   248f0:	c4 41 21 ef db                                  	vpxor  %xmm11,%xmm11,%xmm11
+   248f5:	62 72 d5 40 b5 dc                               	vpmadd52huq %zmm4,%zmm21,%zmm11
+   248fb:	62 71 9d 48 d4 e5                               	vpaddq %zmm5,%zmm12,%zmm12
+   24901:	62 d1 9d 48 73 d4 30                            	vpsrlq $0x30,%zmm12,%zmm12
+   24908:	62 62 ed 40 b4 d4                               	vpmadd52luq %zmm4,%zmm18,%zmm26
+   2490e:	62 71 cd 48 db ed                               	vpandq %zmm5,%zmm6,%zmm13
+   24914:	62 f1 cd 48 73 f6 04                            	vpsllq $0x4,%zmm6,%zmm6
+   2491b:	62 02 95 48 b5 d9                               	vpmadd52huq %zmm25,%zmm13,%zmm27
+   24921:	62 32 95 48 b5 d7                               	vpmadd52huq %zmm23,%zmm13,%zmm10
+   24927:	62 12 95 48 b5 c8                               	vpmadd52huq %zmm24,%zmm13,%zmm9
+   2492d:	62 72 cd 48 b5 e0                               	vpmadd52huq %zmm0,%zmm6,%zmm12
+   24933:	62 32 95 48 b5 dc                               	vpmadd52huq %zmm20,%zmm13,%zmm11
+   24939:	62 02 95 48 b4 d1                               	vpmadd52luq %zmm25,%zmm13,%zmm26
+   2493f:	62 62 fd 48 59 4c 24 f1                         	vpbroadcastq -0x78(%rsp),%zmm25
+   24947:	62 02 95 48 b4 d8                               	vpmadd52luq %zmm24,%zmm13,%zmm27
+   2494d:	62 32 95 48 b4 d4                               	vpmadd52luq %zmm20,%zmm13,%zmm10
+   24953:	62 32 95 48 b4 cf                               	vpmadd52luq %zmm23,%zmm13,%zmm9
+   24959:	62 d1 a5 48 73 f3 04                            	vpsllq $0x4,%zmm11,%zmm11
+   24960:	62 e2 fd 48 59 7c 24 f3                         	vpbroadcastq -0x68(%rsp),%zmm23
+   24968:	62 62 fd 48 59 44 24 f2                         	vpbroadcastq -0x70(%rsp),%zmm24
+   24970:	62 e2 fd 48 59 64 24 f4                         	vpbroadcastq -0x60(%rsp),%zmm20
+   24978:	62 61 fe 28 7f 64 24 fc                         	vmovdqu64 %ymm28,-0x80(%rsp)
+   24980:	48 89 44 24 a0                                  	mov    %rax,-0x60(%rsp)
+   24985:	62 01 1d 00 ef e4                               	vpxord %xmm28,%xmm28,%xmm28
+   2498b:	62 91 cd 48 73 f2 04                            	vpsllq $0x4,%zmm26,%zmm6
+   24992:	62 91 cd 48 db f5                               	vpandq %zmm29,%zmm6,%zmm6
+   24998:	62 d1 cd 48 d4 f4                               	vpaddq %zmm12,%zmm6,%zmm6
+   2499e:	62 d1 fd 40 73 f2 04                            	vpsllq $0x4,%zmm10,%zmm16
+   249a5:	62 91 95 48 73 f3 04                            	vpsllq $0x4,%zmm27,%zmm13
+   249ac:	62 d1 ad 48 73 d2 30                            	vpsrlq $0x30,%zmm10,%zmm10
+   249b3:	62 91 9d 48 73 d2 30                            	vpsrlq $0x30,%zmm26,%zmm12
+   249ba:	62 d1 85 48 73 f1 04                            	vpsllq $0x4,%zmm9,%zmm15
+   249c1:	62 91 8d 48 73 d3 30                            	vpsrlq $0x30,%zmm27,%zmm14
+   249c8:	62 d1 b5 48 73 d1 30                            	vpsrlq $0x30,%zmm9,%zmm9
+   249cf:	62 01 2d 00 ef d2                               	vpxord %xmm26,%xmm26,%xmm26
+   249d5:	62 01 25 00 ef db                               	vpxord %xmm27,%xmm27,%xmm27
+   249db:	62 f1 c5 48 73 d6 34                            	vpsrlq $0x34,%zmm6,%zmm7
+   249e2:	62 51 a5 48 d4 d2                               	vpaddq %zmm10,%zmm11,%zmm10
+   249e8:	62 11 95 48 db ed                               	vpandq %zmm29,%zmm13,%zmm13
+   249ee:	62 11 85 48 db fd                               	vpandq %zmm29,%zmm15,%zmm15
+   249f4:	62 81 fd 40 db c5                               	vpandq %zmm29,%zmm16,%zmm16
+   249fa:	62 b1 cd 48 db f1                               	vpandq %zmm17,%zmm6,%zmm6
+   24a00:	62 51 c5 48 d4 dc                               	vpaddq %zmm12,%zmm7,%zmm11
+   24a06:	62 51 85 48 d4 f6                               	vpaddq %zmm14,%zmm15,%zmm14
+   24a0c:	62 51 fd 40 d4 c9                               	vpaddq %zmm9,%zmm16,%zmm9
+   24a12:	62 a1 7d 00 ef c0                               	vpxord %xmm16,%xmm16,%xmm16
+   24a18:	62 f1 fe 48 6f bc 24 f0 00 00 00                	vmovdqu64 0xf0(%rsp),%zmm7
+   24a23:	62 51 a5 48 d4 dd                               	vpaddq %zmm13,%zmm11,%zmm11
+   24a29:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   24a2e:	62 72 cd 48 b5 ee                               	vpmadd52huq %zmm6,%zmm6,%zmm13
+   24a34:	62 d1 9d 48 73 d3 34                            	vpsrlq $0x34,%zmm11,%zmm12
+   24a3b:	62 a1 a5 48 db d1                               	vpandq %zmm17,%zmm11,%zmm18
+   24a41:	62 51 9d 48 d4 e6                               	vpaddq %zmm14,%zmm12,%zmm12
+   24a47:	c4 41 09 ef f6                                  	vpxor  %xmm14,%xmm14,%xmm14
+   24a4c:	62 d1 a5 48 73 d4 34                            	vpsrlq $0x34,%zmm12,%zmm11
+   24a53:	62 a1 9d 48 db e9                               	vpandq %zmm17,%zmm12,%zmm21
+   24a59:	c4 41 19 ef e4                                  	vpxor  %xmm12,%xmm12,%xmm12
+   24a5e:	62 72 cd 48 b4 e6                               	vpmadd52luq %zmm6,%zmm6,%zmm12
+   24a64:	62 51 a5 48 d4 c9                               	vpaddq %zmm9,%zmm11,%zmm9
+   24a6a:	62 72 ed 40 b4 ee                               	vpmadd52luq %zmm6,%zmm18,%zmm13
+   24a70:	62 31 b5 48 db d9                               	vpandq %zmm17,%zmm9,%zmm11
+   24a76:	62 d1 b5 48 73 d1 34                            	vpsrlq $0x34,%zmm9,%zmm9
+   24a7d:	62 e2 a5 48 b5 c6                               	vpmadd52huq %zmm6,%zmm11,%zmm16
+   24a83:	62 c1 b5 48 d4 da                               	vpaddq %zmm10,%zmm9,%zmm19
+   24a89:	c4 41 29 ef d2                                  	vpxor  %xmm10,%xmm10,%xmm10
+   24a8e:	62 72 d5 40 b5 d6                               	vpmadd52huq %zmm6,%zmm21,%zmm10
+   24a94:	c4 41 31 ef c9                                  	vpxor  %xmm9,%xmm9,%xmm9
+   24a99:	62 72 ed 40 b5 ce                               	vpmadd52huq %zmm6,%zmm18,%zmm9
+   24a9f:	62 12 9d 48 b4 f6                               	vpmadd52luq %zmm30,%zmm12,%zmm14
+   24aa5:	62 62 e5 40 b5 d6                               	vpmadd52huq %zmm6,%zmm19,%zmm26
+   24aab:	62 31 9d 48 d4 e1                               	vpaddq %zmm17,%zmm12,%zmm12
+   24ab1:	62 22 e5 40 b5 da                               	vpmadd52huq %zmm18,%zmm19,%zmm27
+   24ab7:	62 d1 9d 48 73 d4 34                            	vpsrlq $0x34,%zmm12,%zmm12
+   24abe:	62 e2 e5 40 b4 c6                               	vpmadd52luq %zmm6,%zmm19,%zmm16
+   24ac4:	62 72 a5 48 b4 d6                               	vpmadd52luq %zmm6,%zmm11,%zmm10
+   24aca:	62 72 d5 40 b4 ce                               	vpmadd52luq %zmm6,%zmm21,%zmm9
+   24ad0:	62 72 8d 48 b5 e0                               	vpmadd52huq %zmm0,%zmm14,%zmm12
+   24ad6:	62 12 8d 48 b4 e9                               	vpmadd52luq %zmm25,%zmm14,%zmm13
+   24adc:	62 22 8d 48 b5 d4                               	vpmadd52huq %zmm20,%zmm14,%zmm26
+   24ae2:	62 a2 8d 48 b5 c7                               	vpmadd52huq %zmm23,%zmm14,%zmm16
+   24ae8:	62 12 8d 48 b5 d0                               	vpmadd52huq %zmm24,%zmm14,%zmm10
+   24aee:	62 12 8d 48 b5 c9                               	vpmadd52huq %zmm25,%zmm14,%zmm9
+   24af4:	62 51 95 48 d4 e4                               	vpaddq %zmm12,%zmm13,%zmm12
+   24afa:	62 22 a5 48 b5 d2                               	vpmadd52huq %zmm18,%zmm11,%zmm26
+   24b00:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   24b05:	62 32 cd 48 b4 e2                               	vpmadd52luq %zmm18,%zmm6,%zmm12
+   24b0b:	62 a2 8d 48 b4 c4                               	vpmadd52luq %zmm20,%zmm14,%zmm16
+   24b11:	62 32 8d 48 b4 d7                               	vpmadd52luq %zmm23,%zmm14,%zmm10
+   24b17:	62 12 8d 48 b4 c8                               	vpmadd52luq %zmm24,%zmm14,%zmm9
+   24b1d:	c4 41 09 ef f6                                  	vpxor  %xmm14,%xmm14,%xmm14
+   24b22:	62 22 e5 40 b4 d2                               	vpmadd52luq %zmm18,%zmm19,%zmm26
+   24b28:	62 12 9d 48 b4 ee                               	vpmadd52luq %zmm30,%zmm12,%zmm13
+   24b2e:	62 31 9d 48 d4 e1                               	vpaddq %zmm17,%zmm12,%zmm12
+   24b34:	62 d1 9d 48 73 d4 34                            	vpsrlq $0x34,%zmm12,%zmm12
+   24b3b:	62 a2 d5 40 b5 c2                               	vpmadd52huq %zmm18,%zmm21,%zmm16
+   24b41:	62 32 ed 40 b5 d2                               	vpmadd52huq %zmm18,%zmm18,%zmm10
+   24b47:	62 32 cd 48 b5 ca                               	vpmadd52huq %zmm18,%zmm6,%zmm9
+   24b4d:	62 22 95 48 b5 d7                               	vpmadd52huq %zmm23,%zmm13,%zmm26
+   24b53:	62 72 95 48 b5 e0                               	vpmadd52huq %zmm0,%zmm13,%zmm12
+   24b59:	62 22 95 48 b5 dc                               	vpmadd52huq %zmm20,%zmm13,%zmm27
+   24b5f:	62 a2 a5 48 b4 c2                               	vpmadd52luq %zmm18,%zmm11,%zmm16
+   24b65:	62 32 d5 40 b4 d2                               	vpmadd52luq %zmm18,%zmm21,%zmm10
+   24b6b:	62 32 ed 40 b4 ca                               	vpmadd52luq %zmm18,%zmm18,%zmm9
+   24b71:	62 22 95 48 b4 d4                               	vpmadd52luq %zmm20,%zmm13,%zmm26
+   24b77:	62 22 a5 48 b5 dd                               	vpmadd52huq %zmm21,%zmm11,%zmm27
+   24b7d:	62 82 95 48 b5 c0                               	vpmadd52huq %zmm24,%zmm13,%zmm16
+   24b83:	62 12 95 48 b5 d1                               	vpmadd52huq %zmm25,%zmm13,%zmm10
+   24b89:	62 12 95 48 b4 c9                               	vpmadd52luq %zmm25,%zmm13,%zmm9
+   24b8f:	62 22 d5 40 b5 d5                               	vpmadd52huq %zmm21,%zmm21,%zmm26
+   24b95:	62 22 e5 40 b4 dd                               	vpmadd52luq %zmm21,%zmm19,%zmm27
+   24b9b:	62 a2 95 48 b4 c7                               	vpmadd52luq %zmm23,%zmm13,%zmm16
+   24ba1:	62 12 95 48 b4 d0                               	vpmadd52luq %zmm24,%zmm13,%zmm10
+   24ba7:	62 51 b5 48 d4 e4                               	vpaddq %zmm12,%zmm9,%zmm12
+   24bad:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   24bb2:	c4 41 31 ef c9                                  	vpxor  %xmm9,%xmm9,%xmm9
+   24bb7:	62 32 e5 40 b5 cd                               	vpmadd52huq %zmm21,%zmm19,%zmm9
+   24bbd:	62 32 cd 48 b4 e5                               	vpmadd52luq %zmm21,%zmm6,%zmm12
+   24bc3:	62 22 a5 48 b4 d5                               	vpmadd52luq %zmm21,%zmm11,%zmm26
+   24bc9:	62 a2 ed 40 b5 c5                               	vpmadd52huq %zmm21,%zmm18,%zmm16
+   24bcf:	62 32 cd 48 b5 d5                               	vpmadd52huq %zmm21,%zmm6,%zmm10
+   24bd5:	62 12 9d 48 b4 ee                               	vpmadd52luq %zmm30,%zmm12,%zmm13
+   24bdb:	62 31 9d 48 d4 e1                               	vpaddq %zmm17,%zmm12,%zmm12
+   24be1:	62 d1 9d 48 73 d4 34                            	vpsrlq $0x34,%zmm12,%zmm12
+   24be8:	62 a2 d5 40 b4 c5                               	vpmadd52luq %zmm21,%zmm21,%zmm16
+   24bee:	62 32 ed 40 b4 d5                               	vpmadd52luq %zmm21,%zmm18,%zmm10
+   24bf4:	62 22 95 48 b5 df                               	vpmadd52huq %zmm23,%zmm13,%zmm27
+   24bfa:	62 02 95 48 b5 d0                               	vpmadd52huq %zmm24,%zmm13,%zmm26
+   24c00:	62 72 95 48 b5 e0                               	vpmadd52huq %zmm0,%zmm13,%zmm12
+   24c06:	62 32 95 48 b5 cc                               	vpmadd52huq %zmm20,%zmm13,%zmm9
+   24c0c:	62 82 95 48 b5 c1                               	vpmadd52huq %zmm25,%zmm13,%zmm16
+   24c12:	62 12 95 48 b4 d1                               	vpmadd52luq %zmm25,%zmm13,%zmm10
+   24c18:	62 22 95 48 b4 dc                               	vpmadd52luq %zmm20,%zmm13,%zmm27
+   24c1e:	62 22 95 48 b4 d7                               	vpmadd52luq %zmm23,%zmm13,%zmm26
+   24c24:	62 52 a5 48 b5 cb                               	vpmadd52huq %zmm11,%zmm11,%zmm9
+   24c2a:	62 82 95 48 b4 c0                               	vpmadd52luq %zmm24,%zmm13,%zmm16
+   24c30:	62 51 ad 48 d4 e4                               	vpaddq %zmm12,%zmm10,%zmm12
+   24c36:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   24c3b:	c4 41 29 ef d2                                  	vpxor  %xmm10,%xmm10,%xmm10
+   24c40:	62 52 e5 40 b5 d3                               	vpmadd52huq %zmm11,%zmm19,%zmm10
+   24c46:	62 52 cd 48 b4 e3                               	vpmadd52luq %zmm11,%zmm6,%zmm12
+   24c4c:	62 42 d5 40 b5 db                               	vpmadd52huq %zmm11,%zmm21,%zmm27
+   24c52:	62 42 ed 40 b5 d3                               	vpmadd52huq %zmm11,%zmm18,%zmm26
+   24c58:	62 52 e5 40 b4 cb                               	vpmadd52luq %zmm11,%zmm19,%zmm9
+   24c5e:	62 c2 cd 48 b5 c3                               	vpmadd52huq %zmm11,%zmm6,%zmm16
+   24c64:	62 12 9d 48 b4 ee                               	vpmadd52luq %zmm30,%zmm12,%zmm13
+   24c6a:	62 42 a5 48 b4 db                               	vpmadd52luq %zmm11,%zmm11,%zmm27
+   24c70:	62 42 d5 40 b4 d3                               	vpmadd52luq %zmm11,%zmm21,%zmm26
+   24c76:	62 31 9d 48 d4 e1                               	vpaddq %zmm17,%zmm12,%zmm12
+   24c7c:	62 d1 9d 48 73 d4 34                            	vpsrlq $0x34,%zmm12,%zmm12
+   24c83:	62 c2 ed 40 b4 c3                               	vpmadd52luq %zmm11,%zmm18,%zmm16
+   24c89:	62 32 95 48 b5 cf                               	vpmadd52huq %zmm23,%zmm13,%zmm9
+   24c8f:	62 02 95 48 b5 d8                               	vpmadd52huq %zmm24,%zmm13,%zmm27
+   24c95:	62 72 95 48 b5 e0                               	vpmadd52huq %zmm0,%zmm13,%zmm12
+   24c9b:	62 02 95 48 b5 d1                               	vpmadd52huq %zmm25,%zmm13,%zmm26
+   24ca1:	62 32 95 48 b5 d4                               	vpmadd52huq %zmm20,%zmm13,%zmm10
+   24ca7:	62 82 95 48 b4 c1                               	vpmadd52luq %zmm25,%zmm13,%zmm16
+   24cad:	62 32 95 48 b4 cc                               	vpmadd52luq %zmm20,%zmm13,%zmm9
+   24cb3:	62 22 95 48 b4 df                               	vpmadd52luq %zmm23,%zmm13,%zmm27
+   24cb9:	62 02 95 48 b4 d0                               	vpmadd52luq %zmm24,%zmm13,%zmm26
+   24cbf:	62 32 a5 48 b5 d3                               	vpmadd52huq %zmm19,%zmm11,%zmm10
+   24cc5:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   24cca:	62 32 e5 40 b5 eb                               	vpmadd52huq %zmm19,%zmm19,%zmm13
+   24cd0:	62 51 fd 40 d4 e4                               	vpaddq %zmm12,%zmm16,%zmm12
+   24cd6:	62 32 cd 48 b4 e3                               	vpmadd52luq %zmm19,%zmm6,%zmm12
+   24cdc:	62 32 d5 40 b5 cb                               	vpmadd52huq %zmm19,%zmm21,%zmm9
+   24ce2:	62 22 ed 40 b5 db                               	vpmadd52huq %zmm19,%zmm18,%zmm27
+   24ce8:	62 22 cd 48 b5 d3                               	vpmadd52huq %zmm19,%zmm6,%zmm26
+   24cee:	62 32 e5 40 b4 d3                               	vpmadd52luq %zmm19,%zmm19,%zmm10
+   24cf4:	62 12 9d 48 b4 f6                               	vpmadd52luq %zmm30,%zmm12,%zmm14
+   24cfa:	62 32 a5 48 b4 cb                               	vpmadd52luq %zmm19,%zmm11,%zmm9
+   24d00:	62 22 d5 40 b4 db                               	vpmadd52luq %zmm19,%zmm21,%zmm27
+   24d06:	62 22 ed 40 b4 d3                               	vpmadd52luq %zmm19,%zmm18,%zmm26
+   24d0c:	62 71 9d 48 d4 e5                               	vpaddq %zmm5,%zmm12,%zmm12
+   24d12:	62 d1 9d 48 73 d4 30                            	vpsrlq $0x30,%zmm12,%zmm12
+   24d19:	62 71 8d 48 db fd                               	vpandq %zmm5,%zmm14,%zmm15
+   24d1f:	62 d1 8d 48 73 f6 04                            	vpsllq $0x4,%zmm14,%zmm14
+   24d26:	62 f2 fd 48 59 2d d8 eb fd ff                   	vpbroadcastq -0x21428(%rip),%zmm5        # 3908 <__abi_tag+0x360c>
+   24d30:	62 12 85 48 b5 c8                               	vpmadd52huq %zmm24,%zmm15,%zmm9
+   24d36:	62 02 85 48 b5 d9                               	vpmadd52huq %zmm25,%zmm15,%zmm27
+   24d3c:	62 32 85 48 b5 d7                               	vpmadd52huq %zmm23,%zmm15,%zmm10
+   24d42:	62 02 85 48 b4 d1                               	vpmadd52luq %zmm25,%zmm15,%zmm26
+   24d48:	62 32 85 48 b5 ec                               	vpmadd52huq %zmm20,%zmm15,%zmm13
+   24d4e:	62 72 8d 48 b5 e0                               	vpmadd52huq %zmm0,%zmm14,%zmm12
+   24d54:	62 62 fd 48 59 0d 42 eb fd ff                   	vpbroadcastq -0x214be(%rip),%zmm25        # 38a0 <__abi_tag+0x35a4>
+   24d5e:	62 32 85 48 b4 cf                               	vpmadd52luq %zmm23,%zmm15,%zmm9
+   24d64:	62 02 85 48 b4 d8                               	vpmadd52luq %zmm24,%zmm15,%zmm27
+   24d6a:	62 32 85 48 b4 d4                               	vpmadd52luq %zmm20,%zmm15,%zmm10
+   24d70:	62 91 8d 48 73 f2 04                            	vpsllq $0x4,%zmm26,%zmm14
+   24d77:	62 d1 95 48 73 f5 04                            	vpsllq $0x4,%zmm13,%zmm13
+   24d7e:	62 01 3d 00 ef c0                               	vpxord %xmm24,%xmm24,%xmm24
+   24d84:	62 11 8d 48 db f5                               	vpandq %zmm29,%zmm14,%zmm14
+   24d8a:	62 51 8d 48 d4 e4                               	vpaddq %zmm12,%zmm14,%zmm12
+   24d90:	62 91 8d 48 73 d2 30                            	vpsrlq $0x30,%zmm26,%zmm14
+   24d97:	62 d1 dd 40 73 f1 04                            	vpsllq $0x4,%zmm9,%zmm20
+   24d9e:	62 d1 c5 40 73 f2 04                            	vpsllq $0x4,%zmm10,%zmm23
+   24da5:	62 d1 ad 48 73 d2 30                            	vpsrlq $0x30,%zmm10,%zmm10
+   24dac:	62 91 fd 40 73 d3 30                            	vpsrlq $0x30,%zmm27,%zmm16
+   24db3:	62 91 85 48 73 f3 04                            	vpsllq $0x4,%zmm27,%zmm15
+   24dba:	62 d1 b5 48 73 d1 30                            	vpsrlq $0x30,%zmm9,%zmm9
+   24dc1:	62 01 25 00 ef db                               	vpxord %xmm27,%xmm27,%xmm27
+   24dc7:	62 81 dd 40 db e5                               	vpandq %zmm29,%zmm20,%zmm20
+   24dcd:	62 51 95 48 d4 d2                               	vpaddq %zmm10,%zmm13,%zmm10
+   24dd3:	62 11 85 48 db fd                               	vpandq %zmm29,%zmm15,%zmm15
+   24dd9:	62 81 c5 40 db fd                               	vpandq %zmm29,%zmm23,%zmm23
+   24ddf:	62 31 dd 40 d4 e8                               	vpaddq %zmm16,%zmm20,%zmm13
+   24de5:	62 d1 fd 40 73 d4 34                            	vpsrlq $0x34,%zmm12,%zmm16
+   24dec:	62 51 c5 40 d4 c9                               	vpaddq %zmm9,%zmm23,%zmm9
+   24df2:	62 e1 fd 48 6f 3d 44 29 fe ff                   	vmovdqa64 -0x1d6bc(%rip),%zmm23        # 7740 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x3480>
+   24dfc:	62 31 9d 48 db e1                               	vpandq %zmm17,%zmm12,%zmm12
+   24e02:	62 51 fd 40 d4 f6                               	vpaddq %zmm14,%zmm16,%zmm14
+   24e08:	62 a1 7d 00 ef c0                               	vpxord %xmm16,%xmm16,%xmm16
+   24e0e:	62 51 8d 48 d4 f7                               	vpaddq %zmm15,%zmm14,%zmm14
+   24e14:	62 d1 85 48 73 d6 34                            	vpsrlq $0x34,%zmm14,%zmm15
+   24e1b:	62 31 8d 48 db f1                               	vpandq %zmm17,%zmm14,%zmm14
+   24e21:	62 51 85 48 d4 ed                               	vpaddq %zmm13,%zmm15,%zmm13
+   24e27:	62 d1 85 48 73 d5 34                            	vpsrlq $0x34,%zmm13,%zmm15
+   24e2e:	62 31 95 48 db e9                               	vpandq %zmm17,%zmm13,%zmm13
+   24e34:	62 51 85 48 d4 c9                               	vpaddq %zmm9,%zmm15,%zmm9
+   24e3a:	62 d1 85 48 73 d1 34                            	vpsrlq $0x34,%zmm9,%zmm15
+   24e41:	62 31 b5 48 db c9                               	vpandq %zmm17,%zmm9,%zmm9
+   24e47:	62 51 85 48 d4 d2                               	vpaddq %zmm10,%zmm15,%zmm10
+   24e4d:	62 71 ad 48 fb bc 24 f0 ff ff ff                	vpsubq -0x10(%rsp),%zmm10,%zmm15
+   24e58:	62 71 85 48 d4 fd                               	vpaddq %zmm5,%zmm15,%zmm15
+   24e5e:	c5 d1 ef ed                                     	vpxor  %xmm5,%xmm5,%xmm5
+   24e62:	62 72 85 48 3d fd                               	vpmaxsq %zmm5,%zmm15,%zmm15
+   24e68:	62 f2 fd 48 59 2d ae ea fd ff                   	vpbroadcastq -0x21552(%rip),%zmm5        # 3920 <__abi_tag+0x3624>
+   24e72:	62 82 85 48 b5 c1                               	vpmadd52huq %zmm25,%zmm15,%zmm16
+   24e78:	62 32 fd 40 36 ff                               	vpermq %zmm23,%zmm16,%zmm15
+   24e7e:	62 71 85 48 d4 bc 24 30 02 00 00                	vpaddq 0x230(%rsp),%zmm15,%zmm15
+   24e89:	62 51 9d 48 fb e7                               	vpsubq %zmm15,%zmm12,%zmm12
+   24e8f:	62 12 fd 40 36 ff                               	vpermq %zmm31,%zmm16,%zmm15
+   24e95:	62 71 9d 48 d4 e5                               	vpaddq %zmm5,%zmm12,%zmm12
+   24e9b:	62 f2 fd 48 59 2d db ea fd ff                   	vpbroadcastq -0x21525(%rip),%zmm5        # 3980 <__abi_tag+0x3684>
+   24ea5:	62 d1 dd 40 72 e4 34                            	vpsraq $0x34,%zmm12,%zmm20
+   24eac:	62 31 9d 48 db e1                               	vpandq %zmm17,%zmm12,%zmm12
+   24eb2:	62 51 dd 40 fb ff                               	vpsubq %zmm15,%zmm20,%zmm15
+   24eb8:	62 a2 fd 40 36 e6                               	vpermq %zmm22,%zmm16,%zmm20
+   24ebe:	62 51 85 48 d4 f6                               	vpaddq %zmm14,%zmm15,%zmm14
+   24ec4:	62 71 8d 48 fb b4 24 f0 01 00 00                	vpsubq 0x1f0(%rsp),%zmm14,%zmm14
+   24ecf:	62 71 8d 48 d4 f5                               	vpaddq %zmm5,%zmm14,%zmm14
+   24ed5:	62 f2 fd 48 59 2d 79 ea fd ff                   	vpbroadcastq -0x21587(%rip),%zmm5        # 3958 <__abi_tag+0x365c>
+   24edf:	62 d1 85 48 72 e6 34                            	vpsraq $0x34,%zmm14,%zmm15
+   24ee6:	62 31 85 48 fb fc                               	vpsubq %zmm20,%zmm15,%zmm15
+   24eec:	62 c2 fd 40 36 e0                               	vpermq %zmm8,%zmm16,%zmm20
+   24ef2:	62 51 85 48 d4 ed                               	vpaddq %zmm13,%zmm15,%zmm13
+   24ef8:	62 71 95 48 fb ac 24 b0 01 00 00                	vpsubq 0x1b0(%rsp),%zmm13,%zmm13
+   24f03:	62 71 95 48 d4 ed                               	vpaddq %zmm5,%zmm13,%zmm13
+   24f09:	62 f2 fd 48 59 2d bd e9 fd ff                   	vpbroadcastq -0x21643(%rip),%zmm5        # 38d0 <__abi_tag+0x35d4>
+   24f13:	62 d1 85 48 72 e5 34                            	vpsraq $0x34,%zmm13,%zmm15
+   24f1a:	62 31 95 48 db e9                               	vpandq %zmm17,%zmm13,%zmm13
+   24f20:	62 31 85 48 fb fc                               	vpsubq %zmm20,%zmm15,%zmm15
+   24f26:	62 e1 fd 48 6f 25 10 29 fe ff                   	vmovdqa64 -0x1d6f0(%rip),%zmm20        # 7840 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x3580>
+   24f30:	62 51 85 48 d4 c9                               	vpaddq %zmm9,%zmm15,%zmm9
+   24f36:	62 71 b5 48 fb 8c 24 70 01 00 00                	vpsubq 0x170(%rsp),%zmm9,%zmm9
+   24f41:	62 32 fd 40 36 fc                               	vpermq %zmm20,%zmm16,%zmm15
+   24f47:	62 71 b5 48 d4 cd                               	vpaddq %zmm5,%zmm9,%zmm9
+   24f4d:	62 f2 fd 48 59 2d 41 e9 fd ff                   	vpbroadcastq -0x216bf(%rip),%zmm5        # 3898 <__abi_tag+0x359c>
+   24f57:	62 d1 fd 40 72 e1 34                            	vpsraq $0x34,%zmm9,%zmm16
+   24f5e:	62 31 b5 48 db c9                               	vpandq %zmm17,%zmm9,%zmm9
+   24f64:	62 51 fd 40 fb ff                               	vpsubq %zmm15,%zmm16,%zmm15
+   24f6a:	62 a1 7d 00 ef c0                               	vpxord %xmm16,%xmm16,%xmm16
+   24f70:	62 51 85 48 d4 d2                               	vpaddq %zmm10,%zmm15,%zmm10
+   24f76:	62 71 ad 48 fb 94 24 70 02 00 00                	vpsubq 0x270(%rsp),%zmm10,%zmm10
+   24f81:	62 71 ad 48 d4 fd                               	vpaddq %zmm5,%zmm10,%zmm15
+   24f87:	62 f1 fe 48 6f ac 24 30 01 00 00                	vmovdqu64 0x130(%rsp),%zmm5
+   24f92:	62 31 8d 48 db d1                               	vpandq %zmm17,%zmm14,%zmm10
+   24f98:	62 53 0d 48 25 f6 ff                            	vpternlogd $0xff,%zmm14,%zmm14,%zmm14
+   24f9f:	62 33 85 48 25 f1 78                            	vpternlogq $0x78,%zmm17,%zmm15,%zmm14
+   24fa6:	62 51 d5 48 d4 f6                               	vpaddq %zmm14,%zmm5,%zmm14
+   24fac:	62 12 8d 48 3d f0                               	vpmaxsq %zmm24,%zmm14,%zmm14
+   24fb2:	62 62 fd 48 59 44 24 f1                         	vpbroadcastq -0x78(%rsp),%zmm24
+   24fba:	62 82 8d 48 b5 c1                               	vpmadd52huq %zmm25,%zmm14,%zmm16
+   24fc0:	62 32 fd 40 36 f7                               	vpermq %zmm23,%zmm16,%zmm14
+   24fc6:	62 e2 fd 48 59 7c 24 f3                         	vpbroadcastq -0x68(%rsp),%zmm23
+   24fce:	62 51 8d 48 d4 e4                               	vpaddq %zmm12,%zmm14,%zmm12
+   24fd4:	62 12 fd 40 36 f7                               	vpermq %zmm31,%zmm16,%zmm14
+   24fda:	62 51 c5 48 fb e4                               	vpsubq %zmm12,%zmm7,%zmm12
+   24fe0:	62 51 8d 48 d4 d2                               	vpaddq %zmm10,%zmm14,%zmm10
+   24fe6:	62 32 fd 40 36 f6                               	vpermq %zmm22,%zmm16,%zmm14
+   24fec:	c5 c1 ef ff                                     	vpxor  %xmm7,%xmm7,%xmm7
+   24ff0:	62 21 9d 48 db d1                               	vpandq %zmm17,%zmm12,%zmm26
+   24ff6:	62 d1 9d 48 72 e4 34                            	vpsraq $0x34,%zmm12,%zmm12
+   24ffd:	62 71 9d 48 d4 a4 24 b0 00 00 00                	vpaddq 0xb0(%rsp),%zmm12,%zmm12
+   25008:	62 51 8d 48 d4 ed                               	vpaddq %zmm13,%zmm14,%zmm13
+   2500e:	62 52 fd 40 36 f0                               	vpermq %zmm8,%zmm16,%zmm14
+   25014:	62 41 8d 48 d4 c9                               	vpaddq %zmm9,%zmm14,%zmm25
+   2501a:	62 02 cd 48 b5 e2                               	vpmadd52huq %zmm26,%zmm6,%zmm28
+   25020:	62 02 cd 48 b4 da                               	vpmadd52luq %zmm26,%zmm6,%zmm27
+   25026:	62 32 fd 40 36 cc                               	vpermq %zmm20,%zmm16,%zmm9
+   2502c:	62 a1 7d 00 ef c0                               	vpxord %xmm16,%xmm16,%xmm16
+   25032:	62 82 a5 48 b5 c2                               	vpmadd52huq %zmm26,%zmm11,%zmm16
+   25038:	62 e2 fd 48 59 64 24 f2                         	vpbroadcastq -0x70(%rsp),%zmm20
+   25040:	62 51 b5 48 d4 cf                               	vpaddq %zmm15,%zmm9,%zmm9
+   25046:	c4 41 01 ef ff                                  	vpxor  %xmm15,%xmm15,%xmm15
+   2504b:	62 12 ed 40 b5 fa                               	vpmadd52huq %zmm26,%zmm18,%zmm15
+   25051:	62 02 ed 40 b4 e2                               	vpmadd52luq %zmm26,%zmm18,%zmm28
+   25057:	62 92 a5 40 b4 fe                               	vpmadd52luq %zmm30,%zmm27,%zmm7
+   2505d:	62 82 e5 40 b4 c2                               	vpmadd52luq %zmm26,%zmm19,%zmm16
+   25063:	62 12 d5 40 b4 fa                               	vpmadd52luq %zmm26,%zmm21,%zmm15
+   25069:	62 51 9d 48 fb e2                               	vpsubq %zmm10,%zmm12,%zmm12
+   2506f:	62 31 9d 48 db d1                               	vpandq %zmm17,%zmm12,%zmm10
+   25075:	62 d1 9d 48 72 e4 34                            	vpsraq $0x34,%zmm12,%zmm12
+   2507c:	62 71 9d 48 d4 a4 24 70 00 00 00                	vpaddq 0x70(%rsp),%zmm12,%zmm12
+   25087:	62 02 c5 48 b4 e0                               	vpmadd52luq %zmm24,%zmm7,%zmm28
+   2508d:	62 a2 c5 48 b5 c7                               	vpmadd52huq %zmm23,%zmm7,%zmm16
+   25093:	62 12 c5 48 b5 f8                               	vpmadd52huq %zmm24,%zmm7,%zmm15
+   25099:	62 32 c5 48 b4 fc                               	vpmadd52luq %zmm20,%zmm7,%zmm15
+   2509f:	62 51 9d 48 fb f5                               	vpsubq %zmm13,%zmm12,%zmm14
+   250a5:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   250aa:	62 12 d5 40 b5 ea                               	vpmadd52huq %zmm26,%zmm21,%zmm13
+   250b0:	62 d1 9d 48 72 e6 34                            	vpsraq $0x34,%zmm14,%zmm12
+   250b7:	62 71 9d 48 d4 a4 24 30 00 00 00                	vpaddq 0x30(%rsp),%zmm12,%zmm12
+   250c2:	62 52 cd 48 b5 fa                               	vpmadd52huq %zmm10,%zmm6,%zmm15
+   250c8:	62 31 8d 48 db f1                               	vpandq %zmm17,%zmm14,%zmm14
+   250ce:	62 12 a5 48 b4 ea                               	vpmadd52luq %zmm26,%zmm11,%zmm13
+   250d4:	62 52 ed 40 b4 fa                               	vpmadd52luq %zmm10,%zmm18,%zmm15
+   250da:	62 32 c5 48 b5 ec                               	vpmadd52huq %zmm20,%zmm7,%zmm13
+   250e0:	62 11 9d 48 fb e1                               	vpsubq %zmm25,%zmm12,%zmm12
+   250e6:	62 01 35 00 ef c9                               	vpxord %xmm25,%xmm25,%xmm25
+   250ec:	62 02 e5 40 b5 ca                               	vpmadd52huq %zmm26,%zmm19,%zmm25
+   250f2:	62 21 a5 40 d4 d1                               	vpaddq %zmm17,%zmm27,%zmm26
+   250f8:	62 01 25 00 ef db                               	vpxord %xmm27,%xmm27,%xmm27
+   250fe:	62 42 e5 40 b5 da                               	vpmadd52huq %zmm10,%zmm19,%zmm27
+   25104:	62 91 ad 40 73 d2 34                            	vpsrlq $0x34,%zmm26,%zmm26
+   2510b:	62 62 c5 48 b5 d0                               	vpmadd52huq %zmm0,%zmm7,%zmm26
+   25111:	62 32 c5 48 b4 ef                               	vpmadd52luq %zmm23,%zmm7,%zmm13
+   25117:	62 01 9d 40 d4 e2                               	vpaddq %zmm26,%zmm28,%zmm28
+   2511d:	62 62 fd 48 59 54 24 f4                         	vpbroadcastq -0x60(%rsp),%zmm26
+   25125:	62 42 cd 48 b4 e2                               	vpmadd52luq %zmm10,%zmm6,%zmm28
+   2512b:	62 52 ed 40 b5 ea                               	vpmadd52huq %zmm10,%zmm18,%zmm13
+   25131:	62 52 d5 40 b4 ea                               	vpmadd52luq %zmm10,%zmm21,%zmm13
+   25137:	62 82 c5 48 b4 c2                               	vpmadd52luq %zmm26,%zmm7,%zmm16
+   2513d:	62 02 c5 48 b5 ca                               	vpmadd52huq %zmm26,%zmm7,%zmm25
+   25143:	c5 c1 ef ff                                     	vpxor  %xmm7,%xmm7,%xmm7
+   25147:	62 92 9d 40 b4 fe                               	vpmadd52luq %zmm30,%zmm28,%zmm7
+   2514d:	62 c2 d5 40 b5 c2                               	vpmadd52huq %zmm10,%zmm21,%zmm16
+   25153:	62 42 a5 48 b5 ca                               	vpmadd52huq %zmm10,%zmm11,%zmm25
+   25159:	62 12 c5 48 b5 e8                               	vpmadd52huq %zmm24,%zmm7,%zmm13
+   2515f:	62 12 c5 48 b4 f8                               	vpmadd52luq %zmm24,%zmm7,%zmm15
+   25165:	62 02 c5 48 b5 da                               	vpmadd52huq %zmm26,%zmm7,%zmm27
+   2516b:	62 c2 a5 48 b4 c2                               	vpmadd52luq %zmm10,%zmm11,%zmm16
+   25171:	62 42 e5 40 b4 ca                               	vpmadd52luq %zmm10,%zmm19,%zmm25
+   25177:	62 31 9d 40 d4 d1                               	vpaddq %zmm17,%zmm28,%zmm10
+   2517d:	62 32 c5 48 b4 ec                               	vpmadd52luq %zmm20,%zmm7,%zmm13
+   25183:	62 42 a5 48 b5 de                               	vpmadd52huq %zmm14,%zmm11,%zmm27
+   25189:	62 d1 ad 48 73 d2 34                            	vpsrlq $0x34,%zmm10,%zmm10
+   25190:	62 72 c5 48 b5 d0                               	vpmadd52huq %zmm0,%zmm7,%zmm10
+   25196:	62 a2 c5 48 b5 c4                               	vpmadd52huq %zmm20,%zmm7,%zmm16
+   2519c:	62 22 c5 48 b5 cf                               	vpmadd52huq %zmm23,%zmm7,%zmm25
+   251a2:	62 52 cd 48 b5 ee                               	vpmadd52huq %zmm14,%zmm6,%zmm13
+   251a8:	62 42 e5 40 b4 de                               	vpmadd52luq %zmm14,%zmm19,%zmm27
+   251ae:	62 51 85 48 d4 fa                               	vpaddq %zmm10,%zmm15,%zmm15
+   251b4:	c4 41 29 ef d2                                  	vpxor  %xmm10,%xmm10,%xmm10
+   251b9:	62 52 e5 40 b5 d6                               	vpmadd52huq %zmm14,%zmm19,%zmm10
+   251bf:	62 52 cd 48 b4 fe                               	vpmadd52luq %zmm14,%zmm6,%zmm15
+   251c5:	62 02 c5 48 b4 ca                               	vpmadd52luq %zmm26,%zmm7,%zmm25
+   251cb:	62 a2 c5 48 b4 c7                               	vpmadd52luq %zmm23,%zmm7,%zmm16
+   251d1:	c5 c1 ef ff                                     	vpxor  %xmm7,%xmm7,%xmm7
+   251d5:	62 52 ed 40 b4 ee                               	vpmadd52luq %zmm14,%zmm18,%zmm13
+   251db:	62 92 85 48 b4 fe                               	vpmadd52luq %zmm30,%zmm15,%zmm7
+   251e1:	62 c2 ed 40 b5 c6                               	vpmadd52huq %zmm14,%zmm18,%zmm16
+   251e7:	62 42 d5 40 b5 ce                               	vpmadd52huq %zmm14,%zmm21,%zmm25
+   251ed:	62 22 c5 48 b5 df                               	vpmadd52huq %zmm23,%zmm7,%zmm27
+   251f3:	62 12 c5 48 b4 e8                               	vpmadd52luq %zmm24,%zmm7,%zmm13
+   251f9:	62 12 c5 48 b5 d2                               	vpmadd52huq %zmm26,%zmm7,%zmm10
+   251ff:	62 42 a5 48 b4 ce                               	vpmadd52luq %zmm14,%zmm11,%zmm25
+   25205:	62 c2 d5 40 b4 c6                               	vpmadd52luq %zmm14,%zmm21,%zmm16
+   2520b:	62 31 85 48 d4 f1                               	vpaddq %zmm17,%zmm15,%zmm14
+   25211:	62 71 fe 48 6f bc 24 f0 02 00 00                	vmovdqu64 0x2f0(%rsp),%zmm15
+   2521c:	62 d1 8d 48 73 d6 34                            	vpsrlq $0x34,%zmm14,%zmm14
+   25223:	62 72 c5 48 b5 f0                               	vpmadd52huq %zmm0,%zmm7,%zmm14
+   25229:	62 02 c5 48 b4 da                               	vpmadd52luq %zmm26,%zmm7,%zmm27
+   2522f:	62 82 c5 48 b5 c0                               	vpmadd52huq %zmm24,%zmm7,%zmm16
+   25235:	62 22 c5 48 b5 cc                               	vpmadd52huq %zmm20,%zmm7,%zmm25
+   2523b:	62 51 95 48 d4 ee                               	vpaddq %zmm14,%zmm13,%zmm13
+   25241:	62 22 c5 48 b4 cf                               	vpmadd52luq %zmm23,%zmm7,%zmm25
+   25247:	62 a2 c5 48 b4 c4                               	vpmadd52luq %zmm20,%zmm7,%zmm16
+   2524d:	62 b1 9d 48 db f9                               	vpandq %zmm17,%zmm12,%zmm7
+   25253:	62 d1 9d 48 72 e4 34                            	vpsraq $0x34,%zmm12,%zmm12
+   2525a:	62 62 d5 40 b5 df                               	vpmadd52huq %zmm7,%zmm21,%zmm27
+   25260:	62 72 a5 48 b5 d7                               	vpmadd52huq %zmm7,%zmm11,%zmm10
+   25266:	62 72 cd 48 b4 ef                               	vpmadd52luq %zmm7,%zmm6,%zmm13
+   2526c:	62 71 9d 48 d4 e5                               	vpaddq %zmm5,%zmm12,%zmm12
+   25272:	62 f2 fd 48 59 2d ac e5 fd ff                   	vpbroadcastq -0x21a54(%rip),%zmm5        # 3828 <__abi_tag+0x352c>
+   2527c:	62 51 9d 48 fb e1                               	vpsubq %zmm9,%zmm12,%zmm12
+   25282:	c4 41 31 ef c9                                  	vpxor  %xmm9,%xmm9,%xmm9
+   25287:	62 72 e5 40 b5 cf                               	vpmadd52huq %zmm7,%zmm19,%zmm9
+   2528d:	62 e2 cd 48 b5 c7                               	vpmadd52huq %zmm7,%zmm6,%zmm16
+   25293:	62 62 ed 40 b5 cf                               	vpmadd52huq %zmm7,%zmm18,%zmm25
+   25299:	62 62 a5 48 b4 df                               	vpmadd52luq %zmm7,%zmm11,%zmm27
+   2529f:	62 72 e5 40 b4 d7                               	vpmadd52luq %zmm7,%zmm19,%zmm10
+   252a5:	62 62 d5 40 b4 cf                               	vpmadd52luq %zmm7,%zmm21,%zmm25
+   252ab:	62 e2 ed 40 b4 c7                               	vpmadd52luq %zmm7,%zmm18,%zmm16
+   252b1:	c5 c1 ef ff                                     	vpxor  %xmm7,%xmm7,%xmm7
+   252b5:	62 92 95 48 b4 fe                               	vpmadd52luq %zmm30,%zmm13,%zmm7
+   252bb:	62 31 95 48 d4 e9                               	vpaddq %zmm17,%zmm13,%zmm13
+   252c1:	62 d1 95 48 73 d5 34                            	vpsrlq $0x34,%zmm13,%zmm13
+   252c8:	62 02 c5 48 b5 c8                               	vpmadd52huq %zmm24,%zmm7,%zmm25
+   252ce:	62 22 c5 48 b5 dc                               	vpmadd52huq %zmm20,%zmm7,%zmm27
+   252d4:	62 32 c5 48 b5 d7                               	vpmadd52huq %zmm23,%zmm7,%zmm10
+   252da:	62 72 c5 48 b5 e8                               	vpmadd52huq %zmm0,%zmm7,%zmm13
+   252e0:	62 82 c5 48 b4 c0                               	vpmadd52luq %zmm24,%zmm7,%zmm16
+   252e6:	62 12 c5 48 b5 ca                               	vpmadd52huq %zmm26,%zmm7,%zmm9
+   252ec:	62 22 c5 48 b4 cc                               	vpmadd52luq %zmm20,%zmm7,%zmm25
+   252f2:	62 22 c5 48 b4 df                               	vpmadd52luq %zmm23,%zmm7,%zmm27
+   252f8:	62 12 c5 48 b4 d2                               	vpmadd52luq %zmm26,%zmm7,%zmm10
+   252fe:	62 b1 9d 48 db f9                               	vpandq %zmm17,%zmm12,%zmm7
+   25304:	62 51 fd 40 d4 ed                               	vpaddq %zmm13,%zmm16,%zmm13
+   2530a:	62 72 a5 48 b5 cf                               	vpmadd52huq %zmm7,%zmm11,%zmm9
+   25310:	62 72 cd 48 b4 ef                               	vpmadd52luq %zmm7,%zmm6,%zmm13
+   25316:	62 62 cd 48 b5 cf                               	vpmadd52huq %zmm7,%zmm6,%zmm25
+   2531c:	62 62 ed 40 b5 df                               	vpmadd52huq %zmm7,%zmm18,%zmm27
+   25322:	62 72 d5 40 b5 d7                               	vpmadd52huq %zmm7,%zmm21,%zmm10
+   25328:	c5 c9 ef f6                                     	vpxor  %xmm6,%xmm6,%xmm6
+   2532c:	62 f2 e5 40 b5 f7                               	vpmadd52huq %zmm7,%zmm19,%zmm6
+   25332:	62 72 e5 40 b4 cf                               	vpmadd52luq %zmm7,%zmm19,%zmm9
+   25338:	62 72 a5 48 b4 d7                               	vpmadd52luq %zmm7,%zmm11,%zmm10
+   2533e:	62 62 ed 40 b4 cf                               	vpmadd52luq %zmm7,%zmm18,%zmm25
+   25344:	62 62 d5 40 b4 df                               	vpmadd52luq %zmm7,%zmm21,%zmm27
+   2534a:	c5 c1 ef ff                                     	vpxor  %xmm7,%xmm7,%xmm7
+   2534e:	62 92 95 48 b4 fe                               	vpmadd52luq %zmm30,%zmm13,%zmm7
+   25354:	62 71 95 48 d4 dd                               	vpaddq %zmm5,%zmm13,%zmm11
+   2535a:	62 d1 a5 48 73 d3 30                            	vpsrlq $0x30,%zmm11,%zmm11
+   25361:	62 f1 9d 48 73 f7 04                            	vpsllq $0x4,%zmm7,%zmm12
+   25368:	62 f1 c5 48 db fd                               	vpandq %zmm5,%zmm7,%zmm7
+   2536e:	62 32 c5 48 b5 d4                               	vpmadd52huq %zmm20,%zmm7,%zmm10
+   25374:	62 02 c5 48 b5 d8                               	vpmadd52huq %zmm24,%zmm7,%zmm27
+   2537a:	62 32 c5 48 b5 cf                               	vpmadd52huq %zmm23,%zmm7,%zmm9
+   25380:	62 02 c5 48 b4 c8                               	vpmadd52luq %zmm24,%zmm7,%zmm25
+   25386:	62 72 9d 48 b5 d8                               	vpmadd52huq %zmm0,%zmm12,%zmm11
+   2538c:	62 92 c5 48 b5 f2                               	vpmadd52huq %zmm26,%zmm7,%zmm6
+   25392:	c5 f9 ef c0                                     	vpxor  %xmm0,%xmm0,%xmm0
+   25396:	62 32 c5 48 b4 d7                               	vpmadd52luq %zmm23,%zmm7,%zmm10
+   2539c:	62 22 c5 48 b4 dc                               	vpmadd52luq %zmm20,%zmm7,%zmm27
+   253a2:	62 12 c5 48 b4 ca                               	vpmadd52luq %zmm26,%zmm7,%zmm9
+   253a8:	62 91 c5 48 73 f1 04                            	vpsllq $0x4,%zmm25,%zmm7
+   253af:	62 f1 cd 48 73 f6 04                            	vpsllq $0x4,%zmm6,%zmm6
+   253b6:	62 91 c5 48 db fd                               	vpandq %zmm29,%zmm7,%zmm7
+   253bc:	62 d1 c5 48 d4 fb                               	vpaddq %zmm11,%zmm7,%zmm7
+   253c2:	62 91 a5 48 73 d1 30                            	vpsrlq $0x30,%zmm25,%zmm11
+   253c9:	62 d1 8d 48 73 f2 04                            	vpsllq $0x4,%zmm10,%zmm14
+   253d0:	62 d1 d5 48 73 f1 04                            	vpsllq $0x4,%zmm9,%zmm5
+   253d7:	62 91 95 48 73 d3 30                            	vpsrlq $0x30,%zmm27,%zmm13
+   253de:	62 91 9d 48 73 f3 04                            	vpsllq $0x4,%zmm27,%zmm12
+   253e5:	62 d1 b5 48 73 d1 30                            	vpsrlq $0x30,%zmm9,%zmm9
+   253ec:	62 d1 ad 48 73 d2 30                            	vpsrlq $0x30,%zmm10,%zmm10
+   253f3:	62 11 8d 48 db f5                               	vpandq %zmm29,%zmm14,%zmm14
+   253f9:	62 11 9d 48 db e5                               	vpandq %zmm29,%zmm12,%zmm12
+   253ff:	62 d1 cd 48 d4 f1                               	vpaddq %zmm9,%zmm6,%zmm6
+   25405:	62 51 8d 48 d4 ed                               	vpaddq %zmm13,%zmm14,%zmm13
+   2540b:	62 11 d5 48 db f5                               	vpandq %zmm29,%zmm5,%zmm14
+   25411:	62 f1 d5 48 73 d7 34                            	vpsrlq $0x34,%zmm7,%zmm5
+   25418:	62 b1 c5 48 db f9                               	vpandq %zmm17,%zmm7,%zmm7
+   2541e:	62 51 d5 48 d4 cb                               	vpaddq %zmm11,%zmm5,%zmm9
+   25424:	62 51 8d 48 d4 d2                               	vpaddq %zmm10,%zmm14,%zmm10
+   2542a:	62 51 b5 48 d4 cc                               	vpaddq %zmm12,%zmm9,%zmm9
+   25430:	62 d1 a5 48 73 d1 34                            	vpsrlq $0x34,%zmm9,%zmm11
+   25437:	62 31 b5 48 db c9                               	vpandq %zmm17,%zmm9,%zmm9
+   2543d:	62 51 a5 48 d4 dd                               	vpaddq %zmm13,%zmm11,%zmm11
+   25443:	c4 41 11 ef ed                                  	vpxor  %xmm13,%xmm13,%xmm13
+   25448:	62 d1 9d 48 73 d3 34                            	vpsrlq $0x34,%zmm11,%zmm12
+   2544f:	62 31 a5 48 db d9                               	vpandq %zmm17,%zmm11,%zmm11
+   25455:	62 51 9d 48 d4 d2                               	vpaddq %zmm10,%zmm12,%zmm10
+   2545b:	62 d1 9d 48 73 d2 34                            	vpsrlq $0x34,%zmm10,%zmm12
+   25462:	62 31 ad 48 db d1                               	vpandq %zmm17,%zmm10,%zmm10
+   25468:	62 f1 9d 48 d4 f6                               	vpaddq %zmm6,%zmm12,%zmm6
+   2546e:	62 51 cd 48 fb e7                               	vpsubq %zmm15,%zmm6,%zmm12
+   25474:	62 71 9d 58 d4 25 8a e4 fd ff                   	vpaddq -0x21b76(%rip){1to8},%zmm12,%zmm12        # 3908 <__abi_tag+0x360c>
+   2547e:	62 72 9d 48 3d e0                               	vpmaxsq %zmm0,%zmm12,%zmm12
+   25484:	62 72 9d 58 b5 2d 12 e4 fd ff                   	vpmadd52huq -0x21bee(%rip){1to8},%zmm12,%zmm13        # 38a0 <__abi_tag+0x35a4>
+   2548e:	62 72 95 48 36 25 a8 22 fe ff                   	vpermq -0x1dd58(%rip),%zmm13,%zmm12        # 7740 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x3480>
+   25498:	62 71 9d 48 d4 a4 24 b0 03 00 00                	vpaddq 0x3b0(%rsp),%zmm12,%zmm12
+   254a3:	62 12 95 48 36 f7                               	vpermq %zmm31,%zmm13,%zmm14
+   254a9:	62 d1 c5 48 fb fc                               	vpsubq %zmm12,%zmm7,%zmm7
+   254af:	62 f1 c5 58 d4 3d 67 e4 fd ff                   	vpaddq -0x21b99(%rip){1to8},%zmm7,%zmm7        # 3920 <__abi_tag+0x3624>
+   254b9:	62 f1 9d 48 72 e7 34                            	vpsraq $0x34,%zmm7,%zmm12
+   254c0:	62 a1 c5 48 db d9                               	vpandq %zmm17,%zmm7,%zmm19
+   254c6:	62 51 9d 48 fb e6                               	vpsubq %zmm14,%zmm12,%zmm12
+   254cc:	62 32 95 48 36 f6                               	vpermq %zmm22,%zmm13,%zmm14
+   254d2:	62 51 9d 48 d4 c9                               	vpaddq %zmm9,%zmm12,%zmm9
+   254d8:	62 71 b5 48 fb 8c 24 70 03 00 00                	vpsubq 0x370(%rsp),%zmm9,%zmm9
+   254e3:	62 71 b5 58 d4 0d 93 e4 fd ff                   	vpaddq -0x21b6d(%rip){1to8},%zmm9,%zmm9        # 3980 <__abi_tag+0x3684>
+   254ed:	62 d1 9d 48 72 e1 34                            	vpsraq $0x34,%zmm9,%zmm12
+   254f4:	62 a1 b5 48 db d1                               	vpandq %zmm17,%zmm9,%zmm18
+   254fa:	62 51 9d 48 fb e6                               	vpsubq %zmm14,%zmm12,%zmm12
+   25500:	62 51 9d 48 d4 db                               	vpaddq %zmm11,%zmm12,%zmm11
+   25506:	62 71 a5 48 fb 9c 24 30 03 00 00                	vpsubq 0x330(%rsp),%zmm11,%zmm11
+   25511:	62 52 95 48 36 e0                               	vpermq %zmm8,%zmm13,%zmm12
+   25517:	62 72 95 48 36 2d 1f 23 fe ff                   	vpermq -0x1dce1(%rip),%zmm13,%zmm13        # 7840 <_RNvNvNtNtCshdGlst1c7nL_10serde_json3ser9Formatter17write_char_escape10HEX_DIGITS+0x3580>
+   25521:	62 71 a5 58 d4 1d 2d e4 fd ff                   	vpaddq -0x21bd3(%rip){1to8},%zmm11,%zmm11        # 3958 <__abi_tag+0x365c>
+   2552b:	62 d1 8d 48 72 e3 34                            	vpsraq $0x34,%zmm11,%zmm14
+   25532:	62 31 a5 48 db d9                               	vpandq %zmm17,%zmm11,%zmm11
+   25538:	62 51 8d 48 fb e4                               	vpsubq %zmm12,%zmm14,%zmm12
+   2553e:	62 51 9d 48 d4 d2                               	vpaddq %zmm10,%zmm12,%zmm10
+   25544:	62 71 ad 48 fb 94 24 b0 02 00 00                	vpsubq 0x2b0(%rsp),%zmm10,%zmm10
+   2554f:	62 71 ad 58 d4 15 77 e3 fd ff                   	vpaddq -0x21c89(%rip){1to8},%zmm10,%zmm10        # 38d0 <__abi_tag+0x35d4>
+   25559:	62 d1 9d 48 72 e2 34                            	vpsraq $0x34,%zmm10,%zmm12
+   25560:	62 51 9d 48 fb e5                               	vpsubq %zmm13,%zmm12,%zmm12
+   25566:	62 71 9d 48 d4 e6                               	vpaddq %zmm6,%zmm12,%zmm12
+   2556c:	62 b1 ad 48 db f1                               	vpandq %zmm17,%zmm10,%zmm6
+   25572:	62 d1 9d 48 fb ff                               	vpsubq %zmm15,%zmm12,%zmm7
+   25578:	62 f1 c5 58 d4 3d 16 e3 fd ff                   	vpaddq -0x21cea(%rip){1to8},%zmm7,%zmm7        # 3898 <__abi_tag+0x359c>
+   25582:	62 a1 c5 48 db e9                               	vpandq %zmm17,%zmm7,%zmm21
+   25588:	0f 85 52 f0 ff ff                               	jne    245e0 <_RINvCs4W6t0ZobjTU_5probe6kernelNtB2_9Fq256LazyKh3_EB2_+0x2c0>
+   2558e:	62 e1 fd 48 7f 1e                               	vmovdqa64 %zmm19,(%rsi)
+   25594:	62 e1 fd 48 7f 56 01                            	vmovdqa64 %zmm18,0x40(%rsi)
+   2559b:	62 71 fd 48 7f 5e 02                            	vmovdqa64 %zmm11,0x80(%rsi)
+   255a2:	62 f1 fd 48 7f 76 03                            	vmovdqa64 %zmm6,0xc0(%rsi)
+   255a9:	62 e1 fd 48 7f 6e 04                            	vmovdqa64 %zmm21,0x100(%rsi)
+   255b0:	ba 00 05 00 00                                  	mov    $0x500,%edx
+   255b5:	48 81 c4 f8 03 00 00                            	add    $0x3f8,%rsp
+   255bc:	c5 f8 77                                        	vzeroupper
+   255bf:	ff 25 db 94 08 00                               	jmp    *0x894db(%rip)        # aeaa0 <memcpy@GLIBC_2.14>
+
+Disassembly of section .init:
+
+Disassembly of section .fini:
+
+Disassembly of section .plt:

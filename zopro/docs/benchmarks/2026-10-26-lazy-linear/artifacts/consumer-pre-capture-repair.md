@@ -1,0 +1,1 @@
+Before compiling the consumer or capturing any timing, rustfmt rejected one extra closing parenthesis in the pipeline helper's Cargo-artifact reader. The original helper is retained. Removed that delimiter and an unused import; no arithmetic, native test, protocol, reference or timed kernel changed. All 37 field tests and the integer model had already passed.

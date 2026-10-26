@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "180s",
+    "sudo",
+    "-n",
+    "/usr/bin/perf",
+    "script",
+    "--show-lost-events",
+    "-i",
+    "/tmp/zopro-lazy-linear/profiles/frozen/perf.data",
+    "-F",
+    "comm,pid,tid,cpu,time,event,ip,sym,period"
+  ],
+  "environment": {}
+}
