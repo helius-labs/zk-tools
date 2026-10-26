@@ -1,0 +1,73 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /tmp/zopro-pairing-clean/candidate/crates/zopro-core/Cargo.toml
+workspace: /tmp/zopro-pairing-clean/candidate/Cargo.toml
+   Compiling autocfg v1.5.1
+   Compiling rand_core v0.6.4
+   Compiling typenum v1.20.1
+   Compiling paste v1.0.15
+   Compiling ahash v0.8.12
+   Compiling either v1.19.0
+   Compiling arrayvec v0.7.8
+   Compiling allocator-api2 v0.2.21
+   Compiling cfg-if v1.0.5
+   Compiling once_cell v1.21.4
+   Compiling zerocopy v0.8.63
+   Compiling syn v2.0.119
+   Compiling syn v3.0.9
+   Compiling itertools v0.13.0
+   Compiling num-traits v0.2.19
+   Compiling hashbrown v0.15.5
+   Compiling generic-array v0.14.7
+   Compiling num-integer v0.1.47
+   Compiling num-bigint v0.4.8
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling enum-ordinalize-derive v4.4.2
+   Compiling enum-ordinalize v4.4.2
+   Compiling ark-serialize-derive v0.5.0
+   Compiling zeroize_derive v1.5.0
+   Compiling ark-ff-macros v0.5.0
+   Compiling ark-ff-asm v0.5.0
+   Compiling educe v0.6.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling zeroize v1.9.1
+   Compiling rand_chacha v0.3.1
+   Compiling rand v0.8.8
+   Compiling ark-std v0.5.0
+   Compiling ark-serialize v0.5.0
+   Compiling ark-ff v0.5.0
+   Compiling ark-poly v0.5.0
+   Compiling ark-ec v0.5.0
+   Compiling ark-bn254 v0.5.0
+   Compiling zopro-bn254 v0.1.0 (/tmp/zopro-pairing-clean/candidate/crates/zopro-bn254)
+warning: unexpected `cfg` condition name: `zopro_gcd_balanced_runs`
+   --> crates/zopro-bn254/src/inverse.rs:119:19
+    |
+119 |         #[cfg(not(zopro_gcd_balanced_runs))]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: expected names are: `docsrs`, `feature`, `no_asm`, `no_ifma`, and `test` and 32 more
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_gcd_balanced_runs)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_gcd_balanced_runs)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: requested on the command line with `-W unexpected-cfgs`
+
+warning: unexpected `cfg` condition name: `zopro_gcd_balanced_runs`
+   --> crates/zopro-bn254/src/inverse.rs:148:15
+    |
+148 |         #[cfg(zopro_gcd_balanced_runs)]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_gcd_balanced_runs)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_gcd_balanced_runs)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: `zopro-bn254` (lib test) generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 13.06s
+     Running unittests src/lib.rs (/tmp/zopro-pairing-clean/target-no-ifma/release/deps/zopro_bn254-885bc602fd4442dc)
