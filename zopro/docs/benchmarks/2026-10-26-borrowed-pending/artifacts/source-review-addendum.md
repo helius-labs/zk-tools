@@ -1,0 +1,7 @@
+# Allocation scope clarified before SDK capture
+
+The specialized borrowed Window also omits the original Window's two legacy scalar-inversion vectors, `denominators` and `prefixes`. They reserve `size` field elements each at construction even when the packed path is selected. The candidate's admission guard requires packed/direct/deferred-sign native execution, whose inversion scratch resides in the retained BatchAdd instead. No used inversion scratch is removed. This is an allocation/layout change alongside the borrowed pending records; it must not be attributed solely to copy removal.
+
+For size350 and 32-byte Fq, the omitted unused capacities nominally request22,400bytes per ordinary window. Pending records nominally shrink39,200bytes per window, for61,600bytes combined. With width13 and the existing short-top algorithm, there are19 ordinary windows:1,170,400bytes summed nominal capacity reduction across all ordinary windows, not simultaneous live peak or a measured RSS saving. Allocator rounding, outer scheduling, transient reductions and the retained shared SIMD scratch still matter. The former workspace forecast is unchanged and conservative; no new memory admission is enabled.
+
+Source is already in native validation and remains byte-identical. This addendum is frozen and included in capture pins before any SDK capture. No timing was performed before this scope clarification. Both effects remain in the one declared candidate; no follow-up variant is selected here.
