@@ -1,0 +1,16 @@
+
+// Keep the original grouping/sampling kernel above unchanged. Experimental
+// selection belongs to the two canonical small-query call sites only.
+#[cfg(zopro_isolated_grouping)]
+mod lower_bound;
+
+#[cfg(zopro_isolated_grouping)]
+#[inline]
+pub(crate) fn selected_scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+    if lower_bound::eligible(scalars.len())
+        && std::env::var("ZOPRO_CPU_GROUPING_LOWER_BOUND").as_deref() == Ok("1")
+    {
+        return lower_bound::group_or_decline(scalars);
+    }
+    scalar_groups(scalars)
+}

@@ -1,0 +1,1591 @@
+
+/tmp/zopro-ready-c7a/native/accepted-sdk:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000202970 <zopro_core::msm_affine::grouping::scalar_groups>:
+  202970:	push   rbp
+  202971:	push   r15
+  202973:	push   r14
+  202975:	push   r13
+  202977:	push   r12
+  202979:	push   rbx
+  20297a:	sub    rsp,0x1a8
+  202981:	mov    r13,rdx
+  202984:	mov    QWORD PTR [rsp+0x48],rsi
+  202989:	mov    QWORD PTR [rsp+0xe8],rdi
+  202991:	lea    rsi,[rip+0xffffffffffe1cd20]        # 1f6b8 <zmij::STATIC_DATA+0x62b8>
+  202998:	lea    rdi,[rsp+0x80]
+  2029a0:	mov    edx,0x1b
+  2029a5:	call   13fe90 <std::sys::env::unix::getenv>
+  2029aa:	mov    rax,QWORD PTR [rsp+0x80]
+  2029b2:	cmp    rax,0xffffffffffffffff
+  2029b6:	je     202a08 <zopro_core::msm_affine::grouping::scalar_groups+0x98>
+  2029b8:	mov    r15,QWORD PTR [rsp+0x88]
+  2029c0:	mov    rbx,QWORD PTR [rsp+0x90]
+  2029c8:	lea    rdi,[rsp+0x80]
+  2029d0:	mov    QWORD PTR [rsp+0x118],rax
+  2029d8:	mov    rsi,r15
+  2029db:	mov    rdx,rbx
+  2029de:	call   ecee0 <core::str::converts::from_utf8>
+  2029e3:	mov    rcx,QWORD PTR [rsp+0x80]
+  2029eb:	cmp    rbx,0x1
+  2029ef:	setne  al
+  2029f2:	or     al,cl
+  2029f4:	mov    QWORD PTR [rsp+0x148],rcx
+  2029fc:	je     202a2b <zopro_core::msm_affine::grouping::scalar_groups+0xbb>
+  2029fe:	mov    DWORD PTR [rsp+0x38],0x0
+  202a06:	jmp    202a42 <zopro_core::msm_affine::grouping::scalar_groups+0xd2>
+  202a08:	mov    eax,0x1
+  202a0d:	mov    QWORD PTR [rsp+0x118],0xffffffffffffffff
+  202a19:	mov    DWORD PTR [rsp+0x38],0x0
+  202a21:	mov    QWORD PTR [rsp+0x148],rax
+  202a29:	jmp    202a42 <zopro_core::msm_affine::grouping::scalar_groups+0xd2>
+  202a2b:	cmp    BYTE PTR [r15],0x31
+  202a2f:	mov    QWORD PTR [rsp+0x148],0x0
+  202a3b:	sete   al
+  202a3e:	mov    DWORD PTR [rsp+0x38],eax
+  202a42:	movabs rax,0xffffffff00000001
+  202a4c:	lea    rcx,[r13+rax*1+0x0]
+  202a51:	or     rax,0x100
+  202a57:	cmp    rcx,rax
+  202a5a:	jae    202ab3 <zopro_core::msm_affine::grouping::scalar_groups+0x143>
+  202a5c:	mov    rax,QWORD PTR [rsp+0xe8]
+  202a64:	mov    QWORD PTR [rax],0xffffffffffffffff
+  202a6b:	cmp    QWORD PTR [rsp+0x148],0x0
+  202a74:	je     202e2d <zopro_core::msm_affine::grouping::scalar_groups+0x4bd>
+  202a7a:	mov    rax,QWORD PTR [rsp+0x118]
+  202a82:	test   rax,rax
+  202a85:	jle    203311 <zopro_core::msm_affine::grouping::scalar_groups+0x9a1>
+  202a8b:	cmp    rax,0x1ffff
+  202a91:	jbe    203305 <zopro_core::msm_affine::grouping::scalar_groups+0x995>
+  202a97:	mov    rsi,rax
+  202a9a:	inc    rsi
+  202a9d:	js     202e62 <zopro_core::msm_affine::grouping::scalar_groups+0x4f2>
+  202aa3:	cmp    BYTE PTR [r15+rax*1],0x1
+  202aa8:	je     2032f7 <zopro_core::msm_affine::grouping::scalar_groups+0x987>
+  202aae:	jmp    203305 <zopro_core::msm_affine::grouping::scalar_groups+0x995>
+  202ab3:	cmp    r13,0x800
+  202aba:	mov    ebp,0x800
+  202abf:	mov    eax,r13d
+  202ac2:	cmovb  rbp,r13
+  202ac6:	xor    edx,edx
+  202ac8:	xor    ecx,ecx
+  202aca:	div    ebp
+  202acc:	test   edx,edx
+  202ace:	setne  cl
+  202ad1:	add    rcx,rax
+  202ad4:	mov    QWORD PTR [rsp+0x18],rcx
+  202ad9:	je     204340 <zopro_core::msm_affine::grouping::scalar_groups+0x19d0>
+  202adf:	mov    rax,QWORD PTR [rip+0x2b0c7a]        # 4b3760 <ahash::random_state::RAND_SOURCE>
+  202ae6:	test   rax,rax
+  202ae9:	je     20435d <zopro_core::msm_affine::grouping::scalar_groups+0x19ed>
+  202aef:	mov    r12,QWORD PTR [rax]
+  202af2:	mov    r14,QWORD PTR [rax+0x8]
+  202af6:	mov    rbx,QWORD PTR [rip+0x2b0c6b]        # 4b3768 <ahash::random_state::get_fixed_seeds::SEEDS>
+  202afd:	test   rbx,rbx
+  202b00:	je     204367 <zopro_core::msm_affine::grouping::scalar_groups+0x19f7>
+  202b06:	mov    rdi,r12
+  202b09:	call   QWORD PTR [r14+0x18]
+  202b0d:	vmovdqu xmm0,XMMWORD PTR [rbx]
+  202b11:	vmovdqu xmm1,XMMWORD PTR [rbx+0x10]
+  202b16:	vmovdqa xmm10,XMMWORD PTR [rip+0xffffffffffe08802]        # b320 <__abi_tag+0xb024>
+  202b1e:	vmovq  xmm5,QWORD PTR [rbx+0x20]
+  202b23:	vmovq  xmm2,rax
+  202b28:	vmovq  xmm7,QWORD PTR [rbx+0x28]
+  202b2d:	vmovq  xmm9,QWORD PTR [rbx+0x38]
+  202b32:	mov    QWORD PTR [rsp+0x30],r13
+  202b37:	lea    eax,[r13-0x1]
+  202b3b:	xor    edx,edx
+  202b3d:	vpxor  xmm3,xmm1,xmm0
+  202b41:	vaesdec xmm4,xmm0,xmm2
+  202b46:	vpshufb xmm0,xmm1,xmm10
+  202b4b:	vpaddq xmm0,xmm2,xmm0
+  202b4f:	vmovq  xmm2,QWORD PTR [rbx+0x30]
+  202b54:	vpshufb xmm6,xmm0,xmm10
+  202b59:	vaesdec xmm1,xmm4,xmm5
+  202b5e:	vpaddq xmm0,xmm5,xmm6
+  202b62:	vpaddq xmm8,xmm7,xmm6
+  202b66:	vpshufb xmm0,xmm0,xmm10
+  202b6b:	vpshufb xmm8,xmm8,xmm10
+  202b70:	vpaddq xmm8,xmm9,xmm8
+  202b75:	vaesdec xmm1,xmm1,xmm2
+  202b7a:	vpaddq xmm0,xmm2,xmm0
+  202b7e:	vaesenc xmm0,xmm0,xmm1
+  202b83:	vaesdec xmm1,xmm0,xmm3
+  202b88:	vaesdec xmm0,xmm1,xmm0
+  202b8d:	vaesdec xmm1,xmm4,xmm7
+  202b92:	vaesdec xmm1,xmm1,xmm9
+  202b97:	vaesenc xmm1,xmm8,xmm1
+  202b9c:	vaesdec xmm8,xmm1,xmm3
+  202ba1:	vaesdec xmm1,xmm8,xmm1
+  202ba6:	vaesdec xmm8,xmm4,xmm2
+  202bab:	vaesdec xmm4,xmm4,xmm9
+  202bb0:	vpaddq xmm2,xmm2,xmm6
+  202bb4:	vpaddq xmm6,xmm9,xmm6
+  202bb8:	vpshufb xmm2,xmm2,xmm10
+  202bbd:	vpshufb xmm6,xmm6,xmm10
+  202bc2:	vpaddq xmm2,xmm7,xmm2
+  202bc6:	vaesdec xmm8,xmm8,xmm7
+  202bcb:	vaesdec xmm4,xmm4,xmm5
+  202bd0:	vpaddq xmm5,xmm5,xmm6
+  202bd4:	vaesenc xmm2,xmm2,xmm8
+  202bd9:	vaesenc xmm4,xmm5,xmm4
+  202bde:	vinserti128 ymm5,ymm0,xmm1,0x1
+  202be4:	vaesdec xmm7,xmm2,xmm3
+  202be9:	vaesdec xmm3,xmm4,xmm3
+  202bee:	vaesdec xmm3,xmm3,xmm4
+  202bf3:	vmovups ymm4,YMMWORD PTR [rip+0x2ae595]        # 4b1190 <__frame_dummy_init_array_entry+0x7f40>
+  202bfb:	vaesdec xmm2,xmm7,xmm2
+  202c00:	vmovups YMMWORD PTR [rsp+0x80],ymm4
+  202c09:	vinserti128 ymm4,ymm2,xmm3,0x1
+  202c0f:	vpunpcklqdq ymm4,ymm5,ymm4
+  202c13:	vpermq ymm4,ymm4,0xd8
+  202c19:	vmovdqu YMMWORD PTR [rsp+0xa0],ymm4
+  202c22:	div    DWORD PTR [rsp+0x18]
+  202c26:	inc    rax
+  202c29:	mov    QWORD PTR [rsp+0x40],rbp
+  202c2e:	mov    QWORD PTR [rsp+0x20],r15
+  202c33:	cmp    rbp,rax
+  202c36:	cmovb  rax,rbp
+  202c3a:	mov    esi,eax
+  202c3c:	mov    rcx,rax
+  202c3f:	shr    rcx,1
+  202c42:	and    esi,0x1
+  202c45:	add    rsi,rcx
+  202c48:	cmp    QWORD PTR [rsp+0x98],0x0
+  202c51:	cmove  rsi,rax
+  202c55:	mov    rax,QWORD PTR [rsp+0x90]
+  202c5d:	cmp    rsi,rax
+  202c60:	ja     2042f6 <zopro_core::msm_affine::grouping::scalar_groups+0x1986>
+  202c66:	mov    rbx,QWORD PTR [rsp+0x48]
+  202c6b:	vmovq  r14,xmm0
+  202c70:	vmovq  r13,xmm1
+  202c75:	vmovq  r12,xmm2
+  202c7a:	vmovq  rbp,xmm3
+  202c7f:	vmovdqu xmm0,XMMWORD PTR [rbx]
+  202c83:	vmovdqu xmm1,XMMWORD PTR [rbx+0x10]
+  202c88:	vmovdqa XMMWORD PTR [rsp+0x120],xmm0
+  202c91:	vmovdqa XMMWORD PTR [rsp+0x50],xmm1
+  202c97:	test   rax,rax
+  202c9a:	je     204374 <zopro_core::msm_affine::grouping::scalar_groups+0x1a04>
+  202ca0:	vmovq  xmm0,r12
+  202ca5:	vmovq  xmm1,rbp
+  202caa:	xor    r12,r14
+  202cad:	xor    rbp,r13
+  202cb0:	vmovq  xmm2,r13
+  202cb5:	vmovq  xmm3,r14
+  202cba:	vpmovsxbq xmm5,WORD PTR [rip+0xffffffffffe09afd]        # c7c0 <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb20>
+  202cc3:	vmovdqa xmm6,XMMWORD PTR [rsp+0x120]
+  202ccc:	mov    rax,QWORD PTR [rsp+0x30]
+  202cd1:	mov    r15,QWORD PTR [rsp+0x80]
+  202cd9:	mov    rdx,QWORD PTR [rsp+0x88]
+  202ce1:	xor    r9d,r9d
+  202ce4:	xor    r8d,r8d
+  202ce7:	vpunpcklqdq xmm2,xmm3,xmm2
+  202ceb:	vmovq  xmm3,rbp
+  202cf0:	vmovq  xmm4,r12
+  202cf5:	vpunpcklqdq xmm0,xmm0,xmm1
+  202cf9:	vpunpcklqdq xmm3,xmm4,xmm3
+  202cfd:	vmovdqa xmm4,XMMWORD PTR [rip+0xffffffffffe0861b]        # b320 <__abi_tag+0xb024>
+  202d05:	shl    rax,0x5
+  202d09:	add    rax,rbx
+  202d0c:	add    rbx,0x20
+  202d10:	mov    QWORD PTR [rsp+0x28],rax
+  202d15:	mov    rax,QWORD PTR [rsp+0x18]
+  202d1a:	vaesdec xmm2,xmm2,xmm5
+  202d1f:	vpaddq xmm1,xmm2,XMMWORD PTR [rip+0xffffffffffe08609]        # b330 <__abi_tag+0xb034>
+  202d27:	vpshufb xmm0,xmm0,xmm4
+  202d2c:	vpaddq xmm0,xmm0,xmm5
+  202d30:	vmovdqa xmm5,XMMWORD PTR [rsp+0x50]
+  202d36:	lea    rax,[rax-0x1]
+  202d3a:	vpshufb xmm0,xmm0,xmm4
+  202d3f:	mov    QWORD PTR [rsp+0x10],rax
+  202d44:	mov    rax,QWORD PTR [rsp+0x40]
+  202d49:	vpaddq xmm0,xmm6,xmm0
+  202d4d:	vaesdec xmm1,xmm1,xmm6
+  202d52:	vpshufb xmm0,xmm0,xmm4
+  202d57:	lea    rax,[rax-0x1]
+  202d5b:	mov    QWORD PTR [rsp+0x78],rax
+  202d60:	vaesdec xmm1,xmm1,xmm5
+  202d65:	vpaddq xmm0,xmm5,xmm0
+  202d69:	vaesenc xmm0,xmm0,xmm1
+  202d6e:	vaesdec xmm1,xmm0,xmm3
+  202d73:	vaesdec xmm0,xmm1,xmm0
+  202d78:	vpcmpeqd xmm1,xmm1,xmm1
+  202d7c:	vmovq  rdi,xmm0
+  202d81:	mov    rcx,rdi
+  202d84:	shr    rcx,0x39
+  202d88:	vpbroadcastb xmm0,ecx
+  202d8e:	and    rdi,rdx
+  202d91:	vmovdqu xmm2,XMMWORD PTR [r15+rdi*1]
+  202d97:	vpcmpeqb k0,xmm2,xmm0
+  202d9d:	kortestw k0,k0
+  202da1:	je     202df0 <zopro_core::msm_affine::grouping::scalar_groups+0x480>
+  202da3:	kmovd  r10d,k0
+  202da7:	tzcnt  eax,r10d
+  202dac:	mov    r14,QWORD PTR [rsp+0x48]
+  202db1:	mov    r11,r15
+  202db4:	add    rax,rdi
+  202db7:	and    rax,rdx
+  202dba:	shl    rax,0x3
+  202dbe:	sub    r11,rax
+  202dc1:	mov    rax,QWORD PTR [r11-0x8]
+  202dc5:	vmovdqu ymm3,YMMWORD PTR [r14]
+  202dca:	vpxor  ymm3,ymm3,YMMWORD PTR [rax]
+  202dce:	vptest ymm3,ymm3
+  202dd3:	je     202ec6 <zopro_core::msm_affine::grouping::scalar_groups+0x556>
+  202dd9:	lea    eax,[r10-0x1]
+  202ddd:	and    ax,r10w
+  202de1:	mov    r10d,eax
+  202de4:	jne    202da7 <zopro_core::msm_affine::grouping::scalar_groups+0x437>
+  202de6:	cs nop WORD PTR [rax+rax*1+0x0]
+  202df0:	cmp    r9,0x1
+  202df4:	je     202e08 <zopro_core::msm_affine::grouping::scalar_groups+0x498>
+  202df6:	vpmovmskb esi,xmm2
+  202dfa:	test   esi,esi
+  202dfc:	je     202e1c <zopro_core::msm_affine::grouping::scalar_groups+0x4ac>
+  202dfe:	tzcnt  esi,esi
+  202e02:	add    rsi,rdi
+  202e05:	and    rsi,rdx
+  202e08:	vpcmpeqb k0,xmm2,xmm1
+  202e0e:	kortestw k0,k0
+  202e12:	jne    202e6a <zopro_core::msm_affine::grouping::scalar_groups+0x4fa>
+  202e14:	mov    r9d,0x1
+  202e1a:	jmp    202e1f <zopro_core::msm_affine::grouping::scalar_groups+0x4af>
+  202e1c:	xor    r9d,r9d
+  202e1f:	lea    rdi,[r8+rdi*1+0x10]
+  202e24:	add    r8,0x10
+  202e28:	jmp    202d8e <zopro_core::msm_affine::grouping::scalar_groups+0x41e>
+  202e2d:	mov    rsi,QWORD PTR [rsp+0x118]
+  202e35:	test   rsi,rsi
+  202e38:	je     203311 <zopro_core::msm_affine::grouping::scalar_groups+0x9a1>
+  202e3e:	cmp    rsi,0x1ffff
+  202e45:	jbe    203305 <zopro_core::msm_affine::grouping::scalar_groups+0x995>
+  202e4b:	movabs rax,0x7ffffffffffffff1
+  202e55:	or     rax,0xe
+  202e59:	cmp    rsi,rax
+  202e5c:	jb     2032ed <zopro_core::msm_affine::grouping::scalar_groups+0x97d>
+  202e62:	vzeroupper
+  202e65:	call   10cb60 <std::process::abort>
+  202e6a:	movzx  edi,BYTE PTR [r15+rsi*1]
+  202e6f:	test   dil,dil
+  202e72:	jns    204396 <zopro_core::msm_affine::grouping::scalar_groups+0x1a26>
+  202e78:	and    dil,0x1
+  202e7c:	vpbroadcastb xmm0,BYTE PTR [rip+0xffffffffffe0993d]        # c7c2 <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb22>
+  202e85:	mov    BYTE PTR [r15+rsi*1],cl
+  202e89:	movzx  eax,dil
+  202e8d:	lea    rdi,[rsi-0x10]
+  202e91:	shl    rsi,0x3
+  202e95:	and    rdi,rdx
+  202e98:	neg    rsi
+  202e9b:	mov    BYTE PTR [r15+rdi*1+0x10],cl
+  202ea0:	vmovdqa xmm1,XMMWORD PTR [rsp+0x90]
+  202ea9:	vpinsrq xmm0,xmm0,rax,0x0
+  202eaf:	mov    rax,QWORD PTR [rsp+0x48]
+  202eb4:	vpsubq xmm0,xmm1,xmm0
+  202eb8:	vmovdqa XMMWORD PTR [rsp+0x90],xmm0
+  202ec1:	mov    QWORD PTR [r15+rsi*1-0x8],rax
+  202ec6:	mov    rbp,QWORD PTR [rsp+0x10]
+  202ecb:	mov    r12,QWORD PTR [rsp+0x78]
+  202ed0:	shl    rbp,0x5
+  202ed4:	jmp    202ff0 <zopro_core::msm_affine::grouping::scalar_groups+0x680>
+  202ed9:	nop    DWORD PTR [rax+0x0]
+  202ee0:	and    rdi,rdx
+  202ee3:	vmovdqu xmm1,XMMWORD PTR [r15+rdi*1]
+  202ee9:	vpcmpeqb k0,xmm1,xmm0
+  202eef:	kortestw k0,k0
+  202ef3:	je     202f40 <zopro_core::msm_affine::grouping::scalar_groups+0x5d0>
+  202ef5:	kmovd  r10d,k0
+  202ef9:	tzcnt  r11d,r10d
+  202efe:	mov    rax,r15
+  202f01:	vmovdqu ymm2,YMMWORD PTR [r14]
+  202f06:	add    r11,rdi
+  202f09:	and    r11,rdx
+  202f0c:	shl    r11,0x3
+  202f10:	sub    rax,r11
+  202f13:	mov    rax,QWORD PTR [rax-0x8]
+  202f17:	vpxor  ymm2,ymm2,YMMWORD PTR [rax]
+  202f1b:	vptest ymm2,ymm2
+  202f20:	je     202fe7 <zopro_core::msm_affine::grouping::scalar_groups+0x677>
+  202f26:	lea    eax,[r10-0x1]
+  202f2a:	and    ax,r10w
+  202f2e:	mov    r10d,eax
+  202f31:	jne    202ef9 <zopro_core::msm_affine::grouping::scalar_groups+0x589>
+  202f33:	data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+  202f40:	cmp    r9,0x1
+  202f44:	je     202f58 <zopro_core::msm_affine::grouping::scalar_groups+0x5e8>
+  202f46:	vpmovmskb esi,xmm1
+  202f4a:	test   esi,esi
+  202f4c:	je     202f70 <zopro_core::msm_affine::grouping::scalar_groups+0x600>
+  202f4e:	tzcnt  esi,esi
+  202f52:	add    rsi,rdi
+  202f55:	and    rsi,rdx
+  202f58:	vpcmpeqd xmm2,xmm2,xmm2
+  202f5c:	vpcmpeqb k0,xmm1,xmm2
+  202f62:	kortestw k0,k0
+  202f66:	jne    202f90 <zopro_core::msm_affine::grouping::scalar_groups+0x620>
+  202f68:	mov    r9d,0x1
+  202f6e:	jmp    202f73 <zopro_core::msm_affine::grouping::scalar_groups+0x603>
+  202f70:	xor    r9d,r9d
+  202f73:	lea    rdi,[r8+rdi*1+0x10]
+  202f78:	add    r8,0x10
+  202f7c:	jmp    202ee0 <zopro_core::msm_affine::grouping::scalar_groups+0x570>
+  202f81:	data16 data16 data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+  202f90:	movzx  edi,BYTE PTR [r15+rsi*1]
+  202f95:	test   dil,dil
+  202f98:	jns    203133 <zopro_core::msm_affine::grouping::scalar_groups+0x7c3>
+  202f9e:	and    dil,0x1
+  202fa2:	mov    BYTE PTR [r15+rsi*1],cl
+  202fa6:	vpbroadcastb xmm0,BYTE PTR [rip+0xffffffffffe09813]        # c7c2 <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb22>
+  202faf:	movzx  eax,dil
+  202fb3:	lea    rdi,[rsi-0x10]
+  202fb7:	shl    rsi,0x3
+  202fbb:	and    rdi,rdx
+  202fbe:	neg    rsi
+  202fc1:	mov    BYTE PTR [r15+rdi*1+0x10],cl
+  202fc6:	vmovdqa xmm1,XMMWORD PTR [rsp+0x90]
+  202fcf:	vpinsrq xmm0,xmm0,rax,0x0
+  202fd5:	vpsubq xmm0,xmm1,xmm0
+  202fd9:	vmovdqa XMMWORD PTR [rsp+0x90],xmm0
+  202fe2:	mov    QWORD PTR [r15+rsi*1-0x8],r13
+  202fe7:	test   r12,r12
+  202fea:	je     20314a <zopro_core::msm_affine::grouping::scalar_groups+0x7da>
+  202ff0:	mov    rax,QWORD PTR [rsp+0x28]
+  202ff5:	lea    r14,[rbx+rbp*1]
+  202ff9:	mov    r13d,0x0
+  202fff:	mov    rcx,rax
+  203002:	sub    rcx,rbx
+  203005:	lea    rbx,[rbx+rbp*1+0x20]
+  20300a:	shr    rcx,0x5
+  20300e:	cmp    QWORD PTR [rsp+0x10],rcx
+  203013:	cmovae rbx,rax
+  203017:	cmovb  r13,r14
+  20301b:	jae    20314a <zopro_core::msm_affine::grouping::scalar_groups+0x7da>
+  203021:	vmovdqa xmm2,XMMWORD PTR [rsp+0xa0]
+  20302a:	vmovdqa xmm7,XMMWORD PTR [rsp+0xb0]
+  203033:	vmovdqu xmm6,XMMWORD PTR [r14]
+  203038:	vmovdqu xmm5,XMMWORD PTR [r14+0x10]
+  20303e:	cmp    QWORD PTR [rsp+0x90],0x0
+  203047:	je     2030c7 <zopro_core::msm_affine::grouping::scalar_groups+0x757>
+  203049:	vpmovsxbq xmm4,WORD PTR [rip+0xffffffffffe0976e]        # c7c0 <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb20>
+  203052:	vmovdqa xmm3,XMMWORD PTR [rip+0xffffffffffe082c6]        # b320 <__abi_tag+0xb024>
+  20305a:	vpxor  xmm0,xmm7,xmm2
+  20305e:	mov    rdx,QWORD PTR [rsp+0x88]
+  203066:	dec    r12
+  203069:	xor    r9d,r9d
+  20306c:	xor    r8d,r8d
+  20306f:	vaesdec xmm1,xmm2,xmm4
+  203074:	vpaddq xmm1,xmm1,XMMWORD PTR [rip+0xffffffffffe082b4]        # b330 <__abi_tag+0xb034>
+  20307c:	vpshufb xmm2,xmm7,xmm3
+  203081:	vpaddq xmm2,xmm2,xmm4
+  203085:	vpshufb xmm2,xmm2,xmm3
+  20308a:	vpaddq xmm2,xmm6,xmm2
+  20308e:	vpshufb xmm2,xmm2,xmm3
+  203093:	vaesdec xmm1,xmm1,xmm6
+  203098:	vpaddq xmm2,xmm5,xmm2
+  20309c:	vaesdec xmm1,xmm1,xmm5
+  2030a1:	vaesenc xmm1,xmm2,xmm1
+  2030a6:	vaesdec xmm0,xmm1,xmm0
+  2030ab:	vaesdec xmm0,xmm0,xmm1
+  2030b0:	vmovq  rdi,xmm0
+  2030b5:	mov    rcx,rdi
+  2030b8:	shr    rcx,0x39
+  2030bc:	vpbroadcastb xmm0,ecx
+  2030c2:	jmp    202ee0 <zopro_core::msm_affine::grouping::scalar_groups+0x570>
+  2030c7:	mov    esi,0x1
+  2030cc:	lea    rdi,[rsp+0x80]
+  2030d4:	lea    rdx,[rsp+0xa0]
+  2030dc:	vmovdqa XMMWORD PTR [rsp+0x150],xmm7
+  2030e5:	vmovdqa XMMWORD PTR [rsp+0x160],xmm2
+  2030ee:	vmovdqa XMMWORD PTR [rsp+0x120],xmm6
+  2030f7:	vmovdqa XMMWORD PTR [rsp+0x50],xmm5
+  2030fd:	vzeroupper
+  203100:	call   1a9aa0 <<hashbrown::raw::RawTable<(&[u64; 4], ())>>::reserve_rehash::<hashbrown::map::make_hasher<&[u64; 4], (), ahash::random_state::RandomState>::{closure#0}>>
+  203105:	vmovdqa xmm5,XMMWORD PTR [rsp+0x50]
+  20310b:	vmovdqa xmm6,XMMWORD PTR [rsp+0x120]
+  203114:	vmovdqa xmm2,XMMWORD PTR [rsp+0x160]
+  20311d:	vmovdqa xmm7,XMMWORD PTR [rsp+0x150]
+  203126:	mov    r15,QWORD PTR [rsp+0x80]
+  20312e:	jmp    203049 <zopro_core::msm_affine::grouping::scalar_groups+0x6d9>
+  203133:	vmovdqa xmm0,XMMWORD PTR [r15]
+  203138:	vpmovmskb eax,xmm0
+  20313c:	tzcnt  esi,eax
+  203140:	movzx  edi,BYTE PTR [r15+rsi*1]
+  203145:	jmp    202f9e <zopro_core::msm_affine::grouping::scalar_groups+0x62e>
+  20314a:	mov    r13,QWORD PTR [rsp+0x80]
+  203152:	mov    r12,QWORD PTR [rsp+0x88]
+  20315a:	mov    rdi,QWORD PTR [rsp+0x98]
+  203162:	cmp    BYTE PTR [rsp+0x38],0x0
+  203167:	je     203192 <zopro_core::msm_affine::grouping::scalar_groups+0x822>
+  203169:	mov    rsi,QWORD PTR [rsp+0x30]
+  20316e:	mov    r15,QWORD PTR [rsp+0x20]
+  203173:	mov    rbx,QWORD PTR [rsp+0x48]
+  203178:	mov    rcx,QWORD PTR [rsp+0x40]
+  20317d:	mov    rax,rsi
+  203180:	shr    rax,0x20
+  203184:	je     2031a8 <zopro_core::msm_affine::grouping::scalar_groups+0x838>
+  203186:	mov    rax,rsi
+  203189:	xor    edx,edx
+  20318b:	div    QWORD PTR [rsp+0x18]
+  203190:	jmp    2031b0 <zopro_core::msm_affine::grouping::scalar_groups+0x840>
+  203192:	mov    r15,QWORD PTR [rsp+0x20]
+  203197:	mov    rsi,QWORD PTR [rsp+0x30]
+  20319c:	mov    rbx,QWORD PTR [rsp+0x48]
+  2031a1:	mov    rcx,QWORD PTR [rsp+0x40]
+  2031a6:	jmp    2031bf <zopro_core::msm_affine::grouping::scalar_groups+0x84f>
+  2031a8:	mov    eax,esi
+  2031aa:	xor    edx,edx
+  2031ac:	div    DWORD PTR [rsp+0x18]
+  2031b0:	cmp    rdx,0x1
+  2031b4:	sbb    rax,0xffffffffffffffff
+  2031b8:	cmp    rcx,rax
+  2031bb:	cmovae rcx,rax
+  2031bf:	mov    QWORD PTR [rsp+0x178],rcx
+  2031c7:	imul   rax,rdi,0xc8
+  2031ce:	imul   rcx,rcx,0xc7
+  2031d5:	cmp    rax,rcx
+  2031d8:	jbe    203245 <zopro_core::msm_affine::grouping::scalar_groups+0x8d5>
+  2031da:	test   r12,r12
+  2031dd:	je     202a5c <zopro_core::msm_affine::grouping::scalar_groups+0xec>
+  2031e3:	lea    rax,[r12*8+0x17]
+  2031eb:	add    r12,0x11
+  2031ef:	mov    rsi,r12
+  2031f2:	and    rax,0xfffffffffffffff0
+  2031f6:	add    rsi,rax
+  2031f9:	je     202a5c <zopro_core::msm_affine::grouping::scalar_groups+0xec>
+  2031ff:	mov    rdi,r13
+  203202:	sub    rdi,rax
+  203205:	cmp    rsi,0x1ffff
+  20320c:	jbe    2032df <zopro_core::msm_affine::grouping::scalar_groups+0x96f>
+  203212:	movabs rax,0x7ffffffffffffff1
+  20321c:	dec    rax
+  20321f:	cmp    rsi,rax
+  203222:	jae    202e62 <zopro_core::msm_affine::grouping::scalar_groups+0x4f2>
+  203228:	cmp    BYTE PTR [r13+r12*1+0x0],0x1
+  20322e:	jne    2032df <zopro_core::msm_affine::grouping::scalar_groups+0x96f>
+  203234:	inc    rsi
+  203237:	vzeroupper
+  20323a:	call   QWORD PTR [rip+0x2ae768]        # 4b19a8 <munmap@GLIBC_2.2.5>
+  203240:	jmp    202a5c <zopro_core::msm_affine::grouping::scalar_groups+0xec>
+  203245:	mov    eax,esi
+  203247:	and    eax,0xffff8000
+  20324c:	mov    ebp,0x50
+  203251:	mov    QWORD PTR [rsp+0x40],rdi
+  203256:	cmp    eax,0x8000
+  20325b:	jne    203393 <zopro_core::msm_affine::grouping::scalar_groups+0xa23>
+  203261:	lea    rsi,[rip+0xffffffffffe1b408]        # 1e670 <zmij::STATIC_DATA+0x5270>
+  203268:	lea    rdi,[rsp+0x80]
+  203270:	mov    edx,0x16
+  203275:	vzeroupper
+  203278:	call   13fe90 <std::sys::env::unix::getenv>
+  20327d:	mov    rbp,QWORD PTR [rsp+0x80]
+  203285:	cmp    rbp,0xffffffffffffffff
+  203289:	je     203326 <zopro_core::msm_affine::grouping::scalar_groups+0x9b6>
+  20328f:	mov    r14,QWORD PTR [rsp+0x88]
+  203297:	mov    rbx,QWORD PTR [rsp+0x90]
+  20329f:	lea    rdi,[rsp+0x80]
+  2032a7:	mov    rsi,r14
+  2032aa:	mov    rdx,rbx
+  2032ad:	call   ecee0 <core::str::converts::from_utf8>
+  2032b2:	cmp    BYTE PTR [rsp+0x80],0x0
+  2032ba:	je     20332d <zopro_core::msm_affine::grouping::scalar_groups+0x9bd>
+  2032bc:	mov    rbx,QWORD PTR [rsp+0x48]
+  2032c1:	test   rbp,rbp
+  2032c4:	jle    20338e <zopro_core::msm_affine::grouping::scalar_groups+0xa1e>
+  2032ca:	mov    edx,0x1
+  2032cf:	mov    rdi,r14
+  2032d2:	mov    rsi,rbp
+  2032d5:	call   e5870 <__rustc::__rust_dealloc>
+  2032da:	jmp    20338e <zopro_core::msm_affine::grouping::scalar_groups+0xa1e>
+  2032df:	vzeroupper
+  2032e2:	call   QWORD PTR [rip+0x2ae6c8]        # 4b19b0 <free@GLIBC_2.2.5>
+  2032e8:	jmp    202a5c <zopro_core::msm_affine::grouping::scalar_groups+0xec>
+  2032ed:	cmp    BYTE PTR [r15+rsi*1],0x1
+  2032f2:	jne    203305 <zopro_core::msm_affine::grouping::scalar_groups+0x995>
+  2032f4:	inc    rsi
+  2032f7:	mov    rdi,r15
+  2032fa:	vzeroupper
+  2032fd:	call   QWORD PTR [rip+0x2ae6a5]        # 4b19a8 <munmap@GLIBC_2.2.5>
+  203303:	jmp    203311 <zopro_core::msm_affine::grouping::scalar_groups+0x9a1>
+  203305:	mov    rdi,r15
+  203308:	vzeroupper
+  20330b:	call   QWORD PTR [rip+0x2ae69f]        # 4b19b0 <free@GLIBC_2.2.5>
+  203311:	add    rsp,0x1a8
+  203318:	pop    rbx
+  203319:	pop    r12
+  20331b:	pop    r13
+  20331d:	pop    r14
+  20331f:	pop    r15
+  203321:	pop    rbp
+  203322:	vzeroupper
+  203325:	ret
+  203326:	mov    rbx,QWORD PTR [rsp+0x48]
+  20332b:	jmp    20338e <zopro_core::msm_affine::grouping::scalar_groups+0xa1e>
+  20332d:	mov    rdi,r14
+  203330:	mov    r14b,0x1
+  203333:	cmp    rbx,0x1
+  203337:	jne    203340 <zopro_core::msm_affine::grouping::scalar_groups+0x9d0>
+  203339:	cmp    BYTE PTR [rdi],0x30
+  20333c:	setne  r14b
+  203340:	mov    rbx,QWORD PTR [rsp+0x48]
+  203345:	test   rbp,rbp
+  203348:	je     203384 <zopro_core::msm_affine::grouping::scalar_groups+0xa14>
+  20334a:	cmp    rbp,0x1ffff
+  203351:	jbe    20337e <zopro_core::msm_affine::grouping::scalar_groups+0xa0e>
+  203353:	movabs rax,0x7ffffffffffffff1
+  20335d:	or     rax,0xe
+  203361:	cmp    rbp,rax
+  203364:	jae    202e62 <zopro_core::msm_affine::grouping::scalar_groups+0x4f2>
+  20336a:	cmp    BYTE PTR [rdi+rbp*1],0x1
+  20336e:	jne    20337e <zopro_core::msm_affine::grouping::scalar_groups+0xa0e>
+  203370:	inc    rbp
+  203373:	mov    rsi,rbp
+  203376:	call   QWORD PTR [rip+0x2ae62c]        # 4b19a8 <munmap@GLIBC_2.2.5>
+  20337c:	jmp    203384 <zopro_core::msm_affine::grouping::scalar_groups+0xa14>
+  20337e:	call   QWORD PTR [rip+0x2ae62c]        # 4b19b0 <free@GLIBC_2.2.5>
+  203384:	mov    ebp,0x50
+  203389:	test   r14b,r14b
+  20338c:	je     203393 <zopro_core::msm_affine::grouping::scalar_groups+0xa23>
+  20338e:	mov    ebp,0x5f
+  203393:	cmp    BYTE PTR [rsp+0x38],0x0
+  203398:	mov    QWORD PTR [rsp+0x180],rbp
+  2033a0:	je     203446 <zopro_core::msm_affine::grouping::scalar_groups+0xad6>
+  2033a6:	vmovdqu ymm0,YMMWORD PTR [rbx]
+  2033aa:	xor    eax,eax
+  2033ac:	mov    r14,QWORD PTR [rsp+0x30]
+  2033b1:	mov    rsi,QWORD PTR [rsp+0x78]
+  2033b6:	mov    rcx,rbx
+  2033b9:	vptest ymm0,ymm0
+  2033be:	sete   al
+  2033c1:	shl    QWORD PTR [rsp+0x18],0x5
+  2033c7:	nop    WORD PTR [rax+rax*1+0x0]
+  2033d0:	mov    rdx,QWORD PTR [rsp+0x28]
+  2033d5:	sub    rdx,rcx
+  2033d8:	add    rdx,0xffffffffffffffe0
+  2033dc:	shr    rdx,0x5
+  2033e0:	cmp    QWORD PTR [rsp+0x10],rdx
+  2033e5:	jae    203406 <zopro_core::msm_affine::grouping::scalar_groups+0xa96>
+  2033e7:	mov    rdx,QWORD PTR [rsp+0x18]
+  2033ec:	vmovdqu ymm0,YMMWORD PTR [rcx+rdx*1]
+  2033f1:	add    rcx,rdx
+  2033f4:	xor    edx,edx
+  2033f6:	vptest ymm0,ymm0
+  2033fb:	sete   dl
+  2033fe:	add    rax,rdx
+  203401:	dec    rsi
+  203404:	jne    2033d0 <zopro_core::msm_affine::grouping::scalar_groups+0xa60>
+  203406:	mov    rcx,QWORD PTR [rsp+0x178]
+  20340e:	mov    rsi,QWORD PTR [rsp+0x40]
+  203413:	mov    QWORD PTR [rsp+0x188],rax
+  20341b:	mov    rdx,rcx
+  20341e:	sub    rdx,rax
+  203421:	cmp    rax,0x1
+  203425:	adc    rsi,0xffffffffffffffff
+  203429:	mov    QWORD PTR [rsp+0x190],rsi
+  203431:	cmp    rsi,rdx
+  203434:	jne    203459 <zopro_core::msm_affine::grouping::scalar_groups+0xae9>
+  203436:	imul   rax,rdx,0x64
+  20343a:	imul   rcx,rbp
+  20343e:	cmp    rax,rcx
+  203441:	seta   bl
+  203444:	jmp    20345b <zopro_core::msm_affine::grouping::scalar_groups+0xaeb>
+  203446:	mov    r14,QWORD PTR [rsp+0x30]
+  20344b:	test   r13,r13
+  20344e:	jne    2035cc <zopro_core::msm_affine::grouping::scalar_groups+0xc5c>
+  203454:	jmp    202a5c <zopro_core::msm_affine::grouping::scalar_groups+0xec>
+  203459:	xor    ebx,ebx
+  20345b:	mov    BYTE PTR [rsp+0xf],bl
+  20345f:	lea    rsi,[rip+0xffffffffffe1c1a9]        # 1f60f <zmij::STATIC_DATA+0x620f>
+  203466:	lea    rdi,[rsp+0x80]
+  20346e:	mov    edx,0x15
+  203473:	vzeroupper
+  203476:	call   13fe90 <std::sys::env::unix::getenv>
+  20347b:	mov    rax,QWORD PTR [rsp+0x80]
+  203483:	cmp    rax,0xffffffffffffffff
+  203487:	je     2035b3 <zopro_core::msm_affine::grouping::scalar_groups+0xc43>
+  20348d:	test   rax,rax
+  203490:	je     2034c2 <zopro_core::msm_affine::grouping::scalar_groups+0xb52>
+  203492:	mov    rdi,QWORD PTR [rsp+0x88]
+  20349a:	cmp    rax,0x1ffff
+  2034a0:	jbe    2034bc <zopro_core::msm_affine::grouping::scalar_groups+0xb4c>
+  2034a2:	mov    rsi,rax
+  2034a5:	inc    rsi
+  2034a8:	js     202e62 <zopro_core::msm_affine::grouping::scalar_groups+0x4f2>
+  2034ae:	cmp    BYTE PTR [rdi+rax*1],0x1
+  2034b2:	jne    2034bc <zopro_core::msm_affine::grouping::scalar_groups+0xb4c>
+  2034b4:	call   QWORD PTR [rip+0x2ae4ee]        # 4b19a8 <munmap@GLIBC_2.2.5>
+  2034ba:	jmp    2034c2 <zopro_core::msm_affine::grouping::scalar_groups+0xb52>
+  2034bc:	call   QWORD PTR [rip+0x2ae4ee]        # 4b19b0 <free@GLIBC_2.2.5>
+  2034c2:	lea    rax,[rsp+0x198]
+  2034ca:	lea    r10,[rip+0xffffffffffeec10f]        # ef5e0 <<u64 as core::fmt::Display>::fmt>
+  2034d1:	lea    rcx,[rsp+0x178]
+  2034d9:	lea    r8,[rsp+0x188]
+  2034e1:	lea    r9,[rsp+0x190]
+  2034e9:	mov    QWORD PTR [rsp+0x198],r14
+  2034f1:	mov    QWORD PTR [rsp+0x80],rax
+  2034f9:	mov    QWORD PTR [rsp+0x88],r10
+  203501:	mov    QWORD PTR [rsp+0x90],rcx
+  203509:	mov    QWORD PTR [rsp+0x98],r10
+  203511:	mov    QWORD PTR [rsp+0xa0],r8
+  203519:	lea    r8,[rsp+0x180]
+  203521:	mov    QWORD PTR [rsp+0xa8],r10
+  203529:	mov    QWORD PTR [rsp+0xb0],r9
+  203531:	mov    QWORD PTR [rsp+0xb8],r10
+  203539:	lea    rcx,[rip+0xffffffffffeec0f0]        # ef630 <<bool as core::fmt::Display>::fmt>
+  203540:	mov    QWORD PTR [rsp+0xc0],r8
+  203548:	lea    r8,[rsp+0xf]
+  20354d:	mov    QWORD PTR [rsp+0xc8],r10
+  203555:	mov    QWORD PTR [rsp+0xd0],r8
+  20355d:	mov    QWORD PTR [rsp+0xd8],rcx
+  203565:	lea    r8,[rip+0xffffffffffe15aa4]        # 19010 <itoa::DECIMAL_PAIRS+0xa8a>
+  20356c:	lea    rcx,[rip+0x2b01ad]        # 4b3720 <std::io::stdio::stderr::INSTANCE>
+  203573:	mov    QWORD PTR [rsp+0x60],r8
+  203578:	mov    QWORD PTR [rsp+0x68],0x6
+  203581:	mov    QWORD PTR [rsp+0x1a0],rcx
+  203589:	lea    rsi,[rip+0xffffffffffe10263]        # 137f3 <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0x7b53>
+  203590:	lea    rdi,[rsp+0x1a0]
+  203598:	lea    rdx,[rsp+0x80]
+  2035a0:	call   13bda0 <<&std::io::stdio::Stderr as std::io::Write>::write_fmt>
+  2035a5:	test   rax,rax
+  2035a8:	jne    2043ad <zopro_core::msm_affine::grouping::scalar_groups+0x1a3d>
+  2035ae:	movzx  ebx,BYTE PTR [rsp+0xf]
+  2035b3:	test   bl,bl
+  2035b5:	jne    2031da <zopro_core::msm_affine::grouping::scalar_groups+0x86a>
+  2035bb:	mov    rbp,QWORD PTR [rsp+0x180]
+  2035c3:	test   r13,r13
+  2035c6:	je     202a5c <zopro_core::msm_affine::grouping::scalar_groups+0xec>
+  2035cc:	lea    rdi,[rsp+0x80]
+  2035d4:	mov    rsi,r14
+  2035d7:	mov    rdx,rbp
+  2035da:	vzeroupper
+  2035dd:	call   2057f0 <zopro_core::msm_affine::grouping_cost::reserve>
+  2035e2:	cmp    DWORD PTR [rsp+0x80],0x1
+  2035ea:	jne    20369c <zopro_core::msm_affine::grouping::scalar_groups+0xd2c>
+  2035f0:	mov    rax,QWORD PTR [rsp+0x88]
+  2035f8:	mov    rcx,QWORD PTR [rsp+0x90]
+  203600:	mov    QWORD PTR [rsp+0x78],rbp
+  203605:	mov    QWORD PTR [rsp+0x120],r13
+  20360d:	mov    QWORD PTR [rsp+0x50],r12
+  203612:	mov    QWORD PTR [rsp+0x150],rax
+  20361a:	mov    QWORD PTR [rsp+0x160],rcx
+  203622:	lea    rsi,[rip+0xffffffffffe1c0aa]        # 1f6d3 <zmij::STATIC_DATA+0x62d3>
+  203629:	lea    rdi,[rsp+0x80]
+  203631:	mov    edx,0x18
+  203636:	call   13fe90 <std::sys::env::unix::getenv>
+  20363b:	mov    r12,QWORD PTR [rsp+0x80]
+  203643:	mov    r15,QWORD PTR [rsp+0x40]
+  203648:	cmp    r12,0xffffffffffffffff
+  20364c:	je     2036b0 <zopro_core::msm_affine::grouping::scalar_groups+0xd40>
+  20364e:	mov    r13,QWORD PTR [rsp+0x88]
+  203656:	mov    rbx,QWORD PTR [rsp+0x90]
+  20365e:	lea    rdi,[rsp+0x80]
+  203666:	mov    rsi,r13
+  203669:	mov    rdx,rbx
+  20366c:	call   ecee0 <core::str::converts::from_utf8>
+  203671:	cmp    BYTE PTR [rsp+0x80],0x0
+  203679:	je     2036bc <zopro_core::msm_affine::grouping::scalar_groups+0xd4c>
+  20367b:	mov    rbx,QWORD PTR [rsp+0x30]
+  203680:	mov    r14,QWORD PTR [rsp+0x78]
+  203685:	test   r12,r12
+  203688:	jle    2036fb <zopro_core::msm_affine::grouping::scalar_groups+0xd8b>
+  20368a:	mov    edx,0x1
+  20368f:	mov    rdi,r13
+  203692:	mov    rsi,r12
+  203695:	call   e5870 <__rustc::__rust_dealloc>
+  20369a:	jmp    2036fb <zopro_core::msm_affine::grouping::scalar_groups+0xd8b>
+  20369c:	mov    rax,QWORD PTR [rsp+0xe8]
+  2036a4:	mov    QWORD PTR [rax],0xffffffffffffffff
+  2036ab:	jmp    203f6c <zopro_core::msm_affine::grouping::scalar_groups+0x15fc>
+  2036b0:	mov    rbx,QWORD PTR [rsp+0x30]
+  2036b5:	mov    r14,QWORD PTR [rsp+0x78]
+  2036ba:	jmp    2036fb <zopro_core::msm_affine::grouping::scalar_groups+0xd8b>
+  2036bc:	mov    bpl,0x1
+  2036bf:	cmp    rbx,0x1
+  2036c3:	jne    2036ce <zopro_core::msm_affine::grouping::scalar_groups+0xd5e>
+  2036c5:	cmp    BYTE PTR [r13+0x0],0x30
+  2036ca:	setne  bpl
+  2036ce:	test   r12,r12
+  2036d1:	je     2036e3 <zopro_core::msm_affine::grouping::scalar_groups+0xd73>
+  2036d3:	mov    edx,0x1
+  2036d8:	mov    rdi,r13
+  2036db:	mov    rsi,r12
+  2036de:	call   e5870 <__rustc::__rust_dealloc>
+  2036e3:	mov    rbx,QWORD PTR [rsp+0x30]
+  2036e8:	mov    r14,QWORD PTR [rsp+0x78]
+  2036ed:	mov    r15,QWORD PTR [rsp+0x40]
+  2036f2:	test   bpl,bpl
+  2036f5:	je     203fdd <zopro_core::msm_affine::grouping::scalar_groups+0x166d>
+  2036fb:	mov    rdx,r14
+  2036fe:	imul   rdx,rbx
+  203702:	movabs rax,0x28f5c28f5c28f5c3
+  20370c:	shl    r15,0x4
+  203710:	mov    ecx,0x8000
+  203715:	shr    rdx,0x2
+  203719:	mulx   rax,rax,rax
+  20371e:	shr    rax,0x2
+  203722:	cmp    rax,r15
+  203725:	cmovae rax,r15
+  203729:	cmp    rax,0x8000
+  20372f:	cmovb  rcx,rax
+  203733:	mov    QWORD PTR [rsp+0x10],rcx
+  203738:	mov    rax,QWORD PTR [rip+0x2b0021]        # 4b3760 <ahash::random_state::RAND_SOURCE>
+  20373f:	test   rax,rax
+  203742:	je     203ff6 <zopro_core::msm_affine::grouping::scalar_groups+0x1686>
+  203748:	mov    rbx,QWORD PTR [rax]
+  20374b:	mov    r14,QWORD PTR [rax+0x8]
+  20374f:	mov    r13,QWORD PTR [rip+0x2b0012]        # 4b3768 <ahash::random_state::get_fixed_seeds::SEEDS>
+  203756:	test   r13,r13
+  203759:	je     20440d <zopro_core::msm_affine::grouping::scalar_groups+0x1a9d>
+  20375f:	mov    rdi,rbx
+  203762:	call   QWORD PTR [r14+0x18]
+  203766:	mov    QWORD PTR [rsp+0x28],rax
+  20376b:	mov    rax,QWORD PTR [r13+0x30]
+  20376f:	mov    rcx,QWORD PTR [r13+0x28]
+  203773:	mov    r15,QWORD PTR [r13+0x0]
+  203777:	mov    r14,QWORD PTR [r13+0x8]
+  20377b:	mov    rbp,QWORD PTR [r13+0x10]
+  20377f:	mov    r12,QWORD PTR [r13+0x18]
+  203783:	mov    rbx,QWORD PTR [r13+0x20]
+  203787:	mov    r13,QWORD PTR [r13+0x38]
+  20378b:	mov    QWORD PTR [rsp+0x18],rax
+  203790:	mov    QWORD PTR [rsp+0x38],rcx
+  203795:	mov    rdx,QWORD PTR [rsp+0x10]
+  20379a:	lea    rdi,[rsp+0xf0]
+  2037a2:	mov    esi,0x28
+  2037a7:	call   1a8360 <<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>>
+  2037ac:	vmovdqa xmm10,XMMWORD PTR [rip+0xffffffffffe07b6c]        # b320 <__abi_tag+0xb024>
+  2037b4:	vmovq  xmm2,QWORD PTR [rsp+0x28]
+  2037ba:	vmovq  xmm3,r12
+  2037bf:	vmovq  xmm4,rbp
+  2037c4:	vmovq  xmm5,r14
+  2037c9:	vmovq  xmm6,r15
+  2037ce:	vmovq  xmm1,r13
+  2037d3:	vmovq  xmm0,rbx
+  2037d8:	xor    rbp,r15
+  2037db:	xor    r12,r14
+  2037de:	vmovq  xmm7,QWORD PTR [rsp+0x18]
+  2037e4:	mov    QWORD PTR [rsp+0x130],0x0
+  2037f0:	mov    QWORD PTR [rsp+0x138],0x8
+  2037fc:	mov    QWORD PTR [rsp+0x140],0x0
+  203808:	vpunpcklqdq xmm3,xmm4,xmm3
+  20380c:	vpunpcklqdq xmm5,xmm6,xmm5
+  203810:	vmovq  xmm6,rbp
+  203815:	mov    rbp,QWORD PTR [rsp+0x30]
+  20381a:	lea    r14,[rbp*4+0x0]
+  203822:	vpshufb xmm3,xmm3,xmm10
+  203827:	mov    QWORD PTR [rsp+0x40],r14
+  20382c:	vpaddq xmm3,xmm2,xmm3
+  203830:	vaesdec xmm2,xmm5,xmm2
+  203835:	vpshufb xmm3,xmm3,xmm10
+  20383a:	vpaddq xmm4,xmm1,xmm3
+  20383e:	vpaddq xmm8,xmm7,xmm3
+  203842:	vaesdec xmm5,xmm2,xmm1
+  203847:	vpshufb xmm4,xmm4,xmm10
+  20384c:	vaesdec xmm9,xmm2,xmm7
+  203851:	vpshufb xmm8,xmm8,xmm10
+  203856:	vpaddq xmm4,xmm0,xmm4
+  20385a:	vaesdec xmm5,xmm5,xmm0
+  20385f:	vaesenc xmm4,xmm4,xmm5
+  203864:	vmovq  xmm5,r12
+  203869:	vpunpcklqdq xmm5,xmm6,xmm5
+  20386d:	vaesdec xmm6,xmm4,xmm5
+  203872:	vaesdec xmm4,xmm6,xmm4
+  203877:	vmovq  xmm6,QWORD PTR [rsp+0x38]
+  20387d:	vaesdec xmm9,xmm9,xmm6
+  203882:	vpaddq xmm8,xmm8,xmm6
+  203886:	vaesenc xmm8,xmm8,xmm9
+  20388b:	vaesdec xmm9,xmm8,xmm5
+  203890:	vaesdec xmm8,xmm9,xmm8
+  203895:	vpunpcklqdq xmm4,xmm8,xmm4
+  203899:	vpaddq xmm8,xmm6,xmm3
+  20389d:	vpaddq xmm3,xmm0,xmm3
+  2038a1:	vaesdec xmm0,xmm2,xmm0
+  2038a6:	vaesdec xmm6,xmm2,xmm6
+  2038ab:	vpshufb xmm8,xmm8,xmm10
+  2038b0:	vpshufb xmm3,xmm3,xmm10
+  2038b5:	vpaddq xmm8,xmm8,xmm1
+  2038b9:	vpaddq xmm3,xmm7,xmm3
+  2038bd:	vaesdec xmm0,xmm0,xmm7
+  2038c2:	vaesdec xmm1,xmm6,xmm1
+  2038c7:	vaesenc xmm0,xmm3,xmm0
+  2038cc:	vaesenc xmm1,xmm8,xmm1
+  2038d1:	vaesdec xmm2,xmm0,xmm5
+  2038d6:	vaesdec xmm6,xmm1,xmm5
+  2038db:	vaesdec xmm0,xmm2,xmm0
+  2038e0:	vmovdqu ymm2,YMMWORD PTR [rsp+0xf0]
+  2038e9:	vaesdec xmm1,xmm6,xmm1
+  2038ee:	vpunpcklqdq xmm0,xmm0,xmm1
+  2038f2:	vmovdqu YMMWORD PTR [rsp+0x80],ymm2
+  2038fb:	vmovdqa XMMWORD PTR [rsp+0xa0],xmm0
+  203904:	vmovdqa XMMWORD PTR [rsp+0xb0],xmm4
+  20390d:	test   rbp,rbp
+  203910:	je     203d07 <zopro_core::msm_affine::grouping::scalar_groups+0x1397>
+  203916:	mov    edi,0x4
+  20391b:	mov    rsi,r14
+  20391e:	xor    edx,edx
+  203920:	vzeroupper
+  203923:	call   483570 <<zopro_core::alloc::linux::Allocator>::allocate>
+  203928:	test   rax,rax
+  20392b:	je     20446e <zopro_core::msm_affine::grouping::scalar_groups+0x1afe>
+  203931:	mov    rbx,QWORD PTR [rsp+0x48]
+  203936:	mov    QWORD PTR [rsp+0x18],rax
+  20393b:	cmp    rbp,0x1
+  20393f:	je     20395d <zopro_core::msm_affine::grouping::scalar_groups+0xfed>
+  203941:	mov    r15,QWORD PTR [rsp+0x18]
+  203946:	lea    rdx,[r14-0x4]
+  20394a:	mov    esi,0xff
+  20394f:	mov    rdi,r15
+  203952:	call   QWORD PTR [rip+0x2ae0d8]        # 4b1a30 <memset@GLIBC_2.2.5>
+  203958:	lea    rax,[r15+r14*1-0x4]
+  20395d:	mov    DWORD PTR [rax],0xffffffff
+  203963:	mov    eax,0x8
+  203968:	mov    r13d,0x8
+  20396e:	mov    QWORD PTR [rsp+0x60],0x0
+  203977:	mov    QWORD PTR [rsp+0x68],0x8
+  203980:	mov    QWORD PTR [rsp+0x70],0x0
+  203989:	xor    r12d,r12d
+  20398c:	xor    r14d,r14d
+  20398f:	mov    QWORD PTR [rsp+0x10],0x0
+  203998:	mov    QWORD PTR [rsp+0x38],rax
+  20399d:	jmp    2039b1 <zopro_core::msm_affine::grouping::scalar_groups+0x1041>
+  20399f:	nop
+  2039a0:	mov    r15,QWORD PTR [rsp+0x20]
+  2039a5:	inc    r14
+  2039a8:	cmp    r14,rbp
+  2039ab:	je     203ce6 <zopro_core::msm_affine::grouping::scalar_groups+0x1376>
+  2039b1:	mov    r15,r14
+  2039b4:	shl    r15,0x5
+  2039b8:	vmovdqu ymm0,YMMWORD PTR [rbx+r15*1]
+  2039be:	vptest ymm0,ymm0
+  2039c3:	je     2039a0 <zopro_core::msm_affine::grouping::scalar_groups+0x1030>
+  2039c5:	add    r15,rbx
+  2039c8:	vmovdqa xmm1,XMMWORD PTR [rsp+0xb0]
+  2039d1:	vpmovsxbq xmm6,WORD PTR [rip+0xffffffffffe08de6]        # c7c0 <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb20>
+  2039da:	vmovdqa xmm5,XMMWORD PTR [rip+0xffffffffffe0793e]        # b320 <__abi_tag+0xb024>
+  2039e2:	mov    rcx,QWORD PTR [rsp+0x88]
+  2039ea:	xor    edx,edx
+  2039ec:	vmovups ymm0,YMMWORD PTR [r15]
+  2039f1:	vmovups YMMWORD PTR [rsp+0xf0],ymm0
+  2039fa:	vmovdqa xmm0,XMMWORD PTR [rsp+0xa0]
+  203a03:	vmovdqa xmm3,XMMWORD PTR [rsp+0xf0]
+  203a0c:	vmovdqa xmm4,XMMWORD PTR [rsp+0x100]
+  203a15:	mov    rax,QWORD PTR [rsp+0xf0]
+  203a1d:	mov    QWORD PTR [rsp+0x28],rax
+  203a22:	mov    rax,QWORD PTR [rsp+0x80]
+  203a2a:	vpxor  xmm2,xmm1,xmm0
+  203a2e:	vaesdec xmm0,xmm0,xmm6
+  203a33:	vpaddq xmm0,xmm0,XMMWORD PTR [rip+0xffffffffffe078f5]        # b330 <__abi_tag+0xb034>
+  203a3b:	vpshufb xmm1,xmm1,xmm5
+  203a40:	vpaddq xmm1,xmm1,xmm6
+  203a44:	vpshufb xmm1,xmm1,xmm5
+  203a49:	vpaddq xmm1,xmm3,xmm1
+  203a4d:	vpshufb xmm1,xmm1,xmm5
+  203a52:	vaesdec xmm0,xmm0,xmm3
+  203a57:	vpaddq xmm1,xmm4,xmm1
+  203a5b:	vaesdec xmm0,xmm0,xmm4
+  203a60:	vaesenc xmm0,xmm1,xmm0
+  203a65:	vaesdec xmm1,xmm0,xmm2
+  203a6a:	vaesdec xmm0,xmm1,xmm0
+  203a6f:	vmovq  rbp,xmm0
+  203a74:	mov    rbx,rbp
+  203a77:	shr    rbx,0x39
+  203a7b:	mov    rsi,rbp
+  203a7e:	vpbroadcastb xmm0,ebx
+  203a84:	and    rsi,rcx
+  203a87:	vmovdqu xmm1,XMMWORD PTR [rax+rsi*1]
+  203a8c:	vpcmpeqb k0,xmm1,xmm0
+  203a92:	kortestw k0,k0
+  203a96:	je     203ae0 <zopro_core::msm_affine::grouping::scalar_groups+0x1170>
+  203a98:	kmovd  edi,k0
+  203a9c:	tzcnt  r8d,edi
+  203aa1:	add    r8,rsi
+  203aa4:	and    r8,rcx
+  203aa7:	neg    r8
+  203aaa:	lea    r8,[r8+r8*4]
+  203aae:	vmovdqu ymm2,YMMWORD PTR [rax+r8*8-0x28]
+  203ab5:	vpxor  ymm2,ymm2,YMMWORD PTR [rsp+0xf0]
+  203abe:	vptest ymm2,ymm2
+  203ac3:	je     203b00 <zopro_core::msm_affine::grouping::scalar_groups+0x1190>
+  203ac5:	lea    r8d,[rdi-0x1]
+  203ac9:	and    r8w,di
+  203acd:	mov    edi,r8d
+  203ad0:	jne    203a9c <zopro_core::msm_affine::grouping::scalar_groups+0x112c>
+  203ad2:	data16 data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+  203ae0:	vpcmpeqd xmm2,xmm2,xmm2
+  203ae4:	vpcmpeqb k0,xmm1,xmm2
+  203aea:	kortestw k0,k0
+  203aee:	jne    203b10 <zopro_core::msm_affine::grouping::scalar_groups+0x11a0>
+  203af0:	lea    rsi,[rsi+rdx*1+0x10]
+  203af5:	add    rdx,0x10
+  203af9:	jmp    203a84 <zopro_core::msm_affine::grouping::scalar_groups+0x1114>
+  203afb:	nop    DWORD PTR [rax+rax*1+0x0]
+  203b00:	lea    rax,[rax+r8*8]
+  203b04:	mov    edx,DWORD PTR [rax-0x8]
+  203b07:	jmp    203c4d <zopro_core::msm_affine::grouping::scalar_groups+0x12dd>
+  203b0c:	nop    DWORD PTR [rax+0x0]
+  203b10:	cmp    QWORD PTR [rsp+0x90],0x0
+  203b19:	je     203cb4 <zopro_core::msm_affine::grouping::scalar_groups+0x1344>
+  203b1f:	mov    rax,QWORD PTR [rsp+0x10]
+  203b24:	cmp    rax,QWORD PTR [rsp+0x130]
+  203b2c:	jne    203b4b <zopro_core::msm_affine::grouping::scalar_groups+0x11db>
+  203b2e:	lea    rdi,[rsp+0x130]
+  203b36:	vzeroupper
+  203b39:	call   3d6f40 <<alloc::raw_vec::RawVec<[usize; 4]>>::grow_one>
+  203b3e:	mov    rax,QWORD PTR [rsp+0x138]
+  203b46:	mov    QWORD PTR [rsp+0x38],rax
+  203b4b:	vmovdqu ymm0,YMMWORD PTR [r15]
+  203b50:	mov    rdx,QWORD PTR [rsp+0x10]
+  203b55:	mov    rcx,QWORD PTR [rsp+0x38]
+  203b5a:	mov    rax,rdx
+  203b5d:	shl    rax,0x5
+  203b61:	inc    rdx
+  203b64:	mov    QWORD PTR [rsp+0x10],rdx
+  203b69:	vmovdqu YMMWORD PTR [rcx+rax*1],ymm0
+  203b6e:	mov    QWORD PTR [rsp+0x140],rdx
+  203b76:	cmp    r12,QWORD PTR [rsp+0x60]
+  203b7b:	jne    203b8f <zopro_core::msm_affine::grouping::scalar_groups+0x121f>
+  203b7d:	lea    rdi,[rsp+0x60]
+  203b82:	vzeroupper
+  203b85:	call   f0c10 <<alloc::raw_vec::RawVec<usize>>::grow_one>
+  203b8a:	mov    r13,QWORD PTR [rsp+0x68]
+  203b8f:	mov    QWORD PTR [r13+r12*8+0x0],0x0
+  203b98:	inc    r12
+  203b9b:	mov    rcx,QWORD PTR [rsp+0x88]
+  203ba3:	mov    rax,QWORD PTR [rsp+0x80]
+  203bab:	mov    QWORD PTR [rsp+0x70],r12
+  203bb0:	and    rbp,rcx
+  203bb3:	vmovdqu xmm0,XMMWORD PTR [rax+rbp*1]
+  203bb8:	vpmovmskb edx,xmm0
+  203bbc:	test   edx,edx
+  203bbe:	je     203c88 <zopro_core::msm_affine::grouping::scalar_groups+0x1318>
+  203bc4:	mov    r8,QWORD PTR [rsp+0x10]
+  203bc9:	mov    r9,QWORD PTR [rsp+0x28]
+  203bce:	tzcnt  esi,edx
+  203bd2:	add    rsi,rbp
+  203bd5:	and    rsi,rcx
+  203bd8:	movzx  edi,BYTE PTR [rax+rsi*1]
+  203bdc:	test   dil,dil
+  203bdf:	jns    203cd1 <zopro_core::msm_affine::grouping::scalar_groups+0x1361>
+  203be5:	lea    edx,[r8-0x1]
+  203be9:	lea    r8,[rsi-0x10]
+  203bed:	mov    BYTE PTR [rax+rsi*1],bl
+  203bf0:	neg    rsi
+  203bf3:	add    r15,0x8
+  203bf7:	and    dil,0x1
+  203bfb:	vpbroadcastb xmm1,BYTE PTR [rip+0xffffffffffe08bbe]        # c7c2 <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb22>
+  203c04:	and    r8,rcx
+  203c07:	lea    rcx,[rsi+rsi*4]
+  203c0b:	movzx  esi,dil
+  203c0f:	mov    BYTE PTR [rax+r8*1+0x10],bl
+  203c14:	mov    QWORD PTR [rax+rcx*8-0x28],r9
+  203c19:	vmovups xmm0,XMMWORD PTR [r15]
+  203c1e:	vpinsrq xmm1,xmm1,rsi,0x0
+  203c24:	vmovups XMMWORD PTR [rax+rcx*8-0x20],xmm0
+  203c2a:	mov    rdi,QWORD PTR [r15+0x10]
+  203c2e:	mov    QWORD PTR [rax+rcx*8-0x10],rdi
+  203c33:	mov    DWORD PTR [rax+rcx*8-0x8],edx
+  203c37:	vmovdqa xmm0,XMMWORD PTR [rsp+0x90]
+  203c40:	vpsubq xmm0,xmm0,xmm1
+  203c44:	vmovdqa XMMWORD PTR [rsp+0x90],xmm0
+  203c4d:	mov    rax,QWORD PTR [rsp+0x18]
+  203c52:	mov    rbp,QWORD PTR [rsp+0x30]
+  203c57:	mov    r15,QWORD PTR [rsp+0x20]
+  203c5c:	mov    rbx,QWORD PTR [rsp+0x48]
+  203c61:	mov    edi,edx
+  203c63:	mov    DWORD PTR [rax+r14*4],edx
+  203c67:	cmp    r12,rdi
+  203c6a:	jbe    204448 <zopro_core::msm_affine::grouping::scalar_groups+0x1ad8>
+  203c70:	mov    r13,QWORD PTR [rsp+0x68]
+  203c75:	inc    QWORD PTR [r13+rdi*8+0x0]
+  203c7a:	inc    r14
+  203c7d:	cmp    r14,rbp
+  203c80:	jne    2039b1 <zopro_core::msm_affine::grouping::scalar_groups+0x1041>
+  203c86:	jmp    203ce6 <zopro_core::msm_affine::grouping::scalar_groups+0x1376>
+  203c88:	mov    r8,QWORD PTR [rsp+0x10]
+  203c8d:	mov    r9,QWORD PTR [rsp+0x28]
+  203c92:	mov    esi,0x10
+  203c97:	add    rbp,rsi
+  203c9a:	add    rsi,0x10
+  203c9e:	and    rbp,rcx
+  203ca1:	vmovdqu xmm0,XMMWORD PTR [rax+rbp*1]
+  203ca6:	vpmovmskb edx,xmm0
+  203caa:	test   edx,edx
+  203cac:	jne    203bce <zopro_core::msm_affine::grouping::scalar_groups+0x125e>
+  203cb2:	jmp    203c97 <zopro_core::msm_affine::grouping::scalar_groups+0x1327>
+  203cb4:	lea    rdi,[rsp+0x80]
+  203cbc:	lea    rsi,[rsp+0xa0]
+  203cc4:	vzeroupper
+  203cc7:	call   1a7d20 <<hashbrown::raw::RawTable<([u64; 4], u32)>>::reserve_rehash::<hashbrown::map::make_hasher<[u64; 4], u32, ahash::random_state::RandomState>::{closure#0}>>
+  203ccc:	jmp    203b1f <zopro_core::msm_affine::grouping::scalar_groups+0x11af>
+  203cd1:	vmovdqa xmm0,XMMWORD PTR [rax]
+  203cd5:	vpmovmskb edx,xmm0
+  203cd9:	tzcnt  esi,edx
+  203cdd:	movzx  edi,BYTE PTR [rax+rsi*1]
+  203ce1:	jmp    203be5 <zopro_core::msm_affine::grouping::scalar_groups+0x1275>
+  203ce6:	mov    r14,QWORD PTR [rsp+0x18]
+  203ceb:	mov    r13,QWORD PTR [rsp+0x10]
+  203cf0:	mov    rax,QWORD PTR [rsp+0x88]
+  203cf8:	mov    r12,QWORD PTR [rsp+0x50]
+  203cfd:	test   rax,rax
+  203d00:	jne    203d4c <zopro_core::msm_affine::grouping::scalar_groups+0x13dc>
+  203d02:	jmp    203db2 <zopro_core::msm_affine::grouping::scalar_groups+0x1442>
+  203d07:	mov    r15,QWORD PTR [rsp+0x20]
+  203d0c:	mov    eax,0x8
+  203d11:	mov    r14d,0x4
+  203d17:	mov    QWORD PTR [rsp+0x60],0x0
+  203d20:	mov    QWORD PTR [rsp+0x68],0x8
+  203d29:	xor    r13d,r13d
+  203d2c:	mov    QWORD PTR [rsp+0x70],0x0
+  203d35:	mov    QWORD PTR [rsp+0x38],rax
+  203d3a:	mov    rax,QWORD PTR [rsp+0x88]
+  203d42:	mov    r12,QWORD PTR [rsp+0x50]
+  203d47:	test   rax,rax
+  203d4a:	je     203db2 <zopro_core::msm_affine::grouping::scalar_groups+0x1442>
+  203d4c:	lea    rcx,[rax+rax*4]
+  203d50:	add    rax,0x11
+  203d54:	mov    rsi,rax
+  203d57:	lea    rdx,[rcx*8+0x37]
+  203d5f:	and    rdx,0xfffffffffffffff0
+  203d63:	add    rsi,rdx
+  203d66:	je     203db2 <zopro_core::msm_affine::grouping::scalar_groups+0x1442>
+  203d68:	mov    rcx,QWORD PTR [rsp+0x80]
+  203d70:	mov    rdi,rcx
+  203d73:	sub    rdi,rdx
+  203d76:	cmp    rsi,0x1ffff
+  203d7d:	jbe    203da9 <zopro_core::msm_affine::grouping::scalar_groups+0x1439>
+  203d7f:	movabs rdx,0x7ffffffffffffff1
+  203d89:	dec    rdx
+  203d8c:	cmp    rsi,rdx
+  203d8f:	jae    202e62 <zopro_core::msm_affine::grouping::scalar_groups+0x4f2>
+  203d95:	cmp    BYTE PTR [rcx+rax*1],0x1
+  203d99:	jne    203da9 <zopro_core::msm_affine::grouping::scalar_groups+0x1439>
+  203d9b:	inc    rsi
+  203d9e:	vzeroupper
+  203da1:	call   QWORD PTR [rip+0x2adc01]        # 4b19a8 <munmap@GLIBC_2.2.5>
+  203da7:	jmp    203db2 <zopro_core::msm_affine::grouping::scalar_groups+0x1442>
+  203da9:	vzeroupper
+  203dac:	call   QWORD PTR [rip+0x2adbfe]        # 4b19b0 <free@GLIBC_2.2.5>
+  203db2:	mov    rax,QWORD PTR [rsp+0x78]
+  203db7:	imul   rbx,r13,0x64
+  203dbb:	mov    rcx,r13
+  203dbe:	imul   rax,rbp
+  203dc2:	mov    r13,rax
+  203dc5:	cmp    rbx,rax
+  203dc8:	jbe    203e02 <zopro_core::msm_affine::grouping::scalar_groups+0x1492>
+  203dca:	mov    rax,QWORD PTR [rsp+0xe8]
+  203dd2:	mov    rsi,QWORD PTR [rsp+0x60]
+  203dd7:	mov    QWORD PTR [rax],0xffffffffffffffff
+  203dde:	test   rsi,rsi
+  203de1:	je     203eda <zopro_core::msm_affine::grouping::scalar_groups+0x156a>
+  203de7:	mov    rdi,QWORD PTR [rsp+0x68]
+  203dec:	shl    rsi,0x3
+  203df0:	mov    edx,0x8
+  203df5:	vzeroupper
+  203df8:	call   e5870 <__rustc::__rust_dealloc>
+  203dfd:	jmp    203eda <zopro_core::msm_affine::grouping::scalar_groups+0x156a>
+  203e02:	test   rcx,rcx
+  203e05:	je     203e3e <zopro_core::msm_affine::grouping::scalar_groups+0x14ce>
+  203e07:	mov    QWORD PTR [rsp+0x18],r14
+  203e0c:	mov    r14,QWORD PTR [rsp+0x70]
+  203e11:	movabs rax,0x1000000000000000
+  203e1b:	dec    rax
+  203e1e:	cmp    r14,rax
+  203e21:	jne    204000 <zopro_core::msm_affine::grouping::scalar_groups+0x1690>
+  203e27:	xor    ebx,ebx
+  203e29:	xor    ebp,ebp
+  203e2b:	mov    rdi,rbx
+  203e2e:	mov    rsi,r12
+  203e31:	vzeroupper
+  203e34:	call   ea571 <alloc::raw_vec::handle_error>
+  203e39:	jmp    20448a <zopro_core::msm_affine::grouping::scalar_groups+0x1b1a>
+  203e3e:	mov    r12,QWORD PTR [rsp+0x130]
+  203e46:	mov    edi,0x8
+  203e4b:	vzeroupper
+  203e4e:	call   QWORD PTR [rip+0x2adb6c]        # 4b19c0 <malloc@GLIBC_2.2.5>
+  203e54:	test   rax,rax
+  203e57:	je     204432 <zopro_core::msm_affine::grouping::scalar_groups+0x1ac2>
+  203e5d:	vmovdqu xmm0,XMMWORD PTR [rsp+0x60]
+  203e63:	mov    rdx,QWORD PTR [rsp+0xe8]
+  203e6b:	mov    rcx,QWORD PTR [rsp+0x70]
+  203e70:	mov    rsi,QWORD PTR [rsp+0x38]
+  203e75:	mov    QWORD PTR [rax],0x0
+  203e7c:	mov    QWORD PTR [rdx+0x58],rcx
+  203e80:	mov    rcx,QWORD PTR [rsp+0x160]
+  203e88:	vmovdqu XMMWORD PTR [rdx+0x48],xmm0
+  203e8d:	mov    QWORD PTR [rdx],r12
+  203e90:	mov    QWORD PTR [rdx+0x8],rsi
+  203e94:	mov    r12,QWORD PTR [rsp+0x50]
+  203e99:	mov    rsi,QWORD PTR [rsp+0x150]
+  203ea1:	vpxor  xmm0,xmm0,xmm0
+  203ea5:	vmovdqu XMMWORD PTR [rdx+0x10],xmm0
+  203eaa:	mov    QWORD PTR [rdx+0x20],0x4
+  203eb2:	mov    QWORD PTR [rdx+0x28],0x0
+  203eba:	mov    QWORD PTR [rdx+0x30],0x1
+  203ec2:	mov    QWORD PTR [rdx+0x38],rax
+  203ec6:	mov    QWORD PTR [rdx+0x40],0x1
+  203ece:	mov    QWORD PTR [rdx+0x60],rbp
+  203ed2:	mov    QWORD PTR [rdx+0x68],rsi
+  203ed6:	mov    QWORD PTR [rdx+0x70],rcx
+  203eda:	test   rbp,rbp
+  203edd:	je     203f12 <zopro_core::msm_affine::grouping::scalar_groups+0x15a2>
+  203edf:	cmp    rbp,0x7fff
+  203ee6:	jbe    203f06 <zopro_core::msm_affine::grouping::scalar_groups+0x1596>
+  203ee8:	mov    rsi,QWORD PTR [rsp+0x40]
+  203eed:	cmp    BYTE PTR [r14+rsi*1],0x1
+  203ef2:	jne    203f06 <zopro_core::msm_affine::grouping::scalar_groups+0x1596>
+  203ef4:	or     rsi,0x1
+  203ef8:	mov    rdi,r14
+  203efb:	vzeroupper
+  203efe:	call   QWORD PTR [rip+0x2adaa4]        # 4b19a8 <munmap@GLIBC_2.2.5>
+  203f04:	jmp    203f12 <zopro_core::msm_affine::grouping::scalar_groups+0x15a2>
+  203f06:	mov    rdi,r14
+  203f09:	vzeroupper
+  203f0c:	call   QWORD PTR [rip+0x2ada9e]        # 4b19b0 <free@GLIBC_2.2.5>
+  203f12:	cmp    rbx,r13
+  203f15:	jbe    203f64 <zopro_core::msm_affine::grouping::scalar_groups+0x15f4>
+  203f17:	mov    rsi,QWORD PTR [rsp+0x130]
+  203f1f:	mov    r13,QWORD PTR [rsp+0x120]
+  203f27:	test   rsi,rsi
+  203f2a:	je     203f42 <zopro_core::msm_affine::grouping::scalar_groups+0x15d2>
+  203f2c:	mov    rdi,QWORD PTR [rsp+0x38]
+  203f31:	shl    rsi,0x5
+  203f35:	mov    edx,0x8
+  203f3a:	vzeroupper
+  203f3d:	call   e5870 <__rustc::__rust_dealloc>
+  203f42:	mov    rax,QWORD PTR [rsp+0x150]
+  203f4a:	lock sub QWORD PTR [rip+0x2af83e],rax        # 4b3790 <zopro_core::preparation::RESERVED>
+  203f52:	mov    rax,QWORD PTR [rsp+0x160]
+  203f5a:	lock sub QWORD PTR [rip+0x2af836],rax        # 4b3798 <zopro_core::preparation::WORKSPACES>
+  203f62:	jmp    203f6c <zopro_core::msm_affine::grouping::scalar_groups+0x15fc>
+  203f64:	mov    r13,QWORD PTR [rsp+0x120]
+  203f6c:	test   r12,r12
+  203f6f:	je     202a6b <zopro_core::msm_affine::grouping::scalar_groups+0xfb>
+  203f75:	lea    rax,[r12*8+0x17]
+  203f7d:	add    r12,0x11
+  203f81:	mov    rsi,r12
+  203f84:	and    rax,0xfffffffffffffff0
+  203f88:	add    rsi,rax
+  203f8b:	je     202a6b <zopro_core::msm_affine::grouping::scalar_groups+0xfb>
+  203f91:	mov    rdi,r13
+  203f94:	sub    rdi,rax
+  203f97:	cmp    rsi,0x1ffff
+  203f9e:	jbe    203fcf <zopro_core::msm_affine::grouping::scalar_groups+0x165f>
+  203fa0:	movabs rax,0x7ffffffffffffff1
+  203faa:	dec    rax
+  203fad:	cmp    rsi,rax
+  203fb0:	jae    202e62 <zopro_core::msm_affine::grouping::scalar_groups+0x4f2>
+  203fb6:	cmp    BYTE PTR [r13+r12*1+0x0],0x1
+  203fbc:	jne    203fcf <zopro_core::msm_affine::grouping::scalar_groups+0x165f>
+  203fbe:	inc    rsi
+  203fc1:	vzeroupper
+  203fc4:	call   QWORD PTR [rip+0x2ad9de]        # 4b19a8 <munmap@GLIBC_2.2.5>
+  203fca:	jmp    202a6b <zopro_core::msm_affine::grouping::scalar_groups+0xfb>
+  203fcf:	vzeroupper
+  203fd2:	call   QWORD PTR [rip+0x2ad9d8]        # 4b19b0 <free@GLIBC_2.2.5>
+  203fd8:	jmp    202a6b <zopro_core::msm_affine::grouping::scalar_groups+0xfb>
+  203fdd:	mov    QWORD PTR [rsp+0x10],0x0
+  203fe6:	mov    rax,QWORD PTR [rip+0x2af773]        # 4b3760 <ahash::random_state::RAND_SOURCE>
+  203fed:	test   rax,rax
+  203ff0:	jne    203748 <zopro_core::msm_affine::grouping::scalar_groups+0xdd8>
+  203ff6:	call   1a7bc0 <<once_cell::race::once_box::OnceBox<alloc::boxed::Box<dyn ahash::random_state::RandomSource + core::marker::Send + core::marker::Sync>>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<alloc::boxed::Box<dyn ahash::random_state::RandomSource + core::marker::Send + core::marker::Sync>>>::get_or_init<ahash::random_state::get_src::{closure#0}>::{closure#0}>>
+  203ffb:	jmp    203748 <zopro_core::msm_affine::grouping::scalar_groups+0xdd8>
+  204000:	inc    r14
+  204003:	mov    edi,0x8
+  204008:	mov    ebx,0x8
+  20400d:	xor    edx,edx
+  20400f:	lea    r12,[r14*8+0x0]
+  204017:	mov    rsi,r12
+  20401a:	vzeroupper
+  20401d:	call   483570 <<zopro_core::alloc::linux::Allocator>::allocate>
+  204022:	test   rax,rax
+  204025:	je     203e29 <zopro_core::msm_affine::grouping::scalar_groups+0x14b9>
+  20402b:	mov    QWORD PTR [rsp+0xf0],r14
+  204033:	mov    r14,QWORD PTR [rsp+0x70]
+  204038:	mov    QWORD PTR [rsp+0xf8],rax
+  204040:	mov    rbp,rax
+  204043:	mov    QWORD PTR [rax],0x0
+  20404a:	mov    eax,0x8
+  20404f:	mov    QWORD PTR [rsp+0x100],0x1
+  20405b:	mov    QWORD PTR [rsp+0x10],rax
+  204060:	test   r14,r14
+  204063:	je     204122 <zopro_core::msm_affine::grouping::scalar_groups+0x17b2>
+  204069:	mov    r15,QWORD PTR [rsp+0x68]
+  20406e:	shl    r14,0x3
+  204072:	mov    ebx,0x1
+  204077:	lea    r13,[rsp+0xf0]
+  20407f:	jmp    20409f <zopro_core::msm_affine::grouping::scalar_groups+0x172f>
+  204081:	mov    rbp,QWORD PTR [rsp+0xf8]
+  204089:	mov    QWORD PTR [rbp+rbx*8+0x0],r12
+  20408e:	inc    rbx
+  204091:	add    r14,0xfffffffffffffff8
+  204095:	mov    QWORD PTR [rsp+0x100],rbx
+  20409d:	je     2040bd <zopro_core::msm_affine::grouping::scalar_groups+0x174d>
+  20409f:	mov    r12,QWORD PTR [rbp+rbx*8-0x8]
+  2040a4:	add    r12,QWORD PTR [r15+rbx*8-0x8]
+  2040a9:	cmp    rbx,QWORD PTR [rsp+0xf0]
+  2040b1:	jne    204089 <zopro_core::msm_affine::grouping::scalar_groups+0x1719>
+  2040b3:	mov    rdi,r13
+  2040b6:	call   f0c10 <<alloc::raw_vec::RawVec<usize>>::grow_one>
+  2040bb:	jmp    204081 <zopro_core::msm_affine::grouping::scalar_groups+0x1711>
+  2040bd:	mov    rsi,QWORD PTR [rsp+0x70]
+  2040c2:	cmp    rsi,rbx
+  2040c5:	ja     20441a <zopro_core::msm_affine::grouping::scalar_groups+0x1aaa>
+  2040cb:	mov    rbp,QWORD PTR [rsp+0xf8]
+  2040d3:	mov    r15,QWORD PTR [rsp+0x20]
+  2040d8:	mov    r12,QWORD PTR [rsp+0x50]
+  2040dd:	mov    r14,QWORD PTR [rsp+0x18]
+  2040e2:	test   rsi,rsi
+  2040e5:	je     204131 <zopro_core::msm_affine::grouping::scalar_groups+0x17c1>
+  2040e7:	lea    r13,[rsi*8+0x0]
+  2040ef:	mov    edi,0x8
+  2040f4:	mov    QWORD PTR [rsp+0x28],rsi
+  2040f9:	xor    edx,edx
+  2040fb:	mov    rsi,r13
+  2040fe:	call   483570 <<zopro_core::alloc::linux::Allocator>::allocate>
+  204103:	test   rax,rax
+  204106:	je     20447d <zopro_core::msm_affine::grouping::scalar_groups+0x1b0d>
+  20410c:	mov    QWORD PTR [rsp+0x10],rax
+  204111:	mov    rdi,rax
+  204114:	mov    rsi,rbp
+  204117:	mov    rdx,r13
+  20411a:	call   QWORD PTR [rip+0x2ad870]        # 4b1990 <memcpy@GLIBC_2.14>
+  204120:	jmp    20413a <zopro_core::msm_affine::grouping::scalar_groups+0x17ca>
+  204122:	mov    r12,QWORD PTR [rsp+0x50]
+  204127:	mov    r14,QWORD PTR [rsp+0x18]
+  20412c:	mov    ebx,0x1
+  204131:	mov    QWORD PTR [rsp+0x28],0x0
+  20413a:	mov    rbx,QWORD PTR [rbp+rbx*8-0x8]
+  20413f:	movabs rcx,0x7ffffffffffffff1
+  204149:	mov    rax,rbx
+  20414c:	shr    rax,0x3e
+  204150:	lea    r13,[rbx*4+0x0]
+  204158:	setne  al
+  20415b:	add    rcx,0xb
+  20415f:	cmp    r13,rcx
+  204162:	seta   cl
+  204165:	or     cl,al
+  204167:	je     204178 <zopro_core::msm_affine::grouping::scalar_groups+0x1808>
+  204169:	xor    edi,edi
+  20416b:	mov    rsi,r13
+  20416e:	call   ea571 <alloc::raw_vec::handle_error>
+  204173:	jmp    20448a <zopro_core::msm_affine::grouping::scalar_groups+0x1b1a>
+  204178:	test   r13,r13
+  20417b:	je     2041a1 <zopro_core::msm_affine::grouping::scalar_groups+0x1831>
+  20417d:	mov    edi,0x4
+  204182:	mov    edx,0x1
+  204187:	mov    rsi,r13
+  20418a:	call   483570 <<zopro_core::alloc::linux::Allocator>::allocate>
+  20418f:	mov    edi,0x4
+  204194:	test   rax,rax
+  204197:	je     20416b <zopro_core::msm_affine::grouping::scalar_groups+0x17fb>
+  204199:	mov    rbp,rax
+  20419c:	mov    r13,rbx
+  20419f:	jmp    2041a9 <zopro_core::msm_affine::grouping::scalar_groups+0x1839>
+  2041a1:	mov    ebp,0x4
+  2041a6:	xor    r13d,r13d
+  2041a9:	cmp    QWORD PTR [rsp+0x30],0x0
+  2041af:	je     20421e <zopro_core::msm_affine::grouping::scalar_groups+0x18ae>
+  2041b1:	mov    r8,QWORD PTR [rsp+0x40]
+  2041b6:	mov    r10,QWORD PTR [rsp+0x10]
+  2041bb:	mov    esi,0xffffffff
+  2041c0:	lea    rdx,[rip+0x2ac0a9]        # 4b0270 <__frame_dummy_init_array_entry+0x7020>
+  2041c7:	lea    rcx,[rip+0x2ac0ba]        # 4b0288 <__frame_dummy_init_array_entry+0x7038>
+  2041ce:	xor    eax,eax
+  2041d0:	jmp    2041e4 <zopro_core::msm_affine::grouping::scalar_groups+0x1874>
+  2041d2:	mov    DWORD PTR [rbp+r9*4+0x0],eax
+  2041d7:	inc    QWORD PTR [r10+rdi*8]
+  2041db:	inc    rax
+  2041de:	add    r8,0xfffffffffffffffc
+  2041e2:	je     20420c <zopro_core::msm_affine::grouping::scalar_groups+0x189c>
+  2041e4:	mov    edi,DWORD PTR [r14+rax*4]
+  2041e8:	cmp    rdi,rsi
+  2041eb:	je     2041db <zopro_core::msm_affine::grouping::scalar_groups+0x186b>
+  2041ed:	cmp    QWORD PTR [rsp+0x28],rdi
+  2041f2:	jbe    20445f <zopro_core::msm_affine::grouping::scalar_groups+0x1aef>
+  2041f8:	mov    r9,QWORD PTR [r10+rdi*8]
+  2041fc:	cmp    r9,rbx
+  2041ff:	jb     2041d2 <zopro_core::msm_affine::grouping::scalar_groups+0x1862>
+  204201:	mov    rdi,r9
+  204204:	mov    rdx,rcx
+  204207:	jmp    204464 <zopro_core::msm_affine::grouping::scalar_groups+0x1af4>
+  20420c:	mov    rsi,QWORD PTR [rsp+0x40]
+  204211:	mov    edx,0x4
+  204216:	mov    rdi,r14
+  204219:	call   e5870 <__rustc::__rust_dealloc>
+  20421e:	mov    rsi,QWORD PTR [rsp+0x28]
+  204223:	test   rsi,rsi
+  204226:	je     20423b <zopro_core::msm_affine::grouping::scalar_groups+0x18cb>
+  204228:	mov    rdi,QWORD PTR [rsp+0x10]
+  20422d:	shl    rsi,0x3
+  204231:	mov    edx,0x8
+  204236:	call   e5870 <__rustc::__rust_dealloc>
+  20423b:	mov    rax,QWORD PTR [rsp+0x140]
+  204243:	mov    rcx,QWORD PTR [rsp+0xe8]
+  20424b:	vmovups xmm0,XMMWORD PTR [rsp+0x130]
+  204254:	vmovups xmm2,XMMWORD PTR [rsp+0xf0]
+  20425d:	vmovups xmm1,XMMWORD PTR [rsp+0x60]
+  204263:	mov    rsi,QWORD PTR [rsp+0x150]
+  20426b:	mov    rdx,QWORD PTR [rsp+0x160]
+  204273:	mov    rdi,QWORD PTR [rsp+0x120]
+  20427b:	mov    QWORD PTR [rcx+0x10],rax
+  20427f:	mov    rax,QWORD PTR [rsp+0x100]
+  204287:	vmovups XMMWORD PTR [rcx],xmm0
+  20428b:	vmovups XMMWORD PTR [rcx+0x30],xmm2
+  204290:	mov    QWORD PTR [rcx+0x40],rax
+  204294:	mov    rax,QWORD PTR [rsp+0x70]
+  204299:	vmovups XMMWORD PTR [rcx+0x48],xmm1
+  20429e:	mov    QWORD PTR [rcx+0x58],rax
+  2042a2:	mov    rax,QWORD PTR [rsp+0x30]
+  2042a7:	mov    QWORD PTR [rcx+0x18],r13
+  2042ab:	mov    QWORD PTR [rcx+0x20],rbp
+  2042af:	mov    QWORD PTR [rcx+0x28],rbx
+  2042b3:	mov    QWORD PTR [rcx+0x60],rax
+  2042b7:	mov    QWORD PTR [rcx+0x68],rsi
+  2042bb:	mov    QWORD PTR [rcx+0x70],rdx
+  2042bf:	test   r12,r12
+  2042c2:	je     202a6b <zopro_core::msm_affine::grouping::scalar_groups+0xfb>
+  2042c8:	lea    rax,[r12*8+0x17]
+  2042d0:	and    rax,0xfffffffffffffff0
+  2042d4:	add    r12,rax
+  2042d7:	add    r12,0x11
+  2042db:	je     202a6b <zopro_core::msm_affine::grouping::scalar_groups+0xfb>
+  2042e1:	sub    rdi,rax
+  2042e4:	mov    edx,0x10
+  2042e9:	mov    rsi,r12
+  2042ec:	call   e5870 <__rustc::__rust_dealloc>
+  2042f1:	jmp    202a6b <zopro_core::msm_affine::grouping::scalar_groups+0xfb>
+  2042f6:	lea    rdi,[rsp+0x80]
+  2042fe:	lea    rdx,[rsp+0xa0]
+  204306:	vzeroupper
+  204309:	call   1a9aa0 <<hashbrown::raw::RawTable<(&[u64; 4], ())>>::reserve_rehash::<hashbrown::map::make_hasher<&[u64; 4], (), ahash::random_state::RandomState>::{closure#0}>>
+  20430e:	mov    rbx,QWORD PTR [rsp+0x48]
+  204313:	mov    rax,QWORD PTR [rsp+0x90]
+  20431b:	mov    r14,QWORD PTR [rsp+0xa0]
+  204323:	mov    r13,QWORD PTR [rsp+0xa8]
+  20432b:	mov    r12,QWORD PTR [rsp+0xb0]
+  204333:	mov    rbp,QWORD PTR [rsp+0xb8]
+  20433b:	jmp    202c7f <zopro_core::msm_affine::grouping::scalar_groups+0x30f>
+  204340:	lea    rdi,[rip+0xffffffffffe1a65f]        # 1e9a6 <zmij::STATIC_DATA+0x55a6>
+  204347:	lea    rdx,[rip+0x2aad0a]        # 4af058 <__frame_dummy_init_array_entry+0x5e08>
+  20434e:	mov    esi,0x1b
+  204353:	call   ed1b0 <core::panicking::panic>
+  204358:	jmp    20448a <zopro_core::msm_affine::grouping::scalar_groups+0x1b1a>
+  20435d:	call   1a7bc0 <<once_cell::race::once_box::OnceBox<alloc::boxed::Box<dyn ahash::random_state::RandomSource + core::marker::Send + core::marker::Sync>>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<alloc::boxed::Box<dyn ahash::random_state::RandomSource + core::marker::Send + core::marker::Sync>>>::get_or_init<ahash::random_state::get_src::{closure#0}>::{closure#0}>>
+  204362:	jmp    202aef <zopro_core::msm_affine::grouping::scalar_groups+0x17f>
+  204367:	call   1a7a60 <<once_cell::race::once_box::OnceBox<[[u64; 4]; 2]>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<[[u64; 4]; 2]>>::get_or_init<ahash::random_state::get_fixed_seeds::{closure#0}>::{closure#0}>>
+  20436c:	mov    rbx,rax
+  20436f:	jmp    202b06 <zopro_core::msm_affine::grouping::scalar_groups+0x196>
+  204374:	lea    rdi,[rsp+0x80]
+  20437c:	mov    esi,0x1
+  204381:	lea    rdx,[rsp+0xa0]
+  204389:	vzeroupper
+  20438c:	call   1a9aa0 <<hashbrown::raw::RawTable<(&[u64; 4], ())>>::reserve_rehash::<hashbrown::map::make_hasher<&[u64; 4], (), ahash::random_state::RandomState>::{closure#0}>>
+  204391:	jmp    202ca0 <zopro_core::msm_affine::grouping::scalar_groups+0x330>
+  204396:	vmovdqa xmm0,XMMWORD PTR [r15]
+  20439b:	vpmovmskb eax,xmm0
+  20439f:	tzcnt  esi,eax
+  2043a3:	movzx  edi,BYTE PTR [r15+rsi*1]
+  2043a8:	jmp    202e78 <zopro_core::msm_affine::grouping::scalar_groups+0x508>
+  2043ad:	lea    r8,[rsp+0x60]
+  2043b2:	lea    rcx,[rip+0xffffffffffee6f27]        # eb2e0 <<&str as core::fmt::Display>::fmt>
+  2043b9:	mov    QWORD PTR [rsp+0x130],rax
+  2043c1:	mov    QWORD PTR [rsp+0xf0],r8
+  2043c9:	mov    QWORD PTR [rsp+0xf8],rcx
+  2043d1:	lea    r8,[rsp+0x130]
+  2043d9:	lea    rcx,[rip+0xffffffffffeeafa0]        # ef380 <<core::io::error::Error as core::fmt::Display>::fmt>
+  2043e0:	mov    QWORD PTR [rsp+0x100],r8
+  2043e8:	mov    QWORD PTR [rsp+0x108],rcx
+  2043f0:	lea    rdi,[rip+0xffffffffffe1032d]        # 14724 <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0x8a84>
+  2043f7:	lea    rdx,[rip+0x2a6852]        # 4aac50 <__frame_dummy_init_array_entry+0x1a00>
+  2043fe:	lea    rsi,[rsp+0xf0]
+  204406:	call   eb330 <core::panicking::panic_fmt>
+  20440b:	jmp    20448a <zopro_core::msm_affine::grouping::scalar_groups+0x1b1a>
+  20440d:	call   1a7a60 <<once_cell::race::once_box::OnceBox<[[u64; 4]; 2]>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<[[u64; 4]; 2]>>::get_or_init<ahash::random_state::get_fixed_seeds::{closure#0}>::{closure#0}>>
+  204412:	mov    r13,rax
+  204415:	jmp    20375f <zopro_core::msm_affine::grouping::scalar_groups+0xdef>
+  20441a:	mov    r15,QWORD PTR [rsp+0x20]
+  20441f:	lea    rcx,[rip+0x2abe7a]        # 4b02a0 <__frame_dummy_init_array_entry+0x7050>
+  204426:	xor    edi,edi
+  204428:	mov    rdx,rbx
+  20442b:	call   ed0e0 <core::slice::index::slice_index_fail>
+  204430:	jmp    20448a <zopro_core::msm_affine::grouping::scalar_groups+0x1b1a>
+  204432:	mov    edi,0x8
+  204437:	mov    esi,0x8
+  20443c:	mov    QWORD PTR [rsp+0x18],r14
+  204441:	call   ea68d <alloc::alloc::handle_alloc_error>
+  204446:	jmp    20448a <zopro_core::msm_affine::grouping::scalar_groups+0x1b1a>
+  204448:	mov    bpl,0x1
+  20444b:	lea    rdx,[rip+0x2abe66]        # 4b02b8 <__frame_dummy_init_array_entry+0x7068>
+  204452:	mov    rsi,r12
+  204455:	vzeroupper
+  204458:	call   ec17b <core::panicking::panic_bounds_check>
+  20445d:	jmp    20448a <zopro_core::msm_affine::grouping::scalar_groups+0x1b1a>
+  20445f:	mov    rbx,QWORD PTR [rsp+0x28]
+  204464:	mov    rsi,rbx
+  204467:	call   ec17b <core::panicking::panic_bounds_check>
+  20446c:	jmp    20448a <zopro_core::msm_affine::grouping::scalar_groups+0x1b1a>
+  20446e:	mov    edi,0x4
+  204473:	mov    rsi,r14
+  204476:	call   ea571 <alloc::raw_vec::handle_error>
+  20447b:	jmp    20448a <zopro_core::msm_affine::grouping::scalar_groups+0x1b1a>
+  20447d:	mov    edi,0x8
+  204482:	mov    rsi,r13
+  204485:	call   ea571 <alloc::raw_vec::handle_error>
+  20448a:	ud2
+  20448c:	jmp    20448e <zopro_core::msm_affine::grouping::scalar_groups+0x1b1e>
+  20448e:	mov    rdi,QWORD PTR [rsp+0x80]
+  204496:	mov    rsi,QWORD PTR [rsp+0x88]
+  20449e:	mov    rbx,rax
+  2044a1:	jmp    2045a0 <zopro_core::msm_affine::grouping::scalar_groups+0x1c30>
+  2044a6:	mov    r15,QWORD PTR [rsp+0x20]
+  2044ab:	mov    r12,QWORD PTR [rsp+0x50]
+  2044b0:	mov    rbx,rax
+  2044b3:	jmp    20465c <zopro_core::msm_affine::grouping::scalar_groups+0x1cec>
+  2044b8:	mov    r15,QWORD PTR [rsp+0x20]
+  2044bd:	jmp    20456c <zopro_core::msm_affine::grouping::scalar_groups+0x1bfc>
+  2044c2:	mov    rbx,rax
+  2044c5:	test   r13,r13
+  2044c8:	je     2044de <zopro_core::msm_affine::grouping::scalar_groups+0x1b6e>
+  2044ca:	shl    r13,0x2
+  2044ce:	mov    edx,0x4
+  2044d3:	mov    rdi,rbp
+  2044d6:	mov    rsi,r13
+  2044d9:	call   e5870 <__rustc::__rust_dealloc>
+  2044de:	mov    r15,QWORD PTR [rsp+0x20]
+  2044e3:	mov    r12,QWORD PTR [rsp+0x50]
+  2044e8:	jmp    2045bf <zopro_core::msm_affine::grouping::scalar_groups+0x1c4f>
+  2044ed:	mov    rbx,rax
+  2044f0:	jmp    2046f1 <zopro_core::msm_affine::grouping::scalar_groups+0x1d81>
+  2044f5:	mov    r15,QWORD PTR [rsp+0x20]
+  2044fa:	mov    r12,QWORD PTR [rsp+0x50]
+  2044ff:	mov    rbx,rax
+  204502:	jmp    204671 <zopro_core::msm_affine::grouping::scalar_groups+0x1d01>
+  204507:	mov    r15,QWORD PTR [rsp+0x20]
+  20450c:	mov    rbx,rax
+  20450f:	mov    r14b,0x1
+  204512:	mov    bpl,0x1
+  204515:	jmp    204610 <zopro_core::msm_affine::grouping::scalar_groups+0x1ca0>
+  20451a:	mov    rbx,rax
+  20451d:	jmp    20459a <zopro_core::msm_affine::grouping::scalar_groups+0x1c2a>
+  20451f:	mov    rbx,rax
+  204522:	test   r12,r12
+  204525:	je     20453d <zopro_core::msm_affine::grouping::scalar_groups+0x1bcd>
+  204527:	mov    rdi,QWORD PTR [rsp+0x38]
+  20452c:	shl    r12,0x5
+  204530:	mov    edx,0x8
+  204535:	mov    rsi,r12
+  204538:	call   e5870 <__rustc::__rust_dealloc>
+  20453d:	mov    rax,QWORD PTR [rsp+0x150]
+  204545:	xor    r14d,r14d
+  204548:	xor    ebp,ebp
+  20454a:	lock sub QWORD PTR [rip+0x2af23e],rax        # 4b3790 <zopro_core::preparation::RESERVED>
+  204552:	mov    rax,QWORD PTR [rsp+0x160]
+  20455a:	lock sub QWORD PTR [rip+0x2af236],rax        # 4b3798 <zopro_core::preparation::WORKSPACES>
+  204562:	mov    r15,QWORD PTR [rsp+0x20]
+  204567:	jmp    204610 <zopro_core::msm_affine::grouping::scalar_groups+0x1ca0>
+  20456c:	mov    rbx,rax
+  20456f:	mov    r12,QWORD PTR [rsp+0x50]
+  204574:	jmp    2045dc <zopro_core::msm_affine::grouping::scalar_groups+0x1c6c>
+  204576:	mov    rbx,rax
+  204579:	mov    rax,QWORD PTR [rsp+0x130]
+  204581:	mov    ecx,eax
+  204583:	and    ecx,0x3
+  204586:	lea    edx,[rcx-0x2]
+  204589:	cmp    edx,0x2
+  20458c:	jb     20459a <zopro_core::msm_affine::grouping::scalar_groups+0x1c2a>
+  20458e:	test   rcx,rcx
+  204591:	je     20459a <zopro_core::msm_affine::grouping::scalar_groups+0x1c2a>
+  204593:	lea    rdi,[rax-0x1]
+  204597:	call   QWORD PTR [rax+0x17]
+  20459a:	mov    rdi,r13
+  20459d:	mov    rsi,r12
+  2045a0:	call   205790 <core::ptr::drop_glue::<std::collections::hash::set::HashSet<&[u64; 4], ahash::random_state::RandomState>>>
+  2045a5:	mov    r15,QWORD PTR [rsp+0x20]
+  2045aa:	jmp    2046fc <zopro_core::msm_affine::grouping::scalar_groups+0x1d8c>
+  2045af:	call   ee4f3 <core::panicking::panic_in_cleanup>
+  2045b4:	mov    rbx,rax
+  2045b7:	jmp    2046fc <zopro_core::msm_affine::grouping::scalar_groups+0x1d8c>
+  2045bc:	mov    rbx,rax
+  2045bf:	mov    rdi,QWORD PTR [rsp+0x10]
+  2045c4:	mov    rsi,QWORD PTR [rsp+0x28]
+  2045c9:	test   rsi,rsi
+  2045cc:	je     2045dc <zopro_core::msm_affine::grouping::scalar_groups+0x1c6c>
+  2045ce:	shl    rsi,0x3
+  2045d2:	mov    edx,0x8
+  2045d7:	call   e5870 <__rustc::__rust_dealloc>
+  2045dc:	mov    rsi,QWORD PTR [rsp+0xf0]
+  2045e4:	mov    r14b,0x1
+  2045e7:	test   rsi,rsi
+  2045ea:	jne    2045f0 <zopro_core::msm_affine::grouping::scalar_groups+0x1c80>
+  2045ec:	xor    ebp,ebp
+  2045ee:	jmp    204615 <zopro_core::msm_affine::grouping::scalar_groups+0x1ca5>
+  2045f0:	mov    rdi,QWORD PTR [rsp+0xf8]
+  2045f8:	shl    rsi,0x3
+  2045fc:	mov    edx,0x8
+  204601:	call   e5870 <__rustc::__rust_dealloc>
+  204606:	xor    ebp,ebp
+  204608:	jmp    204615 <zopro_core::msm_affine::grouping::scalar_groups+0x1ca5>
+  20460a:	mov    r14b,0x1
+  20460d:	mov    rbx,rax
+  204610:	mov    r12,QWORD PTR [rsp+0x50]
+  204615:	mov    rsi,QWORD PTR [rsp+0x60]
+  20461a:	test   rsi,rsi
+  20461d:	jne    204693 <zopro_core::msm_affine::grouping::scalar_groups+0x1d23>
+  20461f:	cmp    QWORD PTR [rsp+0x30],0x0
+  204625:	jne    2046b2 <zopro_core::msm_affine::grouping::scalar_groups+0x1d42>
+  20462b:	test   r14b,r14b
+  20462e:	je     2046cf <zopro_core::msm_affine::grouping::scalar_groups+0x1d5f>
+  204634:	mov    rsi,QWORD PTR [rsp+0x130]
+  20463c:	test   rsi,rsi
+  20463f:	je     204657 <zopro_core::msm_affine::grouping::scalar_groups+0x1ce7>
+  204641:	mov    rdi,QWORD PTR [rsp+0x138]
+  204649:	shl    rsi,0x5
+  20464d:	mov    edx,0x8
+  204652:	call   e5870 <__rustc::__rust_dealloc>
+  204657:	test   bpl,bpl
+  20465a:	je     204671 <zopro_core::msm_affine::grouping::scalar_groups+0x1d01>
+  20465c:	mov    rdi,QWORD PTR [rsp+0x80]
+  204664:	mov    rsi,QWORD PTR [rsp+0x88]
+  20466c:	call   205a60 <core::ptr::drop_glue::<std::collections::hash::map::HashMap<[u64; 4], u32, ahash::random_state::RandomState>>>
+  204671:	mov    rax,QWORD PTR [rsp+0x150]
+  204679:	lock sub QWORD PTR [rip+0x2af10f],rax        # 4b3790 <zopro_core::preparation::RESERVED>
+  204681:	mov    rax,QWORD PTR [rsp+0x160]
+  204689:	lock sub QWORD PTR [rip+0x2af107],rax        # 4b3798 <zopro_core::preparation::WORKSPACES>
+  204691:	jmp    2046e9 <zopro_core::msm_affine::grouping::scalar_groups+0x1d79>
+  204693:	mov    rdi,QWORD PTR [rsp+0x68]
+  204698:	shl    rsi,0x3
+  20469c:	mov    edx,0x8
+  2046a1:	call   e5870 <__rustc::__rust_dealloc>
+  2046a6:	cmp    QWORD PTR [rsp+0x30],0x0
+  2046ac:	je     20462b <zopro_core::msm_affine::grouping::scalar_groups+0x1cbb>
+  2046b2:	mov    rdi,QWORD PTR [rsp+0x18]
+  2046b7:	mov    rsi,QWORD PTR [rsp+0x40]
+  2046bc:	mov    edx,0x4
+  2046c1:	call   e5870 <__rustc::__rust_dealloc>
+  2046c6:	test   r14b,r14b
+  2046c9:	jne    204634 <zopro_core::msm_affine::grouping::scalar_groups+0x1cc4>
+  2046cf:	test   bpl,bpl
+  2046d2:	je     2046e9 <zopro_core::msm_affine::grouping::scalar_groups+0x1d79>
+  2046d4:	mov    rdi,QWORD PTR [rsp+0x80]
+  2046dc:	mov    rsi,QWORD PTR [rsp+0x88]
+  2046e4:	call   205a60 <core::ptr::drop_glue::<std::collections::hash::map::HashMap<[u64; 4], u32, ahash::random_state::RandomState>>>
+  2046e9:	mov    r13,QWORD PTR [rsp+0x120]
+  2046f1:	mov    rdi,r13
+  2046f4:	mov    rsi,r12
+  2046f7:	call   205790 <core::ptr::drop_glue::<std::collections::hash::set::HashSet<&[u64; 4], ahash::random_state::RandomState>>>
+  2046fc:	cmp    QWORD PTR [rsp+0x148],0x0
+  204705:	jne    204716 <zopro_core::msm_affine::grouping::scalar_groups+0x1da6>
+  204707:	mov    rsi,QWORD PTR [rsp+0x118]
+  20470f:	test   rsi,rsi
+  204712:	jne    204723 <zopro_core::msm_affine::grouping::scalar_groups+0x1db3>
+  204714:	jmp    204730 <zopro_core::msm_affine::grouping::scalar_groups+0x1dc0>
+  204716:	mov    rsi,QWORD PTR [rsp+0x118]
+  20471e:	test   rsi,rsi
+  204721:	jle    204730 <zopro_core::msm_affine::grouping::scalar_groups+0x1dc0>
+  204723:	mov    edx,0x1
+  204728:	mov    rdi,r15
+  20472b:	call   e5870 <__rustc::__rust_dealloc>
+  204730:	mov    rdi,rbx
+  204733:	call   4a8200 <_Unwind_Resume@plt>

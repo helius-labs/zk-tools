@@ -1,0 +1,38 @@
+[
+  {
+    "after": "const ROOT:&str=\"/tmp/zopro-isolated-grouping\";",
+    "before": "const ROOT:&str=\"/tmp/zopro-grouping-lower-bound\";"
+  },
+  {
+    "after": "for f in [\"/tmp/zopro-ready-c7a/proof-inventory.json\",\"/tmp/zopro-stage-costs/proof-inventory.json\",\"/tmp/zopro-grouping-lower-bound/proof-inventory.json\",\"/tmp/zopro-lower-bound-c7a/proof-inventory.json\"]",
+    "before": "for f in [\"/tmp/zopro-ready-c7a/proof-inventory.json\",\"/tmp/zopro-stage-costs/proof-inventory.json\"]"
+  },
+  {
+    "after": "assert_eq!(prior.len(),5612)",
+    "before": "assert_eq!(prior.len(),5238)"
+  },
+  {
+    "after": "assert_eq!(prior.len(),5630)",
+    "before": "assert_eq!(prior.len(),5256)"
+  },
+  {
+    "after": "for rel in [\"pipeline.rs\",\"pipeline\",\"prepare-pipeline.rs\",\"pipeline-adaptation.json\",\"audit-current.rs\",\"audit-current/results.json\",\"codegen-review.json\",\"native-plan.json\",\"native/result.json\",\"native/on/artifacts.json\",\"native/on-core/stdout.log\",\"native/on-prover/stdout.log\"]",
+    "before": "for rel in [\"pipeline.rs\",\"pipeline\",\"native-plan.json\",\"native/result.json\",\"native/on/artifacts.json\",\"native/on-core/stdout.log\",\"native/on-prover/stdout.log\"]"
+  },
+  {
+    "after": "assert_eq!(read(r.join(\"native/result.json\"))[\"status\"],\"complete\");assert_eq!(read(r.join(\"codegen-review.json\"))[\"original_grouping_structure_preserved\"],true);assert_eq!(read(r.join(\"native/on-core/tests.json\"))[\"passed_tests\"].as_array().unwrap().len(),115);let artifact",
+    "before": "assert_eq!(read(r.join(\"native/result.json\"))[\"status\"],\"complete\");let artifact"
+  },
+  {
+    "after": "if candidate>1.02{regressions.push(format!(\"{name} ON/OFF={candidate}\"));}if gm(&on_acc)>1.02{regressions.push(format!(\"{name} ON/accepted={}\",gm(&on_acc)));}",
+    "before": "else if candidate>1.02{regressions.push(format!(\"{name} ON/OFF={candidate}\"));}"
+  },
+  {
+    "after": "let adopt=calibration.is_empty()&&regressions.is_empty()&&original_ratio<=1.00&&accepted_ratio<=1.00;",
+    "before": "let adopt=calibration.is_empty()&&regressions.is_empty()&&primary_ratio<=0.98&&primary_wins>=2&&original_ratio<=0.995&&accepted_ratio<=0.995;"
+  },
+  {
+    "after": "for category in config[\"symbol_categories\"].as_array_mut().unwrap(){if category[\"name\"]==\"grouping\"{category[\"contains\"].as_array_mut().unwrap().push(json!(\"lower_bound\"));}}config[\"blocks\"]=json!(3);",
+    "before": "config[\"blocks\"]=json!(3);"
+  }
+]

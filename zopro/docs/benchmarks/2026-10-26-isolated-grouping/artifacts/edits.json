@@ -1,0 +1,22 @@
+{
+  "appended_selector": "\n// Keep the original grouping/sampling kernel above unchanged. Experimental\n// selection belongs to the two canonical small-query call sites only.\n#[cfg(zopro_isolated_grouping)]\nmod lower_bound;\n\n#[cfg(zopro_isolated_grouping)]\n#[inline]\npub(crate) fn selected_scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {\n    if lower_bound::eligible(scalars.len())\n        && std::env::var(\"ZOPRO_CPU_GROUPING_LOWER_BOUND\").as_deref() == Ok(\"1\")\n    {\n        return lower_bound::group_or_decline(scalars);\n    }\n    scalar_groups(scalars)\n}\n",
+  "grouping_path": "crates/zopro-core/src/msm_affine/grouping.rs",
+  "msm_affine_edits": [
+    {
+      "after": "pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};\n#[cfg(zopro_isolated_grouping)]\nuse grouping::selected_scalar_groups;\n#[cfg(not(zopro_isolated_grouping))]\nuse grouping::scalar_groups as selected_scalar_groups;",
+      "before": "pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};",
+      "path": "crates/zopro-core/src/msm_affine.rs"
+    },
+    {
+      "after": "if let Some(groups) = selected_scalar_groups(canonical) {",
+      "before": "if let Some(groups) = scalar_groups(canonical) {",
+      "path": "crates/zopro-core/src/msm_affine.rs"
+    },
+    {
+      "after": ".then(|| selected_scalar_groups(words))",
+      "before": ".then(|| scalar_groups(words))",
+      "path": "crates/zopro-core/src/msm_affine.rs"
+    }
+  ],
+  "original_grouping_prefix_unchanged": true
+}

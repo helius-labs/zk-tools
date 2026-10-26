@@ -1,0 +1,1584 @@
+push rbp
+push r15
+push r14
+push r13
+push r12
+push rbx
+sub rsp,0x1a8
+mov r13,rdx
+mov QWORD PTR [rsp+0x48],rsi
+mov QWORD PTR [rsp+0xe8],rdi
+lea rsi,[rip-relative] # <zmij::STATIC_DATA+0x62b8>
+lea rdi,[rsp+0x80]
+mov edx,0x1b
+call <std::sys::env::unix::getenv>
+mov rax,QWORD PTR [rsp+0x80]
+cmp rax,0xffffffffffffffff
+je self+98
+mov r15,QWORD PTR [rsp+0x88]
+mov rbx,QWORD PTR [rsp+0x90]
+lea rdi,[rsp+0x80]
+mov QWORD PTR [rsp+0x118],rax
+mov rsi,r15
+mov rdx,rbx
+call <core::str::converts::from_utf8>
+mov rcx,QWORD PTR [rsp+0x80]
+cmp rbx,0x1
+setne al
+or al,cl
+mov QWORD PTR [rsp+0x148],rcx
+je self+bb
+mov DWORD PTR [rsp+0x38],0x0
+jmp self+d2
+mov eax,0x1
+mov QWORD PTR [rsp+0x118],0xffffffffffffffff
+mov DWORD PTR [rsp+0x38],0x0
+mov QWORD PTR [rsp+0x148],rax
+jmp self+d2
+cmp BYTE PTR [r15],0x31
+mov QWORD PTR [rsp+0x148],0x0
+sete al
+mov DWORD PTR [rsp+0x38],eax
+movabs rax,0xffffffff00000001
+lea rcx,[r13+rax*1+0x0]
+or rax,0x100
+cmp rcx,rax
+jae self+143
+mov rax,QWORD PTR [rsp+0xe8]
+mov QWORD PTR [rax],0xffffffffffffffff
+cmp QWORD PTR [rsp+0x148],0x0
+je self+4bd
+mov rax,QWORD PTR [rsp+0x118]
+test rax,rax
+jle self+9a1
+cmp rax,0x1ffff
+jbe self+995
+mov rsi,rax
+inc rsi
+js self+4f2
+cmp BYTE PTR [r15+rax*1],0x1
+je self+987
+jmp self+995
+cmp r13,0x800
+mov ebp,0x800
+mov eax,r13d
+cmovb rbp,r13
+xor edx,edx
+xor ecx,ecx
+div ebp
+test edx,edx
+setne cl
+add rcx,rax
+mov QWORD PTR [rsp+0x18],rcx
+je self+19d0
+mov rax,QWORD PTR [rip-relative] # <ahash::random_state::RAND_SOURCE>
+test rax,rax
+je self+19ed
+mov r12,QWORD PTR [rax]
+mov r14,QWORD PTR [rax+0x8]
+mov rbx,QWORD PTR [rip-relative] # <ahash::random_state::get_fixed_seeds::SEEDS>
+test rbx,rbx
+je self+19f7
+mov rdi,r12
+call QWORD PTR [r14+0x18]
+vmovdqu xmm0,XMMWORD PTR [rbx]
+vmovdqu xmm1,XMMWORD PTR [rbx+0x10]
+vmovdqa xmm10,XMMWORD PTR [rip-relative] # <__abi_tag+0xb024>
+vmovq xmm5,QWORD PTR [rbx+0x20]
+vmovq xmm2,rax
+vmovq xmm7,QWORD PTR [rbx+0x28]
+vmovq xmm9,QWORD PTR [rbx+0x38]
+mov QWORD PTR [rsp+0x30],r13
+lea eax,[r13-0x1]
+xor edx,edx
+vpxor xmm3,xmm1,xmm0
+vaesdec xmm4,xmm0,xmm2
+vpshufb xmm0,xmm1,xmm10
+vpaddq xmm0,xmm2,xmm0
+vmovq xmm2,QWORD PTR [rbx+0x30]
+vpshufb xmm6,xmm0,xmm10
+vaesdec xmm1,xmm4,xmm5
+vpaddq xmm0,xmm5,xmm6
+vpaddq xmm8,xmm7,xmm6
+vpshufb xmm0,xmm0,xmm10
+vpshufb xmm8,xmm8,xmm10
+vpaddq xmm8,xmm9,xmm8
+vaesdec xmm1,xmm1,xmm2
+vpaddq xmm0,xmm2,xmm0
+vaesenc xmm0,xmm0,xmm1
+vaesdec xmm1,xmm0,xmm3
+vaesdec xmm0,xmm1,xmm0
+vaesdec xmm1,xmm4,xmm7
+vaesdec xmm1,xmm1,xmm9
+vaesenc xmm1,xmm8,xmm1
+vaesdec xmm8,xmm1,xmm3
+vaesdec xmm1,xmm8,xmm1
+vaesdec xmm8,xmm4,xmm2
+vaesdec xmm4,xmm4,xmm9
+vpaddq xmm2,xmm2,xmm6
+vpaddq xmm6,xmm9,xmm6
+vpshufb xmm2,xmm2,xmm10
+vpshufb xmm6,xmm6,xmm10
+vpaddq xmm2,xmm7,xmm2
+vaesdec xmm8,xmm8,xmm7
+vaesdec xmm4,xmm4,xmm5
+vpaddq xmm5,xmm5,xmm6
+vaesenc xmm2,xmm2,xmm8
+vaesenc xmm4,xmm5,xmm4
+vinserti128 ymm5,ymm0,xmm1,0x1
+vaesdec xmm7,xmm2,xmm3
+vaesdec xmm3,xmm4,xmm3
+vaesdec xmm3,xmm3,xmm4
+vmovups ymm4,YMMWORD PTR [rip-relative] # <__frame_dummy_init_array_entry+0x7f40>
+vaesdec xmm2,xmm7,xmm2
+vmovups YMMWORD PTR [rsp+0x80],ymm4
+vinserti128 ymm4,ymm2,xmm3,0x1
+vpunpcklqdq ymm4,ymm5,ymm4
+vpermq ymm4,ymm4,0xd8
+vmovdqu YMMWORD PTR [rsp+0xa0],ymm4
+div DWORD PTR [rsp+0x18]
+inc rax
+mov QWORD PTR [rsp+0x40],rbp
+mov QWORD PTR [rsp+0x20],r15
+cmp rbp,rax
+cmovb rax,rbp
+mov esi,eax
+mov rcx,rax
+shr rcx,1
+and esi,0x1
+add rsi,rcx
+cmp QWORD PTR [rsp+0x98],0x0
+cmove rsi,rax
+mov rax,QWORD PTR [rsp+0x90]
+cmp rsi,rax
+ja self+1986
+mov rbx,QWORD PTR [rsp+0x48]
+vmovq r14,xmm0
+vmovq r13,xmm1
+vmovq r12,xmm2
+vmovq rbp,xmm3
+vmovdqu xmm0,XMMWORD PTR [rbx]
+vmovdqu xmm1,XMMWORD PTR [rbx+0x10]
+vmovdqa XMMWORD PTR [rsp+0x120],xmm0
+vmovdqa XMMWORD PTR [rsp+0x50],xmm1
+test rax,rax
+je self+1a04
+vmovq xmm0,r12
+vmovq xmm1,rbp
+xor r12,r14
+xor rbp,r13
+vmovq xmm2,r13
+vmovq xmm3,r14
+vpmovsxbq xmm5,WORD PTR [rip-relative] # <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb20>
+vmovdqa xmm6,XMMWORD PTR [rsp+0x120]
+mov rax,QWORD PTR [rsp+0x30]
+mov r15,QWORD PTR [rsp+0x80]
+mov rdx,QWORD PTR [rsp+0x88]
+xor r9d,r9d
+xor r8d,r8d
+vpunpcklqdq xmm2,xmm3,xmm2
+vmovq xmm3,rbp
+vmovq xmm4,r12
+vpunpcklqdq xmm0,xmm0,xmm1
+vpunpcklqdq xmm3,xmm4,xmm3
+vmovdqa xmm4,XMMWORD PTR [rip-relative] # <__abi_tag+0xb024>
+shl rax,0x5
+add rax,rbx
+add rbx,0x20
+mov QWORD PTR [rsp+0x28],rax
+mov rax,QWORD PTR [rsp+0x18]
+vaesdec xmm2,xmm2,xmm5
+vpaddq xmm1,xmm2,XMMWORD PTR [rip-relative] # <__abi_tag+0xb034>
+vpshufb xmm0,xmm0,xmm4
+vpaddq xmm0,xmm0,xmm5
+vmovdqa xmm5,XMMWORD PTR [rsp+0x50]
+lea rax,[rax-0x1]
+vpshufb xmm0,xmm0,xmm4
+mov QWORD PTR [rsp+0x10],rax
+mov rax,QWORD PTR [rsp+0x40]
+vpaddq xmm0,xmm6,xmm0
+vaesdec xmm1,xmm1,xmm6
+vpshufb xmm0,xmm0,xmm4
+lea rax,[rax-0x1]
+mov QWORD PTR [rsp+0x78],rax
+vaesdec xmm1,xmm1,xmm5
+vpaddq xmm0,xmm5,xmm0
+vaesenc xmm0,xmm0,xmm1
+vaesdec xmm1,xmm0,xmm3
+vaesdec xmm0,xmm1,xmm0
+vpcmpeqd xmm1,xmm1,xmm1
+vmovq rdi,xmm0
+mov rcx,rdi
+shr rcx,0x39
+vpbroadcastb xmm0,ecx
+and rdi,rdx
+vmovdqu xmm2,XMMWORD PTR [r15+rdi*1]
+vpcmpeqb k0,xmm2,xmm0
+kortestw k0,k0
+je self+480
+kmovd r10d,k0
+tzcnt eax,r10d
+mov r14,QWORD PTR [rsp+0x48]
+mov r11,r15
+add rax,rdi
+and rax,rdx
+shl rax,0x3
+sub r11,rax
+mov rax,QWORD PTR [r11-0x8]
+vmovdqu ymm3,YMMWORD PTR [r14]
+vpxor ymm3,ymm3,YMMWORD PTR [rax]
+vptest ymm3,ymm3
+je self+556
+lea eax,[r10-0x1]
+and ax,r10w
+mov r10d,eax
+jne self+437
+cs nop WORD PTR [rax+rax*1+0x0]
+cmp r9,0x1
+je self+498
+vpmovmskb esi,xmm2
+test esi,esi
+je self+4ac
+tzcnt esi,esi
+add rsi,rdi
+and rsi,rdx
+vpcmpeqb k0,xmm2,xmm1
+kortestw k0,k0
+jne self+4fa
+mov r9d,0x1
+jmp self+4af
+xor r9d,r9d
+lea rdi,[r8+rdi*1+0x10]
+add r8,0x10
+jmp self+41e
+mov rsi,QWORD PTR [rsp+0x118]
+test rsi,rsi
+je self+9a1
+cmp rsi,0x1ffff
+jbe self+995
+movabs rax,0x7ffffffffffffff1
+or rax,0xe
+cmp rsi,rax
+jb self+97d
+vzeroupper
+call <std::process::abort>
+movzx edi,BYTE PTR [r15+rsi*1]
+test dil,dil
+jns self+1a26
+and dil,0x1
+vpbroadcastb xmm0,BYTE PTR [rip-relative] # <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb22>
+mov BYTE PTR [r15+rsi*1],cl
+movzx eax,dil
+lea rdi,[rsi-0x10]
+shl rsi,0x3
+and rdi,rdx
+neg rsi
+mov BYTE PTR [r15+rdi*1+0x10],cl
+vmovdqa xmm1,XMMWORD PTR [rsp+0x90]
+vpinsrq xmm0,xmm0,rax,0x0
+mov rax,QWORD PTR [rsp+0x48]
+vpsubq xmm0,xmm1,xmm0
+vmovdqa XMMWORD PTR [rsp+0x90],xmm0
+mov QWORD PTR [r15+rsi*1-0x8],rax
+mov rbp,QWORD PTR [rsp+0x10]
+mov r12,QWORD PTR [rsp+0x78]
+shl rbp,0x5
+jmp self+680
+nop DWORD PTR [rax+0x0]
+and rdi,rdx
+vmovdqu xmm1,XMMWORD PTR [r15+rdi*1]
+vpcmpeqb k0,xmm1,xmm0
+kortestw k0,k0
+je self+5d0
+kmovd r10d,k0
+tzcnt r11d,r10d
+mov rax,r15
+vmovdqu ymm2,YMMWORD PTR [r14]
+add r11,rdi
+and r11,rdx
+shl r11,0x3
+sub rax,r11
+mov rax,QWORD PTR [rax-0x8]
+vpxor ymm2,ymm2,YMMWORD PTR [rax]
+vptest ymm2,ymm2
+je self+677
+lea eax,[r10-0x1]
+and ax,r10w
+mov r10d,eax
+jne self+589
+data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+cmp r9,0x1
+je self+5e8
+vpmovmskb esi,xmm1
+test esi,esi
+je self+600
+tzcnt esi,esi
+add rsi,rdi
+and rsi,rdx
+vpcmpeqd xmm2,xmm2,xmm2
+vpcmpeqb k0,xmm1,xmm2
+kortestw k0,k0
+jne self+620
+mov r9d,0x1
+jmp self+603
+xor r9d,r9d
+lea rdi,[r8+rdi*1+0x10]
+add r8,0x10
+jmp self+570
+data16 data16 data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+movzx edi,BYTE PTR [r15+rsi*1]
+test dil,dil
+jns self+7c3
+and dil,0x1
+mov BYTE PTR [r15+rsi*1],cl
+vpbroadcastb xmm0,BYTE PTR [rip-relative] # <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb22>
+movzx eax,dil
+lea rdi,[rsi-0x10]
+shl rsi,0x3
+and rdi,rdx
+neg rsi
+mov BYTE PTR [r15+rdi*1+0x10],cl
+vmovdqa xmm1,XMMWORD PTR [rsp+0x90]
+vpinsrq xmm0,xmm0,rax,0x0
+vpsubq xmm0,xmm1,xmm0
+vmovdqa XMMWORD PTR [rsp+0x90],xmm0
+mov QWORD PTR [r15+rsi*1-0x8],r13
+test r12,r12
+je self+7da
+mov rax,QWORD PTR [rsp+0x28]
+lea r14,[rbx+rbp*1]
+mov r13d,0x0
+mov rcx,rax
+sub rcx,rbx
+lea rbx,[rbx+rbp*1+0x20]
+shr rcx,0x5
+cmp QWORD PTR [rsp+0x10],rcx
+cmovae rbx,rax
+cmovb r13,r14
+jae self+7da
+vmovdqa xmm2,XMMWORD PTR [rsp+0xa0]
+vmovdqa xmm7,XMMWORD PTR [rsp+0xb0]
+vmovdqu xmm6,XMMWORD PTR [r14]
+vmovdqu xmm5,XMMWORD PTR [r14+0x10]
+cmp QWORD PTR [rsp+0x90],0x0
+je self+757
+vpmovsxbq xmm4,WORD PTR [rip-relative] # <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb20>
+vmovdqa xmm3,XMMWORD PTR [rip-relative] # <__abi_tag+0xb024>
+vpxor xmm0,xmm7,xmm2
+mov rdx,QWORD PTR [rsp+0x88]
+dec r12
+xor r9d,r9d
+xor r8d,r8d
+vaesdec xmm1,xmm2,xmm4
+vpaddq xmm1,xmm1,XMMWORD PTR [rip-relative] # <__abi_tag+0xb034>
+vpshufb xmm2,xmm7,xmm3
+vpaddq xmm2,xmm2,xmm4
+vpshufb xmm2,xmm2,xmm3
+vpaddq xmm2,xmm6,xmm2
+vpshufb xmm2,xmm2,xmm3
+vaesdec xmm1,xmm1,xmm6
+vpaddq xmm2,xmm5,xmm2
+vaesdec xmm1,xmm1,xmm5
+vaesenc xmm1,xmm2,xmm1
+vaesdec xmm0,xmm1,xmm0
+vaesdec xmm0,xmm0,xmm1
+vmovq rdi,xmm0
+mov rcx,rdi
+shr rcx,0x39
+vpbroadcastb xmm0,ecx
+jmp self+570
+mov esi,0x1
+lea rdi,[rsp+0x80]
+lea rdx,[rsp+0xa0]
+vmovdqa XMMWORD PTR [rsp+0x150],xmm7
+vmovdqa XMMWORD PTR [rsp+0x160],xmm2
+vmovdqa XMMWORD PTR [rsp+0x120],xmm6
+vmovdqa XMMWORD PTR [rsp+0x50],xmm5
+vzeroupper
+call <<hashbrown::raw::RawTable<(&[u64; 4], ())>>::reserve_rehash::<hashbrown::map::make_hasher<&[u64; 4], (), ahash::random_state::RandomState>::{closure
+vmovdqa xmm5,XMMWORD PTR [rsp+0x50]
+vmovdqa xmm6,XMMWORD PTR [rsp+0x120]
+vmovdqa xmm2,XMMWORD PTR [rsp+0x160]
+vmovdqa xmm7,XMMWORD PTR [rsp+0x150]
+mov r15,QWORD PTR [rsp+0x80]
+jmp self+6d9
+vmovdqa xmm0,XMMWORD PTR [r15]
+vpmovmskb eax,xmm0
+tzcnt esi,eax
+movzx edi,BYTE PTR [r15+rsi*1]
+jmp self+62e
+mov r13,QWORD PTR [rsp+0x80]
+mov r12,QWORD PTR [rsp+0x88]
+mov rdi,QWORD PTR [rsp+0x98]
+cmp BYTE PTR [rsp+0x38],0x0
+je self+822
+mov rsi,QWORD PTR [rsp+0x30]
+mov r15,QWORD PTR [rsp+0x20]
+mov rbx,QWORD PTR [rsp+0x48]
+mov rcx,QWORD PTR [rsp+0x40]
+mov rax,rsi
+shr rax,0x20
+je self+838
+mov rax,rsi
+xor edx,edx
+div QWORD PTR [rsp+0x18]
+jmp self+840
+mov r15,QWORD PTR [rsp+0x20]
+mov rsi,QWORD PTR [rsp+0x30]
+mov rbx,QWORD PTR [rsp+0x48]
+mov rcx,QWORD PTR [rsp+0x40]
+jmp self+84f
+mov eax,esi
+xor edx,edx
+div DWORD PTR [rsp+0x18]
+cmp rdx,0x1
+sbb rax,0xffffffffffffffff
+cmp rcx,rax
+cmovae rcx,rax
+mov QWORD PTR [rsp+0x178],rcx
+imul rax,rdi,0xc8
+imul rcx,rcx,0xc7
+cmp rax,rcx
+jbe self+8d5
+test r12,r12
+je self+ec
+lea rax,[r12*8+0x17]
+add r12,0x11
+mov rsi,r12
+and rax,0xfffffffffffffff0
+add rsi,rax
+je self+ec
+mov rdi,r13
+sub rdi,rax
+cmp rsi,0x1ffff
+jbe self+96f
+movabs rax,0x7ffffffffffffff1
+dec rax
+cmp rsi,rax
+jae self+4f2
+cmp BYTE PTR [r13+r12*1+0x0],0x1
+jne self+96f
+inc rsi
+vzeroupper
+call QWORD PTR [rip-relative] # <munmap@GLIBC_2.2.5>
+jmp self+ec
+mov eax,esi
+and eax,0xffff8000
+mov ebp,0x50
+mov QWORD PTR [rsp+0x40],rdi
+cmp eax,0x8000
+jne self+a23
+lea rsi,[rip-relative] # <zmij::STATIC_DATA+0x5270>
+lea rdi,[rsp+0x80]
+mov edx,0x16
+vzeroupper
+call <std::sys::env::unix::getenv>
+mov rbp,QWORD PTR [rsp+0x80]
+cmp rbp,0xffffffffffffffff
+je self+9b6
+mov r14,QWORD PTR [rsp+0x88]
+mov rbx,QWORD PTR [rsp+0x90]
+lea rdi,[rsp+0x80]
+mov rsi,r14
+mov rdx,rbx
+call <core::str::converts::from_utf8>
+cmp BYTE PTR [rsp+0x80],0x0
+je self+9bd
+mov rbx,QWORD PTR [rsp+0x48]
+test rbp,rbp
+jle self+a1e
+mov edx,0x1
+mov rdi,r14
+mov rsi,rbp
+call <__rustc::__rust_dealloc>
+jmp self+a1e
+vzeroupper
+call QWORD PTR [rip-relative] # <free@GLIBC_2.2.5>
+jmp self+ec
+cmp BYTE PTR [r15+rsi*1],0x1
+jne self+995
+inc rsi
+mov rdi,r15
+vzeroupper
+call QWORD PTR [rip-relative] # <munmap@GLIBC_2.2.5>
+jmp self+9a1
+mov rdi,r15
+vzeroupper
+call QWORD PTR [rip-relative] # <free@GLIBC_2.2.5>
+add rsp,0x1a8
+pop rbx
+pop r12
+pop r13
+pop r14
+pop r15
+pop rbp
+vzeroupper
+ret
+mov rbx,QWORD PTR [rsp+0x48]
+jmp self+a1e
+mov rdi,r14
+mov r14b,0x1
+cmp rbx,0x1
+jne self+9d0
+cmp BYTE PTR [rdi],0x30
+setne r14b
+mov rbx,QWORD PTR [rsp+0x48]
+test rbp,rbp
+je self+a14
+cmp rbp,0x1ffff
+jbe self+a0e
+movabs rax,0x7ffffffffffffff1
+or rax,0xe
+cmp rbp,rax
+jae self+4f2
+cmp BYTE PTR [rdi+rbp*1],0x1
+jne self+a0e
+inc rbp
+mov rsi,rbp
+call QWORD PTR [rip-relative] # <munmap@GLIBC_2.2.5>
+jmp self+a14
+call QWORD PTR [rip-relative] # <free@GLIBC_2.2.5>
+mov ebp,0x50
+test r14b,r14b
+je self+a23
+mov ebp,0x5f
+cmp BYTE PTR [rsp+0x38],0x0
+mov QWORD PTR [rsp+0x180],rbp
+je self+ad6
+vmovdqu ymm0,YMMWORD PTR [rbx]
+xor eax,eax
+mov r14,QWORD PTR [rsp+0x30]
+mov rsi,QWORD PTR [rsp+0x78]
+mov rcx,rbx
+vptest ymm0,ymm0
+sete al
+shl QWORD PTR [rsp+0x18],0x5
+nop WORD PTR [rax+rax*1+0x0]
+mov rdx,QWORD PTR [rsp+0x28]
+sub rdx,rcx
+add rdx,0xffffffffffffffe0
+shr rdx,0x5
+cmp QWORD PTR [rsp+0x10],rdx
+jae self+a96
+mov rdx,QWORD PTR [rsp+0x18]
+vmovdqu ymm0,YMMWORD PTR [rcx+rdx*1]
+add rcx,rdx
+xor edx,edx
+vptest ymm0,ymm0
+sete dl
+add rax,rdx
+dec rsi
+jne self+a60
+mov rcx,QWORD PTR [rsp+0x178]
+mov rsi,QWORD PTR [rsp+0x40]
+mov QWORD PTR [rsp+0x188],rax
+mov rdx,rcx
+sub rdx,rax
+cmp rax,0x1
+adc rsi,0xffffffffffffffff
+mov QWORD PTR [rsp+0x190],rsi
+cmp rsi,rdx
+jne self+ae9
+imul rax,rdx,0x64
+imul rcx,rbp
+cmp rax,rcx
+seta bl
+jmp self+aeb
+mov r14,QWORD PTR [rsp+0x30]
+test r13,r13
+jne self+c5c
+jmp self+ec
+xor ebx,ebx
+mov BYTE PTR [rsp+0xf],bl
+lea rsi,[rip-relative] # <zmij::STATIC_DATA+0x620f>
+lea rdi,[rsp+0x80]
+mov edx,0x15
+vzeroupper
+call <std::sys::env::unix::getenv>
+mov rax,QWORD PTR [rsp+0x80]
+cmp rax,0xffffffffffffffff
+je self+c43
+test rax,rax
+je self+b52
+mov rdi,QWORD PTR [rsp+0x88]
+cmp rax,0x1ffff
+jbe self+b4c
+mov rsi,rax
+inc rsi
+js self+4f2
+cmp BYTE PTR [rdi+rax*1],0x1
+jne self+b4c
+call QWORD PTR [rip-relative] # <munmap@GLIBC_2.2.5>
+jmp self+b52
+call QWORD PTR [rip-relative] # <free@GLIBC_2.2.5>
+lea rax,[rsp+0x198]
+lea r10,[rip-relative] # <<u64 as core::fmt::Display>::fmt>
+lea rcx,[rsp+0x178]
+lea r8,[rsp+0x188]
+lea r9,[rsp+0x190]
+mov QWORD PTR [rsp+0x198],r14
+mov QWORD PTR [rsp+0x80],rax
+mov QWORD PTR [rsp+0x88],r10
+mov QWORD PTR [rsp+0x90],rcx
+mov QWORD PTR [rsp+0x98],r10
+mov QWORD PTR [rsp+0xa0],r8
+lea r8,[rsp+0x180]
+mov QWORD PTR [rsp+0xa8],r10
+mov QWORD PTR [rsp+0xb0],r9
+mov QWORD PTR [rsp+0xb8],r10
+lea rcx,[rip-relative] # <<bool as core::fmt::Display>::fmt>
+mov QWORD PTR [rsp+0xc0],r8
+lea r8,[rsp+0xf]
+mov QWORD PTR [rsp+0xc8],r10
+mov QWORD PTR [rsp+0xd0],r8
+mov QWORD PTR [rsp+0xd8],rcx
+lea r8,[rip-relative] # <itoa::DECIMAL_PAIRS+0xa8a>
+lea rcx,[rip-relative] # <std::io::stdio::stderr::INSTANCE>
+mov QWORD PTR [rsp+0x60],r8
+mov QWORD PTR [rsp+0x68],0x6
+mov QWORD PTR [rsp+0x1a0],rcx
+lea rsi,[rip-relative] # <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0x7b53>
+lea rdi,[rsp+0x1a0]
+lea rdx,[rsp+0x80]
+call <<&std::io::stdio::Stderr as std::io::Write>::write_fmt>
+test rax,rax
+jne self+1a3d
+movzx ebx,BYTE PTR [rsp+0xf]
+test bl,bl
+jne self+86a
+mov rbp,QWORD PTR [rsp+0x180]
+test r13,r13
+je self+ec
+lea rdi,[rsp+0x80]
+mov rsi,r14
+mov rdx,rbp
+vzeroupper
+call <zopro_core::msm_affine::grouping_cost::reserve>
+cmp DWORD PTR [rsp+0x80],0x1
+jne self+d2c
+mov rax,QWORD PTR [rsp+0x88]
+mov rcx,QWORD PTR [rsp+0x90]
+mov QWORD PTR [rsp+0x78],rbp
+mov QWORD PTR [rsp+0x120],r13
+mov QWORD PTR [rsp+0x50],r12
+mov QWORD PTR [rsp+0x150],rax
+mov QWORD PTR [rsp+0x160],rcx
+lea rsi,[rip-relative] # <zmij::STATIC_DATA+0x62d3>
+lea rdi,[rsp+0x80]
+mov edx,0x18
+call <std::sys::env::unix::getenv>
+mov r12,QWORD PTR [rsp+0x80]
+mov r15,QWORD PTR [rsp+0x40]
+cmp r12,0xffffffffffffffff
+je self+d40
+mov r13,QWORD PTR [rsp+0x88]
+mov rbx,QWORD PTR [rsp+0x90]
+lea rdi,[rsp+0x80]
+mov rsi,r13
+mov rdx,rbx
+call <core::str::converts::from_utf8>
+cmp BYTE PTR [rsp+0x80],0x0
+je self+d4c
+mov rbx,QWORD PTR [rsp+0x30]
+mov r14,QWORD PTR [rsp+0x78]
+test r12,r12
+jle self+d8b
+mov edx,0x1
+mov rdi,r13
+mov rsi,r12
+call <__rustc::__rust_dealloc>
+jmp self+d8b
+mov rax,QWORD PTR [rsp+0xe8]
+mov QWORD PTR [rax],0xffffffffffffffff
+jmp self+15fc
+mov rbx,QWORD PTR [rsp+0x30]
+mov r14,QWORD PTR [rsp+0x78]
+jmp self+d8b
+mov bpl,0x1
+cmp rbx,0x1
+jne self+d5e
+cmp BYTE PTR [r13+0x0],0x30
+setne bpl
+test r12,r12
+je self+d73
+mov edx,0x1
+mov rdi,r13
+mov rsi,r12
+call <__rustc::__rust_dealloc>
+mov rbx,QWORD PTR [rsp+0x30]
+mov r14,QWORD PTR [rsp+0x78]
+mov r15,QWORD PTR [rsp+0x40]
+test bpl,bpl
+je self+166d
+mov rdx,r14
+imul rdx,rbx
+movabs rax,0x28f5c28f5c28f5c3
+shl r15,0x4
+mov ecx,0x8000
+shr rdx,0x2
+mulx rax,rax,rax
+shr rax,0x2
+cmp rax,r15
+cmovae rax,r15
+cmp rax,0x8000
+cmovb rcx,rax
+mov QWORD PTR [rsp+0x10],rcx
+mov rax,QWORD PTR [rip-relative] # <ahash::random_state::RAND_SOURCE>
+test rax,rax
+je self+1686
+mov rbx,QWORD PTR [rax]
+mov r14,QWORD PTR [rax+0x8]
+mov r13,QWORD PTR [rip-relative] # <ahash::random_state::get_fixed_seeds::SEEDS>
+test r13,r13
+je self+1a9d
+mov rdi,rbx
+call QWORD PTR [r14+0x18]
+mov QWORD PTR [rsp+0x28],rax
+mov rax,QWORD PTR [r13+0x30]
+mov rcx,QWORD PTR [r13+0x28]
+mov r15,QWORD PTR [r13+0x0]
+mov r14,QWORD PTR [r13+0x8]
+mov rbp,QWORD PTR [r13+0x10]
+mov r12,QWORD PTR [r13+0x18]
+mov rbx,QWORD PTR [r13+0x20]
+mov r13,QWORD PTR [r13+0x38]
+mov QWORD PTR [rsp+0x18],rax
+mov QWORD PTR [rsp+0x38],rcx
+mov rdx,QWORD PTR [rsp+0x10]
+lea rdi,[rsp+0xf0]
+mov esi,0x28
+call <<hashbrown::raw::RawTableInner>::fallible_with_capacity::<alloc::alloc::Global>>
+vmovdqa xmm10,XMMWORD PTR [rip-relative] # <__abi_tag+0xb024>
+vmovq xmm2,QWORD PTR [rsp+0x28]
+vmovq xmm3,r12
+vmovq xmm4,rbp
+vmovq xmm5,r14
+vmovq xmm6,r15
+vmovq xmm1,r13
+vmovq xmm0,rbx
+xor rbp,r15
+xor r12,r14
+vmovq xmm7,QWORD PTR [rsp+0x18]
+mov QWORD PTR [rsp+0x130],0x0
+mov QWORD PTR [rsp+0x138],0x8
+mov QWORD PTR [rsp+0x140],0x0
+vpunpcklqdq xmm3,xmm4,xmm3
+vpunpcklqdq xmm5,xmm6,xmm5
+vmovq xmm6,rbp
+mov rbp,QWORD PTR [rsp+0x30]
+lea r14,[rbp*4+0x0]
+vpshufb xmm3,xmm3,xmm10
+mov QWORD PTR [rsp+0x40],r14
+vpaddq xmm3,xmm2,xmm3
+vaesdec xmm2,xmm5,xmm2
+vpshufb xmm3,xmm3,xmm10
+vpaddq xmm4,xmm1,xmm3
+vpaddq xmm8,xmm7,xmm3
+vaesdec xmm5,xmm2,xmm1
+vpshufb xmm4,xmm4,xmm10
+vaesdec xmm9,xmm2,xmm7
+vpshufb xmm8,xmm8,xmm10
+vpaddq xmm4,xmm0,xmm4
+vaesdec xmm5,xmm5,xmm0
+vaesenc xmm4,xmm4,xmm5
+vmovq xmm5,r12
+vpunpcklqdq xmm5,xmm6,xmm5
+vaesdec xmm6,xmm4,xmm5
+vaesdec xmm4,xmm6,xmm4
+vmovq xmm6,QWORD PTR [rsp+0x38]
+vaesdec xmm9,xmm9,xmm6
+vpaddq xmm8,xmm8,xmm6
+vaesenc xmm8,xmm8,xmm9
+vaesdec xmm9,xmm8,xmm5
+vaesdec xmm8,xmm9,xmm8
+vpunpcklqdq xmm4,xmm8,xmm4
+vpaddq xmm8,xmm6,xmm3
+vpaddq xmm3,xmm0,xmm3
+vaesdec xmm0,xmm2,xmm0
+vaesdec xmm6,xmm2,xmm6
+vpshufb xmm8,xmm8,xmm10
+vpshufb xmm3,xmm3,xmm10
+vpaddq xmm8,xmm8,xmm1
+vpaddq xmm3,xmm7,xmm3
+vaesdec xmm0,xmm0,xmm7
+vaesdec xmm1,xmm6,xmm1
+vaesenc xmm0,xmm3,xmm0
+vaesenc xmm1,xmm8,xmm1
+vaesdec xmm2,xmm0,xmm5
+vaesdec xmm6,xmm1,xmm5
+vaesdec xmm0,xmm2,xmm0
+vmovdqu ymm2,YMMWORD PTR [rsp+0xf0]
+vaesdec xmm1,xmm6,xmm1
+vpunpcklqdq xmm0,xmm0,xmm1
+vmovdqu YMMWORD PTR [rsp+0x80],ymm2
+vmovdqa XMMWORD PTR [rsp+0xa0],xmm0
+vmovdqa XMMWORD PTR [rsp+0xb0],xmm4
+test rbp,rbp
+je self+1397
+mov edi,0x4
+mov rsi,r14
+xor edx,edx
+vzeroupper
+call <<zopro_core::alloc::linux::Allocator>::allocate>
+test rax,rax
+je self+1afe
+mov rbx,QWORD PTR [rsp+0x48]
+mov QWORD PTR [rsp+0x18],rax
+cmp rbp,0x1
+je self+fed
+mov r15,QWORD PTR [rsp+0x18]
+lea rdx,[r14-0x4]
+mov esi,0xff
+mov rdi,r15
+call QWORD PTR [rip-relative] # <memset@GLIBC_2.2.5>
+lea rax,[r15+r14*1-0x4]
+mov DWORD PTR [rax],0xffffffff
+mov eax,0x8
+mov r13d,0x8
+mov QWORD PTR [rsp+0x60],0x0
+mov QWORD PTR [rsp+0x68],0x8
+mov QWORD PTR [rsp+0x70],0x0
+xor r12d,r12d
+xor r14d,r14d
+mov QWORD PTR [rsp+0x10],0x0
+mov QWORD PTR [rsp+0x38],rax
+jmp self+1041
+nop
+mov r15,QWORD PTR [rsp+0x20]
+inc r14
+cmp r14,rbp
+je self+1376
+mov r15,r14
+shl r15,0x5
+vmovdqu ymm0,YMMWORD PTR [rbx+r15*1]
+vptest ymm0,ymm0
+je self+1030
+add r15,rbx
+vmovdqa xmm1,XMMWORD PTR [rsp+0xb0]
+vpmovsxbq xmm6,WORD PTR [rip-relative] # <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb20>
+vmovdqa xmm5,XMMWORD PTR [rip-relative] # <__abi_tag+0xb024>
+mov rcx,QWORD PTR [rsp+0x88]
+xor edx,edx
+vmovups ymm0,YMMWORD PTR [r15]
+vmovups YMMWORD PTR [rsp+0xf0],ymm0
+vmovdqa xmm0,XMMWORD PTR [rsp+0xa0]
+vmovdqa xmm3,XMMWORD PTR [rsp+0xf0]
+vmovdqa xmm4,XMMWORD PTR [rsp+0x100]
+mov rax,QWORD PTR [rsp+0xf0]
+mov QWORD PTR [rsp+0x28],rax
+mov rax,QWORD PTR [rsp+0x80]
+vpxor xmm2,xmm1,xmm0
+vaesdec xmm0,xmm0,xmm6
+vpaddq xmm0,xmm0,XMMWORD PTR [rip-relative] # <__abi_tag+0xb034>
+vpshufb xmm1,xmm1,xmm5
+vpaddq xmm1,xmm1,xmm6
+vpshufb xmm1,xmm1,xmm5
+vpaddq xmm1,xmm3,xmm1
+vpshufb xmm1,xmm1,xmm5
+vaesdec xmm0,xmm0,xmm3
+vpaddq xmm1,xmm4,xmm1
+vaesdec xmm0,xmm0,xmm4
+vaesenc xmm0,xmm1,xmm0
+vaesdec xmm1,xmm0,xmm2
+vaesdec xmm0,xmm1,xmm0
+vmovq rbp,xmm0
+mov rbx,rbp
+shr rbx,0x39
+mov rsi,rbp
+vpbroadcastb xmm0,ebx
+and rsi,rcx
+vmovdqu xmm1,XMMWORD PTR [rax+rsi*1]
+vpcmpeqb k0,xmm1,xmm0
+kortestw k0,k0
+je self+1170
+kmovd edi,k0
+tzcnt r8d,edi
+add r8,rsi
+and r8,rcx
+neg r8
+lea r8,[r8+r8*4]
+vmovdqu ymm2,YMMWORD PTR [rax+r8*8-0x28]
+vpxor ymm2,ymm2,YMMWORD PTR [rsp+0xf0]
+vptest ymm2,ymm2
+je self+1190
+lea r8d,[rdi-0x1]
+and r8w,di
+mov edi,r8d
+jne self+112c
+data16 data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+vpcmpeqd xmm2,xmm2,xmm2
+vpcmpeqb k0,xmm1,xmm2
+kortestw k0,k0
+jne self+11a0
+lea rsi,[rsi+rdx*1+0x10]
+add rdx,0x10
+jmp self+1114
+nop DWORD PTR [rax+rax*1+0x0]
+lea rax,[rax+r8*8]
+mov edx,DWORD PTR [rax-0x8]
+jmp self+12dd
+nop DWORD PTR [rax+0x0]
+cmp QWORD PTR [rsp+0x90],0x0
+je self+1344
+mov rax,QWORD PTR [rsp+0x10]
+cmp rax,QWORD PTR [rsp+0x130]
+jne self+11db
+lea rdi,[rsp+0x130]
+vzeroupper
+call <<alloc::raw_vec::RawVec<[usize; 4]>>::grow_one>
+mov rax,QWORD PTR [rsp+0x138]
+mov QWORD PTR [rsp+0x38],rax
+vmovdqu ymm0,YMMWORD PTR [r15]
+mov rdx,QWORD PTR [rsp+0x10]
+mov rcx,QWORD PTR [rsp+0x38]
+mov rax,rdx
+shl rax,0x5
+inc rdx
+mov QWORD PTR [rsp+0x10],rdx
+vmovdqu YMMWORD PTR [rcx+rax*1],ymm0
+mov QWORD PTR [rsp+0x140],rdx
+cmp r12,QWORD PTR [rsp+0x60]
+jne self+121f
+lea rdi,[rsp+0x60]
+vzeroupper
+call <<alloc::raw_vec::RawVec<usize>>::grow_one>
+mov r13,QWORD PTR [rsp+0x68]
+mov QWORD PTR [r13+r12*8+0x0],0x0
+inc r12
+mov rcx,QWORD PTR [rsp+0x88]
+mov rax,QWORD PTR [rsp+0x80]
+mov QWORD PTR [rsp+0x70],r12
+and rbp,rcx
+vmovdqu xmm0,XMMWORD PTR [rax+rbp*1]
+vpmovmskb edx,xmm0
+test edx,edx
+je self+1318
+mov r8,QWORD PTR [rsp+0x10]
+mov r9,QWORD PTR [rsp+0x28]
+tzcnt esi,edx
+add rsi,rbp
+and rsi,rcx
+movzx edi,BYTE PTR [rax+rsi*1]
+test dil,dil
+jns self+1361
+lea edx,[r8-0x1]
+lea r8,[rsi-0x10]
+mov BYTE PTR [rax+rsi*1],bl
+neg rsi
+add r15,0x8
+and dil,0x1
+vpbroadcastb xmm1,BYTE PTR [rip-relative] # <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0xb22>
+and r8,rcx
+lea rcx,[rsi+rsi*4]
+movzx esi,dil
+mov BYTE PTR [rax+r8*1+0x10],bl
+mov QWORD PTR [rax+rcx*8-0x28],r9
+vmovups xmm0,XMMWORD PTR [r15]
+vpinsrq xmm1,xmm1,rsi,0x0
+vmovups XMMWORD PTR [rax+rcx*8-0x20],xmm0
+mov rdi,QWORD PTR [r15+0x10]
+mov QWORD PTR [rax+rcx*8-0x10],rdi
+mov DWORD PTR [rax+rcx*8-0x8],edx
+vmovdqa xmm0,XMMWORD PTR [rsp+0x90]
+vpsubq xmm0,xmm0,xmm1
+vmovdqa XMMWORD PTR [rsp+0x90],xmm0
+mov rax,QWORD PTR [rsp+0x18]
+mov rbp,QWORD PTR [rsp+0x30]
+mov r15,QWORD PTR [rsp+0x20]
+mov rbx,QWORD PTR [rsp+0x48]
+mov edi,edx
+mov DWORD PTR [rax+r14*4],edx
+cmp r12,rdi
+jbe self+1ad8
+mov r13,QWORD PTR [rsp+0x68]
+inc QWORD PTR [r13+rdi*8+0x0]
+inc r14
+cmp r14,rbp
+jne self+1041
+jmp self+1376
+mov r8,QWORD PTR [rsp+0x10]
+mov r9,QWORD PTR [rsp+0x28]
+mov esi,0x10
+add rbp,rsi
+add rsi,0x10
+and rbp,rcx
+vmovdqu xmm0,XMMWORD PTR [rax+rbp*1]
+vpmovmskb edx,xmm0
+test edx,edx
+jne self+125e
+jmp self+1327
+lea rdi,[rsp+0x80]
+lea rsi,[rsp+0xa0]
+vzeroupper
+call <<hashbrown::raw::RawTable<([u64; 4], u32)>>::reserve_rehash::<hashbrown::map::make_hasher<[u64; 4], u32, ahash::random_state::RandomState>::{closure
+jmp self+11af
+vmovdqa xmm0,XMMWORD PTR [rax]
+vpmovmskb edx,xmm0
+tzcnt esi,edx
+movzx edi,BYTE PTR [rax+rsi*1]
+jmp self+1275
+mov r14,QWORD PTR [rsp+0x18]
+mov r13,QWORD PTR [rsp+0x10]
+mov rax,QWORD PTR [rsp+0x88]
+mov r12,QWORD PTR [rsp+0x50]
+test rax,rax
+jne self+13dc
+jmp self+1442
+mov r15,QWORD PTR [rsp+0x20]
+mov eax,0x8
+mov r14d,0x4
+mov QWORD PTR [rsp+0x60],0x0
+mov QWORD PTR [rsp+0x68],0x8
+xor r13d,r13d
+mov QWORD PTR [rsp+0x70],0x0
+mov QWORD PTR [rsp+0x38],rax
+mov rax,QWORD PTR [rsp+0x88]
+mov r12,QWORD PTR [rsp+0x50]
+test rax,rax
+je self+1442
+lea rcx,[rax+rax*4]
+add rax,0x11
+mov rsi,rax
+lea rdx,[rcx*8+0x37]
+and rdx,0xfffffffffffffff0
+add rsi,rdx
+je self+1442
+mov rcx,QWORD PTR [rsp+0x80]
+mov rdi,rcx
+sub rdi,rdx
+cmp rsi,0x1ffff
+jbe self+1439
+movabs rdx,0x7ffffffffffffff1
+dec rdx
+cmp rsi,rdx
+jae self+4f2
+cmp BYTE PTR [rcx+rax*1],0x1
+jne self+1439
+inc rsi
+vzeroupper
+call QWORD PTR [rip-relative] # <munmap@GLIBC_2.2.5>
+jmp self+1442
+vzeroupper
+call QWORD PTR [rip-relative] # <free@GLIBC_2.2.5>
+mov rax,QWORD PTR [rsp+0x78]
+imul rbx,r13,0x64
+mov rcx,r13
+imul rax,rbp
+mov r13,rax
+cmp rbx,rax
+jbe self+1492
+mov rax,QWORD PTR [rsp+0xe8]
+mov rsi,QWORD PTR [rsp+0x60]
+mov QWORD PTR [rax],0xffffffffffffffff
+test rsi,rsi
+je self+156a
+mov rdi,QWORD PTR [rsp+0x68]
+shl rsi,0x3
+mov edx,0x8
+vzeroupper
+call <__rustc::__rust_dealloc>
+jmp self+156a
+test rcx,rcx
+je self+14ce
+mov QWORD PTR [rsp+0x18],r14
+mov r14,QWORD PTR [rsp+0x70]
+movabs rax,0x1000000000000000
+dec rax
+cmp r14,rax
+jne self+1690
+xor ebx,ebx
+xor ebp,ebp
+mov rdi,rbx
+mov rsi,r12
+vzeroupper
+call <alloc::raw_vec::handle_error>
+jmp self+1b1a
+mov r12,QWORD PTR [rsp+0x130]
+mov edi,0x8
+vzeroupper
+call QWORD PTR [rip-relative] # <malloc@GLIBC_2.2.5>
+test rax,rax
+je self+1ac2
+vmovdqu xmm0,XMMWORD PTR [rsp+0x60]
+mov rdx,QWORD PTR [rsp+0xe8]
+mov rcx,QWORD PTR [rsp+0x70]
+mov rsi,QWORD PTR [rsp+0x38]
+mov QWORD PTR [rax],0x0
+mov QWORD PTR [rdx+0x58],rcx
+mov rcx,QWORD PTR [rsp+0x160]
+vmovdqu XMMWORD PTR [rdx+0x48],xmm0
+mov QWORD PTR [rdx],r12
+mov QWORD PTR [rdx+0x8],rsi
+mov r12,QWORD PTR [rsp+0x50]
+mov rsi,QWORD PTR [rsp+0x150]
+vpxor xmm0,xmm0,xmm0
+vmovdqu XMMWORD PTR [rdx+0x10],xmm0
+mov QWORD PTR [rdx+0x20],0x4
+mov QWORD PTR [rdx+0x28],0x0
+mov QWORD PTR [rdx+0x30],0x1
+mov QWORD PTR [rdx+0x38],rax
+mov QWORD PTR [rdx+0x40],0x1
+mov QWORD PTR [rdx+0x60],rbp
+mov QWORD PTR [rdx+0x68],rsi
+mov QWORD PTR [rdx+0x70],rcx
+test rbp,rbp
+je self+15a2
+cmp rbp,0x7fff
+jbe self+1596
+mov rsi,QWORD PTR [rsp+0x40]
+cmp BYTE PTR [r14+rsi*1],0x1
+jne self+1596
+or rsi,0x1
+mov rdi,r14
+vzeroupper
+call QWORD PTR [rip-relative] # <munmap@GLIBC_2.2.5>
+jmp self+15a2
+mov rdi,r14
+vzeroupper
+call QWORD PTR [rip-relative] # <free@GLIBC_2.2.5>
+cmp rbx,r13
+jbe self+15f4
+mov rsi,QWORD PTR [rsp+0x130]
+mov r13,QWORD PTR [rsp+0x120]
+test rsi,rsi
+je self+15d2
+mov rdi,QWORD PTR [rsp+0x38]
+shl rsi,0x5
+mov edx,0x8
+vzeroupper
+call <__rustc::__rust_dealloc>
+mov rax,QWORD PTR [rsp+0x150]
+lock sub QWORD PTR [rip-relative],rax # <zopro_core::preparation::RESERVED>
+mov rax,QWORD PTR [rsp+0x160]
+lock sub QWORD PTR [rip-relative],rax # <zopro_core::preparation::WORKSPACES>
+jmp self+15fc
+mov r13,QWORD PTR [rsp+0x120]
+test r12,r12
+je self+fb
+lea rax,[r12*8+0x17]
+add r12,0x11
+mov rsi,r12
+and rax,0xfffffffffffffff0
+add rsi,rax
+je self+fb
+mov rdi,r13
+sub rdi,rax
+cmp rsi,0x1ffff
+jbe self+165f
+movabs rax,0x7ffffffffffffff1
+dec rax
+cmp rsi,rax
+jae self+4f2
+cmp BYTE PTR [r13+r12*1+0x0],0x1
+jne self+165f
+inc rsi
+vzeroupper
+call QWORD PTR [rip-relative] # <munmap@GLIBC_2.2.5>
+jmp self+fb
+vzeroupper
+call QWORD PTR [rip-relative] # <free@GLIBC_2.2.5>
+jmp self+fb
+mov QWORD PTR [rsp+0x10],0x0
+mov rax,QWORD PTR [rip-relative] # <ahash::random_state::RAND_SOURCE>
+test rax,rax
+jne self+dd8
+call <<once_cell::race::once_box::OnceBox<alloc::boxed::Box<dyn ahash::random_state::RandomSource + core::marker::Send + core::marker::Sync>>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<alloc::boxed::Box<dyn ahash::random_state::RandomSource + core::marker::Send + core::marker::Sync>>>::get_or_init<ahash::random_state::get_src::{closure
+jmp self+dd8
+inc r14
+mov edi,0x8
+mov ebx,0x8
+xor edx,edx
+lea r12,[r14*8+0x0]
+mov rsi,r12
+vzeroupper
+call <<zopro_core::alloc::linux::Allocator>::allocate>
+test rax,rax
+je self+14b9
+mov QWORD PTR [rsp+0xf0],r14
+mov r14,QWORD PTR [rsp+0x70]
+mov QWORD PTR [rsp+0xf8],rax
+mov rbp,rax
+mov QWORD PTR [rax],0x0
+mov eax,0x8
+mov QWORD PTR [rsp+0x100],0x1
+mov QWORD PTR [rsp+0x10],rax
+test r14,r14
+je self+17b2
+mov r15,QWORD PTR [rsp+0x68]
+shl r14,0x3
+mov ebx,0x1
+lea r13,[rsp+0xf0]
+jmp self+172f
+mov rbp,QWORD PTR [rsp+0xf8]
+mov QWORD PTR [rbp+rbx*8+0x0],r12
+inc rbx
+add r14,0xfffffffffffffff8
+mov QWORD PTR [rsp+0x100],rbx
+je self+174d
+mov r12,QWORD PTR [rbp+rbx*8-0x8]
+add r12,QWORD PTR [r15+rbx*8-0x8]
+cmp rbx,QWORD PTR [rsp+0xf0]
+jne self+1719
+mov rdi,r13
+call <<alloc::raw_vec::RawVec<usize>>::grow_one>
+jmp self+1711
+mov rsi,QWORD PTR [rsp+0x70]
+cmp rsi,rbx
+ja self+1aaa
+mov rbp,QWORD PTR [rsp+0xf8]
+mov r15,QWORD PTR [rsp+0x20]
+mov r12,QWORD PTR [rsp+0x50]
+mov r14,QWORD PTR [rsp+0x18]
+test rsi,rsi
+je self+17c1
+lea r13,[rsi*8+0x0]
+mov edi,0x8
+mov QWORD PTR [rsp+0x28],rsi
+xor edx,edx
+mov rsi,r13
+call <<zopro_core::alloc::linux::Allocator>::allocate>
+test rax,rax
+je self+1b0d
+mov QWORD PTR [rsp+0x10],rax
+mov rdi,rax
+mov rsi,rbp
+mov rdx,r13
+call QWORD PTR [rip-relative] # <memcpy@GLIBC_2.14>
+jmp self+17ca
+mov r12,QWORD PTR [rsp+0x50]
+mov r14,QWORD PTR [rsp+0x18]
+mov ebx,0x1
+mov QWORD PTR [rsp+0x28],0x0
+mov rbx,QWORD PTR [rbp+rbx*8-0x8]
+movabs rcx,0x7ffffffffffffff1
+mov rax,rbx
+shr rax,0x3e
+lea r13,[rbx*4+0x0]
+setne al
+add rcx,0xb
+cmp r13,rcx
+seta cl
+or cl,al
+je self+1808
+xor edi,edi
+mov rsi,r13
+call <alloc::raw_vec::handle_error>
+jmp self+1b1a
+test r13,r13
+je self+1831
+mov edi,0x4
+mov edx,0x1
+mov rsi,r13
+call <<zopro_core::alloc::linux::Allocator>::allocate>
+mov edi,0x4
+test rax,rax
+je self+17fb
+mov rbp,rax
+mov r13,rbx
+jmp self+1839
+mov ebp,0x4
+xor r13d,r13d
+cmp QWORD PTR [rsp+0x30],0x0
+je self+18ae
+mov r8,QWORD PTR [rsp+0x40]
+mov r10,QWORD PTR [rsp+0x10]
+mov esi,0xffffffff
+lea rdx,[rip-relative] # <__frame_dummy_init_array_entry+0x7020>
+lea rcx,[rip-relative] # <__frame_dummy_init_array_entry+0x7038>
+xor eax,eax
+jmp self+1874
+mov DWORD PTR [rbp+r9*4+0x0],eax
+inc QWORD PTR [r10+rdi*8]
+inc rax
+add r8,0xfffffffffffffffc
+je self+189c
+mov edi,DWORD PTR [r14+rax*4]
+cmp rdi,rsi
+je self+186b
+cmp QWORD PTR [rsp+0x28],rdi
+jbe self+1aef
+mov r9,QWORD PTR [r10+rdi*8]
+cmp r9,rbx
+jb self+1862
+mov rdi,r9
+mov rdx,rcx
+jmp self+1af4
+mov rsi,QWORD PTR [rsp+0x40]
+mov edx,0x4
+mov rdi,r14
+call <__rustc::__rust_dealloc>
+mov rsi,QWORD PTR [rsp+0x28]
+test rsi,rsi
+je self+18cb
+mov rdi,QWORD PTR [rsp+0x10]
+shl rsi,0x3
+mov edx,0x8
+call <__rustc::__rust_dealloc>
+mov rax,QWORD PTR [rsp+0x140]
+mov rcx,QWORD PTR [rsp+0xe8]
+vmovups xmm0,XMMWORD PTR [rsp+0x130]
+vmovups xmm2,XMMWORD PTR [rsp+0xf0]
+vmovups xmm1,XMMWORD PTR [rsp+0x60]
+mov rsi,QWORD PTR [rsp+0x150]
+mov rdx,QWORD PTR [rsp+0x160]
+mov rdi,QWORD PTR [rsp+0x120]
+mov QWORD PTR [rcx+0x10],rax
+mov rax,QWORD PTR [rsp+0x100]
+vmovups XMMWORD PTR [rcx],xmm0
+vmovups XMMWORD PTR [rcx+0x30],xmm2
+mov QWORD PTR [rcx+0x40],rax
+mov rax,QWORD PTR [rsp+0x70]
+vmovups XMMWORD PTR [rcx+0x48],xmm1
+mov QWORD PTR [rcx+0x58],rax
+mov rax,QWORD PTR [rsp+0x30]
+mov QWORD PTR [rcx+0x18],r13
+mov QWORD PTR [rcx+0x20],rbp
+mov QWORD PTR [rcx+0x28],rbx
+mov QWORD PTR [rcx+0x60],rax
+mov QWORD PTR [rcx+0x68],rsi
+mov QWORD PTR [rcx+0x70],rdx
+test r12,r12
+je self+fb
+lea rax,[r12*8+0x17]
+and rax,0xfffffffffffffff0
+add r12,rax
+add r12,0x11
+je self+fb
+sub rdi,rax
+mov edx,0x10
+mov rsi,r12
+call <__rustc::__rust_dealloc>
+jmp self+fb
+lea rdi,[rsp+0x80]
+lea rdx,[rsp+0xa0]
+vzeroupper
+call <<hashbrown::raw::RawTable<(&[u64; 4], ())>>::reserve_rehash::<hashbrown::map::make_hasher<&[u64; 4], (), ahash::random_state::RandomState>::{closure
+mov rbx,QWORD PTR [rsp+0x48]
+mov rax,QWORD PTR [rsp+0x90]
+mov r14,QWORD PTR [rsp+0xa0]
+mov r13,QWORD PTR [rsp+0xa8]
+mov r12,QWORD PTR [rsp+0xb0]
+mov rbp,QWORD PTR [rsp+0xb8]
+jmp self+30f
+lea rdi,[rip-relative] # <zmij::STATIC_DATA+0x55a6>
+lea rdx,[rip-relative] # <__frame_dummy_init_array_entry+0x5e08>
+mov esi,0x1b
+call <core::panicking::panic>
+jmp self+1b1a
+call <<once_cell::race::once_box::OnceBox<alloc::boxed::Box<dyn ahash::random_state::RandomSource + core::marker::Send + core::marker::Sync>>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<alloc::boxed::Box<dyn ahash::random_state::RandomSource + core::marker::Send + core::marker::Sync>>>::get_or_init<ahash::random_state::get_src::{closure
+jmp self+17f
+call <<once_cell::race::once_box::OnceBox<[[u64; 4]; 2]>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<[[u64; 4]; 2]>>::get_or_init<ahash::random_state::get_fixed_seeds::{closure
+mov rbx,rax
+jmp self+196
+lea rdi,[rsp+0x80]
+mov esi,0x1
+lea rdx,[rsp+0xa0]
+vzeroupper
+call <<hashbrown::raw::RawTable<(&[u64; 4], ())>>::reserve_rehash::<hashbrown::map::make_hasher<&[u64; 4], (), ahash::random_state::RandomState>::{closure
+jmp self+330
+vmovdqa xmm0,XMMWORD PTR [r15]
+vpmovmskb eax,xmm0
+tzcnt esi,eax
+movzx edi,BYTE PTR [r15+rsi*1]
+jmp self+508
+lea r8,[rsp+0x60]
+lea rcx,[rip-relative] # <<&str as core::fmt::Display>::fmt>
+mov QWORD PTR [rsp+0x130],rax
+mov QWORD PTR [rsp+0xf0],r8
+mov QWORD PTR [rsp+0xf8],rcx
+lea r8,[rsp+0x130]
+lea rcx,[rip-relative] # <<core::io::error::Error as core::fmt::Display>::fmt>
+mov QWORD PTR [rsp+0x100],r8
+mov QWORD PTR [rsp+0x108],rcx
+lea rdi,[rip-relative] # <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0x8a84>
+lea rdx,[rip-relative] # <__frame_dummy_init_array_entry+0x1a00>
+lea rsi,[rsp+0xf0]
+call <core::panicking::panic_fmt>
+jmp self+1b1a
+call <<once_cell::race::once_box::OnceBox<[[u64; 4]; 2]>>::init::<<once_cell::race::once_box::OnceBox<_>>::get_or_init::Void, <once_cell::race::once_box::OnceBox<[[u64; 4]; 2]>>::get_or_init<ahash::random_state::get_fixed_seeds::{closure
+mov r13,rax
+jmp self+def
+mov r15,QWORD PTR [rsp+0x20]
+lea rcx,[rip-relative] # <__frame_dummy_init_array_entry+0x7050>
+xor edi,edi
+mov rdx,rbx
+call <core::slice::index::slice_index_fail>
+jmp self+1b1a
+mov edi,0x8
+mov esi,0x8
+mov QWORD PTR [rsp+0x18],r14
+call <alloc::alloc::handle_alloc_error>
+jmp self+1b1a
+mov bpl,0x1
+lea rdx,[rip-relative] # <__frame_dummy_init_array_entry+0x7068>
+mov rsi,r12
+vzeroupper
+call <core::panicking::panic_bounds_check>
+jmp self+1b1a
+mov rbx,QWORD PTR [rsp+0x28]
+mov rsi,rbx
+call <core::panicking::panic_bounds_check>
+jmp self+1b1a
+mov edi,0x4
+mov rsi,r14
+call <alloc::raw_vec::handle_error>
+jmp self+1b1a
+mov edi,0x8
+mov rsi,r13
+call <alloc::raw_vec::handle_error>
+ud2
+jmp self+1b1e
+mov rdi,QWORD PTR [rsp+0x80]
+mov rsi,QWORD PTR [rsp+0x88]
+mov rbx,rax
+jmp self+1c30
+mov r15,QWORD PTR [rsp+0x20]
+mov r12,QWORD PTR [rsp+0x50]
+mov rbx,rax
+jmp self+1cec
+mov r15,QWORD PTR [rsp+0x20]
+jmp self+1bfc
+mov rbx,rax
+test r13,r13
+je self+1b6e
+shl r13,0x2
+mov edx,0x4
+mov rdi,rbp
+mov rsi,r13
+call <__rustc::__rust_dealloc>
+mov r15,QWORD PTR [rsp+0x20]
+mov r12,QWORD PTR [rsp+0x50]
+jmp self+1c4f
+mov rbx,rax
+jmp self+1d81
+mov r15,QWORD PTR [rsp+0x20]
+mov r12,QWORD PTR [rsp+0x50]
+mov rbx,rax
+jmp self+1d01
+mov r15,QWORD PTR [rsp+0x20]
+mov rbx,rax
+mov r14b,0x1
+mov bpl,0x1
+jmp self+1ca0
+mov rbx,rax
+jmp self+1c2a
+mov rbx,rax
+test r12,r12
+je self+1bcd
+mov rdi,QWORD PTR [rsp+0x38]
+shl r12,0x5
+mov edx,0x8
+mov rsi,r12
+call <__rustc::__rust_dealloc>
+mov rax,QWORD PTR [rsp+0x150]
+xor r14d,r14d
+xor ebp,ebp
+lock sub QWORD PTR [rip-relative],rax # <zopro_core::preparation::RESERVED>
+mov rax,QWORD PTR [rsp+0x160]
+lock sub QWORD PTR [rip-relative],rax # <zopro_core::preparation::WORKSPACES>
+mov r15,QWORD PTR [rsp+0x20]
+jmp self+1ca0
+mov rbx,rax
+mov r12,QWORD PTR [rsp+0x50]
+jmp self+1c6c
+mov rbx,rax
+mov rax,QWORD PTR [rsp+0x130]
+mov ecx,eax
+and ecx,0x3
+lea edx,[rcx-0x2]
+cmp edx,0x2
+jb self+1c2a
+test rcx,rcx
+je self+1c2a
+lea rdi,[rax-0x1]
+call QWORD PTR [rax+0x17]
+mov rdi,r13
+mov rsi,r12
+call <core::ptr::drop_glue::<std::collections::hash::set::HashSet<&[u64; 4], ahash::random_state::RandomState>>>
+mov r15,QWORD PTR [rsp+0x20]
+jmp self+1d8c
+call <core::panicking::panic_in_cleanup>
+mov rbx,rax
+jmp self+1d8c
+mov rbx,rax
+mov rdi,QWORD PTR [rsp+0x10]
+mov rsi,QWORD PTR [rsp+0x28]
+test rsi,rsi
+je self+1c6c
+shl rsi,0x3
+mov edx,0x8
+call <__rustc::__rust_dealloc>
+mov rsi,QWORD PTR [rsp+0xf0]
+mov r14b,0x1
+test rsi,rsi
+jne self+1c80
+xor ebp,ebp
+jmp self+1ca5
+mov rdi,QWORD PTR [rsp+0xf8]
+shl rsi,0x3
+mov edx,0x8
+call <__rustc::__rust_dealloc>
+xor ebp,ebp
+jmp self+1ca5
+mov r14b,0x1
+mov rbx,rax
+mov r12,QWORD PTR [rsp+0x50]
+mov rsi,QWORD PTR [rsp+0x60]
+test rsi,rsi
+jne self+1d23
+cmp QWORD PTR [rsp+0x30],0x0
+jne self+1d42
+test r14b,r14b
+je self+1d5f
+mov rsi,QWORD PTR [rsp+0x130]
+test rsi,rsi
+je self+1ce7
+mov rdi,QWORD PTR [rsp+0x138]
+shl rsi,0x5
+mov edx,0x8
+call <__rustc::__rust_dealloc>
+test bpl,bpl
+je self+1d01
+mov rdi,QWORD PTR [rsp+0x80]
+mov rsi,QWORD PTR [rsp+0x88]
+call <core::ptr::drop_glue::<std::collections::hash::map::HashMap<[u64; 4], u32, ahash::random_state::RandomState>>>
+mov rax,QWORD PTR [rsp+0x150]
+lock sub QWORD PTR [rip-relative],rax # <zopro_core::preparation::RESERVED>
+mov rax,QWORD PTR [rsp+0x160]
+lock sub QWORD PTR [rip-relative],rax # <zopro_core::preparation::WORKSPACES>
+jmp self+1d79
+mov rdi,QWORD PTR [rsp+0x68]
+shl rsi,0x3
+mov edx,0x8
+call <__rustc::__rust_dealloc>
+cmp QWORD PTR [rsp+0x30],0x0
+je self+1cbb
+mov rdi,QWORD PTR [rsp+0x18]
+mov rsi,QWORD PTR [rsp+0x40]
+mov edx,0x4
+call <__rustc::__rust_dealloc>
+test r14b,r14b
+jne self+1cc4
+test bpl,bpl
+je self+1d79
+mov rdi,QWORD PTR [rsp+0x80]
+mov rsi,QWORD PTR [rsp+0x88]
+call <core::ptr::drop_glue::<std::collections::hash::map::HashMap<[u64; 4], u32, ahash::random_state::RandomState>>>
+mov r13,QWORD PTR [rsp+0x120]
+mov rdi,r13
+mov rsi,r12
+call <core::ptr::drop_glue::<std::collections::hash::set::HashSet<&[u64; 4], ahash::random_state::RandomState>>>
+cmp QWORD PTR [rsp+0x148],0x0
+jne self+1da6
+mov rsi,QWORD PTR [rsp+0x118]
+test rsi,rsi
+jne self+1db3
+jmp self+1dc0
+mov rsi,QWORD PTR [rsp+0x118]
+test rsi,rsi
+jle self+1dc0
+mov edx,0x1
+mov rdi,r15
+call <__rustc::__rust_dealloc>
+mov rdi,rbx
+call <_Unwind_Resume@plt>
