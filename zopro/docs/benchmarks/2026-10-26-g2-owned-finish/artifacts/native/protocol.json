@@ -1,0 +1,258 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-g2-owned-finish/build-input-pins.json",
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "MALLOC_ARENA_MAX": "32",
+    "MALLOC_MMAP_THRESHOLD_": "1073741824",
+    "MALLOC_TRIM_THRESHOLD_": "-1",
+    "RAYON_NUM_THREADS": "4",
+    "ZOPRO_BASIS_KEY_DIR": "/tmp/zopro-canonical-grain-adoption/images",
+    "ZOPRO_CPU_BOUNDED_SCHEDULE": "1",
+    "ZOPRO_CPU_CANONICAL_WIRES": "1",
+    "ZOPRO_CPU_DEFER_SIGNED_Y": "1",
+    "ZOPRO_CPU_DEFER_SIGN_PARTS": "1",
+    "ZOPRO_CPU_DEFER_SIGN_WIDTH": "12",
+    "ZOPRO_CPU_FFT_COLUMN_ROOTS": "1",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_LAGRANGE": "1",
+    "ZOPRO_CPU_LAGRANGE_DIR": "/tmp/zopro-lagrange-cache",
+    "ZOPRO_CPU_LAGRANGE_FOLD": "1",
+    "ZOPRO_CPU_PROOF_CONCURRENCY": "1",
+    "ZOPRO_CPU_RESOURCE_SCHEDULE": "1",
+    "ZOPRO_CPU_SMALL_CORE_ENTRY": "1",
+    "ZOPRO_CPU_ZERO_AWARE_GROUPS": "1"
+  },
+  "steps": [
+    {
+      "kind": "command",
+      "name": "compiler",
+      "argv": [
+        "rustc",
+        "-Vv"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "generator-check",
+      "argv": [
+        "python3",
+        "/tmp/zopro-g2-owned-finish/candidate/scripts/ifma8.py",
+        "--check"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "off-core",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/tmp/zopro-g2-owned-finish/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-g2-owned-finish/target-sdk-off",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "required_tests": [
+        "msm::g2_prefix::tests::g2_prefix_complete_curve_tails_reuse",
+        "msm::g2_prefix::tests::g2_prefix_dispatch_and_control",
+        "msm::inplace_scratch_tests::inplace_g2_mixed_buckets_odd_counts_and_reused_layers",
+        "msm::reused_reduction_tests::reused_weighted_g2_independent_oracle",
+        "msm_affine::fused_kh::tests::combined_queries_generator_oracle"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "off-prover",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/tmp/zopro-g2-owned-finish/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-prover",
+        "--lib",
+        "--test",
+        "cubic",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-g2-owned-finish/target-sdk-off",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "required_tests": [],
+      "unfiltered": true,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "off-libraries",
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/tmp/zopro-g2-owned-finish/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-g2-owned-finish/target-sdk-off",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "link-sdk",
+      "name": "off",
+      "artifacts": "/tmp/zopro-g2-owned-finish/native/off-libraries/stdout.log",
+      "driver": "/tmp/zopro-g2-owned-finish/candidate/crates/zopro-bench/examples/cpu-sdk.rs",
+      "additional_sources": [
+        "/tmp/zopro-g2-owned-finish/candidate/crates/zopro-bench/examples/support/perf.rs"
+      ],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "on-core",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/tmp/zopro-g2-owned-finish/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-g2-owned-finish/target-sdk-on",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_owned_finish"
+      },
+      "required_tests": [
+        "msm::g2_prefix::tests::g2_prefix_complete_curve_tails_reuse",
+        "msm::g2_prefix::tests::g2_prefix_dispatch_and_control",
+        "msm::inplace_scratch_tests::inplace_g2_mixed_buckets_odd_counts_and_reused_layers",
+        "msm::reused_reduction_tests::reused_weighted_g2_independent_oracle",
+        "msm_affine::fused_kh::tests::combined_queries_generator_oracle",
+        "msm::g2_owned_finish::tests::full_batches_match_generator_oracle_and_consume_only_x",
+        "msm::g2_owned_finish::tests::fallbacks_preserve_incoming_points_and_match_complete_addition",
+        "msm::g2_owned_finish::tests::reused_owned_scratch_preserves_layer_and_bucket_contract"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "on-prover",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/tmp/zopro-g2-owned-finish/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-prover",
+        "--lib",
+        "--test",
+        "cubic",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-g2-owned-finish/target-sdk-on",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_owned_finish"
+      },
+      "required_tests": [],
+      "unfiltered": true,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "on-libraries",
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/tmp/zopro-g2-owned-finish/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-g2-owned-finish/target-sdk-on",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_owned_finish"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "link-sdk",
+      "name": "on",
+      "artifacts": "/tmp/zopro-g2-owned-finish/native/on-libraries/stdout.log",
+      "driver": "/tmp/zopro-g2-owned-finish/candidate/crates/zopro-bench/examples/cpu-sdk.rs",
+      "additional_sources": [
+        "/tmp/zopro-g2-owned-finish/candidate/crates/zopro-bench/examples/support/perf.rs"
+      ],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 1200
+    }
+  ]
+}
