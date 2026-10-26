@@ -390,6 +390,7 @@ mod tests {
     }
     #[test]
     fn resume_rejects_a_replaced_source_pin_set() {
+        let _serial = crate::process::test_experiment_lock();
         let root = std::env::temp_dir().join(format!("zopro-workflow-test-{}", std::process::id()));
         std::fs::create_dir(&root).unwrap();
         let first = root.join("first");

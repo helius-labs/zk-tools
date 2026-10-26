@@ -93,6 +93,11 @@ impl<'a> PinGuard<'a> {
 }
 
 pub struct HostLock(File);
+#[cfg(test)]
+pub fn test_experiment_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    LOCK.lock().unwrap()
+}
 impl HostLock {
     pub fn acquire() -> Result<Self> {
         let file = OpenOptions::new()

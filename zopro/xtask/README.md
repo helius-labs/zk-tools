@@ -12,6 +12,9 @@ cargo xtask workflow /absolute/build-plan.json /absolute/build-results
 cargo xtask workflow /absolute/build-plan.json /absolute/build-results --resume
 cargo xtask perf /absolute/experiment.json /absolute/results
 cargo xtask perf /absolute/experiment.json /absolute/results --resume
+cargo xtask impact 8.56 164.591 132.079 3.7
+cargo xtask screen /absolute/experiment.json /absolute/screen primary32
+cargo xtask screen /absolute/experiment.json /absolute/screen primary32 --resume
 cargo xtask instructions /absolute/instructions.json /absolute/instructions-results
 ```
 
@@ -221,6 +224,49 @@ gates and portable, concurrency, small-stack, pressure and large-circuit
 qualification still belong to each optimization's protocol. Keep fast focused
 tests separate from final optimized latency builds. Existing full-suite checks
 remain required where a change can affect their behavior.
+
+## Fast feedback before full qualification
+
+`impact PROOF_MS COMPONENT_BEFORE_US COMPONENT_AFTER_US [TARGET_MS]` prints a
+unit-labelled projection before running a full matrix. The example above saves
+32.512 microseconds, or 0.032512 milliseconds: about 0.380% of an 8.56 ms proof.
+This assumes the same host, build, inputs and timing boundary, with the entire
+component on the SDK critical path and all other work unchanged. It is an
+estimate, not SDK performance evidence. It imposes no minimum gain cutoff;
+small positive savings remain worth measuring and retaining when qualified.
+
+`screen FULL_CONFIG_JSON OUTPUT CASE [CASE ...] [--resume]` derives a short
+verified SDK experiment from a complete plan. Choose the cases explicitly,
+before collecting data. It keeps every variant/control, pin, check command,
+verifier, public-input digest, CPU affinity, environment and previous-proof
+identity. The selected cases retain their original order. It uses three
+rotated/reversed fresh-process blocks and 17 timed requests after three primes.
+Two cases and three variants therefore need 360 SDK requests and 18 exported
+proof checks. No cycle captures run during this short screen.
+
+The report gives absolute microseconds saved, matched-block geometric ratios
+and wins against every control. Positive saving means faster; these paired
+statistics need not equal ratios or differences of independently summarized
+medians. Raw resource summaries and samples remain in `rows.json`. The screen
+retains independent verification, fixture binding, proof freshness, input
+hashing, the host lock and successful-command reuse on resume. Separate
+`execution.json` receipts prevent resuming a short screen as a full experiment
+or the reverse; legacy captures without that receipt are full experiments.
+`freshness.json` contains the original and newly exported proof digests,
+including exports retained on resume. Carry that set into the next declared
+plan's `prior_proof_sha256` to preserve freshness checks across stages.
+
+Use focused correctness checks and a fully built SDK before the screen. Its
+result does not adopt a candidate or qualify omitted circuits or core counts.
+Investigate unstable controls before interpreting small differences. Final
+qualification still runs the complete declared matrix, applicable correctness
+and resource checks, and the ordinary `perf` command's automatic warm profiles.
+An inconclusive short screen does not establish zero benefit; retain verified
+small gains for an appropriately declared follow-up instead of imposing a
+minimum improvement or repeatedly collecting the same screen until it passes.
+Do not rerun successful captures or select cases afterward to turn a failed
+qualification into a pass. A failed full gate remains failed even if a selected
+case showed a useful positive result.
 
 The initial integration exercised two frozen library sets with 744 real SDK
 requests, 12 independently verified exports and six warm captures. The first

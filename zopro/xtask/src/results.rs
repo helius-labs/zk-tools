@@ -173,15 +173,18 @@ pub fn paired_summary(rows: &[Row], baseline: &str) -> Result<Value> {
         let mut row = serde_json::Map::new();
         for (variant, group) in &variants {
             let mut ratios = Vec::new();
+            let mut savings_us = Vec::new();
             for sample in group {
                 let control = variants
                     .get(baseline)
                     .and_then(|v| v.iter().find(|r| r.block == sample.block))
                     .ok_or("missing paired control")?;
                 ratios.push(sample.sdk.median_ms / control.sdk.median_ms);
+                savings_us.push((control.sdk.median_ms - sample.sdk.median_ms) * 1000.);
             }
             row.insert(variant.clone(),serde_json::json!({"median_ms":median(&group.iter().map(|r|r.sdk.median_ms).collect::<Vec<_>>()),
-                "median_ratio":median(&ratios),"winning_blocks":ratios.iter().filter(|&&r|r<1.).count(),"paired_ratios":ratios}));
+                "median_ratio":median(&ratios),"geometric_ratio":(ratios.iter().map(|v|v.ln()).sum::<f64>()/ratios.len() as f64).exp(),
+                "paired_median_saving_us":median(&savings_us),"winning_blocks":ratios.iter().filter(|&&r|r<1.).count(),"paired_ratios":ratios}));
         }
         result.insert(case, Value::Object(row));
     }
@@ -439,5 +442,14 @@ mod tests {
         let result = paired_summary(&rows, "base").unwrap();
         assert_eq!(result["one"]["candidate"]["median_ratio"], 0.9);
         assert_eq!(result["one"]["candidate"]["winning_blocks"], 2);
+        assert!(
+            (result["one"]["candidate"]["geometric_ratio"]
+                .as_f64()
+                .unwrap()
+                - 0.891f64.cbrt())
+            .abs()
+                < 1e-12
+        );
+        assert_eq!(result["one"]["candidate"]["paired_median_saving_us"], 1000.);
     }
 }
