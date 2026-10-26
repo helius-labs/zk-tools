@@ -1,0 +1,556 @@
+{
+  "distinct_gnark_exports": 6,
+  "rows": [
+    {
+      "block": 0,
+      "case": "1x2-w32",
+      "median_ms": 8.817324,
+      "mode": "off",
+      "observations": [],
+      "samples": [
+        {
+          "ms": 8.817324,
+          "round": 0
+        }
+      ],
+      "stage_medians": {},
+      "summary": {
+        "involuntary_switches": 76,
+        "loop_wall_ms": 8.817806,
+        "minor_faults": 979,
+        "priming": 3,
+        "recorder_storage_bytes": 32768,
+        "rounds": 1,
+        "system_cpu_ms": 2.155000000000001,
+        "user_cpu_ms": 208.09900000000005,
+        "voluntary_switches": 341,
+        "whole_process_maxrss_kib": 65024,
+        "workers": 32
+      }
+    },
+    {
+      "block": 0,
+      "case": "1x2-w32",
+      "median_ms": 8.824989,
+      "mode": "trace",
+      "observations": [
+        {
+          "handoffs": {
+            "ordinary": {
+              "caller_ms": 8.062922,
+              "dispatch_ms": 0.006522,
+              "return_ms": 0.00515,
+              "worker_ms": 8.05125
+            }
+          },
+          "records": 18,
+          "stages": {
+            "core.A_query": {
+              "calling_thread_cpu_ms": 5.722304,
+              "wall_ms": 5.725224
+            },
+            "core.B2_query": {
+              "calling_thread_cpu_ms": 4.49271,
+              "wall_ms": 5.730604
+            },
+            "core.KH_query": {
+              "calling_thread_cpu_ms": 5.765295,
+              "wall_ms": 5.825995
+            },
+            "core.assemble_randomized": {
+              "calling_thread_cpu_ms": 0.011021,
+              "wall_ms": 0.160463
+            },
+            "core.canonical_wires": {
+              "calling_thread_cpu_ms": 0.065223,
+              "wall_ms": 0.067037
+            },
+            "core.encode_parts": {
+              "calling_thread_cpu_ms": 0.007314,
+              "wall_ms": 0.007484
+            },
+            "core.external_entry": {
+              "calling_thread_cpu_ms": 0.004989,
+              "wall_ms": 8.062922
+            },
+            "core.gather_queries": {
+              "calling_thread_cpu_ms": 0.184206,
+              "wall_ms": 0.184357
+            },
+            "core.product_fft": {
+              "calling_thread_cpu_ms": 0.639852,
+              "wall_ms": 0.640047
+            },
+            "core.public_correction": {
+              "calling_thread_cpu_ms": 0.001193,
+              "wall_ms": 0.001332
+            },
+            "core.query_join": {
+              "calling_thread_cpu_ms": 5.766867,
+              "wall_ms": 5.832096
+            },
+            "core.solve_wires": {
+              "calling_thread_cpu_ms": 1.224001,
+              "wall_ms": 1.231762
+            },
+            "core.worker_entry": {
+              "calling_thread_cpu_ms": 7.975899,
+              "wall_ms": 8.05125
+            },
+            "prover.encode": {
+              "calling_thread_cpu_ms": 0.003066,
+              "wall_ms": 0.003176
+            },
+            "prover.solve_rerandomized": {
+              "calling_thread_cpu_ms": 0.017011,
+              "wall_ms": 8.223976
+            },
+            "prover.verify": {
+              "calling_thread_cpu_ms": 0.352381,
+              "wall_ms": 0.488121
+            },
+            "sdk.serialization": {
+              "calling_thread_cpu_ms": 0.011041,
+              "wall_ms": 0.011161
+            },
+            "sdk.witness": {
+              "calling_thread_cpu_ms": 0.095259,
+              "wall_ms": 0.096462
+            }
+          },
+          "threads": 4
+        }
+      ],
+      "samples": [
+        {
+          "ms": 8.824989,
+          "round": 0
+        }
+      ],
+      "stage_medians": {
+        "handoff/ordinary/caller_ms": 8.062922,
+        "handoff/ordinary/dispatch_ms": 0.006522,
+        "handoff/ordinary/return_ms": 0.00515,
+        "handoff/ordinary/worker_ms": 8.05125,
+        "stage/core.A_query/calling_thread_cpu_ms": 5.722304,
+        "stage/core.A_query/wall_ms": 5.725224,
+        "stage/core.B2_query/calling_thread_cpu_ms": 4.49271,
+        "stage/core.B2_query/wall_ms": 5.730604,
+        "stage/core.KH_query/calling_thread_cpu_ms": 5.765295,
+        "stage/core.KH_query/wall_ms": 5.825995,
+        "stage/core.assemble_randomized/calling_thread_cpu_ms": 0.011021,
+        "stage/core.assemble_randomized/wall_ms": 0.160463,
+        "stage/core.canonical_wires/calling_thread_cpu_ms": 0.065223,
+        "stage/core.canonical_wires/wall_ms": 0.067037,
+        "stage/core.encode_parts/calling_thread_cpu_ms": 0.007314,
+        "stage/core.encode_parts/wall_ms": 0.007484,
+        "stage/core.external_entry/calling_thread_cpu_ms": 0.004989,
+        "stage/core.external_entry/wall_ms": 8.062922,
+        "stage/core.gather_queries/calling_thread_cpu_ms": 0.184206,
+        "stage/core.gather_queries/wall_ms": 0.184357,
+        "stage/core.product_fft/calling_thread_cpu_ms": 0.639852,
+        "stage/core.product_fft/wall_ms": 0.640047,
+        "stage/core.public_correction/calling_thread_cpu_ms": 0.001193,
+        "stage/core.public_correction/wall_ms": 0.001332,
+        "stage/core.query_join/calling_thread_cpu_ms": 5.766867,
+        "stage/core.query_join/wall_ms": 5.832096,
+        "stage/core.solve_wires/calling_thread_cpu_ms": 1.224001,
+        "stage/core.solve_wires/wall_ms": 1.231762,
+        "stage/core.worker_entry/calling_thread_cpu_ms": 7.975899,
+        "stage/core.worker_entry/wall_ms": 8.05125,
+        "stage/prover.encode/calling_thread_cpu_ms": 0.003066,
+        "stage/prover.encode/wall_ms": 0.003176,
+        "stage/prover.solve_rerandomized/calling_thread_cpu_ms": 0.017011,
+        "stage/prover.solve_rerandomized/wall_ms": 8.223976,
+        "stage/prover.verify/calling_thread_cpu_ms": 0.352381,
+        "stage/prover.verify/wall_ms": 0.488121,
+        "stage/sdk.serialization/calling_thread_cpu_ms": 0.011041,
+        "stage/sdk.serialization/wall_ms": 0.011161,
+        "stage/sdk.witness/calling_thread_cpu_ms": 0.095259,
+        "stage/sdk.witness/wall_ms": 0.096462
+      },
+      "summary": {
+        "involuntary_switches": 862,
+        "loop_wall_ms": 8.827444,
+        "minor_faults": 1357,
+        "priming": 3,
+        "recorder_storage_bytes": 32768,
+        "rounds": 1,
+        "system_cpu_ms": 34.899,
+        "user_cpu_ms": 166.77100000000007,
+        "voluntary_switches": 365,
+        "whole_process_maxrss_kib": 67840,
+        "workers": 32
+      }
+    },
+    {
+      "block": 0,
+      "case": "1x2-w32",
+      "median_ms": 8.792067000000001,
+      "mode": "pool",
+      "observations": [
+        {
+          "handoffs": {
+            "math": {
+              "caller_ms": 5.70741,
+              "dispatch_ms": 0.0056,
+              "return_ms": 0.003286,
+              "worker_ms": 5.698524
+            },
+            "prefix": {
+              "caller_ms": 2.268747,
+              "dispatch_ms": 0.006853,
+              "return_ms": 0.004849,
+              "worker_ms": 2.257045
+            }
+          },
+          "records": 21,
+          "stages": {
+            "core.A_query": {
+              "calling_thread_cpu_ms": 4.794652,
+              "wall_ms": 5.118941
+            },
+            "core.B2_query": {
+              "calling_thread_cpu_ms": 5.531424,
+              "wall_ms": 5.683526
+            },
+            "core.KH_query": {
+              "calling_thread_cpu_ms": 5.489707,
+              "wall_ms": 5.490381
+            },
+            "core.assemble_randomized": {
+              "calling_thread_cpu_ms": 0.009258,
+              "wall_ms": 0.135044
+            },
+            "core.canonical_wires": {
+              "calling_thread_cpu_ms": 0.049563,
+              "wall_ms": 0.049704
+            },
+            "core.encode_parts": {
+              "calling_thread_cpu_ms": 0.003788,
+              "wall_ms": 0.003937
+            },
+            "core.external_entry": {
+              "calling_thread_cpu_ms": 0.096041,
+              "wall_ms": 8.064675
+            },
+            "core.gather_queries": {
+              "calling_thread_cpu_ms": 0.084489,
+              "wall_ms": 0.0846
+            },
+            "core.math_join": {
+              "calling_thread_cpu_ms": 0.003197,
+              "wall_ms": 5.70741
+            },
+            "core.math_worker": {
+              "calling_thread_cpu_ms": 5.318078,
+              "wall_ms": 5.698524
+            },
+            "core.prefix_install": {
+              "calling_thread_cpu_ms": 0.003877,
+              "wall_ms": 2.268747
+            },
+            "core.prefix_worker": {
+              "calling_thread_cpu_ms": 2.238627,
+              "wall_ms": 2.257045
+            },
+            "core.product_fft": {
+              "calling_thread_cpu_ms": 0.757043,
+              "wall_ms": 0.757308
+            },
+            "core.public_correction": {
+              "calling_thread_cpu_ms": 0.000841,
+              "wall_ms": 0.000952
+            },
+            "core.query_join": {
+              "calling_thread_cpu_ms": 5.312267,
+              "wall_ms": 5.692513
+            },
+            "core.solve_wires": {
+              "calling_thread_cpu_ms": 1.344566,
+              "wall_ms": 1.361958
+            },
+            "prover.encode": {
+              "calling_thread_cpu_ms": 0.004228,
+              "wall_ms": 0.004348
+            },
+            "prover.solve_rerandomized": {
+              "calling_thread_cpu_ms": 0.10617,
+              "wall_ms": 8.200452
+            },
+            "prover.verify": {
+              "calling_thread_cpu_ms": 0.350499,
+              "wall_ms": 0.492178
+            },
+            "sdk.serialization": {
+              "calling_thread_cpu_ms": 0.01085,
+              "wall_ms": 0.011061
+            },
+            "sdk.witness": {
+              "calling_thread_cpu_ms": 0.081283,
+              "wall_ms": 0.082375
+            }
+          },
+          "threads": 5
+        }
+      ],
+      "samples": [
+        {
+          "ms": 8.792067000000001,
+          "round": 0
+        }
+      ],
+      "stage_medians": {
+        "handoff/math/caller_ms": 5.70741,
+        "handoff/math/dispatch_ms": 0.0056,
+        "handoff/math/return_ms": 0.003286,
+        "handoff/math/worker_ms": 5.698524,
+        "handoff/prefix/caller_ms": 2.268747,
+        "handoff/prefix/dispatch_ms": 0.006853,
+        "handoff/prefix/return_ms": 0.004849,
+        "handoff/prefix/worker_ms": 2.257045,
+        "stage/core.A_query/calling_thread_cpu_ms": 4.794652,
+        "stage/core.A_query/wall_ms": 5.118941,
+        "stage/core.B2_query/calling_thread_cpu_ms": 5.531424,
+        "stage/core.B2_query/wall_ms": 5.683526,
+        "stage/core.KH_query/calling_thread_cpu_ms": 5.489707,
+        "stage/core.KH_query/wall_ms": 5.490381,
+        "stage/core.assemble_randomized/calling_thread_cpu_ms": 0.009258,
+        "stage/core.assemble_randomized/wall_ms": 0.135044,
+        "stage/core.canonical_wires/calling_thread_cpu_ms": 0.049563,
+        "stage/core.canonical_wires/wall_ms": 0.049704,
+        "stage/core.encode_parts/calling_thread_cpu_ms": 0.003788,
+        "stage/core.encode_parts/wall_ms": 0.003937,
+        "stage/core.external_entry/calling_thread_cpu_ms": 0.096041,
+        "stage/core.external_entry/wall_ms": 8.064675,
+        "stage/core.gather_queries/calling_thread_cpu_ms": 0.084489,
+        "stage/core.gather_queries/wall_ms": 0.0846,
+        "stage/core.math_join/calling_thread_cpu_ms": 0.003197,
+        "stage/core.math_join/wall_ms": 5.70741,
+        "stage/core.math_worker/calling_thread_cpu_ms": 5.318078,
+        "stage/core.math_worker/wall_ms": 5.698524,
+        "stage/core.prefix_install/calling_thread_cpu_ms": 0.003877,
+        "stage/core.prefix_install/wall_ms": 2.268747,
+        "stage/core.prefix_worker/calling_thread_cpu_ms": 2.238627,
+        "stage/core.prefix_worker/wall_ms": 2.257045,
+        "stage/core.product_fft/calling_thread_cpu_ms": 0.757043,
+        "stage/core.product_fft/wall_ms": 0.757308,
+        "stage/core.public_correction/calling_thread_cpu_ms": 0.000841,
+        "stage/core.public_correction/wall_ms": 0.000952,
+        "stage/core.query_join/calling_thread_cpu_ms": 5.312267,
+        "stage/core.query_join/wall_ms": 5.692513,
+        "stage/core.solve_wires/calling_thread_cpu_ms": 1.344566,
+        "stage/core.solve_wires/wall_ms": 1.361958,
+        "stage/prover.encode/calling_thread_cpu_ms": 0.004228,
+        "stage/prover.encode/wall_ms": 0.004348,
+        "stage/prover.solve_rerandomized/calling_thread_cpu_ms": 0.10617,
+        "stage/prover.solve_rerandomized/wall_ms": 8.200452,
+        "stage/prover.verify/calling_thread_cpu_ms": 0.350499,
+        "stage/prover.verify/wall_ms": 0.492178,
+        "stage/sdk.serialization/calling_thread_cpu_ms": 0.01085,
+        "stage/sdk.serialization/wall_ms": 0.011061,
+        "stage/sdk.witness/calling_thread_cpu_ms": 0.081283,
+        "stage/sdk.witness/wall_ms": 0.082375
+      },
+      "summary": {
+        "involuntary_switches": 70,
+        "loop_wall_ms": 8.794341000000001,
+        "minor_faults": 261,
+        "priming": 3,
+        "recorder_storage_bytes": 32768,
+        "rounds": 1,
+        "system_cpu_ms": 3.029999999999994,
+        "user_cpu_ms": 180.668,
+        "voluntary_switches": 342,
+        "whole_process_maxrss_kib": 59136,
+        "workers": 32
+      }
+    },
+    {
+      "block": 0,
+      "case": "8x2-w32",
+      "median_ms": 25.891457,
+      "mode": "off",
+      "observations": [],
+      "samples": [
+        {
+          "ms": 25.891457,
+          "round": 0
+        }
+      ],
+      "stage_medians": {},
+      "summary": {
+        "involuntary_switches": 758,
+        "loop_wall_ms": 25.891938,
+        "minor_faults": 6403,
+        "priming": 3,
+        "recorder_storage_bytes": 32768,
+        "rounds": 1,
+        "system_cpu_ms": 62.36400000000003,
+        "user_cpu_ms": 633.0999999999999,
+        "voluntary_switches": 1067,
+        "whole_process_maxrss_kib": 319744,
+        "workers": 32
+      }
+    },
+    {
+      "block": 0,
+      "case": "8x2-w32",
+      "median_ms": 24.38151,
+      "mode": "trace",
+      "observations": [
+        {
+          "handoffs": {},
+          "records": 7,
+          "stages": {
+            "core.assemble_randomized": {
+              "calling_thread_cpu_ms": 0.013455,
+              "wall_ms": 0.153699
+            },
+            "core.external_entry": {
+              "calling_thread_cpu_ms": 0.26615,
+              "wall_ms": 23.298438
+            },
+            "prover.encode": {
+              "calling_thread_cpu_ms": 0.009989,
+              "wall_ms": 0.010139
+            },
+            "prover.solve_rerandomized": {
+              "calling_thread_cpu_ms": 0.281458,
+              "wall_ms": 23.453551
+            },
+            "prover.verify": {
+              "calling_thread_cpu_ms": 0.408056,
+              "wall_ms": 0.553954
+            },
+            "sdk.serialization": {
+              "calling_thread_cpu_ms": 0.013666,
+              "wall_ms": 0.013796
+            },
+            "sdk.witness": {
+              "calling_thread_cpu_ms": 0.341131,
+              "wall_ms": 0.347325
+            }
+          },
+          "threads": 1
+        }
+      ],
+      "samples": [
+        {
+          "ms": 24.38151,
+          "round": 0
+        }
+      ],
+      "stage_medians": {
+        "stage/core.assemble_randomized/calling_thread_cpu_ms": 0.013455,
+        "stage/core.assemble_randomized/wall_ms": 0.153699,
+        "stage/core.external_entry/calling_thread_cpu_ms": 0.26615,
+        "stage/core.external_entry/wall_ms": 23.298438,
+        "stage/prover.encode/calling_thread_cpu_ms": 0.009989,
+        "stage/prover.encode/wall_ms": 0.010139,
+        "stage/prover.solve_rerandomized/calling_thread_cpu_ms": 0.281458,
+        "stage/prover.solve_rerandomized/wall_ms": 23.453551,
+        "stage/prover.verify/calling_thread_cpu_ms": 0.408056,
+        "stage/prover.verify/wall_ms": 0.553954,
+        "stage/sdk.serialization/calling_thread_cpu_ms": 0.013666,
+        "stage/sdk.serialization/wall_ms": 0.013796,
+        "stage/sdk.witness/calling_thread_cpu_ms": 0.341131,
+        "stage/sdk.witness/wall_ms": 0.347325
+      },
+      "summary": {
+        "involuntary_switches": 926,
+        "loop_wall_ms": 24.383825,
+        "minor_faults": 4098,
+        "priming": 3,
+        "recorder_storage_bytes": 32768,
+        "rounds": 1,
+        "system_cpu_ms": 35.33100000000002,
+        "user_cpu_ms": 652.634,
+        "voluntary_switches": 980,
+        "whole_process_maxrss_kib": 326912,
+        "workers": 32
+      }
+    },
+    {
+      "block": 0,
+      "case": "8x2-w32",
+      "median_ms": 23.97299,
+      "mode": "pool",
+      "observations": [
+        {
+          "handoffs": {},
+          "records": 7,
+          "stages": {
+            "core.assemble_randomized": {
+              "calling_thread_cpu_ms": 0.014156,
+              "wall_ms": 0.154422
+            },
+            "core.external_entry": {
+              "calling_thread_cpu_ms": 0.285856,
+              "wall_ms": 22.919644
+            },
+            "prover.encode": {
+              "calling_thread_cpu_ms": 0.011922,
+              "wall_ms": 0.012083
+            },
+            "prover.solve_rerandomized": {
+              "calling_thread_cpu_ms": 0.302278,
+              "wall_ms": 23.075377
+            },
+            "prover.verify": {
+              "calling_thread_cpu_ms": 0.382118,
+              "wall_ms": 0.529609
+            },
+            "sdk.serialization": {
+              "calling_thread_cpu_ms": 0.014357,
+              "wall_ms": 0.014487
+            },
+            "sdk.witness": {
+              "calling_thread_cpu_ms": 0.337965,
+              "wall_ms": 0.339089
+            }
+          },
+          "threads": 1
+        }
+      ],
+      "samples": [
+        {
+          "ms": 23.97299,
+          "round": 0
+        }
+      ],
+      "stage_medians": {
+        "stage/core.assemble_randomized/calling_thread_cpu_ms": 0.014156,
+        "stage/core.assemble_randomized/wall_ms": 0.154422,
+        "stage/core.external_entry/calling_thread_cpu_ms": 0.285856,
+        "stage/core.external_entry/wall_ms": 22.919644,
+        "stage/prover.encode/calling_thread_cpu_ms": 0.011922,
+        "stage/prover.encode/wall_ms": 0.012083,
+        "stage/prover.solve_rerandomized/calling_thread_cpu_ms": 0.302278,
+        "stage/prover.solve_rerandomized/wall_ms": 23.075377,
+        "stage/prover.verify/calling_thread_cpu_ms": 0.382118,
+        "stage/prover.verify/wall_ms": 0.529609,
+        "stage/sdk.serialization/calling_thread_cpu_ms": 0.014357,
+        "stage/sdk.serialization/wall_ms": 0.014487,
+        "stage/sdk.witness/calling_thread_cpu_ms": 0.337965,
+        "stage/sdk.witness/wall_ms": 0.339089
+      },
+      "summary": {
+        "involuntary_switches": 46,
+        "loop_wall_ms": 23.975715,
+        "minor_faults": 5742,
+        "priming": 3,
+        "recorder_storage_bytes": 32768,
+        "rounds": 1,
+        "system_cpu_ms": 22.86099999999999,
+        "user_cpu_ms": 655.7019999999998,
+        "voluntary_switches": 1092,
+        "whole_process_maxrss_kib": 338688,
+        "workers": 32
+      }
+    }
+  ],
+  "sdk_requests": 24,
+  "status": "passed",
+  "trace_snapshots": 4
+}
