@@ -1,0 +1,112 @@
+[
+  {
+    "new": "pub mod alloc;\n#[cfg(all(zopro_stage_costs,target_os=\"linux\"))]\npub mod stage_costs;",
+    "old": "pub mod alloc;",
+    "path": "crates/zopro-core/src/lib.rs"
+  },
+  {
+    "new": "fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<Vec<u8>, String> {\n        #[cfg(zopro_stage_costs)] let _entry=crate::stage_costs::Span::enter(if rayon::current_thread_index().is_none(){6}else{7},witness.len());",
+    "old": "fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<Vec<u8>, String> {",
+    "path": "crates/zopro-core/src/lib.rs"
+  },
+  {
+    "new": "let solver::Solution{mut w,a,b,c}={ #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(8,self.domain); plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)? }; ",
+    "old": "let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;",
+    "path": "crates/zopro-core/src/lib.rs"
+  },
+  {
+    "new": "let correction={ #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(9,plan.n_public); folded.public_term(&w[..plan.n_public]) };",
+    "old": "let correction=folded.public_term(&w[..plan.n_public]);",
+    "path": "crates/zopro-core/src/lib.rs"
+  },
+  {
+    "new": "let words={ #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(10,w.len()); canonical(&mut w) };",
+    "old": "let words=canonical(&mut w);",
+    "path": "crates/zopro-core/src/lib.rs"
+  },
+  {
+    "new": "let mut product={ #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(12,self.domain); queries.product_values(&self.plan,a,b) };",
+    "old": "let mut product=queries.product_values(&self.plan,a,b);",
+    "path": "crates/zopro-core/src/lib.rs"
+  },
+  {
+    "new": "#[cfg(zopro_stage_costs)] let _queries=crate::stage_costs::Span::enter(13,k.len());\n            let ((ar,kh),bs2)=rayon::join(",
+    "old": "let ((ar,kh),bs2)=rayon::join(",
+    "path": "crates/zopro-core/src/lib.rs"
+  },
+  {
+    "new": "            #[cfg(zopro_stage_costs)] drop(_queries);\n            #[cfg(zopro_stage_costs)] let _encode=crate::stage_costs::Span::enter(14,4);\n            let mut out=Vec::with_capacity(384);\n            for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY]",
+    "old": "            let mut out=Vec::with_capacity(384);\n            for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY]",
+    "path": "crates/zopro-core/src/lib.rs"
+  },
+  {
+    "new": "if let Some(proof) = { #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(15,parts.len()); fixed.assemble_rerandomized(&parts) } {",
+    "old": "if let Some(proof) = fixed.assemble_rerandomized(&parts) {",
+    "path": "crates/zopro-core/src/lib.rs"
+  },
+  {
+    "new": "let (sa_vec,mut sb_vec):(Vec<_>,Vec<_>)={ #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(11,words.len()); rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect()) };",
+    "old": "let (sa_vec,mut sb_vec):(Vec<_>,Vec<_>)=rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect());",
+    "path": "crates/zopro-core/src/lib.rs"
+  },
+  {
+    "new": "let witness = {\n            #[cfg(zopro_stage_costs)] let _stage=zopro_prover::zopro_core::stage_costs::Span::enter(1,request.len());\n            self.witness(request)?\n        };",
+    "old": "let witness = self.witness(request)?;",
+    "path": "crates/zopro-zolana/src/lib.rs"
+  },
+  {
+    "new": "pub fn result(&self, proved: zopro_prover::Proved, witness_ms: u64) -> ProofResult {\n        #[cfg(zopro_stage_costs)] let _stage=zopro_prover::zopro_core::stage_costs::Span::enter(2,proved.public.len());",
+    "old": "pub fn result(&self, proved: zopro_prover::Proved, witness_ms: u64) -> ProofResult {",
+    "path": "crates/zopro-zolana/src/lib.rs"
+  },
+  {
+    "new": "pub fn prove(&mut self, witness: &[Fr]) -> Result<Proved, Error> {\n        let encoded = { #[cfg(zopro_stage_costs)] let _stage=zopro_core::stage_costs::Span::enter(3,witness.len()); self.encode(witness)? };",
+    "old": "pub fn prove(&mut self, witness: &[Fr]) -> Result<Proved, Error> {\n        let encoded = self.encode(witness)?;",
+    "path": "crates/zopro-prover/src/lib.rs"
+  },
+  {
+    "new": "let raw = { #[cfg(zopro_stage_costs)] let _stage=zopro_core::stage_costs::Span::enter(4,encoded.len()); self.key.solve_rerandomized(&encoded,&self.fixed).map_err(Error::Prove)? };",
+    "old": "let raw = self\n                    .key\n                    .solve_rerandomized(&encoded, &self.fixed)\n                    .map_err(Error::Prove)?;",
+    "path": "crates/zopro-prover/src/lib.rs"
+  },
+  {
+    "new": "let verify_started = zopro_core::time::Instant::now();\n                #[cfg(zopro_stage_costs)] let _stage=zopro_core::stage_costs::Span::enter(5,self.public);\n                let public",
+    "old": "let verify_started = zopro_core::time::Instant::now();\n                let public",
+    "path": "crates/zopro-prover/src/lib.rs"
+  },
+  {
+    "new": "    #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(16,words.len());\n    assert_eq!(bases.len(), words.len());\n    let groups = crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")",
+    "old": "    assert_eq!(bases.len(), words.len());\n    let groups = crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")",
+    "path": "crates/zopro-core/src/msm_affine.rs"
+  },
+  {
+    "new": "fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSample<'_>, usize)> {\n    #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(18,scalars.len());",
+    "old": "fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSample<'_>, usize)> {",
+    "path": "crates/zopro-core/src/msm_affine/grouping.rs"
+  },
+  {
+    "new": "fn scalar_groups_policy(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {\n    #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(17,scalars.len());",
+    "old": "fn scalar_groups_policy(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {",
+    "path": "crates/zopro-core/src/msm_affine/grouping.rs"
+  },
+  {
+    "new": "    #[cfg(zopro_stage_costs)] let _map=crate::stage_costs::Span::enter(19,scalars.len());\n    let mut groups =\n        std::collections::HashMap",
+    "old": "    let mut groups =\n        std::collections::HashMap",
+    "path": "crates/zopro-core/src/msm_affine/grouping.rs"
+  },
+  {
+    "new": "    drop(groups);\n    #[cfg(zopro_stage_costs)] drop(_map);\n    if values.len()",
+    "old": "    drop(groups);\n    if values.len()",
+    "path": "crates/zopro-core/src/msm_affine/grouping.rs"
+  },
+  {
+    "new": "    #[cfg(zopro_stage_costs)] let _pack=crate::stage_costs::Span::enter(20,scalars.len());\n    let mut starts = Vec::with_capacity(counts.len() + 1);",
+    "old": "    let mut starts = Vec::with_capacity(counts.len() + 1);",
+    "path": "crates/zopro-core/src/msm_affine/grouping.rs"
+  },
+  {
+    "new": "    { #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(21,short.len()); short.par_iter_mut().for_each(|s| *s = phi_split(*s)); }\n    #[cfg(zopro_stage_costs)] let _stage=crate::stage_costs::Span::enter(22,short.len());",
+    "old": "    short.par_iter_mut().for_each(|s| *s = phi_split(*s));",
+    "path": "crates/zopro-core/src/msm_affine/g2_phi.rs"
+  }
+]
