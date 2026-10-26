@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-instruction-census/analysis-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "instruction-reader",
+      "argv": [
+        "/tmp/zopro-instruction-census/target/release/xtask",
+        "instructions",
+        "/tmp/zopro-instruction-census/analysis-config.json",
+        "/tmp/zopro-instruction-census/analysis"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    }
+  ]
+}

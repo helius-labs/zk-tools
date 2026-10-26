@@ -1,0 +1,234 @@
+{
+  "environment": {},
+  "source_pins": "/tmp/zopro-instruction-census/extraction-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-26-fused-product-overlap/artifacts/perf/profile/b0/1x2-w32/accepted/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-1x2-w32-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-26-fused-product-overlap/artifacts/perf/profile/b0/1x2-w32/off/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-1x2-w32-off",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-26-fused-product-overlap/artifacts/perf/profile/b0/1x2-w32/on/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-1x2-w32-on",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-26-fused-product-overlap/artifacts/perf/profile/b0/12x2-w32/off/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-12x2-w32-off",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-26-fused-product-overlap/artifacts/perf/profile/b0/12x2-w32/on/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-12x2-w32-on",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-26-fused-product-overlap/artifacts/perf/profile/b0/12x2-w32/accepted/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-12x2-w32-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-26-fused-product-overlap/artifacts/perf/profile/b0/merge-54x1-w32/on/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-merge-54x1-w32-on",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-26-fused-product-overlap/artifacts/perf/profile/b0/merge-54x1-w32/accepted/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-merge-54x1-w32-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-26-fused-product-overlap/artifacts/perf/profile/b0/merge-54x1-w32/off/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-merge-54x1-w32-off",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "objdump",
+        "-d",
+        "-w",
+        "--insn-width=16",
+        "/tmp/zopro-grouping-module/native/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "objdump-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "nm",
+        "-S",
+        "-C",
+        "--defined-only",
+        "/tmp/zopro-grouping-module/native/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "nm-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "readelf",
+        "-lW",
+        "/tmp/zopro-grouping-module/native/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "elf-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "objdump",
+        "-d",
+        "-w",
+        "--insn-width=16",
+        "/tmp/zopro-fused-product-overlap/native-v2/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "objdump-candidate",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "nm",
+        "-S",
+        "-C",
+        "--defined-only",
+        "/tmp/zopro-fused-product-overlap/native-v2/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "nm-candidate",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "readelf",
+        "-lW",
+        "/tmp/zopro-fused-product-overlap/native-v2/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "elf-candidate",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "--version"
+      ],
+      "kind": "command",
+      "name": "perf-version"
+    },
+    {
+      "argv": [
+        "objdump",
+        "--version"
+      ],
+      "kind": "command",
+      "name": "objdump-version"
+    },
+    {
+      "argv": [
+        "rustc",
+        "-Vv"
+      ],
+      "kind": "command",
+      "name": "compiler-version"
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,14 @@
+{
+ "declared_date":"2026-10-26",
+ "last_completed_experiment_commit":"25cef6ed118ca891f52dadf29d0bfc49f16766dc",
+ "purpose":"Instruction-level audit of existing complete-SDK warm cycle captures to guide a distinct arithmetic/dataflow optimization. No new timing, prover, key, proof export, or profile capture.",
+ "inputs":"All nine accepted/OFF/ON captures from the completed fused-product-overlap experiment: primary32,12x2,merge54;297412samples0lost. Use user-owned archive copies after hash verification, existing compact samples, exact executables and recorded MMAP2 metadata.",
+ "tool_change":"Reusable Rust xtask instructions CONFIG OUTPUT command, separate parser modules and focused parser/property tests. No new dependencies; build in a new CARGO_TARGET_DIR so the qualified old xtask executable and prover sources/binaries stay unchanged.",
+ "mapping":"Use PID-specific recorded executable MMAP2 and ELF64 PT_LOAD virtual/file offsets. No guessed page-aligned load bias. Reject conflicting load biases; preserve external/unmapped samples. Match exact instruction boundaries and raw instruction bytes against the pinned executable.",
+ "scope":"Report all instruction families and orthogonal memory-address tags inside actual named G1/G2 streaming/reduction kernels and across executable samples. Keep outside-kernel, external, padding, unrecognized and ambiguous ranges visible.",
+ "interpretation":"Cycle samples can skid. A sample at an opcode is not its exclusive execution cost, retired instruction count, removable latency, actual memory traffic or proof of a stall. Stack operands are not synonymous with spills. No CPU10x or optimization adoption claim follows from this diagnostic.",
+ "validation":["PIE mapping where PT_LOAD virtual address differs from file offset","truncated/wrong-endian/non-x86 ELF rejection","exact byte binding and instruction boundary checks","prefix and memory operand classification","sample count/period conservation and distinctPID handling","all nine profile sample totals agree with retained result rows","preserve all unexpected/unmapped observations and reject invalid input hashes"],
+ "after_diagnostic":"Choose an arithmetic/dataflow mechanism supported by this evidence, independently derive bounds, test then measure full SDK. Avoid another overlap ordering or unchanged arithmetic reroll.",
+ "publishing":"Commit and push the completed diagnostic and qualified tool change before a new experiment. Retain source, protocol, input pins, parser tests and every observation; raw/excess expanded streams locally hash-indexed, omitted Git.",
+ "adopted_prover_change":false,"goal_achieved":false
+}

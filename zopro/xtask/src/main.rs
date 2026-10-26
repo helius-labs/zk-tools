@@ -1,4 +1,5 @@
 mod config;
+mod instructions;
 mod prepare;
 mod process;
 mod results;
@@ -16,6 +17,15 @@ fn main() {
 
 fn execute() -> Result<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.first().is_some_and(|s| s == "instructions") {
+        if args.len() != 3 {
+            return Err("usage: cargo xtask instructions CONFIG_JSON OUTPUT_DIRECTORY".into());
+        }
+        let config = serde_json::from_slice(&std::fs::read(&args[1])?)?;
+        let result = instructions::evaluate(config, &std::path::absolute(&args[2])?)?;
+        println!("{}", serde_json::to_string_pretty(&result)?);
+        return Ok(());
+    }
     if args.first().is_some_and(|s| s == "prepare") {
         if !(4..=5).contains(&args.len()) {
             return Err(

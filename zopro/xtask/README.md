@@ -12,6 +12,7 @@ cargo xtask workflow /absolute/build-plan.json /absolute/build-results
 cargo xtask workflow /absolute/build-plan.json /absolute/build-results --resume
 cargo xtask perf /absolute/experiment.json /absolute/results
 cargo xtask perf /absolute/experiment.json /absolute/results --resume
+cargo xtask instructions /absolute/instructions.json /absolute/instructions-results
 ```
 
 The task has its own workspace and lockfile. Its dependencies do not enter the
@@ -226,6 +227,36 @@ requests, 12 independently verified exports and six warm captures. The first
 decoder omitted IP and could not resolve symbols; its original output is
 retained, and resume decoded the same capture without repeating successful
 SDK measurements.
+
+## Saved instruction profiles
+
+`instructions` reads existing Linux x86-64 captures; it does not run the prover
+or collect new samples. Its version-1 configuration declares `binaries` with
+`name`, `path`, `disassembly` and `symbols`, and `runs` with `name`, `binary`,
+`metadata`, `samples`, `expected_pid`, `expected_samples`, `expected_period`
+and `expected_tids`. Every input path must be absolute and present in the
+configuration's `pins` map. See the retained [configuration and receipts](../docs/benchmarks/2026-10-26-instruction-census/README.md)
+for a complete example.
+
+Generate disassembly with `objdump -d -w --insn-width=16 BINARY` and symbol
+ranges with `nm -S -C --defined-only BINARY`. The sample stream uses
+`perf script -i PERF_DATA -F pid,tid,period,ip,sym`; metadata uses the same
+command with `--show-mmap-events --show-task-events`. These extraction commands
+can run through `workflow` for pinned inputs and command receipts.
+
+The reader uses the sampled process's executable MMAP2 records and ELF PT_LOAD
+file/virtual offsets. Every disassembled instruction must match the executable
+bytes, and every sampled executable IP must match an exact instruction boundary.
+External addresses, symbol aliases and unclassified code remain explicit.
+Counts and period weights must match the expected capture totals and conserve
+across instruction, address-register, symbol and scope bins.
+
+The output contains per-IP JSONL, per-run summaries and a combined result.
+Instruction families and memory-operand tags are separate views of the same
+samples. Cycle samples may skid; these are not exclusive opcode costs, retired
+instruction counts or removable latency. RSP/RBP operands do not establish
+spills or actual memory traffic; RBP can be a general register. This offline
+command can run inside `workflow` and does not acquire a second host lock.
 
 ## Existing scripts
 
