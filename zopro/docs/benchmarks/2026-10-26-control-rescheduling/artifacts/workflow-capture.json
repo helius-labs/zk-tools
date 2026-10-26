@@ -1,0 +1,33 @@
+{
+  "source_pins": "/tmp/zopro-control-rescheduling/capture-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/tmp/zopro-control-rescheduling/runner",
+        "preflight"
+      ],
+      "kind": "command",
+      "name": "preflight",
+      "timeout_seconds": 1800
+    },
+    {
+      "argv": [
+        "/tmp/zopro-control-rescheduling/runner",
+        "trace"
+      ],
+      "kind": "command",
+      "name": "trace",
+      "timeout_seconds": 1800
+    },
+    {
+      "argv": [
+        "/tmp/zopro-control-rescheduling/runner",
+        "decode"
+      ],
+      "kind": "command",
+      "name": "decode",
+      "timeout_seconds": 1800
+    }
+  ],
+  "version": 1
+}

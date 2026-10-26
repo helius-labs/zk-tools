@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-control-rescheduling/raw-padded-build-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "raw-padded-tests-build",
+      "argv": [
+        "rustc",
+        "--test",
+        "--edition=2021",
+        "-O",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "/tmp/zopro-control-rescheduling/raw-padded.rs",
+        "-o",
+        "/tmp/zopro-control-rescheduling/raw-padded-tests"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "raw-padded-tests-run",
+      "argv": [
+        "/tmp/zopro-control-rescheduling/raw-padded-tests",
+        "--test-threads=1"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": true,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "raw-reader-padded-build",
+      "argv": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "/tmp/zopro-control-rescheduling/raw-padded.rs",
+        "-o",
+        "/tmp/zopro-control-rescheduling/raw-reader-padded"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "raw-post-padded-build",
+      "argv": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "/tmp/zopro-control-rescheduling/raw-post-padded.rs",
+        "-o",
+        "/tmp/zopro-control-rescheduling/raw-post-padded"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    }
+  ]
+}

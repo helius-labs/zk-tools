@@ -1,0 +1,59 @@
+{
+  "source_pins": "/tmp/zopro-control-rescheduling/build-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "--test",
+        "/tmp/zopro-control-rescheduling/analyze.rs",
+        "-o",
+        "/tmp/zopro-control-rescheduling/analyzer-tests"
+      ],
+      "kind": "command",
+      "name": "analyzer-tests"
+    },
+    {
+      "argv": [
+        "/tmp/zopro-control-rescheduling/analyzer-tests",
+        "--test-threads=1"
+      ],
+      "kind": "command",
+      "name": "analyzer-test-run",
+      "required_tests": [
+        "tests::nanoseconds_and_fields",
+        "tests::disjoint_clipping",
+        "tests::yield_off_cpu_and_capacity",
+        "tests::missing_cpu_and_right_censor",
+        "tests::continuity_is_detected"
+      ],
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "/tmp/zopro-control-rescheduling/analyze.rs",
+        "-o",
+        "/tmp/zopro-control-rescheduling/analyze"
+      ],
+      "kind": "command",
+      "name": "analyzer-build"
+    }
+  ],
+  "version": 1
+}

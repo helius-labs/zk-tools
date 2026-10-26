@@ -1,0 +1,70 @@
+{
+  "source_pins": "/tmp/zopro-control-rescheduling/raw-build-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "rustc",
+        "--test",
+        "--edition=2021",
+        "-O",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "/tmp/zopro-control-rescheduling/raw.rs",
+        "-o",
+        "/tmp/zopro-control-rescheduling/raw-tests"
+      ],
+      "kind": "command",
+      "name": "raw-tests-build"
+    },
+    {
+      "argv": [
+        "/tmp/zopro-control-rescheduling/raw-tests",
+        "--test-threads=1"
+      ],
+      "kind": "command",
+      "name": "raw-tests-run",
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "/tmp/zopro-control-rescheduling/raw.rs",
+        "-o",
+        "/tmp/zopro-control-rescheduling/raw-reader"
+      ],
+      "kind": "command",
+      "name": "raw-reader-build"
+    },
+    {
+      "argv": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "/tmp/zopro-control-rescheduling/raw-post.rs",
+        "-o",
+        "/tmp/zopro-control-rescheduling/raw-post"
+      ],
+      "kind": "command",
+      "name": "raw-post-build"
+    }
+  ],
+  "version": 1
+}
