@@ -1,0 +1,1 @@
+fn main(){let n:usize=std::env::args().nth(1).unwrap().parse().unwrap();let mut x=std::hint::black_box(0x591ac482d67be03fu64);for i in 0..n{x=std::hint::black_box(x).rotate_left(9).wrapping_mul(0x9e3779b97f4a7c15).wrapping_add(i as u64);}println!("OWNED_WORK iterations={n} checksum={x:016x}");}

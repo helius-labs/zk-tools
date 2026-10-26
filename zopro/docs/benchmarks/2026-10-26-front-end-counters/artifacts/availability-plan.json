@@ -1,0 +1,86 @@
+{
+  "environment": {},
+  "source_pins": "/tmp/zopro-front-end-counters/input-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "/tmp/zopro-front-end-counters/availability-work.rs",
+        "-o",
+        "/tmp/zopro-front-end-counters/availability-work"
+      ],
+      "kind": "command",
+      "name": "work-link",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "{cycles:u,cpu/event=0x1a0,umask=0x01/u,cpu/event=0x1a0,umask=0x1e/u,cpu/event=0x1a0,umask=0x60/u}",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-front-end-counters/availability-work",
+        "10000000"
+      ],
+      "kind": "command",
+      "name": "availability-slots",
+      "timeout_seconds": 60
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "{cycles:u,cpu/event=0xc1/u,cpu/event=0xaa,umask=0x07/u,instructions:u}",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-front-end-counters/availability-work",
+        "10000000"
+      ],
+      "kind": "command",
+      "name": "availability-ops",
+      "timeout_seconds": 60
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "{cycles:u,cpu/event=0x1a0,umask=0x01,cmask=0x08/u,cpu/event=0x82/u,cpu/event=0x83/u}",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-front-end-counters/availability-work",
+        "10000000"
+      ],
+      "kind": "command",
+      "name": "availability-fetch",
+      "timeout_seconds": 60
+    }
+  ],
+  "version": 1
+}

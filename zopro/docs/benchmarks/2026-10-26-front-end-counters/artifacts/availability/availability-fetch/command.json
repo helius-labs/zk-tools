@@ -1,0 +1,24 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "60s",
+    "sudo",
+    "-n",
+    "perf",
+    "stat",
+    "--no-big-num",
+    "-x",
+    ";",
+    "-e",
+    "{cycles:u,cpu/event=0x1a0,umask=0x01,cmask=0x08/u,cpu/event=0x82/u,cpu/event=0x83/u}",
+    "--",
+    "taskset",
+    "-c",
+    "2",
+    "/tmp/zopro-front-end-counters/availability-work",
+    "10000000"
+  ],
+  "environment": {}
+}

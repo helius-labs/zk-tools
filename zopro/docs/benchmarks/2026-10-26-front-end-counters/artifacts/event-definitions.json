@@ -1,0 +1,76 @@
+{
+  "cycles": "perf generic cycles:u resolves to cpu/event=0x76/ on this host",
+  "definitions": [
+    {
+      "definition": {
+        "BriefDescription": "In each cycle counts dispatch slots left empty because the front-end did not supply ops.",
+        "EventCode": "0x1a0",
+        "EventName": "de_no_dispatch_per_slot.no_ops_from_frontend",
+        "UMask": "0x01"
+      },
+      "file": "counter-sources/decode.json",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/master/tools/perf/pmu-events/arch/x86/amdzen5/decode.json"
+    },
+    {
+      "definition": {
+        "BriefDescription": "In each cycle counts ops unable to dispatch because of back-end stalls.",
+        "EventCode": "0x1a0",
+        "EventName": "de_no_dispatch_per_slot.backend_stalls",
+        "UMask": "0x1e"
+      },
+      "file": "counter-sources/decode.json",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/master/tools/perf/pmu-events/arch/x86/amdzen5/decode.json"
+    },
+    {
+      "definition": {
+        "BriefDescription": "In each cycle counts ops unable to dispatch because the dispatch cycle was granted to the other SMT thread.",
+        "EventCode": "0x1a0",
+        "EventName": "de_no_dispatch_per_slot.smt_contention",
+        "UMask": "0x60"
+      },
+      "file": "counter-sources/decode.json",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/master/tools/perf/pmu-events/arch/x86/amdzen5/decode.json"
+    },
+    {
+      "definition": {
+        "BriefDescription": "Ops dispatched from any source.",
+        "EventCode": "0xaa",
+        "EventName": "de_src_op_disp.all",
+        "UMask": "0x07"
+      },
+      "file": "counter-sources/decode.json",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/master/tools/perf/pmu-events/arch/x86/amdzen5/decode.json"
+    },
+    {
+      "definition": {
+        "BriefDescription": "Retired macro-ops.",
+        "EventCode": "0xc1",
+        "EventName": "ex_ret_ops"
+      },
+      "file": "counter-sources/execution.json",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/master/tools/perf/pmu-events/arch/x86/amdzen5/execution.json"
+    },
+    {
+      "definition": {
+        "BriefDescription": "Instruction cache lines (64 bytes) fulfilled from the L2 cache.",
+        "EventCode": "0x82",
+        "EventName": "ic_cache_fill_l2"
+      },
+      "file": "counter-sources/inst-cache.json",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/master/tools/perf/pmu-events/arch/x86/amdzen5/inst-cache.json"
+    },
+    {
+      "definition": {
+        "BriefDescription": "Instruction cache lines (64 bytes) fulfilled from system memory or another cache.",
+        "EventCode": "0x83",
+        "EventName": "ic_cache_fill_sys"
+      },
+      "file": "counter-sources/inst-cache.json",
+      "url": "https://raw.githubusercontent.com/torvalds/linux/master/tools/perf/pmu-events/arch/x86/amdzen5/inst-cache.json"
+    }
+  ],
+  "instructions": "perf generic instructions:u resolves to0xc0",
+  "latency_condition": "frontend no-ops event with cmask8 counts cycles with at least8empty slots; Linux pipeline metric multiplies by8 and divides8*cycles",
+  "no_0x18e": true,
+  "peak_dispatch_slots_per_user_cycle": 8
+}
