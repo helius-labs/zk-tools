@@ -1,0 +1,13 @@
+{
+  "ifma.rs": [
+    {
+      "from": "                    let m = _mm256_and_si256(\n                        _mm256_madd52lo_epu64(zero, t[$i], inv),\n                        Self::splat((1u64 << $bits) - 1),\n                    );",
+      "to": "                    let m = _mm256_madd52lo_epu64(zero, t[$i], inv);\n                    let m = if cfg!(zopro_unmask_m52) && $bits == 52 {\n                        m\n                    } else {\n                        _mm256_and_si256(m, Self::splat((1u64 << $bits) - 1))\n                    };"
+    },
+    {
+      "from": "                    let m = _mm256_and_si256(_mm256_madd52lo_epu64(zero, t[0], inv), mask);",
+      "to": "                    let m = _mm256_madd52lo_epu64(zero, t[0], inv);\n                    let m = if cfg!(zopro_unmask_m52) { m } else { _mm256_and_si256(m, mask) };"
+    }
+  ],
+  "last48bitblock_unchanged": true
+}

@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-ifma-zero-mask/build-pins.json",
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/tmp/zopro-ifma-zero-mask/target",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_unmask_m52"
+  },
+  "steps": [
+    {
+      "kind": "command",
+      "name": "compiler",
+      "argv": [
+        "rustc",
+        "-Vv"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "generator-check",
+      "argv": [
+        "python3",
+        "/tmp/zopro-ifma-zero-mask/candidate/scripts/ifma8.py",
+        "--check"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "isa-build",
+      "argv": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "/tmp/zopro-ifma-zero-mask/isa.rs",
+        "-o",
+        "/tmp/zopro-ifma-zero-mask/isa"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "isa-check",
+      "argv": [
+        "/tmp/zopro-ifma-zero-mask/isa"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "field",
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/tmp/zopro-ifma-zero-mask/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-bn254",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "field-links",
+      "argv": [
+        "/tmp/zopro-ifma-zero-mask/link"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "argv": [
+      "--edition=2021",
+      "-O",
+      "-C",
+      "target-cpu=native",
+      "-C",
+      "lto=off",
+      "-C",
+      "codegen-units=1",
+      "/tmp/zopro-ifma-zero-mask/field-probe.rs",
+      "--extern",
+      "zopro_bn254=/tmp/zopro-grouping-module/target-native/release/deps/libzopro_bn254-505b170cdc507df1.rlib",
+      "-L",
+      "dependency=/tmp/zopro-grouping-module/target-native/release/deps",
+      "-o",
+      "/tmp/zopro-ifma-zero-mask/accepted-probe"
+    ],
+    "label": "accepted",
+    "library": "/tmp/zopro-grouping-module/target-native/release/deps/libzopro_bn254-505b170cdc507df1.rlib",
+    "library_sha256": "680805fb88bce25c54240d20ca88dd455b80aea1c4c2c496e11ecf66a32200b9",
+    "probe_sha256": "e98b3565304fbc361dc7a075b3115e833253856d8af958d977bd40d1f300be80",
+    "returncode": 0
+  },
+  {
+    "argv": [
+      "--edition=2021",
+      "-O",
+      "-C",
+      "target-cpu=native",
+      "-C",
+      "lto=off",
+      "-C",
+      "codegen-units=1",
+      "/tmp/zopro-ifma-zero-mask/field-probe.rs",
+      "--extern",
+      "zopro_bn254=/tmp/zopro-ifma-zero-mask/target/release/libzopro_bn254.rlib",
+      "-L",
+      "dependency=/tmp/zopro-ifma-zero-mask/target/release",
+      "-o",
+      "/tmp/zopro-ifma-zero-mask/candidate-probe"
+    ],
+    "label": "candidate",
+    "library": "/tmp/zopro-ifma-zero-mask/target/release/libzopro_bn254.rlib",
+    "library_sha256": "66774d50d370df736dd5db0cf73ee43fbe71be43134db61c6a92311f7f171f70",
+    "probe_sha256": "4d54ff563db6c2bfcc0fcbb00360c8ecc70d73b5c894e38a8856a9cf032e489f",
+    "returncode": 0
+  }
+]

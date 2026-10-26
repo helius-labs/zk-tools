@@ -1,0 +1,13 @@
+{
+ "date":"2026-10-26","last_completed_commit":"503de9b5b6d83574b8580723f3437a19637ac9f0",
+ "scope":"Static/ISA audit of logically redundant AND52 on zero-accumulator IFMA low products in the accepted baseline, not the rejected three-product arithmetic. No source adoption or performance claim from source edits alone.",
+ "semantics":"madd52lo(0,x,y)=((x mod2^52)*(y mod2^52)) mod2^52, so result high12bits arezero. Keep every required48bit final mixed-radix mask and all limb-normalization masks.",
+ "primary_sources":["https://doc.rust-lang.org/core/arch/x86_64/fn._mm512_madd52lo_epu64.html","https://doc.rust-lang.org/core/arch/x86_64/fn._mm256_madd52lo_epu64.html"],
+ "initial_evidence":"Two resolved IFMA-low/AND pairs in actual accepted G2-prefix caller use requiredMASK48 atvirtualab98 (ffffffffffff0000bytesLE), not redundantMASK52. Adjacency alone doesnotidentifyotherdataflow. Need exact kernel comparison before benchmark.",
+ "candidate":"Privateaccepted170file snapshot, two generatedfield files only. Explicitcompiletimeoptin bypasses m-mask only for52bitcancellation; 48bitcancellation andeveryotheroperation unchanged.",
+ "screen":"Inspect exact linked24unmangled fieldwrappers: Fq/Fr xR256/R260 x4/8lanes xmul/sum2/difference2, againstqualifiedacceptedfield andfreshcandidate. Compare instruction streams with relocations normalized, staticAND/IFMA/stackcounts and actual bytes. If no runtimeAND elimination remains, close staticaudit without timings/proofs; incidental registerallocation differences donotjustifyrerolling.",
+ "conformance":"Independentu128 reference checks rawzeroaccIFMAhighbits, ignoredoperandhighbits andmasked/unmasked equality for4/8lanes, boundariesandrandomfull64bitwords. Counterexample demonstrates48bitmaskstillnecessary. Not an independentfullfieldproof or performance benchmark.",
+ "if_work_survives":"A separatefrozen componentandfullSDKexperimentwithallnecessaryfield/proof/pressurequalification isrequired; do not startnewperformanceexperimentbeforecommitting/pushingthisaudit.",
+ "publishing":"Retain source/protocol/actualcode/commandreceipts andnegativeobservations; commitandpushcompleteddiagnostic; noadoption,minRAM,CPU10xclaim.",
+ "adopted":false,"goal_achieved":false
+}
