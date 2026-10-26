@@ -1,0 +1,51 @@
+{
+    "Command": {
+        "CommandId": "d73e62b2-ed82-4808-adb3-4bc5148cf5e8",
+        "DocumentName": "AWS-RunShellScript",
+        "DocumentVersion": "$DEFAULT",
+        "Comment": "Owned lb-c7a first-block observation",
+        "ExpiresAfter": "2026-10-26T14:31:48.360000+00:00",
+        "Parameters": {
+            "commands": [
+                "set -eu",
+                "head -n 24 /var/tmp/zopro-lb-c7a-20261026-132327/output/measure/workflow.log",
+                "cat /var/tmp/zopro-lb-c7a-20261026-132327/output/measure/performance/progress.json"
+            ],
+            "executionTimeout": [
+                "60"
+            ]
+        },
+        "InstanceIds": [
+            "i-038a2fb80a8870768"
+        ],
+        "Targets": [],
+        "RequestedDateTime": "2026-10-26T13:30:48.360000+00:00",
+        "Status": "Pending",
+        "StatusDetails": "Pending",
+        "OutputS3Region": "eu-north-1",
+        "OutputS3BucketName": "",
+        "OutputS3KeyPrefix": "",
+        "MaxConcurrency": "50",
+        "MaxErrors": "0",
+        "TargetCount": 1,
+        "CompletedCount": 0,
+        "ErrorCount": 0,
+        "DeliveryTimedOutCount": 0,
+        "ServiceRole": "",
+        "NotificationConfig": {
+            "NotificationArn": "",
+            "NotificationEvents": [],
+            "NotificationType": ""
+        },
+        "CloudWatchOutputConfig": {
+            "CloudWatchLogGroupName": "",
+            "CloudWatchOutputEnabled": false
+        },
+        "TimeoutSeconds": 3600,
+        "AlarmConfiguration": {
+            "IgnorePollAlarmFailure": false,
+            "Alarms": []
+        },
+        "TriggeredAlarms": []
+    }
+}

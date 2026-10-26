@@ -1,0 +1,53 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "49f57f2c-8c54-4ddd-a45f-aa25e5e3808f",
+    "Comment": "Owned lb-c7a-20261026-132327 measure",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T15:27:47.809000+00:00",
+    "InstanceIds": [
+      "i-038a2fb80a8870768"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "mkdir -p /var/tmp/zopro-lb-c7a-20261026-132327/output",
+        "docker run --name zopro-lower-bound-c7a --network none --cpus 96 --memory 30g --pids-limit 2048 --cap-drop ALL --cap-add PERFMON --ulimit memlock=-1 --security-opt no-new-privileges --security-opt seccomp=unconfined -v /var/tmp/zopro-lb-c7a-20261026-132327/output:/output 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:2bbeb9b9d9f2488822c74060948510e146bab0a0351f5d25cdfc770e977a940c measure > /var/tmp/zopro-lb-c7a-20261026-132327/runner.log 2>&1",
+        "docker inspect zopro-lower-bound-c7a > /var/tmp/zopro-lb-c7a-20261026-132327/container-inspect.json",
+        "cat /var/tmp/zopro-lb-c7a-20261026-132327/output/measure/complete.json"
+      ],
+      "executionTimeout": [
+        "3600"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T13:27:47.809000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}

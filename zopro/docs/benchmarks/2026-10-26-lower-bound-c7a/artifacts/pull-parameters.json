@@ -1,0 +1,15 @@
+{
+  "commands": [
+    "set -eu",
+    "systemctl is-active zopro-bench-ttl.timer",
+    "install -d -m700 /var/tmp/zopro-lb-c7a-20261026-132327/docker-auth",
+    "/usr/local/bin/aws ecr get-login-password --region eu-north-1 | docker --config /var/tmp/zopro-lb-c7a-20261026-132327/docker-auth login --username AWS --password-stdin 558215002830.dkr.ecr.eu-north-1.amazonaws.com >/dev/null",
+    "docker --config /var/tmp/zopro-lb-c7a-20261026-132327/docker-auth pull 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:2bbeb9b9d9f2488822c74060948510e146bab0a0351f5d25cdfc770e977a940c",
+    "rm -rf -- /var/tmp/zopro-lb-c7a-20261026-132327/docker-auth",
+    "docker image inspect 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:2bbeb9b9d9f2488822c74060948510e146bab0a0351f5d25cdfc770e977a940c --format '{{.Id}}'",
+    "cat /proc/loadavg"
+  ],
+  "executionTimeout": [
+    "600"
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "BlockDeviceMappings": [
+    {
+      "DeviceName": "/dev/sda1",
+      "Ebs": {
+        "DeleteOnTermination": true,
+        "Encrypted": true,
+        "VolumeSize": 100,
+        "VolumeType": "gp3"
+      }
+    }
+  ],
+  "ClientToken": "lb-c7a-20261026-132327",
+  "IamInstanceProfile": {
+    "Name": "zolnet-devnet-c-ecs-instance"
+  },
+  "ImageId": "ami-0fd9576cca965bd19",
+  "InstanceInitiatedShutdownBehavior": "terminate",
+  "InstanceType": "c7a.24xlarge",
+  "MaxCount": 1,
+  "MetadataOptions": {
+    "HttpEndpoint": "enabled",
+    "HttpTokens": "required"
+  },
+  "MinCount": 1,
+  "SecurityGroupIds": [
+    "sg-00da9b3574f3f62e0"
+  ],
+  "SubnetId": "subnet-011ed5291213ebd69",
+  "TagSpecifications": [
+    {
+      "ResourceType": "instance",
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "zopro-lb-c7a-20261026-132327"
+        },
+        {
+          "Key": "Purpose",
+          "Value": "TemporaryProverBenchmark"
+        },
+        {
+          "Key": "ExpiresAt",
+          "Value": "2026-10-26T14:54:21Z"
+        }
+      ]
+    },
+    {
+      "ResourceType": "volume",
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "zopro-lb-c7a-20261026-132327"
+        },
+        {
+          "Key": "Purpose",
+          "Value": "TemporaryProverBenchmark"
+        },
+        {
+          "Key": "ExpiresAt",
+          "Value": "2026-10-26T14:54:21Z"
+        }
+      ]
+    }
+  ],
+  "UserData": "IyEvYmluL2Jhc2gKc2V0IC1ldXgKZXhlYyA+IC92YXIvbG9nL3pvcHJvLWJlbmNoLWJvb3RzdHJhcC5sb2cgMj4mMQpzeXN0ZW1kLXJ1biAtLXVuaXQ9em9wcm8tYmVuY2gtdHRsIC0tb24tYWN0aXZlPTkwbSAvc2Jpbi9zaHV0ZG93biAtaCBub3cKZXhwb3J0IERFQklBTl9GUk9OVEVORD1ub25pbnRlcmFjdGl2ZQphcHQtZ2V0IHVwZGF0ZSAtcXEKYXB0LWdldCBpbnN0YWxsIC15IC1xcSBkb2NrZXIuaW8gY3VybCB1bnppcApjdXJsIC1mc1NMIGh0dHBzOi8vYXdzY2xpLmFtYXpvbmF3cy5jb20vYXdzY2xpLWV4ZS1saW51eC14ODZfNjQuemlwIC1vIC92YXIvdG1wL2F3c2NsaXYyLnppcAp1bnppcCAtcSAvdmFyL3RtcC9hd3NjbGl2Mi56aXAgLWQgL3Zhci90bXAvYXdzY2xpLWluc3RhbGwKL3Zhci90bXAvYXdzY2xpLWluc3RhbGwvYXdzL2luc3RhbGwKcm0gLXJmIC92YXIvdG1wL2F3c2NsaS1pbnN0YWxsIC92YXIvdG1wL2F3c2NsaXYyLnppcApzeXN0ZW1jdGwgZW5hYmxlIC0tbm93IGRvY2tlcgpzeXN0ZW1jdGwgZW5hYmxlIC0tbm93IHNuYXAuYW1hem9uLXNzbS1hZ2VudC5hbWF6b24tc3NtLWFnZW50LnNlcnZpY2UgfHwgc25hcCBzdGFydCBhbWF6b24tc3NtLWFnZW50Cm1rZGlyIC1wIC92YXIvdG1wL3pvcHJvLWxiLWM3YS0yMDI2MTAyNi0xMzIzMjcKdW5hbWUgLWEgPiAvdmFyL3RtcC96b3Byby1sYi1jN2EtMjAyNjEwMjYtMTMyMzI3L2hhcmR3YXJlLnR4dApsc2NwdSA+PiAvdmFyL3RtcC96b3Byby1sYi1jN2EtMjAyNjEwMjYtMTMyMzI3L2hhcmR3YXJlLnR4dAo="
+}

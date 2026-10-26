@@ -1,0 +1,44 @@
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 372B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover:bench-latest-c7a-profile-20261025
+#2 DONE 0.0s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/5] FROM 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover:bench-latest-c7a-profile-20261025@sha256:0b79be0b9b5b9675622282a950bd87c8bb98ed092a6605c3a1cb426f6848e66b
+#4 resolve 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover:bench-latest-c7a-profile-20261025@sha256:0b79be0b9b5b9675622282a950bd87c8bb98ed092a6605c3a1cb426f6848e66b done
+#4 CACHED
+
+#5 [internal] load build context
+#5 transferring context: 2.06GB 2.0s done
+#5 DONE 2.0s
+
+#6 [2/5] COPY lb-accepted lb-candidate lb-adapter lb-runner lb-xtask gnark-verify /usr/local/bin/
+#6 DONE 0.7s
+
+#7 [3/5] COPY zopro-keys.lock /manifest/zopro-keys.lock
+#7 DONE 0.0s
+
+#8 [4/5] COPY basis /lb-basis
+#8 DONE 0.8s
+
+#9 [5/5] COPY manifest.json /lb/manifest.json
+#9 DONE 0.0s
+
+#10 exporting to image
+#10 exporting layers
+#10 exporting layers 24.0s done
+#10 exporting manifest sha256:396082c462597e4b9ec37c49b1f24d304e1216496480081f47329bb988b95692 done
+#10 exporting config sha256:f20d0b82b6de72a4fbe337fcb2a54a65092c3caa254dbe00f272f9942dcde98a done
+#10 exporting attestation manifest sha256:c3dadf668ccb9c42741e684ef79785724e4d8c7c22adb32bb51c374d1f773eab done
+#10 exporting manifest list sha256:ba1069d8a2c0ea9b7f6e633efc5cc6ec54d1236935b686a9f00c60b250e00b4c done
+#10 naming to docker.io/library/zopro-lower-bound-c7a:preflight done
+#10 unpacking to docker.io/library/zopro-lower-bound-c7a:preflight
+#10 unpacking to docker.io/library/zopro-lower-bound-c7a:preflight 1.5s done
+#10 DONE 25.5s

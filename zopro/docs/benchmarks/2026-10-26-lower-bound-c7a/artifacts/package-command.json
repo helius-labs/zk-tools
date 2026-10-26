@@ -1,0 +1,54 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "545bdb0e-3df7-451e-90c8-730f783a2385",
+    "Comment": "Owned lb-c7a-20261026-132327 package",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T14:47:42.215000+00:00",
+    "InstanceIds": [
+      "i-038a2fb80a8870768"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "docker inspect zopro-lower-bound-c7a > /var/tmp/zopro-lb-c7a-20261026-132327/container-inspect.json",
+        "cat /proc/swaps > /var/tmp/zopro-lb-c7a-20261026-132327/post-host-state.txt",
+        "tar --exclude=output/lagrange-cache --exclude=ctl --exclude=ack -czf /var/tmp/zopro-lb-c7a-20261026-132327/results.tar.gz -C /var/tmp/zopro-lb-c7a-20261026-132327 output runner.log hardware.txt post-host-state.txt container-inspect.json",
+        "sha256sum /var/tmp/zopro-lb-c7a-20261026-132327/results.tar.gz",
+        "stat -c %s /var/tmp/zopro-lb-c7a-20261026-132327/results.tar.gz"
+      ],
+      "executionTimeout": [
+        "600"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T13:37:42.215000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}
