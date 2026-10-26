@@ -1,0 +1,33 @@
+{
+  "bound": "both shrink sites disabled for retained queues, unchanged grow-only power-of-two capacity allocation; retired capacity sum < current capacity, arrays <2x high-water plus descriptors/metadata",
+  "candidate_sha256": "cfce324f79fdf2d05a3a2bc38e5bc19d0d61429ec88208faeab09af8603fb499",
+  "destruction": "only final Inner Arc drop converts retired Atomic handles to Owned, drops pending current tasks once and deallocates retired MaybeUninit arrays",
+  "guard_order": "every retained probe has the required SeqCst fence; mixed-mode batches pin unless both queues retained; reentrant normal fence retained",
+  "methods": [
+    {
+      "after_guard_block_removal": "byte-identical upstream function",
+      "candidate_function_sha256": "e753ef4745014fb6c16e143075d92b7a58b7ec79624acae8ef0d05aaf1d842bf",
+      "signature": "    pub fn steal(&self) -> Steal<T> {",
+      "upstream_function_sha256": "4dfcc80e994d2c75b83d937a44c06f77f53668f794368d2730f2c9514dfdc4cf"
+    },
+    {
+      "after_guard_block_removal": "byte-identical upstream function",
+      "candidate_function_sha256": "417b23fea0350133a05cffa58a780cc8476873385031f89c3808e1be4608d383",
+      "signature": "    pub fn steal_batch_with_limit(&self, dest: &Worker<T>, limit: usize) -> Steal<()> {",
+      "upstream_function_sha256": "2a6d924257eff965443b741d23c3fb01514cfb67f3b8bb268b2e5415dd385fbf"
+    },
+    {
+      "after_guard_block_removal": "byte-identical upstream function",
+      "candidate_function_sha256": "7b72df5bf9d3c36aae13ae552aa114a49a7d8faec61fcd36a9145dcdce7ab399",
+      "signature": "    pub fn steal_batch_with_limit_and_pop(&self, dest: &Worker<T>, limit: usize) -> Steal<T> {",
+      "upstream_function_sha256": "f5181790b05ec049fdfbf7f91def992ad15fdb2d0fc3f06b99216d71bd351a49"
+    }
+  ],
+  "owner_pop": "only two shrink-admission conditions differ, whitespace-normalized upstream remainder identical",
+  "owner_push_reserve": "byte-identical",
+  "payload_protocol": "original read/write/slot addressing byte-identical, including upstream generic volatile-access qualification; not a full memory-model proof",
+  "resize": "unchanged allocation/copy/publish/pin and ordinary retirement/flush body; retained branch stores shared atomic handle and returns before retirement",
+  "scope": "Structured source preservation audit plus native/ownership model tests, not proof of the complete deque or scheduler",
+  "status": "passed",
+  "upstream_sha256": "a27666f94a281fc34337b60f86ea67838575546ce7ce9c2a89c7cb176034ddfe"
+}

@@ -1,0 +1,18 @@
+{
+  "binary": "/tmp/zopro-retained-deque-buffers/native-v2/candidate-sdk",
+  "binary_sha256": "9a13cc96262879767a6f5fb2383e199b9dca8fe24d44797f595a8fa9b003ac94",
+  "symbol": "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+  "start_hex": "0xfc750",
+  "size_hex": "0x1a6",
+  "stop_hex": "0xfc8f6",
+  "observation": "ON branch contains lock orl $0,-0x40(%rsp) at +0x25, before back-index load at +0x2b. This is the compiler lowering of the preserved SeqCst fence. Source guard removal does not remove that synchronization. No dynamic instruction-cost claim from static disassembly.",
+  "layout": "Trace Inner size256 bytes. Rust representation may reorder fields; source field order is not evidence of a new cache line.",
+  "command": [
+    "objdump",
+    "-d",
+    "-C",
+    "--start-address=0xfc750",
+    "--stop-address=0xfc8f6",
+    "/tmp/zopro-retained-deque-buffers/native-v2/candidate-sdk"
+  ]
+}

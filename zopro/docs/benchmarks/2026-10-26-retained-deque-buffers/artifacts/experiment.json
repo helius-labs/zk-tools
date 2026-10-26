@@ -1,0 +1,101 @@
+{
+  "declared_at": "2026-10-26T02:41:48Z",
+  "status": "declared before implementation, compilation or timing",
+  "accepted_manifest": "/tmp/zopro-grouping-module/production-source-manifest.json",
+  "mechanism": "Private exact Crossbeam-deque0.8.8 patch retains old immutable buffer descriptors and payload arrays in the shared Inner until the final Arc owner/stealer drops. Retained queues only grow. Single and batch probes use an unprotected guard only when every accessed shared worker buffer is retained; preserve the SeqCst fence before back-load and every existing extraction/CAS/order operation. Mixed-mode batches use ordinary epoch protection if either queue is normal. Resizing still pins normally. Injector and Rayon scheduler unchanged.",
+  "ownership": "Store retired descriptors as Atomic pointer handles, never Shared::into_owned while a stealer can hold a reference. Worker is not Sync; only its owner mutates the retired vector. Final Inner drop occurs after all owner/stealer Arc handles, drops pending tasks only in the current buffer, then deallocates every retired raw array without re-dropping copied tasks.",
+  "activation": "Private cfg zopro_retained_deque_buffers plus explicit ZOPRO_CPU_RETAINED_DEQUE_BUFFERS=1 sampled once per process. Absent/0 OFF. Mode fixed per queue at construction. No production source/dependency changes; no registry mutation.",
+  "memory": "Disable both FIFO and LIFO shrink sites in retained mode. Sum of prior geometrically increasing payload array capacities is less than current capacity, total arrays below2x high-water current plus O(log high-water) descriptors/Vec metadata. Retains high-water until final pool/stealer destruction, a real long-lived-pool tradeoff. No proving-key table or copied key points. Need measured actual queue sizes and later pressure/large/mobile qualification.",
+  "history": "Different from prior empty-probe, batched epoch guards, finite victim search and St3 queue replacements; retain original extraction and scheduler logic. Prior negative results remain failed. No exact ownership design found in archived README/design audit.",
+  "safety_limit": "Lifetime models cover descriptor/array retention and final handle destruction only. They do not verify the full scheduler or existing generic payload read/write protocol; source audit preserves that upstream protocol. Do not infer removable wall time from epoch CPU sample weights.",
+  "tests": "Exact upstream Crossbeam tests both modes, custom FIFO/LIFO geometric bound, growth/shrink contrast, owner-before-stealer drop, payload exactly-once, concurrent resize/steal, all mixed modes/flavors/batch variants/limits, nested epoch protection. Properly instrumented Loom ownership/lifetime model with a premature-reclamation negative control. Exact upstream Rayon-core both modes plus overloaded/nested/FIFO/cross-pool/panic/reuse integration. Native core both modes and raw/cubic prover tests before SDK timing.",
+  "preflight": {
+    "shapes": "all nine",
+    "workers": 4,
+    "variants": [
+      "off",
+      "on"
+    ],
+    "rounds": 1,
+    "primes": 3,
+    "sdk": 72,
+    "exports": 18
+  },
+  "latency": {
+    "blocks": 7,
+    "cases": "all nine at32workers plus physical16 primary",
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds_w32": 31,
+    "rounds_w16": 101,
+    "primes": 3,
+    "sdk": 8610,
+    "exports": 210,
+    "affinity": {
+      "w32": "0-31",
+      "w16": "0-15"
+    },
+    "gates": {
+      "primary_paired_median_lt": 1,
+      "primary_wins_gte": 4,
+      "original8_paired_geomean_lt": 1,
+      "every_case_paired_median_lte": 1.02,
+      "every_block_lte": 1.05,
+      "off_calibration_factor_lte": 1.03
+    },
+    "minimum_gain_floor": false,
+    "unchanged_reroll": false
+  },
+  "profiles": {
+    "after_all_latency": true,
+    "cases": [
+      "1x2-w32",
+      "12x2-w32",
+      "merge-54x1-w32"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds": {
+      "primary": 101,
+      "12x2": 51,
+      "merge54": 9
+    },
+    "primes": 3,
+    "sdk": 510,
+    "exports": 9,
+    "captures": 9,
+    "frequency_hz": 999,
+    "monotonic_clock": true
+  },
+  "capacity_diagnostic": {
+    "after_all_perf": true,
+    "build": "same frozen source with separate zopro_deque_trace cfg, constructor/resize/drop events only; never used for speed claims",
+    "shapes": "all nine",
+    "workers": 32,
+    "variants": [
+      "off",
+      "on"
+    ],
+    "rounds": 1,
+    "primes": 3,
+    "sdk": 72,
+    "exports": 18,
+    "qualification": "Observe actual payload size, high-water capacities and retained storage; not a whole-process RAM bound or pressure qualification."
+  },
+  "totals": {
+    "sdk": 9264,
+    "distinct_exports": 255,
+    "proof_public_members": 510
+  },
+  "validity": "Freeze accepted170, private exact source/lock/licenses, compiler/helper, linked libraries/SDK, inputs/verifier/protocol and prior proof identities. Mandatory fixture/freshness validation. Independent Gnark each export. Complete SDK includes solving, randomness, proving, internal verification and serialization. No build/test/other owned CPU work overlaps latency. All latency precedes profiles. Preserve failures and all samples; no unchanged reroll.",
+  "if_positive": "Resource, portable, concurrent SDK and large-circuit qualification before adoption. Any actual C7a follow-up requires a distinct frozen protocol after this result. No cloud resource for this local screen.",
+  "publish": "Commit and push each completed experiment, including negative; polite factual report, raw perf/symbol streams local with hashes.",
+  "adopted": false,
+  "goal_achieved": false
+}

@@ -1,0 +1,116 @@
+
+/tmp/zopro-retained-deque-buffers/native-v2/candidate-sdk:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+00000000000fc750 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal>:
+   fc750:	55                   	push   %rbp
+   fc751:	41 57                	push   %r15
+   fc753:	41 56                	push   %r14
+   fc755:	53                   	push   %rbx
+   fc756:	50                   	push   %rax
+   fc757:	4c 8b 3e             	mov    (%rsi),%r15
+   fc75a:	48 89 fb             	mov    %rdi,%rbx
+   fc75d:	4d 8b b7 00 01 00 00 	mov    0x100(%r15),%r14
+   fc764:	41 0f b6 af 28 01 00 	movzbl 0x128(%r15),%ebp
+   fc76b:	00 
+   fc76c:	40 84 ed             	test   %bpl,%bpl
+   fc76f:	0f 84 80 00 00 00    	je     fc7f5 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0xa5>
+   fc775:	f0 83 4c 24 c0 00    	lock orl $0x0,-0x40(%rsp)
+   fc77b:	49 8b 87 08 01 00 00 	mov    0x108(%r15),%rax
+   fc782:	4c 29 f0             	sub    %r14,%rax
+   fc785:	48 85 c0             	test   %rax,%rax
+   fc788:	0f 8e b2 00 00 00    	jle    fc840 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0xf0>
+   fc78e:	49 8b 87 80 00 00 00 	mov    0x80(%r15),%rax
+   fc795:	48 89 c1             	mov    %rax,%rcx
+   fc798:	48 83 e1 f8          	and    $0xfffffffffffffff8,%rcx
+   fc79c:	48 8b 31             	mov    (%rcx),%rsi
+   fc79f:	48 8b 49 08          	mov    0x8(%rcx),%rcx
+   fc7a3:	48 ff c9             	dec    %rcx
+   fc7a6:	4c 21 f1             	and    %r14,%rcx
+   fc7a9:	48 c1 e1 04          	shl    $0x4,%rcx
+   fc7ad:	48 8b 14 0e          	mov    (%rsi,%rcx,1),%rdx
+   fc7b1:	48 8b 74 0e 08       	mov    0x8(%rsi,%rcx,1),%rsi
+   fc7b6:	4d 8b 87 80 00 00 00 	mov    0x80(%r15),%r8
+   fc7bd:	b9 02 00 00 00       	mov    $0x2,%ecx
+   fc7c2:	49 39 c0             	cmp    %rax,%r8
+   fc7c5:	75 7b                	jne    fc842 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0xf2>
+   fc7c7:	4d 8d 46 01          	lea    0x1(%r14),%r8
+   fc7cb:	4c 89 f0             	mov    %r14,%rax
+   fc7ce:	f0 4d 0f b1 87 00 01 	lock cmpxchg %r8,0x100(%r15)
+   fc7d5:	00 00 
+   fc7d7:	75 69                	jne    fc842 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0xf2>
+   fc7d9:	48 89 53 08          	mov    %rdx,0x8(%rbx)
+   fc7dd:	48 89 73 10          	mov    %rsi,0x10(%rbx)
+   fc7e1:	48 c7 03 01 00 00 00 	movq   $0x1,(%rbx)
+   fc7e8:	48 85 ff             	test   %rdi,%rdi
+   fc7eb:	0f 94 c0             	sete   %al
+   fc7ee:	40 08 e8             	or     %bpl,%al
+   fc7f1:	74 5d                	je     fc850 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0x100>
+   fc7f3:	eb 79                	jmp    fc86e <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0x11e>
+   fc7f5:	64 80 3c 25 d0 ff ff 	cmpb   $0x1,%fs:0xffffffffffffffd0
+   fc7fc:	ff 01 
+   fc7fe:	75 79                	jne    fc879 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0x129>
+   fc800:	64 48 8b 04 25 00 00 	mov    %fs:0x0,%rax
+   fc807:	00 00 
+   fc809:	48 8d 80 c8 ff ff ff 	lea    -0x38(%rax),%rax
+   fc810:	48 8b 00             	mov    (%rax),%rax
+   fc813:	48 8b 88 18 08 00 00 	mov    0x818(%rax),%rcx
+   fc81a:	48 85 c9             	test   %rcx,%rcx
+   fc81d:	74 06                	je     fc825 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0xd5>
+   fc81f:	f0 83 4c 24 c0 00    	lock orl $0x0,-0x40(%rsp)
+   fc825:	e8 86 01 00 00       	call   fc9b0 <crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>>
+   fc82a:	48 89 c7             	mov    %rax,%rdi
+   fc82d:	49 8b 87 08 01 00 00 	mov    0x108(%r15),%rax
+   fc834:	4c 29 f0             	sub    %r14,%rax
+   fc837:	48 85 c0             	test   %rax,%rax
+   fc83a:	0f 8f 4e ff ff ff    	jg     fc78e <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0x3e>
+   fc840:	31 c9                	xor    %ecx,%ecx
+   fc842:	48 89 0b             	mov    %rcx,(%rbx)
+   fc845:	48 85 ff             	test   %rdi,%rdi
+   fc848:	0f 94 c0             	sete   %al
+   fc84b:	40 08 e8             	or     %bpl,%al
+   fc84e:	75 1e                	jne    fc86e <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0x11e>
+   fc850:	48 ff 8f 18 08 00 00 	decq   0x818(%rdi)
+   fc857:	75 15                	jne    fc86e <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0x11e>
+   fc859:	48 c7 87 80 08 00 00 	movq   $0x0,0x880(%rdi)
+   fc860:	00 00 00 00 
+   fc864:	48 83 bf 20 08 00 00 	cmpq   $0x0,0x820(%rdi)
+   fc86b:	00 
+   fc86c:	74 72                	je     fc8e0 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0x190>
+   fc86e:	48 83 c4 08          	add    $0x8,%rsp
+   fc872:	5b                   	pop    %rbx
+   fc873:	41 5e                	pop    %r14
+   fc875:	41 5f                	pop    %r15
+   fc877:	5d                   	pop    %rbp
+   fc878:	c3                   	ret
+   fc879:	64 48 8b 04 25 00 00 	mov    %fs:0x0,%rax
+   fc880:	00 00 
+   fc882:	48 8d b8 c8 ff ff ff 	lea    -0x38(%rax),%rdi
+   fc889:	e8 72 00 00 00       	call   fc900 <<std::sys::thread_local::native::lazy::Storage<crossbeam_epoch::collector::LocalHandle, ()>>::get_or_init_slow::<crossbeam_epoch::default::HANDLE::__rust_std_internal_init_fn>>
+   fc88e:	48 85 c0             	test   %rax,%rax
+   fc891:	0f 85 79 ff ff ff    	jne    fc810 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0xc0>
+   fc897:	8b 05 fb 6c 3b 00    	mov    0x3b6cfb(%rip),%eax        # 4b3598 <crossbeam_epoch::default::collector::COLLECTOR+0x8>
+   fc89d:	85 c0                	test   %eax,%eax
+   fc89f:	75 4e                	jne    fc8ef <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0x19f>
+   fc8a1:	48 8b 3d e8 6c 3b 00 	mov    0x3b6ce8(%rip),%rdi        # 4b3590 <crossbeam_epoch::default::collector::COLLECTOR>
+   fc8a8:	e8 23 47 ff ff       	call   f0fd0 <<crossbeam_epoch::collector::Collector>::register>
+   fc8ad:	48 8b 90 20 08 00 00 	mov    0x820(%rax),%rdx
+   fc8b4:	48 8b 88 18 08 00 00 	mov    0x818(%rax),%rcx
+   fc8bb:	48 8d 72 ff          	lea    -0x1(%rdx),%rsi
+   fc8bf:	48 83 f2 01          	xor    $0x1,%rdx
+   fc8c3:	48 09 ca             	or     %rcx,%rdx
+   fc8c6:	48 89 b0 20 08 00 00 	mov    %rsi,0x820(%rax)
+   fc8cd:	0f 85 47 ff ff ff    	jne    fc81a <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0xca>
+   fc8d3:	48 89 c7             	mov    %rax,%rdi
+   fc8d6:	e8 45 49 ff ff       	call   f1220 <<crossbeam_epoch::internal::Local>::finalize>
+   fc8db:	e9 45 ff ff ff       	jmp    fc825 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0xd5>
+   fc8e0:	48 83 c4 08          	add    $0x8,%rsp
+   fc8e4:	5b                   	pop    %rbx
+   fc8e5:	41 5e                	pop    %r14
+   fc8e7:	41 5f                	pop    %r15
+   fc8e9:	5d                   	pop    %rbp
+   fc8ea:	e9 31 49 ff ff       	jmp    f1220 <<crossbeam_epoch::internal::Local>::finalize>
+   fc8ef:	e8 fc 4c ff ff       	call   f15f0 <<crossbeam_epoch::sync::once_lock::OnceLock<crossbeam_epoch::collector::Collector>>::initialize::<<crossbeam_epoch::collector::Collector>::new>>
+   fc8f4:	eb ab                	jmp    fc8a1 <<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal+0x151>

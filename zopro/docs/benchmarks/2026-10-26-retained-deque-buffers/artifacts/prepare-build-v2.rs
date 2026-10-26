@@ -1,0 +1,12 @@
+use serde_json::{json,Value};
+use sha2::{Digest,Sha256};
+use std::{collections::BTreeMap,fs,io::Read,path::Path};
+fn read(p:impl AsRef<Path>)->Value{serde_json::from_slice(&fs::read(p).unwrap()).unwrap()}
+fn hash(p:impl AsRef<Path>)->String{let mut f=fs::File::open(p).unwrap();let mut h=Sha256::new();let mut b=[0;65536];loop{let n=f.read(&mut b).unwrap();if n==0{break}h.update(&b[..n]);}format!("{:x}",h.finalize())}
+fn add(p:impl AsRef<Path>,pins:&mut BTreeMap<String,String>){let p=p.as_ref();pins.insert(p.to_str().unwrap().into(),hash(p));}
+fn tree(p:&Path,pins:&mut BTreeMap<String,String>){for e in fs::read_dir(p).unwrap(){let p=e.unwrap().path();if p.file_name().unwrap()=="target"{continue}if p.is_dir(){tree(&p,pins)}else{add(&p,pins)}}}
+fn main(){let root=Path::new("/tmp/zopro-retained-deque-buffers");let old=fs::read_to_string(root.join("native-plan.json")).unwrap();let replaced=old.replace("/candidate/","/candidate-v2/").replace("/native/","/native-v2/").replace("/upstream/","/upstream-v2/").replace("/build-input-pins.json","/build-input-pins-v2.json");let mut plan:Value=serde_json::from_str(&replaced).unwrap();
+let model=json!({"kind":"command","name":"lifetime-model","argv":["cargo","test","--offline","--locked","--release","--manifest-path",root.join("model-v2/Cargo.toml"),"--lib","--","--test-threads=1"],"environment":{"RUSTFLAGS":"","CARGO_TARGET_DIR":root.join("model/target")},"timeout_seconds":1200,"unfiltered":true,"required_tests":["tests::all_generations_survive_owner_drop_and_inflight_readers","tests::prematurely_reclaimed_generation_is_detected"]});plan["steps"].as_array_mut().unwrap().insert(1,model);
+let mut pins:BTreeMap<String,String>=serde_json::from_value(read(root.join("build-input-pins.json"))).unwrap();for(p,h)in read(root.join("candidate-v2/.xtask/source-pins.json")).as_object().unwrap(){assert_eq!(hash(p),h.as_str().unwrap());pins.insert(p.into(),h.as_str().unwrap().into());}
+tree(&root.join("upstream-v2"),&mut pins);for name in ["model-v2/Cargo.toml","model-v2/Cargo.lock","model-v2/src/lib.rs","prepare-build-v2.rs","repair-build.rs","prepare-v2.json","failure-v1.json","model-tests.log","native/deque-off/exit.json","native/deque-off/stderr.log","native/deque-off/stdout.log","native/deque-off/command.json"]{add(root.join(name),&mut pins)}
+fs::write(root.join("build-input-pins-v2.json"),serde_json::to_vec_pretty(&pins).unwrap()).unwrap();fs::write(root.join("native-plan-v2.json"),serde_json::to_vec_pretty(&plan).unwrap()).unwrap();println!("FROZEN v2 build{} inputs",pins.len());}

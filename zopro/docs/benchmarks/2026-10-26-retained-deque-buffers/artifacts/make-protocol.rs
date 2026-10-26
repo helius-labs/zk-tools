@@ -1,0 +1,54 @@
+use serde_json::{json,Value};
+use sha2::{Digest,Sha256};
+use std::{collections::{BTreeMap,BTreeSet},fs,io::Read,path::Path};
+fn read(p:impl AsRef<Path>)->Value{serde_json::from_slice(&fs::read(p).unwrap()).unwrap()}
+fn hash(p:impl AsRef<Path>)->String{let mut f=fs::File::open(p).unwrap();let mut h=Sha256::new();let mut b=[0;65536];loop{let n=f.read(&mut b).unwrap();if n==0{break;}h.update(&b[..n]);}format!("{:x}",h.finalize())}
+fn save(p:impl AsRef<Path>,v:Value){fs::write(p,format!("{}\n",serde_json::to_string_pretty(&v).unwrap())).unwrap()}
+fn add_file(p:impl AsRef<Path>,pins:&mut BTreeMap<String,String>){let p=p.as_ref();let digest=hash(p);if let Some(old)=pins.insert(p.to_str().unwrap().into(),digest.clone()){assert_eq!(old,digest)}}
+fn inventory(p:impl AsRef<Path>,prior:&mut BTreeSet<String>){for(name,digest)in read(p).as_object().unwrap(){if name.ends_with(".proof"){prior.insert(digest.as_str().unwrap().into());}}}
+fn main(){let root=Path::new("/tmp/zopro-retained-deque-buffers");let mode=std::env::args().nth(1).unwrap();
+if mode=="finalize" {
+ let mut config=read(root.join("perf-template.json"));let mut pins:BTreeMap<String,String>=serde_json::from_value(read(root.join("input-pins.json"))).unwrap();add_file(root.join("input-pins.json"),&mut pins);add_file(root.join("preflight-plan.json"),&mut pins);let mut prior:BTreeSet<String>=serde_json::from_value(config["prior_proof_sha256"].clone()).unwrap();let inv=read(root.join("preflight-proof-inventory.json"));assert_eq!(inv.as_object().unwrap().len(),36);for(name,digest)in inv.as_object().unwrap(){assert_eq!(hash(name),digest.as_str().unwrap());pins.insert(name.clone(),digest.as_str().unwrap().into());if name.ends_with(".proof"){assert!(prior.insert(digest.as_str().unwrap().into()));}}
+ for name in ["preflight-proof-inventory.json","preflight-validation.json","preflight/result.json","native-v2/libraries/stdout.log","native-v2/candidate/artifacts.json"]{add_file(root.join(name),&mut pins)}
+ assert_eq!(read(root.join("preflight/result.json"))["status"],"complete");assert_eq!(read(root.join("preflight-validation.json"))["status"],"passed");config["pins"]=json!(pins);config["prior_proof_sha256"]=json!(prior);save(root.join("perf-plan.json"),config);println!("PERF_FINALIZED with preflight receipt/proof guards");return;
+}
+assert_eq!(mode,"prepare");assert_eq!(read(root.join("native-v2/result.json"))["status"],"complete");
+let old=read("/tmp/zopro-bounded-steal-search/perf-input-pins.json");let mut pins=BTreeMap::<String,String>::new();for(name,digest)in old.as_object().unwrap(){if name.starts_with("/home/ubuntu/src/zk-tools/zopro/")||name.starts_with("/tmp/zopro-canonical-grain-adoption/images/")||name.starts_with("/tmp/zopro-gnark-verify/")||name.starts_with("/tmp/zopro-grouping-module/"){assert_eq!(hash(name),digest.as_str().unwrap());pins.insert(name.clone(),digest.as_str().unwrap().into());}}
+for(name,digest)in read(root.join("candidate-v2/.xtask/source-pins.json")).as_object().unwrap(){assert_eq!(hash(name),digest.as_str().unwrap());pins.insert(name.clone(),digest.as_str().unwrap().into());}
+for receipt in [root.join("native-v2/candidate/artifacts.json"),Path::new("/tmp/zopro-grouping-module/native/candidate/artifacts.json").to_owned()]{let v=read(&receipt);add_file(&receipt,&mut pins);let b=v["binary"].as_str().unwrap();assert_eq!(hash(b),v["binary_sha256"].as_str().unwrap());add_file(b,&mut pins);for(name,digest)in v["input_pins"].as_object().unwrap(){assert_eq!(hash(name),digest.as_str().unwrap());pins.insert(name.clone(),digest.as_str().unwrap().into());}}
+for name in ["experiment.json","prepare.json","prepare-v2.json","native-plan-v2.json","source-audit.rs","source-audit.json","repair-build.rs","failure-v1.json","native-plan.json","implement.rs","make-protocol.rs","analyze.rs","analyze","analyze-tests","analyze-tests.log","inventory-preflight.sh","validate-preflight.jq","build-input-pins-v2.json","prepare-build.rs","prepare-build-v2.rs","upstream-pins.json","lock-audit.json","trace-build-plan.json","prepare-protocol-source.rs","registry-audit.rs","registry-audit.json","registry-input-pins.json"]{add_file(root.join(name),&mut pins)}
+for (name,digest) in read(root.join("build-input-pins-v2.json")).as_object().unwrap(){assert_eq!(hash(name),digest.as_str().unwrap());pins.insert(name.clone(),digest.as_str().unwrap().into());}
+for (name,digest) in read(root.join("registry-input-pins.json")).as_object().unwrap(){assert_eq!(hash(name),digest.as_str().unwrap());pins.insert(name.clone(),digest.as_str().unwrap().into());}
+// Pin the exact scheduler/collector libraries present in each actual Cargo
+// artifact stream, in addition to the eight directly linked driver libraries.
+let mut linked=serde_json::Map::new();
+for (variant,path) in [("accepted","/tmp/zopro-grouping-module/native/libraries/stdout.log"),("candidate","/tmp/zopro-retained-deque-buffers/native-v2/libraries/stdout.log")] {
+ let text=fs::read_to_string(path).unwrap();let mut found=BTreeMap::<String,String>::new();
+ for line in text.lines(){if let Ok(v)=serde_json::from_str::<Value>(line){if v["reason"]=="compiler-artifact" {if let Some(name)=v["target"]["name"].as_str(){if ["crossbeam_deque","crossbeam_epoch","crossbeam_utils","rayon_core"].contains(&name){for f in v["filenames"].as_array().unwrap(){let p=f.as_str().unwrap();if p.ends_with(".rlib"){assert!(found.insert(name.into(),p.into()).is_none());add_file(p,&mut pins);}}}}}}}
+ assert_eq!(found.len(),4); linked.insert(variant.into(),json!(found));add_file(path,&mut pins);
+}
+save(root.join("linked-scheduler-libraries.json"),json!(linked));add_file(root.join("linked-scheduler-libraries.json"),&mut pins);
+add_file("/home/ubuntu/src/zk-tools/zopro/xtask/target/release/xtask",&mut pins);
+let mut prior:BTreeSet<String>=serde_json::from_value(read("/tmp/zopro-bounded-steal-search/aws/context/prior-proofs.json")).unwrap();for p in ["/tmp/zopro-bounded-steal-search/aws/local-review/proof-inventory.json","/tmp/zopro-bounded-steal-search/aws/local-output/preflight-proof-inventory.json"]{if Path::new(p).exists(){inventory(p,&mut prior);}}
+// The exact-image local inventory is represented by its seven proof paths in the full tree.
+fn proofs(dir:&Path,prior:&mut BTreeSet<String>){for e in fs::read_dir(dir).unwrap(){let p=e.unwrap().path();if p.is_dir(){proofs(&p,prior)}else if p.extension().is_some_and(|e|e=="proof"){prior.insert(hash(p));}}}
+proofs(Path::new("/tmp/zopro-bounded-steal-search/aws/local-output/preflight-proofs"),&mut prior);
+inventory("/tmp/zopro-fft-pass-grain/proof-inventory.json",&mut prior);
+inventory("/tmp/zopro-serial-fft-leaves/proof-inventory.json",&mut prior);
+let variants=json!([{"name":"accepted","binary":"/tmp/zopro-grouping-module/native/candidate-sdk"},{"name":"off","binary":root.join("native-v2/candidate-sdk"),"environment":{"ZOPRO_CPU_RETAINED_DEQUE_BUFFERS":"0"}},{"name":"on","binary":root.join("native-v2/candidate-sdk"),"environment":{"ZOPRO_CPU_RETAINED_DEQUE_BUFFERS":"1"}}]);
+let mut all=read("/tmp/zopro-bounded-steal-search/all-nine-template.json");all["variants"]=variants.clone();all["pins"]=json!({});all["prior_proof_sha256"]=json!(prior);all["checks"]=json!([]);let mut steps=Vec::new();for variant in ["off","on"]{for case in all["cases"].as_array().unwrap().iter().take(9){let shape=case["shape"].as_str().unwrap();let image=case["image"].as_str().unwrap();let stem=Path::new(image).file_stem().unwrap().to_str().unwrap();add_file(format!("/tmp/zopro-keys/{stem}.zopro"),&mut pins);let name=format!("{variant}-w4-{shape}");let proof=root.join("preflight-proofs").join(&name);steps.push(json!({"kind":"command","name":format!("{name}-prove"),"argv":[root.join("native-v2/candidate-sdk").to_str().unwrap(),image,case["request"].as_str().unwrap(),"1",proof.join(stem).to_str().unwrap()],"environment":{"RAYON_NUM_THREADS":"4","ZOPRO_CPU_RETAINED_DEQUE_BUFFERS":if variant=="on"{"1"}else{"0"}},"timeout_seconds":600}));steps.push(json!({"kind":"command","name":format!("{name}-verify"),"argv":["/tmp/zopro-gnark-verify/verify","/tmp/zopro-keys",proof.to_str().unwrap(),"/home/ubuntu/src/zk-tools/zopro/tools/zolana/zopro-keys.lock"],"timeout_seconds":600}));}}
+assert_eq!(steps.len(),36);save(root.join("all-nine-template.json"),all);add_file(root.join("all-nine-template.json"),&mut pins);
+let check=json!(["jq","-n","--slurpfile","inventory",root.join("preflight-proof-inventory.json"),"--slurpfile","template",root.join("all-nine-template.json"),"-f",root.join("validate-preflight.jq")]);steps.push(json!({"kind":"command","name":"proof-inventory","argv":["bash",root.join("inventory-preflight.sh").to_str().unwrap()],"timeout_seconds":30}));steps.push(json!({"kind":"command","name":"validate-inventory","argv":check,"timeout_seconds":30}));let mut perf=read("/tmp/zopro-bounded-steal-search/perf-template.json");perf["variants"]=variants;perf["pins"]=json!({});perf["prior_proof_sha256"]=json!(prior);perf["checks"]=json!([check]);
+perf["cases"]=read("/tmp/zopro-bounded-steal-search/all-nine-template.json")["cases"].clone();
+for case in perf["cases"].as_array_mut().unwrap() {
+    case["rounds"]=json!(31);
+    case["profile_rounds"]=json!(match case["name"].as_str().unwrap(){"1x2-w32"=>101,"12x2-w32"=>51,_=>9});
+}
+let mut physical=perf["cases"][0].clone();physical["name"]=json!("1x2-w16");physical["workers"]=json!(16);physical["rounds"]=json!(101);physical["cpu_affinity"]=json!("0-15");physical["reference"]=Value::Null;
+perf["cases"].as_array_mut().unwrap().push(physical);
+perf["profile_cases"]=json!(["1x2-w32","12x2-w32","merge-54x1-w32"]);
+assert_eq!(perf["cases"].as_array().unwrap().len(),10);
+let calls=perf["cases"].as_array().unwrap().iter().map(|c|c["rounds"].as_u64().unwrap()+3).sum::<u64>()*7*3;
+assert_eq!(calls,8610);
+save(root.join("perf-template.json"),perf.clone());add_file(root.join("perf-template.json"),&mut pins);save(root.join("input-pins.json"),json!(pins));let preflight=json!({"version":1,"source_pins":root.join("input-pins.json"),"environment":perf["environment"],"steps":steps});save(root.join("preflight-plan.json"),preflight);perf["pins"]=json!(pins);save(root.join("perf-template-with-pins.json"),perf);println!("PROTOCOL_FROZEN {} pins,{} prior identities,72 SDK/18 exports preflight",pins.len(),prior.len());
+}

@@ -1,0 +1,88 @@
+   Compiling rustversion v1.0.23
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.15
+   Compiling once_cell v1.21.4
+   Compiling libc v0.2.191
+   Compiling log v0.4.34
+   Compiling cfg-if v1.0.5
+   Compiling regex-syntax v0.8.11
+   Compiling pin-project-lite v0.2.17
+   Compiling lazy_static v1.5.1
+   Compiling nu-ansi-term v0.50.3
+   Compiling smallvec v1.16.4
+   Compiling scoped-tls v1.0.1
+   Compiling thread_local v1.1.10
+   Compiling sharded-slab v0.1.7
+   Compiling cc v1.10.0
+   Compiling tracing-core v0.1.36
+   Compiling tracing v0.1.44
+   Compiling tracing-log v0.2.0
+   Compiling generator v0.8.11
+   Compiling regex-automata v0.4.18
+   Compiling matchers v0.2.0
+   Compiling tracing-subscriber v0.3.23
+   Compiling loom v0.7.2
+   Compiling zopro-retained-buffer-lifetime-model v0.0.0 (/tmp/zopro-retained-deque-buffers/model)
+warning: struct `Allocation` is never constructed
+ --> src/lib.rs:5:8
+  |
+5 | struct Allocation { id: usize, live: AtomicBool, data: UnsafeCell<usize> }
+  |        ^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated items `new`, `read`, and `reclaim` are never used
+  --> src/lib.rs:7:8
+   |
+ 6 | impl Allocation {
+   | --------------- associated items in this implementation
+ 7 |     fn new(id: usize) -> Arc<Self> { Arc::new(Self { id, live: AtomicBool::new(true), data: UnsafeCell::new(id) }) }
+   |        ^^^
+ 8 |     fn read(&self) {
+   |        ^^^^
+...
+16 |     fn reclaim(&self, freed: &AtomicUsize) {
+   |        ^^^^^^^
+
+warning: struct `Inner` is never constructed
+  --> src/lib.rs:23:8
+   |
+23 | struct Inner {
+   |        ^^^^^
+
+warning: associated items `new` and `resize_from_sole_owner` are never used
+  --> src/lib.rs:32:8
+   |
+31 | impl Inner {
+   | ---------- associated items in this implementation
+32 |     fn new(first: Arc<Allocation>, freed: Arc<AtomicUsize>) -> Arc<Self> {
+   |        ^^^
+...
+35 |     fn resize_from_sole_owner(&self, next: Arc<Allocation>, break_retention: bool) {
+   |        ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: function `run` is never used
+  --> src/lib.rs:55:4
+   |
+55 | fn run(break_retention: bool) {
+   |    ^^^
+
+error: implicit autoref creates a reference to the dereference of a raw pointer
+  --> src/lib.rs:47:16
+   |
+47 |             if (*p).live.load(Ordering::SeqCst) { (*p).reclaim(&self.freed); }
+   |                ^^-^^^^^^
+   |                  |
+   |                  this raw pointer has type `*const loom::sync::Arc<Allocation>`
+   |
+   = note: creating a reference requires the pointer target to be valid and imposes aliasing requirements
+   = note: references are created through calls to explicit `Deref(Mut)::deref(_mut)` implementations
+   = note: `#[deny(dangerous_implicit_autorefs)]` on by default
+help: try using a raw pointer method instead; or if this reference is intentional, make it explicit
+   |
+47 |             if (&(*p)).live.load(Ordering::SeqCst) { (*p).reclaim(&self.freed); }
+   |                ++    +
+
+warning: `zopro-retained-buffer-lifetime-model` (lib) generated 5 warnings
+error: could not compile `zopro-retained-buffer-lifetime-model` (lib) due to 1 previous error; 5 warnings emitted
+warning: build failed, waiting for other jobs to finish...

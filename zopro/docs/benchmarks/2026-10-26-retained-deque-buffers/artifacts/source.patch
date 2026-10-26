@@ -1,0 +1,298 @@
+diff --git a/tmp/zopro-retained-deque-buffers/upstream-deque.rs b/tmp/zopro-retained-deque-buffers/candidate-v2/vendor/crossbeam-deque-0.8.8/src/deque.rs
+index e33cf4e2..9c8aa1d3 100644
+--- a/tmp/zopro-retained-deque-buffers/upstream-deque.rs
++++ b/tmp/zopro-retained-deque-buffers/candidate-v2/vendor/crossbeam-deque-0.8.8/src/deque.rs
+@@ -8,6 +8,8 @@ use std::mem::{self, MaybeUninit};
+ use std::ptr;
+ use std::sync::atomic::{self, AtomicPtr, AtomicUsize, Ordering};
+ use std::sync::Arc;
++#[cfg(zopro_retained_deque_buffers)]
++use std::vec::Vec;
+ 
+ use crossbeam_epoch::{self as epoch, Atomic, Owned};
+ use crossbeam_utils::{Backoff, CachePadded};
+@@ -67,11 +69,15 @@ impl<T> Buffer<T> {
+         )
+         .cast::<T>();
+ 
++        #[cfg(all(test, zopro_retained_deque_buffers))]
++        retained_tests::allocation(ptr as usize, true);
+         Buffer { ptr, cap }
+     }
+ 
+     /// Deallocates the buffer.
+     unsafe fn dealloc(self) {
++        #[cfg(all(test, zopro_retained_deque_buffers))]
++        retained_tests::allocation(self.ptr as usize, false);
+         drop(Box::from_raw(ptr::slice_from_raw_parts_mut(
+             self.ptr.cast::<MaybeUninit<T>>(),
+             self.cap,
+@@ -138,6 +144,15 @@ struct Inner<T> {
+ 
+     /// The underlying buffer.
+     buffer: CachePadded<Atomic<Buffer<T>>>,
++
++    // Immutable mode. Only the !Sync Worker owner changes retired_buffers.
++    // Stealers never access the vector; their Arc keeps its allocations alive.
++    #[cfg(zopro_retained_deque_buffers)]
++    retained: bool,
++    #[cfg(zopro_retained_deque_buffers)]
++    retired_buffers: UnsafeCell<Vec<Atomic<Buffer<T>>>>,
++    #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
++    trace_id: usize,
+ }
+ 
+ impl<T> Drop for Inner<T> {
+@@ -156,6 +171,19 @@ impl<T> Drop for Inner<T> {
+                 i = i.wrapping_add(1);
+             }
+ 
++            #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
++            self.trace("drop", buffer.deref().cap);
++
++            // Arc has no remaining owner/stealer: all descriptor references are gone.
++            // Pending payloads were dropped above, only in the current buffer.
++            #[cfg(zopro_retained_deque_buffers)]
++            for retired in self.retired_buffers.get_mut().drain(..) {
++                // Atomic -> Owned is deferred until here, never during a live steal.
++                // Old arrays contain stale copies, so deallocate MaybeUninit storage
++                // without running T::drop on any copied entry.
++                retired.into_owned().into_box().dealloc();
++            }
++
+             // Free the memory allocated by the buffer.
+             buffer.into_owned().into_box().dealloc();
+         }
+@@ -247,8 +275,17 @@ impl<T> Worker<T> {
+             front: AtomicWorkerIndex::new(0),
+             back: AtomicWorkerIndex::new(0),
+             buffer: CachePadded::new(Atomic::new(buffer)),
++            #[cfg(zopro_retained_deque_buffers)]
++            retained: retained_buffers_enabled(),
++            #[cfg(zopro_retained_deque_buffers)]
++            retired_buffers: UnsafeCell::new(Vec::new()),
++            #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
++            trace_id: TRACE_QUEUE_ID.fetch_add(1, Ordering::Relaxed),
+         }));
+ 
++        #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
++        inner.trace("new", buffer.cap);
++
+         Worker {
+             inner,
+             buffer: Cell::new(buffer),
+@@ -275,8 +312,17 @@ impl<T> Worker<T> {
+             front: AtomicWorkerIndex::new(0),
+             back: AtomicWorkerIndex::new(0),
+             buffer: CachePadded::new(Atomic::new(buffer)),
++            #[cfg(zopro_retained_deque_buffers)]
++            retained: retained_buffers_enabled(),
++            #[cfg(zopro_retained_deque_buffers)]
++            retired_buffers: UnsafeCell::new(Vec::new()),
++            #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
++            trace_id: TRACE_QUEUE_ID.fetch_add(1, Ordering::Relaxed),
+         }));
+ 
++        #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
++        inner.trace("new", buffer.cap);
++
+         Worker {
+             inner,
+             buffer: Cell::new(buffer),
+@@ -329,6 +375,19 @@ impl<T> Worker<T> {
+                 .buffer
+                 .swap(Owned::new(new).into_shared(guard), Ordering::Release, guard);
+ 
++        #[cfg(zopro_retained_deque_buffers)]
++        if self.inner.retained {
++            // SAFETY: Worker is !Sync, so only this owner mutates the vector.
++            // Atomic::from preserves a shared pointer, without claiming exclusive
++            // access while a stealer might still reference the old descriptor.
++            (*self.inner.retired_buffers.get()).push(Atomic::from(old));
++            #[cfg(zopro_deque_trace)]
++            self.inner.trace("resize", new_cap);
++            return;
++        }
++        #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
++        self.inner.trace("resize", new_cap);
++
+         // Destroy the old buffer later.
+         guard.defer_unchecked(move || old.into_owned().into_box().dealloc());
+ 
+@@ -493,7 +552,9 @@ impl<T> Worker<T> {
+                     let task = buffer.read(f).assume_init();
+ 
+                     // Shrink the buffer if `len - 1` is less than one fourth of the capacity.
+-                    if buffer.cap > MIN_CAP && len <= buffer.cap as WorkerIndex / 4 {
++                    if buffer.cap > MIN_CAP && len <= buffer.cap as WorkerIndex / 4
++                        && self.shrink_allowed()
++                    {
+                         self.resize(buffer.cap / 2);
+                     }
+ 
+@@ -546,7 +607,9 @@ impl<T> Worker<T> {
+                         self.inner.back.store(b.wrapping_add(1), Ordering::Relaxed);
+                     } else {
+                         // Shrink the buffer if `len` is less than one fourth of the capacity.
+-                        if buffer.cap > MIN_CAP && len < buffer.cap as WorkerIndex / 4 {
++                        if buffer.cap > MIN_CAP && len < buffer.cap as WorkerIndex / 4
++                            && self.shrink_allowed()
++                        {
+                             unsafe {
+                                 self.resize(buffer.cap / 2);
+                             }
+@@ -657,6 +720,27 @@ impl<T> Stealer<T> {
+         // Load the front index.
+         let f = self.inner.front.load(Ordering::Acquire);
+ 
++        #[cfg(zopro_retained_deque_buffers)]
++        let pinned;
++        #[cfg(zopro_retained_deque_buffers)]
++        let guard = if self.inner.retained {
++            // Pinning normally supplies this required fence. Retention removes
++            // reclamation bookkeeping, never the queue's ordering requirement.
++            atomic::fence(Ordering::SeqCst);
++            // SAFETY: every shared worker buffer accessed by this operation
++            // remains owned until the final Inner Arc is gone. &self (and dest)
++            // keep that Arc alive throughout this operation. No pointer escapes.
++            unsafe { epoch::unprotected() }
++        } else {
++            if epoch::is_pinned() {
++                atomic::fence(Ordering::SeqCst);
++            }
++            pinned = epoch::pin();
++            &pinned
++        };
++
++        #[cfg(not(zopro_retained_deque_buffers))]
++        let guard = {
+         // A SeqCst fence is needed here.
+         //
+         // If the current thread is already pinned (reentrantly), we must manually issue the
+@@ -667,6 +751,8 @@ impl<T> Stealer<T> {
+         }
+ 
+         let guard = &epoch::pin();
++            guard
++        };
+ 
+         // Load the back index.
+         let b = self.inner.back.load(Ordering::Acquire);
+@@ -771,6 +857,27 @@ impl<T> Stealer<T> {
+         // Load the front index.
+         let mut f = self.inner.front.load(Ordering::Acquire);
+ 
++        #[cfg(zopro_retained_deque_buffers)]
++        let pinned;
++        #[cfg(zopro_retained_deque_buffers)]
++        let guard = if self.inner.retained && dest.inner.retained {
++            // Pinning normally supplies this required fence. Retention removes
++            // reclamation bookkeeping, never the queue's ordering requirement.
++            atomic::fence(Ordering::SeqCst);
++            // SAFETY: every shared worker buffer accessed by this operation
++            // remains owned until the final Inner Arc is gone. &self (and dest)
++            // keep that Arc alive throughout this operation. No pointer escapes.
++            unsafe { epoch::unprotected() }
++        } else {
++            if epoch::is_pinned() {
++                atomic::fence(Ordering::SeqCst);
++            }
++            pinned = epoch::pin();
++            &pinned
++        };
++
++        #[cfg(not(zopro_retained_deque_buffers))]
++        let guard = {
+         // A SeqCst fence is needed here.
+         //
+         // If the current thread is already pinned (reentrantly), we must manually issue the
+@@ -781,6 +888,8 @@ impl<T> Stealer<T> {
+         }
+ 
+         let guard = &epoch::pin();
++            guard
++        };
+ 
+         // Load the back index.
+         let b = self.inner.back.load(Ordering::Acquire);
+@@ -1013,6 +1122,27 @@ impl<T> Stealer<T> {
+         // Load the front index.
+         let mut f = self.inner.front.load(Ordering::Acquire);
+ 
++        #[cfg(zopro_retained_deque_buffers)]
++        let pinned;
++        #[cfg(zopro_retained_deque_buffers)]
++        let guard = if self.inner.retained && dest.inner.retained {
++            // Pinning normally supplies this required fence. Retention removes
++            // reclamation bookkeeping, never the queue's ordering requirement.
++            atomic::fence(Ordering::SeqCst);
++            // SAFETY: every shared worker buffer accessed by this operation
++            // remains owned until the final Inner Arc is gone. &self (and dest)
++            // keep that Arc alive throughout this operation. No pointer escapes.
++            unsafe { epoch::unprotected() }
++        } else {
++            if epoch::is_pinned() {
++                atomic::fence(Ordering::SeqCst);
++            }
++            pinned = epoch::pin();
++            &pinned
++        };
++
++        #[cfg(not(zopro_retained_deque_buffers))]
++        let guard = {
+         // A SeqCst fence is needed here.
+         //
+         // If the current thread is already pinned (reentrantly), we must manually issue the
+@@ -1023,6 +1153,8 @@ impl<T> Stealer<T> {
+         }
+ 
+         let guard = &epoch::pin();
++            guard
++        };
+ 
+         // Load the back index.
+         let b = self.inner.back.load(Ordering::Acquire);
+@@ -2259,3 +2391,43 @@ impl<T> FromIterator<Steal<T>> for Steal<T> {
+         }
+     }
+ }
++
++
++#[cfg(zopro_retained_deque_buffers)]
++fn retained_buffers_enabled() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(|| std::env::var("ZOPRO_CPU_RETAINED_DEQUE_BUFFERS").is_ok_and(|v| v == "1"))
++}
++
++impl<T> Worker<T> {
++    #[inline]
++    fn shrink_allowed(&self) -> bool {
++        #[cfg(zopro_retained_deque_buffers)]
++        { !self.inner.retained }
++        #[cfg(not(zopro_retained_deque_buffers))]
++        { true }
++    }
++}
++
++#[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
++static TRACE_QUEUE_ID: AtomicUsize = AtomicUsize::new(0);
++
++#[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
++impl<T> Inner<T> {
++    // Only constructor/owner-resize/final-drop call this diagnostic. It is never
++    // compiled into the latency executable and adds no per-probe writes.
++    fn trace(&self, event: &str, current: usize) {
++        let retired = unsafe { &*self.retired_buffers.get() };
++        let retired_capacity: usize = retired.iter().map(|p| unsafe {
++            p.load(Ordering::Relaxed, epoch::unprotected()).deref().cap
++        }).sum();
++        std::eprintln!("ZOPRO_DEQUE_BUFFER queue={} event={} retained={} current={} retired={} generations={} vector_capacity={} payload_size={} descriptor_size={} handle_size={} inner_size={}",
++            self.trace_id, event, self.retained as u8, current, retired_capacity,
++            retired.len(), retired.capacity(), mem::size_of::<T>(),
++            mem::size_of::<Buffer<T>>(), mem::size_of::<Atomic<Buffer<T>>>(),
++            mem::size_of::<CachePadded<Inner<T>>>());
++    }
++}
++
++#[cfg(all(test, zopro_retained_deque_buffers))]
++mod retained_tests;

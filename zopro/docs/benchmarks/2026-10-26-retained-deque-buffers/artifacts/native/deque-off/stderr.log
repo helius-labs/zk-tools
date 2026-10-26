@@ -1,0 +1,592 @@
+   Compiling libc v0.2.191
+   Compiling zerocopy v0.8.63
+   Compiling cfg-if v1.0.5
+   Compiling crossbeam-utils v0.8.23
+   Compiling crossbeam-epoch v0.9.21
+   Compiling crossbeam-deque v0.8.8 (/tmp/zopro-retained-deque-buffers/candidate/vendor/crossbeam-deque-0.8.8)
+error[E0425]: cannot find type `Vec` in this scope
+   --> src/deque.rs:151:33
+    |
+151 |     retired_buffers: UnsafeCell<Vec<Atomic<Buffer<T>>>>,
+    |                                 ^^^ not found in this scope
+    |
+help: consider importing this struct
+    |
+  1 + use std::vec::Vec;
+    |
+
+error[E0433]: cannot find type `Vec` in this scope
+   --> src/deque.rs:279:46
+    |
+279 |             retired_buffers: UnsafeCell::new(Vec::new()),
+    |                                              ^^^ use of undeclared type `Vec`
+    |
+help: consider importing this struct
+    |
+  1 + use std::vec::Vec;
+    |
+
+error[E0433]: cannot find type `Vec` in this scope
+   --> src/deque.rs:316:46
+    |
+316 |             retired_buffers: UnsafeCell::new(Vec::new()),
+    |                                              ^^^ use of undeclared type `Vec`
+    |
+help: consider importing this struct
+    |
+  1 + use std::vec::Vec;
+    |
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+    --> src/deque.rs:2394:7
+     |
+2394 | #[cfg(zopro_retained_deque_buffers)]
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: expected names are: `crossbeam_loom`, `crossbeam_sanitize`, `crossbeam_sanitize_thread`, `docsrs`, `feature`, and `test` and 32 more
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+     = note: requested on the command line with `-W unexpected-cfgs`
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+    --> src/deque.rs:2410:11
+     |
+2410 | #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+     |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_deque_trace`
+    --> src/deque.rs:2410:41
+     |
+2410 | #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+     |                                         ^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_deque_trace)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_deque_trace)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+    --> src/deque.rs:2413:11
+     |
+2413 | #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+     |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_deque_trace`
+    --> src/deque.rs:2413:41
+     |
+2413 | #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+     |                                         ^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_deque_trace)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_deque_trace)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+    --> src/deque.rs:2430:17
+     |
+2430 | #[cfg(all(test, zopro_retained_deque_buffers))]
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+  --> src/deque.rs:70:25
+   |
+70 |         #[cfg(all(test, zopro_retained_deque_buffers))]
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+  --> src/deque.rs:77:25
+   |
+77 |         #[cfg(all(test, zopro_retained_deque_buffers))]
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:148:11
+    |
+148 |     #[cfg(zopro_retained_deque_buffers)]
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:150:11
+    |
+150 |     #[cfg(zopro_retained_deque_buffers)]
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:152:15
+    |
+152 |     #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_deque_trace`
+   --> src/deque.rs:152:45
+    |
+152 |     #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                                             ^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_deque_trace)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_deque_trace)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:172:23
+    |
+172 |             #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_deque_trace`
+   --> src/deque.rs:172:53
+    |
+172 |             #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                                                     ^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_deque_trace)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_deque_trace)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:177:19
+    |
+177 |             #[cfg(zopro_retained_deque_buffers)]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:284:19
+    |
+284 |         #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_deque_trace`
+   --> src/deque.rs:284:49
+    |
+284 |         #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                                                 ^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_deque_trace)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_deque_trace)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:276:19
+    |
+276 |             #[cfg(zopro_retained_deque_buffers)]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:278:19
+    |
+278 |             #[cfg(zopro_retained_deque_buffers)]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:280:23
+    |
+280 |             #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_deque_trace`
+   --> src/deque.rs:280:53
+    |
+280 |             #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                                                     ^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_deque_trace)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_deque_trace)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:321:19
+    |
+321 |         #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_deque_trace`
+   --> src/deque.rs:321:49
+    |
+321 |         #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                                                 ^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_deque_trace)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_deque_trace)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:313:19
+    |
+313 |             #[cfg(zopro_retained_deque_buffers)]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:315:19
+    |
+315 |             #[cfg(zopro_retained_deque_buffers)]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:317:23
+    |
+317 |             #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_deque_trace`
+   --> src/deque.rs:317:53
+    |
+317 |             #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                                                     ^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_deque_trace)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_deque_trace)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:376:15
+    |
+376 |         #[cfg(zopro_retained_deque_buffers)]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:386:19
+    |
+386 |         #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_deque_trace`
+   --> src/deque.rs:386:49
+    |
+386 |         #[cfg(all(zopro_retained_deque_buffers, zopro_deque_trace))]
+    |                                                 ^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_deque_trace)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_deque_trace)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_deque_trace`
+   --> src/deque.rs:382:19
+    |
+382 |             #[cfg(zopro_deque_trace)]
+    |                   ^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_deque_trace)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_deque_trace)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:721:15
+    |
+721 |         #[cfg(zopro_retained_deque_buffers)]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:723:15
+    |
+723 |         #[cfg(zopro_retained_deque_buffers)]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:740:19
+    |
+740 |         #[cfg(not(zopro_retained_deque_buffers))]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:858:15
+    |
+858 |         #[cfg(zopro_retained_deque_buffers)]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:860:15
+    |
+860 |         #[cfg(zopro_retained_deque_buffers)]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+   --> src/deque.rs:877:19
+    |
+877 |         #[cfg(not(zopro_retained_deque_buffers))]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+    --> src/deque.rs:1123:15
+     |
+1123 |         #[cfg(zopro_retained_deque_buffers)]
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+    --> src/deque.rs:1125:15
+     |
+1125 |         #[cfg(zopro_retained_deque_buffers)]
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+    --> src/deque.rs:1142:19
+     |
+1142 |         #[cfg(not(zopro_retained_deque_buffers))]
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+    --> src/deque.rs:2403:15
+     |
+2403 |         #[cfg(zopro_retained_deque_buffers)]
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_retained_deque_buffers`
+    --> src/deque.rs:2405:19
+     |
+2405 |         #[cfg(not(zopro_retained_deque_buffers))]
+     |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_retained_deque_buffers)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_retained_deque_buffers)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+Some errors have detailed explanations: E0425, E0433.
+For more information about an error, try `rustc --explain E0425`.
+warning: `crossbeam-deque` (lib) generated 42 warnings
+error: could not compile `crossbeam-deque` (lib) due to 3 previous errors; 42 warnings emitted
+warning: build failed, waiting for other jobs to finish...

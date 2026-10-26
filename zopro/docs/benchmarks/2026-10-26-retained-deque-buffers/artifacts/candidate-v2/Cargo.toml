@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/zopro-core",
+    "crates/zopro-bn254",
+    "crates/zopro-prover",
+    "crates/zopro-zolana",
+    "crates/zopro-bench",
+    "crates/zopro-metal",
+    "crates/zopro-wgpu",
+]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[patch.crates-io]
+crossbeam-deque = { path = "vendor/crossbeam-deque-0.8.8" }
