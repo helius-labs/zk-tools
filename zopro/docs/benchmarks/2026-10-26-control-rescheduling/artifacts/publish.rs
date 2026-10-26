@@ -59,6 +59,17 @@ fn main() {
     let mut hashes: BTreeMap<String, String> =
         serde_json::from_value(read(d.join("artifact-index.json"))).unwrap();
     hashes.insert("publish.rs".into(), hash(&p));
+    for (path, expected) in read(r.join("all-proof-inventory.json"))
+        .as_object()
+        .unwrap()
+    {
+        assert_eq!(hash(path), expected.as_str().unwrap());
+        let rel = Path::new(path).strip_prefix(r).unwrap();
+        let target = d.join("artifacts").join(rel);
+        fs::create_dir_all(target.parent().unwrap()).unwrap();
+        fs::copy(path, &target).unwrap();
+        hashes.insert(rel.display().to_string(), hash(&target));
+    }
     for (rel, h) in &hashes {
         assert_eq!(hash(d.join("artifacts").join(rel)), *h);
     }
