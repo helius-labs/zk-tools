@@ -1,0 +1,34 @@
+{
+  "InstanceIds": [
+    "i-082becfdfc8a3048a"
+  ],
+  "DocumentName": "AWS-RunShellScript",
+  "Comment": "Bounded victim-scan target image and exact SDK preflight",
+  "Parameters": {
+    "commands": [
+      "set -eu",
+      "cloud-init status --wait",
+      "test -f /var/lib/cloud/instance/boot-finished",
+      "systemctl is-active zopro-bounded-search-ttl.timer",
+      "docker info > /dev/null",
+      "install -d -m 700 /var/tmp/zopro-bounded-search-c7a/docker-auth",
+      "trap 'if test -f /var/tmp/zopro-bounded-search-c7a/docker-auth/config.json; then unlink /var/tmp/zopro-bounded-search-c7a/docker-auth/config.json; fi; rmdir /var/tmp/zopro-bounded-search-c7a/docker-auth' EXIT",
+      "/usr/local/bin/aws ecr get-login-password --region eu-north-1 | docker --config /var/tmp/zopro-bounded-search-c7a/docker-auth login --username AWS --password-stdin 558215002830.dkr.ecr.eu-north-1.amazonaws.com > /var/tmp/zopro-bounded-search-c7a/docker-login.log 2>&1",
+      "docker --config /var/tmp/zopro-bounded-search-c7a/docker-auth pull 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:11d0347ca3aae898c6631354a32ccca98ce5616869080356879336a40767c9a5 > /var/tmp/zopro-bounded-search-c7a/docker-pull.log 2>&1",
+      "docker image inspect 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:11d0347ca3aae898c6631354a32ccca98ce5616869080356879336a40767c9a5 --format '{{.Id}}'",
+      "mkdir -p /var/tmp/zopro-bounded-search-c7a/output",
+      "docker run --rm --name zopro-bounded-search-c7a-preflight --network none --cpuset-cpus 0-95 --memory 30g --memory-swap 30g --pids-limit 1024 --cap-drop ALL --security-opt no-new-privileges -v /var/tmp/zopro-bounded-search-c7a/output:/output 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:11d0347ca3aae898c6631354a32ccca98ce5616869080356879336a40767c9a5 preflight > /var/tmp/zopro-bounded-search-c7a/preflight.log 2>&1",
+      "cat /var/tmp/zopro-bounded-search-c7a/output/preflight/result.json",
+      "docker run --rm --name zopro-bounded-search-c7a-perf-probe --network none --cap-drop ALL --cap-add PERFMON --security-opt seccomp=unconfined --security-opt no-new-privileges --entrypoint /usr/lib/linux-tools/6.8.0-147-generic/perf 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:11d0347ca3aae898c6631354a32ccca98ce5616869080356879336a40767c9a5 stat -e cycles:u,instructions:u,branches:u,branch-misses:u -- true > /var/tmp/zopro-bounded-search-c7a/perf-probe.log 2>&1",
+      "cat /var/tmp/zopro-bounded-search-c7a/perf-probe.log",
+      "cat /var/tmp/zopro-bounded-search-c7a/hardware.txt",
+      "cat /proc/loadavg",
+      "test \"$(getconf _NPROCESSORS_ONLN)\" -eq 96",
+      "docker run --rm --name zopro-bounded-search-record-probe --network none --cpuset-cpus 0-95 --ulimit memlock=268435456:268435456 --cap-drop ALL --cap-add PERFMON --security-opt seccomp=unconfined --security-opt no-new-privileges --entrypoint /usr/lib/linux-tools/6.8.0-147-generic/perf 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:11d0347ca3aae898c6631354a32ccca98ce5616869080356879336a40767c9a5 record --clockid mono -e cycles:u -m 512 -o /tmp/record-probe.data -- true > /var/tmp/zopro-bounded-search-c7a/record-probe.log 2>&1",
+      "cat /var/tmp/zopro-bounded-search-c7a/record-probe.log"
+    ],
+    "executionTimeout": [
+      "900"
+    ]
+  }
+}

@@ -1,0 +1,2475 @@
+{
+  "version": 1,
+  "source_pins": "/experiment/input-pins.json",
+  "environment": {
+    "MALLOC_ARENA_MAX": "32",
+    "MALLOC_MMAP_THRESHOLD_": "1073741824",
+    "MALLOC_TRIM_THRESHOLD_": "-1",
+    "RAYON_NUM_THREADS": "32",
+    "ZOPRO_BASIS_KEY_DIR": "/basis-latest",
+    "ZOPRO_CPU_BOUNDED_SCHEDULE": "1",
+    "ZOPRO_CPU_CANONICAL_WIRES": "1",
+    "ZOPRO_CPU_DEFER_SIGNED_Y": "1",
+    "ZOPRO_CPU_DEFER_SIGN_PARTS": "1",
+    "ZOPRO_CPU_DEFER_SIGN_WIDTH": "12",
+    "ZOPRO_CPU_FFT_COLUMN_ROOTS": "1",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_LAGRANGE": "1",
+    "ZOPRO_CPU_LAGRANGE_DIR": "/output/lagrange-cache",
+    "ZOPRO_CPU_LAGRANGE_FOLD": "1",
+    "ZOPRO_CPU_PROOF_CONCURRENCY": "1",
+    "ZOPRO_CPU_RESOURCE_SCHEDULE": "1",
+    "ZOPRO_CPU_SMALL_CORE_ENTRY": "1",
+    "ZOPRO_CPU_ZERO_AWARE_GROUPS": "1"
+  },
+  "steps": [
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w32-accepted",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w32-accepted\nmkfifo /output/counters/stat-b0-w32-accepted/ctl /output/counters/stat-b0-w32-accepted/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w32-accepted",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w32-accepted/ctl,/output/counters/stat-b0-w32-accepted/ack",
+        "-o",
+        "/output/counters/stat-b0-w32-accepted/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b0-w32-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w32-accepted/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w32-accepted/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w32-accepted/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w32-accepted/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w32-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w32-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w32-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w32-off",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w32-off\nmkfifo /output/counters/stat-b0-w32-off/ctl /output/counters/stat-b0-w32-off/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w32-off",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w32-off/ctl,/output/counters/stat-b0-w32-off/ack",
+        "-o",
+        "/output/counters/stat-b0-w32-off/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b0-w32-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w32-off/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w32-off/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w32-off/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w32-off/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w32-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w32-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w32-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w32-on",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w32-on\nmkfifo /output/counters/stat-b0-w32-on/ctl /output/counters/stat-b0-w32-on/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w32-on",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w32-on/ctl,/output/counters/stat-b0-w32-on/ack",
+        "-o",
+        "/output/counters/stat-b0-w32-on/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b0-w32-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w32-on/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w32-on/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w32-on/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w32-on/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w32-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w32-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w32-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w32-aeglos",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w32-aeglos\nmkfifo /output/counters/stat-b0-w32-aeglos/ctl /output/counters/stat-b0-w32-aeglos/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w32-aeglos",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w32-aeglos/ctl,/output/counters/stat-b0-w32-aeglos/ack",
+        "-o",
+        "/output/counters/stat-b0-w32-aeglos/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "201"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w32-aeglos/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w32-aeglos/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w32-aeglos/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w32-aeglos/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w32-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w32-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w32-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w64-off",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w64-off\nmkfifo /output/counters/stat-b0-w64-off/ctl /output/counters/stat-b0-w64-off/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w64-off",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w64-off/ctl,/output/counters/stat-b0-w64-off/ack",
+        "-o",
+        "/output/counters/stat-b0-w64-off/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b0-w64-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w64-off/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w64-off/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w64-off/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w64-off/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w64-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w64-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w64-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w64-on",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w64-on\nmkfifo /output/counters/stat-b0-w64-on/ctl /output/counters/stat-b0-w64-on/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w64-on",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w64-on/ctl,/output/counters/stat-b0-w64-on/ack",
+        "-o",
+        "/output/counters/stat-b0-w64-on/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b0-w64-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w64-on/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w64-on/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w64-on/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w64-on/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w64-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w64-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w64-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w64-aeglos",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w64-aeglos\nmkfifo /output/counters/stat-b0-w64-aeglos/ctl /output/counters/stat-b0-w64-aeglos/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w64-aeglos",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w64-aeglos/ctl,/output/counters/stat-b0-w64-aeglos/ack",
+        "-o",
+        "/output/counters/stat-b0-w64-aeglos/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "201"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w64-aeglos/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w64-aeglos/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w64-aeglos/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w64-aeglos/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w64-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w64-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w64-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w64-accepted",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w64-accepted\nmkfifo /output/counters/stat-b0-w64-accepted/ctl /output/counters/stat-b0-w64-accepted/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w64-accepted",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w64-accepted/ctl,/output/counters/stat-b0-w64-accepted/ack",
+        "-o",
+        "/output/counters/stat-b0-w64-accepted/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b0-w64-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w64-accepted/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w64-accepted/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w64-accepted/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w64-accepted/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w64-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w64-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w64-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w96-on",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w96-on\nmkfifo /output/counters/stat-b0-w96-on/ctl /output/counters/stat-b0-w96-on/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w96-on",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w96-on/ctl,/output/counters/stat-b0-w96-on/ack",
+        "-o",
+        "/output/counters/stat-b0-w96-on/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b0-w96-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w96-on/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w96-on/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w96-on/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w96-on/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w96-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w96-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w96-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w96-aeglos",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w96-aeglos\nmkfifo /output/counters/stat-b0-w96-aeglos/ctl /output/counters/stat-b0-w96-aeglos/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w96-aeglos",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w96-aeglos/ctl,/output/counters/stat-b0-w96-aeglos/ack",
+        "-o",
+        "/output/counters/stat-b0-w96-aeglos/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "201"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w96-aeglos/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w96-aeglos/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w96-aeglos/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w96-aeglos/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w96-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w96-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w96-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w96-accepted",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w96-accepted\nmkfifo /output/counters/stat-b0-w96-accepted/ctl /output/counters/stat-b0-w96-accepted/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w96-accepted",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w96-accepted/ctl,/output/counters/stat-b0-w96-accepted/ack",
+        "-o",
+        "/output/counters/stat-b0-w96-accepted/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b0-w96-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w96-accepted/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w96-accepted/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w96-accepted/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w96-accepted/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w96-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w96-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w96-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b0-w96-off",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b0-w96-off\nmkfifo /output/counters/stat-b0-w96-off/ctl /output/counters/stat-b0-w96-off/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b0-w96-off",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b0-w96-off/ctl,/output/counters/stat-b0-w96-off/ack",
+        "-o",
+        "/output/counters/stat-b0-w96-off/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b0-w96-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b0-w96-off/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b0-w96-off/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b0-w96-off/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b0-w96-off/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b0-w96-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b0-w96-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b0-w96-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w96-accepted",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w96-accepted\nmkfifo /output/counters/stat-b1-w96-accepted/ctl /output/counters/stat-b1-w96-accepted/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w96-accepted",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w96-accepted/ctl,/output/counters/stat-b1-w96-accepted/ack",
+        "-o",
+        "/output/counters/stat-b1-w96-accepted/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b1-w96-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w96-accepted/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w96-accepted/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w96-accepted/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w96-accepted/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w96-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w96-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w96-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w96-aeglos",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w96-aeglos\nmkfifo /output/counters/stat-b1-w96-aeglos/ctl /output/counters/stat-b1-w96-aeglos/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w96-aeglos",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w96-aeglos/ctl,/output/counters/stat-b1-w96-aeglos/ack",
+        "-o",
+        "/output/counters/stat-b1-w96-aeglos/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "201"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w96-aeglos/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w96-aeglos/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w96-aeglos/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w96-aeglos/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w96-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w96-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w96-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w96-on",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w96-on\nmkfifo /output/counters/stat-b1-w96-on/ctl /output/counters/stat-b1-w96-on/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w96-on",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w96-on/ctl,/output/counters/stat-b1-w96-on/ack",
+        "-o",
+        "/output/counters/stat-b1-w96-on/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b1-w96-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w96-on/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w96-on/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w96-on/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w96-on/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w96-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w96-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w96-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w96-off",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w96-off\nmkfifo /output/counters/stat-b1-w96-off/ctl /output/counters/stat-b1-w96-off/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w96-off",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w96-off/ctl,/output/counters/stat-b1-w96-off/ack",
+        "-o",
+        "/output/counters/stat-b1-w96-off/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b1-w96-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w96-off/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w96-off/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w96-off/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w96-off/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w96-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w96-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w96-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w64-off",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w64-off\nmkfifo /output/counters/stat-b1-w64-off/ctl /output/counters/stat-b1-w64-off/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w64-off",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w64-off/ctl,/output/counters/stat-b1-w64-off/ack",
+        "-o",
+        "/output/counters/stat-b1-w64-off/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b1-w64-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w64-off/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w64-off/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w64-off/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w64-off/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w64-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w64-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w64-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w64-accepted",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w64-accepted\nmkfifo /output/counters/stat-b1-w64-accepted/ctl /output/counters/stat-b1-w64-accepted/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w64-accepted",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w64-accepted/ctl,/output/counters/stat-b1-w64-accepted/ack",
+        "-o",
+        "/output/counters/stat-b1-w64-accepted/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b1-w64-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w64-accepted/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w64-accepted/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w64-accepted/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w64-accepted/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w64-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w64-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w64-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w64-aeglos",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w64-aeglos\nmkfifo /output/counters/stat-b1-w64-aeglos/ctl /output/counters/stat-b1-w64-aeglos/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w64-aeglos",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w64-aeglos/ctl,/output/counters/stat-b1-w64-aeglos/ack",
+        "-o",
+        "/output/counters/stat-b1-w64-aeglos/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "201"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w64-aeglos/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w64-aeglos/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w64-aeglos/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w64-aeglos/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w64-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w64-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w64-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w64-on",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w64-on\nmkfifo /output/counters/stat-b1-w64-on/ctl /output/counters/stat-b1-w64-on/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w64-on",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w64-on/ctl,/output/counters/stat-b1-w64-on/ack",
+        "-o",
+        "/output/counters/stat-b1-w64-on/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b1-w64-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w64-on/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w64-on/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w64-on/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w64-on/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w64-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w64-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w64-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w32-on",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w32-on\nmkfifo /output/counters/stat-b1-w32-on/ctl /output/counters/stat-b1-w32-on/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w32-on",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w32-on/ctl,/output/counters/stat-b1-w32-on/ack",
+        "-o",
+        "/output/counters/stat-b1-w32-on/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b1-w32-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w32-on/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w32-on/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w32-on/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w32-on/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w32-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w32-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w32-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w32-off",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w32-off\nmkfifo /output/counters/stat-b1-w32-off/ctl /output/counters/stat-b1-w32-off/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w32-off",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w32-off/ctl,/output/counters/stat-b1-w32-off/ack",
+        "-o",
+        "/output/counters/stat-b1-w32-off/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b1-w32-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w32-off/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w32-off/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w32-off/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w32-off/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w32-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w32-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w32-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w32-accepted",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w32-accepted\nmkfifo /output/counters/stat-b1-w32-accepted/ctl /output/counters/stat-b1-w32-accepted/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w32-accepted",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w32-accepted/ctl,/output/counters/stat-b1-w32-accepted/ack",
+        "-o",
+        "/output/counters/stat-b1-w32-accepted/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b1-w32-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w32-accepted/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w32-accepted/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w32-accepted/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w32-accepted/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w32-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w32-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w32-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b1-w32-aeglos",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b1-w32-aeglos\nmkfifo /output/counters/stat-b1-w32-aeglos/ctl /output/counters/stat-b1-w32-aeglos/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b1-w32-aeglos",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b1-w32-aeglos/ctl,/output/counters/stat-b1-w32-aeglos/ack",
+        "-o",
+        "/output/counters/stat-b1-w32-aeglos/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "201"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b1-w32-aeglos/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b1-w32-aeglos/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b1-w32-aeglos/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b1-w32-aeglos/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b1-w32-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b1-w32-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b1-w32-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w32-on",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w32-on\nmkfifo /output/counters/stat-b2-w32-on/ctl /output/counters/stat-b2-w32-on/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w32-on",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w32-on/ctl,/output/counters/stat-b2-w32-on/ack",
+        "-o",
+        "/output/counters/stat-b2-w32-on/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b2-w32-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w32-on/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w32-on/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w32-on/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w32-on/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w32-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w32-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w32-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w32-aeglos",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w32-aeglos\nmkfifo /output/counters/stat-b2-w32-aeglos/ctl /output/counters/stat-b2-w32-aeglos/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w32-aeglos",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w32-aeglos/ctl,/output/counters/stat-b2-w32-aeglos/ack",
+        "-o",
+        "/output/counters/stat-b2-w32-aeglos/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "201"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w32-aeglos/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w32-aeglos/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w32-aeglos/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w32-aeglos/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w32-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w32-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w32-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w32-accepted",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w32-accepted\nmkfifo /output/counters/stat-b2-w32-accepted/ctl /output/counters/stat-b2-w32-accepted/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w32-accepted",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w32-accepted/ctl,/output/counters/stat-b2-w32-accepted/ack",
+        "-o",
+        "/output/counters/stat-b2-w32-accepted/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b2-w32-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w32-accepted/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w32-accepted/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w32-accepted/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w32-accepted/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w32-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w32-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w32-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w32-off",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w32-off\nmkfifo /output/counters/stat-b2-w32-off/ctl /output/counters/stat-b2-w32-off/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w32-off",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w32-off/ctl,/output/counters/stat-b2-w32-off/ack",
+        "-o",
+        "/output/counters/stat-b2-w32-off/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b2-w32-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w32-off/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w32-off/ctl",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w32-off/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w32-off/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w32-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w32-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w32-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w64-aeglos",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w64-aeglos\nmkfifo /output/counters/stat-b2-w64-aeglos/ctl /output/counters/stat-b2-w64-aeglos/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w64-aeglos",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w64-aeglos/ctl,/output/counters/stat-b2-w64-aeglos/ack",
+        "-o",
+        "/output/counters/stat-b2-w64-aeglos/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "201"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w64-aeglos/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w64-aeglos/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w64-aeglos/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w64-aeglos/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w64-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w64-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w64-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w64-accepted",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w64-accepted\nmkfifo /output/counters/stat-b2-w64-accepted/ctl /output/counters/stat-b2-w64-accepted/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w64-accepted",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w64-accepted/ctl,/output/counters/stat-b2-w64-accepted/ack",
+        "-o",
+        "/output/counters/stat-b2-w64-accepted/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b2-w64-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w64-accepted/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w64-accepted/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w64-accepted/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w64-accepted/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w64-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w64-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w64-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w64-off",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w64-off\nmkfifo /output/counters/stat-b2-w64-off/ctl /output/counters/stat-b2-w64-off/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w64-off",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w64-off/ctl,/output/counters/stat-b2-w64-off/ack",
+        "-o",
+        "/output/counters/stat-b2-w64-off/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b2-w64-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w64-off/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w64-off/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w64-off/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w64-off/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w64-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w64-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w64-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w64-on",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w64-on\nmkfifo /output/counters/stat-b2-w64-on/ctl /output/counters/stat-b2-w64-on/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w64-on",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w64-on/ctl,/output/counters/stat-b2-w64-on/ack",
+        "-o",
+        "/output/counters/stat-b2-w64-on/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b2-w64-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w64-on/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w64-on/ctl",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w64-on/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w64-on/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w64-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w64-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w64-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w96-accepted",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w96-accepted\nmkfifo /output/counters/stat-b2-w96-accepted/ctl /output/counters/stat-b2-w96-accepted/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w96-accepted",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w96-accepted/ctl,/output/counters/stat-b2-w96-accepted/ack",
+        "-o",
+        "/output/counters/stat-b2-w96-accepted/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b2-w96-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w96-accepted/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w96-accepted/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w96-accepted/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w96-accepted/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w96-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w96-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w96-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w96-off",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w96-off\nmkfifo /output/counters/stat-b2-w96-off/ctl /output/counters/stat-b2-w96-off/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w96-off",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w96-off/ctl,/output/counters/stat-b2-w96-off/ack",
+        "-o",
+        "/output/counters/stat-b2-w96-off/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b2-w96-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w96-off/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w96-off/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w96-off/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w96-off/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w96-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w96-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w96-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w96-on",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w96-on\nmkfifo /output/counters/stat-b2-w96-on/ctl /output/counters/stat-b2-w96-on/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w96-on",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w96-on/ctl,/output/counters/stat-b2-w96-on/ack",
+        "-o",
+        "/output/counters/stat-b2-w96-on/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "201",
+        "/output/comparison-proofs/stat-b2-w96-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w96-on/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w96-on/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w96-on/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w96-on/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w96-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w96-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w96-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "channels-stat-b2-w96-aeglos",
+      "argv": [
+        "/bin/sh",
+        "-c",
+        "set -eu\nmkdir -p /output/counters/stat-b2-w96-aeglos\nmkfifo /output/counters/stat-b2-w96-aeglos/ctl /output/counters/stat-b2-w96-aeglos/ack"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "stat-b2-w96-aeglos",
+      "argv": [
+        "/usr/lib/linux-tools/6.8.0-147-generic/perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "cycles:u,instructions:u,branches:u,branch-misses:u",
+        "--delay=-1",
+        "--control=fifo:/output/counters/stat-b2-w96-aeglos/ctl,/output/counters/stat-b2-w96-aeglos/ack",
+        "-o",
+        "/output/counters/stat-b2-w96-aeglos/stat.csv",
+        "--",
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "201"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "CROSS_PERF_ACK": "/output/counters/stat-b2-w96-aeglos/ack",
+        "CROSS_PERF_CTL": "/output/counters/stat-b2-w96-aeglos/ctl",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PERF_ACK": "/output/counters/stat-b2-w96-aeglos/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/output/counters/stat-b2-w96-aeglos/ctl",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/stat-b2-w96-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-stat-b2-w96-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/stat-b2-w96-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    }
+  ]
+}

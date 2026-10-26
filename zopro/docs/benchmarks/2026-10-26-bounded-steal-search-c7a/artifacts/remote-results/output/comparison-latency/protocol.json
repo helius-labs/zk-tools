@@ -1,0 +1,1431 @@
+{
+  "version": 1,
+  "source_pins": "/experiment/input-pins.json",
+  "environment": {
+    "MALLOC_ARENA_MAX": "32",
+    "MALLOC_MMAP_THRESHOLD_": "1073741824",
+    "MALLOC_TRIM_THRESHOLD_": "-1",
+    "RAYON_NUM_THREADS": "32",
+    "ZOPRO_BASIS_KEY_DIR": "/basis-latest",
+    "ZOPRO_CPU_BOUNDED_SCHEDULE": "1",
+    "ZOPRO_CPU_CANONICAL_WIRES": "1",
+    "ZOPRO_CPU_DEFER_SIGNED_Y": "1",
+    "ZOPRO_CPU_DEFER_SIGN_PARTS": "1",
+    "ZOPRO_CPU_DEFER_SIGN_WIDTH": "12",
+    "ZOPRO_CPU_FFT_COLUMN_ROOTS": "1",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_LAGRANGE": "1",
+    "ZOPRO_CPU_LAGRANGE_DIR": "/output/lagrange-cache",
+    "ZOPRO_CPU_LAGRANGE_FOLD": "1",
+    "ZOPRO_CPU_PROOF_CONCURRENCY": "1",
+    "ZOPRO_CPU_RESOURCE_SCHEDULE": "1",
+    "ZOPRO_CPU_SMALL_CORE_ENTRY": "1",
+    "ZOPRO_CPU_ZERO_AWARE_GROUPS": "1"
+  },
+  "steps": [
+    {
+      "kind": "command",
+      "name": "latency-b0-w32-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b0-w32-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w32-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w32-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w32-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w32-off",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b0-w32-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w32-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w32-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w32-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w32-on",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b0-w32-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w32-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w32-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w32-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w32-aeglos",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "31"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w32-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w32-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w32-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w64-off",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b0-w64-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w64-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w64-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w64-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w64-on",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b0-w64-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w64-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w64-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w64-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w64-aeglos",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "31"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w64-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w64-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w64-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w64-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b0-w64-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w64-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w64-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w64-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w96-on",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b0-w96-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w96-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w96-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w96-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w96-aeglos",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "31"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w96-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w96-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w96-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w96-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b0-w96-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w96-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w96-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w96-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b0-w96-off",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b0-w96-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b0-w96-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b0-w96-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b0-w96-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w96-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b1-w96-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w96-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w96-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w96-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w96-aeglos",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "31"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w96-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w96-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w96-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w96-on",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b1-w96-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w96-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w96-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w96-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w96-off",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b1-w96-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w96-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w96-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w96-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w64-off",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b1-w64-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w64-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w64-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w64-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w64-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b1-w64-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w64-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w64-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w64-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w64-aeglos",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "31"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w64-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w64-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w64-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w64-on",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b1-w64-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w64-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w64-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w64-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w32-on",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b1-w32-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w32-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w32-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w32-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w32-off",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b1-w32-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w32-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w32-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w32-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w32-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b1-w32-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w32-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w32-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w32-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b1-w32-aeglos",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "31"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b1-w32-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b1-w32-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b1-w32-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w32-on",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b2-w32-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w32-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w32-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w32-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w32-aeglos",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "31"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w32-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w32-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w32-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w32-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b2-w32-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w32-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w32-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w32-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w32-off",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b2-w32-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "32",
+        "GOMAXPROCS": "32",
+        "RAYON_NUM_THREADS": "32",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w32-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w32-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w32-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w64-aeglos",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "31"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w64-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w64-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w64-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w64-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b2-w64-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w64-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w64-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w64-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w64-off",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b2-w64-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w64-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w64-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w64-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w64-on",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b2-w64-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "64",
+        "GOMAXPROCS": "64",
+        "RAYON_NUM_THREADS": "64",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w64-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w64-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w64-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w96-accepted",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-accepted",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b2-w96-accepted/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w96-accepted",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w96-accepted",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w96-accepted",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w96-off",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b2-w96-off/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w96-off",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w96-off",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w96-off",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w96-on",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/experiment/zopro-candidate",
+        "/basis-latest/transfer_confidential_1_2.image",
+        "/fixtures/transfer-1x2.json",
+        "31",
+        "/output/comparison-proofs/latency-b2-w96-on/transfer_confidential_1_2"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w96-on",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w96-on",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w96-on",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "latency-b2-w96-aeglos",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-95",
+        "/usr/local/bin/aeglos-ablation",
+        "aeglos",
+        "/gnark-keys/transfer_confidential_1_2.key",
+        "/fixtures/transfer-1x2.json",
+        "31"
+      ],
+      "environment": {
+        "AEGLOS_BENCH_DISABLE_SHIFTED": "0",
+        "AEGLOS_CPU_THREADS": "96",
+        "GOMAXPROCS": "96",
+        "RAYON_NUM_THREADS": "96",
+        "ZOPRO_BENCH_PROOFS": "/output/comparison-proofs/latency-b2-w96-aeglos",
+        "ZOPRO_CPU_BOUNDED_STEAL_SEARCH": "0"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "verify-latency-b2-w96-aeglos",
+      "argv": [
+        "/usr/local/bin/gnark-verify",
+        "/keys",
+        "/output/comparison-proofs/latency-b2-w96-aeglos",
+        "/manifest/zopro-keys.lock"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    }
+  ]
+}

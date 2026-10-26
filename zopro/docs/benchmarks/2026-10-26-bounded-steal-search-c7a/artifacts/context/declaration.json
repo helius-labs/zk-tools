@@ -1,0 +1,121 @@
+{
+  "scope": "Predeclared target C7a stage of bounded simultaneous victim sweeps. Local speed screen failed and remains failed. No production adoption.",
+  "parent_declaration": "local-and-target-declaration.json",
+  "source": "Exact candidate-v2, Rayon scan admission ceil(workers/2), runtime flag ZOPRO_CPU_BOUNDED_STEAL_SEARCH=1; absent/0 OFF. Accepted crypto sources unchanged.",
+  "isa": "target-cpu=znver4 with all accepted crypto cfgs",
+  "host": "one temporary dedicated c7a.24xlarge, actual96physical cores/SMT1 checked",
+  "container": {
+    "cpus": "0-95 same for all worker counts",
+    "cpu_quota": "none",
+    "memory_gib": 30,
+    "swap": 0,
+    "pids": 1024,
+    "perf_memlock_bytes": 268435456,
+    "perf_buffer_pages": 512
+  },
+  "main": {
+    "workers": [
+      32,
+      64,
+      96
+    ],
+    "shapes": [
+      "1x2",
+      "merge-54x1"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "blocks": 3,
+    "latency_rounds": {
+      "primary": 31,
+      "merge54": 9
+    },
+    "profile_blocks": 1,
+    "profile_rounds": {
+      "primary": 101,
+      "merge54": 9
+    },
+    "priming": 3,
+    "frequency_hz": 999,
+    "monotonic_clock": true,
+    "sdk": 2286,
+    "exports": 72,
+    "profiles": 18
+  },
+  "comparison": {
+    "engines": [
+      "accepted",
+      "off",
+      "on",
+      "aeglos"
+    ],
+    "workers": [
+      32,
+      64,
+      96
+    ],
+    "blocks": 3,
+    "shape": "1x2",
+    "latency_rounds": 31,
+    "stat_rounds": 201,
+    "priming": 3,
+    "events": [
+      "cycles:u",
+      "instructions:u",
+      "branches:u",
+      "branch-misses:u"
+    ],
+    "event_running_percent_min": 99,
+    "sdk": 8568,
+    "exports": 72
+  },
+  "ordering": [
+    "independent preflight",
+    "comparison unprofiled latency",
+    "main unprofiled latency",
+    "main separate profiles",
+    "comparison separate counters",
+    "full artifact review"
+  ],
+  "preflight": {
+    "sdk": 28,
+    "exports": 7,
+    "workers": 4,
+    "rounds": 1,
+    "priming": 3,
+    "Zopro": "accepted/off/on primary+merge54",
+    "Aeglos": "primary"
+  },
+  "aws_total": {
+    "sdk": 10882,
+    "distinct_exports": 151,
+    "proof_public_members": 302,
+    "profiles": 18
+  },
+  "local_image_preflight": {
+    "sdk": 28,
+    "exports": 7,
+    "counted_separately_from_aws": true
+  },
+  "target_gate": {
+    "primary_paired_median_lt": 1,
+    "primary_wins_gte": 2,
+    "merge54_paired_median_lte": 1.03,
+    "each_block_lte": 1.05,
+    "off_calibration_factor_max": 1.03,
+    "controls": [
+      "accepted",
+      "off"
+    ],
+    "minimum_gain_floor": false
+  },
+  "validity": "Complete fresh SDK work includes solving/blinding/proving/internal verification/serialization. Key loading, preparation and three primes excluded. Independent Gnark after every export, public fixtures and fresh proof identities. All latency before any sampling/counters. No other owned CPU workload on remote host. OnePID/zero lost records; no unchanged reroll.",
+  "limitations": "One target host; all-nine latency, portable, actual memory pressure/large proofs, concurrentSDK and clean-integration qualification required before adoption. RSS includes loading/preparation and is not minimum RAM. CPU shares include spinning and are not removable wall time; estimatedGHz from cycles/userCPU is an inference.",
+  "resources": "Own one idempotent launch token, tagged instance/EBS and private ECR tag.90minute termination timer; explicit cleanup of owned resources after data retrieval. No new bucket, SG, IAM or production changes.",
+  "adopted": false,
+  "goal_achieved": false,
+  "declared_at": "2026-10-26T01:01:20Z"
+}

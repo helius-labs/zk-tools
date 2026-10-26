@@ -1,0 +1,15 @@
+{
+  "InstanceIds": [
+    "i-082becfdfc8a3048a"
+  ],
+  "DocumentName": "AWS-RunShellScript",
+  "Comment": "Restart only completed-results loopback transfer",
+  "Parameters": {
+    "commands": [
+      "set -eu\nsha256sum /var/tmp/zopro-bounded-search-c7a/review-results.tar.gz\nsystemd-run --unit=zopro-bounded-search-transfer-v2 --collect --property=RuntimeMaxSec=180 /var/tmp/zopro-bounded-search-c7a/serve-results /var/tmp/zopro-bounded-search-c7a/review-results.tar.gz\nsystemctl is-active zopro-bounded-search-transfer-v2.service"
+    ],
+    "executionTimeout": [
+      "240"
+    ]
+  }
+}

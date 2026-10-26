@@ -1,0 +1,138 @@
+{
+  "status": "declared before candidate compilation and measurements",
+  "accepted_manifest": "/tmp/zopro-grouping-module/production-source-manifest.json",
+  "hypothesis": "The C7a96 accepted profile attributes about48.5% of sampled user cycles to epoch pin/advance and1.2% to wake_specific_thread. Limit simultaneous full victim sweeps to ceil(workers/2) to reduce concurrent reclamation/queue-metadata contention. Deferred attempts do not advance the existing completed-empty-scan parking counter, avoiding the earlier immediate-fast-search sleep cadence.",
+  "mechanism": "One cache-padded per-registry atomic count, immutable cap and RAII permit for a single finite victim sweep. The original victim order, CAS/fences, retry aggregation, Crossbeam reclamation and sleep protocol remain. Release before executing jobs, retry sweeps, injector checks or parking. Denied attempts still check local/broadcast and injected jobs, yield and recheck the latch. Explicit ZOPRO_CPU_BOUNDED_STEAL_SEARCH=1 is read once per registry; absent/0 disables admission.",
+  "scope": "Private Rayon-core1.13.0 snapshot; accepted cryptographic sources byte-identical. No new key tables, transformed points, witness caches, circuit plans, pools or per-proof buffers. Bounded registry metadata and one scoped permit are new.",
+  "motivation": "Tokio1.53.1 limits searching worker roles. This prototype instead limits a finite sweep and keeps existing sleep/latch checks; it is not copied Tokio scheduling code. Previous empty-queue probe, empty-GC frequency, timed-search, scoped guard reuse, St3 queues and cooperative ready executors remain rejected.",
+  "validation": [
+    "SDK lock retains all219 entries except Rayon path source/checksum",
+    "Upstream runtime Crossbeam deque0.8.8/epoch0.9.21/utils0.8.23 exactly match SDK",
+    "Actual admission module modelled with Loom0.7.2 at two-preemption bound and atomic-type assertion",
+    "Full upstream Rayon lib/integration OFF and ON including held-permit injection/broadcast, nested bursts, FIFO, concurrent callers, panic and cross-pool reuse",
+    "ON nested/FIFO/panic tests on one physical core with32 workers",
+    "Full109 native core plus raw2/cubic6 and all-nine SDK preflights; no new field arithmetic claim"
+  ],
+  "local_preflight": {
+    "all_nine_workers4": [
+      "off",
+      "on"
+    ],
+    "primary_2x2_merge54_workers32": [
+      "off",
+      "on"
+    ],
+    "rounds": 1,
+    "primes": 3,
+    "sdk": 96,
+    "exports": 24
+  },
+  "local_timing": {
+    "blocks": 7,
+    "cases": [
+      "1x2-w32",
+      "2x2-w32",
+      "merge-54x1-w32",
+      "1x2-w16"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds": 31,
+    "primes": 3,
+    "affinity": {
+      "w32": "0-31",
+      "w16": "0-15 physical cores"
+    },
+    "sdk": 2856,
+    "exports": 84
+  },
+  "local_profiles": {
+    "after_all_latency": true,
+    "blocks": 1,
+    "cases": [
+      "1x2-w32",
+      "2x2-w32",
+      "merge-54x1-w32"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds": {
+      "primary": 101,
+      "2x2": 101,
+      "merge54": 9
+    },
+    "frequency_hz": 999,
+    "monotonic_clock": true,
+    "sdk": 660,
+    "exports": 9,
+    "captures": 9
+  },
+  "local_summary": {
+    "sdk": 3612,
+    "exports": 117,
+    "proof_public_members": 234
+  },
+  "local_screen": {
+    "primary32_median_lt": 1.0,
+    "primary32_wins_gte": 4,
+    "four_case_geomean_lt": 1.0,
+    "each_case_paired_median_lte": 1.02,
+    "each_block_lte": 1.05,
+    "off_calibration_factor_max": 1.03,
+    "controls": [
+      "accepted",
+      "off"
+    ],
+    "minimum_gain_floor": false,
+    "no_unchanged_reroll": true
+  },
+  "architecture_scope": "Local screen is descriptive for C7a. A negative local result remains visible and cannot justify local/default adoption. Target C7a measurement after correctness is declared now regardless of local speed sign because epoch overhead differs strongly at96 physical cores. No second unchanged local timing run.",
+  "target_stage": {
+    "host": "dedicated c7a.24xlarge",
+    "workers": [
+      32,
+      64,
+      96
+    ],
+    "cases": [
+      "1x2",
+      "merge-54x1"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "blocks": 3,
+    "rounds": {
+      "primary": 31,
+      "merge54": 9
+    },
+    "profiles_after_all_latency": true,
+    "fresh_primary_aeglos_comparison": true,
+    "target_positive_gate": {
+      "primary_paired_median_lt": 1.0,
+      "primary_wins_gte": 2,
+      "merge54_paired_median_lte": 1.03,
+      "each_block_lte": 1.05,
+      "off_calibration_factor_max": 1.03
+    },
+    "qualification_if_positive": [
+      "all-nine performance",
+      "portable compatibility",
+      "memory/pressure including large circuits",
+      "concurrent SDK use and reclamation",
+      "clean integration before any default change"
+    ]
+  },
+  "publish": "Commit/push local stage after completion, then commit/push separately completed target stage. Public reports factual and polite; raw profiles retained locally with SHA indices.",
+  "adopted": false,
+  "goal_achieved": false,
+  "declared_at": "2026-10-26T00:31:20Z"
+}
