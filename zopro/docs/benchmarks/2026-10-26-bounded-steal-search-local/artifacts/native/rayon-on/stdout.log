@@ -1,0 +1,120 @@
+
+running 104 tests
+test broadcast::test::broadcast_after_spawn ... ok
+test broadcast::test::broadcast_after_spawn_broadcast ... ok
+test broadcast::test::broadcast_global ... ok
+test broadcast::test::broadcast_mutual ... ok
+test broadcast::test::broadcast_mutual_sleepy ... ok
+test broadcast::test::broadcast_panic_many ... ok
+test broadcast::test::broadcast_panic_one ... ok
+test broadcast::test::broadcast_pool ... ok
+test broadcast::test::broadcast_self ... ok
+test broadcast::test::broadcast_sleep_race ... ok
+test broadcast::test::spawn_broadcast_global ... ok
+test broadcast::test::spawn_broadcast_mutual ... ok
+test broadcast::test::spawn_broadcast_mutual_sleepy ... ok
+test broadcast::test::spawn_broadcast_panic_many ... ok
+test broadcast::test::spawn_broadcast_panic_one ... ok
+test broadcast::test::spawn_broadcast_pool ... ok
+test broadcast::test::spawn_broadcast_self ... ok
+test join::test::join_context_both ... ok
+test join::test::join_context_neither ... ok
+test join::test::join_context_second ... ok
+test join::test::join_counter_overflow ... ok
+test join::test::panic_b_still_executes ... ok
+test join::test::panic_propagate_a - should panic ... ok
+test join::test::panic_propagate_b - should panic ... ok
+test join::test::panic_propagate_both - should panic ... ok
+test join::test::sort ... ok
+test join::test::sort_in_pool ... ok
+test registry::bounded_search_tests::injection_and_broadcast_progress_while_victim_scans_are_deferred ... FAILED
+test scope::test::fifo_order ... ok
+test scope::test::lifo_order ... ok
+test scope::test::linear_stack_growth ... ok
+test scope::test::mixed_fifo_lifo_order ... ok
+test scope::test::mixed_fifo_order ... ok
+test scope::test::mixed_lifetime_scope ... ok
+test scope::test::mixed_lifetime_scope_fifo ... ok
+test scope::test::mixed_lifo_fifo_order ... ok
+test scope::test::mixed_lifo_order ... ok
+test scope::test::nested_fifo_lifo_order ... ok
+test scope::test::nested_fifo_order ... ok
+test scope::test::nested_lifo_fifo_order ... ok
+test scope::test::nested_lifo_order ... ok
+test scope::test::panic_propagate_nested_scope_spawn - should panic ... ok
+test scope::test::panic_propagate_nested_spawn - should panic ... ok
+test scope::test::panic_propagate_scope - should panic ... ok
+test scope::test::panic_propagate_spawn - should panic ... ok
+test scope::test::panic_propagate_still_execute_1 ... ok
+test scope::test::panic_propagate_still_execute_2 ... ok
+test scope::test::panic_propagate_still_execute_3 ... ok
+test scope::test::panic_propagate_still_execute_4 ... ok
+test scope::test::scope_divide_and_conquer ... ok
+test scope::test::scope_empty ... ok
+test scope::test::scope_fifo_spawn_broadcast ... ok
+test scope::test::scope_result ... ok
+test scope::test::scope_spawn_broadcast ... ok
+test scope::test::scope_spawn_broadcast_barrier ... ok
+test scope::test::scope_spawn_broadcast_nested ... ok
+test scope::test::scope_spawn_broadcast_panic_many ... ok
+test scope::test::scope_spawn_broadcast_panic_one ... ok
+test scope::test::scope_two ... ok
+test scope::test::static_scope ... ok
+test scope::test::static_scope_fifo ... ok
+test scope::test::update_tree ... ok
+test search::tests::concurrent_scans_respect_budget_and_return_all_credits ... ok
+test search::tests::exact_budget_disabled_path_and_unwind_release ... ok
+test spawn::test::custom_panic_handler_and_nested_spawn ... ok
+test spawn::test::custom_panic_handler_and_spawn ... ok
+test spawn::test::fifo_lifo_order ... ok
+test spawn::test::fifo_order ... ok
+test spawn::test::lifo_fifo_order ... ok
+test spawn::test::lifo_order ... ok
+test spawn::test::mixed_fifo_lifo_order ... ok
+test spawn::test::mixed_lifo_fifo_order ... ok
+test spawn::test::panic_fwd ... ok
+test spawn::test::spawn_then_join_in_worker ... ok
+test spawn::test::spawn_then_join_outside_worker ... ok
+test spawn::test::termination_while_things_are_executing ... ok
+test test::check_config_build ... ok
+test test::check_error_send_sync ... ok
+test test::cleared_current_thread ... ok
+test test::configuration ... ok
+test test::default_pool ... ok
+test test::exit_callback_called ... ok
+test test::handler_panics_handled_correctly ... ok
+test test::start_callback_called ... ok
+test test::worker_thread_index ... ok
+test thread_pool::test::check_thread_pool_new ... ok
+test thread_pool::test::failed_thread_stack ... ok
+test thread_pool::test::in_place_scope_fifo_no_deadlock ... ok
+test thread_pool::test::in_place_scope_no_deadlock ... ok
+test thread_pool::test::mutual_install ... ok
+test thread_pool::test::mutual_install_sleepy ... ok
+test thread_pool::test::nested_fifo_scopes ... ok
+test thread_pool::test::nested_scopes ... ok
+test thread_pool::test::panic_propagate - should panic ... ok
+test thread_pool::test::panic_thread_name ... ok
+test thread_pool::test::scope_fifo_order ... ok
+test thread_pool::test::scope_lifo_order ... ok
+test thread_pool::test::self_install ... ok
+test thread_pool::test::sleeper_stop ... ok
+test thread_pool::test::spawn_fifo_order ... ok
+test thread_pool::test::spawn_lifo_order ... ok
+test thread_pool::test::workers_stop ... ok
+test thread_pool::test::yield_local_to_spawn ... ok
+test thread_pool::test::yield_now_to_spawn ... ok
+
+failures:
+
+---- registry::bounded_search_tests::injection_and_broadcast_progress_while_victim_scans_are_deferred stdout ----
+
+thread 'registry::bounded_search_tests::injection_and_broadcast_progress_while_victim_scans_are_deferred' (348882) panicked at src/registry.rs:51:13:
+assertion failed: registry.search_admission.try_enter().is_some()
+
+
+failures:
+    registry::bounded_search_tests::injection_and_broadcast_progress_while_victim_scans_are_deferred
+
+test result: FAILED. 103 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.03s
+

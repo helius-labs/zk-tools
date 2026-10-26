@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-bounded-steal-search/analysis-source-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "analysis-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-bounded-steal-search/analyze.rs",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "-O",
+        "-o",
+        "/tmp/zopro-bounded-steal-search/analyze"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "analysis-test-build",
+      "argv": [
+        "rustc",
+        "--edition=2024",
+        "/tmp/zopro-bounded-steal-search/analyze.rs",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "-O",
+        "--test",
+        "-o",
+        "/tmp/zopro-bounded-steal-search/analyze-tests"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "analysis-tests",
+      "argv": [
+        "/tmp/zopro-bounded-steal-search/analyze-tests",
+        "--test-threads=1"
+      ],
+      "environment": {},
+      "required_tests": [
+        "tests::medians_and_positive_geometric_aggregation_use_every_block"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 600
+    }
+  ]
+}

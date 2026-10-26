@@ -1,0 +1,239 @@
+diff --git a/tmp/zopro-bounded-steal-search/pristine/rayon-core-1.13.0/src/lib.rs b/tmp/zopro-bounded-steal-search/overlay/vendor/rayon-core/src/lib.rs
+index 3745076..f722dba 100644
+--- a/tmp/zopro-bounded-steal-search/pristine/rayon-core-1.13.0/src/lib.rs
++++ b/tmp/zopro-bounded-steal-search/overlay/vendor/rayon-core/src/lib.rs
+@@ -77,6 +77,7 @@ mod join;
+ mod latch;
+ mod registry;
+ mod scope;
++mod search;
+ mod sleep;
+ mod spawn;
+ mod thread_pool;
+diff --git a/tmp/zopro-bounded-steal-search/pristine/rayon-core-1.13.0/src/registry.rs b/tmp/zopro-bounded-steal-search/overlay/vendor/rayon-core/src/registry.rs
+index 809976a..0a9cf0d 100644
+--- a/tmp/zopro-bounded-steal-search/pristine/rayon-core-1.13.0/src/registry.rs
++++ b/tmp/zopro-bounded-steal-search/overlay/vendor/rayon-core/src/registry.rs
+@@ -1,6 +1,7 @@
+ use crate::job::{JobFifo, JobRef, StackJob};
+ use crate::latch::{AsCoreLatch, CoreLatch, Latch, LatchRef, LockLatch, OnceLatch, SpinLatch};
+ use crate::sleep::Sleep;
++use crate::search::Admission;
+ use crate::sync::Mutex;
+ use crate::unwind;
+ use crate::{
+@@ -18,6 +19,54 @@ use std::sync::atomic::{AtomicUsize, Ordering};
+ use std::sync::{Arc, Once};
+ use std::thread;
+ 
++enum WorkSearch {
++    Found(JobRef),
++    Empty,
++    Deferred,
++}
++
++#[cfg(test)]
++mod bounded_search_tests {
++    use super::Registry;
++    use crate::ThreadPoolBuilder;
++    use std::sync::mpsc;
++    use std::time::{Duration, Instant};
++
++    fn hold_budget(registry: &Registry, count: usize) -> Vec<crate::search::Permit<'_>> {
++        let deadline = Instant::now() + Duration::from_secs(5);
++        let mut permits = Vec::with_capacity(count);
++        while permits.len() < count {
++            if let Some(permit) = registry.search_admission.try_enter() {
++                permits.push(permit);
++            } else {
++                assert!(Instant::now() < deadline, "scan credit was not returned");
++                std::thread::yield_now();
++            }
++        }
++        permits
++    }
++
++    #[test]
++    fn injection_and_broadcast_progress_while_victim_scans_are_deferred() {
++        for workers in [2usize, 8] {
++            let pool = ThreadPoolBuilder::new().num_threads(workers).build().unwrap();
++            let registry = pool.install(Registry::current);
++            let permits = hold_budget(&registry, workers.div_ceil(2));
++            if std::env::var("ZOPRO_CPU_BOUNDED_STEAL_SEARCH").as_deref() == Ok("1") {
++                assert!(registry.search_admission.try_enter().is_none());
++            }
++            let (send, receive) = mpsc::channel();
++            pool.spawn(move || send.send(37).unwrap());
++            assert_eq!(receive.recv_timeout(Duration::from_secs(5)).unwrap(), 37);
++            assert_eq!(pool.broadcast(|ctx| ctx.index()), (0..workers).collect::<Vec<_>>());
++            drop(permits);
++            // Other idle workers can acquire credits immediately. Reclaim the
++            // complete budget with a deadline instead of assuming a quiet pool.
++            drop(hold_budget(&registry, workers.div_ceil(2)));
++        }
++    }
++}
++
+ /// Thread builder used for customization via [`ThreadPoolBuilder::spawn_handler()`].
+ pub struct ThreadBuilder {
+     name: Option<String>,
+@@ -128,6 +177,7 @@ where
+ pub(super) struct Registry {
+     thread_infos: Vec<ThreadInfo>,
+     sleep: Sleep,
++    search_admission: Admission,
+     injected_jobs: Injector<JobRef>,
+     broadcasts: Mutex<Vec<Worker<JobRef>>>,
+     panic_handler: Option<Box<PanicHandler>>,
+@@ -271,6 +321,10 @@ impl Registry {
+         let registry = Arc::new(Registry {
+             thread_infos: stealers.into_iter().map(ThreadInfo::new).collect(),
+             sleep: Sleep::new(n_threads),
++            search_admission: Admission::new(
++                n_threads,
++                std::env::var("ZOPRO_CPU_BOUNDED_STEAL_SEARCH").as_deref() == Ok("1"),
++            ),
+             injected_jobs: Injector::new(),
+             broadcasts: Mutex::new(broadcasts),
+             terminate_count: AtomicUsize::new(1),
+@@ -795,15 +849,22 @@ impl WorkerThread {
+ 
+             let mut idle_state = self.registry.sleep.start_looking(self.index);
+             while !latch.probe() {
+-                if let Some(job) = self.find_work() {
+-                    self.registry.sleep.work_found();
+-                    self.execute(job);
+-                    // The job might have injected local work, so go back to the outer loop.
+-                    continue 'outer;
+-                } else {
+-                    self.registry
+-                        .sleep
+-                        .no_work_found(&mut idle_state, latch, || self.has_injected_job())
++                match self.find_work() {
++                    WorkSearch::Found(job) => {
++                        self.registry.sleep.work_found();
++                        self.execute(job);
++                        // The job might have injected local work.
++                        continue 'outer;
++                    }
++                    WorkSearch::Empty => {
++                        self.registry.sleep.no_work_found(
++                            &mut idle_state, latch, || self.has_injected_job(),
++                        );
++                    }
++                    // No scan happened. Keep the existing count of completed
++                    // empty searches; do not enter the parking protocol early.
++                    // The next iteration still checks the latch and local work.
++                    WorkSearch::Deferred => thread::yield_now(),
+                 }
+             }
+ 
+@@ -830,24 +891,30 @@ impl WorkerThread {
+         Latch::set(&registry.thread_infos[index].stopped);
+     }
+ 
+-    fn find_work(&self) -> Option<JobRef> {
++    fn find_work(&self) -> WorkSearch {
+         // Try to find some work to do. We give preference first
+         // to things in our local deque, then in other workers
+         // deques, and finally to injected jobs from the
+         // outside. The idea is to finish what we started before
+         // we take on something new.
+-        self.take_local_job()
+-            .or_else(|| self.steal())
+-            .or_else(|| self.registry.pop_injected_job())
++        if let Some(job) = self.take_local_job() {
++            return WorkSearch::Found(job);
++        }
++        let searched = self.steal();
++        if let WorkSearch::Found(_) = searched {
++            return searched;
++        }
++        // External work must still be checked when a victim scan is deferred.
++        self.registry.pop_injected_job().map_or(searched, WorkSearch::Found)
+     }
+ 
+     pub(super) fn yield_now(&self) -> Yield {
+         match self.find_work() {
+-            Some(job) => unsafe {
++            WorkSearch::Found(job) => unsafe {
+                 self.execute(job);
+                 Yield::Executed
+             },
+-            None => Yield::Idle,
++            WorkSearch::Empty | WorkSearch::Deferred => Yield::Idle,
+         }
+     }
+ 
+@@ -870,7 +937,7 @@ impl WorkerThread {
+     ///
+     /// This should only be done as a last resort, when there is no
+     /// local work to do.
+-    fn steal(&self) -> Option<JobRef> {
++    fn steal(&self) -> WorkSearch {
+         // we only steal when we don't have any work to do locally
+         debug_assert!(self.local_deque_is_empty());
+ 
+@@ -878,10 +945,15 @@ impl WorkerThread {
+         let thread_infos = &self.registry.thread_infos.as_slice();
+         let num_threads = thread_infos.len();
+         if num_threads <= 1 {
+-            return None;
++            return WorkSearch::Empty;
+         }
+ 
+         loop {
++            // One permit covers one finite victim sweep. It is released before
++            // execution, parking, injection checks, or another retry sweep.
++            let Some(permit) = self.registry.search_admission.try_enter() else {
++                return WorkSearch::Deferred;
++            };
+             let mut retry = false;
+             let start = self.rng.next_usize(num_threads);
+             let job = (start..num_threads)
+@@ -898,8 +970,12 @@ impl WorkerThread {
+                         }
+                     }
+                 });
+-            if job.is_some() || !retry {
+-                return job;
++            drop(permit);
++            if let Some(job) = job {
++                return WorkSearch::Found(job);
++            }
++            if !retry {
++                return WorkSearch::Empty;
+             }
+         }
+     }
+diff --git a/Cargo.toml b/tmp/zopro-bounded-steal-search/overlay/Cargo.toml
+index 64f7eab..cff8e91 100644
+--- a/Cargo.toml
++++ b/tmp/zopro-bounded-steal-search/overlay/Cargo.toml
+@@ -1,5 +1,6 @@
+ [workspace]
+ resolver = "2"
++exclude = ["vendor/rayon-core", "model"]
+ members = [
+     "crates/zopro-core",
+     "crates/zopro-bn254",
+@@ -14,3 +15,6 @@ members = [
+ opt-level = 3
+ lto = true
+ codegen-units = 1
++
++[patch.crates-io]
++rayon-core = { path = "vendor/rayon-core" }
+diff --git a/Cargo.lock b/tmp/zopro-bounded-steal-search/overlay/Cargo.lock
+index dfad813..61cfe0a 100644
+--- a/Cargo.lock
++++ b/tmp/zopro-bounded-steal-search/overlay/Cargo.lock
+@@ -1340,8 +1340,6 @@ dependencies = [
+ [[package]]
+ name = "rayon-core"
+ version = "1.13.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "22e18b0f0062d30d4230b2e85ff77fdfe4326feb054b9783a3460d8435c8ab91"
+ dependencies = [
+  "crossbeam-deque",
+  "crossbeam-utils",
