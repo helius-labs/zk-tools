@@ -1,0 +1,100 @@
+{
+  "declared": 1792957224.4307823,
+  "scope": "Coarse current-accepted request readiness and tail diagnostic; not a new scheduler or latency qualification.",
+  "accepted_manifest": "/tmp/zopro-g2-prefix-adoption/production-source-manifest.json",
+  "accepted_binary": "/tmp/zopro-g2-prefix-sdk/native-sdk",
+  "accepted_binary_sha256": "682ea11ce101edb368eb258ca24f615e91cf101d43dcf39a95df2b0c55c93b22",
+  "rustflags": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_readiness_trace",
+  "source_pins_sha256": "0f57d75d36247c73360d49b086d167e64e25e295d43aa0d71ac0371104f7b225",
+  "driver_sha256": "98c9688c69738bf3654f682d8a8fc3a62ea7bcb120019c958e72cb2ef226b5c0",
+  "labels": [
+    "sdk",
+    "canonical_core",
+    "solver",
+    "public_correction",
+    "canonical_w",
+    "gather",
+    "gather_a",
+    "gather_b",
+    "product",
+    "queries",
+    "a_query",
+    "kh_query",
+    "g2_query",
+    "core_output",
+    "g1_dispatch",
+    "g1_raw",
+    "g1_merge_kernel",
+    "g1_window",
+    "g1_part",
+    "g1_merge",
+    "g1_finish",
+    "g1_fold",
+    "kh_kernel",
+    "kh_window",
+    "kh_top",
+    "kh_feed_k",
+    "kh_feed_h",
+    "kh_finalize",
+    "kh_finish",
+    "kh_fold",
+    "g2_dispatch",
+    "g2_kernel",
+    "g2_split",
+    "g2_window",
+    "g2_part",
+    "g2_merge",
+    "g2_weighted",
+    "g2_fold"
+  ],
+  "event_fields": [
+    "id",
+    "parent",
+    "kind",
+    "a",
+    "b",
+    "start_ns",
+    "end_ns",
+    "worker_plus_one_or_zero_caller"
+  ],
+  "cases": [
+    {
+      "shape": "1x2",
+      "workers": 32
+    },
+    {
+      "shape": "1x2",
+      "workers": 16
+    }
+  ],
+  "variants": [
+    "accepted",
+    "off",
+    "on"
+  ],
+  "blocks": 3,
+  "rounds": 17,
+  "primes": 3,
+  "expected_sdk": 364,
+  "expected_gnark": 19,
+  "expected_graphs": 103,
+  "memory": "4096 preallocated 64-byte event tuples per participating thread, prepared outside proof timers; no per-event allocation/output. Only this private diagnostic contains the recorder.",
+  "limits": "Coarse dependency spans include child work and useful work executed during Rayon waits. They are not exclusive CPU time, idle time or a complete leaf-task DAG. ON/OFF and accepted calibration are reported without an optimization gate. No speedup claim or adoption follows from this diagnostic.",
+  "history_audit": [
+    "2026-10-25-proof-dataflow-screen: scoped coarse/overlap/fused jobs already slower locally.",
+    "2026-10-25-proof-dataflow-c7a: same graph slower at every measured worker count on C7a.",
+    "2026-10-24-joint-msm-phases: cross-query phase barriers regress primary23percent; arithmetic and overlap must be retained.",
+    "2026-10-22-universal-window-local-weighted-sdk: serialized 256-bucket groups regress; do not repeat.",
+    "2026-10-25-static-worker-queues and single-steal-sdk: lower epoch samples do not imply latency gains."
+  ],
+  "production_changed": false,
+  "adopted": false,
+  "goal_achieved": false,
+  "preflight": {
+    "shape": "1x2",
+    "workers": 4,
+    "rounds": 1,
+    "primes": 3
+  },
+  "controller_sha256": "7699d3df22d83c30d07b6b5e86fa0d5dda5a29219c2344fa7a375ac9381d4831"
+}
