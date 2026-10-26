@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-deferred-dif32/profile-input-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "capture-accepted",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-deferred-dif32/accepted.perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-deferred-dif32/accepted-probe",
+        "reference",
+        "256",
+        "173",
+        "5000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-accepted",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-deferred-dif32/accepted.perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-accepted",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-deferred-dif32/accepted.perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "capture-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-deferred-dif32/fresh.perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-deferred-dif32/target/release/probe",
+        "reference",
+        "256",
+        "173",
+        "5000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-deferred-dif32/fresh.perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-deferred-dif32/fresh.perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "capture-deferred",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-deferred-dif32/deferred.perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-deferred-dif32/target/release/probe",
+        "deferred",
+        "256",
+        "173",
+        "5000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-deferred",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-deferred-dif32/deferred.perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-deferred",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-deferred-dif32/deferred.perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    }
+  ]
+}

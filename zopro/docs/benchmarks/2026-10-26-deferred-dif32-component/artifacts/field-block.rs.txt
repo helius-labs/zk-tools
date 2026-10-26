@@ -1,0 +1,86 @@
+    // BEGIN DEFERRED_DIF32
+    /// Five DIF stages with correction deferred inside this fixed tile.
+    /// Uniform R260 only, p<2^254. Inputs are normalized below2p and every
+    /// root returned by the callback must be normalized belowp. Outputs
+    /// restore the ordinary normalized below2p contract before returning.
+    #[allow(unexpected_cfgs)]
+    #[cfg(zopro_deferred_dif32)]
+    #[inline(always)]
+    pub fn dif32_deferred(values: &mut [Self; 32], mut root: impl FnMut(usize, usize) -> Self) {
+        assert!(!MIXED && C::P[3] < (1u64 << 62), "DIF32 requires uniform R260 and64p<R");
+        for stage in 0..5 {
+            let gap = 16 >> stage;
+            let bias = split(C::P).map(|p| Self::splat(p << (stage + 1)));
+            for block in (0..32).step_by(2 * gap) {
+                for j in 0..gap {
+                    let low = block + j;
+                    let high = low + gap;
+                    let (a, b) = (values[low], values[high]);
+                    values[low] = a.fft_sum_unreduced(&b);
+                    values[high] = a.fft_positive_difference(&b, &bias).mul(&root(stage, j));
+                }
+            }
+        }
+        for (index, value) in values.iter_mut().enumerate() {
+            let corrections = (index | 32).trailing_zeros();
+            for shift in (1..=corrections).rev() {
+                *value = value.fft_reduce_shift(shift);
+            }
+        }
+    }
+
+    #[allow(unexpected_cfgs)]
+    #[cfg(zopro_deferred_dif32)]
+    #[inline(always)]
+    fn fft_sum_unreduced(&self, b: &Self) -> Self {
+        unsafe {
+            let mask = Self::splat(MASK);
+            let mut t = core::array::from_fn(|j| _mm256_add_epi64(self.0[j], b.0[j]));
+            for j in 0..4 {
+                t[j + 1] = _mm256_add_epi64(t[j + 1], _mm256_srli_epi64::<52>(t[j]));
+                t[j] = _mm256_and_si256(t[j], mask);
+            }
+            debug_assert_eq!(_mm256_cmpneq_epi64_mask(_mm256_srli_epi64::<52>(t[4]), Self::splat(0)), 0);
+            Self(t, PhantomData)
+        }
+    }
+
+    #[allow(unexpected_cfgs)]
+    #[cfg(zopro_deferred_dif32)]
+    #[inline(always)]
+    fn fft_positive_difference(&self, b: &Self, bias: &[__m256i; 5]) -> Self {
+        unsafe {
+            let mask = Self::splat(MASK);
+            let mut t = [Self::splat(0); 5];
+            let mut carry = Self::splat(0);
+            for j in 0..5 {
+                let v = _mm256_add_epi64(
+                    _mm256_sub_epi64(_mm256_add_epi64(bias[j], self.0[j]), b.0[j]), carry);
+                t[j] = _mm256_and_si256(v, mask);
+                carry = _mm256_srai_epi64::<52>(v);
+            }
+            debug_assert_eq!(_mm256_cmpneq_epi64_mask(carry, Self::splat(0)), 0);
+            Self(t, PhantomData)
+        }
+    }
+
+    #[allow(unexpected_cfgs)]
+    #[cfg(zopro_deferred_dif32)]
+    #[inline(always)]
+    fn fft_reduce_shift(&self, shift: u32) -> Self {
+        unsafe {
+            let p = split(C::P).map(|p| Self::splat(p << shift));
+            let mask = Self::splat(MASK);
+            let mut d = [Self::splat(0); 5];
+            let mut borrow = Self::splat(0);
+            for j in 0..5 {
+                let v = _mm256_add_epi64(_mm256_sub_epi64(self.0[j], p[j]), borrow);
+                d[j] = _mm256_and_si256(v, mask);
+                borrow = _mm256_srai_epi64::<52>(v);
+            }
+            let keep = _mm256_cmpneq_epi64_mask(borrow, Self::splat(0));
+            Self(core::array::from_fn(|j| _mm256_mask_blend_epi64(keep, d[j], self.0[j])), PhantomData)
+        }
+    }
+    // END DEFERRED_DIF32
+
