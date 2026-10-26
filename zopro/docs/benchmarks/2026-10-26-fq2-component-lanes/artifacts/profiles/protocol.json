@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-fq2-component-lanes/profile-input-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "capture-reference",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-fq2-component-lanes/reference.perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-fq2-component-lanes/probe",
+        "reference",
+        "affine-expression",
+        "20000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-reference",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-fq2-component-lanes/reference.perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-reference",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-fq2-component-lanes/reference.perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "capture-interleaved",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-fq2-component-lanes/interleaved.perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-fq2-component-lanes/probe",
+        "interleaved",
+        "affine-expression",
+        "20000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-interleaved",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-fq2-component-lanes/interleaved.perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-interleaved",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-fq2-component-lanes/interleaved.perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    }
+  ]
+}

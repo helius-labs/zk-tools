@@ -1,0 +1,117 @@
+{
+  "environment": {},
+  "source_pins": "/tmp/zopro-fq2-component-lanes/profile-input-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-fq2-component-lanes/reference.perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-fq2-component-lanes/probe",
+        "reference",
+        "affine-expression",
+        "20000000"
+      ],
+      "kind": "command",
+      "name": "capture-reference",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-fq2-component-lanes/reference.perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "kind": "command",
+      "name": "decode-reference",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-fq2-component-lanes/reference.perf.data"
+      ],
+      "kind": "command",
+      "name": "loss-reference",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-fq2-component-lanes/interleaved.perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-fq2-component-lanes/probe",
+        "interleaved",
+        "affine-expression",
+        "20000000"
+      ],
+      "kind": "command",
+      "name": "capture-interleaved",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-fq2-component-lanes/interleaved.perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "kind": "command",
+      "name": "decode-interleaved",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-fq2-component-lanes/interleaved.perf.data"
+      ],
+      "kind": "command",
+      "name": "loss-interleaved",
+      "timeout_seconds": 120
+    }
+  ],
+  "version": 1
+}

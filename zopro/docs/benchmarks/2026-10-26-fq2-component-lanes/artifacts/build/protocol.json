@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-fq2-component-lanes/input-pins.json",
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/tmp/zopro-fq2-component-lanes/target-oracle",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_cios_cancel_carry --cfg zopro_horizontal_limb_sum"
+  },
+  "steps": [
+    {
+      "kind": "command",
+      "name": "compiler",
+      "argv": [
+        "rustc",
+        "-Vv"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "oracle-tests",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/tmp/zopro-fq2-component-lanes/oracle/Cargo.toml",
+        "--offline",
+        "--release",
+        "--bin",
+        "probe",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "environment": {},
+      "required_tests": [
+        "tests::independent_arkworks_operations_and_lazy_chains",
+        "tests::modulus_corners_and_half_order",
+        "tests::complete_curve_finish_matches_independent_arkworks",
+        "tests::changing_state_workloads_match_all_output_words"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "frozen-library-link",
+      "argv": [
+        "rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "lto=off",
+        "/tmp/zopro-fq2-component-lanes/probe.rs",
+        "--extern",
+        "zopro_bn254=/tmp/zopro-grouping-module/target-native/release/deps/libzopro_bn254-505b170cdc507df1.rlib",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "-L",
+        "dependency=/tmp/zopro-grouping-module/target-native/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+        "-o",
+        "/tmp/zopro-fq2-component-lanes/probe"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    }
+  ]
+}

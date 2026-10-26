@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "1200s",
+    "/tmp/zopro-fq2-component-lanes/oracle-tests",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/tmp/zopro-fq2-component-lanes/target-oracle",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_cios_cancel_carry --cfg zopro_horizontal_limb_sum"
+  }
+}

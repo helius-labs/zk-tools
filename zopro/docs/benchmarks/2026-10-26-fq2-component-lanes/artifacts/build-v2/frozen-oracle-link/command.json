@@ -1,0 +1,40 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "1200s",
+    "rustc",
+    "--edition=2021",
+    "-O",
+    "-C",
+    "target-cpu=native",
+    "-C",
+    "codegen-units=1",
+    "-C",
+    "lto=off",
+    "/tmp/zopro-fq2-component-lanes/probe.rs",
+    "--extern",
+    "zopro_bn254=/tmp/zopro-grouping-module/target-native/release/deps/libzopro_bn254-505b170cdc507df1.rlib",
+    "--extern",
+    "serde_json=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+    "-L",
+    "dependency=/tmp/zopro-grouping-module/target-native/release/deps",
+    "-L",
+    "dependency=/home/ubuntu/src/zk-tools/zopro/xtask/target/release/deps",
+    "-o",
+    "/tmp/zopro-fq2-component-lanes/oracle-tests",
+    "--test",
+    "--extern",
+    "ark_ref=/tmp/zopro-fq2-component-lanes/target-oracle/release/deps/libark_bn254-0f42bbdb5a5a7944.rlib",
+    "--extern",
+    "ark_ff=/tmp/zopro-fq2-component-lanes/target-oracle/release/deps/libark_ff-4359820b94950e7f.rlib",
+    "-L",
+    "dependency=/tmp/zopro-fq2-component-lanes/target-oracle/release/deps"
+  ],
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/tmp/zopro-fq2-component-lanes/target-oracle",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_cios_cancel_carry --cfg zopro_horizontal_limb_sum"
+  }
+}

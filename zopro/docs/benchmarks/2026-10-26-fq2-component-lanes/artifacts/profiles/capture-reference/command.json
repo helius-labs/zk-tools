@@ -1,0 +1,27 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "120s",
+    "sudo",
+    "-n",
+    "perf",
+    "record",
+    "-e",
+    "cycles:u",
+    "-F",
+    "999",
+    "-o",
+    "/tmp/zopro-fq2-component-lanes/reference.perf.data",
+    "--",
+    "taskset",
+    "-c",
+    "2",
+    "/tmp/zopro-fq2-component-lanes/probe",
+    "reference",
+    "affine-expression",
+    "20000000"
+  ],
+  "environment": {}
+}

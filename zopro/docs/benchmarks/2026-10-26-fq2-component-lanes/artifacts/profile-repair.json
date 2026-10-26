@@ -1,0 +1,14 @@
+{
+  "cause": "First perf capture completed, then workflow rejected changed executable inode metadata. perf created an actual hard link to the pinned executable in its build-id cache; bytes and mtime remain unchanged. All200content pins rechecked.",
+  "command_exit": {
+    "elapsed_ms": 5150.509422,
+    "returncode": 0,
+    "stderr_sha256": "f9eaef2289a910c22a85228d32b69fedb35277219379b35d705ab3ff63a1088d",
+    "stdout_sha256": "27b8d8f9d5eba4e1e1cd43acbab4f4318819aa9f03a008c3c729e092236d0997",
+    "success": true
+  },
+  "latency_repeated": false,
+  "reference_capture_repeated": false,
+  "repair": "Reuse the existing successful reference capture; do not repeat it. Decode it, then capture interleaved with --no-buildid-cache. All unprofiled measurements are unchanged. Subsequent guard takes current inode metadata and retains all content pins.",
+  "same_inode_cache_path": "/root/.debug/tmp/zopro-fq2-component-lanes/probe/51a36539f5d7c7c9fb63f3cf5599b5912cb36c5a/elf"
+}

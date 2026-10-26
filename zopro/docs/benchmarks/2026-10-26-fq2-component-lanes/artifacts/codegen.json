@@ -1,0 +1,220 @@
+{
+  "binary_sha256": "f70de4c244e374162ec06fee09f0d6ff5ec368f4b5a94d64c120e97524a81ed9",
+  "scope": "Static complete outer functions including setup, timed loop and output. Nested calls retained explicitly. Counts are not hot-loop dynamic counts, spill counts, cache events or SDK effects.",
+  "symbols": [
+    {
+      "calls": [
+        "   2e508:\te8 03 50 00 00       \tcall   33510 <probe::input>",
+        "   2e702:\te8 09 4e 00 00       \tcall   33510 <probe::input>",
+        "   2e904:\te8 07 4c 00 00       \tcall   33510 <probe::input>",
+        "   2eaf0:\tff 15 42 c6 04 00    \tcall   *0x4c642(%rip)        # 7b138 <_DYNAMIC+0x238>",
+        "   2fcd8:\tff 15 62 b4 04 00    \tcall   *0x4b462(%rip)        # 7b140 <_DYNAMIC+0x240>",
+        "   2fd07:\tff 15 23 b4 04 00    \tcall   *0x4b423(%rip)        # 7b130 <memcpy@GLIBC_2.14>",
+        "   2fd19:\te8 a2 04 00 00       \tcall   301c0 <probe::words::<probe::Split>>"
+      ],
+      "ifma_sites": 300,
+      "instructions": 1198,
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x2e4c0",
+        "--stop-address=0x2fd34",
+        "/tmp/zopro-fq2-component-lanes/probe"
+      ],
+      "rsp_operand_lines": 223,
+      "size_bytes": 6260,
+      "start": "0x2e4c0",
+      "symbol": "probe::chain::<probe::Split>"
+    },
+    {
+      "calls": [
+        "   2dab7:\te8 54 5a 00 00       \tcall   33510 <probe::input>",
+        "   2dcb1:\te8 5a 58 00 00       \tcall   33510 <probe::input>",
+        "   2deb3:\te8 58 56 00 00       \tcall   33510 <probe::input>",
+        "   2e09f:\tff 15 93 d0 04 00    \tcall   *0x4d093(%rip)        # 7b138 <_DYNAMIC+0x238>",
+        "   2e16c:\te8 8f 2d 00 00       \tcall   30f00 <core::array::try_from_fn::<core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>, 2, <core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>>::wrap_mut_1<usize, <probe::Interleaved as probe::Complex>::mul::{closure#0}>::{closure#0}>>",
+        "   2e454:\tff 15 e6 cc 04 00    \tcall   *0x4cce6(%rip)        # 7b140 <_DYNAMIC+0x240>",
+        "   2e483:\tff 15 a7 cc 04 00    \tcall   *0x4cca7(%rip)        # 7b130 <memcpy@GLIBC_2.14>",
+        "   2e49b:\te8 a0 18 00 00       \tcall   2fd40 <probe::words::<probe::Interleaved>>"
+      ],
+      "ifma_sites": 0,
+      "instructions": 543,
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x2da80",
+        "--stop-address=0x2e4b8",
+        "/tmp/zopro-fq2-component-lanes/probe"
+      ],
+      "rsp_operand_lines": 154,
+      "size_bytes": 2616,
+      "start": "0x2da80",
+      "symbol": "probe::chain::<probe::Interleaved>"
+    },
+    {
+      "calls": [
+        "   1e199:\te8 72 53 01 00       \tcall   33510 <probe::input>",
+        "   1e3b9:\tff 15 71 cd 05 00    \tcall   *0x5cd71(%rip)        # 7b130 <memcpy@GLIBC_2.14>",
+        "   1e3cc:\te8 3f 51 01 00       \tcall   33510 <probe::input>",
+        "   1e5ce:\te8 3d 4f 01 00       \tcall   33510 <probe::input>",
+        "   1e7ba:\tff 15 78 c9 05 00    \tcall   *0x5c978(%rip)        # 7b138 <_DYNAMIC+0x238>",
+        "   1f971:\tff 15 c9 b7 05 00    \tcall   *0x5b7c9(%rip)        # 7b140 <_DYNAMIC+0x240>",
+        "   1f99c:\te8 1f 08 01 00       \tcall   301c0 <probe::words::<probe::Split>>"
+      ],
+      "ifma_sites": 300,
+      "instructions": 1188,
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x1e140",
+        "--stop-address=0x1f9b7",
+        "/tmp/zopro-fq2-component-lanes/probe"
+      ],
+      "rsp_operand_lines": 174,
+      "size_bytes": 6263,
+      "start": "0x1e140",
+      "symbol": "probe::four_streams::<probe::Split>"
+    },
+    {
+      "calls": [
+        "   1d6f9:\te8 12 5e 01 00       \tcall   33510 <probe::input>",
+        "   1d90b:\tff 15 1f d8 05 00    \tcall   *0x5d81f(%rip)        # 7b130 <memcpy@GLIBC_2.14>",
+        "   1d91e:\te8 ed 5b 01 00       \tcall   33510 <probe::input>",
+        "   1db20:\te8 eb 59 01 00       \tcall   33510 <probe::input>",
+        "   1dd0c:\tff 15 26 d4 05 00    \tcall   *0x5d426(%rip)        # 7b138 <_DYNAMIC+0x238>",
+        "   1dde8:\te8 13 31 01 00       \tcall   30f00 <core::array::try_from_fn::<core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>, 2, <core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>>::wrap_mut_1<usize, <probe::Interleaved as probe::Complex>::mul::{closure#0}>::{closure#0}>>",
+        "   1e0f2:\tff 15 48 d0 05 00    \tcall   *0x5d048(%rip)        # 7b140 <_DYNAMIC+0x240>",
+        "   1e122:\te8 19 1c 01 00       \tcall   2fd40 <probe::words::<probe::Interleaved>>"
+      ],
+      "ifma_sites": 0,
+      "instructions": 559,
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x1d6a0",
+        "--stop-address=0x1e13d",
+        "/tmp/zopro-fq2-component-lanes/probe"
+      ],
+      "rsp_operand_lines": 141,
+      "size_bytes": 2717,
+      "start": "0x1d6a0",
+      "symbol": "probe::four_streams::<probe::Interleaved>"
+    },
+    {
+      "calls": [
+        "   21acd:\te8 3e 1a 01 00       \tcall   33510 <probe::input>",
+        "   21cc7:\te8 44 18 01 00       \tcall   33510 <probe::input>",
+        "   21ec9:\te8 42 16 01 00       \tcall   33510 <probe::input>",
+        "   220cb:\te8 40 14 01 00       \tcall   33510 <probe::input>",
+        "   221d7:\te8 34 13 01 00       \tcall   33510 <probe::input>",
+        "   222db:\tff 15 57 8e 05 00    \tcall   *0x58e57(%rip)        # 7b138 <_DYNAMIC+0x238>",
+        "   231b6:\te8 85 d4 00 00       \tcall   30640 <<[zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>; 2]>::try_map::<core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>, <core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>>::wrap_mut_1<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>, <probe::Split as probe::Complex>::scale::{closure#0}>::{closure#0}>>",
+        "   23adb:\tff 15 5f 76 05 00    \tcall   *0x5765f(%rip)        # 7b140 <_DYNAMIC+0x240>",
+        "   23b00:\tff 15 2a 76 05 00    \tcall   *0x5762a(%rip)        # 7b130 <memcpy@GLIBC_2.14>",
+        "   23b13:\te8 a8 c6 00 00       \tcall   301c0 <probe::words::<probe::Split>>",
+        "   2413d:\te8 8e d6 00 00       \tcall   317d0 <<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>>",
+        "   24167:\tff 15 db 6f 05 00    \tcall   *0x56fdb(%rip)        # 7b148 <_DYNAMIC+0x248>",
+        "   24170:\te8 0b 3b 05 00       \tcall   77c80 <_Unwind_Resume@plt>"
+      ],
+      "ifma_sites": 400,
+      "instructions": 1922,
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x21a80",
+        "--stop-address=0x24175",
+        "/tmp/zopro-fq2-component-lanes/probe"
+      ],
+      "rsp_operand_lines": 356,
+      "size_bytes": 9973,
+      "start": "0x21a80",
+      "symbol": "probe::scaled_product::<probe::Split>"
+    },
+    {
+      "calls": [
+        "   1fa0d:\te8 fe 3a 01 00       \tcall   33510 <probe::input>",
+        "   1fc07:\te8 04 39 01 00       \tcall   33510 <probe::input>",
+        "   1fe09:\te8 02 37 01 00       \tcall   33510 <probe::input>",
+        "   2000b:\te8 00 35 01 00       \tcall   33510 <probe::input>",
+        "   2013f:\te8 cc 33 01 00       \tcall   33510 <probe::input>",
+        "   20243:\tff 15 ef ae 05 00    \tcall   *0x5aeef(%rip)        # 7b138 <_DYNAMIC+0x238>",
+        "   203b6:\te8 45 0b 01 00       \tcall   30f00 <core::array::try_from_fn::<core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>, 2, <core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>>::wrap_mut_1<usize, <probe::Interleaved as probe::Complex>::mul::{closure#0}>::{closure#0}>>",
+        "   213e0:\tff 15 5a 9d 05 00    \tcall   *0x59d5a(%rip)        # 7b140 <_DYNAMIC+0x240>",
+        "   21405:\tff 15 25 9d 05 00    \tcall   *0x59d25(%rip)        # 7b130 <memcpy@GLIBC_2.14>",
+        "   21418:\te8 23 e9 00 00       \tcall   2fd40 <probe::words::<probe::Interleaved>>",
+        "   21a3d:\te8 8e fd 00 00       \tcall   317d0 <<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>>",
+        "   21a67:\tff 15 db 96 05 00    \tcall   *0x596db(%rip)        # 7b148 <_DYNAMIC+0x248>",
+        "   21a70:\te8 0b 62 05 00       \tcall   77c80 <_Unwind_Resume@plt>"
+      ],
+      "ifma_sites": 300,
+      "instructions": 1613,
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x1f9c0",
+        "--stop-address=0x21a75",
+        "/tmp/zopro-fq2-component-lanes/probe"
+      ],
+      "rsp_operand_lines": 295,
+      "size_bytes": 8373,
+      "start": "0x1f9c0",
+      "symbol": "probe::scaled_product::<probe::Interleaved>"
+    },
+    {
+      "calls": [
+        "   2889d:\te8 6e ac 00 00       \tcall   33510 <probe::input>",
+        "   28a97:\te8 74 aa 00 00       \tcall   33510 <probe::input>",
+        "   28c91:\te8 7a a8 00 00       \tcall   33510 <probe::input>",
+        "   28e93:\te8 78 a6 00 00       \tcall   33510 <probe::input>",
+        "   29095:\te8 76 a4 00 00       \tcall   33510 <probe::input>",
+        "   29199:\tff 15 99 1f 05 00    \tcall   *0x51f99(%rip)        # 7b138 <_DYNAMIC+0x238>",
+        "   2b31b:\te8 20 53 00 00       \tcall   30640 <<[zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>; 2]>::try_map::<core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>, <core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>>::wrap_mut_1<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>, <probe::Split as probe::Complex>::scale::{closure#0}>::{closure#0}>>",
+        "   2d9f5:\tff 15 45 d7 04 00    \tcall   *0x4d745(%rip)        # 7b140 <_DYNAMIC+0x240>",
+        "   2da2a:\t41 ff d6             \tcall   *%r14",
+        "   2da42:\t41 ff d6             \tcall   *%r14",
+        "   2da56:\te8 65 27 00 00       \tcall   301c0 <probe::words::<probe::Split>>"
+      ],
+      "ifma_sites": 1050,
+      "instructions": 3909,
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x28850",
+        "--stop-address=0x2da71",
+        "/tmp/zopro-fq2-component-lanes/probe"
+      ],
+      "rsp_operand_lines": 619,
+      "size_bytes": 21025,
+      "start": "0x28850",
+      "symbol": "probe::affine_expression::<probe::Split>"
+    },
+    {
+      "calls": [
+        "   241e1:\te8 2a f3 00 00       \tcall   33510 <probe::input>",
+        "   243db:\te8 30 f1 00 00       \tcall   33510 <probe::input>",
+        "   245d5:\te8 36 ef 00 00       \tcall   33510 <probe::input>",
+        "   247d7:\te8 34 ed 00 00       \tcall   33510 <probe::input>",
+        "   249d9:\te8 32 eb 00 00       \tcall   33510 <probe::input>",
+        "   24add:\tff 15 55 66 05 00    \tcall   *0x56655(%rip)        # 7b138 <_DYNAMIC+0x238>",
+        "   28368:\te8 93 8b 00 00       \tcall   30f00 <core::array::try_from_fn::<core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>, 2, <core::ops::try_trait::NeverShortCircuit<zopro_bn254::ifma8::Ifma8<zopro_bn254::FqConfig, true>>>::wrap_mut_1<usize, <probe::Interleaved as probe::Complex>::mul::{closure#0}>::{closure#0}>>",
+        "   287d0:\tff 15 6a 29 05 00    \tcall   *0x5296a(%rip)        # 7b140 <_DYNAMIC+0x240>",
+        "   28805:\t41 ff d6             \tcall   *%r14",
+        "   2881d:\t41 ff d6             \tcall   *%r14",
+        "   28831:\te8 0a 75 00 00       \tcall   2fd40 <probe::words::<probe::Interleaved>>"
+      ],
+      "ifma_sites": 705,
+      "instructions": 3404,
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0x24180",
+        "--stop-address=0x2884c",
+        "/tmp/zopro-fq2-component-lanes/probe"
+      ],
+      "rsp_operand_lines": 579,
+      "size_bytes": 18124,
+      "start": "0x24180",
+      "symbol": "probe::affine_expression::<probe::Interleaved>"
+    }
+  ]
+}

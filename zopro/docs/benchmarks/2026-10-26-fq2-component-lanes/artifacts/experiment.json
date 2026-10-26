@@ -1,0 +1,36 @@
+{
+  "controls": "One frozen executable links the qualified accepted BN254 library. The reference uses the current two-vector eight-element Fq2 formulas. The candidate uses two one-vector four-element packs, so both modes calculate the same eight elements.",
+  "date": "2026-10-26",
+  "gate": {
+    "affine_expression": "Paired median candidate/reference ratio <1 and at least 21/31 winning blocks.",
+    "aggregate": "Geometric mean of four paired pattern medians <1 and at least 21/31 aggregate winning blocks.",
+    "correctness": "All new independent Arkworks and curve/arithmetic oracles must pass before timing.",
+    "no_retry": "No minimum positive-gain floor, selective exclusion, parameter sweep or unchanged reroll. A failed gate closes this component before any SDK integration. A passing gate only motivates a separately declared complete-stream/SDK experiment.",
+    "nonregression": "Every pattern paired median ratio <=1.03."
+  },
+  "hypothesis": "Packing four Fq2 elements as four real lanes followed by four imaginary lanes can shorten the live register set of complex arithmetic without changing the underlying accepted field operations.",
+  "implementation": "Existing Ifma8::halves/from_halves, Ifma::sub and Ifma8::sum2/mul/add/sub only. No new Montgomery kernel, assembly, heap buffer, key table or persistent state.",
+  "patterns": [
+    "chain",
+    "four-streams",
+    "scaled-product",
+    "affine-expression"
+  ],
+  "profiles": "After all unprofiled measurements, one cycles:u 999 Hz capture per mode for 20000000 affine-expression iterations. Record actual linked kernel assembly and static instruction/IFMA/stack-reference counts. Component profiles are explanatory, not SDK or isolated spill-cost claims.",
+  "publication": "Commit and push the completed experiment, including a negative result. Preserve accepted production manifest and executable.",
+  "scope": "Native arithmetic component only; no prover dispatch or SDK latency claim",
+  "timing": {
+    "blocks": 31,
+    "checks": "Every final canonical Fq value in every output state and updated scale must agree across modes in the corresponding pattern/block, not only a checksum. All results and failures retained; no owned CPU overlap.",
+    "cpu": 2,
+    "inside": "Repeated changing-state arithmetic, final optimizer barrier; preparation of initial scalar inputs and packing, output conversion/checking, formatting outside timer.",
+    "measured_iterations": 1000000,
+    "modes": [
+      "reference",
+      "interleaved"
+    ],
+    "order": "Rotate patterns by block; rotate mode order by pattern plus block and reverse on odd blocks.",
+    "priming_calls": 3,
+    "priming_iterations": 2000
+  }
+}
