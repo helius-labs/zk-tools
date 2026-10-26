@@ -1,0 +1,7 @@
+{
+  "appended": "\n#[cfg(zopro_grouping_lower_bound)]\nmod lower_bound;\n",
+  "before_sha256": "870eeccddcde6f53cef57b38b7fc8c2170d37176769187d8229f37228d11f967",
+  "new": "    let reservation = grouping_cost::reserve(scalars.len(), percent)?;\n    #[cfg(zopro_grouping_lower_bound)]\n    if std::env::var(\"ZOPRO_CPU_GROUPING_LOWER_BOUND\").as_deref()==Ok(\"1\")\n        && lower_bound::declines(scalars,percent) { return None; }",
+  "old": "    let reservation = grouping_cost::reserve(scalars.len(), percent)?;",
+  "path": "crates/zopro-core/src/msm_affine/grouping.rs"
+}
