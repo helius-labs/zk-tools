@@ -1,0 +1,10 @@
+use std::{fs,path::Path,collections::BTreeMap};use serde_json::{Value,json};use sha2::{Digest,Sha256};
+fn hash(p:impl AsRef<Path>)->String{format!("{:x}",Sha256::digest(fs::read(p).unwrap()))}
+fn main(){let r=Path::new("/tmp/zopro-nonnegative-gauss");
+ for name in ["probe-tests.rs","row-model.rs.txt"]{let p=r.join(name);let text=fs::read_to_string(&p).unwrap();fs::write(r.join(format!("initial-{name}")),&text).unwrap();let fixed=text.replace("<<1","<<1usize").replace("let real=","let real:BigUint=").replace("let imag=","let imag:BigUint=").replace("let twice=value","let twice:BigInt=value");fs::write(&p,fixed).unwrap();}
+ let old:BTreeMap<String,String>=serde_json::from_slice(&fs::read(r.join("build-input-pins.json")).unwrap()).unwrap();
+ for (p,h) in &old{let name=Path::new(p).file_name().unwrap().to_str().unwrap();let check=if p==r.join("probe-tests.rs").to_str().unwrap()||p==r.join("row-model.rs.txt").to_str().unwrap(){r.join(format!("initial-{name}"))}else{p.into()};assert_eq!(hash(check),*h,"original pin {p}");}
+ let mut pins=old.iter().map(|(p,_)|(p.clone(),hash(p))).collect::<BTreeMap<_,_>>();for name in ["initial-probe-tests.rs","initial-row-model.rs.txt","repair-tests.rs"]{let p=r.join(name);pins.insert(p.to_str().unwrap().into(),hash(&p));}
+ let mut plan:Value=serde_json::from_slice(&fs::read(r.join("build-plan.json")).unwrap()).unwrap();plan["source_pins"]=json!(r.join("build-input-pins-v2.json"));
+ fs::write(r.join("build-input-pins-v2.json"),serde_json::to_vec_pretty(&pins).unwrap()).unwrap();fs::write(r.join("build-plan-v2.json"),serde_json::to_vec_pretty(&plan).unwrap()).unwrap();
+ fs::write(r.join("harness-repair.json"),serde_json::to_vec_pretty(&json!({"reason":"Rust ambiguous BigInt/BigUint shift inference at compile time, before any oracle execution or timing","repair":"Explicit usize shift widths and integer types only; no arithmetic expression, kernel or benchmark change","original_187_pins_verified":true,"new_pins":pins.len(),"original_probe_and_model_retained":true})).unwrap()).unwrap();println!("Test-only integer type annotations; original187pins intact via retained originals, {} correctedpins",pins.len());}

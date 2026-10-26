@@ -1,0 +1,24 @@
+[workspace]
+
+[package]
+name = "nonnegative-gauss-probe"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "probe"
+path = "../probe.rs"
+
+[dependencies]
+zopro-bn254 = { path = "../candidate/crates/zopro-bn254" }
+serde_json = "1"
+
+[dev-dependencies]
+ark-ref = { package = "ark-bn254", version = "0.5" }
+ark-ff = "0.5"
+num-bigint = "0.4"
+
+[profile.release]
+lto = false
+codegen-units = 1

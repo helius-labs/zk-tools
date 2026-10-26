@@ -1,0 +1,28 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "120s",
+    "sudo",
+    "-n",
+    "perf",
+    "record",
+    "--no-buildid-cache",
+    "-e",
+    "cycles:u",
+    "-F",
+    "999",
+    "-o",
+    "/tmp/zopro-nonnegative-gauss/profiles-data/fresh/perf.data",
+    "--",
+    "taskset",
+    "-c",
+    "2",
+    "/tmp/zopro-nonnegative-gauss/target/release/probe",
+    "old",
+    "affine-expression",
+    "20000000"
+  ],
+  "environment": {}
+}

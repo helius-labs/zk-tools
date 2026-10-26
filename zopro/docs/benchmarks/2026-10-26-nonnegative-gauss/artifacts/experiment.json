@@ -1,0 +1,13 @@
+{
+ "declared_date":"2026-10-26",
+ "parent_commit":"359c38fa03b0ae7d8695f614544dc08137526eb4",
+ "hypothesis":"Nonnegative Gauss Fq2 multiplication: raw normalized S=a0+a1, N=2p-a1; stream T=b0+b1 and D=b1+2p-b0 per row. Share P=S*b0 between X=P+N*T and Y=P+a0*D. Three raw products, two unsigned CIOS reductions, four raw vector additions per limb pair rather than eight in prior signed method.",
+ "math":"X=real+2p*(b0+b1), Y=imag+2p*a0. Inputs in[0,2p], p<2^254 imply each accumulator<=12p^2. REDC<R+bound: R256 output<4p permits one conditional subtract2p; R260 output<2p requires none. Prepared arrays may exceed2p and must remain raw limbs. Mixed final48 cancellation mask remains necessary.",
+ "source":"Start accepted170files. Only additive methods in ifma.rs and generated ifma8.rs. Retain exact prior streamed signed method as diagnostic. No production/core changes, tables, heap allocation, barriers or asm.",
+ "validation":"Unfiltered native field suite and generator check. Independent BigInt positive REDC, scalar unsigned CIOS coefficient model, exact prepared operand reconstruction and carry bounds, Fq/Fr x R256/R260 x4/8 lanes, lazy boundaries and8-step Arkworks chains. No raw representative equality demanded between algebraically equivalent methods with different p biases.",
+ "codegen_screen":"Inspect linked standalone and repeat functions. Expected standalone250IFMA; close without timing if this fails or candidate is identical to ordinary. Stack/code size not performance gates.",
+ "benchmark":{"cpu":2,"blocks":31,"iterations":100000,"primes":3,"prime_iterations":2000,"patterns":["chain","streams4","scaled","affine-expression"],"variants":["accepted","fresh","streamed","gauss"],"processes":496,"order":"Rotate16tuples by block; reverse oddblocks","controls_required":["accepted","fresh"],"diagnostic_only":"streamed","gates":"For each required control aggregate geometric mean of paired pattern medians<1 and>=21/31 block wins; each pattern ratio<=1.03; fresh/accepted calibration factor<=1.03. No minimum gain floor, exclusion or unchanged reroll.","profiles":"After all latency: each4variant affine-expression20million iterations,cycles:u999Hz,no-buildid-cache","all_outputs":"All canonical final words equal across variants","concurrency":"No owned build/profile/archive during latency"},
+ "scope":"Component only, no newSDKproofs; passing requires separate actualG2/fullSDK/resource qualification. No adoption from isolated benchmark.",
+ "reporting":"Retain failures and all observations; polite report, commit and push each completed experiment.",
+ "adopted":false,"goal_achieved":false
+}

@@ -1,0 +1,13 @@
+                    cancel!(x);cancel!(y);
+                }};
+            }
+            row!(0);row!(1);row!(2);row!(3);row!(4);
+            for j in 0..4 {
+                x[j+1]=_mm256_add_epi64(x[j+1],_mm256_srli_epi64::<52>(x[j]));x[j]=_mm256_and_si256(x[j],mask);
+                y[j+1]=_mm256_add_epi64(y[j+1],_mm256_srli_epi64::<52>(y[j]));y[j]=_mm256_and_si256(y[j],mask);
+            }
+            let x=[x[0],x[1],x[2],x[3],x[4]];let y=[y[0],y[1],y[2],y[3],y[4]];
+            if MIXED {[Self::reduce_fused(x),Self::reduce_fused(y)]}
+            else {[Self(x,PhantomData),Self(y,PhantomData)]}
+        }
+    }

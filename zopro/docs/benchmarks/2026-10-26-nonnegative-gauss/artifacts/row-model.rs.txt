@@ -1,0 +1,51 @@
+    fn model(inputs:[[u64;5];4],p:[u64;5],inv:u64,mixed:bool,max:&mut i128)->[BigInt;2]{
+        let twice:BigInt=value(p.map(i128::from))<<1usize;
+        let two=digits(&twice.to_biguint().unwrap()).map(i128::from);
+        let mut s=[0i128;5];let mut n=[0i128;5];let(mut cs,mut cn)=(0i128,0i128);
+        for j in 0..5 {
+            let sv=inputs[0][j]as i128+inputs[1][j]as i128+cs;
+            assert!((0..2*B).contains(&sv));s[j]=sv&(B-1);cs=sv>>52;assert!(cs<=1);
+            let nv=two[j]-inputs[1][j]as i128+cn;
+            assert!((-B..B).contains(&nv));n[j]=nv&(B-1);cn=nv>>52;assert!((-1..=0).contains(&cn));
+        }
+        assert_eq!(cs,0);assert_eq!(cn,0);
+        let ints=inputs.map(|d|value(d.map(i128::from)));
+        assert_eq!(value(s),&ints[0]+&ints[1]);assert_eq!(value(n),&twice-&ints[1]);
+        let mut x=[0i128;6];let mut y=[0i128;6];let(mut ct,mut cd)=(0i128,0i128);
+        let mut ts=[0i128;5];let mut ds=[0i128;5];
+        for i in 0..5 {
+            let tv=inputs[2][i]as i128+inputs[3][i]as i128+ct;
+            assert!((0..2*B).contains(&tv));let ti=tv&(B-1);ts[i]=ti;ct=tv>>52;assert!(ct<=1);
+            let dv=inputs[3][i]as i128+two[i]-inputs[2][i]as i128+cd;
+            assert!((-B..2*B).contains(&dv));let di=dv&(B-1);ds[i]=di;cd=dv>>52;assert!((-1..=1).contains(&cd));
+            for j in 0..5 {
+                let common=s[j]*inputs[2][i]as i128;let q=n[j]*ti;let z=inputs[0][j]as i128*di;
+                x[j]=track(track(x[j]+(q&(B-1)),max)+(common&(B-1)),max);
+                x[j+1]=track(track(x[j+1]+(q>>52),max)+(common>>52),max);
+                y[j]=track(track(y[j]+(z&(B-1)),max)+(common&(B-1)),max);
+                y[j+1]=track(track(y[j+1]+(z>>52),max)+(common>>52),max);
+            }
+            for t in [&mut x,&mut y]{
+                assert!(t.iter().all(|v|*v>=0));
+                let bits=if mixed&&i==4{48}else{52};let mask=(1i128<<bits)-1;
+                let m=((t[0]&(B-1))*inv as i128)&mask;
+                let low=track(((t[0]+mask)>>bits)+((m*p[0]as i128)>>bits),max);
+                assert_eq!((t[0]+m*p[0]as i128)&mask,0);
+                assert_eq!(low,(t[0]+m*p[0]as i128)>>bits);
+                for j in 1..5{let product=m*p[j]as i128;t[j]=track(t[j]+(product&(B-1)),max);t[j+1]=track(t[j+1]+(product>>52),max);}
+                if mixed&&i==4{
+                    let mask48=(1i128<<48)-1;
+                    *t=[low+((t[1]&mask48)<<4),(t[1]>>48)+((t[2]&mask48)<<4),(t[2]>>48)+((t[3]&mask48)<<4),(t[3]>>48)+((t[4]&mask48)<<4),(t[4]>>48)+(t[5]<<4),0];
+                    for v in t.iter(){assert!((0..1i128<<62).contains(v));}
+                }else{let first=track(t[1]+low,max);*t=[first,t[2],t[3],t[4],t[5],0];}
+            }
+        }
+        assert_eq!(ct,0);assert_eq!(cd,0);assert_eq!(value(ts),&ints[2]+&ints[3]);assert_eq!(value(ds),&ints[3]+&twice-&ints[2]);
+        core::array::from_fn(|c|{
+            let mut out=if c==0{x}else{y};for v in out {assert!((0..1i128<<62).contains(&v));}
+            for j in 0..4{out[j+1]+=out[j]>>52;out[j]&=B-1;}
+            let mut result=value(core::array::from_fn(|j|out[j]));assert!(result>=BigInt::from(0));
+            if mixed{assert!(result<(&twice<<1usize));if result>=twice{result-=&twice;}}else{assert!(result<twice);}
+            result
+        })
+    }
