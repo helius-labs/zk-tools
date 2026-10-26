@@ -1,0 +1,28 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "120s",
+    "sudo",
+    "-n",
+    "perf",
+    "record",
+    "--no-buildid-cache",
+    "-e",
+    "cycles:u",
+    "-F",
+    "999",
+    "-o",
+    "/tmp/zopro-streamed-complex-b/profiles-data/streamed/perf.data",
+    "--",
+    "taskset",
+    "-c",
+    "2",
+    "/tmp/zopro-streamed-complex-b/target/release/probe",
+    "streamed",
+    "affine-expression",
+    "20000000"
+  ],
+  "environment": {}
+}

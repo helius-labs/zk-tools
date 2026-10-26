@@ -1,0 +1,24 @@
+    fn model(inputs:[[u64;5];4],p:[u64;5],inv:u64,mixed:bool,max:&mut i128)->[BigInt;2]{
+        let mut a=[0i128;5];let mut ca=0i128;
+        for j in 0..5{let v=inputs[0][j]as i128+inputs[1][j]as i128+ca;assert!((0..2*B).contains(&v));a[j]=v&(B-1);ca=v>>52;assert!(ca<=1);}
+        assert_eq!(ca,0);assert_eq!(value(a),value(inputs[0].map(i128::from))+value(inputs[1].map(i128::from)));
+        let mut x=[0i128;6];let mut y=[0i128;6];let mut cb=0i128;let mut b=[0i128;5];
+        for i in 0..5{
+            let bv=inputs[2][i]as i128+inputs[3][i]as i128+cb;assert!((0..2*B).contains(&bv));let bi=bv&(B-1);b[i]=bi;cb=bv>>52;assert!(cb<=1);
+            for j in 0..5{
+                let pa=inputs[0][j]as i128*inputs[2][i]as i128;let pb=inputs[1][j]as i128*inputs[3][i]as i128;let pc=a[j]*bi;
+                let al=pa&(B-1);let ah=pa>>52;let bl=pb&(B-1);let bh=pb>>52;
+                x[j]=track(x[j]+al-bl,max);x[j+1]=track(x[j+1]+ah-bh,max);
+                y[j]=track(y[j]+(pc&(B-1))-al-bl,max);y[j+1]=track(y[j+1]+(pc>>52)-ah-bh,max);
+            }
+            for t in [&mut x,&mut y]{
+                let bits=if mixed&&i==4{48}else{52};let mask=(1i128<<bits)-1;let m=((t[0]&(B-1))*inv as i128)&mask;
+                let low=track(((t[0]+mask)>>bits)+((m*p[0]as i128)>>bits),max);
+                for j in 1..5{let product=m*p[j]as i128;t[j]=track(t[j]+(product&(B-1)),max);t[j+1]=track(t[j+1]+(product>>52),max);}
+                if mixed&&i==4{let mask48=(1i128<<48)-1;*t=[low+((t[1]&mask48)<<4),(t[1]>>48)+((t[2]&mask48)<<4),(t[2]>>48)+((t[3]&mask48)<<4),(t[3]>>48)+((t[4]&mask48)<<4),(t[4]>>48)+(t[5]<<4),0];for v in t.iter(){assert!(v.abs()<1i128<<62);}}
+                else{let first=track(t[1]+low,max);*t=[first,t[2],t[3],t[4],t[5],0];}
+            }
+        }
+        assert_eq!(cb,0);assert_eq!(value(b),value(inputs[2].map(i128::from))+value(inputs[3].map(i128::from)));
+        core::array::from_fn(|component|{let mut out=if component==0{x}else{y};for j in 0..5{if component==0{out[j]+=p[j]as i128;}assert!(out[j].abs()<1i128<<62);}for j in 0..4{out[j+1]+=out[j]>>52;out[j]&=B-1;}let mut result=value(core::array::from_fn(|j|out[j]));let twice=value(p.map(i128::from))<<1;if result>=twice{result-=twice;}result})
+    }

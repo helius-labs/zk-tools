@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-streamed-complex-b/profile-input-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "capture-accepted",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-streamed-complex-b/profiles-data/accepted/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-streamed-complex-b/accepted-probe",
+        "old",
+        "affine-expression",
+        "20000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-accepted",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-streamed-complex-b/profiles-data/accepted/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-accepted",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-streamed-complex-b/profiles-data/accepted/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "capture-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-streamed-complex-b/profiles-data/fresh/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-streamed-complex-b/target/release/probe",
+        "old",
+        "affine-expression",
+        "20000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-streamed-complex-b/profiles-data/fresh/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-streamed-complex-b/profiles-data/fresh/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "capture-shared",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-streamed-complex-b/profiles-data/shared/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-streamed-complex-b/target/release/probe",
+        "shared",
+        "affine-expression",
+        "20000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-shared",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-streamed-complex-b/profiles-data/shared/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-shared",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-streamed-complex-b/profiles-data/shared/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "capture-streamed",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-streamed-complex-b/profiles-data/streamed/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-streamed-complex-b/target/release/probe",
+        "streamed",
+        "affine-expression",
+        "20000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-streamed",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-streamed-complex-b/profiles-data/streamed/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-streamed",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-streamed-complex-b/profiles-data/streamed/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    }
+  ]
+}
