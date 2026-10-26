@@ -1,0 +1,28 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "120s",
+    "sudo",
+    "-n",
+    "perf",
+    "record",
+    "--no-buildid-cache",
+    "-e",
+    "cycles:u",
+    "-F",
+    "999",
+    "-o",
+    "/tmp/zopro-phased-complex-products/profiles-data/phased/perf.data",
+    "--",
+    "taskset",
+    "-c",
+    "2",
+    "/tmp/zopro-phased-complex-products/target/release/probe",
+    "phased",
+    "affine-expression",
+    "20000000"
+  ],
+  "environment": {}
+}

@@ -1,0 +1,231 @@
+{
+  "environment": {},
+  "source_pins": "/tmp/zopro-phased-complex-products/profile-input-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-phased-complex-products/profiles-data/accepted/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-phased-complex-products/accepted-probe",
+        "old",
+        "affine-expression",
+        "20000000"
+      ],
+      "kind": "command",
+      "name": "capture-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-phased-complex-products/profiles-data/accepted/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "kind": "command",
+      "name": "decode-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-phased-complex-products/profiles-data/accepted/perf.data"
+      ],
+      "kind": "command",
+      "name": "loss-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-phased-complex-products/profiles-data/fresh/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-phased-complex-products/target/release/probe",
+        "old",
+        "affine-expression",
+        "20000000"
+      ],
+      "kind": "command",
+      "name": "capture-fresh",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-phased-complex-products/profiles-data/fresh/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "kind": "command",
+      "name": "decode-fresh",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-phased-complex-products/profiles-data/fresh/perf.data"
+      ],
+      "kind": "command",
+      "name": "loss-fresh",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-phased-complex-products/profiles-data/shared/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-phased-complex-products/target/release/probe",
+        "shared",
+        "affine-expression",
+        "20000000"
+      ],
+      "kind": "command",
+      "name": "capture-shared",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-phased-complex-products/profiles-data/shared/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "kind": "command",
+      "name": "decode-shared",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-phased-complex-products/profiles-data/shared/perf.data"
+      ],
+      "kind": "command",
+      "name": "loss-shared",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "999",
+        "-o",
+        "/tmp/zopro-phased-complex-products/profiles-data/phased/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/tmp/zopro-phased-complex-products/target/release/probe",
+        "phased",
+        "affine-expression",
+        "20000000"
+      ],
+      "kind": "command",
+      "name": "capture-phased",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/tmp/zopro-phased-complex-products/profiles-data/phased/perf.data",
+        "-F",
+        "comm,pid,tid,time,event,period,ip,sym,dso"
+      ],
+      "kind": "command",
+      "name": "decode-phased",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/tmp/zopro-phased-complex-products/profiles-data/phased/perf.data"
+      ],
+      "kind": "command",
+      "name": "loss-phased",
+      "timeout_seconds": 120
+    }
+  ],
+  "version": 1
+}

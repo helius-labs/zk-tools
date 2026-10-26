@@ -1,0 +1,117 @@
+    // BEGIN PHASED_COMPLEX_PRODUCTS
+    /// Three raw products in two phases, finishing the real REDC before
+    /// forming the exact input sums and the imaginary third product.
+    #[cfg(zopro_phased_complex_products)]
+    #[inline(always)]
+    pub fn complex_product_phased(a0: &Self, a1: &Self, b0: &Self, b1: &Self) -> [Self; 2] {
+        assert!(C::P[3] < (1u64 << 62));
+        unsafe {
+            let zero = Self::splat(0);
+            let mut difference = [zero; 10];
+            let mut negative_sum = [zero; 10];
+            macro_rules! pair {
+                ($i:literal,$j:literal,$lo:literal,$hi:literal) => {{
+                    let al = _mm256_madd52lo_epu64(zero, a0.0[$i], b0.0[$j]);
+                    let ah = _mm256_madd52hi_epu64(zero, a0.0[$i], b0.0[$j]);
+                    let bl = _mm256_madd52lo_epu64(zero, a1.0[$i], b1.0[$j]);
+                    let bh = _mm256_madd52hi_epu64(zero, a1.0[$i], b1.0[$j]);
+                    difference[$lo] = _mm256_add_epi64(difference[$lo], _mm256_sub_epi64(al, bl));
+                    difference[$hi] = _mm256_add_epi64(difference[$hi], _mm256_sub_epi64(ah, bh));
+                    negative_sum[$lo] = _mm256_sub_epi64(negative_sum[$lo], _mm256_add_epi64(al, bl));
+                    negative_sum[$hi] = _mm256_sub_epi64(negative_sum[$hi], _mm256_add_epi64(ah, bh));
+                }};
+            }
+            pair!(0,0,0,1);
+            pair!(0,1,1,2); pair!(1,0,1,2);
+            pair!(0,2,2,3); pair!(1,1,2,3); pair!(2,0,2,3);
+            pair!(0,3,3,4); pair!(1,2,3,4); pair!(2,1,3,4); pair!(3,0,3,4);
+            pair!(0,4,4,5); pair!(1,3,4,5); pair!(2,2,4,5); pair!(3,1,4,5); pair!(4,0,4,5);
+            pair!(1,4,5,6); pair!(2,3,5,6); pair!(3,2,5,6); pair!(4,1,5,6);
+            pair!(2,4,6,7); pair!(3,3,6,7); pair!(4,2,6,7);
+            pair!(3,4,7,8); pair!(4,3,7,8);
+            pair!(4,4,8,9);
+            let real = Self::phased_signed_redc::<true>(difference);
+            let mask = Self::splat(MASK);
+            let mut a = [zero; 5];
+            let mut b = [zero; 5];
+            let mut ca = zero;
+            let mut cb = zero;
+            for j in 0..5 {
+                let av = _mm256_add_epi64(_mm256_add_epi64(a0.0[j], a1.0[j]), ca);
+                let bv = _mm256_add_epi64(_mm256_add_epi64(b0.0[j], b1.0[j]), cb);
+                ca = _mm256_srli_epi64::<52>(av);
+                cb = _mm256_srli_epi64::<52>(bv);
+                a[j] = _mm256_and_si256(av, mask);
+                b[j] = _mm256_and_si256(bv, mask);
+            }
+            macro_rules! third {
+                ($i:literal,$j:literal,$lo:literal,$hi:literal) => {{
+                    negative_sum[$lo] = _mm256_madd52lo_epu64(negative_sum[$lo], a[$i], b[$j]);
+                    negative_sum[$hi] = _mm256_madd52hi_epu64(negative_sum[$hi], a[$i], b[$j]);
+                }};
+            }
+            third!(0,0,0,1);
+            third!(0,1,1,2); third!(1,0,1,2);
+            third!(0,2,2,3); third!(1,1,2,3); third!(2,0,2,3);
+            third!(0,3,3,4); third!(1,2,3,4); third!(2,1,3,4); third!(3,0,3,4);
+            third!(0,4,4,5); third!(1,3,4,5); third!(2,2,4,5); third!(3,1,4,5); third!(4,0,4,5);
+            third!(1,4,5,6); third!(2,3,5,6); third!(3,2,5,6); third!(4,1,5,6);
+            third!(2,4,6,7); third!(3,3,6,7); third!(4,2,6,7);
+            third!(3,4,7,8); third!(4,3,7,8);
+            third!(4,4,8,9);
+            [real, Self::phased_signed_redc::<false>(negative_sum)]
+        }
+    }
+    #[cfg(zopro_phased_complex_products)]
+    #[inline(always)]
+    fn phased_signed_redc<const BIAS: bool>(mut t: [__m256i; 10]) -> Self {
+        unsafe {
+            let zero = Self::splat(0);
+            let mask = Self::splat(MASK);
+            let p = split(C::P).map(Self::splat);
+            let inv = Self::splat(C::INV & MASK);
+            macro_rules! cancel {
+                ($i:literal,$bits:literal) => {{
+                    let m = _mm256_and_si256(_mm256_madd52lo_epu64(zero, t[$i], inv), Self::splat((1u64 << $bits)-1));
+                    macro_rules! limb {
+                        ($j:literal) => {{
+                            t[$i+$j] = _mm256_madd52lo_epu64(t[$i+$j],m,p[$j]);
+                            t[$i+$j+1] = _mm256_madd52hi_epu64(t[$i+$j+1],m,p[$j]);
+                        }};
+                    }
+                    limb!(0); limb!(1); limb!(2); limb!(3); limb!(4);
+                    if $bits == 52 {
+                        t[$i+1] = _mm256_add_epi64(t[$i+1], _mm256_srai_epi64::<52>(t[$i]));
+                    }
+                }};
+            }
+            cancel!(0,52); cancel!(1,52); cancel!(2,52); cancel!(3,52);
+            let mut out = if MIXED {
+                cancel!(4,48);
+                for j in 4..9 {
+                    t[j+1] = _mm256_add_epi64(t[j+1], _mm256_srai_epi64::<52>(t[j]));
+                    t[j] = _mm256_and_si256(t[j],mask);
+                }
+                core::array::from_fn(|j| {
+                    if j == 4 {
+                        _mm256_add_epi64(_mm256_srli_epi64::<48>(t[8]), _mm256_slli_epi64::<4>(t[9]))
+                    } else {
+                        _mm256_or_si256(_mm256_srli_epi64::<48>(t[j+4]), _mm256_and_si256(_mm256_slli_epi64::<4>(t[j+5]),mask))
+                    }
+                })
+            } else {
+                cancel!(4,52);
+                [t[5],t[6],t[7],t[8],t[9]]
+            };
+            for j in 0..5 {
+                if BIAS {out[j] = _mm256_add_epi64(out[j],p[j]);}
+            }
+            for j in 0..4 {
+                out[j+1] = _mm256_add_epi64(out[j+1], _mm256_srai_epi64::<52>(out[j]));
+                out[j] = _mm256_and_si256(out[j],mask);
+            }
+            Self::reduce(out,crate::portable::add4(C::P,C::P).0)
+        }
+    }
+    // END PHASED_COMPLEX_PRODUCTS
+
