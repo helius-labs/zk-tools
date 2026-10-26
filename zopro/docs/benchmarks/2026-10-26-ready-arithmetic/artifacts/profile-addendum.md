@@ -1,0 +1,5 @@
+# Profile and capture addendum, before any SDK observation
+
+After all 27 latency processes, collect one fixed FIFO-controlled cycles:u profile for primary32 for each of accepted/OFF/ON, 51 measured plus3 prime SDK calls. Use the qualified xtask perf runner, CLOCK_MONOTONIC,999Hz, existing no-buildid-cache policy. These three profiles add162 SDK calls and3 distinct Gnark exports: experiment total726 SDK calls,36 exports (including6 preflight and27 latency exports). No profile overlaps latency. Instrumented ON profiles retain their task records but do not establish accepted latency. Retain lost-event counts and single-PID checks; no capture retries to improve results.
+
+ZOPRO_READY_OUTPUT=1 selects ON. A constant bash exec adapter expands that flag into the process's unique proof directory, then replaces itself with the exact SDK executable; OFF and accepted have the flag absent. No arithmetic source or native build changes result. Recorder snapshot occurs after every request timer; diagnostic warm CPU/loop counters include snapshot overhead and must not be treated as proof-only arithmetic cost.

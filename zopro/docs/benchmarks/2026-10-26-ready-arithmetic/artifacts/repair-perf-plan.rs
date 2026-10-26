@@ -1,0 +1,7 @@
+use serde_json::{json,Value};use sha2::{Digest,Sha256};use std::{fs,path::Path,os::unix::fs::PermissionsExt};
+fn main(){let r=Path::new("/tmp/zopro-ready-arithmetic");let path=r.join("perf-plan.json");let mut p:Value=serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();assert_eq!(p["prior_proof_sha256"].as_array().unwrap().len(),5074);assert!(!r.join("performance").exists());
+ let wrapper=r.join("on-exec");let script="#!/bin/bash\nset -e\nexport ZOPRO_READY_OUTPUT=\"$4/readiness.json\"\nexec /tmp/zopro-ready-arithmetic/native/on-sdk \"$@\"\n";fs::write(&wrapper,script).unwrap();fs::set_permissions(&wrapper,fs::Permissions::from_mode(0o755)).unwrap();
+ p["command"]=json!(["{binary}","{image}","{request}","{rounds}","{proof_dir}/{stem}"]);
+ let on=p["variants"].as_array_mut().unwrap().iter_mut().find(|v|v["name"]=="on").unwrap();assert_eq!(on["binary"],"/tmp/zopro-ready-arithmetic/native/on-sdk");on["binary"]=json!(wrapper);
+ for file in["on-exec","repair-perf-plan.rs","initial-perf-command-failure/perf-plan.json","initial-perf-command-failure/performance.log","initial-perf-command-failure/repair.json"]{let file=r.join(file);let h=format!("{:x}",Sha256::digest(fs::read(&file).unwrap()));p["pins"][file.to_str().unwrap()]=json!(h);}
+ fs::write(path,serde_json::to_vec_pretty(&p).unwrap()).unwrap();println!("Replaced rejected adapter command with pinned exec wrapper; zero timing/capture repeats");}
