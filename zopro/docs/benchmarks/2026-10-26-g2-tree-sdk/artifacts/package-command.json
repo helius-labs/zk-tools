@@ -1,0 +1,54 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "6b860c8e-7876-4fbb-aa98-40c340e8bea8",
+    "Comment": "Owned gs-c7a-20261026-181527 package",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T19:43:35.316000+00:00",
+    "InstanceIds": [
+      "i-00a75bcf3818cbab9"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "docker inspect zopro-g2-tree-sdk > /var/tmp/zopro-gs-c7a-20261026-181527/container-inspect.json",
+        "cat /proc/swaps > /var/tmp/zopro-gs-c7a-20261026-181527/post-host-state.txt",
+        "tar --exclude=output/lagrange-cache --exclude=ctl --exclude=ack -czf /var/tmp/zopro-gs-c7a-20261026-181527/results.tar.gz -C /var/tmp/zopro-gs-c7a-20261026-181527 output runner.log hardware.txt post-host-state.txt container-inspect.json",
+        "sha256sum /var/tmp/zopro-gs-c7a-20261026-181527/results.tar.gz",
+        "stat -c %s /var/tmp/zopro-gs-c7a-20261026-181527/results.tar.gz"
+      ],
+      "executionTimeout": [
+        "600"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T18:33:35.316000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}

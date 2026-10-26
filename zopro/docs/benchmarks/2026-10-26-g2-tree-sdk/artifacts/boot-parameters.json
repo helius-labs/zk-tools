@@ -1,0 +1,13 @@
+{
+  "commands": [
+    "set -eu",
+    "cloud-init status --wait",
+    "test -f /var/lib/cloud/instance/boot-finished",
+    "test -x /usr/local/bin/aws",
+    "docker info >/dev/null",
+    "systemctl is-active zopro-bench-ttl.timer"
+  ],
+  "executionTimeout": [
+    "600"
+  ]
+}
