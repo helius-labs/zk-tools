@@ -1,0 +1,29 @@
+error[E0423]: expected value, found builtin type `u8`
+  --> /tmp/zopro-base-census/probe.rs:12:112
+   |
+12 | fn ranges(raw:&[u8])->Result<Vec<(&'static str,&[u8])>,String>{if raw.get(..16)!=Some(b"zopro-euler-v2\0\0"as&[u8]){return Err("expe...
+   |                                                                                                                ^^ not a value
+
+warning: unused imports: `BTreeSet` and `hash::Hash`
+ --> /tmp/zopro-base-census/probe.rs:1:36
+  |
+1 | use std::{fs,collections::{HashMap,BTreeSet},hash::Hash,sync::Arc,path::Path};
+  |                                    ^^^^^^^^  ^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `Fr`, `G1Affine`, `G1Projective`, `G2Affine`, and `G2Projective`
+ --> /tmp/zopro-base-census/probe.rs:2:48
+  |
+2 | use serde_json::{json,Value};use zopro_bn254::{Fr,G1Affine,G1Projective,G2Affine,G2Projective};
+  |                                                ^^ ^^^^^^^^ ^^^^^^^^^^^^ ^^^^^^^^ ^^^^^^^^^^^^
+
+error: suffixes on byte string literals are invalid
+  --> /tmp/zopro-base-census/probe.rs:12:87
+   |
+12 | ...tr,&[u8])>,String>{if raw.get(..16)!=Some(b"zopro-euler-v2\0\0"as&[u8]){return Err("expected current Euler v2".into());}let mut r...
+   |                                              ^^^^^^^^^^^^^^^^^^^^^^^ invalid suffix `r#as`
+
+error: aborting due to 2 previous errors; 2 warnings emitted
+
+For more information about this error, try `rustc --explain E0423`.
