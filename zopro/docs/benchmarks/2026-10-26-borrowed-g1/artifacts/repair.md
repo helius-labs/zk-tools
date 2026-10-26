@@ -1,0 +1,5 @@
+# Test-oracle compile repair before any SDK capture
+
+The first native workflow completed compiler/generator checks and all33field tests, then core compilation failed: Fr intentionally has no std::iter::Sum implementation. The new dispatch test's generator oracle used sum::<Fr>(); replace only that test expression with fold(Fr::ZERO,|sum,w|sum+*w). Prover arithmetic, route and layout are unchanged. The first source snapshot, helper/plan/pins are retained under pre-repair-v1; failed native receipts/logs remain in native/.
+
+The corrected remaining native workflow writes native-repair/. Already passed compiler/generator/field steps are not rerun. All field-package inputs remain hash-identical to accepted, checked by setup's complete manifest audit; setup also checks old completed-step list and33passed field tests. The final preparation helper reads field evidence from native/field and core/build/consumer evidence from native-repair. Both original and repaired protocols remain. No SDK request, latency sample, independent export or profile existed at repair time.

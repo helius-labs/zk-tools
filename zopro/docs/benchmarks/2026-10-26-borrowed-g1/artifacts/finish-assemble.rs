@@ -1,0 +1,2 @@
+use std::{fs,path::Path};
+fn main(){let r=Path::new("/tmp/zopro-borrowed-g1");let old=fs::read_to_string("/tmp/zopro-borrowed-pending/finish.rs").unwrap();let end=old.find("fn main()").unwrap();let head=old[..end].replace("/tmp/zopro-borrowed-pending","/tmp/zopro-borrowed-g1").replace("2026-10-26-borrowed-pending","2026-10-26-borrowed-g1");let body=fs::read_to_string(r.join("finish-main.rs")).unwrap();fs::write(r.join("finish.rs"),format!("{head}\n{body}")).unwrap();}

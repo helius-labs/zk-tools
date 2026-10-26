@@ -1,0 +1,173 @@
+{
+  "adopted": false,
+  "calibration_failures": [],
+  "candidate_retained": true,
+  "cases": {
+    "1x2-w16": {
+      "modes": {
+        "accepted": {
+          "cpu_ms_per_request": 129.19305882352938,
+          "maxrss_mib": 77.75,
+          "ms": 10.58942
+        },
+        "all": {
+          "cpu_ms_per_request": 122.36994117647058,
+          "maxrss_mib": 74.5,
+          "ms": 9.994728
+        },
+        "kh": {
+          "cpu_ms_per_request": 123.78441176470588,
+          "maxrss_mib": 72.75,
+          "ms": 10.046065
+        },
+        "owned": {
+          "cpu_ms_per_request": 130.0902941176471,
+          "maxrss_mib": 77.75,
+          "ms": 10.498078
+        }
+      },
+      "pairs": {
+        "all/accepted": {
+          "geometric_ratio": 1.062563183938806,
+          "median_ratio": 0.9732661490379302,
+          "ratios": [
+            0.9732661490379302,
+            0.9297550762931304,
+            1.3257575712409146
+          ],
+          "saving_us": 274.5370000000005,
+          "wins": 2
+        },
+        "all/kh": {
+          "geometric_ratio": 1.1076367576523316,
+          "median_ratio": 1.0256571080074548,
+          "ratios": [
+            1.0256571080074548,
+            0.9800421359009722,
+            1.3519017702214777
+          ],
+          "saving_us": -250.02100000000027,
+          "wins": 1
+        },
+        "all/owned": {
+          "geometric_ratio": 1.0676300197266857,
+          "median_ratio": 0.9738465158584431,
+          "ratios": [
+            0.9738465158584431,
+            0.9378447178616887,
+            1.3324191899910462
+          ],
+          "saving_us": 268.41699999999946,
+          "wins": 2
+        },
+        "owned/accepted": {
+          "geometric_ratio": 0.9952541276525957,
+          "median_ratio": 0.995000358145415,
+          "ratios": [
+            0.9994040469303304,
+            0.9913742206844189,
+            0.995000358145415
+          ],
+          "saving_us": 58.700999999999226,
+          "wins": 3
+        }
+      },
+      "reference": {
+        "cpu_ms": 37.0,
+        "metal_ms": 24.0
+      },
+      "shape": "1x2",
+      "workers": 16
+    },
+    "1x2-w32": {
+      "modes": {
+        "accepted": {
+          "cpu_ms_per_request": 198.67452941176472,
+          "maxrss_mib": 97.5,
+          "ms": 8.500571
+        },
+        "all": {
+          "cpu_ms_per_request": 189.83305882352943,
+          "maxrss_mib": 95.25,
+          "ms": 8.191548
+        },
+        "kh": {
+          "cpu_ms_per_request": 192.2641176470588,
+          "maxrss_mib": 99.0,
+          "ms": 8.364043
+        },
+        "owned": {
+          "cpu_ms_per_request": 199.6434117647059,
+          "maxrss_mib": 100.25,
+          "ms": 8.61703
+        }
+      },
+      "pairs": {
+        "all/accepted": {
+          "geometric_ratio": 0.9657679220084768,
+          "median_ratio": 0.9659440863548288,
+          "ratios": [
+            0.9636467950211813,
+            0.9659440863548288,
+            0.967717197994295
+          ],
+          "saving_us": 291.79099999999994,
+          "wins": 3
+        },
+        "all/kh": {
+          "geometric_ratio": 0.9821599719096847,
+          "median_ratio": 0.9793766005268025,
+          "ratios": [
+            0.9793766005268025,
+            0.9951714469414094,
+            0.9720734035603336
+          ],
+          "saving_us": 172.4950000000014,
+          "wins": 3
+        },
+        "all/owned": {
+          "geometric_ratio": 0.9544457714225402,
+          "median_ratio": 0.9556289130327852,
+          "ratios": [
+            0.9592174264949722,
+            0.9556289130327852,
+            0.9485220545826115
+          ],
+          "saving_us": 384.27499999999884,
+          "wins": 3
+        },
+        "owned/accepted": {
+          "geometric_ratio": 1.0118625394180978,
+          "median_ratio": 1.0107941201666946,
+          "ratios": [
+            1.0046176897998969,
+            1.0107941201666946,
+            1.0202368973066527
+          ],
+          "saving_us": -92.4839999999989,
+          "wins": 0
+        }
+      },
+      "reference": {
+        "cpu_ms": 37.0,
+        "metal_ms": 24.0
+      },
+      "shape": "1x2",
+      "workers": 32
+    }
+  },
+  "full_gate_passed": false,
+  "goal_achieved": false,
+  "independent_exports": 42,
+  "next_prior_count": 6928,
+  "original8": {},
+  "primary_failures": [],
+  "regressions": [
+    "1x2-w16 all/accepted=1.062563183938806",
+    "1x2-w16 all/owned=1.0676300197266857",
+    "1x2-w16 all/kh=1.1076367576523316"
+  ],
+  "screen_advances_to_full": false,
+  "sdk_requests": 552,
+  "stage": "screen"
+}
