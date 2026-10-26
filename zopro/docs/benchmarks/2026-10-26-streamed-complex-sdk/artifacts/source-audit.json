@@ -1,0 +1,59 @@
+{
+  "base_166_unchanged": true,
+  "both_field_blocks_byte_identical_to_passed_component": true,
+  "changed": [
+    {
+      "original_sha256": "719a9a11c1c7668c0d1885edeab565bca1b228b5284bb5793e2313cfe90f36d5",
+      "path": "crates/zopro-bn254/src/ifma.rs",
+      "sha256": "603b217100e56e86bf697bfafe13c976b7bdc02f3f47afc0d68726db2d6b18e2"
+    },
+    {
+      "original_sha256": "4a31a8f6095e0da56a40c7ebd2d1bc4a1d8360d83d8cad48d3dc9860a4deb4c6",
+      "path": "crates/zopro-bn254/src/ifma8.rs",
+      "sha256": "be364c2ab77d14b3233f815c46d5c2161650cbfd4d1ac999163a5eed6d12c286"
+    },
+    {
+      "original_sha256": "0fec145d662927c36c85d190379c0250746ef98166f41abeb15fe9106e4f8a5d",
+      "path": "crates/zopro-core/src/msm.rs",
+      "sha256": "d53a0acaef55fa2c886d133e68924dd1fa53b4834db3b7ee1b3daabc0a5b14b3"
+    },
+    {
+      "original_sha256": "f79d603d95ccfca1f79dcebcbeb8bd74d8dcbbd601ace4e719a6cafe4e7363aa",
+      "path": "crates/zopro-core/src/simd.rs",
+      "sha256": "71e2c6af1a1b5aa912eccca978e5356d635fc48f209ee28ae243e6d9fdcb08e8"
+    }
+  ],
+  "compile_time_variants": true,
+  "core_edits": [
+    {
+      "field_block_sha256": "826df0b5a6d1a36a702cbcd947d9ed0dfa3fc19599f5b8780c57854944f96f42",
+      "kind": "insert exact component streamed method",
+      "path": "crates/zopro-bn254/src/ifma.rs"
+    },
+    {
+      "field_block_sha256": "eff36050f4a73eaf1e7aba8245544a6eb8722ef07a85b1df03049c3bba86fad2",
+      "kind": "insert exact component streamed method",
+      "path": "crates/zopro-bn254/src/ifma8.rs"
+    },
+    {
+      "added": "    #[cfg(zopro_streamed_complex_b)]\n    #[inline(always)]\n    pub(crate) fn complex_product_streamed(a0: &Self, a1: &Self, b0: &Self, b1: &Self) -> [Self; 2] {\n        zopro_bn254::ifma8::Ifma8::complex_product_streamed(&a0.0, &a1.0, &b0.0, &b1.0).map(Self)\n    }\n",
+      "kind": "insert nativebridge only",
+      "path": "crates/zopro-core/src/simd.rs"
+    },
+    {
+      "from": "    fn lanes_scaled_numerator(\n        dy: &[FqBatch; 2],\n        dx: &[FqBatch; 2],\n        prefix: &FqBatch,\n    ) -> [FqBatch; 2] {\n        #[cfg(all(\n            target_arch = \"x86_64\",\n            target_feature = \"avx512ifma\",\n            target_feature = \"avx512vl\",\n            target_feature = \"avx512dq\",\n            not(no_ifma)\n        ))]\n        let value = [\n            dy[0].sum2(&dx[0], &dy[1], &dx[1]),\n            dy[1].difference2(&dx[0], &dy[0], &dx[1]),\n        ];\n        #[cfg(not(all(\n            target_arch = \"x86_64\",\n            target_feature = \"avx512ifma\",\n            target_feature = \"avx512vl\",\n            target_feature = \"avx512dq\",\n            not(no_ifma)\n        )))]\n        let value = Self::lanes_mul(dy, &[dx[0], FqBatch::zero().sub(&dx[1])]);\n        Self::lanes_scale(&value, prefix)\n    }",
+      "method": "lanes_scaled_numerator",
+      "path": "crates/zopro-core/src/msm.rs",
+      "to": "    fn lanes_scaled_numerator(\n        dy: &[FqBatch; 2],\n        dx: &[FqBatch; 2],\n        prefix: &FqBatch,\n    ) -> [FqBatch; 2] {\n        #[cfg(all(\n            zopro_streamed_complex_b,\n            feature = \"ifma8\",\n            target_arch = \"x86_64\",\n            target_feature = \"avx512ifma\",\n            target_feature = \"avx512vl\",\n            target_feature = \"avx512dq\",\n            not(no_ifma)\n        ))]\n        let value = {\n            let negative = FqBatch::zero().sub(&dx[1]);\n            FqBatch::complex_product_streamed(&dy[0], &dy[1], &dx[0], &negative)\n        };\n        #[cfg(all(\n            not(all(zopro_streamed_complex_b, feature = \"ifma8\")),\n            target_arch = \"x86_64\",\n            target_feature = \"avx512ifma\",\n            target_feature = \"avx512vl\",\n            target_feature = \"avx512dq\",\n            not(no_ifma)\n        ))]\n        let value = [\n            dy[0].sum2(&dx[0], &dy[1], &dx[1]),\n            dy[1].difference2(&dx[0], &dy[0], &dx[1]),\n        ];\n        #[cfg(not(all(\n            target_arch = \"x86_64\",\n            target_feature = \"avx512ifma\",\n            target_feature = \"avx512vl\",\n            target_feature = \"avx512dq\",\n            not(no_ifma)\n        )))]\n        let value = Self::lanes_mul(dy, &[dx[0], FqBatch::zero().sub(&dx[1])]);\n        Self::lanes_scale(&value, prefix)\n    }"
+    },
+    {
+      "from": "    fn lanes_mul(a: &[FqBatch; 2], b: &[FqBatch; 2]) -> [FqBatch; 2] {\n        #[cfg(all(\n            target_arch = \"x86_64\",\n            target_feature = \"avx512ifma\",\n            target_feature = \"avx512vl\",\n            target_feature = \"avx512dq\",\n            not(no_ifma)\n        ))]\n        {\n            [\n                a[0].difference2(&b[0], &a[1], &b[1]),\n                a[0].sum2(&b[1], &a[1], &b[0]),\n            ]\n        }\n        #[cfg(not(all(\n            target_arch = \"x86_64\",\n            target_feature = \"avx512ifma\",\n            target_feature = \"avx512vl\",\n            target_feature = \"avx512dq\",\n            not(no_ifma)\n        )))]\n        {\n            let v0 = a[0].mul(&b[0]);\n            let v1 = a[1].mul(&b[1]);\n            let v2 = a[0].add(&a[1]).mul(&b[0].add(&b[1]));\n            [v0.sub(&v1), v2.sub(&v0).sub(&v1)]\n        }\n    }",
+      "method": "lanes_mul",
+      "path": "crates/zopro-core/src/msm.rs",
+      "to": "    fn lanes_mul(a: &[FqBatch; 2], b: &[FqBatch; 2]) -> [FqBatch; 2] {\n        #[cfg(all(\n            target_arch = \"x86_64\",\n            target_feature = \"avx512ifma\",\n            target_feature = \"avx512vl\",\n            target_feature = \"avx512dq\",\n            not(no_ifma)\n        ))]\n        {\n            #[cfg(all(zopro_streamed_complex_b, feature = \"ifma8\"))]\n            return FqBatch::complex_product_streamed(&a[0], &a[1], &b[0], &b[1]);\n            #[cfg(not(all(zopro_streamed_complex_b, feature = \"ifma8\")))]\n            [\n                a[0].difference2(&b[0], &a[1], &b[1]),\n                a[0].sum2(&b[1], &a[1], &b[0]),\n            ]\n        }\n        #[cfg(not(all(\n            target_arch = \"x86_64\",\n            target_feature = \"avx512ifma\",\n            target_feature = \"avx512vl\",\n            target_feature = \"avx512dq\",\n            not(no_ifma)\n        )))]\n        {\n            let v0 = a[0].mul(&b[0]);\n            let v1 = a[1].mul(&b[1]);\n            let v2 = a[0].add(&a[1]).mul(&b[0].add(&b[1]));\n            [v0.sub(&v1), v2.sub(&v0).sub(&v1)]\n        }\n    }"
+    }
+  ],
+  "new_heap_buffer_or_table_bytes": 0,
+  "whole_original_files_recovered_by_documented_inverse_edits": true,
+  "workspace_key_plan_scheduler_solver_unchanged": true
+}

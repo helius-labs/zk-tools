@@ -1,0 +1,88 @@
+{
+  "environment": {},
+  "source_pins": "/tmp/zopro-streamed-complex-sdk/instruction-extraction-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/tmp/zopro-streamed-complex-sdk/instruction-inputs/accepted/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "objdump",
+        "-d",
+        "-w",
+        "--insn-width=16",
+        "/tmp/zopro-grouping-module/native/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "objdump-accepted",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/tmp/zopro-streamed-complex-sdk/instruction-inputs/off/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-off",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "objdump",
+        "-d",
+        "-w",
+        "--insn-width=16",
+        "/tmp/zopro-streamed-complex-sdk/native/off-sdk"
+      ],
+      "kind": "command",
+      "name": "objdump-off",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/tmp/zopro-streamed-complex-sdk/instruction-inputs/on/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-on",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "objdump",
+        "-d",
+        "-w",
+        "--insn-width=16",
+        "/tmp/zopro-streamed-complex-sdk/native/on-sdk"
+      ],
+      "kind": "command",
+      "name": "objdump-on",
+      "timeout_seconds": 120
+    }
+  ],
+  "version": 1
+}
