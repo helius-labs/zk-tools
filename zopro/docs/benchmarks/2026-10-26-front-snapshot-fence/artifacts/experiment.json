@@ -1,0 +1,88 @@
+{
+  "declared_at": "2026-10-26 03:22:21 UTC",
+  "status": "declared before implementation, compilation or timing",
+  "accepted_commit": "9ac88def83000a2be3caaf520d8404326025653f",
+  "accepted_manifest": "/tmp/zopro-grouping-module/production-source-manifest.json",
+  "mechanism": "Normal epoch-protected Crossbeam queues with original shrinking/retirement. New safe bounded API pins one guard, snapshots up to8 front indices Acquire, issues one explicit SeqCst fence after ALL snapshots, then tries original back Acquire/buffer Acquire/read/pointer-check/front SeqCst CAS using saved fronts. Return first task, else Retry if any race, else Empty. Guard drops before returning. Original single-steal method unchanged.",
+  "rayon": "Keep original first scalar victim probe for successful-first-victim path. Group remaining victims into ordered tiles up to8 refs on stack. Preserve random circular order, self skipping, retry aggregation and full-pass reroll when any Retry and no success. No injector/wakeup/jobgraph/worker count/entry change.",
+  "activation": "Private cfg zopro_front_snapshot_fence and explicit ZOPRO_CPU_FRONT_SNAPSHOT_FENCE=1 read once per Rayon registry; absent/0 OFF. Original OFF steal body retained. Accepted170+genericCLI and exact private deque/Rayon sources.219 runtime lock entries:217 byte-identical, two registry source/checksum removals for path substitutions. No registry mutation/new runtime dependency.",
+  "memory": "Up to8 refs and8 WorkerIndex stack slots. No new deque field, retained buffer, key table, copied points or per-proof heap allocation. One immutable boolean in Rayon Registry. Ordinary GC/shrink retained; collection cadence changes need churn/reclamation checks and further pressure/large/concurrentSDK qualification.",
+  "ordering": "Saved front Acquire -> common explicit SeqCst fence -> back Acquire/read/pointer check/CAS per victim; ordinary guard spans all dereferences. Review pinned source, Rust fence contract and Le/Pop/Cohen/Zappa Nardelli PPoPP2013 fig1/section5. Combining fence across victims is our inference needing bounded models/tests. Do not substitute SC accesses for SC fences.",
+  "history": "Prior10/25 shares guard but keeps per-victim fences. Rejected10/26 retention removes epoch samples but keeps per-probe barrier and loses1.6% aggregate with more switches; not composed. No exact front-snapshot/common-fence design found in README/design/handoff searches; preserve prior negatives.",
+  "models": "Actual Loom synchronization: SC store-buffering litmus/missing-common-fence negative control; bounded two-queue owner-last-pop/two-thief uniqueness; Release/Acquire publication; generation checks with model allocations retained. Partial models, not full Crossbeam/GC/scheduler proof. Fail before SDK timing if model/source/order checks fail.",
+  "native_tests": "Upstream deque/Rayon both modes. Added tile order, mixed FIFO/LIFO, duplicate refs, size bounds, retry/stale snapshots/guard cleanup, concurrent growth/resize/exactly-once/drop/reclamation. Overloaded nested FIFO/cross-pool/panic/reuse Rayon.109core each, raw2/cubic6 expected. Unchanged field kernels inherit33, no new run claimed.",
+  "preflight": {
+    "shapes": "all nine",
+    "workers": 4,
+    "variants": [
+      "off",
+      "on"
+    ],
+    "rounds": 1,
+    "primes": 3,
+    "sdk": 72,
+    "exports": 18
+  },
+  "latency": {
+    "blocks": 7,
+    "cases": "all nine32workers plus physical16primary",
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds_w32": 31,
+    "rounds_w16": 101,
+    "primes": 3,
+    "sdk": 8610,
+    "exports": 210,
+    "affinity": {
+      "w32": "0-31",
+      "w16": "0-15"
+    },
+    "gates": {
+      "primary_paired_median_lt": 1,
+      "primary_wins_gte": 4,
+      "original8_paired_geomean_lt": 1,
+      "every_case_paired_median_lte": 1.02,
+      "every_block_lte": 1.05,
+      "off_calibration_factor_lte": 1.03
+    },
+    "minimum_gain_floor": false,
+    "unchanged_reroll": false
+  },
+  "profiles": {
+    "after_all_latency": true,
+    "cases": [
+      "1x2-w32",
+      "12x2-w32",
+      "merge-54x1-w32"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds": {
+      "primary": 101,
+      "12x2": 51,
+      "merge54": 9
+    },
+    "primes": 3,
+    "sdk": 510,
+    "exports": 9,
+    "captures": 9,
+    "frequency_hz": 999,
+    "monotonic_clock": true
+  },
+  "totals": {
+    "sdk": 9192,
+    "distinct_exports": 237,
+    "proof_public_members": 474
+  },
+  "validity": "Freeze sources/compiler/tool/helpers/actual linked libraries/binaries/inputs/verifier/protocol and prior identities. Mandatory fixture/freshness check. Timed complete SDK includes solving/randomness/proving/internal verification/serialization; load/primes excluded. All latency before profiles, no owned CPU overlap. Gnark each export. Retain every failure/sample, no unchanged reroll.",
+  "if_positive": "Resource/portable/concurrentSDK/very-large/target-host qualification before adoption. No cloud for this local screen.",
+  "publish": "Commit and PUSH each completed experiment including negative, polite report. Raw perf/symbol streams and paper PDF local with hashes, omitted Git. No subagents/questions/C-ASM rewrite/large key tables.",
+  "adopted": false,
+  "goal_achieved": false
+}

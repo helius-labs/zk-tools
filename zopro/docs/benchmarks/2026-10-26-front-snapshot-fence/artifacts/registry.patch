@@ -1,0 +1,38 @@
+diff --git a/tmp/zopro-front-snapshot-fence/upstream-registry.rs b/tmp/zopro-front-snapshot-fence/candidate/vendor/rayon-core-1.13.0/src/registry.rs
+index 809976a0..f1a615aa 100644
+--- a/tmp/zopro-front-snapshot-fence/upstream-registry.rs
++++ b/tmp/zopro-front-snapshot-fence/candidate/vendor/rayon-core-1.13.0/src/registry.rs
+@@ -148,6 +148,8 @@ pub(super) struct Registry {
+     //   These are always owned by some other job (e.g., one injected by `ThreadPool::install()`)
+     //   and that job will keep the pool alive.
+     terminate_count: AtomicUsize,
++    #[cfg(zopro_front_snapshot_fence)]
++    front_snapshot_fence: bool,
+ }
+ 
+ // ////////////////////////////////////////////////////////////////////////
+@@ -274,6 +276,8 @@ impl Registry {
+             injected_jobs: Injector::new(),
+             broadcasts: Mutex::new(broadcasts),
+             terminate_count: AtomicUsize::new(1),
++            #[cfg(zopro_front_snapshot_fence)]
++            front_snapshot_fence: std::env::var("ZOPRO_CPU_FRONT_SNAPSHOT_FENCE").is_ok_and(|v| v == "1"),
+             panic_handler: builder.take_panic_handler(),
+             start_handler: builder.take_start_handler(),
+             exit_handler: builder.take_exit_handler(),
+@@ -871,6 +875,8 @@ impl WorkerThread {
+     /// This should only be done as a last resort, when there is no
+     /// local work to do.
+     fn steal(&self) -> Option<JobRef> {
++        #[cfg(zopro_front_snapshot_fence)]
++        if self.registry.front_snapshot_fence { return self.steal_front_snapshot_tiles(); }
+         // we only steal when we don't have any work to do locally
+         debug_assert!(self.local_deque_is_empty());
+ 
+@@ -1000,3 +1006,6 @@ impl XorShift64Star {
+         (self.next() % n as u64) as usize
+     }
+ }
++
++#[cfg(zopro_front_snapshot_fence)]
++mod front_snapshot;

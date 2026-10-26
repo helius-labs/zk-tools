@@ -1,0 +1,85 @@
+diff --git a/tmp/zopro-front-snapshot-fence/upstream-deque.rs b/tmp/zopro-front-snapshot-fence/candidate/vendor/crossbeam-deque-0.8.8/src/deque.rs
+index e33cf4e2..f82a2ad2 100644
+--- a/tmp/zopro-front-snapshot-fence/upstream-deque.rs
++++ b/tmp/zopro-front-snapshot-fence/candidate/vendor/crossbeam-deque-0.8.8/src/deque.rs
+@@ -2259,3 +2259,80 @@ impl<T> FromIterator<Steal<T>> for Steal<T> {
+         }
+     }
+ }
++
++
++#[cfg(zopro_front_snapshot_fence)]
++const FRONT_SNAPSHOT_LIMIT: usize = 8;
++
++#[cfg(zopro_front_snapshot_fence)]
++impl<T> Stealer<T> {
++    /// Tries at most eight queues in order, returning at most one task.
++    ///
++    /// A normal epoch guard protects every buffer. All front snapshots precede
++    /// one explicit SeqCst fence; each back load and extraction follows it.
++    /// A raced probe contributes Retry only if no later queue supplies work.
++    /// No task, queue pointer, snapshot or guard is retained after return.
++    pub fn steal_one_from_front_snapshots(stealers: &[&Self]) -> Steal<T> {
++        assert!(stealers.len() <= FRONT_SNAPSHOT_LIMIT);
++        if stealers.is_empty() { return Steal::Empty; }
++        let guard = &epoch::pin();
++        let mut fronts: [WorkerIndex; FRONT_SNAPSHOT_LIMIT] = [0; FRONT_SNAPSHOT_LIMIT];
++        for (index, stealer) in stealers.iter().enumerate() {
++            fronts[index] = stealer.inner.front.load(Ordering::Acquire);
++        }
++        // The guard's pin barrier precedes snapshots. This explicit common
++        // fence is required AFTER every front load and BEFORE every back load.
++        atomic::fence(Ordering::SeqCst);
++        Self::snapshot_from_fronts(stealers, &fronts[..stealers.len()], guard)
++    }
++
++    #[inline]
++    fn snapshot_from_fronts(stealers: &[&Self], fronts: &[WorkerIndex], guard: &epoch::Guard) -> Steal<T> {
++        debug_assert_eq!(stealers.len(), fronts.len());
++        let mut retry = false;
++        for (stealer, front) in stealers.iter().zip(fronts) {
++            match stealer.snapshot_extract(*front, guard) {
++                Steal::Success(task) => return Steal::Success(task),
++                Steal::Retry => retry = true,
++                Steal::Empty => {}
++            }
++        }
++        if retry { Steal::Retry } else { Steal::Empty }
++    }
++
++    // The only runtime caller has pinned and fenced after every saved front.
++    // The back/read/pointer-check/CAS body is copied byte-for-byte from steal.
++    #[inline]
++    fn snapshot_extract(&self, f: WorkerIndex, guard: &epoch::Guard) -> Steal<T> {
++        // Load the back index.
++        let b = self.inner.back.load(Ordering::Acquire);
++
++        // Is the queue empty?
++        if b.wrapping_sub(f) <= 0 {
++            return Steal::Empty;
++        }
++
++        // Load the buffer and read the task at the front.
++        let buffer = self.inner.buffer.load(Ordering::Acquire, guard);
++        let task = unsafe { buffer.deref().read(f) };
++
++        // Try incrementing the front index to steal the task.
++        // If the buffer has been swapped or the increment fails, we retry.
++        if self.inner.buffer.load(Ordering::Acquire, guard) != buffer
++            || self
++                .inner
++                .front
++                .compare_exchange(f, f.wrapping_add(1), Ordering::SeqCst, Ordering::Relaxed)
++                .is_err()
++        {
++            // We didn't steal this task, forget it.
++            return Steal::Retry;
++        }
++
++        // Return the stolen task.
++        Steal::Success(unsafe { task.assume_init() })
++    }
++}
++
++#[cfg(all(test, zopro_front_snapshot_fence))]
++mod front_snapshot_tests;

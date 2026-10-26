@@ -1,0 +1,66 @@
+{
+  "scope": "Exact linked SDK scalar steal and containing wait_until_cold routines, accepted/candidate. Snapshot helper is inlined; absence of a separate symbol does not establish absence of code. Static sizes/instructions do not establish dynamic cost or cause of latency. Source audit checks intended ordering; complete SDK timings determine performance.",
+  "status": "captured",
+  "symbols": [
+    {
+      "binary": "/tmp/zopro-grouping-module/native/candidate-sdk",
+      "binary_sha256": "03e1260e89068c2bec37a2471c34e93628a9f081903e1b7eee9cab9c306aaf3d",
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0xfb4f0",
+        "--stop-address=0xfbb6d",
+        "/tmp/zopro-grouping-module/native/candidate-sdk"
+      ],
+      "size_bytes": 1661,
+      "start_hex": "0xfb4f0",
+      "symbol": "<rayon_core::registry::WorkerThread>::wait_until_cold",
+      "variant": "accepted"
+    },
+    {
+      "binary": "/tmp/zopro-grouping-module/native/candidate-sdk",
+      "binary_sha256": "03e1260e89068c2bec37a2471c34e93628a9f081903e1b7eee9cab9c306aaf3d",
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0xfc380",
+        "--stop-address=0xfc4e4",
+        "/tmp/zopro-grouping-module/native/candidate-sdk"
+      ],
+      "size_bytes": 356,
+      "start_hex": "0xfc380",
+      "symbol": "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+      "variant": "accepted"
+    },
+    {
+      "binary": "/tmp/zopro-front-snapshot-fence/native/candidate-sdk",
+      "binary_sha256": "3b94be2ee7add10973075dbb8de77c38bbdb97a9e7273ffa2f22bf5403850f4d",
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0xfb520",
+        "--stop-address=0xfcb9d",
+        "/tmp/zopro-front-snapshot-fence/native/candidate-sdk"
+      ],
+      "size_bytes": 5757,
+      "start_hex": "0xfb520",
+      "symbol": "<rayon_core::registry::WorkerThread>::wait_until_cold",
+      "variant": "candidate"
+    },
+    {
+      "binary": "/tmp/zopro-front-snapshot-fence/native/candidate-sdk",
+      "binary_sha256": "3b94be2ee7add10973075dbb8de77c38bbdb97a9e7273ffa2f22bf5403850f4d",
+      "objdump_argv": [
+        "-d",
+        "-C",
+        "--start-address=0xfd310",
+        "--stop-address=0xfd474",
+        "/tmp/zopro-front-snapshot-fence/native/candidate-sdk"
+      ],
+      "size_bytes": 356,
+      "start_hex": "0xfd310",
+      "symbol": "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+      "variant": "candidate"
+    }
+  ]
+}
