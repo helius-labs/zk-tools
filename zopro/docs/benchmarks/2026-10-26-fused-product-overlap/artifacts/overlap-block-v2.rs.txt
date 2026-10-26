@@ -1,0 +1,41 @@
+        // BEGIN FUSED_PRODUCT_OVERLAP
+        #[cfg(all(zopro_fused_product_overlap, zopro_real_kh))]
+        let product_count=a.len().max(b.len());
+        #[cfg(all(zopro_fused_product_overlap, zopro_real_kh))]
+        if queries.euler && msm_affine::fused_kh::eligible(omit_b,queries.product_scale,folded.private.len(),product_count)
+            && queries.product.len() >= product_count
+            && fused_product_overlap_enabled() && !alloc::reclaiming()
+        {
+            if std::env::var_os("ZOPRO_FUSED_PRODUCT_OVERLAP_TRACE").is_some() {
+                eprintln!("FUSED_PRODUCT_OVERLAP k={} h={}",folded.private.len(),product_count);
+            }
+            // The product is required only by K+H. Existing A and G2 inputs
+            // are already ready; all borrows are scoped by these joins.
+            let ((kh,ar),bs2)=rayon::join(
+                || rayon::join(
+                    || {
+                        let mut product=queries.product_values(&self.plan,a,b);
+                        let count=product.len();
+                        assert_eq!(count,product_count);
+                        msm_affine::fused_kh::fused(&folded.private[..],sk,
+                            &queries.product[..count],canonical(&mut product),13)
+                    },
+                    || msm(&self.a[..],sa)),
+                || {
+                    if (1024..65536).contains(&self.b2.len()) {
+                        msm_affine::g2_query_exclusive(&self.b2,sb)
+                    } else {
+                        let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                            .then(||scalar_groups(sb)).flatten();
+                        groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),
+                            |g|msm_grouped_b2(&self.b2,g))
+                    }
+                });
+            let mut out=Vec::with_capacity(384);
+            for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY] {
+                output_g1(&mut out,point);
+            }
+            output_g2(&mut out,bs2);
+            return Ok(out);
+        }
+        // END FUSED_PRODUCT_OVERLAP
