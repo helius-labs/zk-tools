@@ -1,0 +1,18 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "120s",
+    "sudo",
+    "-n",
+    "/usr/bin/perf",
+    "script",
+    "--show-lost-events",
+    "-F",
+    "comm,pid,tid,time,period,event,ip,sym",
+    "-i",
+    "/tmp/zopro-pairing-x-chain/profiles/frozen/perf.data"
+  ],
+  "environment": {}
+}
