@@ -1,0 +1,91 @@
+{
+  "declared_at": "2026-10-26T01:57:42Z",
+  "status": "declared before implementation, compilation or timing",
+  "accepted_manifest": "/tmp/zopro-grouping-module/production-source-manifest.json",
+  "mechanism": "Keep existing32-way packed FFT passes and <=1024-Pair expanded Vec leaves. Replace nested parallel fused leaf execution with bounded binary forks down to a serial butterfly leaf. Compute one power-of-two cutoff per transform: floor_power_of_two(clamp(vector_count/(2*workers),64,1024)). Carry it through recursion. Terminal leaves use existing DIF/DIT quad/within arithmetic without Rayon operations.",
+  "purpose": "Reduce nested task/synchronization work and suspended expanded-buffer lifetimes, while exposing >=2*workers chunks when vector_count>=128*workers. Benefit is a hypothesis; full supplied-shape latency and CPU profiles decide.",
+  "activation": "Private cfg zopro_serial_fft_leaves and explicit ZOPRO_CPU_SERIAL_FFT_LEAVES=1 sampled once per process; absent/0 OFF. Original disabled function body retained with an entry dispatch. No FFT pass-grain or private Rayon scheduler change is included.",
+  "memory": "Same packed representation, cached roots,32-way passes and expanded <=1024Pair Vec allocation/collect/store/drop. No new buffer, key table, plan, copy, dependency or per-proof heap allocation. Additional binary fork frames have fixed references/scalars; no large stack arrays. Scheduling still needs actual pressure/concurrency qualification.",
+  "history": "Read relevant10/24 fixed-root and stack-leaf experiments; those change arithmetic/preparation or frame isolation, not serializing nested <=1024 expanded leaves. Failed10/26 cheap-pass128grain and local bounded-search screens remain failed. Worker entry already active on small queries; no repeat of whole-SDK/owned-pool probes.",
+  "build_tests": "Accepted170+genericCLI/helper plus one private module. Native unfiltered core OFF and ON, raw2/cubic6; new cutoff-bound, scalar Fourier/sparse coefficient, cached/twisted root and concurrent small-stack tests. Field kernels unchanged; inherited33field qualification, not newly claimed.",
+  "preflight": {
+    "shapes": "all nine",
+    "workers": 4,
+    "variants": [
+      "off",
+      "on"
+    ],
+    "rounds": 1,
+    "primes": 3,
+    "sdk": 72,
+    "exports": 18
+  },
+  "latency": {
+    "blocks": 7,
+    "cases": "all nine supplied/merge54 shapes at32 workers, plus primary16 physical cores",
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds_w32": 31,
+    "rounds_w16": 101,
+    "primes": 3,
+    "sdk": 8610,
+    "exports": 210,
+    "affinity": {
+      "w32": "0-31",
+      "w16": "0-15, one logical CPU per physical core"
+    },
+    "gates": {
+      "controls": [
+        "accepted",
+        "off"
+      ],
+      "primary32_paired_median_lt": 1,
+      "primary32_wins_gte": 4,
+      "original8_paired_geomean_lt": 1,
+      "every_case_paired_median_lte": 1.02,
+      "every_block_lte": 1.05,
+      "off_calibration_factor_lte": 1.03
+    },
+    "minimum_gain_floor": false,
+    "unchanged_reroll": false,
+    "physical16_note": "Increase requests31->101 before implementation because previous experiments showed cross-variant variability. Preserve all samples and the same regression bounds; no later exclusions or count changes."
+  },
+  "profiles": {
+    "after_all_latency": true,
+    "blocks": 1,
+    "cases": [
+      "1x2-w32",
+      "12x2-w32",
+      "merge-54x1-w32"
+    ],
+    "variants": [
+      "accepted",
+      "off",
+      "on"
+    ],
+    "rounds": {
+      "primary": 101,
+      "12x2": 51,
+      "merge54": 9
+    },
+    "primes": 3,
+    "sdk": 510,
+    "exports": 9,
+    "captures": 9,
+    "frequency_hz": 999,
+    "monotonic_clock": true
+  },
+  "totals": {
+    "sdk": 9192,
+    "distinct_exports": 237,
+    "proof_public_members": 474
+  },
+  "validity": "Frozen pins include source, actual linked libraries/binaries,keys/images/fixtures/verifier,configs and helper source. Mandatory preflight fixture/freshness audit in workflow and before perf. Complete SDK includes solving/randomness/proving/internal verification/serialization. All latency before sampling; no other owned CPU workload. Independent Gnark per export; no selective timing rerun.",
+  "if_positive": "Resource, portable, concurrent SDK, large-circuit and clean integration qualification, then actual C7a comparison. All8CPU10x goal stays intact; no speed claim from component tests or no-loss profiles.",
+  "publish": "Commit and push every completed experiment, including negative results. Polite factual report; raw captures/symbol expansions local with hashes, not in Git.",
+  "adopted": false,
+  "goal_achieved": false
+}

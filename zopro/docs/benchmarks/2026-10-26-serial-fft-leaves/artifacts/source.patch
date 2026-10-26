@@ -1,0 +1,299 @@
+diff --git a/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/fft/pair.rs b/tmp/zopro-serial-fft-leaves/candidate-v2/crates/zopro-core/src/fft/pair.rs
+index 6f5005e4..d8d912c9 100644
+--- a/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/fft/pair.rs
++++ b/tmp/zopro-serial-fft-leaves/candidate-v2/crates/zopro-core/src/fft/pair.rs
+@@ -1356,6 +1356,8 @@ fn stored_transform<S: PairStorage, const FORWARD: bool>(
+     roots: &Twiddles,
+     level: usize,
+ ) {
++    #[cfg(zopro_serial_fft_leaves)]
++    if serial_leaf::enabled() { return serial_leaf::transform::<S, FORWARD>(values, roots, level); }
+     if values.len() <= 1024 {
+         // Expand a cache-sized leaf once; its inner butterflies use the
+         // unchanged lane and fused native kernels without extra packing.
+@@ -1866,3 +1868,6 @@ mod euler_pointwise_tests {
+         eprintln!("EULER_POINTWISE_FIELD_COMPARISONS={checked}");
+     }
+ }
++
++#[cfg(any(zopro_serial_fft_leaves, test))]
++mod serial_leaf;
+diff --git a/tmp/zopro-serial-fft-leaves/candidate-v2/crates/zopro-core/src/fft/pair/serial_leaf.rs b/tmp/zopro-serial-fft-leaves/candidate-v2/crates/zopro-core/src/fft/pair/serial_leaf.rs
+new file mode 100644
+index 00000000..c6c59711
+--- /dev/null
++++ b/tmp/zopro-serial-fft-leaves/candidate-v2/crates/zopro-core/src/fft/pair/serial_leaf.rs
+@@ -0,0 +1,273 @@
++//! Bound nested forks inside existing expanded FFT leaves.
++use super::*;
++
++#[cfg(zopro_serial_fft_leaves)]
++pub(super) fn enabled() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(||std::env::var("ZOPRO_CPU_SERIAL_FFT_LEAVES").is_ok_and(|v|v=="1"))
++}
++
++fn cutoff(vectors: usize, workers: usize) -> usize {
++    let budget=workers.max(1).saturating_mul(2);
++    let target=(vectors/budget).clamp(64,1024);
++    1usize << target.ilog2()
++}
++
++pub(super) fn transform<S: PairStorage, const FORWARD: bool>(
++    values: &mut [S], roots: &Twiddles, level: usize,
++) {
++    let cutoff=cutoff(values.len(),rayon::current_num_threads());
++    transform_inner::<S,FORWARD>(values,roots,level,cutoff);
++}
++
++fn transform_inner<S: PairStorage, const FORWARD: bool>(
++    values: &mut [S],
++    roots: &Twiddles,
++    level: usize,
++    cutoff: usize,
++) {
++    if values.len() <= 1024 {
++        // Expand a cache-sized leaf once; its inner butterflies use the
++        // unchanged lane and fused native kernels without extra packing.
++        let mut local: Vec<Pair> = values.iter().map(S::load).collect();
++        if FORWARD {
++            dit_bounded(&mut local, roots, level, cutoff);
++        } else {
++            dif_bounded(&mut local, roots, level, cutoff);
++        }
++        for (out, value) in values.iter_mut().zip(local) {
++            *out = S::store(value);
++        }
++        return;
++    }
++    let q = values.len() / 32;
++    let mut pieces = values.chunks_exact_mut(q);
++    let v0 = pieces.next().unwrap();
++    let v1 = pieces.next().unwrap();
++    let v2 = pieces.next().unwrap();
++    let v3 = pieces.next().unwrap();
++    let v4 = pieces.next().unwrap();
++    let v5 = pieces.next().unwrap();
++    let v6 = pieces.next().unwrap();
++    let v7 = pieces.next().unwrap();
++    let v8 = pieces.next().unwrap();
++    let v9 = pieces.next().unwrap();
++    let v10 = pieces.next().unwrap();
++    let v11 = pieces.next().unwrap();
++    let v12 = pieces.next().unwrap();
++    let v13 = pieces.next().unwrap();
++    let v14 = pieces.next().unwrap();
++    let v15 = pieces.next().unwrap();
++    let v16 = pieces.next().unwrap();
++    let v17 = pieces.next().unwrap();
++    let v18 = pieces.next().unwrap();
++    let v19 = pieces.next().unwrap();
++    let v20 = pieces.next().unwrap();
++    let v21 = pieces.next().unwrap();
++    let v22 = pieces.next().unwrap();
++    let v23 = pieces.next().unwrap();
++    let v24 = pieces.next().unwrap();
++    let v25 = pieces.next().unwrap();
++    let v26 = pieces.next().unwrap();
++    let v27 = pieces.next().unwrap();
++    let v28 = pieces.next().unwrap();
++    let v29 = pieces.next().unwrap();
++    let v30 = pieces.next().unwrap();
++    let v31 = pieces.next().unwrap();
++    if FORWARD {
++        [
++            &mut *v0, &mut *v1, &mut *v2, &mut *v3, &mut *v4, &mut *v5, &mut *v6, &mut *v7,
++            &mut *v8, &mut *v9, &mut *v10, &mut *v11, &mut *v12, &mut *v13, &mut *v14, &mut *v15,
++            &mut *v16, &mut *v17, &mut *v18, &mut *v19, &mut *v20, &mut *v21, &mut *v22, &mut *v23,
++            &mut *v24, &mut *v25, &mut *v26, &mut *v27, &mut *v28, &mut *v29, &mut *v30, &mut *v31,
++        ]
++        .into_par_iter()
++        .for_each(|part| transform_inner::<S, FORWARD>(part, roots, level + 5, cutoff));
++    }
++    stored_columns::<S, FORWARD>(
++        v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19,
++        v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, roots, level,
++    );
++    if !FORWARD {
++        [
++            &mut *v0, &mut *v1, &mut *v2, &mut *v3, &mut *v4, &mut *v5, &mut *v6, &mut *v7,
++            &mut *v8, &mut *v9, &mut *v10, &mut *v11, &mut *v12, &mut *v13, &mut *v14, &mut *v15,
++            &mut *v16, &mut *v17, &mut *v18, &mut *v19, &mut *v20, &mut *v21, &mut *v22, &mut *v23,
++            &mut *v24, &mut *v25, &mut *v26, &mut *v27, &mut *v28, &mut *v29, &mut *v30, &mut *v31,
++        ]
++        .into_par_iter()
++        .for_each(|part| transform_inner::<S, FORWARD>(part, roots, level + 5, cutoff));
++    }
++}
++
++// These binary boundaries expose additional chunks only where the current
++// transform budget requires them. Their butterfly order matches DIF/DIT.
++fn dif_bounded(values:&mut [Pair], roots:&Twiddles, level:usize, cutoff:usize) {
++    if values.len()<=cutoff {return dif_serial(values,roots,level);}
++    let mid=values.len()/2;
++    let (lo,hi)=values.split_at_mut(mid);
++    dif_quads(lo,hi,&roots.layers[level][..mid]);
++    rayon::join(||dif_bounded(lo,roots,level+1,cutoff),||dif_bounded(hi,roots,level+1,cutoff));
++}
++fn dit_bounded(values:&mut [Pair], roots:&Twiddles, level:usize, cutoff:usize) {
++    if values.len()<=cutoff {return dit_serial(values,roots);}
++    let mid=values.len()/2;
++    let (lo,hi)=values.split_at_mut(mid);
++    rayon::join(||dit_bounded(lo,roots,level+1,cutoff),||dit_bounded(hi,roots,level+1,cutoff));
++    dit_quads(lo,hi,&roots.layers[level][..mid]);
++}
++
++// Retain the existing sequential butterfly kernels, extended over a bounded
++// leaf. No fork or allocation occurs in these two terminal functions.
++#[inline(never)]
++fn dif_serial(values:&mut [Pair], roots:&Twiddles, mut level:usize) {
++    let mut gap=values.len()/2;
++    while gap>=1 {
++        let layer=&roots.layers[level][..gap];
++        for chunk in values.chunks_exact_mut(gap*2) {
++            let (lo,hi)=chunk.split_at_mut(gap);
++            dif_quads(lo,hi,layer);
++        }
++        gap/=2;
++        level+=1;
++    }
++    for pair in values.as_chunks_mut::<2>().0 {
++        let (a,b)=pair.split_at_mut(1);
++        dif_within(&mut a[0],&mut b[0],&broadcast(&roots.pair));
++    }
++}
++#[inline(never)]
++fn dit_serial(values:&mut [Pair], roots:&Twiddles) {
++    for pair in values.as_chunks_mut::<2>().0 {
++        let (a,b)=pair.split_at_mut(1);
++        dit_within(&mut a[0],&mut b[0],&broadcast(&roots.pair),roots.single.as_ref().map(broadcast).as_ref());
++    }
++    let mut gap=1;
++    while gap<values.len() {
++        let layer=&roots.layers[roots.layers.len()-1-gap.trailing_zeros() as usize][..gap];
++        for chunk in values.chunks_exact_mut(gap*2) {
++            let (lo,hi)=chunk.split_at_mut(gap);
++            dit_quads(lo,hi,layer);
++        }
++        gap*=2;
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn cutoff_bounds_and_available_parallelism_hold_at_domain_and_worker_edges() {
++        for vectors in [0,1,2,63,64,65,127,128,1023,1024,1025,8192,32768,65536,1usize<<26] {
++            for workers in [0,1,2,4,16,32,64,96,128,9999,usize::MAX] {
++                let limit=cutoff(vectors,workers);
++                assert!(limit.is_power_of_two()&&(64..=1024).contains(&limit));
++                let workers=workers.max(1);
++                if let Some(required)=workers.checked_mul(128) {
++                    if vectors>=required {
++                        assert!(vectors/limit>=2*workers,"vectors={vectors},workers={workers},limit={limit}");
++                    }
++                }
++            }
++        }
++    }
++
++    // Build domain values by evaluating sparse ordinary polynomials using
++    // scalar Fr operations. Check every inverse coefficient before testing
++    // a forward pass, so inverse/forward errors cannot merely cancel.
++    fn check<S:PairStorage>(plan:&Plan,root:Fr,twisted:bool,seed:u64) {
++        let n=plan.n;
++        let a=[(0,Fr::from(seed+1)),(1,Fr::from(7u64)),(n/2+1,Fr::from(13u64)),(n-1,-Fr::ONE)];
++        let b=[(2,Fr::from(11u64)),(n/3,Fr::from(seed+19)),(n-2,Fr::from(23u64))];
++        let evaluate=|terms:&[(usize,Fr)],coset:Fr| {
++            let mut out=vec![Fr::ZERO;n];
++            for &(k,c) in terms {
++                let step=root.pow(&[k as u64]);let mut value=c*coset.pow(&[k as u64]);
++                for out in &mut out {*out+=value;value*=step;}
++            }
++            out
++        };
++        let input_a=evaluate(&a,Fr::ONE);let input_b=evaluate(&b,Fr::ONE);
++        let mut values:Vec<S>=(0..n/4).map(|i|S::store(Pair::new(&core::array::from_fn(|j|
++            if j<4 {input_a[4*i+j]}else{input_b[4*i+j-4]})))).collect();
++        transform::<S,false>(&mut values,&plan.inverse_roots,0);
++        let scale=Fr::from(n as u64);let log=n.trailing_zeros()as usize;
++        let coefficient=|terms:&[(usize,Fr)],k|terms.iter().filter(|(i,_)|*i==k).fold(Fr::ZERO,|s,(_,c)|s+*c);
++        for (i,value) in values.iter().enumerate() {
++            let got=value.load().get();
++            for j in 0..8 {
++                let k=bit_reverse(4*i+j%4,log);
++                let expected=scale*coefficient(if j<4{&a}else{&b},k);
++                assert_eq!(got[j],expected,"inverse n={n},row={i},lane={j}");
++            }
++        }
++        let coset=if twisted{Fr::from(5u64)}else{Fr::ONE};
++        let expected_a=evaluate(&a,coset);let expected_b=evaluate(&b,coset);
++        if twisted {
++            let roots=plan.roots.twisted(coset);
++            transform::<S,true>(&mut values,&roots,0);
++        }else{transform::<S,true>(&mut values,&plan.roots,0);}
++        for(i,value)in values.iter().enumerate(){let got=value.load().get();for j in 0..8{
++            let expected=scale*if j<4{expected_a[4*i+j]}else{expected_b[4*i+j-4]};
++            assert_eq!(got[j],expected,"forward n={n},twisted={twisted},row={i},lane={j}");
++        }}
++    }
++
++    #[test]
++    fn inverse_and_forward_match_scalar_polynomials_with_cached_and_twisted_roots() {
++        for workers in [1,4,32] {
++            rayon::ThreadPoolBuilder::new().num_threads(workers).stack_size(512*1024)
++                .build().unwrap().install(|| {
++                for n in [8usize,128,512,8192,32768,131072,262144] {
++                    if workers==32&&n==262144{continue;}
++                    let root=Fr::root_of_unity(n).unwrap().pow(&[3]);let coset=Fr::from(5u64);
++                    let mut plan=Plan::new(n,root,coset,crate::fft::denominator(n,coset).unwrap());
++                    plan.prepare_euler_study();
++                    // Explicitly exercise uncached ordinary roots as well as
++                    // their admitted column cache. Leaf arithmetic is identical.
++                    let make_roots=|base:Fr| {
++                        let mut value=Fr::ONE;
++                        Twiddles::new((0..n/2).map(|_|{let out=value;value*=base;out}).collect())
++                    };
++                    // Replace the whole object so its allocation and admission
++                    // token are both released. Clearing only columns kept credit.
++                    plan.roots=make_roots(root);
++                    plan.inverse_roots=make_roots(root.inverse().unwrap());
++                    check::<PackedPair>(&plan,root,false,workers as u64);
++                    check::<PackedPair>(&plan,root,true,workers as u64);
++                    if n<=8192{check::<Pair>(&plan,root,false,37);}
++                    if n==262144 {
++                        // Each builder's peak may consume the entire existing optional
++                        // budget. Exercise admitted directions one at a time.
++                        plan.roots.prepare_columns();
++                        assert!(!plan.roots.columns.is_empty());
++                        check::<PackedPair>(&plan,root,false,61);
++                        plan.roots=make_roots(root);
++                        plan.inverse_roots.prepare_columns();
++                        assert!(!plan.inverse_roots.columns.is_empty());
++                        check::<PackedPair>(&plan,root,false,79);
++                    }
++                }
++            });
++        }
++    }
++
++    #[test]
++    fn concurrent_callers_share_roots_with_small_worker_stacks() {
++        let n=32768usize;let root=Fr::root_of_unity(n).unwrap().pow(&[3]);let coset=Fr::from(5u64);
++        let mut plan=Plan::new(n,root,coset,crate::fft::denominator(n,coset).unwrap());
++        plan.prepare_euler_study();
++        let pool=rayon::ThreadPoolBuilder::new().num_threads(8).stack_size(512*1024).build().unwrap();
++        std::thread::scope(|scope| {
++            let mut callers=Vec::new();
++            for caller in 0..3u64 {
++                let pool=&pool;let plan=&plan;
++                callers.push(scope.spawn(move||pool.install(||{
++                    check::<PackedPair>(plan,root,caller%2!=0,caller*101+1);
++                })));
++            }
++            for caller in callers{caller.join().unwrap();}
++        });
++    }
++}
