@@ -1,0 +1,53 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "78b38ab7-4929-4c0d-a343-d5856856cebf",
+    "Comment": "Owned gt-c7a-20261026-174239 measure",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T19:45:33.827000+00:00",
+    "InstanceIds": [
+      "i-0870ffd30aecc31c4"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "mkdir -p /var/tmp/zopro-gt-c7a-20261026-174239/output",
+        "docker run --name zopro-g2-tree-c7a --network none --cpus 96 --memory 30g --pids-limit 2048 --cap-drop ALL --cap-add PERFMON --ulimit memlock=-1 --security-opt no-new-privileges --security-opt seccomp=unconfined -v /var/tmp/zopro-gt-c7a-20261026-174239/output:/output 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:111b788e6eec95f4071228e56d29d2e57908bfefea1153491077cb3a5bdf885a measure > /var/tmp/zopro-gt-c7a-20261026-174239/runner.log 2>&1",
+        "docker inspect zopro-g2-tree-c7a > /var/tmp/zopro-gt-c7a-20261026-174239/container-inspect.json",
+        "cat /var/tmp/zopro-gt-c7a-20261026-174239/output/measure/complete.json"
+      ],
+      "executionTimeout": [
+        "3600"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T17:45:33.827000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}

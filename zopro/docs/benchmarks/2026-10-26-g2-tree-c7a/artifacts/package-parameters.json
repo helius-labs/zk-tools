@@ -1,0 +1,13 @@
+{
+  "commands": [
+    "set -eu",
+    "docker inspect zopro-g2-tree-c7a > /var/tmp/zopro-gt-c7a-20261026-174239/container-inspect.json",
+    "cat /proc/swaps > /var/tmp/zopro-gt-c7a-20261026-174239/post-host-state.txt",
+    "tar --exclude=output/lagrange-cache --exclude=ctl --exclude=ack -czf /var/tmp/zopro-gt-c7a-20261026-174239/results.tar.gz -C /var/tmp/zopro-gt-c7a-20261026-174239 output runner.log hardware.txt post-host-state.txt container-inspect.json",
+    "sha256sum /var/tmp/zopro-gt-c7a-20261026-174239/results.tar.gz",
+    "stat -c %s /var/tmp/zopro-gt-c7a-20261026-174239/results.tar.gz"
+  ],
+  "executionTimeout": [
+    "600"
+  ]
+}

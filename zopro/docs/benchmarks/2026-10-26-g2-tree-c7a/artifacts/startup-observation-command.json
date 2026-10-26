@@ -1,0 +1,52 @@
+{
+    "Command": {
+        "CommandId": "dd5663af-26ae-4ab9-b4c3-c7bda4610b08",
+        "DocumentName": "AWS-RunShellScript",
+        "DocumentVersion": "$DEFAULT",
+        "Comment": "Owned G2 tree run startup observation",
+        "ExpiresAfter": "2026-10-26T18:48:06.968000+00:00",
+        "Parameters": {
+            "commands": [
+                "set -eu",
+                "ls -la /var/tmp/zopro-gt-c7a-20261026-174239/output",
+                "tail -n20 /var/tmp/zopro-gt-c7a-20261026-174239/runner.log || true",
+                "docker inspect --format \"{{.State.Status}} {{.State.Error}} {{.State.Pid}}\" zopro-g2-tree-c7a || true"
+            ],
+            "executionTimeout": [
+                "60"
+            ]
+        },
+        "InstanceIds": [
+            "i-0870ffd30aecc31c4"
+        ],
+        "Targets": [],
+        "RequestedDateTime": "2026-10-26T17:47:06.968000+00:00",
+        "Status": "Pending",
+        "StatusDetails": "Pending",
+        "OutputS3Region": "eu-north-1",
+        "OutputS3BucketName": "",
+        "OutputS3KeyPrefix": "",
+        "MaxConcurrency": "50",
+        "MaxErrors": "0",
+        "TargetCount": 1,
+        "CompletedCount": 0,
+        "ErrorCount": 0,
+        "DeliveryTimedOutCount": 0,
+        "ServiceRole": "",
+        "NotificationConfig": {
+            "NotificationArn": "",
+            "NotificationEvents": [],
+            "NotificationType": ""
+        },
+        "CloudWatchOutputConfig": {
+            "CloudWatchLogGroupName": "",
+            "CloudWatchOutputEnabled": false
+        },
+        "TimeoutSeconds": 3600,
+        "AlarmConfiguration": {
+            "IgnorePollAlarmFailure": false,
+            "Alarms": []
+        },
+        "TriggeredAlarms": []
+    }
+}

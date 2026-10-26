@@ -1,0 +1,51 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "850738f9-5cc0-423b-9579-3e544195afe5",
+    "Comment": "Owned gt-c7a-20261026-174239 progress-p03",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-26T18:49:11.668000+00:00",
+    "InstanceIds": [
+      "i-0870ffd30aecc31c4"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "cat /var/tmp/zopro-gt-c7a-20261026-174239/output/measure/workflow/progress.json || true",
+        "tail -n8 /var/tmp/zopro-gt-c7a-20261026-174239/output/measure/workflow.log || true"
+      ],
+      "executionTimeout": [
+        "60"
+      ]
+    },
+    "RequestedDateTime": "2026-10-26T17:48:11.668000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}
