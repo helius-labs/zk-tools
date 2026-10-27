@@ -1352,18 +1352,26 @@ fn stored_product<S: PairStorage>(plan: &Plan, a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr
 }
 
 fn stored_transform<S: PairStorage, const FORWARD: bool>(
+    values: &mut [S], roots: &Twiddles, level: usize,
+) {
+    let cutoff = leaf::cutoff(values.len(), rayon::current_num_threads());
+    stored_transform_inner::<S, FORWARD>(values, roots, level, cutoff);
+}
+
+fn stored_transform_inner<S: PairStorage, const FORWARD: bool>(
     values: &mut [S],
     roots: &Twiddles,
     level: usize,
+    cutoff: usize,
 ) {
     if values.len() <= 1024 {
         // Expand a cache-sized leaf once; its inner butterflies use the
         // unchanged lane and fused native kernels without extra packing.
         let mut local: Vec<Pair> = values.iter().map(S::load).collect();
         if FORWARD {
-            dit::<5>(&mut local, roots, level);
+            leaf::dit_bounded(&mut local, roots, level, cutoff);
         } else {
-            dif::<5>(&mut local, roots, level);
+            leaf::dif_bounded(&mut local, roots, level, cutoff);
         }
         for (out, value) in values.iter_mut().zip(local) {
             *out = S::store(value);
@@ -1412,7 +1420,7 @@ fn stored_transform<S: PairStorage, const FORWARD: bool>(
             &mut *v24, &mut *v25, &mut *v26, &mut *v27, &mut *v28, &mut *v29, &mut *v30, &mut *v31,
         ]
         .into_par_iter()
-        .for_each(|part| stored_transform::<S, FORWARD>(part, roots, level + 5));
+        .for_each(|part| stored_transform_inner::<S, FORWARD>(part, roots, level + 5, cutoff));
     }
     stored_columns::<S, FORWARD>(
         v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19,
@@ -1426,7 +1434,7 @@ fn stored_transform<S: PairStorage, const FORWARD: bool>(
             &mut *v24, &mut *v25, &mut *v26, &mut *v27, &mut *v28, &mut *v29, &mut *v30, &mut *v31,
         ]
         .into_par_iter()
-        .for_each(|part| stored_transform::<S, FORWARD>(part, roots, level + 5));
+        .for_each(|part| stored_transform_inner::<S, FORWARD>(part, roots, level + 5, cutoff));
     }
 }
 
@@ -1866,3 +1874,5 @@ mod euler_pointwise_tests {
         eprintln!("EULER_POINTWISE_FIELD_COMPARISONS={checked}");
     }
 }
+
+mod leaf;
