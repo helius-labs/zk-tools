@@ -1,0 +1,7135 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "preflight",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "17"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b0-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b1-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b2-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b3-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b4-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b5-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b6-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b7-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b8-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b9-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b10-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b11-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b12-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b13-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b14-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b15-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b16-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b17-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b18-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b19-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b20-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b21-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b22-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b23-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b24-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b25-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b26-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b27-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b28-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b29-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-chain-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-chain-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-chain-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-chain-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "chain",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-streams4-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-streams4-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-streams4-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-streams4-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian",
+        "streams4",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-butterfly-comba",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-butterfly-cios",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-butterfly-ordinary-current-r4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-butterfly-ordinary-parent",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "b30-butterfly-ordinary-current",
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "100000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "profile-ordinary-current",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/ordinary-current/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r2",
+        "butterfly",
+        "10000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "profile-ordinary-current-r4",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/ordinary-current-r4/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "ordinary-r4",
+        "butterfly",
+        "10000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "profile-comba",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/comba/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "10000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "profile-cios",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/cios/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target-native/release/probe",
+        "gaussian-r4-lazy",
+        "butterfly",
+        "10000000"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "decode-ordinary-current",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/ordinary-current/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-ordinary-current",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/ordinary-current/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-ordinary-current-r4",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/ordinary-current-r4/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-ordinary-current-r4",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/ordinary-current-r4/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-comba",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/comba/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-comba",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/comba/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "decode-cios",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/cios/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "loss-cios",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/cios/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    }
+  ]
+}

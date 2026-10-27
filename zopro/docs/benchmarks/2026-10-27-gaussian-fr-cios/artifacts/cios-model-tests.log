@@ -1,0 +1,21 @@
+warning: method `psi` is never used
+   --> /home/ubuntu/src/zk-tools/zopro/crates/zopro-bn254/src/curve.rs:362:19
+    |
+361 | impl G2Affine {
+    | ------------- method in this implementation
+362 |     pub(crate) fn psi(&self) -> Self {
+    |                   ^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `zopro-bn254` (lib) generated 1 warning
+   Compiling zopro-gaussian-fr-probe v0.0.0 (/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios)
+    Finished `release` profile [optimized] target(s) in 5.08s
+     Running unittests src/lib.rs (/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/target/release/deps/zopro_gaussian_fr_probe-36cd3ba925747283)
+
+running 2 tests
+test cios_model::tests::coupled_rows_and_ifma_coefficients_match_comba_corners ... ok
+test cios_model::tests::coupled_rows_fullwidth_and_low_digit_boundaries ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.17s
+

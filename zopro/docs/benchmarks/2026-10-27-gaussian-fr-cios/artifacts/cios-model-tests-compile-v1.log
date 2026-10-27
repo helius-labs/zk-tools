@@ -1,0 +1,53 @@
+   Compiling version_check v0.9.5
+   Compiling autocfg v1.5.1
+   Compiling typenum v1.20.1
+   Compiling serde_core v1.0.229
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.149
+   Compiling memchr v2.8.3
+   Compiling cpufeatures v0.2.17
+   Compiling itoa v1.0.18
+   Compiling cfg-if v1.0.5
+   Compiling zopro-bn254 v0.1.0 (/home/ubuntu/src/zk-tools/zopro/crates/zopro-bn254)
+   Compiling generic-array v0.14.7
+   Compiling num-traits v0.2.19
+warning: method `psi` is never used
+   --> /home/ubuntu/src/zk-tools/zopro/crates/zopro-bn254/src/curve.rs:362:19
+    |
+361 | impl G2Affine {
+    | ------------- method in this implementation
+362 |     pub(crate) fn psi(&self) -> Self {
+    |                   ^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling num-integer v0.1.47
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling num-bigint v0.4.6
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+warning: `zopro-bn254` (lib) generated 1 warning
+   Compiling zopro-gaussian-fr-probe v0.0.0 (/home/ubuntu/src/zopro-perf-work/gaussian-fr-cios)
+warning: unused import: `ToPrimitive`
+ --> src/cios_model.rs:4:29
+  |
+4 | use num_traits::{One,Signed,ToPrimitive,Zero};
+  |                             ^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0282]: type annotations needed
+  --> src/cios_model.rs:47:588
+   |
+47 | ...]{for delta in [-1i32,0,1]{let x=(BigInt::one()<<bit)+delta;if x.abs()>4u32*&p.bound{continue}let a=Z::new(x.clone(),-x);let b=Z:...
+   |                                   ^                               - type must be known at this point
+   |
+help: consider giving `x` an explicit type
+   |
+47 |  #[test]fn coupled_rows_fullwidth_and_low_digit_boundaries(){let p=Params::new();let mut seed=0x510e527fade682d1u64;for k in 0..4096{let mut next=||{let mut bytes=[0u8;32];for out in bytes.chunks_mut(8){seed^=seed<<13;seed^=seed>>7;seed^=seed<<17;out.copy_from_slice(&seed.to_le_bytes());}let n=modulo(BigInt::from_bytes_le(num_bigint::Sign::Plus,&bytes),&p.prime);p.encode(&n)};let mut a=next();let b=next();if k%2==0{a.re*=4u32;a.im*=4u32;}rows(&p,&a,&b);coefficients(&p,&a,&b);}let beta=BigInt::one()<<52usize;for bit in [0,1,25,26,51,52,103,104,125,126]{for delta in [-1i32,0,1]{let x: /* Type */=(BigInt::one()<<bit)+delta;if x.abs()>4u32*&p.bound{continue}let a=Z::new(x.clone(),-x);let b=Z::new(&beta-1u32,-&beta+1u32);rows(&p,&a,&b);coefficients(&p,&a,&b);}}}
+   |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ++++++++++++
+
+For more information about this error, try `rustc --explain E0282`.
+warning: `zopro-gaussian-fr-probe` (lib test) generated 1 warning
+error: could not compile `zopro-gaussian-fr-probe` (lib test) due to 1 previous error; 1 warning emitted

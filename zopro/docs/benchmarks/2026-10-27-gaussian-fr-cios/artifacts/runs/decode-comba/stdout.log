@@ -1,0 +1,241 @@
+# ========
+# captured on    : Tue Oct 27 22:47:21 2026
+# header version : 1
+# data offset    : 512
+# data size      : 12368
+# feat offset    : 12880
+# hostname : sdevbox
+# os release : 6.8.0-147-generic
+# perf version : 6.8.12
+# arch : x86_64
+# nrcpus online : 32
+# nrcpus avail : 32
+# cpudesc : AMD Ryzen 9 9950X 16-Core Processor
+# cpuid : AuthenticAMD,26,68,0
+# total memory : 129413460 kB
+# cmdline : /usr/lib/linux-tools-6.8.0-147/perf record --no-buildid-cache -e cycles:u -F 199 -o /home/ubuntu/src/zopro-perf-work/gaussian-fr-cios/profiles/comba/perf.data -- taskset -c 2 /home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe gaussian-r4-lazy butterfly 10000000 
+# event : name = cycles:u, , id = { 506, 507, 508, 509, 510, 511, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537 }, type = 0 (PERF_TYPE_HARDWARE), size = 136, config = 0 (PERF_COUNT_HW_CPU_CYCLES), { sample_period, sample_freq } = 199, sample_type = IP|TID|TIME|PERIOD, read_format = ID|LOST, disabled = 1, inherit = 1, exclude_kernel = 1, exclude_hv = 1, mmap = 1, comm = 1, freq = 1, enable_on_exec = 1, task = 1, sample_id_all = 1, exclude_guest = 1, mmap2 = 1, comm_exec = 1, ksymbol = 1, bpf_event = 1
+# CPU_TOPOLOGY info available, use -I to display
+# NUMA_TOPOLOGY info available, use -I to display
+# pmu mappings: cpu = 4, amd_iommu_0 = 12, breakpoint = 5, ibs_fetch = 10, ibs_op = 11, kprobe = 8, msr = 13, power = 14, software = 1, tracepoint = 2, uprobe = 9
+# CACHE info available, use -I to display
+# time of first sample : 30817.097517
+# time of last sample : 30818.022867
+# sample duration :    925.350 ms
+# MEM_TOPOLOGY info available, use -I to display
+# bpf_prog_info 2: bpf_prog_7cc47bbf07148bfe_hid_tail_call addr 0xffffffffc021e954 size 133
+# bpf_prog_info 5: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc021e7b8 size 311
+# bpf_prog_info 6: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc021eb18 size 56
+# bpf_prog_info 7: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc021eb8c size 56
+# bpf_prog_info 8: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc0221310 size 56
+# bpf_prog_info 9: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc02213bc size 56
+# bpf_prog_info 10: bpf_prog_c8b47a902f1cc68b_sd_devices addr 0xffffffffc0226910 size 290
+# bpf_prog_info 11: bpf_prog_ee0e253c78993a24_sd_devices addr 0xffffffffc0226a68 size 260
+# bpf_prog_info 12: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc022c3f4 size 311
+# bpf_prog_info 13: bpf_prog_fbee7646fdd03110_sd_devices addr 0xffffffffc022f44c size 103
+# bpf_prog_info 14: bpf_prog_8b9c33f36f812014_sd_devices addr 0xffffffffc022fc90 size 449
+# bpf_prog_info 15: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc022fe8c size 56
+# bpf_prog_info 16: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc022ff0c size 56
+# bpf_prog_info 21: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc023ec58 size 56
+# bpf_prog_info 22: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc023ecf8 size 56
+# bpf_prog_info 80: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232654 size 296
+# bpf_prog_info 84: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc023278c size 358
+# bpf_prog_info 96: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232348 size 296
+# bpf_prog_info 100: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc02324c8 size 358
+# btf info of id 5
+# cpu pmu capabilities: branches=16, max_precise=0
+# ibs_fetch pmu capabilities: zen4_ibs_extensions=1
+# ibs_op pmu capabilities: zen4_ibs_extensions=1
+# AMD systems uses ibs_op// PMU for some precise events, e.g.: cycles:p, see the 'perf list' man page for further details.
+# missing features: TRACING_DATA BRANCH_STACK GROUP_DESC AUXTRACE STAT CLOCKID DIR_FORMAT COMPRESSED CLOCK_DATA HYBRID_TOPOLOGY 
+# ========
+#
+ 267916/267916           1  ffffffffa4000ba0 [unknown] ([unknown])
+ 267916/267916           1      75fb39f0b1d0 [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 267916/267916           1      75fb39f0b211 [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 267916/267916         101  ffffffffa4000ba0 [unknown] ([unknown])
+ 267916/267916       33252      75fb39ef291f [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 267916/267916           1      594da40d25fd [unknown] (/usr/bin/taskset)
+ 267916/267916           1      594da40d25d5 [unknown] (/usr/bin/taskset)
+ 267916/267916           1      594da40d108c [unknown] (/usr/bin/taskset)
+ 267916/267916         323      75fb39cade34 cfree (/usr/lib/x86_64-linux-gnu/libc.so.6)
+ 267916/267916      189546      74a918613126 [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 267916/267916   132309646      5c299cd7b5b1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    45401436      5c299cd7b37e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    33172056      5c299cd7abb7 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    29244573      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    28025515      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    27330531      5c299cd7b5b1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26992539      5c299cd7a00b _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26807536      5c299cd7c367 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26734807      5c299cd79224 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26694824      5c299cd7b029 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26659097      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26625761      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26616152      5c299cd7bc78 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26623728      5c299cd7bc78 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26601659      5c299cd7c2bd _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26625100      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26576413      5c299cd7a00b _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26612614      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26614694      5c299cd7afd0 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26601066      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26623145      5c299cd7b38f _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26588160      5c299cd7bc78 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26604557      5c299cd7bc03 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26581505      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26565326      5c299cd79224 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26533608      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26576489      5c299cd7c424 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26586272      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26571042      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26584119      5c299cd7a00b _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26558049      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26577239      5c299cd7b5b1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26544219      5c299cd7b029 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26562024      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26591015      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26573670      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26565541      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26563572      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26577446      5c299cd7ace5 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26564519      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26568417      5c299cd7acb6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26545307      5c299cd7c1df _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26561334      5c299cd7b5b1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26536710      5c299cd7bc78 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26526258      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26557412      5c299cd7c521 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26538340      5c299cd7a00b _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26561282      5c299cd7b539 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26545487      5c299cd78e6a _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26557900      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26538941      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26565857      5c299cd7b0f1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26540694      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26558336      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26571144      5c299cd7afd0 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26545026      5c299cd7b029 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26538394      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26528766      5c299cd7b20c _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26552852      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26529493      5c299cd7c4cb _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26560033      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26568288      5c299cd7bc78 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26549984      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26561795      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26507011      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26550441      5c299cd79224 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26530613      5c299cd7bff7 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26549494      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26525431      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26548366      5c299cd7936a _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26562466      5c299cd7bc03 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26513581      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26544214      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26528846      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26552959      5c299cd7929b _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26557657      5c299cd7b5b1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26533959      5c299cd7b20c _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26562517      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26552180      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26563735      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26545842      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26562864      5c299cd7acb0 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26563172      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26575560      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26507390      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26542011      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26556660      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26544449      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26562852      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26535084      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26553789      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26569322      5c299cd7bc78 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26578338      5c299cd7adbb _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26581729      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26560134      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26526704      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26517284      5c299cd7b3ba _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26512853      5c299cd7b007 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26528431      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26555695      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26569334      5c299cd79224 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26579106      5c299cd7c055 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26577593      5c299cd7b007 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26551662      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26513956      5c299cd7acb0 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26513219      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26547730      5c299cd7b034 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26533250      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26558276      5c299cd7a00b _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26568858      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26575207      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26578546      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26557596      5c299cd7929b _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26556532      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26534719      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26549441      5c299cd7b5b1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26534213      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26553531      5c299cd7c2bd _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26524329      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26542832      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26563362      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26547179      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26554363      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26537394      5c299cd7bc78 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26527816      5c299cd7bc03 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26512035      5c299cd7c275 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26542503      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26559370      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26541879      5c299cd7b20c _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26558382      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26541080      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26556280      5c299cd7c2bd _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26523190      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26547015      5c299cd79224 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26560049      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26549756      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26552918      5c299cd7c07a _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26540060      5c299cd7b5b1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26532599      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26539611      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26548543      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26525987      5c299cd7ace5 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26545060      5c299cd7ace5 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26564580      5c299cd7b0f1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26515342      5c299cd7afd0 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26553655      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26539807      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26559245      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26537950      5c299cd7ace5 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26555658      5c299cd7b5b1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26509810      5c299cd7b5b1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26571177      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26536559      5c299cd7a00b _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26551890      5c299cd79857 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26560931      5c299cd7b38f _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26459034      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26534847      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26556387      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26543979      5c299cd7a4c1 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26557581      5c299cd79116 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26543331      5c299cd7929b _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26562268      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26545091      5c299cd7b007 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26561611      5c299cd7afd0 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26481728      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26548873      5c299cd7b38f _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26522413      5c299cd7bc03 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26548731      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26559231      5c299cd7a06e _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26539836      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26560428      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26545667      5c299cd7ae43 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26563818      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26537105      5c299cd7bc78 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26553395      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26492353      5c299cd7afd0 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26531460      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26505717      5c299cd792a6 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment8fft_lazy (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
+ 267916/267916    26536459      5c299cd873d9 _RNvNtCsbvxNsvmJnrd_23zopro_gaussian_fr_probe10experiment6matmul (/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe)
