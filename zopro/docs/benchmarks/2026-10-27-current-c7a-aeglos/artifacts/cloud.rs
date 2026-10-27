@@ -1,0 +1,417 @@
+//! Owned benchmark lifecycle. Commands and resources are scoped to this run ID.
+use serde_json::{json, Value};
+use std::{
+    fs,
+    io::Write,
+    os::unix::fs::PermissionsExt,
+    path::Path,
+    process::{Command, Output, Stdio},
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
+const ROOT: &str = "/tmp/zopro-current-c7a-20261027";
+fn read(p: impl AsRef<Path>) -> Value {
+    serde_json::from_slice(&fs::read(p).unwrap()).unwrap()
+}
+fn save(p: impl AsRef<Path>, v: &Value) {
+    fs::write(p, serde_json::to_vec_pretty(v).unwrap()).unwrap()
+}
+fn cli(args: &[String]) -> Output {
+    Command::new("aws")
+        .args([
+            "--profile",
+            "dev",
+            "--region",
+            "eu-north-1",
+            "--no-cli-pager",
+            "--cli-connect-timeout",
+            "10",
+            "--cli-read-timeout",
+            "30",
+        ])
+        .args(args)
+        .output()
+        .unwrap()
+}
+fn aws(args: &[&str]) -> Value {
+    let args: Vec<String> = args.iter().map(|s| s.to_string()).collect();
+    for attempt in 0..5 {
+        let o = cli(&args);
+        if o.status.success() {
+            return serde_json::from_slice(&o.stdout).unwrap();
+        }
+        let e = String::from_utf8_lossy(&o.stderr);
+        if attempt < 4 && e.contains("Throttling") {
+            std::thread::sleep(Duration::from_secs(2u64.pow(attempt + 1)));
+            continue;
+        }
+        panic!("AWS command failed: {e}");
+    }
+    unreachable!()
+}
+fn r() -> &'static Path {
+    Path::new(ROOT)
+}
+fn id() -> String {
+    fs::read_to_string(r().join("run-id.txt"))
+        .unwrap()
+        .trim()
+        .to_owned()
+}
+fn iid() -> String {
+    fs::read_to_string(r().join("instance-id.txt"))
+        .unwrap()
+        .trim()
+        .to_owned()
+}
+fn base() -> String {
+    format!("/var/tmp/zopro-{}", id())
+}
+fn auth() -> String {
+    let who = aws(&["sts", "get-caller-identity"]);
+    assert_eq!(who["Account"], "558215002830");
+    save(r().join("identity.json"), &who);
+    let o = cli(&[
+        "configure".into(),
+        "export-credentials".into(),
+        "--format".into(),
+        "process".into(),
+    ]);
+    assert!(o.status.success(), "credential lifetime unavailable");
+    let c: Value = serde_json::from_slice(&o.stdout).unwrap();
+    let exp = c["Expiration"].as_str().unwrap().to_owned();
+    let time = Command::new("date")
+        .args(["-u", "-d", &exp, "+%s"])
+        .output()
+        .unwrap();
+    assert!(time.status.success());
+    let end = String::from_utf8(time.stdout)
+        .unwrap()
+        .trim()
+        .parse::<u64>()
+        .unwrap();
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    assert!(
+        end > now + 110 * 60,
+        "role lifetime shorter than TTL plus cleanup allowance"
+    );
+    exp
+}
+fn invocation(label: &str) -> Value {
+    let cmd = read(r().join(format!("{label}-command.json")));
+    let command = cmd["Command"]["CommandId"].as_str().unwrap();
+    let args = [
+        "ssm",
+        "get-command-invocation",
+        "--command-id",
+        command,
+        "--instance-id",
+        &iid(),
+    ];
+    let o = cli(&args.iter().map(|x| x.to_string()).collect::<Vec<_>>());
+    if !o.status.success() {
+        let e = String::from_utf8_lossy(&o.stderr);
+        if e.contains("InvocationDoesNotExist") {
+            return json!({"Status":"Pending","not_yet_visible":true});
+        }
+        panic!("SSM observation failed: {e}");
+    }
+    let v: Value = serde_json::from_slice(&o.stdout).unwrap();
+    save(r().join(format!("{label}-result.json")), &v);
+    v
+}
+fn send(label: &str, commands: Vec<String>, timeout: u64) {
+    let path = r().join(format!("{label}-command.json"));
+    if path.exists() {
+        let v = invocation(label);
+        println!("{label} already submitted: {}", v["Status"]);
+        return;
+    }
+    let p = r().join(format!("{label}-parameters.json"));
+    save(
+        &p,
+        &json!({"commands":commands,"executionTimeout":[timeout.to_string()]}),
+    );
+    let v = aws(&[
+        "ssm",
+        "send-command",
+        "--instance-ids",
+        &iid(),
+        "--document-name",
+        "AWS-RunShellScript",
+        "--comment",
+        &format!("Owned {} {label}", id()),
+        "--parameters",
+        &format!("file://{}", p.display()),
+    ]);
+    save(path, &v);
+    println!("Submitted {label}: {}", v["Command"]["CommandId"]);
+}
+struct AuthDir(std::path::PathBuf);
+impl Drop for AuthDir {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+fn main() {
+    let args: Vec<_> = std::env::args().collect();
+    let op = args.get(1).expect("operation");
+    let b = base();
+    match op.as_str() {
+        "publish" => {
+            let expiry = auth();
+            let mut im = read(r().join("image-manifest.json"));
+            assert_eq!(im["local_gnark_proofs"], 27);
+            assert_eq!(im["local_preflight_sdk"], 108);
+            let registry = "558215002830.dkr.ecr.eu-north-1.amazonaws.com";
+            let dir = r().join("docker-auth");
+            fs::create_dir(&dir).unwrap();
+            fs::set_permissions(&dir, fs::Permissions::from_mode(0o700)).unwrap();
+            let _guard = AuthDir(dir.clone());
+            let p = cli(&["ecr".into(), "get-login-password".into()]);
+            assert!(p.status.success());
+            let log = fs::File::create(r().join("docker-login.log")).unwrap();
+            let mut login = Command::new("docker")
+                .arg("--config")
+                .arg(&dir)
+                .args(["login", "--username", "AWS", "--password-stdin", registry])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::from(log.try_clone().unwrap()))
+                .stderr(Stdio::from(log))
+                .spawn()
+                .unwrap();
+            login.stdin.take().unwrap().write_all(&p.stdout).unwrap();
+            assert!(login.wait().unwrap().success());
+            let log = fs::File::create(r().join("docker-push.log")).unwrap();
+            assert!(Command::new("docker")
+                .arg("--config")
+                .arg(&dir)
+                .args(["push", im["image_tag"].as_str().unwrap()])
+                .stdout(Stdio::from(log.try_clone().unwrap()))
+                .stderr(Stdio::from(log))
+                .status()
+                .unwrap()
+                .success());
+            let tag = im["image_tag"]
+                .as_str()
+                .unwrap()
+                .rsplit(':')
+                .next()
+                .unwrap();
+            let described = aws(&[
+                "ecr",
+                "describe-images",
+                "--repository-name",
+                "zolana-prover",
+                "--image-ids",
+                &format!("imageTag={tag}"),
+            ]);
+            let digest = described["imageDetails"][0]["imageDigest"]
+                .as_str()
+                .unwrap();
+            assert!(digest.starts_with("sha256:") && digest.len() == 71);
+            im["pinned_image"] = json!(format!("{registry}/zolana-prover@{digest}"));
+            im["registry_digest"] = json!(digest);
+            im["active_role_expiration"] = json!(expiry);
+            im["status"] = json!("published; not launched");
+            save(r().join("image-manifest.json"), &im);
+            println!("Published and pinned image; local27Gnark/108SDK preflight complete");
+        }
+        "launch" => {
+            auth();
+            let im = read(r().join("image-manifest.json"));
+            assert!(im["pinned_image"].is_string());
+            if r().join("instance-id.txt").exists() {
+                println!("Owned instance already recorded: {}", iid());
+                return;
+            }
+            let found = aws(&[
+                "ec2",
+                "describe-instances",
+                "--filters",
+                &format!("Name=client-token,Values={}", id()),
+                "Name=instance-state-name,Values=pending,running,stopping,stopped",
+            ]);
+            let reservations = found["Reservations"].as_array().unwrap();
+            if !reservations.is_empty() {
+                assert_eq!(reservations.len(), 1);
+                let instance = &reservations[0]["Instances"][0];
+                assert_eq!(instance["ClientToken"], id());
+                fs::write(
+                    r().join("instance-id.txt"),
+                    instance["InstanceId"].as_str().unwrap(),
+                )
+                .unwrap();
+                save(r().join("recovered-launch.json"), &found);
+                println!("Recovered existing owned instance {}", iid());
+                return;
+            }
+            let mut config = read("/tmp/zopro-c7a24-comparison/launch.json");
+            assert_eq!(config["InstanceType"], "c7a.24xlarge");
+            config["ClientToken"] = json!(id());
+            let expiry = Command::new("date")
+                .args(["-u", "-d", "+90 minutes", "+%Y-%m-%dT%H:%M:%SZ"])
+                .output()
+                .unwrap();
+            assert!(expiry.status.success());
+            let expires = String::from_utf8(expiry.stdout).unwrap().trim().to_owned();
+            for spec in config["TagSpecifications"].as_array_mut().unwrap() {
+                spec["Tags"] = json!([{"Key":"Name","Value":format!("zopro-{}",id())},{"Key":"Purpose","Value":"TemporaryProverBenchmark"},{"Key":"ExpiresAt","Value":expires}]);
+            }
+            let user = fs::read_to_string("/tmp/zopro-c7a24-comparison/user-data.sh")
+                .unwrap()
+                .replace("/var/tmp/zopro-c7a24-bench", &b);
+            fs::write(r().join("user-data.sh"), &user).unwrap();
+            let enc = Command::new("base64")
+                .arg("-w0")
+                .arg(r().join("user-data.sh"))
+                .output()
+                .unwrap();
+            assert!(enc.status.success());
+            config["UserData"] = json!(String::from_utf8(enc.stdout).unwrap());
+            save(r().join("launch.json"), &config);
+            let v = aws(&[
+                "ec2",
+                "run-instances",
+                "--cli-input-json",
+                &format!("file://{ROOT}/launch.json"),
+            ]);
+            assert_eq!(v["Instances"].as_array().unwrap().len(), 1);
+            let instance = &v["Instances"][0];
+            save(r().join("launch-result.json"), &v);
+            fs::write(
+                r().join("instance-id.txt"),
+                instance["InstanceId"].as_str().unwrap(),
+            )
+            .unwrap();
+            assert_eq!(instance["CpuOptions"]["CoreCount"], 96);
+            assert_eq!(instance["CpuOptions"]["ThreadsPerCore"], 1);
+            println!(
+                "Launched owned {} c7a.24xlarge with90minute terminateTTL",
+                iid()
+            );
+        }
+        "boot" => {
+            let online = aws(&[
+                "ssm",
+                "describe-instance-information",
+                "--filters",
+                &format!("Key=InstanceIds,Values={}", iid()),
+            ]);
+            save(r().join("ssm-status.json"), &online);
+            if !online["InstanceInformationList"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|v| v["PingStatus"] == "Online")
+            {
+                println!("Owned instance {} awaiting SSM registration", iid());
+                return;
+            }
+            send(
+                "boot",
+                vec![
+                    "set -eu".into(),
+                    "cloud-init status --wait".into(),
+                    "test -f /var/lib/cloud/instance/boot-finished".into(),
+                    "test -x /usr/local/bin/aws".into(),
+                    "docker info >/dev/null".into(),
+                    "systemctl is-active zopro-bench-ttl.timer".into(),
+                ],
+                600,
+            );
+        }
+        "pull" => {
+            assert_eq!(invocation("boot")["Status"], "Success");
+            let im = read(r().join("image-manifest.json"));
+            let image = im["pinned_image"].as_str().unwrap();
+            send("pull",vec!["set -eu".into(),"systemctl is-active zopro-bench-ttl.timer".into(),format!("install -d -m700 {b}/docker-auth"),format!("/usr/local/bin/aws ecr get-login-password --region eu-north-1 | docker --config {b}/docker-auth login --username AWS --password-stdin 558215002830.dkr.ecr.eu-north-1.amazonaws.com >/dev/null"),format!("docker --config {b}/docker-auth pull {image}"),format!("rm -rf -- {b}/docker-auth"),format!("docker image inspect {image} --format '{{{{.Id}}}}'"),"cat /proc/loadavg".into()],600);
+        }
+        "measure" => {
+            assert_eq!(invocation("pull")["Status"], "Success");
+            let im = read(r().join("image-manifest.json"));
+            let image = im["pinned_image"].as_str().unwrap();
+            send("measure",vec!["set -eu".into(),format!("mkdir -p {b}/output"),format!("docker run --name zopro-current-c7a --network none --cpus 96 --memory 30g --memory-swap 30g --pids-limit 2048 --cap-drop ALL --cap-add PERFMON --ulimit memlock=-1 --security-opt no-new-privileges --security-opt seccomp=unconfined -v {b}/output:/output {image} measure > {b}/runner.log 2>&1"),format!("docker inspect zopro-current-c7a > {b}/container-inspect.json"),format!("cat {b}/output/measure/complete.json")],3600);
+        }
+        "poll" => {
+            let label = args.get(2).unwrap();
+            let v = invocation(label);
+            println!("{label}: {}", v["Status"]);
+            println!("{}", v["StandardOutputContent"].as_str().unwrap_or(""));
+            println!("{}", v["StandardErrorContent"].as_str().unwrap_or(""));
+        }
+        "progress" => {
+            let label = args
+                .get(2)
+                .map(|s| format!("progress-{s}"))
+                .unwrap_or("progress".into());
+            assert!(label.chars().all(|c| c.is_ascii_alphanumeric() || c == '-'));
+            send(
+                &label,
+                vec![
+                    "set -eu".into(),
+                    format!("cat {b}/output/measure/performance/progress.json || true"),
+                    format!("tail -n8 {b}/output/measure/workflow.log || true"),
+                ],
+                60,
+            );
+        }
+        "package" => {
+            assert_eq!(invocation("measure")["Status"], "Success");
+            send("package",vec!["set -eu".into(),format!("docker inspect zopro-current-c7a > {b}/container-inspect.json"),format!("cat /proc/swaps > {b}/post-host-state.txt"),format!("tar --exclude=output/lagrange-cache --exclude=ctl --exclude=ack -czf {b}/results.tar.gz -C {b} output runner.log hardware.txt post-host-state.txt container-inspect.json"),format!("sha256sum {b}/results.tar.gz"),format!("stat -c %s {b}/results.tar.gz")],600);
+        }
+        "cleanup" => {
+            let instance = iid();
+            let v = aws(&["ec2", "describe-instances", "--instance-ids", &instance]);
+            let actual = &v["Reservations"][0]["Instances"][0];
+            assert_eq!(actual["ClientToken"], id());
+            let terminated = aws(&["ec2", "terminate-instances", "--instance-ids", &instance]);
+            save(r().join("termination-result.json"), &terminated);
+            println!("Termination requested for owned {instance}; confirm state and volume absence before closing");
+        }
+        "cleanup-status" => {
+            let instance = iid();
+            let v = aws(&["ec2", "describe-instances", "--instance-ids", &instance]);
+            save(r().join("termination-observation.json"), &v);
+            let state = v["Reservations"][0]["Instances"][0]["State"]["Name"]
+                .as_str()
+                .unwrap();
+            println!("Owned {instance}: {state}");
+            if state == "terminated" {
+                let vols = aws(&[
+                    "ec2",
+                    "describe-volumes",
+                    "--filters",
+                    &format!("Name=tag:Name,Values=zopro-{}", id()),
+                ]);
+                save(r().join("volume-observation.json"), &vols);
+                assert!(
+                    vols["Volumes"].as_array().unwrap().is_empty(),
+                    "owned volume still present; observe again"
+                );
+                let im = read(r().join("image-manifest.json"));
+                let tag = im["image_tag"]
+                    .as_str()
+                    .unwrap()
+                    .rsplit(':')
+                    .next()
+                    .unwrap();
+                if !r().join("ecr-cleanup.json").exists() {
+                    let removed = aws(&[
+                        "ecr",
+                        "batch-delete-image",
+                        "--repository-name",
+                        "zolana-prover",
+                        "--image-ids",
+                        &format!("imageTag={tag}"),
+                    ]);
+                    save(r().join("ecr-cleanup.json"), &removed);
+                }
+                println!("Owned instance terminated, volume absent and temporary ECRtag deletion recorded");
+            }
+        }
+        _ => panic!("unknown operation"),
+    }
+}

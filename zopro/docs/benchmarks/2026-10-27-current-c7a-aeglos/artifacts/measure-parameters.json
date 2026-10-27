@@ -1,0 +1,12 @@
+{
+  "commands": [
+    "set -eu",
+    "mkdir -p /var/tmp/zopro-cr-c7a-20261027-081750/output",
+    "docker run --name zopro-current-c7a --network none --cpus 96 --memory 30g --memory-swap 30g --pids-limit 2048 --cap-drop ALL --cap-add PERFMON --ulimit memlock=-1 --security-opt no-new-privileges --security-opt seccomp=unconfined -v /var/tmp/zopro-cr-c7a-20261027-081750/output:/output 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:58d95101b875f9108d4508344bba6e38efa50812df2f2abb8e89cefd44c4aa59 measure > /var/tmp/zopro-cr-c7a-20261027-081750/runner.log 2>&1",
+    "docker inspect zopro-current-c7a > /var/tmp/zopro-cr-c7a-20261027-081750/container-inspect.json",
+    "cat /var/tmp/zopro-cr-c7a-20261027-081750/output/measure/complete.json"
+  ],
+  "executionTimeout": [
+    "3600"
+  ]
+}
