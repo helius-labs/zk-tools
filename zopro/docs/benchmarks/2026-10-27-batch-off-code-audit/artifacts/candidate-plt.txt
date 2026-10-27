@@ -1,0 +1,20 @@
+
+/home/ubuntu/src/zopro-perf-work/batch-local-steal/native/candidate-sdk:     file format elf64-x86-64
+
+
+Disassembly of section .plt:
+
+00000000004ccf40 <__cxa_finalize@plt-0x10>:
+  4ccf40:	ff 35 9a 9d 00 00    	push   0x9d9a(%rip)        # 4d6ce0 <_GLOBAL_OFFSET_TABLE_+0x8>
+  4ccf46:	ff 25 9c 9d 00 00    	jmp    *0x9d9c(%rip)        # 4d6ce8 <_GLOBAL_OFFSET_TABLE_+0x10>
+  4ccf4c:	0f 1f 40 00          	nopl   0x0(%rax)
+
+00000000004ccf50 <__cxa_finalize@plt>:
+  4ccf50:	ff 25 9a 9d 00 00    	jmp    *0x9d9a(%rip)        # 4d6cf0 <__cxa_finalize@GLIBC_2.2.5>
+  4ccf56:	68 00 00 00 00       	push   $0x0
+  4ccf5b:	e9 e0 ff ff ff       	jmp    4ccf40 <_fini+0x1c>
+
+00000000004ccf60 <_Unwind_Resume@plt>:
+  4ccf60:	ff 25 92 9d 00 00    	jmp    *0x9d92(%rip)        # 4d6cf8 <_Unwind_Resume@GCC_3.0>
+  4ccf66:	68 01 00 00 00       	push   $0x1
+  4ccf6b:	e9 d0 ff ff ff       	jmp    4ccf40 <_fini+0x1c>
