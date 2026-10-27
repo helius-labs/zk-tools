@@ -1,0 +1,3 @@
+The confirmation helper's first compilation rejected two float literals that omitted their integer part. `initial-confirmation.rs` retains that source. Adding the required leading zeroes and formatting the helper repaired compilation before its preparation mode or any new capture ran. No numerical threshold, confidence formula, source candidate or timing protocol changed.
+
+Before any new capture, plan review changed the pinned inventory from the combined output that analysis will extend to the immutable screen inventory snapshot. The initial prepared plan and helper are retained as `pre-pin-review-plan.json` and `pre-pin-review-confirmation.rs`. This avoids invalidating a capture pin during later ledger aggregation; no capture used the superseded plan.
