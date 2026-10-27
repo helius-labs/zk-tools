@@ -1,0 +1,53 @@
+{
+  "Gnark_exports_expected": 6,
+  "SDK_requests_expected": 384,
+  "adopted": false,
+  "affinity": "0-31",
+  "blocks": 3,
+  "capability": {
+    "exact_raw_script_match": true,
+    "nonSDK_samples": 239,
+    "source": "v1 decoder; v2 adds uncached-cache-weight exclusion; capability has zero uncached demand loads"
+  },
+  "decoder_tests": {
+    "initial": 7,
+    "successful_tests_not_repeated": true,
+    "uncached_refinement": 1
+  },
+  "diagnostic_only": true,
+  "event": "ibs_op/cnt_ctl=1/",
+  "expected_next_prior": 12524,
+  "goal_achieved": false,
+  "no_helper_overlap": true,
+  "normalization": "sample fractions and positive miss-weight summaries; no causal wall-time or bandwidth conversion",
+  "options": [
+    "-d",
+    "-W",
+    "--raw-samples",
+    "--delay=-1",
+    "--control=fifo"
+  ],
+  "order": "all6captures then all6independentGnark then all6script/rawdecode/analysis",
+  "pair_order": [
+    [
+      "control",
+      "off"
+    ],
+    [
+      "off",
+      "control"
+    ],
+    [
+      "control",
+      "off"
+    ]
+  ],
+  "period": 524288,
+  "primes": 3,
+  "prior_proofs": 12518,
+  "processes": 6,
+  "rounds": 61,
+  "source_changed": false,
+  "uncertainty": "three descriptive paired blocks; no speed/adoption gate; no adaptive extensions/exclusions/rerolls",
+  "workers": 32
+}

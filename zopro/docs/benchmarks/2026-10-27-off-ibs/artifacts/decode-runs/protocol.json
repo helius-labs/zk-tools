@@ -1,0 +1,286 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "analyze-b0-control",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decoder-v3",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/runs/raw-b0-control/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/runs/script-b0-control/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b0-control/analysis.json"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "script-b0-off",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b0-off/perf.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "raw-b0-off",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b0-off/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "analyze-b0-off",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decoder-v3",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-runs/raw-b0-off/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-runs/script-b0-off/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b0-off/analysis.json"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "script-b1-off",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b1-off/perf.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "raw-b1-off",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b1-off/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "analyze-b1-off",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decoder-v3",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-runs/raw-b1-off/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-runs/script-b1-off/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b1-off/analysis.json"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "script-b1-control",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b1-control/perf.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "raw-b1-control",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b1-control/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "analyze-b1-control",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decoder-v3",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-runs/raw-b1-control/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-runs/script-b1-control/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b1-control/analysis.json"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "script-b2-control",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b2-control/perf.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "raw-b2-control",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b2-control/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "analyze-b2-control",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decoder-v3",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-runs/raw-b2-control/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-runs/script-b2-control/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b2-control/analysis.json"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "script-b2-off",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b2-off/perf.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "raw-b2-off",
+      "argv": [
+        "sudo",
+        "-n",
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b2-off/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "analyze-b2-off",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decoder-v3",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-runs/raw-b2-off/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/decode-runs/script-b2-off/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/off-ibs/captures/b2-off/analysis.json"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    }
+  ]
+}
