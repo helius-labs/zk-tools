@@ -1699,20 +1699,9 @@ checksum = "0c6639b70a7ce854b79c70d7e83f16b5dc0137cc914f3d7d03803b513ecc67ac"
 
 [[package]]
 name = "light-poseidon"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47a1ccadd0bb5a32c196da536fd72c59183de24a055f6bf0513bf845fefab862"
-dependencies = [
- "ark-bn254 0.5.0",
- "ark-ff 0.5.0",
- "num-bigint",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "light-poseidon"
 version = "0.5.0"
-source = "git+https://github.com/Lightprotocol/light-poseidon?rev=08e037e20910e86aa62641217643540d1f902443#08e037e20910e86aa62641217643540d1f902443"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a8988878057561648d6ff78522edf4fc0b43b75ca88d0f4da33c052880d6abf"
 dependencies = [
  "ark-bn254 0.6.0",
  "ark-ff 0.6.0",
@@ -2856,12 +2845,12 @@ dependencies = [
 
 [[package]]
 name = "spr-hasher"
-version = "0.1.0"
-source = "git+https://github.com/helius-labs/zolana?rev=06c9b48f232bc6a5f0dff66120d5dc76acc50e97#06c9b48f232bc6a5f0dff66120d5dc76acc50e97"
+version = "0.1.1"
+source = "git+https://github.com/helius-labs/zolana?rev=8bde440d9a55d8e036eb9cfd8753458dd7b11b95#8bde440d9a55d8e036eb9cfd8753458dd7b11b95"
 dependencies = [
- "ark-bn254 0.5.0",
- "ark-ff 0.5.0",
- "light-poseidon 0.4.0",
+ "ark-bn254 0.6.0",
+ "ark-ff 0.6.0",
+ "light-poseidon",
  "num-bigint",
  "sha2",
  "sha3",
@@ -2919,7 +2908,7 @@ dependencies = [
  "ark-ff 0.6.0",
  "ark-r1cs-std",
  "hex",
- "light-poseidon 0.5.0",
+ "light-poseidon",
  "num-bigint",
  "proptest",
  "serde_json",

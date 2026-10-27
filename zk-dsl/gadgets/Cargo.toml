@@ -5,14 +5,13 @@ description = "General-purpose gadgets for the zk circuit DSL: Poseidon, hash ch
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-publish = false
+publish = ["crates-io"]
 
 [dependencies]
 ark-bn254 = { version = "0.6" }
 ark-ff = { version = "0.6" }
 ark-r1cs-std = { version = "0.6", default-features = false, features = ["std"] }
-# arkworks 0.6 port of light-poseidon (crates.io 0.4.0 is on arkworks 0.5).
-light-poseidon = { git = "https://github.com/Lightprotocol/light-poseidon", rev = "08e037e20910e86aa62641217643540d1f902443" }
+light-poseidon = "0.5"
 spr-zk-dsl = { workspace = true, features = ["circuit"] }
 
 [features]
