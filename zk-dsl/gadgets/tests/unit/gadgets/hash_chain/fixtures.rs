@@ -1,9 +1,9 @@
-use zolana_program::{
+use spr_program::{
     circuit::{constant, value, Assert, Circuit, Field},
     conversion::ProofInput,
     CircuitError,
 };
-use zolana_zk_gadgets::nonzero_hash_chain;
+use spr_zk_gadgets::nonzero_hash_chain;
 
 use crate::{
     gadgets::reference,
@@ -17,7 +17,7 @@ pub const RULE_BROKEN: Refusal = rule_broken(RULE, FILE);
 
 pub type Chained = Result<Field, Refusal>;
 
-/// The protocol's nonzero hash chain over `zolana_hasher`'s Poseidon: zero
+/// The protocol's nonzero hash chain over `spr_hasher`'s Poseidon: zero
 /// values are skipped, the first nonzero value is the chain as it is, and every
 /// later nonzero value folds in as `Poseidon(chain, value)`.
 pub fn reference_chain(values: &[Field]) -> Field {

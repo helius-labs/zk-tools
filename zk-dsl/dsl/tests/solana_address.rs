@@ -1,8 +1,8 @@
 #![cfg(feature = "client")]
 
 use solana_address::Address;
-use zolana_hasher::primitives::{hash_bytes, pack_be};
-use zolana_zk_dsl::{
+use spr_hasher::primitives::{hash_bytes, pack_be};
+use spr_zk_dsl::{
     circuit::{
         Assert, Bool, Circuit, CircuitType, CircuitVar, ConstraintSystem, Public, PublicValue,
         Select, SolanaAddress,
@@ -10,7 +10,7 @@ use zolana_zk_dsl::{
     conversion::{to_bytes, Allocator, FromCircuit, Placeholder, ProofInput},
     CircuitError, ZkCircuit,
 };
-use zolana_zk_gadgets::HashBytes;
+use spr_zk_gadgets::HashBytes;
 
 #[test]
 fn addresses_preserve_spp_bytes_packing_and_hashing() {
@@ -182,8 +182,8 @@ fn the_address_wrapper_preserves_the_existing_r1cs_and_assignment() {
                 .unwrap(),
         ),
         (
-            AddressHash::<zolana_zk_dsl::Bytes<32>>::export_r1cs().unwrap(),
-            AddressHash(zolana_zk_dsl::Bytes(bytes))
+            AddressHash::<spr_zk_dsl::Bytes<32>>::export_r1cs().unwrap(),
+            AddressHash(spr_zk_dsl::Bytes(bytes))
                 .export_assignment()
                 .unwrap(),
         ),

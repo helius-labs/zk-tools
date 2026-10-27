@@ -11,12 +11,12 @@ use ark_bn254::Fr;
 
 #[doc(hidden)]
 pub use bytes::byte_value;
+pub use spr_zk_macros::ProofInput;
 #[cfg(feature = "client")]
 pub(crate) use var::be_bytes;
 #[doc(hidden)]
 pub use var::u16_value;
 pub use var::{field, field_bytes, to_bytes};
-pub use zolana_zk_macros::ProofInput;
 
 use crate::{
     circuit::{constant, labels, CircuitSystem, CircuitType, CircuitVar, VariableRole},

@@ -1,4 +1,4 @@
-use zolana_zk_dsl::{
+use spr_zk_dsl::{
     circuit::{
         builtins::field::{primitive, var::collect_array},
         constant, Assert, Bool, CircuitVar, Field, Select,

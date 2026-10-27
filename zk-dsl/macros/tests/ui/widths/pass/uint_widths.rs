@@ -1,4 +1,4 @@
-use zolana_zk_dsl::circuit::{Uint, U128, U64};
+use spr_zk_dsl::circuit::{Uint, U128, U64};
 
 fn main() {
     let amount = U64::zero();

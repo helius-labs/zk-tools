@@ -1,9 +1,9 @@
-use zolana_program::{
+use spr_program::{
     circuit::{Assert, Circuit, Field},
     conversion::ProofInput,
     Bytes, CircuitError,
 };
-use zolana_zk_gadgets::HashBytes as _;
+use spr_zk_gadgets::HashBytes as _;
 
 use crate::harness::fixture::{rule_broken, Refusal};
 

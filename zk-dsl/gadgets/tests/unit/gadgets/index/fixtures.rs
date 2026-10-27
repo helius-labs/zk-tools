@@ -1,9 +1,9 @@
-use zolana_program::{
+use spr_program::{
     circuit::{Assert, Circuit, CircuitVar, Field},
     conversion::ProofInput,
     CircuitError,
 };
-use zolana_zk_gadgets::{one_hot, select_index};
+use spr_zk_gadgets::{one_hot, select_index};
 
 pub const FLAG_RULE: &str = "the decoded flags match the index";
 pub const SELECT_RULE: &str = "the selected item matches the index";
@@ -63,11 +63,11 @@ impl Circuit for ConstantIndexCircuit {
     type Output = ();
 
     fn circuit(&self) -> Result<Self::Output, CircuitError> {
-        let index = zolana_program::circuit::constant(1u64);
+        let index = spr_program::circuit::constant(1u64);
         for (flag, claimed) in one_hot::<3>(&index)?.into_iter().zip(&self.flags) {
             CircuitVar::from(flag).assert_equal(claimed, FLAG_RULE)?;
         }
-        let items = [3u64, 5, 7].map(zolana_program::circuit::constant);
+        let items = [3u64, 5, 7].map(spr_program::circuit::constant);
         select_index(&items, &index)?.assert_equal(&self.selected, SELECT_RULE)
     }
 }

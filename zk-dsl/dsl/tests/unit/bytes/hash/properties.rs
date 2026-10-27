@@ -5,7 +5,7 @@ use super::{
 use crate::harness::fixture::{assignment, check_constraints, check_tampered, exported, native};
 use ark_bn254::Fr;
 use proptest::prelude::*;
-use zolana_program::Bytes;
+use spr_program::Bytes;
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(16))]
     #[test]

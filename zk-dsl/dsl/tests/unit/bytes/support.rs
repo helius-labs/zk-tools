@@ -1,7 +1,7 @@
 use ark_bn254::Fr;
 use ark_ff::{One, Zero};
 use num_bigint::BigUint;
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 use crate::harness::iden3::{R1cs, R1csHeader, Row};
 

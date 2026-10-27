@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use ark_ff::One;
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 use super::{
     fixtures::{witnesses, Pow, Pow5, FIRST_WITNESS_WIRE, POWER_WIRE, RULE},

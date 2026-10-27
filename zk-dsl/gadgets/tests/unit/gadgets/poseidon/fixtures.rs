@@ -1,11 +1,11 @@
 use std::ops::RangeInclusive;
 
-use zolana_program::{
+use spr_program::{
     circuit::{constant, value, Assert, Circuit, Field},
     conversion::ProofInput,
     CircuitError,
 };
-use zolana_zk_gadgets::poseidon;
+use spr_zk_gadgets::poseidon;
 
 use crate::harness::fixture::{outcome, rule_broken, Fixture, Refusal, Visit};
 

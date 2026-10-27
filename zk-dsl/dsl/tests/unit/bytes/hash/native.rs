@@ -3,8 +3,8 @@ use super::{
     vectors::{native_hash, vectors},
 };
 use crate::harness::fixture::native;
-use zolana_program::{circuit, Bytes};
-use zolana_zk_gadgets::HashBytes as _;
+use spr_program::{circuit, Bytes};
+use spr_zk_gadgets::HashBytes as _;
 
 fn value(var: &circuit::CircuitVar) -> circuit::Field {
     circuit::value(var).expect("constant value")

@@ -1,5 +1,5 @@
 use solana_address::Address;
-use zolana_hasher::primitives::pack_be_chunks;
+use spr_hasher::primitives::pack_be_chunks;
 
 use super::Bytes;
 use crate::circuit::Field;

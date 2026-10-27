@@ -14,15 +14,15 @@ The exact matrix fixtures use private inputs only. Membership and selection perm
   - Location: `src/poseidon.rs:10-66` (`poseidon`, `parameters`)
   - Severity: High
   - Suggested test: positive/negative; `tests/unit/gadgets/poseidon/native.rs`
-  - Covered by: `tests/unit/gadgets/poseidon/native.rs::the_native_hash_is_the_pinned_hash_and_zolana_hashers_at_every_arity`.
+  - Covered by: `tests/unit/gadgets/poseidon/native.rs::the_native_hash_is_the_pinned_hash_and_spr_hashers_at_every_arity`.
 
 - [x] **INV-POSEIDON-02: Native Poseidon agreement**
   - Kind: native equivalence
-  - Statement: For every generated input vector of length 1 through 12, the circuit value is exactly `zolana_hasher::Poseidon::hashv` for canonical big-endian field bytes.
+  - Statement: For every generated input vector of length 1 through 12, the circuit value is exactly `spr_hasher::Poseidon::hashv` for canonical big-endian field bytes.
   - Location: `src/poseidon.rs:10-66` (`poseidon`, `parameters`)
   - Severity: High
   - Suggested test: property (proptest); `tests/unit/gadgets/poseidon/properties.rs`
-  - Covered by: `tests/unit/gadgets/poseidon/properties.rs::the_native_hash_is_zolana_hashers_at_every_arity`.
+  - Covered by: `tests/unit/gadgets/poseidon/properties.rs::the_native_hash_is_spr_hashers_at_every_arity`.
 
 - [x] **INV-POSEIDON-03: Constants stay constant**
   - Kind: semantics
@@ -39,7 +39,7 @@ The exact matrix fixtures use private inputs only. Membership and selection perm
   - Severity: Medium
   - Suggested test: positive/negative; `tests/unit/gadgets/poseidon/native.rs`
   - Error: `CircuitErrorKind::UnsupportedHashInputCount`
-  - Covered by: `tests/unit/gadgets/poseidon/native.rs::every_arity_outside_one_to_twelve_is_refused_like_zolana_hashers`.
+  - Covered by: `tests/unit/gadgets/poseidon/native.rs::every_arity_outside_one_to_twelve_is_refused_like_spr_hashers`.
 
 - [x] **INV-POSEIDON-05: S-box row formula**
   - Kind: constraint
@@ -166,7 +166,7 @@ The exact matrix fixtures use private inputs only. Membership and selection perm
 
 - [x] **INV-HASH-CHAIN-01: Nonzero fold**
   - Kind: semantics
-  - Statement: For every pinned vector, the native result is exactly the protocol's nonzero hash chain: zero elements are skipped, the first nonzero element becomes the chain unchanged, every later nonzero element sets the chain to Poseidon(chain,value), and a vector with no nonzero element chains to zero; an independent reference of that definition over `zolana_hasher`'s Poseidon returns the same chain, every Poseidon value a vector names is exactly that hash, and every vector of `test-vectors/nonzero_hash_chain.json` chains natively to exactly its output.
+  - Statement: For every pinned vector, the native result is exactly the protocol's nonzero hash chain: zero elements are skipped, the first nonzero element becomes the chain unchanged, every later nonzero element sets the chain to Poseidon(chain,value), and a vector with no nonzero element chains to zero; an independent reference of that definition over `spr_hasher`'s Poseidon returns the same chain, every Poseidon value a vector names is exactly that hash, and every vector of `test-vectors/nonzero_hash_chain.json` chains natively to exactly its output.
   - Location: `src/hash_chain.rs:9-27` (`nonzero_hash_chain`)
   - Severity: High
   - Suggested test: positive/negative; `tests/unit/gadgets/hash_chain/native.rs`

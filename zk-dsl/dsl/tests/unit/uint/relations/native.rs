@@ -1,6 +1,6 @@
 use super::fixtures::*;
 use crate::harness::fixture::native;
-use zolana_program::{
+use spr_program::{
     circuit::{Circuit, Field},
     ZkCircuit,
 };

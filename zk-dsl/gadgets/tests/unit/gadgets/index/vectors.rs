@@ -1,5 +1,5 @@
 use crate::harness::field::{field, MODULUS_MINUS_1};
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 pub fn items() -> [[Field; 3]; 4] {
     [

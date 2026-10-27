@@ -1,5 +1,5 @@
 use ark_bn254::Fr;
-use zolana_program::{
+use spr_program::{
     circuit::{Assert, Bool, Circuit, CircuitType, CircuitVar, Field, Select, Uint},
     conversion::{Allocator, Placeholder, ProofInput},
     CircuitError,

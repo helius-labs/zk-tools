@@ -1,4 +1,4 @@
-use zolana_program::{
+use spr_program::{
     circuit::{value, Assert, Circuit, CircuitVar, Field},
     conversion::ProofInput,
     CircuitError,
@@ -127,6 +127,6 @@ impl Circuit for EqualsSevenCircuit {
     type Output = ();
 
     fn circuit(&self) -> Result<Self::Output, CircuitError> {
-        zolana_program::circuit::constant(7u64).assert_equal(&self.value, RULE)
+        spr_program::circuit::constant(7u64).assert_equal(&self.value, RULE)
     }
 }

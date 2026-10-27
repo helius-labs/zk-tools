@@ -14,7 +14,7 @@ pub use labels::{CircuitLabel, CircuitSize, FailedConstraint, LabelKind, Scope, 
 #[cfg(feature = "client")]
 pub(crate) use output::Binding;
 pub use output::{CircuitOutput, Public, PublicHashOutput, PublicValue};
-pub use zolana_zk_macros::{CircuitType, PublicInputs, ZkCircuit};
+pub use spr_zk_macros::{CircuitType, PublicInputs, ZkCircuit};
 
 use crate::CircuitError;
 

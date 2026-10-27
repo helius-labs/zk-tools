@@ -1,6 +1,6 @@
 use proptest::{collection::vec, prelude::*};
-use zolana_hasher::hash_chain::create_nonzero_hash_chain_from_slice;
-use zolana_program::circuit::Field;
+use spr_hasher::hash_chain::create_nonzero_hash_chain_from_slice;
+use spr_program::circuit::Field;
 
 use super::{
     fixtures::{chain, reference_chain, Chained, RULE, RULE_BROKEN},

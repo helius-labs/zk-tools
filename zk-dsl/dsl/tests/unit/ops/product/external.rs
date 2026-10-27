@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use ark_bn254::Fr;
 use ark_ff::One;
-use zolana_program::ZkCircuit;
+use spr_program::ZkCircuit;
 
 use super::{fixture, Product, VECTORS};
 use crate::harness::{

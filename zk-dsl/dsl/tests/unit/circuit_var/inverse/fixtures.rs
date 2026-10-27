@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use ark_ff::Field as _;
-use zolana_program::{
+use spr_program::{
     circuit::{constant, Assert, Circuit, CircuitSystem, ConstraintSystem, Field},
     conversion::{Allocator, ProofInput},
     CircuitError, ProverError,

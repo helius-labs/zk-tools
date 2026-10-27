@@ -1,4 +1,4 @@
-use zolana_zk_dsl::circuit::{Uint, U128};
+use spr_zk_dsl::circuit::{Uint, U128};
 
 fn main() {
     let empty = Uint::<0>::zero();

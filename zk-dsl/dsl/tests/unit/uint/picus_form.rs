@@ -52,7 +52,7 @@ pub fn circom_form(r1cs: &[u8]) -> Vec<u8> {
 mod verdicts {
     use std::time::Duration;
 
-    use zolana_program::ZkCircuit;
+    use spr_program::ZkCircuit;
 
     use super::circom_form;
     use crate::harness::{

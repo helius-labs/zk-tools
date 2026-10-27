@@ -13,7 +13,7 @@ use crate::{
 };
 use ark_bn254::Fr;
 use serde_json::json;
-use zolana_program::{circuit::Field, Bytes, ZkCircuit};
+use spr_program::{circuit::Field, Bytes, ZkCircuit};
 fn right_wires(bytes: &[u8; 32]) -> Vec<(usize, Fr)> {
     bytes
         .iter()

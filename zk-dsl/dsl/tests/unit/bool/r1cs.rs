@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use ark_ff::{One, Zero};
-use zolana_program::{
+use spr_program::{
     circuit::{CircuitVar, Field, VariableRole},
     testing::PrivateVariableReport,
     ProverError, ZkCircuit,

@@ -3,7 +3,7 @@
 use ark_bn254::Fr;
 use ark_ff::One;
 use serde_json::json;
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 use super::{
     fixtures::{claim, every_arity, fixture, PerArity, PoseidonClaim},

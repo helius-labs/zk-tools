@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use ark_ff::{Field as _, Zero};
-use zolana_program::{
+use spr_program::{
     circuit::{Field, VariableRole},
     testing::PrivateVariableReport,
     ZkCircuit,
@@ -536,7 +536,7 @@ fn no_witness_flips_an_equality_claim() {
 type Free = Vec<(usize, VariableRole, Option<&'static str>)>;
 
 fn free(report: PrivateVariableReport) -> (usize, usize, Free, Free) {
-    let summary = |variables: Vec<zolana_program::testing::FreeVariable>| {
+    let summary = |variables: Vec<spr_program::testing::FreeVariable>| {
         variables
             .into_iter()
             .map(|free| {

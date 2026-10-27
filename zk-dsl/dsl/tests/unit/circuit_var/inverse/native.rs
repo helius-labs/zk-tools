@@ -1,5 +1,5 @@
 use ark_bn254::Fr;
-use zolana_program::circuit::{constant, value, zero, CircuitVar, Field};
+use spr_program::circuit::{constant, value, zero, CircuitVar, Field};
 
 use super::{
     fixtures::{Inverse, InverseOfFour, InverseOfZero, DIVISION_BY_ZERO, RULE_BROKEN},
