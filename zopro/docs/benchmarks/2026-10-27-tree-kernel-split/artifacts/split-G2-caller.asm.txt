@@ -1,0 +1,486 @@
+
+/tmp/zopro-tree-kernel-split/native/split-sdk:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000217c50 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>>:
+  217c50:	push   %rbp
+  217c51:	push   %r15
+  217c53:	push   %r14
+  217c55:	push   %r13
+  217c57:	push   %r12
+  217c59:	push   %rbx
+  217c5a:	sub    $0x588,%rsp
+  217c61:	mov    %r8,0x18(%rsp)
+  217c66:	mov    0x5c0(%rsp),%r8
+  217c6e:	mov    %rcx,%rbp
+  217c71:	mov    %rdx,0x28(%rsp)
+  217c76:	mov    %rdi,(%rsp)
+  217c7a:	mov    %r9,0x10(%rsp)
+  217c7f:	mov    %rsi,0x8(%rsp)
+  217c84:	movq   $0x0,0x10(%r8)
+  217c8c:	test   %r9,%r9
+  217c8f:	je     217e55 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x205>
+  217c95:	xor    %ebx,%ebx
+  217c97:	xor    %r15d,%r15d
+  217c9a:	jmp    217cae <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x5e>
+  217c9c:	nopl   0x0(%rax)
+  217ca0:	inc    %r15
+  217ca3:	cmp    0x10(%rsp),%r15
+  217ca8:	je     217e26 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x1d6>
+  217cae:	cmp    %rbp,%r15
+  217cb1:	je     2185e8 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x998>
+  217cb7:	mov    0x18(%rsp),%rax
+  217cbc:	mov    (%rax,%r15,8),%rax
+  217cc0:	cmp    $0x1,%rax
+  217cc4:	mov    %rax,%rdx
+  217cc7:	adc    $0xffffffffffffffff,%rdx
+  217ccb:	mov    %rdx,%rcx
+  217cce:	shr    $1,%rcx
+  217cd1:	cmp    %rcx,%rdx
+  217cd4:	je     217ca0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x50>
+  217cd6:	mov    0x28(%rsp),%rdx
+  217cdb:	cmp    $0x1,%rax
+  217cdf:	mov    $0x1,%r12d
+  217ce5:	cmovb  %rax,%r12
+  217ce9:	add    %rcx,%r12
+  217cec:	sub    %rax,%r12
+  217cef:	mov    (%rdx,%r15,8),%r14
+  217cf3:	mov    %r14,%r13
+  217cf6:	shl    $0x7,%r13
+  217cfa:	add    (%rsp),%r13
+  217cfe:	jmp    217d2c <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0xdc>
+  217d00:	cmp    (%r8),%rbx
+  217d03:	je     217e09 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x1b9>
+  217d09:	mov    0x8(%r8),%rax
+  217d0d:	mov    %r14,(%rax,%rbx,8)
+  217d11:	inc    %rbx
+  217d14:	mov    %rbx,0x10(%r8)
+  217d18:	add    $0x2,%r14
+  217d1c:	add    $0x100,%r13
+  217d23:	inc    %r12
+  217d26:	je     217ca0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x50>
+  217d2c:	cmp    %rsi,%r14
+  217d2f:	jae    218591 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x941>
+  217d35:	lea    0x1(%r14),%rdi
+  217d39:	cmp    %rsi,%rdi
+  217d3c:	jae    218582 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x932>
+  217d42:	vmovdqu 0x0(%r13),%ymm0
+  217d48:	vptest %ymm0,%ymm0
+  217d4d:	jne    217d80 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x130>
+  217d4f:	vmovdqu 0x20(%r13),%ymm0
+  217d55:	vptest %ymm0,%ymm0
+  217d5a:	jne    217d80 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x130>
+  217d5c:	vmovdqu 0x40(%r13),%ymm0
+  217d62:	vptest %ymm0,%ymm0
+  217d67:	jne    217d80 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x130>
+  217d69:	vmovdqu 0x60(%r13),%ymm0
+  217d6f:	vptest %ymm0,%ymm0
+  217d74:	je     217d18 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0xc8>
+  217d76:	cs nopw 0x0(%rax,%rax,1)
+  217d80:	vmovdqu 0x80(%r13),%ymm0
+  217d89:	vptest %ymm0,%ymm0
+  217d8e:	jne    217dd0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x180>
+  217d90:	vmovdqu 0xa0(%r13),%ymm0
+  217d99:	vptest %ymm0,%ymm0
+  217d9e:	jne    217dd0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x180>
+  217da0:	vmovdqu 0xc0(%r13),%ymm0
+  217da9:	vptest %ymm0,%ymm0
+  217dae:	jne    217dd0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x180>
+  217db0:	vmovdqu 0xe0(%r13),%ymm0
+  217db9:	vptest %ymm0,%ymm0
+  217dbe:	je     217d18 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0xc8>
+  217dc4:	data16 data16 cs nopw 0x0(%rax,%rax,1)
+  217dd0:	vmovdqu 0x0(%r13),%ymm0
+  217dd6:	vpxor  0x80(%r13),%ymm0,%ymm0
+  217ddf:	vptest %ymm0,%ymm0
+  217de4:	jne    217d00 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0xb0>
+  217dea:	vmovdqu 0x20(%r13),%ymm0
+  217df0:	vpxor  0xa0(%r13),%ymm0,%ymm0
+  217df9:	vptest %ymm0,%ymm0
+  217dfe:	jne    217d00 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0xb0>
+  217e04:	jmp    217d18 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0xc8>
+  217e09:	mov    %r8,%rdi
+  217e0c:	vzeroupper
+  217e0f:	call   f15e0 <<alloc::raw_vec::RawVec<usize>>::grow_one>
+  217e14:	mov    0x5c0(%rsp),%r8
+  217e1c:	mov    0x8(%rsp),%rsi
+  217e21:	jmp    217d09 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0xb9>
+  217e26:	cmp    $0x1f,%rbx
+  217e2a:	jbe    217e55 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x205>
+  217e2c:	mov    (%rsp),%rdi
+  217e30:	mov    %r8,%rdx
+  217e33:	vzeroupper
+  217e36:	call   219370 <zopro_core::msm::pairs::apply::<zopro_bn254::curve::G2Config, true>>
+  217e3b:	cmpq   $0x0,0x10(%rsp)
+  217e41:	mov    0x8(%rsp),%rsi
+  217e46:	mov    0x5c0(%rsp),%r8
+  217e4e:	jne    217e7d <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x22d>
+  217e50:	jmp    21856d <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x91d>
+  217e55:	mov    (%rsp),%rdi
+  217e59:	mov    %r8,%rdx
+  217e5c:	vzeroupper
+  217e5f:	call   225900 <zopro_core::msm::pairs::apply::<zopro_bn254::curve::G2Config, false>>
+  217e64:	cmpq   $0x0,0x10(%rsp)
+  217e6a:	mov    0x8(%rsp),%rsi
+  217e6f:	mov    0x5c0(%rsp),%r8
+  217e77:	je     21856d <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x91d>
+  217e7d:	mov    %rsi,%rax
+  217e80:	neg    %rax
+  217e83:	lea    0x220(%rsp),%r9
+  217e8b:	xor    %ecx,%ecx
+  217e8d:	xor    %r10d,%r10d
+  217e90:	mov    %rbp,0x20(%rsp)
+  217e95:	mov    %rax,0x58(%rsp)
+  217e9a:	jmp    217ec6 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x276>
+  217e9c:	nopl   0x0(%rax)
+  217ea0:	mov    0x20(%rsp),%rbp
+  217ea5:	mov    0x38(%rsp),%rcx
+  217eaa:	mov    0x30(%rsp),%rdx
+  217eaf:	mov    0x18(%rsp),%rax
+  217eb4:	mov    %rdx,(%rax,%rcx,8)
+  217eb8:	inc    %rcx
+  217ebb:	cmp    0x10(%rsp),%rcx
+  217ec0:	je     21856d <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x91d>
+  217ec6:	cmp    %rbp,%rcx
+  217ec9:	je     2185fd <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x9ad>
+  217ecf:	mov    0x28(%rsp),%rax
+  217ed4:	mov    %rcx,0x38(%rsp)
+  217ed9:	mov    (%rax,%rcx,8),%r15
+  217edd:	mov    0x18(%rsp),%rax
+  217ee2:	mov    (%rax,%rcx,8),%rax
+  217ee6:	mov    %r15,0x40(%rsp)
+  217eeb:	mov    %rax,0x60(%rsp)
+  217ef0:	shr    $1,%rax
+  217ef3:	mov    %rax,0x30(%rsp)
+  217ef8:	je     218500 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x8b0>
+  217efe:	cmp    %rsi,%r15
+  217f01:	mov    %rsi,%rdi
+  217f04:	mov    0x10(%r8),%rcx
+  217f08:	mov    %r15,%rdx
+  217f0b:	mov    %r15,%r12
+  217f0e:	cmovb  %r15,%rdi
+  217f12:	shl    $0x7,%rdx
+  217f16:	add    0x58(%rsp),%rdi
+  217f1b:	add    (%rsp),%rdx
+  217f1f:	neg    %rax
+  217f22:	xor    %r13d,%r13d
+  217f25:	xor    %ebp,%ebp
+  217f27:	xor    %ebx,%ebx
+  217f29:	mov    %rax,0x68(%rsp)
+  217f2e:	mov    %rcx,0x78(%rsp)
+  217f33:	mov    %rdi,0x70(%rsp)
+  217f38:	mov    %rdx,0x48(%rsp)
+  217f3d:	nopl   (%rax)
+  217f40:	cmp    0x78(%rsp),%r10
+  217f45:	jae    217fa0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x350>
+  217f47:	mov    0x8(%r8),%rax
+  217f4b:	mov    %r12,%rdi
+  217f4e:	cmp    (%rax,%r10,8),%r12
+  217f52:	jne    217fa9 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x359>
+  217f54:	cmp    %rsi,%r12
+  217f57:	jae    2185d6 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x986>
+  217f5d:	mov    0x48(%rsp),%rax
+  217f62:	inc    %r10
+  217f65:	vmovdqu64 (%rax,%r13,2),%zmm0
+  217f6c:	vmovups 0x40(%rax,%r13,2),%zmm1
+  217f74:	vmovups %zmm1,0x180(%rsp)
+  217f7c:	vmovdqu64 %zmm0,0x140(%rsp)
+  217f84:	cmp    %rbp,0x70(%rsp)
+  217f89:	jne    21847e <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x82e>
+  217f8f:	jmp    2185a3 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x953>
+  217f94:	data16 data16 cs nopw 0x0(%rax,%rax,1)
+  217fa0:	mov    0x40(%rsp),%rax
+  217fa5:	lea    (%rax,%rbx,2),%rdi
+  217fa9:	cmp    %rsi,%rdi
+  217fac:	jae    2185b5 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x965>
+  217fb2:	lea    0x1(%rdi),%rax
+  217fb6:	cmp    %rsi,%rax
+  217fb9:	jae    2185c4 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x974>
+  217fbf:	mov    (%rsp),%rdx
+  217fc3:	shl    $0x7,%rax
+  217fc7:	shl    $0x7,%rdi
+  217fcb:	vmovups (%rdx,%rax,1),%zmm0
+  217fd2:	add    %rdx,%rdi
+  217fd5:	vmovups 0x40(%rdx,%rax,1),%zmm1
+  217fdd:	lea    (%rdx,%rax,1),%rcx
+  217fe1:	xor    %eax,%eax
+  217fe3:	vmovups %zmm0,0x380(%rsp)
+  217feb:	vmovups (%rdi),%zmm0
+  217ff1:	vmovups %zmm1,0x3c0(%rsp)
+  217ff9:	vmovups 0x40(%rdi),%zmm1
+  218000:	vmovups %zmm0,0x440(%rsp)
+  218008:	vmovdqu (%rdi),%ymm0
+  21800c:	vmovups %zmm1,0x480(%rsp)
+  218014:	vptest %ymm0,%ymm0
+  218019:	setne  %dl
+  21801c:	jne    218060 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x410>
+  21801e:	vmovdqu 0x460(%rsp),%ymm0
+  218027:	vptest %ymm0,%ymm0
+  21802c:	jne    218060 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x410>
+  21802e:	vmovdqu 0x480(%rsp),%ymm0
+  218037:	vptest %ymm0,%ymm0
+  21803c:	jne    218060 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x410>
+  21803e:	vmovdqu 0x4a0(%rsp),%ymm0
+  218047:	vptest %ymm0,%ymm0
+  21804c:	je     2182bf <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x66f>
+  218052:	data16 data16 data16 data16 cs nopw 0x0(%rax,%rax,1)
+  218060:	vmovdqu 0x380(%rsp),%ymm0
+  218069:	vptest %ymm0,%ymm0
+  21806e:	jne    2180b0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x460>
+  218070:	vmovdqu 0x3a0(%rsp),%ymm0
+  218079:	vptest %ymm0,%ymm0
+  21807e:	jne    2180b0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x460>
+  218080:	vmovdqu 0x3c0(%rsp),%ymm0
+  218089:	vptest %ymm0,%ymm0
+  21808e:	jne    2180b0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x460>
+  218090:	vmovdqu 0x3e0(%rsp),%ymm0
+  218099:	vptest %ymm0,%ymm0
+  21809e:	je     2182d1 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x681>
+  2180a4:	data16 data16 cs nopw 0x0(%rax,%rax,1)
+  2180b0:	vmovdqu64 (%rdi),%zmm0
+  2180b6:	vmovups 0x40(%rdi),%zmm1
+  2180bd:	mov    %dl,%al
+  2180bf:	vmovups %zmm1,0xc0(%rsp)
+  2180c7:	vmovdqu64 %zmm0,0x80(%rsp)
+  2180cf:	test   %eax,%eax
+  2180d1:	jne    218110 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x4c0>
+  2180d3:	vmovdqu 0xa0(%rsp),%ymm0
+  2180dc:	vptest %ymm0,%ymm0
+  2180e1:	jne    218110 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x4c0>
+  2180e3:	vmovdqu 0xc0(%rsp),%ymm0
+  2180ec:	vptest %ymm0,%ymm0
+  2180f1:	jne    218110 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x4c0>
+  2180f3:	vmovdqu 0xe0(%rsp),%ymm0
+  2180fc:	vptest %ymm0,%ymm0
+  218101:	je     2182e3 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x693>
+  218107:	nopw   0x0(%rax,%rax,1)
+  218110:	vmovups 0x60(%rdi),%ymm1
+  218115:	vmovdqu 0x20(%rdi),%ymm0
+  21811a:	vmovups (%rdi),%ymm2
+  21811e:	vmovups 0x40(%rdi),%ymm3
+  218123:	lea    0x1e0(%rsp),%rax
+  21812b:	vmovdqu %ymm0,(%rax)
+  21812f:	vmovups %ymm2,0x1c0(%rsp)
+  218138:	vmovups %ymm1,(%r9)
+  21813d:	vmovups %ymm3,0x200(%rsp)
+  218146:	lea    0x2c0(%rsp),%rax
+  21814e:	vmovups 0x1c0(%rsp),%zmm2
+  218156:	vmovups 0x200(%rsp),%zmm1
+  21815e:	vmovups %zmm2,0x280(%rsp)
+  218166:	vmovups %zmm1,(%rax)
+  21816c:	vmovups (%rcx),%zmm0
+  218172:	vmovups 0x40(%rcx),%zmm1
+  218179:	vmovups %zmm0,0x80(%rsp)
+  218181:	vmovdqu (%rcx),%ymm0
+  218185:	vmovups %zmm1,0xc0(%rsp)
+  21818d:	vptest %ymm0,%ymm0
+  218192:	jne    2181d0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x580>
+  218194:	vmovdqu 0xa0(%rsp),%ymm0
+  21819d:	vptest %ymm0,%ymm0
+  2181a2:	jne    2181d0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x580>
+  2181a4:	vmovdqu 0xc0(%rsp),%ymm0
+  2181ad:	vptest %ymm0,%ymm0
+  2181b2:	jne    2181d0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x580>
+  2181b4:	vmovdqu 0xe0(%rsp),%ymm0
+  2181bd:	vptest %ymm0,%ymm0
+  2181c2:	je     2182fc <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x6ac>
+  2181c8:	nopl   0x0(%rax,%rax,1)
+  2181d0:	vmovups 0x20(%rcx),%ymm0
+  2181d5:	vmovups (%rcx),%ymm2
+  2181d9:	vmovups 0x60(%rcx),%ymm1
+  2181de:	vmovups 0x40(%rcx),%ymm3
+  2181e3:	lea    0x420(%rsp),%rax
+  2181eb:	vmovups %ymm0,(%rax)
+  2181ef:	lea    0x1e0(%rsp),%rax
+  2181f7:	vmovups %ymm2,0x400(%rsp)
+  218200:	vmovups %ymm1,(%rax)
+  218204:	vmovups %ymm3,0x1c0(%rsp)
+  21820d:	vmovups 0x400(%rsp),%zmm2
+  218215:	vmovups 0x1c0(%rsp),%zmm1
+  21821d:	vmovups %zmm2,0x200(%rsp)
+  218225:	vmovups %zmm1,0x20(%r9)
+  21822f:	vmovdqu 0x280(%rsp),%ymm0
+  218238:	mov    %r10,0x50(%rsp)
+  21823d:	vptest %ymm0,%ymm0
+  218242:	jne    218330 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x6e0>
+  218248:	vmovdqu 0x2a0(%rsp),%ymm0
+  218251:	vptest %ymm0,%ymm0
+  218256:	jne    218330 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x6e0>
+  21825c:	vmovdqu 0x2c0(%rsp),%ymm0
+  218265:	vptest %ymm0,%ymm0
+  21826a:	jne    218330 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x6e0>
+  218270:	vmovdqu 0x2e0(%rsp),%ymm0
+  218279:	vptest %ymm0,%ymm0
+  21827e:	jne    218330 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x6e0>
+  218284:	vmovups -0x1f98fe(%rip),%zmm0        # 1e990 <zmij::STATIC_DATA+0x5050>
+  21828e:	vmovups -0x1f9948(%rip),%zmm2        # 1e950 <zmij::STATIC_DATA+0x5010>
+  218298:	vmovups -0x1f9992(%rip),%zmm1        # 1e910 <zmij::STATIC_DATA+0x4fd0>
+  2182a2:	vmovups %zmm0,0x100(%rsp)
+  2182aa:	vmovups %zmm2,0xc0(%rsp)
+  2182b2:	vmovups %zmm1,0x80(%rsp)
+  2182ba:	jmp    21836d <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x71d>
+  2182bf:	vmovdqu64 (%rcx),%zmm0
+  2182c5:	vmovups 0x40(%rcx),%zmm1
+  2182cc:	jmp    217f74 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x324>
+  2182d1:	vmovdqu64 (%rdi),%zmm0
+  2182d7:	vmovups 0x40(%rdi),%zmm1
+  2182de:	jmp    217f74 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x324>
+  2182e3:	vpxor  %xmm0,%xmm0,%xmm0
+  2182e7:	vmovdqu64 %zmm0,0x2c0(%rsp)
+  2182ef:	vmovdqu64 %zmm0,0x280(%rsp)
+  2182f7:	jmp    21816c <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x51c>
+  2182fc:	vpxor  %xmm0,%xmm0,%xmm0
+  218300:	vmovdqu64 %zmm0,0x240(%rsp)
+  218308:	vmovdqu64 %zmm0,0x200(%rsp)
+  218310:	vmovdqu 0x280(%rsp),%ymm0
+  218319:	mov    %r10,0x50(%rsp)
+  21831e:	vptest %ymm0,%ymm0
+  218323:	je     218248 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x5f8>
+  218329:	nopl   0x0(%rax)
+  218330:	lea    0x2c0(%rsp),%rax
+  218338:	vmovups 0x280(%rsp),%zmm2
+  218340:	vmovups -0x1f9882(%rip),%zmm1        # 1eac8 <zmij::STATIC_DATA+0x5188>
+  21834a:	vmovups (%rax),%zmm0
+  218350:	lea    0xc0(%rsp),%rax
+  218358:	vmovups %zmm0,(%rax)
+  21835e:	vmovups %zmm2,0x80(%rsp)
+  218366:	vmovups %zmm1,0x40(%rax)
+  21836d:	lea    0x4c8(%rsp),%r14
+  218375:	lea    0x80(%rsp),%rsi
+  21837d:	lea    0x200(%rsp),%rdx
+  218385:	mov    %r14,%rdi
+  218388:	vzeroupper
+  21838b:	call   1786c0 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine>
+  218390:	lea    0x300(%rsp),%rdi
+  218398:	mov    %r14,%rsi
+  21839b:	call   2319a0 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::to_affine>
+  2183a0:	vmovdqu 0x300(%rsp),%ymm0
+  2183a9:	vptest %ymm0,%ymm0
+  2183ae:	jne    2183f0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x7a0>
+  2183b0:	vmovdqu 0x320(%rsp),%ymm0
+  2183b9:	vptest %ymm0,%ymm0
+  2183be:	jne    2183f0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x7a0>
+  2183c0:	vmovdqu 0x340(%rsp),%ymm0
+  2183c9:	vptest %ymm0,%ymm0
+  2183ce:	jne    2183f0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x7a0>
+  2183d0:	vmovdqu 0x360(%rsp),%ymm0
+  2183d9:	vptest %ymm0,%ymm0
+  2183de:	je     2184c0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x870>
+  2183e4:	data16 data16 cs nopw 0x0(%rax,%rax,1)
+  2183f0:	lea    0x320(%rsp),%rcx
+  2183f8:	vmovups 0x300(%rsp),%ymm2
+  218401:	lea    0x220(%rsp),%r9
+  218409:	lea    0xc0(%rsp),%rax
+  218411:	mov    0x8(%rsp),%rsi
+  218416:	mov    0x5c0(%rsp),%r8
+  21841e:	mov    0x50(%rsp),%r10
+  218423:	vmovdqu (%rcx),%ymm0
+  218427:	vmovups 0x40(%rcx),%ymm1
+  21842c:	vmovups 0x20(%rcx),%ymm3
+  218431:	vmovups %ymm1,-0x20(%rax)
+  218436:	vmovdqu %ymm0,(%r9)
+  21843b:	vmovups %ymm2,0x200(%rsp)
+  218444:	vmovups %ymm3,0x80(%rsp)
+  21844d:	lea    0x180(%rsp),%rax
+  218455:	vmovups 0x200(%rsp),%zmm2
+  21845d:	vmovups 0x80(%rsp),%zmm1
+  218465:	vmovups %zmm2,0x140(%rsp)
+  21846d:	vmovups %zmm1,(%rax)
+  218473:	cmp    %rbp,0x70(%rsp)
+  218478:	je     2185a3 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x953>
+  21847e:	vmovdqu64 0x140(%rsp),%zmm0
+  218486:	vmovups 0x180(%rsp),%zmm1
+  21848e:	mov    0x48(%rsp),%rax
+  218493:	dec    %rbp
+  218496:	inc    %r15
+  218499:	add    $0x2,%r12
+  21849d:	inc    %rbx
+  2184a0:	vmovups %zmm1,0x40(%rax,%r13,1)
+  2184a8:	vmovdqu64 %zmm0,(%rax,%r13,1)
+  2184af:	sub    $0xffffffffffffff80,%r13
+  2184b3:	cmp    %rbp,0x68(%rsp)
+  2184b8:	jne    217f40 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x2f0>
+  2184be:	jmp    218500 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x8b0>
+  2184c0:	mov    0x8(%rsp),%rsi
+  2184c5:	mov    0x5c0(%rsp),%r8
+  2184cd:	mov    0x50(%rsp),%r10
+  2184d2:	vpxor  %xmm0,%xmm0,%xmm0
+  2184d6:	vmovdqu64 %zmm0,0x180(%rsp)
+  2184de:	vmovdqu64 %zmm0,0x140(%rsp)
+  2184e6:	lea    0x220(%rsp),%r9
+  2184ee:	cmp    %rbp,0x70(%rsp)
+  2184f3:	jne    21847e <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x82e>
+  2184f5:	jmp    2185a3 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x953>
+  2184fa:	nopw   0x0(%rax,%rax,1)
+  218500:	mov    0x60(%rsp),%rax
+  218505:	test   $0x1,%al
+  218507:	je     217ea0 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x250>
+  21850d:	mov    0x40(%rsp),%r11
+  218512:	mov    0x20(%rsp),%rbp
+  218517:	mov    0x38(%rsp),%rcx
+  21851c:	mov    0x30(%rsp),%rdx
+  218521:	lea    -0x1(%r11,%rax,1),%rdi
+  218526:	cmp    %rsi,%rdi
+  218529:	jae    218612 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x9c2>
+  21852f:	add    %rdx,%r11
+  218532:	cmp    %rsi,%r11
+  218535:	jae    218621 <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x9d1>
+  21853b:	mov    (%rsp),%rax
+  21853f:	shl    $0x7,%rdi
+  218543:	inc    %rdx
+  218546:	shl    $0x7,%r11
+  21854a:	vmovdqu64 (%rax,%rdi,1),%zmm0
+  218551:	vmovups 0x40(%rax,%rdi,1),%zmm1
+  218559:	vmovups %zmm1,0x40(%rax,%r11,1)
+  218561:	vmovdqu64 %zmm0,(%rax,%r11,1)
+  218568:	jmp    217eaf <zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>+0x25f>
+  21856d:	add    $0x588,%rsp
+  218574:	pop    %rbx
+  218575:	pop    %r12
+  218577:	pop    %r13
+  218579:	pop    %r14
+  21857b:	pop    %r15
+  21857d:	pop    %rbp
+  21857e:	vzeroupper
+  218581:	ret
+  218582:	lea    0x2a0bbf(%rip),%rdx        # 4b9148 <__frame_dummy_init_array_entry+0x2c78>
+  218589:	vzeroupper
+  21858c:	call   ec9fb <core::panicking::panic_bounds_check>
+  218591:	lea    0x2a0b98(%rip),%rdx        # 4b9130 <__frame_dummy_init_array_entry+0x2c60>
+  218598:	mov    %r14,%rdi
+  21859b:	vzeroupper
+  21859e:	call   ec9fb <core::panicking::panic_bounds_check>
+  2185a3:	lea    0x2a0b56(%rip),%rdx        # 4b9100 <__frame_dummy_init_array_entry+0x2c30>
+  2185aa:	mov    %r15,%rdi
+  2185ad:	vzeroupper
+  2185b0:	call   ec9fb <core::panicking::panic_bounds_check>
+  2185b5:	lea    0x2a0afc(%rip),%rdx        # 4b90b8 <__frame_dummy_init_array_entry+0x2be8>
+  2185bc:	vzeroupper
+  2185bf:	call   ec9fb <core::panicking::panic_bounds_check>
+  2185c4:	lea    0x2a0b05(%rip),%rdx        # 4b90d0 <__frame_dummy_init_array_entry+0x2c00>
+  2185cb:	mov    %rax,%rdi
+  2185ce:	vzeroupper
+  2185d1:	call   ec9fb <core::panicking::panic_bounds_check>
+  2185d6:	lea    0x2a0b0b(%rip),%rdx        # 4b90e8 <__frame_dummy_init_array_entry+0x2c18>
+  2185dd:	mov    %r12,%rdi
+  2185e0:	vzeroupper
+  2185e3:	call   ec9fb <core::panicking::panic_bounds_check>
+  2185e8:	lea    0x2a0b29(%rip),%rdx        # 4b9118 <__frame_dummy_init_array_entry+0x2c48>
+  2185ef:	mov    %rbp,%rdi
+  2185f2:	mov    %rbp,%rsi
+  2185f5:	vzeroupper
+  2185f8:	call   ec9fb <core::panicking::panic_bounds_check>
+  2185fd:	lea    0x2a0a6c(%rip),%rdx        # 4b9070 <__frame_dummy_init_array_entry+0x2ba0>
+  218604:	mov    %rbp,%rdi
+  218607:	mov    %rbp,%rsi
+  21860a:	vzeroupper
+  21860d:	call   ec9fb <core::panicking::panic_bounds_check>
+  218612:	lea    0x2a0a6f(%rip),%rdx        # 4b9088 <__frame_dummy_init_array_entry+0x2bb8>
+  218619:	vzeroupper
+  21861c:	call   ec9fb <core::panicking::panic_bounds_check>
+  218621:	lea    0x2a0a78(%rip),%rdx        # 4b90a0 <__frame_dummy_init_array_entry+0x2bd0>
+  218628:	mov    %r11,%rdi
+  21862b:	vzeroupper
+  21862e:	call   ec9fb <core::panicking::panic_bounds_check>
