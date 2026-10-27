@@ -1,0 +1,34 @@
+--- a/crates/zopro-core/src/solver/sparse_poseidon.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon.rs
+@@ -394,8 +394,14 @@ impl Plan {
+         fn dense(s: &mut [Fr; 13], t: usize, a: &[Fr], offset: usize) {
+             let mut next = [Fr::ZERO; 13];
+             for i in 0..t {
+-                for j in 0..t {
+-                    next[i] += a[offset + i * t + j] * s[j];
++                if t == 3 {
++                    let row = offset + i * 3;
++                    next[i] = Fr::sum_of_products(&a[row], &s[0], &a[row + 1], &s[1])
++                        + a[row + 2] * s[2];
++                } else {
++                    for j in 0..t {
++                        next[i] += a[offset + i * t + j] * s[j];
++                    }
+                 }
+             }
+             *s = next;
+@@ -421,8 +427,12 @@ impl Plan {
+             } else {
+                 Fr::ZERO
+             };
+-            for j in 1..t {
+-                rest += a[offset + j] * s[j];
++            if t == 3 {
++                rest += Fr::sum_of_products(&a[offset + 1], &s[1], &a[offset + 2], &s[2]);
++            } else {
++                for j in 1..t {
++                    rest += a[offset + j] * s[j];
++                }
+             }
+             let head = unsafe { self.emit_poseidon(task, t, partial, k, x, v) };
+             k += 1;

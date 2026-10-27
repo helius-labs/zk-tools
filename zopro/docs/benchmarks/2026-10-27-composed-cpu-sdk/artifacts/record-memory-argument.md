@@ -1,0 +1,11 @@
+# Requested-capacity accounting for the composition
+
+This is an argument about source layouts and retained capacities under the pinned Rust/global-allocator implementation, not a universal physical-RAM or allocator peak proof. Pressure, concurrent callers, suspended tasks, stacks, transient reallocations and process lifetime peaks remain separate qualification.
+
+Borrowed G1 retains the existing geometry and safe references to already-live points; pending and collision entries shrink from72to16bytes on64-bit native builds. The specialized window omits two previously unused scalar arrays. Existing conservative owned-window forecasts remain, without taking credit for these reductions. All reference lifetimes end in the synchronous parallel collect before source point owners can drop.
+
+Adaptive G2 uses the exact prior32-pair rule. Original Group has nine vector fields, prefix records have two. The original group vector can allocate at most three records when m<32; larger nativeG2layers use only prefix records. With maximum full-group count g, at g<4the prefix vector stays empty and original payload is unchanged. At g=4and5the pinned reserve growth gives prefix capacities4and8; combined payload upper bounds35and43vector units are below original9g=36and45. For g>=6, capacity growth less than2g gives combined upper bound27+4g<=9g. Existing actual complete-curve/capacity tests cover growing/shrinking counts and31/32/33boundaries; this finite coverage is not an allocator-independent contract.
+
+The extra empty vector header exists even when no prefix records are allocated. Charge size_of::<Vec<[FqBatch;2]>>() explicitly (24bytes on64-bit) in batch, per-weighted-job and both grouping forecast forms using checked arithmetic. Keep prior payload estimates; do not credit a smaller theoretical record sum to lower admission charges. G1 and portable/noIFMA keep their original tree arithmetic and pay conservative header charges where the forecast exists.
+
+The retained-capacity comparison does not bound old+new allocations during realloc, malloc retention, process RSS, cache traffic, instruction stacks or minimumRAM. Runtime cgroup/pressure checks remain necessary before adoption. No multigigabyte key table, extra key copy or duplicate circuit plan is introduced.

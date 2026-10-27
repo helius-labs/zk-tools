@@ -1,0 +1,13 @@
+--- a/crates/zopro-core/src/msm_affine/fused_kh.rs
++++ b/crates/zopro-core/src/msm_affine/fused_kh.rs
+@@ -15,6 +15,10 @@ fn feed(state:&mut Window<G1Config>,points:&[G1Affine],scalars:&[[u64;4]],w:usiz
+ // Only a borrowed pair of existing base/scalar slices. One bucket set per window;
+ // state remains valid across the segment boundary, with pending batches shared.
+ pub(crate)fn fused(k:&[G1Affine],sk:&[[u64;4]],h:&[G1Affine],sh:&[[u64;4]],bits:usize)->G1Projective{
++ if k.len().min(h.len())>=1024 && super::borrowed_pending::enabled() {return super::borrowed_pending::fused(k,sk,h,sh,bits);}
++ owned(k,sk,h,sh,bits)
++}
++pub(super)fn owned(k:&[G1Affine],sk:&[[u64;4]],h:&[G1Affine],sh:&[[u64;4]],bits:usize)->G1Projective{
+  assert_eq!(k.len(),sk.len());assert_eq!(h.len(),sh.len());assert!((12..=14).contains(&bits));
+  if k.len().min(h.len())<1024{let(a,b)=rayon::join(||super::msm_raw(k,sk),||super::msm_raw(h,sh));return a+b;}
+  let windows=(Fr::MODULUS_BITS as usize+1).div_ceil(bits);let size=batch_size(bits).max(32);
