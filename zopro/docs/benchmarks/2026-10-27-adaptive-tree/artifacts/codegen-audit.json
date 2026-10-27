@@ -1,0 +1,81 @@
+{
+  "adaptive_G2_vs_unconditional_size_ratio": 1.5238913587626555,
+  "capture_phase": "after all latency/profiles/analysis",
+  "causal_latency_or_cache_claim": false,
+  "hypothesis": "Runtime guard places both arithmetic branches in one G2 reduce_layer symbol. Compare a distinct implementation with pair-selection/compaction in the wrapper and const-specialized ordinary-pair kernels, preserving the fixed32 rule and all formulas. No inline annotation, threshold sweep, pool change or rerun of this candidate.",
+  "records": [
+    {
+      "address": 1956352,
+      "binary": "/tmp/zopro-grouping-module/native/candidate-sdk",
+      "binary_sha256": "03e1260e89068c2bec37a2471c34e93628a9f081903e1b7eee9cab9c306aaf3d",
+      "curve": "G1",
+      "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+      "symbol_bytes": 23583,
+      "variant": "accepted"
+    },
+    {
+      "address": 2192592,
+      "binary": "/tmp/zopro-grouping-module/native/candidate-sdk",
+      "binary_sha256": "03e1260e89068c2bec37a2471c34e93628a9f081903e1b7eee9cab9c306aaf3d",
+      "curve": "G2",
+      "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+      "symbol_bytes": 52064,
+      "variant": "accepted"
+    },
+    {
+      "address": 1956352,
+      "binary": "/tmp/zopro-poseidon-fused-dot/native/fresh-sdk",
+      "binary_sha256": "d847ae9fd2ae52c6c74172a95004780eaa5481ca2a5f8889d7c9d0063dcd1eaa",
+      "curve": "G1",
+      "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+      "symbol_bytes": 23583,
+      "variant": "fresh"
+    },
+    {
+      "address": 2192592,
+      "binary": "/tmp/zopro-poseidon-fused-dot/native/fresh-sdk",
+      "binary_sha256": "d847ae9fd2ae52c6c74172a95004780eaa5481ca2a5f8889d7c9d0063dcd1eaa",
+      "curve": "G2",
+      "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+      "symbol_bytes": 52064,
+      "variant": "fresh"
+    },
+    {
+      "address": 1956784,
+      "binary": "/tmp/zopro-g2-tree-records/native/tree-sdk",
+      "binary_sha256": "d8dc7ed028c9112f4c20a8b1847c23f27f8593097e12f450bfa5d4d53a22514a",
+      "curve": "G1",
+      "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+      "symbol_bytes": 23599,
+      "variant": "tree"
+    },
+    {
+      "address": 2193952,
+      "binary": "/tmp/zopro-g2-tree-records/native/tree-sdk",
+      "binary_sha256": "d8dc7ed028c9112f4c20a8b1847c23f27f8593097e12f450bfa5d4d53a22514a",
+      "curve": "G2",
+      "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+      "symbol_bytes": 53534,
+      "variant": "tree"
+    },
+    {
+      "address": 1956736,
+      "binary": "/tmp/zopro-adaptive-tree/native/adaptive-sdk",
+      "binary_sha256": "1074991b86c7ac6709ada47b367732151d0510ea2cd54d300b534660d71dbc19",
+      "curve": "G1",
+      "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+      "symbol_bytes": 23599,
+      "variant": "adaptive"
+    },
+    {
+      "address": 2193888,
+      "binary": "/tmp/zopro-adaptive-tree/native/adaptive-sdk",
+      "binary_sha256": "1074991b86c7ac6709ada47b367732151d0510ea2cd54d300b534660d71dbc19",
+      "curve": "G2",
+      "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+      "symbol_bytes": 81580,
+      "variant": "adaptive"
+    }
+  ],
+  "static_only": true
+}
