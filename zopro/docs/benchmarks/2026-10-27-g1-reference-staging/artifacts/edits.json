@@ -1,0 +1,12 @@
+{
+  "after_sha256": "443bb0e758888aa9453e20ae01900475d0ef728fa4ea71e66bac2c14d3128887",
+  "before_sha256": "7acdd13dd83de532c148d8b71bec89fffbe1f7c69e0d6d8fb2633c43df47f3ae",
+  "each_occurrences": 2,
+  "file": "crates/zopro-core/src/msm.rs",
+  "new_a": "let a: [&Affine<C>; LANES] = core::array::from_fn(|i| &buckets[batch_index::<SIGNED>(batch[k + i].0)]);",
+  "new_b": "let b: [&Affine<C>; LANES] = core::array::from_fn(|i| batch[k + i].1.borrow());",
+  "old_a": "let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch_index::<SIGNED>(batch[k + i].0)]);",
+  "old_b": "let b: [Affine<C>; LANES] = core::array::from_fn(|i| *batch[k + i].1.borrow());",
+  "same_Borrow_calls_per_lane": true,
+  "scope": "stream_g1_impl only"
+}
