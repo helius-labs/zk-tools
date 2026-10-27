@@ -1,0 +1,14 @@
+{
+  "43_already_passing_epoch_tests_repeated": false,
+  "preserved": [
+    "advance_gate-v1.rs",
+    "source-pins-v1.json",
+    "native-plan.json",
+    "native/epoch-tests/stdout.log",
+    "native/epoch-tests/stderr.log"
+  ],
+  "problem": "The first h.pin() can collect and advance once, so asserting another successor while that same guard remained pinned was incorrect.",
+  "production_code_changed": false,
+  "repair": "Acquire the test permit before pinning, making its initial automatic advance skip. Rename test to describe only advancement.",
+  "test_result_qualification": "43 passed in original suite, repaired test runs separately; all44 covered across two invocations"
+}

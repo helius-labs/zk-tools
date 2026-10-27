@@ -1,0 +1,63 @@
+
+running 44 tests
+test atomic::tests::array_init ... ok
+test atomic::tests::const_null ... ok
+test atomic::tests::format_null ... ok
+test atomic::tests::valid_tag_i64 ... ok
+test atomic::tests::valid_tag_i8 ... ok
+test collector::tests::buffering ... ok
+test collector::tests::count_destroy ... ok
+test collector::tests::count_drops ... ok
+test collector::tests::destroy_array ... ok
+test collector::tests::drop_array ... ok
+test collector::tests::flush_local_bag ... ok
+test collector::tests::garbage_buffering ... ok
+test collector::tests::incremental ... ok
+test collector::tests::pin_holds_advance ... ok
+test collector::tests::pin_reentrant ... ok
+test collector::tests::stress ... ok
+test default::tests::pin_while_exiting ... ok
+test deferred::tests::boxed_slice_i32 ... ok
+test deferred::tests::long_slice_usize ... ok
+test deferred::tests::on_heap ... ok
+test deferred::tests::on_stack ... ok
+test deferred::tests::string ... ok
+test internal::advance_gate::tests::concurrent_retirements_are_eventually_reclaimed_once ... ok
+test internal::advance_gate::tests::held_permit_skips_advance_and_expired_collection_still_completes ... FAILED
+test internal::advance_gate::tests::nonblocking_permit_excludes_and_releases_on_unwind ... ok
+test internal::advance_gate::tests::pinned_reader_prevents_early_reclamation_then_releases ... ok
+test internal::local_size ... ok
+test internal::tests::check_bag ... ok
+test internal::tests::check_defer ... ok
+test sync::list::tests::delete ... ok
+test sync::list::tests::insert ... ok
+test sync::list::tests::insert_delete_multi ... ok
+test sync::list::tests::iter_multi ... ok
+test sync::queue::test::is_empty_dont_pop ... ok
+test sync::queue::test::push_pop_1 ... ok
+test sync::queue::test::push_pop_2 ... ok
+test sync::queue::test::push_pop_many_seq ... ok
+test sync::queue::test::push_pop_many_spsc ... ok
+test sync::queue::test::push_try_pop_1 ... ok
+test sync::queue::test::push_try_pop_2 ... ok
+test sync::queue::test::push_try_pop_many_mpmc ... ok
+test sync::queue::test::push_try_pop_many_seq ... ok
+test sync::queue::test::push_try_pop_many_spmc ... ok
+test sync::queue::test::push_try_pop_many_spsc ... ok
+
+failures:
+
+---- internal::advance_gate::tests::held_permit_skips_advance_and_expired_collection_still_completes stdout ----
+
+thread 'internal::advance_gate::tests::held_permit_skips_advance_and_expired_collection_still_completes' (1210326) panicked at src/advance_gate.rs:69:9:
+assertion `left == right` failed
+  left: Epoch { data: 2 }
+ right: Epoch { data: 4 }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    internal::advance_gate::tests::held_permit_skips_advance_and_expired_collection_still_completes
+
+test result: FAILED. 43 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
