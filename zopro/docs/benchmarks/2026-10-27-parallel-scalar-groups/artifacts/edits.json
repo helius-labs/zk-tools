@@ -1,0 +1,11 @@
+{
+  "added_file": "crates/zopro-core/src/msm_affine/grouping/parallel.rs",
+  "added_file_sha256": "ce8ea92709aec26a0420eb78ff56bbe50bc764de46268251a70c6e3229a6617f",
+  "after": "    let reservation = match parallel::try_group(scalars, percent, capacity, reservation) {\n        Ok(groups) => return groups,\n        Err(reservation) => reservation,\n    };\n    let mut groups =\n        std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());",
+  "before": "    let mut groups =\n        std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());",
+  "file": "crates/zopro-core/src/msm_affine/grouping.rs",
+  "inverse_recovers_original": true,
+  "module_after": "use zopro_bn254::Fr;\nmod parallel;",
+  "module_before": "use zopro_bn254::Fr;",
+  "production_changed": false
+}
