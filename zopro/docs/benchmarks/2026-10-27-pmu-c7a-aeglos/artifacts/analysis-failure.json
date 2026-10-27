@@ -1,0 +1,11 @@
+{
+  "stage": "offline post-transport verification after all successful cloud captures",
+  "preserved_source": "analyze-v2.rs",
+  "preserved_logs": ["analyze-first.log", "post-transport-gnark-first.log"],
+  "cause": "the verifier scans proofs-directory/*/*.proof, while the retrieved workflow contains deeper per-process run directories",
+  "first_invocation_result": "no proofs; stopped before reading or verifying a proof",
+  "repair": "copy the 28 original cloud proof/public pairs into one owned per-key directory with unique filenames; check every copied hash; invoke the same unchanged verifier once on those copies",
+  "new_proof_exports": 0,
+  "successful_capture_test_or_independent_verification_repeated": false,
+  "source_or_cloud_measurement_changed": false
+}

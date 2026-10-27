@@ -1,0 +1,12 @@
+{
+  "commands": [
+    "set -eu",
+    "mkdir -p /var/tmp/zopro-pmu-c7a-20261027-123202/output",
+    "docker run --name zopro-pmu-c7a --network none --cpus 96 --memory 30g --memory-swap 30g --pids-limit 2048 --cap-drop ALL --cap-add PERFMON --ulimit memlock=-1 --security-opt no-new-privileges --security-opt seccomp=unconfined -v /var/tmp/zopro-pmu-c7a-20261027-123202/output:/output 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:a24195e830e9becaa887ece0898c7c07b628edba3f365f439988e885c78bd1b5 measure > /var/tmp/zopro-pmu-c7a-20261027-123202/runner.log 2>&1",
+    "docker inspect zopro-pmu-c7a > /var/tmp/zopro-pmu-c7a-20261027-123202/container-inspect.json",
+    "cat /var/tmp/zopro-pmu-c7a-20261027-123202/output/measure/complete.json"
+  ],
+  "executionTimeout": [
+    "3600"
+  ]
+}

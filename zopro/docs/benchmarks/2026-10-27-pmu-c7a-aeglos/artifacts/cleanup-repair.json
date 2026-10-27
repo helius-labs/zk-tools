@@ -1,0 +1,8 @@
+{
+  "stage": "offline closeout after all captures and proof verification finished",
+  "problem": "Inherited cleanup verifier hardcoded the previous experiment's volume ID. Its first receipt checked the old volume's absence.",
+  "preserved": ["verify-cleanup-v1.rs", "cleanup-complete-v1.json"],
+  "repair": "Use current run's recorded volume identity, bind it to instance and run ID, and check its absence directly. Retain original ownership-tag volume query as additional evidence.",
+  "SDK_or_proof_verification_repeated": false,
+  "production_source_changed": false
+}

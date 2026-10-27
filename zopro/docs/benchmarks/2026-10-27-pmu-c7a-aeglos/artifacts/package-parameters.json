@@ -1,0 +1,13 @@
+{
+  "commands": [
+    "set -eu",
+    "docker inspect zopro-pmu-c7a > /var/tmp/zopro-pmu-c7a-20261027-123202/container-inspect.json",
+    "cat /proc/swaps > /var/tmp/zopro-pmu-c7a-20261027-123202/post-host-state.txt",
+    "tar --exclude=output/lagrange-cache --exclude=ctl --exclude=ack -czf /var/tmp/zopro-pmu-c7a-20261027-123202/results.tar.gz -C /var/tmp/zopro-pmu-c7a-20261027-123202 output runner.log hardware.txt post-host-state.txt container-inspect.json",
+    "sha256sum /var/tmp/zopro-pmu-c7a-20261027-123202/results.tar.gz",
+    "stat -c %s /var/tmp/zopro-pmu-c7a-20261027-123202/results.tar.gz"
+  ],
+  "executionTimeout": [
+    "600"
+  ]
+}
