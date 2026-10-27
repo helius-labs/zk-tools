@@ -1,0 +1,148 @@
+[
+  {
+    "file": "lib.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] pub mod arithmetic_trace;\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_kernel=crate::arithmetic_trace::kernel(1,bases.len(),width);\n"
+  },
+  {
+    "file": "msm_affine/fused_kh.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_kernel=crate::arithmetic_trace::root(2,k.len(),h.len());\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_kernel=crate::arithmetic_trace::kernel(3,bases.len(),bits);\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_query=crate::arithmetic_trace::root(6,bases.len(),core::mem::size_of::<C::Base>());\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_query=crate::arithmetic_trace::root(5,bases.len(),0);\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let trace_kernel_id=_trace_kernel.id();\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_window=crate::arithmetic_trace::scope(trace_kernel_id,10,w,0,false);\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let trace_window_id=_trace_window.id();\n"
+  },
+  {
+    "file": "msm_affine/fused_kh.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let trace_kernel_id=_trace_kernel.id();\n"
+  },
+  {
+    "file": "msm_affine/fused_kh.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_window=crate::arithmetic_trace::scope(trace_kernel_id,11,w,0,false);\n"
+  },
+  {
+    "file": "msm_affine/fused_kh.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let trace_window_id=_trace_window.id();\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let trace_kernel_id=_trace_kernel.id();\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_window=crate::arithmetic_trace::scope(trace_kernel_id,12,w,0,false);\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let trace_window_id=_trace_window.id();\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_part=crate::arithmetic_trace::scope(trace_window_id,13,p,0,false);\n"
+  },
+  {
+    "file": "msm_affine/fused_kh.rs",
+    "new_expr": "{\n#[cfg(zopro_arithmetic_trace)] let _trace_top=crate::arithmetic_trace::scope(trace_window_id,15,0,0,false);\ntop_window::<G1Config,true>(k,sk,w,bits)\n}",
+    "old_expr": "top_window::<G1Config,true>(k,sk,w,bits)"
+  },
+  {
+    "file": "msm_affine/fused_kh.rs",
+    "new_expr": "{\n#[cfg(zopro_arithmetic_trace)] let _trace_top=crate::arithmetic_trace::scope(trace_window_id,15,1,0,false);\ntop_window::<G1Config,true>(h,sh,w,bits)\n}",
+    "old_expr": "top_window::<G1Config,true>(h,sh,w,bits)"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_part=crate::arithmetic_trace::scope(trace_window_id,14,part,0,false);\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] {let ready=crate::arithmetic_trace::scope(trace_kernel_id,4,0,0,false);drop(ready);}\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_serial=crate::arithmetic_trace::serial(20,bases.len(),width);\n"
+  },
+  {
+    "file": "msm_affine/fused_kh.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_serial=crate::arithmetic_trace::serial(21,points.len(),w);\n"
+  },
+  {
+    "file": "msm.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_serial=crate::arithmetic_trace::serial(30,batch.len(),buckets.len());\n"
+  },
+  {
+    "file": "msm/g2_prefix.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_serial=crate::arithmetic_trace::serial(31,batch.len(),buckets.len());\n"
+  },
+  {
+    "file": "msm.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_serial=crate::arithmetic_trace::serial(32,points.len(),counts.len());\n"
+  },
+  {
+    "file": "msm.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_serial=crate::arithmetic_trace::serial(41,c.len(),0);\n"
+  },
+  {
+    "file": "msm.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_inverse=crate::arithmetic_trace::serial(40,0,0);\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_serial=crate::arithmetic_trace::serial(22,bases.len(),w);\n"
+  },
+  {
+    "file": "msm.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let trace_parent=crate::arithmetic_trace::parent();\n"
+  },
+  {
+    "file": "msm.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_tile=crate::arithmetic_trace::scope(trace_parent,23,output.len(),i,true);\n"
+  },
+  {
+    "file": "msm.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let trace_parent=crate::arithmetic_trace::parent();\n"
+  },
+  {
+    "file": "msm.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_tile=crate::arithmetic_trace::scope(trace_parent,24,end-first,first,true);\n"
+  },
+  {
+    "file": "msm.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let trace_parent=crate::arithmetic_trace::parent();\n"
+  },
+  {
+    "file": "msm.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_tile=crate::arithmetic_trace::scope(trace_parent,25,buckets.len(),0,true);\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let trace_parent=crate::arithmetic_trace::parent();\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "inserted": "\n#[cfg(zopro_arithmetic_trace)] let _trace_tile=crate::arithmetic_trace::scope(trace_parent,26,left.len(),0,true);\n"
+  }
+]
