@@ -1,0 +1,56 @@
+{
+  "SDK_requests_expected": 7404,
+  "adopted": false,
+  "all8_CPU10x_goal_unmet": true,
+  "blocks": 7,
+  "cases": [
+    "1x2-w32",
+    "1x2-w16"
+  ],
+  "control": "fresh same172source/flags; unavailable old accepted binary not relabeled",
+  "expected_next_prior_count": 12518,
+  "frequency_hz": 199,
+  "gate": {
+    "calibration": "OFF/control individual7blockmedianinterval withinfactor1.03 inbothcases",
+    "interval": {
+      "all_values": [
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0
+      ],
+      "coverage_under_independent_exchangeable_blocks": 0.984375,
+      "lower": 1.0,
+      "median": 4.0,
+      "n": 7,
+      "rank_one_based": 1,
+      "upper": 7.0
+    },
+    "no_exclusions_extensions_or_unchanged_rerolls": true,
+    "no_gain_floor": true,
+    "primary16": "ON/control and ON/OFF upperindividualmedianbound<=1.02",
+    "primary32": "ON/control and ON/OFF upperindividualmedianbound<1 and>=5/7wins"
+  },
+  "latency_processes": 42,
+  "new_exports_expected": 51,
+  "order": "preflight then all42latency then all6profiles then all6decode; independentGnark serial after everyprocess",
+  "preflight_processes": 3,
+  "preflight_rounds": 1,
+  "preflight_workers": 4,
+  "primes": 3,
+  "prior_proof_count": 12467,
+  "production_changed": false,
+  "profile_processes": 6,
+  "profile_rounds": 151,
+  "profile_scope": "FIFO enable/ack after load and3primes; disable/ack before proof export; no helper overlap",
+  "rounds": 151,
+  "variants": [
+    "control",
+    "off",
+    "on"
+  ],
+  "whole_proof_allshape_qualified": false
+}

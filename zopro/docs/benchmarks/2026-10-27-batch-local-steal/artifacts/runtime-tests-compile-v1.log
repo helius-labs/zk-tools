@@ -1,0 +1,22 @@
+   Compiling libc v0.2.174
+   Compiling getrandom v0.3.3
+   Compiling zerocopy v0.8.26
+   Compiling cfg-if v1.0.1
+   Compiling crossbeam-utils v0.8.21
+   Compiling rayon-core v1.13.0 (/home/ubuntu/src/zopro-perf-work/batch-local-steal/candidate/vendor/rayon-core)
+   Compiling scoped-tls v1.0.1
+   Compiling crossbeam-epoch v0.9.18
+   Compiling crossbeam-deque v0.8.6
+   Compiling rand_core v0.9.3
+   Compiling rand_xorshift v0.4.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.9.0
+   Compiling rand v0.9.2
+error[E0282]: type annotations needed
+  --> src/batch_steal.rs:21:519
+   |
+21 | ...est stalled");if let Some(i)=local.pop(){assert_eq!(seen[i].fetch_add(1,Ordering::Relaxed),0);continue}match transfer(&s,&local)....
+   |                                                        ^^^^^^^ cannot infer type
+
+For more information about this error, try `rustc --explain E0282`.
+error: could not compile `rayon-core` (lib test) due to 1 previous error
