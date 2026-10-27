@@ -1,0 +1,142 @@
+{
+  "adopted": false,
+  "calibration_failures": [
+    "1x2-w16 block1 fresh/accepted=0.9057651610816845",
+    "1x2-w16 median fresh/accepted=0.9576730870801967"
+  ],
+  "candidate_retained": true,
+  "cases": {
+    "1x2-w16": {
+      "modes": {
+        "accepted": {
+          "cpu_ms_per_request": 124.03635294117646,
+          "maxrss_mib": 77.5,
+          "ms": 13.160621
+        },
+        "direct": {
+          "cpu_ms_per_request": 127.0145294117647,
+          "maxrss_mib": 72.75,
+          "ms": 11.87699
+        },
+        "fresh": {
+          "cpu_ms_per_request": 126.37929411764705,
+          "maxrss_mib": 76.5,
+          "ms": 11.920432
+        }
+      },
+      "pairs": {
+        "direct/accepted": {
+          "geometric_ratio": 1.0047347407486535,
+          "median_ratio": 0.9731510791171183,
+          "ratios": [
+            1.1548989340597529,
+            0.9024642530166318,
+            0.9731510791171183
+          ],
+          "saving_us": 276.33100000000076,
+          "wins": 2
+        },
+        "direct/fresh": {
+          "geometric_ratio": 1.0458262307278445,
+          "median_ratio": 0.9963556689891775,
+          "ratios": [
+            1.2059427686131061,
+            0.9963556689891775,
+            0.9520012029592646
+          ],
+          "saving_us": 43.44200000000065,
+          "wins": 2
+        },
+        "fresh/accepted": {
+          "geometric_ratio": 0.9607090654528779,
+          "median_ratio": 0.9576730870801967,
+          "ratios": [
+            0.9576730870801967,
+            0.9057651610816845,
+            1.022216228395626
+          ],
+          "saving_us": 579.8040000000011,
+          "wins": 2
+        }
+      },
+      "reference": {
+        "cpu_ms": 37.0,
+        "metal_ms": 24.0
+      },
+      "shape": "1x2",
+      "workers": 16
+    },
+    "1x2-w32": {
+      "modes": {
+        "accepted": {
+          "cpu_ms_per_request": 198.32658823529414,
+          "maxrss_mib": 98.5,
+          "ms": 8.570032999999999
+        },
+        "direct": {
+          "cpu_ms_per_request": 197.10623529411762,
+          "maxrss_mib": 105.5,
+          "ms": 8.523444999999999
+        },
+        "fresh": {
+          "cpu_ms_per_request": 198.81099999999998,
+          "maxrss_mib": 99.0,
+          "ms": 8.590330999999999
+        }
+      },
+      "pairs": {
+        "direct/accepted": {
+          "geometric_ratio": 0.9898595789769777,
+          "median_ratio": 0.989082189065083,
+          "ratios": [
+            1.00229505706069,
+            0.9783467361687863,
+            0.989082189065083
+          ],
+          "saving_us": 93.56599999999915,
+          "wins": 2
+        },
+        "direct/fresh": {
+          "geometric_ratio": 0.9973455260131419,
+          "median_ratio": 0.9957182502485378,
+          "ratios": [
+            1.0097072783619878,
+            0.9957182502485378,
+            0.986745097482274
+          ],
+          "saving_us": 37.0999999999988,
+          "wins": 2
+        },
+        "fresh/accepted": {
+          "geometric_ratio": 0.9924941288240505,
+          "median_ratio": 0.992659039446242,
+          "ratios": [
+            0.992659039446242,
+            0.9825537855960604,
+            1.0023684856289352
+          ],
+          "saving_us": 62.42699999999779,
+          "wins": 2
+        }
+      },
+      "reference": {
+        "cpu_ms": 37.0,
+        "metal_ms": 24.0
+      },
+      "shape": "1x2",
+      "workers": 32
+    }
+  },
+  "full_gate_passed": false,
+  "goal_achieved": false,
+  "independent_exports": 27,
+  "next_prior_count": 7009,
+  "original8": null,
+  "primary_failures": [],
+  "regressions": [
+    "1x2-w16 direct/fresh=1.0458262307278445"
+  ],
+  "screen_advances_to_full": false,
+  "sdk_requests": 396,
+  "stage": "screen"
+}
