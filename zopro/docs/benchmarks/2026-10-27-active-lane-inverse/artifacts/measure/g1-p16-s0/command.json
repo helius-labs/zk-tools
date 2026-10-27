@@ -1,0 +1,22 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "600s",
+    "taskset",
+    "-c",
+    "2",
+    "/tmp/zopro-active-lane-inverse/native/probe-sdk",
+    "g1",
+    "16",
+    "0",
+    "paired"
+  ],
+  "environment": {
+    "MALLOC_ARENA_MAX": "32",
+    "MALLOC_MMAP_THRESHOLD_": "1073741824",
+    "MALLOC_TRIM_THRESHOLD_": "-1",
+    "RAYON_NUM_THREADS": "1"
+  }
+}

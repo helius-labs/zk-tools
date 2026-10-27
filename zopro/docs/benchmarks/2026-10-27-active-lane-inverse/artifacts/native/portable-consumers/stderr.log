@@ -1,0 +1,553 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /tmp/zopro-active-lane-inverse/candidate/crates/zopro-core/Cargo.toml
+workspace: /tmp/zopro-active-lane-inverse/candidate/Cargo.toml
+   Compiling version_check v0.9.5
+   Compiling wasm-bindgen-shared v0.2.128
+   Compiling unicode-ident v1.0.27
+   Compiling proc-macro2 v1.0.107
+   Compiling crossbeam-utils v0.8.23
+   Compiling quote v1.0.47
+    Checking cfg-if v1.0.5
+   Compiling rustversion v1.0.23
+   Compiling crossbeam-epoch v0.9.21
+   Compiling libc v0.2.191
+    Checking typenum v1.20.1
+   Compiling crossbeam-deque v0.8.8
+   Compiling bumpalo v3.20.3
+   Compiling rayon-core v1.13.0
+    Checking once_cell v1.21.4
+   Compiling zerocopy v0.8.63
+    Checking slab v0.4.12
+    Checking wasm_sync v0.1.2
+    Checking futures-task v0.3.34
+    Checking futures-core v0.3.34
+   Compiling getrandom v0.3.4
+    Checking pin-project-lite v0.2.17
+    Checking either v1.19.0
+    Checking cpufeatures v0.2.17
+   Compiling zmij v1.0.23
+    Checking adler2 v2.0.1
+    Checking futures-util v0.3.34
+   Compiling serde_core v1.0.229
+   Compiling zopro-core v0.1.0 (/tmp/zopro-active-lane-inverse/candidate/crates/zopro-core)
+   Compiling generic-array v0.14.7
+   Compiling ahash v0.8.12
+    Checking miniz_oxide v0.8.9
+    Checking zopro-bn254 v0.1.0 (/tmp/zopro-active-lane-inverse/candidate/crates/zopro-bn254)
+    Checking log v0.4.34
+   Compiling serde_json v1.0.154
+    Checking memchr v2.8.3
+    Checking itoa v1.0.18
+    Checking crossbeam-channel v0.5.17
+   Compiling wasm-bindgen v0.2.128
+warning: method `psi` is never used
+   --> crates/zopro-bn254/src/curve.rs:362:19
+    |
+361 | impl G2Affine {
+    | ------------- method in this implementation
+362 |     pub(crate) fn psi(&self) -> Self {
+    |                   ^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling syn v3.0.9
+warning: `zopro-bn254` (lib) generated 1 warning
+    Checking getrandom v0.2.17
+    Checking rayon v1.12.0
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking digest v0.10.7
+    Checking sha2 v0.10.9
+   Compiling wasm-bindgen-macro-support v0.2.128
+   Compiling wasm-bindgen-macro v0.2.128
+    Checking js-sys v0.3.105
+    Checking wasm-bindgen-rayon v1.3.0
+warning: unexpected `cfg` condition name: `zopro_g2_horner_buckets`
+  --> crates/zopro-core/src/lib.rs:28:11
+   |
+28 | #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_featur...
+   |           ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: expected names are: `docsrs`, `feature`, `gpu`, `gpu_any`, `gpu_wgpu`, `no_ifma`, `test`, `zopro_booth_digits`, `zopro_bounded_schedule`, `zopro_folded_query_reclaim`, `zopro_live_preparation_charge`, and `zopro_resource_schedule` and 32 more
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_horner_buckets)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_horner_buckets)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: requested on the command line with `-W unexpected-cfgs`
+
+warning: unexpected `cfg` condition name: `zopro_g2_horner_buckets`
+  --> crates/zopro-core/src/lib.rs:30:48
+   |
+30 | #[cfg(all(not(target_arch = "wasm32"), not(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", targe...
+   |                                                ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_horner_buckets)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_horner_buckets)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_short_layer_probe`
+    --> crates/zopro-core/src/lib.rs:2362:7
+     |
+2362 | #[cfg(zopro_short_layer_probe)]
+     |       ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_short_layer_probe)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_short_layer_probe)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_prefix_records`
+    --> crates/zopro-core/src/msm.rs:2155:11
+     |
+2155 | #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",targe...
+     |           ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_prefix_records)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_prefix_records)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_short_layer_probe`
+    --> crates/zopro-core/src/msm.rs:2176:16
+     |
+2176 | #[cfg(any(test,zopro_short_layer_probe))]
+     |                ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_short_layer_probe)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_short_layer_probe)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_short_layer_probe`
+    --> crates/zopro-core/src/msm.rs:2310:16
+     |
+2310 | #[cfg(any(test,zopro_short_layer_probe))]
+     |                ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_short_layer_probe)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_short_layer_probe)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_short_layer_probe`
+    --> crates/zopro-core/src/msm.rs:2312:7
+     |
+2312 | #[cfg(zopro_short_layer_probe)]
+     |       ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_short_layer_probe)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_short_layer_probe)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_prefix_records`
+   --> crates/zopro-core/src/msm.rs:915:15
+    |
+915 |     #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",ta...
+    |               ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_prefix_records)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_prefix_records)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_prefix_records`
+   --> crates/zopro-core/src/msm.rs:916:15
+    |
+916 |     #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",ta...
+    |               ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_prefix_records)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_prefix_records)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_prefix_records`
+   --> crates/zopro-core/src/msm.rs:917:15
+    |
+917 |     #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",ta...
+    |               ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_prefix_records)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_prefix_records)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_prefix_records`
+   --> crates/zopro-core/src/msm.rs:918:15
+    |
+918 |     #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",ta...
+    |               ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_prefix_records)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_prefix_records)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_prefix_records`
+   --> crates/zopro-core/src/msm.rs:682:27
+    |
+682 | ...   #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",...
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_prefix_records)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_prefix_records)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_prefix_records`
+   --> crates/zopro-core/src/msm.rs:683:27
+    |
+683 | ...   #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",...
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_prefix_records)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_prefix_records)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_prefix_records`
+   --> crates/zopro-core/src/msm.rs:949:15
+    |
+949 |     #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",ta...
+    |               ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_prefix_records)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_prefix_records)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_direct_chain_inverse`
+    --> crates/zopro-core/src/msm.rs:2107:15
+     |
+2107 |     #[cfg(all(zopro_direct_chain_inverse,feature="ifma8",target_arch="x86_64",
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_direct_chain_inverse)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_direct_chain_inverse)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_horner_buckets`
+  --> crates/zopro-core/src/msm_affine.rs:17:11
+   |
+17 | #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_featur...
+   |           ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_horner_buckets)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_horner_buckets)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_horner_buckets`
+  --> crates/zopro-core/src/msm_affine.rs:20:11
+   |
+20 | #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_featur...
+   |           ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_horner_buckets)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_horner_buckets)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_horner_buckets`
+  --> crates/zopro-core/src/msm_affine.rs:25:11
+   |
+25 | #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_featur...
+   |           ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_horner_buckets)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_horner_buckets)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_horner_buckets`
+    --> crates/zopro-core/src/msm_affine.rs:1653:5
+     |
+1653 |     zopro_g2_horner_buckets,
+     |     ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_horner_buckets)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_horner_buckets)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_real_kh`
+    --> crates/zopro-core/src/msm_affine.rs:1787:21
+     |
+1787 | #[cfg(any(test, all(zopro_real_kh, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx...
+     |                     ^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_real_kh)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_real_kh)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_canonical_task_grain`
+   --> crates/zopro-core/src/msm_affine.rs:119:11
+    |
+119 |     #[cfg(zopro_canonical_task_grain)]
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_canonical_task_grain)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_canonical_task_grain)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_canonical_task_grain`
+   --> crates/zopro-core/src/msm_affine.rs:124:15
+    |
+124 |     #[cfg(not(zopro_canonical_task_grain))]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_canonical_task_grain)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_canonical_task_grain)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_horner_buckets`
+    --> crates/zopro-core/src/msm_affine.rs:1684:9
+     |
+1684 |         zopro_g2_horner_buckets,
+     |         ^^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_horner_buckets)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_horner_buckets)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_small_core_entry`
+    --> crates/zopro-core/src/lib.rs:1084:19
+     |
+1084 |         #[cfg(all(zopro_small_core_entry, zopro_real_kh, target_arch="x86_64",
+     |                   ^^^^^^^^^^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_small_core_entry)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_small_core_entry)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_real_kh`
+    --> crates/zopro-core/src/lib.rs:1084:43
+     |
+1084 |         #[cfg(all(zopro_small_core_entry, zopro_real_kh, target_arch="x86_64",
+     |                                           ^^^^^^^^^^^^^
+     |
+     = help: consider using a Cargo feature instead
+     = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+              [lints.rust]
+              unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_real_kh)'] }
+     = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_real_kh)");` to the top of the `build.rs`
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: variable does not need to be mutable
+   --> crates/zopro-core/src/fft.rs:439:13
+    |
+439 |         let mut roots = Twiddles::new(powers(generator, n / 2));
+    |             ----^^^^^
+    |             |
+    |             help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: variable does not need to be mutable
+   --> crates/zopro-core/src/fft.rs:440:13
+    |
+440 |         let mut inverse_roots = Twiddles::new(powers(generator.inverse().unwrap(), n / 2));
+    |             ----^^^^^^^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/zopro-core/src/fft.rs:441:13
+    |
+441 |         let mut twisted = (n >= (1 << 20) && crate::simd::cpu_option("ZOPRO_CPU_TWISTED_FFT")
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: variable does not need to be mutable
+   --> crates/zopro-core/src/fft.rs:556:13
+    |
+556 |         let mut weights = &self.reverse_weights;
+    |             ----^^^^^^^
+    |             |
+    |             help: remove this `mut`
+
+warning: unused variable: `workspace`
+    --> crates/zopro-core/src/solver.rs:1469:58
+     |
+1469 |     fn build_schedule_before_poseidon(&self,epochs:usize,workspace:Option<usize>,exact:bool)->Schedule {
+     |                                                          ^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_workspace`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `exact`
+    --> crates/zopro-core/src/solver.rs:1469:82
+     |
+1469 |     fn build_schedule_before_poseidon(&self,epochs:usize,workspace:Option<usize>,exact:bool)->Schedule {
+     |                                                                                  ^^^^^ help: if this is intentional, prefix it with an underscore: `_exact`
+
+warning: trait `msm::BatchInverse` is more private than the item `ShortLayerProbe`
+    --> crates/zopro-core/src/msm/layer_probe.rs:40:1
+     |
+  40 | pub struct ShortLayerProbe<C: CurveConfig>
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ struct `ShortLayerProbe` is reachable at visibility `pub`
+     |
+note: but trait `msm::BatchInverse` is only usable at visibility `pub(crate)`
+    --> crates/zopro-core/src/msm.rs:1088:1
+     |
+1088 | pub(super) trait BatchInverse: Field {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     = note: `#[warn(private_bounds)]` on by default
+
+warning: trait `msm::BatchInverse` is more private than the item `ShortLayerProbe<C>`
+    --> crates/zopro-core/src/msm/layer_probe.rs:55:1
+     |
+  55 | / impl<C: CurveConfig> ShortLayerProbe<C>
+  56 | | where
+  57 | |     C::Base: BatchInverse,
+     | |__________________________^ implementation `ShortLayerProbe<C>` is reachable at visibility `pub`
+     |
+note: but trait `msm::BatchInverse` is only usable at visibility `pub(crate)`
+    --> crates/zopro-core/src/msm.rs:1088:1
+     |
+1088 | pub(super) trait BatchInverse: Field {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: field `single` is never read
+   --> crates/zopro-core/src/fft.rs:183:5
+    |
+177 | struct Twiddles {
+    |        -------- field in this struct
+...
+183 |     single: Option<Quad>,
+    |     ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `basis_hash_weights` is never used
+   --> crates/zopro-core/src/fft.rs:548:19
+    |
+407 | impl Plan {
+    | --------- method in this implementation
+...
+548 |     pub(crate) fn basis_hash_weights(&self,hash:&mut impl FnMut(Fr)) {
+    |                   ^^^^^^^^^^^^^^^^^^
+
+warning: associated function `lanes_inverse` is never used
+    --> crates/zopro-core/src/msm.rs:1126:8
+     |
+1088 | pub(super) trait BatchInverse: Field {
+     |                  ------------ associated function in this trait
+...
+1126 |     fn lanes_inverse(value: &Self::Lanes, inverse_norm: &FqBatch) -> Self::Lanes;
+     |        ^^^^^^^^^^^^^
+
+warning: method `add` is never used
+   --> crates/zopro-core/src/msm_affine.rs:798:8
+    |
+769 | / impl<C: CurveConfig> Window<C>
+770 | | where
+771 | |     C::Base: BatchInverse,
+    | |__________________________- method in this implementation
+...
+798 |       fn add(&mut self, bucket: usize, point: Affine<C>) {
+    |          ^^^
+
+warning: function `fq_mul4` is never used
+   --> crates/zopro-core/src/simd.rs:394:15
+    |
+394 | pub(crate) fn fq_mul4(a: &[Fq; 4], b: &[Fq; 4]) -> [Fq; 4] {
+    |               ^^^^^^^
+
+warning: method `evaluate_term` is never used
+    --> crates/zopro-core/src/solver.rs:1898:8
+     |
+ 515 | impl Plan {
+     | --------- method in this implementation
+...
+1898 |     fn evaluate_term(&self, term: &Term, w: &[Fr]) -> Fr {
+     |        ^^^^^^^^^^^^^
+
+warning: methods `stored_slot_count` and `input_count` are never used
+    --> crates/zopro-core/src/solver.rs:3054:19
+     |
+3053 | impl Plan {
+     | --------- methods in this implementation
+3054 |     pub(crate) fn stored_slot_count(&self)->usize{self.n_slots}
+     |                   ^^^^^^^^^^^^^^^^^
+3055 |     pub(crate) fn input_count(&self)->usize{self.n_inputs}
+     |                   ^^^^^^^^^^^
+
+warning: associated function `schedule` is never used
+  --> crates/zopro-core/src/preparation.rs:26:19
+   |
+22 | impl Reservation {
+   | ---------------- associated function in this implementation
+...
+26 |     pub(crate) fn schedule(
+   |                   ^^^^^^^^
+
+warning: `zopro-core` (lib) generated 41 warnings (run `cargo fix --lib -p zopro-core` to apply 6 suggestions)
+    Checking zopro-prover v0.1.0 (/tmp/zopro-active-lane-inverse/candidate/crates/zopro-prover)
+    Checking zopro-zolana v0.1.0 (/tmp/zopro-active-lane-inverse/candidate/crates/zopro-zolana)
+warning: trait `IsZero` is never used
+   --> crates/zopro-zolana/src/request.rs:148:7
+    |
+148 | trait IsZero {
+    |       ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `zopro-zolana` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 6.11s
