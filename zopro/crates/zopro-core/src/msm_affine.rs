@@ -11,6 +11,7 @@ use crate::msm::{BatchAdd, BatchInverse};
 use rayon::prelude::*;
 use zopro_bn254::{Affine, CurveConfig, Field, Fr, Projective};
 mod grouping_cost;
+pub(super) mod borrowed_pending;
 mod grouping;
 pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
 
@@ -620,6 +621,11 @@ where
     merge_split_width(bases,scalars,parts,width(bases.len()))
 }
 fn merge_split_width<C:CurveConfig>(bases:&[Affine<C>],scalars:&[[u64;4]],parts:usize,width:usize)->Projective<C>
+where C::Base:BatchInverse {
+    if let Some(result)=C::Base::borrowed_msm(bases,scalars,parts,width){return result;}
+    merge_split_width_owned(bases,scalars,parts,width)
+}
+fn merge_split_width_owned<C:CurveConfig>(bases:&[Affine<C>],scalars:&[[u64;4]],parts:usize,width:usize)->Projective<C>
 where C::Base:BatchInverse {
     let part = bases.len().div_ceil(parts);
     let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);

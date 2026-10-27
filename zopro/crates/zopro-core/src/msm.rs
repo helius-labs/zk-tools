@@ -424,6 +424,7 @@ where
     pairs: Vec<usize>,
     // Groups of four pairs in lane form, then the scalar tail.
     groups: Vec<Group<C::Base>>,
+    prefix_records: Vec<[FqBatch; 2]>,
     denominators: [C::Base; LANES],
     products: [<C::Base as BatchInverse>::Product; LANES],
 }
@@ -446,6 +447,7 @@ where
             vector_inverse: crate::simd::cpu_option("ZOPRO_CPU_TREE_VECTOR_INVERSE"),
             pairs: Vec::new(),
             groups: Vec::new(),
+            prefix_records: Vec::new(),
             denominators: [C::Base::ZERO; LANES],
             products: [Default::default(); LANES],
         }
@@ -477,11 +479,24 @@ fn reduce_layer<C: CurveConfig>(
     }
     type F<C> = <C as CurveConfig>::Base;
     let m = s.pairs.len();
+    let use_prefix = F::<C>::TREE_PREFIX && m >= 32;
     let full = m / LANES * LANES;
     s.groups.clear();
-    s.groups.reserve_exact(full / LANES);
+    if !use_prefix {s.groups.reserve_exact(full / LANES);}
 
     let mut chains = FqBatch::one();
+    if use_prefix {
+        s.prefix_records.clear();
+        s.prefix_records.reserve(full / LANES);
+        for k in (0..full).step_by(LANES) {
+            let a = core::array::from_fn(|i| &points[s.pairs[k + i]].x);
+            let b = core::array::from_fn(|i| &points[s.pairs[k + i] + 1].x);
+            let dx = F::<C>::lanes_sub(&F::<C>::load(b), &F::<C>::load(a));
+            let norm = F::<C>::lanes_norm(&dx);
+            s.prefix_records.push([chains, norm]);
+            chains = chains.mul(&norm);
+        }
+    } else {
     for k in (0..full).step_by(LANES) {
         let a: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[s.pairs[k + i]]);
         let b: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[s.pairs[k + i] + 1]);
@@ -499,6 +514,8 @@ fn reduce_layer<C: CurveConfig>(
             norm,
             numerator,
         });
+    }
+
     }
     let mut inverses = if let Some(value)=direct_chain_inverse(&chains,full==m,s.vector_inverse) {
         value
@@ -526,6 +543,23 @@ fn reduce_layer<C: CurveConfig>(
         }
         FqBatch::new(&inverses)
     };
+    if use_prefix {
+        for (j, record) in s.prefix_records.iter().enumerate().rev() {
+            let k = j * LANES;
+            let a: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[s.pairs[k + i]]);
+            let b: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[s.pairs[k + i] + 1]);
+            let (ax, ay) = (F::<C>::load(a.map(|p| &p.x)), F::<C>::load(a.map(|p| &p.y)));
+            let (bx, by) = (F::<C>::load(b.map(|p| &p.x)), F::<C>::load(b.map(|p| &p.y)));
+            let denominator = F::<C>::lanes_sub(&bx, &ax);
+            let factor = record[0].mul(&inverses);
+            inverses = inverses.mul(&record[1]);
+            let slope = F::<C>::lanes_scaled_numerator(&F::<C>::lanes_sub(&by, &ay), &denominator, &factor);
+            let x = F::<C>::lanes_sub(&F::<C>::lanes_square(&slope), &F::<C>::lanes_add(&ax, &bx));
+            let y = F::<C>::lanes_sub(&F::<C>::lanes_mul(&slope, &F::<C>::lanes_sub(&ax, &x)), &ay);
+            let (x, y) = (F::<C>::store(&x), F::<C>::store(&y));
+            for i in 0..LANES { points[s.pairs[k + i]] = LimbPoint {x:x[i], y:y[i]}; }
+        }
+    } else {
     for (j, group) in s.groups.iter().enumerate().rev() {
         let slope = F::<C>::lanes_scale(&group.numerator, &inverses);
         inverses = inverses.mul(&group.norm);
@@ -540,6 +574,8 @@ fn reduce_layer<C: CurveConfig>(
                 points[s.pairs[j * LANES + i]] = LimbPoint { x: x[i], y: y[i] };
             }
         }
+    }
+
     }
     for k in full..m {
         let t = k - full;
@@ -725,6 +761,13 @@ where
     }
 }
 
+impl<C: CurveConfig<Base = Fq>> BatchAdd<C> {
+    pub(super) fn apply_signed_borrowed(&mut self, buckets: &mut [Affine<C>], batch: &[(u32, &Affine<C>)]) {
+        if self.fq.canonical { stream_g1_impl::<C,true,true>(buckets,batch,&mut self.fq); }
+        else { stream_g1_impl::<C,false,true>(buckets,batch,&mut self.fq); }
+    }
+}
+
 #[derive(Clone, Copy)]
 struct FqAddGroup {
     ax: FqBatch,
@@ -787,7 +830,7 @@ fn stream_g1<C: CurveConfig<Base = Fq>>(
 #[inline(always)]
 fn batch_index<const SIGNED:bool>(index:u32)->usize {if SIGNED {(index&0x7fffffff)as usize}else{index as usize}}
 #[inline(always)]
-fn signs<const SIGNED:bool,C:CurveConfig>(batch:&[(u32,Affine<C>)])->u8 {
+fn signs<const SIGNED:bool,C:CurveConfig>(batch:&[(u32,impl std::borrow::Borrow<Affine<C>> )])->u8 {
     if !SIGNED {return 0;}let mut bits=0u8;for i in 0..LANES {bits|=((batch[i].0>>31)as u8)<<i;}bits
 }
 #[inline(always)]
@@ -799,7 +842,7 @@ fn scaled_signed_dy<const FAST:bool,const SIGNED:bool>(by:&FqBatch,ay:&FqBatch,c
 }
 fn stream_g1_impl<C: CurveConfig<Base = Fq>, const FAST: bool, const SIGNED: bool>(
     buckets: &mut [Affine<C>],
-    batch: &[(u32, Affine<C>)],
+    batch: &[(u32, impl std::borrow::Borrow<Affine<C>> + Copy)],
     s: &mut FqAddScratch,
 ) {
     let full = batch.len() / LANES * LANES;
@@ -812,7 +855,7 @@ fn stream_g1_impl<C: CurveConfig<Base = Fq>, const FAST: bool, const SIGNED: boo
         s.groups.reserve(full / LANES);
         for k in (0..full).step_by(LANES) {
             let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch_index::<SIGNED>(batch[k + i].0)]);
-            let b: [Affine<C>; LANES] = core::array::from_fn(|i| batch[k + i].1);
+            let b: [Affine<C>; LANES] = core::array::from_fn(|i| *batch[k + i].1.borrow());
             // SAFETY: reserve covers full/LANES records, k/LANES is in
             // that range, and no allocation changes during these writes.
             // addr_of_mut! creates no reference to uninitialized storage.
@@ -840,7 +883,7 @@ fn stream_g1_impl<C: CurveConfig<Base = Fq>, const FAST: bool, const SIGNED: boo
         }
         for k in (0..full).step_by(LANES) {
             let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch_index::<SIGNED>(batch[k + i].0)]);
-            let b: [Affine<C>; LANES] = core::array::from_fn(|i| batch[k + i].1);
+            let b: [Affine<C>; LANES] = core::array::from_fn(|i| *batch[k + i].1.borrow());
             let ax = FqBatch::new(&a.map(|p| p.x));
             let ay = FqBatch::new(&a.map(|p| p.y));
             let bx = FqBatch::new(&b.map(|p| p.x));
@@ -865,6 +908,7 @@ fn stream_g1_impl<C: CurveConfig<Base = Fq>, const FAST: bool, const SIGNED: boo
         let mut tail = chains.get();
         for k in full..batch.len() {
             let (index, b) = batch[k];
+            let b = *b.borrow();
             let b = if SIGNED && index>>31!=0 {-b}else{b};
             let a = buckets[batch_index::<SIGNED>(index)];
             let denominator = b.x - a.x;
@@ -1082,6 +1126,8 @@ fn decode_signed_batch<C:CurveConfig>(batch:&[(u32,Affine<C>)])->Vec<(u32,Affine
 }
 
 pub(super) trait BatchInverse: Field {
+    fn borrowed_msm<C:CurveConfig<Base=Self>>(_bases:&[Affine<C>],_scalars:&[[u64;4]],_parts:usize,_width:usize)->Option<Projective<C>>{None}
+    const TREE_PREFIX: bool = false;
     fn deferred_sign()->bool {false}
     fn stream_add_signed<C:CurveConfig<Base=Self>>(buckets:&mut[Affine<C>],batch:&[(u32,Affine<C>)],s:&mut BatchAdd<C>) {
         s.apply(buckets,&decode_signed_batch(batch));
@@ -1122,6 +1168,12 @@ pub(super) trait BatchInverse: Field {
     fn lanes_inverse(value: &Self::Lanes, inverse_norm: &FqBatch) -> Self::Lanes;
 }
 impl BatchInverse for Fq {
+    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+    fn borrowed_msm<C:CurveConfig<Base=Self>>(bases:&[Affine<C>],scalars:&[[u64;4]],parts:usize,width:usize)->Option<Projective<C>>{
+        if crate::msm_affine::borrowed_pending::ordinary_enabled() && (1024..65536).contains(&bases.len()) && (1..=2).contains(&parts) && (10..=14).contains(&width) {
+            Some(crate::msm_affine::borrowed_pending::msm(bases,scalars,parts,width))
+        }else{None}
+    }
     #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
     fn deferred_sign()->bool {std::env::var("ZOPRO_CPU_DEFER_SIGNED_Y").as_deref()==Ok("1")}
     #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
@@ -1222,6 +1274,7 @@ impl BatchInverse for Fq {
     }
 }
 impl BatchInverse for Fq2 {
+    const TREE_PREFIX: bool = cfg!(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)));
     #[inline(always)]
     fn negate_if(value: Self, negative: bool) -> Self {
         Fq2::new(
@@ -1739,6 +1792,31 @@ mod deferred_sign_reference_tests {
     use super::*;
     use zopro_bn254::{G1Affine,G1Config};
     #[test]
+    fn borrowed_signed_stream_tails_and_reuse_match_generator() {
+        for n in [0usize,1,7,8,9,15,16,199,352,511] {
+            let original:Vec<_>=(0..n).map(|i|(G1Affine::GENERATOR*Fr::from((i+7)as u64)).to_affine()).collect();
+            let inputs:Vec<_>=(0..n).map(|i|(G1Affine::GENERATOR*Fr::from((i+n+1_000_003)as u64)).to_affine()).collect();
+            for mode in 0..3 {
+                let batch:Vec<_>=inputs.iter().enumerate().map(|(i,p)|(((n-1-i)as u32)|if mode==1||mode==2&&i%3!=0{1<<31}else{0},p)).collect();
+                for canonical in [false,true] {for vector_inverse in [false,true] {for storage in 0..3 {
+                    let mut got=original.clone();let mut work=BatchAdd::<G1Config>::default();
+                    work.fq.canonical=canonical;work.fq.vector_inverse=vector_inverse;
+                    work.fq.reserve_groups=storage>0;work.fq.write_groups=storage==2;
+                    for round in 1..=3 {
+                        work.apply_signed_borrowed(&mut got,&batch);
+                        for(i,p)in got.iter().enumerate(){
+                            let input_index=n-1-i;
+                            let w=Fr::from((input_index+n+1_000_003)as u64)*Fr::from(round as u64);
+                            let negative=mode==1||mode==2&&input_index%3!=0;
+                            let expected=Fr::from((i+7)as u64)+if negative{-w}else{w};
+                            assert_eq!(*p,(G1Affine::GENERATOR*expected).to_affine(),"n={n} mode={mode} canonical={canonical} inverse={vector_inverse} storage={storage} round={round}");
+                        }
+                    }
+                }}}
+            }
+        }
+    }
+    #[test]
     fn signed_stream_matches_complete_curve_additions_including_tails() {
         for n in [1usize,7,8,15,16,199,352,511] {
             let original:Vec<_>=(0..n).map(|i|(G1Affine::GENERATOR*Fr::from((i+7)as u64)).to_affine()).collect();
@@ -2019,13 +2097,14 @@ where
     use crate::msm_affine::workspace::vector as v;
     let groups = n / LANES;
     let tail = n.min(LANES - 1);
-    if core::mem::size_of::<C::Base>() == 32 {
+    let payload = if core::mem::size_of::<C::Base>() == 32 {
         // reserve(full/LANES) can start with a non-power-of-two capacity;
         // later growth may double it. A push-only next-power bound is unsound.
         v::<FqAddGroup>(groups.checked_mul(2)?, false)?.checked_add(v::<[Fq; 5]>(tail, true)?)
     } else {
         v::<Fq2AddGroup>(groups, false)?.checked_add(v::<[Fq2; 5]>(tail, true)?)
-    }
+    };
+    payload?.checked_add(core::mem::size_of::<Vec<[FqBatch; 2]>>())
 }
 #[cfg(all(
     zopro_resource_schedule,
@@ -2048,7 +2127,8 @@ where
     let pairs = group / 2;
     let per = v::<LimbPoint<C::Base>>(2 * group - 1, false)?
         .checked_add(v::<usize>(pairs, true)?)?
-        .checked_add(v::<Group<C::Base>>(pairs / LANES, false)?)?;
+        .checked_add(v::<Group<C::Base>>(pairs / LANES, false)?)?
+        .checked_add(core::mem::size_of::<Vec<[FqBatch; 2]>>())?;
     per.checked_mul(n.div_ceil(256))?
         .checked_add(v::<(Projective<C>, Affine<C>)>(n.div_ceil(256), false)?)
 }
@@ -2079,7 +2159,8 @@ where
     points
         .checked_add(pairs)?
         .checked_add(groups)?
-        .checked_add(jobs.checked_mul(3 * 64)?)
+        .checked_add(jobs.checked_mul(3 * 64)?)?
+        .checked_add(jobs.checked_mul(core::mem::size_of::<Vec<[FqBatch; 2]>>())?)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -2093,7 +2174,7 @@ where
         .checked_add(core::mem::size_of::<usize>())?
         .checked_add(core::mem::size_of::<Group<C::Base>>().div_ceil(2 * LANES))?;
     n.checked_mul(each)?
-        .checked_add(jobs.checked_mul(4 * core::mem::size_of::<usize>() + 3 * 64)?)
+        .checked_add(jobs.checked_mul(4 * core::mem::size_of::<usize>() + 3 * 64 + core::mem::size_of::<Vec<[FqBatch; 2]>>())?)
 }
 
 // Full batches need no scalar-tail factors. Keep their chains in the
@@ -2150,3 +2231,110 @@ mod direct_chain_inverse_tests {
 
 #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
 mod g2_prefix;
+#[cfg(test)]
+mod tree_prefix_tests {
+    use super::*;
+    use zopro_bn254::{G2Config, G2Projective};
+    #[test]
+    fn prefix_tree_complete_pairs_tails_and_reuse() {
+        let mut p = G2Projective::generator() * Fr::from(11u64);
+        let raw: Vec<_> = (0..4096).map(|_| {p+=G2Projective::generator();p}).collect();
+        let bases = G2Projective::batch_to_affine(&raw);
+        for vector_inverse in [false,true] {
+            let mut scratch = Scratch::<G2Config> {vector_inverse,..Default::default()};
+            for n in [0usize,1,2,3,7,8,9,15,16,17,31,32,33,127,128,129,255,256,257,2048,257,8,1,0] {
+                for pattern in 0..5 {
+                    let counts=[n,1,n/3,0,2,3,5];
+                    let mut starts=Vec::new();let mut len=0;
+                    for count in counts {starts.push(len);len+=count;}
+                    let input:Vec<Affine<G2Config>> = (0..len).map(|i|match pattern {
+                        0=>bases[i],
+                        1=>if i%3==0 {Affine::IDENTITY}else{bases[i]},
+                        2=>bases[i/2],
+                        3=>if i%2==0 {bases[i/2]}else{-bases[i/2]},
+                        _=>if i%4==0 {Affine::IDENTITY}else if i%4==1 {-bases[i/2]}else {bases[i/2]},
+                    }).collect();
+                    let mut expected=Vec::new();
+                    for (&start,&count) in starts.iter().zip(&counts) {
+                        expected.push((0..count.div_ceil(2)).map(|i| {
+                            let a=input[start+2*i];
+                            if 2*i+1<count {(a+input[start+2*i+1]).to_affine()}else{a}
+                        }).collect::<Vec<_>>());
+                    }
+                    let mut points:Vec<_>=input.iter().copied().map(limbs::<G2Config>).collect();
+                    let mut actual_counts=counts;
+                    reduce_layer(&mut points,&starts,&mut actual_counts,&mut scratch);
+                    for bucket in 0..counts.len() {
+                        assert_eq!(actual_counts[bucket],counts[bucket].div_ceil(2));
+                        for (i,&expected) in expected[bucket].iter().enumerate() {
+                            assert_eq!(affine::<G2Config>(points[starts[bucket]+i]),expected,
+                                "inverse={vector_inverse} n={n} pattern={pattern} bucket={bucket} i={i}");
+                        }
+                    }
+                    if !Fq2::TREE_PREFIX {assert_eq!(scratch.prefix_records.capacity(),0);}
+                }
+            }
+        }
+        assert!(core::mem::size_of::<[FqBatch;2]>()<=core::mem::size_of::<Group<Fq2>>());
+    }
+}
+#[cfg(test)]
+mod adaptive_tree_tests {
+    use super::*;
+    use zopro_bn254::{G2Config, G2Projective};
+
+    #[test]
+    fn adaptive_boundaries_preserve_outputs_and_bound_retained_record_capacity() {
+        let mut p = G2Projective::generator() * Fr::from(11u64);
+        let raw: Vec<_> = (0..4096)
+            .map(|_| {
+                p += G2Projective::generator();
+                p
+            })
+            .collect();
+        let bases = G2Projective::batch_to_affine(&raw);
+        for vector_inverse in [false, true] {
+            let mut scratch = Scratch::<G2Config> {
+                vector_inverse,
+                ..Default::default()
+            };
+            let mut max_groups = 0;
+            for m in [
+                31usize, 32, 33, 40, 47, 48, 56, 64, 65, 127, 255, 256, 257, 512, 1023, 2048, 32,
+                31, 1, 0,
+            ] {
+                let mut points: Vec<_> = bases[..2 * m]
+                    .iter()
+                    .copied()
+                    .map(limbs::<G2Config>)
+                    .collect();
+                let mut counts = [2 * m];
+                reduce_layer(&mut points, &[0], &mut counts, &mut scratch);
+                assert_eq!(scratch.pairs.len(), m);
+                assert_eq!(counts, [m]);
+                for i in 0..m {
+                    assert_eq!(
+                        affine::<G2Config>(points[i]),
+                        (bases[2 * i] + bases[2 * i + 1]).to_affine()
+                    );
+                }
+                max_groups = max_groups.max(m / LANES);
+                let record_bytes = scratch.groups.capacity() * core::mem::size_of::<Group<Fq2>>()
+                    + scratch.prefix_records.capacity() * core::mem::size_of::<[FqBatch; 2]>();
+                let old_exact_record_bound = max_groups * core::mem::size_of::<Group<Fq2>>();
+                assert!(
+                    record_bytes <= old_exact_record_bound,
+                    "m={m},actual={record_bytes},old={old_exact_record_bound}"
+                );
+                if Fq2::TREE_PREFIX {
+                    assert!(scratch.groups.capacity() <= 3);
+                    if m >= 32 {
+                        assert!(!scratch.prefix_records.is_empty());
+                    }
+                } else {
+                    assert_eq!(scratch.prefix_records.capacity(), 0);
+                }
+            }
+        }
+    }
+}
