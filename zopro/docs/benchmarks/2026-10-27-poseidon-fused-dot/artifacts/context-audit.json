@@ -1,0 +1,64 @@
+{
+  "cases": {
+    "12x2-w32": {
+      "could_pass_previous32worker_guard": false,
+      "previous_grouping_requires_more_than": 64,
+      "shape": "12x2",
+      "width3_pure_task_upper_bound": 28
+    },
+    "16x2-w32": {
+      "could_pass_previous32worker_guard": false,
+      "previous_grouping_requires_more_than": 64,
+      "shape": "16x2",
+      "width3_pure_task_upper_bound": 36
+    },
+    "1x2-w32": {
+      "could_pass_previous32worker_guard": false,
+      "previous_grouping_requires_more_than": 64,
+      "shape": "1x2",
+      "width3_pure_task_upper_bound": 6
+    },
+    "24x2-w32": {
+      "could_pass_previous32worker_guard": false,
+      "previous_grouping_requires_more_than": 64,
+      "shape": "24x2",
+      "width3_pure_task_upper_bound": 52
+    },
+    "2x2-w32": {
+      "could_pass_previous32worker_guard": false,
+      "previous_grouping_requires_more_than": 64,
+      "shape": "2x2",
+      "width3_pure_task_upper_bound": 8
+    },
+    "4x2-w32": {
+      "could_pass_previous32worker_guard": false,
+      "previous_grouping_requires_more_than": 64,
+      "shape": "4x2",
+      "width3_pure_task_upper_bound": 12
+    },
+    "8x2-w32": {
+      "could_pass_previous32worker_guard": false,
+      "previous_grouping_requires_more_than": 64,
+      "shape": "8x2",
+      "width3_pure_task_upper_bound": 20
+    },
+    "merge-24x1-w32": {
+      "could_pass_previous32worker_guard": false,
+      "previous_grouping_requires_more_than": 64,
+      "shape": "merge-24x1",
+      "width3_pure_task_upper_bound": 49
+    },
+    "merge-54x1-w32": {
+      "could_pass_previous32worker_guard": true,
+      "previous_grouping_requires_more_than": 64,
+      "shape": "merge-54x1",
+      "width3_pure_task_upper_bound": 110
+    }
+  },
+  "new_proofs": 0,
+  "new_speed_claim": false,
+  "next_prior": 6946,
+  "proof": "Every wholly-width3 eligible task begins with a width3 hash, so eligible count is bounded above by the depth0 width3 frontier, which is bounded by its maximum over all depths. Earlier guard requires eligible>2workers=64. All original8shape maxima<=52, so that guard cannot enable grouped batching there at32workers.",
+  "source": "/tmp/zopro-poseidon-frontier/analysis.json",
+  "source_sha256": "632a653eedcc3037a323df767a186ec6ac287807fe23065e0ee608c1cec6913c"
+}

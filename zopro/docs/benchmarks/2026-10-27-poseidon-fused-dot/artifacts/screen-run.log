@@ -1,0 +1,428 @@
+RUN latency/b0/1x2-w32/accepted
+DONE latency/b0/1x2-w32/accepted: 8.642115 ms
+RUN latency/b0/1x2-w32/fresh
+DONE latency/b0/1x2-w32/fresh: 8.606477 ms
+RUN latency/b0/1x2-w32/fused
+DONE latency/b0/1x2-w32/fused: 8.620063 ms
+RUN latency/b0/1x2-w16/fresh
+DONE latency/b0/1x2-w16/fresh: 9.996841 ms
+RUN latency/b0/1x2-w16/fused
+DONE latency/b0/1x2-w16/fused: 10.237584 ms
+RUN latency/b0/1x2-w16/accepted
+DONE latency/b0/1x2-w16/accepted: 10.168214 ms
+RUN latency/b1/1x2-w16/accepted
+DONE latency/b1/1x2-w16/accepted: 10.503055 ms
+RUN latency/b1/1x2-w16/fused
+DONE latency/b1/1x2-w16/fused: 10.370074 ms
+RUN latency/b1/1x2-w16/fresh
+DONE latency/b1/1x2-w16/fresh: 10.254917 ms
+RUN latency/b1/1x2-w32/fresh
+DONE latency/b1/1x2-w32/fresh: 8.767521 ms
+RUN latency/b1/1x2-w32/accepted
+DONE latency/b1/1x2-w32/accepted: 8.545883 ms
+RUN latency/b1/1x2-w32/fused
+DONE latency/b1/1x2-w32/fused: 9.152437 ms
+RUN latency/b2/1x2-w32/fused
+DONE latency/b2/1x2-w32/fused: 10.291095 ms
+RUN latency/b2/1x2-w32/accepted
+DONE latency/b2/1x2-w32/accepted: 8.654417 ms
+RUN latency/b2/1x2-w32/fresh
+DONE latency/b2/1x2-w32/fresh: 8.488193 ms
+RUN latency/b2/1x2-w16/accepted
+DONE latency/b2/1x2-w16/accepted: 13.157593 ms
+RUN latency/b2/1x2-w16/fresh
+DONE latency/b2/1x2-w16/fresh: 12.161464 ms
+RUN latency/b2/1x2-w16/fused
+DONE latency/b2/1x2-w16/fused: 10.158295 ms
+{
+  "distinct_verified_exports": 18,
+  "execution": "screen",
+  "freshness_file": "freshness.json",
+  "latency": {
+    "1x2-w16": {
+      "accepted": {
+        "geometric_ratio": 1.0,
+        "median_ms": 10.503055000000002,
+        "median_ratio": 1.0,
+        "paired_median_saving_us": 0.0,
+        "paired_ratios": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "winning_blocks": 0
+      },
+      "fresh": {
+        "geometric_ratio": 0.9609069673016548,
+        "median_ms": 10.254917,
+        "median_ratio": 0.9763746833659349,
+        "paired_median_saving_us": 248.13800000000086,
+        "paired_ratios": [
+          0.9831462044366887,
+          0.9763746833659349,
+          0.9242924598746899
+        ],
+        "winning_blocks": 3
+      },
+      "fused": {
+        "geometric_ratio": 0.9155620780166736,
+        "median_ms": 10.237584,
+        "median_ratio": 0.987338826655673,
+        "paired_median_saving_us": 132.9810000000009,
+        "paired_ratios": [
+          1.0068222403659088,
+          0.987338826655673,
+          0.7720481246075935
+        ],
+        "winning_blocks": 2
+      }
+    },
+    "1x2-w32": {
+      "accepted": {
+        "geometric_ratio": 1.0,
+        "median_ms": 8.642115,
+        "median_ratio": 1.0,
+        "paired_median_saving_us": 0.0,
+        "paired_ratios": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "winning_blocks": 0
+      },
+      "fresh": {
+        "geometric_ratio": 1.0006930664301994,
+        "median_ms": 8.606477,
+        "median_ratio": 0.9958762409433338,
+        "paired_median_saving_us": 35.6380000000005,
+        "paired_ratios": [
+          0.9958762409433338,
+          1.0259350613622957,
+          0.9807931603018436
+        ],
+        "winning_blocks": 2
+      },
+      "fused": {
+        "geometric_ratio": 1.0830071523319502,
+        "median_ms": 9.152437,
+        "median_ratio": 1.0709761647801639,
+        "paired_median_saving_us": -606.5540000000009,
+        "paired_ratios": [
+          0.9974483098176777,
+          1.0709761647801639,
+          1.1891147607054295
+        ],
+        "winning_blocks": 1
+      }
+    }
+  },
+  "latency_by_control": {
+    "accepted": {
+      "1x2-w16": {
+        "accepted": {
+          "geometric_ratio": 1.0,
+          "median_ms": 10.503055000000002,
+          "median_ratio": 1.0,
+          "paired_median_saving_us": 0.0,
+          "paired_ratios": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "winning_blocks": 0
+        },
+        "fresh": {
+          "geometric_ratio": 0.9609069673016548,
+          "median_ms": 10.254917,
+          "median_ratio": 0.9763746833659349,
+          "paired_median_saving_us": 248.13800000000086,
+          "paired_ratios": [
+            0.9831462044366887,
+            0.9763746833659349,
+            0.9242924598746899
+          ],
+          "winning_blocks": 3
+        },
+        "fused": {
+          "geometric_ratio": 0.9155620780166736,
+          "median_ms": 10.237584,
+          "median_ratio": 0.987338826655673,
+          "paired_median_saving_us": 132.9810000000009,
+          "paired_ratios": [
+            1.0068222403659088,
+            0.987338826655673,
+            0.7720481246075935
+          ],
+          "winning_blocks": 2
+        }
+      },
+      "1x2-w32": {
+        "accepted": {
+          "geometric_ratio": 1.0,
+          "median_ms": 8.642115,
+          "median_ratio": 1.0,
+          "paired_median_saving_us": 0.0,
+          "paired_ratios": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "winning_blocks": 0
+        },
+        "fresh": {
+          "geometric_ratio": 1.0006930664301994,
+          "median_ms": 8.606477,
+          "median_ratio": 0.9958762409433338,
+          "paired_median_saving_us": 35.6380000000005,
+          "paired_ratios": [
+            0.9958762409433338,
+            1.0259350613622957,
+            0.9807931603018436
+          ],
+          "winning_blocks": 2
+        },
+        "fused": {
+          "geometric_ratio": 1.0830071523319502,
+          "median_ms": 9.152437,
+          "median_ratio": 1.0709761647801639,
+          "paired_median_saving_us": -606.5540000000009,
+          "paired_ratios": [
+            0.9974483098176777,
+            1.0709761647801639,
+            1.1891147607054295
+          ],
+          "winning_blocks": 1
+        }
+      }
+    },
+    "fresh": {
+      "1x2-w16": {
+        "accepted": {
+          "geometric_ratio": 1.0406834730401875,
+          "median_ms": 10.503055000000002,
+          "median_ratio": 1.0241969778985047,
+          "paired_median_saving_us": -248.13800000000086,
+          "paired_ratios": [
+            1.0171427153837898,
+            1.0241969778985047,
+            1.0819086419200845
+          ],
+          "winning_blocks": 0
+        },
+        "fresh": {
+          "geometric_ratio": 1.0,
+          "median_ms": 10.254917,
+          "median_ratio": 1.0,
+          "paired_median_saving_us": 0.0,
+          "paired_ratios": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "winning_blocks": 0
+        },
+        "fused": {
+          "geometric_ratio": 0.9528103231342829,
+          "median_ms": 10.237584,
+          "median_ratio": 1.0112294424225958,
+          "paired_median_saving_us": -115.15699999999995,
+          "paired_ratios": [
+            1.0240819074745713,
+            1.0112294424225958,
+            0.8352855379911498
+          ],
+          "winning_blocks": 1
+        }
+      },
+      "1x2-w32": {
+        "accepted": {
+          "geometric_ratio": 0.9993074135781996,
+          "median_ms": 8.642115,
+          "median_ratio": 1.0041408348619303,
+          "paired_median_saving_us": -35.6380000000005,
+          "paired_ratios": [
+            1.0041408348619303,
+            0.9747205624029871,
+            1.0195829665984268
+          ],
+          "winning_blocks": 1
+        },
+        "fresh": {
+          "geometric_ratio": 1.0,
+          "median_ms": 8.606477,
+          "median_ratio": 1.0,
+          "paired_median_saving_us": 0.0,
+          "paired_ratios": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "winning_blocks": 0
+        },
+        "fused": {
+          "geometric_ratio": 1.0822570762835324,
+          "median_ms": 9.152437,
+          "median_ratio": 1.0439024896547155,
+          "paired_median_saving_us": -384.9160000000005,
+          "paired_ratios": [
+            1.001578578551944,
+            1.0439024896547155,
+            1.2124011553460203
+          ],
+          "winning_blocks": 0
+        }
+      }
+    },
+    "fused": {
+      "1x2-w16": {
+        "accepted": {
+          "geometric_ratio": 1.0922252286445058,
+          "median_ms": 10.503055000000002,
+          "median_ratio": 1.0128235343354348,
+          "paired_median_saving_us": -132.9810000000009,
+          "paired_ratios": [
+            0.9932239872219852,
+            1.0128235343354348,
+            1.2952560444444663
+          ],
+          "winning_blocks": 1
+        },
+        "fresh": {
+          "geometric_ratio": 1.0495268320671485,
+          "median_ms": 10.254917,
+          "median_ratio": 0.9888952576423273,
+          "paired_median_saving_us": 115.15699999999995,
+          "paired_ratios": [
+            0.9764843931927689,
+            0.9888952576423273,
+            1.1971953954871364
+          ],
+          "winning_blocks": 2
+        },
+        "fused": {
+          "geometric_ratio": 1.0,
+          "median_ms": 10.237584,
+          "median_ratio": 1.0,
+          "paired_median_saving_us": 0.0,
+          "paired_ratios": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "winning_blocks": 0
+        }
+      },
+      "1x2-w32": {
+        "accepted": {
+          "geometric_ratio": 0.9233549361578842,
+          "median_ms": 8.642115,
+          "median_ratio": 0.9337275962675295,
+          "paired_median_saving_us": 606.5540000000009,
+          "paired_ratios": [
+            1.00255821796198,
+            0.9337275962675295,
+            0.8409617246755567
+          ],
+          "winning_blocks": 2
+        },
+        "fresh": {
+          "geometric_ratio": 0.9239948824672942,
+          "median_ms": 8.606477,
+          "median_ratio": 0.9579438787723968,
+          "paired_median_saving_us": 384.9160000000005,
+          "paired_ratios": [
+            0.9984239094308244,
+            0.9579438787723968,
+            0.8248095076374281
+          ],
+          "winning_blocks": 3
+        },
+        "fused": {
+          "geometric_ratio": 1.0,
+          "median_ms": 9.152437,
+          "median_ratio": 1.0,
+          "paired_median_saving_us": 0.0,
+          "paired_ratios": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "winning_blocks": 0
+        }
+      }
+    }
+  },
+  "processes": 18,
+  "profile_comparison": {},
+  "profiles": 0,
+  "qualification": false,
+  "references": [
+    {
+      "case": "1x2-w32",
+      "cpu_meets_10x": false,
+      "cpu_ms": 37.0,
+      "cpu_speedup": 4.281359366312529,
+      "metal_ms": 24.0,
+      "metal_speedup": 2.7770979673378564,
+      "ms": 8.642115,
+      "shape": "1x2",
+      "variant": "accepted"
+    },
+    {
+      "case": "1x2-w32",
+      "cpu_meets_10x": false,
+      "cpu_ms": 37.0,
+      "cpu_speedup": 4.299087768433007,
+      "metal_ms": 24.0,
+      "metal_speedup": 2.7885974714160047,
+      "ms": 8.606477,
+      "shape": "1x2",
+      "variant": "fresh"
+    },
+    {
+      "case": "1x2-w32",
+      "cpu_meets_10x": false,
+      "cpu_ms": 37.0,
+      "cpu_speedup": 4.04263913534723,
+      "metal_ms": 24.0,
+      "metal_speedup": 2.6222524121171222,
+      "ms": 9.152437,
+      "shape": "1x2",
+      "variant": "fused"
+    },
+    {
+      "case": "1x2-w16",
+      "cpu_meets_10x": false,
+      "cpu_ms": 37.0,
+      "cpu_speedup": 3.522784561253844,
+      "metal_ms": 24.0,
+      "metal_speedup": 2.285049445137629,
+      "ms": 10.503055000000002,
+      "shape": "1x2",
+      "variant": "accepted"
+    },
+    {
+      "case": "1x2-w16",
+      "cpu_meets_10x": false,
+      "cpu_ms": 37.0,
+      "cpu_speedup": 3.608025301423697,
+      "metal_ms": 24.0,
+      "metal_speedup": 2.3403407360586144,
+      "ms": 10.254917,
+      "shape": "1x2",
+      "variant": "fresh"
+    },
+    {
+      "case": "1x2-w16",
+      "cpu_meets_10x": false,
+      "cpu_ms": 37.0,
+      "cpu_speedup": 3.614133959731124,
+      "metal_ms": 24.0,
+      "metal_speedup": 2.344303109014783,
+      "ms": 10.237584,
+      "shape": "1x2",
+      "variant": "fused"
+    }
+  ],
+  "status": "complete"
+}
