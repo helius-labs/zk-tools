@@ -1,0 +1,103 @@
+# ========
+# captured on    : Tue Oct 27 00:42:54 2026
+# header version : 1
+# data offset    : 920
+# data size      : 973592
+# feat offset    : 974512
+# hostname : sdevbox
+# os release : 6.8.0-139-generic
+# perf version : 6.8.12
+# arch : x86_64
+# nrcpus online : 32
+# nrcpus avail : 32
+# cpudesc : AMD Ryzen 9 9950X 16-Core Processor
+# cpuid : AuthenticAMD,26,68,0
+# total memory : 129413476 kB
+# cmdline : /usr/lib/linux-tools-6.8.0-139/perf record --no-buildid-cache --clockid mono --delay=-1 --control=fifo:/tmp/zopro-poseidon-parallel/profiles/control-a/ctl,/tmp/zopro-poseidon-parallel/profiles/control-a/ack -e cycles:u -F 999 -o /tmp/zopro-poseidon-parallel/profiles/control-a/perf.data -- sudo -n -u ubuntu env ZOPRO_BENCH_PERF_CTL=/tmp/zopro-poseidon-parallel/profiles/control-a/ctl ZOPRO_BENCH_PERF_ACK=/tmp/zopro-poseidon-parallel/profiles/control-a/ack taskset -c 0-31 /tmp/zopro-poseidon-parallel/native/probe-sdk 16 0 1 32 control-a 
+# event : name = cycles:u, , id = { 834870, 834871, 834872, 834873, 834874, 834875, 834876, 834877, 834878, 834879, 834880, 834881, 834882, 834883, 834884, 834885, 834886, 834887, 834888, 834889, 834890, 834891, 834892, 834893, 834894, 834895, 834896, 834897, 834898, 834899, 834900, 834901 }, type = 0 (PERF_TYPE_HARDWARE), size = 136, config = 0 (PERF_COUNT_HW_CPU_CYCLES), { sample_period, sample_freq } = 999, sample_type = IP|TID|TIME|ID|PERIOD, read_format = ID|LOST, disabled = 1, inherit = 1, exclude_kernel = 1, exclude_hv = 1, freq = 1, sample_id_all = 1, exclude_guest = 1, use_clockid = 1, clockid = 1
+# event : name = dummy:u, , id = { 834902, 834903, 834904, 834905, 834906, 834907, 834908, 834909, 834910, 834911, 834912, 834913, 834914, 834915, 834916, 834917, 834918, 834919, 834920, 834921, 834922, 834923, 834924, 834925, 834926, 834927, 834928, 834929, 834930, 834931, 834932, 834933 }, type = 1 (software), size = 136, config = 0x9 (PERF_COUNT_SW_DUMMY), { sample_period, sample_freq } = 999, sample_type = IP|TID|TIME|ID|PERIOD, read_format = ID|LOST, disabled = 1, inherit = 1, exclude_kernel = 1, exclude_hv = 1, mmap = 1, comm = 1, freq = 1, enable_on_exec = 1, task = 1, sample_id_all = 1, exclude_guest = 1, mmap2 = 1, comm_exec = 1, use_clockid = 1, ksymbol = 1, bpf_event = 1, clockid = 1
+# CPU_TOPOLOGY info available, use -I to display
+# NUMA_TOPOLOGY info available, use -I to display
+# pmu mappings: cpu = 4, amd_iommu_0 = 12, breakpoint = 5, ibs_fetch = 10, ibs_op = 11, kprobe = 8, msr = 13, power = 14, software = 1, tracepoint = 2, uprobe = 9
+# CACHE info available, use -I to display
+# time of first sample : 4433759.289570
+# time of last sample : 4433759.938802
+# sample duration :    649.232 ms
+# MEM_TOPOLOGY info available, use -I to display
+# clockid frequency: 1000 MHz
+# bpf_prog_info 2: bpf_prog_7cc47bbf07148bfe_hid_tail_call addr 0xffffffffc004294c size 133
+# bpf_prog_info 2533: bpf_prog_8b9c33f36f812014_sd_devices addr 0xffffffffc004cba8 size 449
+# bpf_prog_info 2534: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc004cda4 size 56
+# bpf_prog_info 2535: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc004ce18 size 56
+# bpf_prog_info 2543: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc00459b8 size 311
+# bpf_prog_info 2544: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc00452d0 size 56
+# bpf_prog_info 2545: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc0045378 size 56
+# bpf_prog_info 2546: bpf_prog_c8b47a902f1cc68b_sd_devices addr 0xffffffffc00430d0 size 290
+# bpf_prog_info 2547: bpf_prog_ee0e253c78993a24_sd_devices addr 0xffffffffc0043210 size 260
+# bpf_prog_info 2549: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc0042ff8 size 56
+# bpf_prog_info 2550: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc0043050 size 56
+# bpf_prog_info 2551: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc004a524 size 311
+# bpf_prog_info 3835: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc00447a4 size 56
+# bpf_prog_info 3836: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc0044808 size 56
+# bpf_prog_info 3837: bpf_prog_fbee7646fdd03110_sd_devices addr 0xffffffffc0047d90 size 103
+# bpf_prog_info 3839: bpf_prog_41e33eb89741192c_sd_devices addr 0xffffffffc004f9a8 size 1106
+# btf info of id 5
+# cpu pmu capabilities: branches=16, max_precise=0
+# clockid: monotonic (1)
+# reference time: 2026-10-27 00:42:54.077108 = 1793061774.077108 (TOD) = 4433759.170058374 (monotonic)
+# ibs_fetch pmu capabilities: zen4_ibs_extensions=1
+# ibs_op pmu capabilities: zen4_ibs_extensions=1
+# AMD systems uses ibs_op// PMU for some precise events, e.g.: cycles:p, see the 'perf list' man page for further details.
+# missing features: TRACING_DATA BRANCH_STACK GROUP_DESC AUXTRACE STAT DIR_FORMAT COMPRESSED HYBRID_TOPOLOGY 
+# ========
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 20K of event 'cycles:u'
+# Event count (approx.): 98337741667
+#
+# Overhead  Command    Shared Object     Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+# ........  .........  ................  ...........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    40.52%  probe-sdk  probe-sdk         [.] _RNvMs_NtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidonNtB6_4Plan13emit_poseidon
+    27.47%  probe-sdk  probe-sdk         [.] _RNvMs_NtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidonNtB6_4Plan12run_poseidon
+    15.72%  probe-sdk  probe-sdk         [.] _RINvNtCsbYa8AcIWZFT_15crossbeam_epoch7default11with_handleNCNvB2_3pin0NtNtB4_5guard5GuardECs8zaw6vLE3tn_10rayon_core
+     6.33%  probe-sdk  probe-sdk         [.] _RNvNvMs_NtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidonNtB8_4Plan12run_poseidon5dense
+     3.99%  probe-sdk  probe-sdk         [.] _RNvMsb_NtCsHW5vo2gROj_10zopro_core6solverNtB5_4Plan3run
+     3.02%  probe-sdk  probe-sdk         [.] _RNvMs5_NtCsbYa8AcIWZFT_15crossbeam_epoch8internalNtB5_6Global11try_advance
+     0.55%  probe-sdk  probe-sdk         [.] _RNvMs8_NtCs8zaw6vLE3tn_10rayon_core8registryNtB5_12WorkerThread15wait_until_cold
+     0.41%  probe-sdk  probe-sdk         [.] _RNCINvNtCs8zaw6vLE3tn_10rayon_core4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB10_5slice12IterProducerINtNtCs6i54tJFfzR_5alloc3vec3VecmEEINtNtBY_3map11MapConsumerINtNtBY_10try_reduce17TryReduceConsumerINvNvNtBY_16ParallelIterator12try_for_each2okINtNtCsgxBkk5gSRhY_4core6result6ResultuNtNtB2D_6string6StringEENvYuNtNtB4X_7default7Default7defaultENCNvMNtNtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidon9componentNtB6z_5Probe8parallel0EE0NCBR_s_0B4S_B4S_E0B6F_
+     0.38%  probe-sdk  probe-sdk         [.] _RNvMs8_NtCsfQ2VmTO9G43_15crossbeam_deque5dequeINtB5_7StealerNtNtCs8zaw6vLE3tn_10rayon_core3job6JobRefE5stealB10_
+     0.35%  probe-sdk  probe-sdk         [.] _RNCNvMsb_NtCsHW5vo2gROj_10zopro_core6solverNtB7_4Plan3runs0_0B9_
+     0.25%  probe-sdk  probe-sdk         [.] _RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvNvNtB7_4join12join_context6call_bINtNtCsgxBkk5gSRhY_4core6result6ResultuNtNtCs6i54tJFfzR_5alloc6string6StringENCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB3f_5slice12IterProducerINtNtB2w_3vec3VecmEEINtNtB3d_3map11MapConsumerINtNtB3d_10try_reduce17TryReduceConsumerINvNvNtB3d_16ParallelIterator12try_for_each2okB1P_ENvYuNtNtB1U_7default7Default7defaultENCNvMNtNtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidon9componentNtB7G_5Probe8parallel0EEs_0E0B1P_ENtB5_3Job7executeB7M_
+     0.21%  probe-sdk  probe-sdk         [.] _RNvMNtCs8zaw6vLE3tn_10rayon_core5sleepNtB2_5Sleep20wake_specific_thread
+     0.19%  probe-sdk  [unknown]         [k] 0xffffffffa626a967
+     0.14%  probe-sdk  probe-sdk         [.] _RNvMNtNtNtNtCs9k3SxhrAWiO_3std3sys4sync5mutex5futexNtB2_5Mutex14lock_contended
+     0.12%  probe-sdk  probe-sdk         [.] _RINvNtCsbYa8AcIWZFT_15crossbeam_epoch7default11with_handleNCNvB2_3pin0NtNtB4_5guard5GuardECsHW5vo2gROj_10zopro_core
+     0.09%  probe-sdk  probe-sdk         [.] _RNvMs8_NtCs8zaw6vLE3tn_10rayon_core8registryNtB5_12WorkerThread14take_local_job.841
+     0.07%  probe-sdk  probe-sdk         [.] _RINvMNtCs8zaw6vLE3tn_10rayon_core5sleepNtB3_5Sleep5sleepNCNvMs8_NtB5_8registryNtB10_12WorkerThread15wait_until_cold0EB5_
+     0.07%  probe-sdk  probe-sdk         [.] _RINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB8_5slice12IterProducerINtNtCs6i54tJFfzR_5alloc3vec3VecmEEINtNtB6_3map11MapConsumerINtNtB6_10try_reduce17TryReduceConsumerINvNvNtB6_16ParallelIterator12try_for_each2okINtNtCsgxBkk5gSRhY_4core6result6ResultuNtNtB1K_6string6StringEENvYuNtNtB44_7default7Default7defaultENCNvMNtNtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidon9componentNtB5G_5Probe8parallel0EEB5M_
+     0.04%  probe-sdk  probe-sdk         [.] _RNvMs_NtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidonNtB6_4Plan17run_poseidon_task
+     0.02%  probe-sdk  [unknown]         [k] 0xffffffffa6400f30
+     0.02%  probe-sdk  probe-sdk         [.] _RNvMs5_NtCsbYa8AcIWZFT_15crossbeam_epoch8internalNtB5_6Global7collect
+     0.01%  probe-sdk  probe-sdk         [.] _RINvNtCsgxBkk5gSRhY_4core3ptr9drop_glueINtNtCs8zaw6vLE3tn_10rayon_core3job9JobResultINtNtB4_6result6ResultuNtNtCs6i54tJFfzR_5alloc6string6StringEEECsHW5vo2gROj_10zopro_core
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa6400083
+     0.01%  probe-sdk  probe-sdk         [.] _RNvMs8_NtCs8zaw6vLE3tn_10rayon_core8registryNtB5_12WorkerThread14take_local_job
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa515f0f3
+     0.00%  probe-sdk  [unknown]         [k] 0xffffffffa6254a11
+     0.00%  probe-sdk  probe-sdk         [.] _RNvMNtCs8zaw6vLE3tn_10rayon_core5sleepNtB2_5Sleep16wake_any_threads
+     0.00%  probe-sdk  [unknown]         [k] 0xffffffffa515f1d0
+     0.00%  probe-sdk  [unknown]         [k] 0xffffffffa522a9ae
+     0.00%  probe-sdk  [unknown]         [k] 0xffffffffa522b727
+     0.00%  probe-sdk  probe-sdk         [.] _RNvMNtNtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidon9componentNtB2_5Probe8parallel
+     0.00%  probe-sdk  [unknown]         [k] 0xffffffffa64000b3
+     0.00%  probe-sdk  [unknown]         [k] 0xffffffffa6252ddc
+     0.00%  probe-sdk  libc.so.6         [.] read
+     0.00%  probe-sdk  libc.so.6         [.] 0x0000000000098659
+     0.00%  probe-sdk  libc.so.6         [.] 0x00000000000986e1
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

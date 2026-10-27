@@ -1,0 +1,24 @@
+use std::{alloc::{GlobalAlloc,Layout},sync::atomic::{AtomicUsize,Ordering::Relaxed},time::Instant,hint::black_box};use serde_json::{Value,json};
+use zopro_prover::zopro_core::{self,PoseidonBatchProbe};
+#[path="support/perf.rs"]mod perf;
+static CALLS:AtomicUsize=AtomicUsize::new(0);struct Counted;
+unsafe impl GlobalAlloc for Counted{
+ unsafe fn alloc(&self,l:Layout)->*mut u8{CALLS.fetch_add(1,Relaxed);unsafe{zopro_core::alloc::Allocator.alloc(l)}}
+ unsafe fn alloc_zeroed(&self,l:Layout)->*mut u8{CALLS.fetch_add(1,Relaxed);unsafe{zopro_core::alloc::Allocator.alloc_zeroed(l)}}
+ unsafe fn realloc(&self,p:*mut u8,l:Layout,n:usize)->*mut u8{CALLS.fetch_add(1,Relaxed);unsafe{zopro_core::alloc::Allocator.realloc(p,l,n)}}
+ unsafe fn dealloc(&self,p:*mut u8,l:Layout){unsafe{zopro_core::alloc::Allocator.dealloc(p,l)}}
+}
+#[global_allocator]static ALLOCATOR:Counted=Counted;
+fn cpus()->Vec<usize>{unsafe{let mut set:libc::cpu_set_t=std::mem::zeroed();assert_eq!(libc::sched_getaffinity(0,std::mem::size_of_val(&set),&mut set),0);(0..libc::CPU_SETSIZE as usize).filter(|&i|libc::CPU_ISSET(i,&set)).collect()}}
+fn pin(cpu:usize){unsafe{let mut set:libc::cpu_set_t=std::mem::zeroed();libc::CPU_ZERO(&mut set);libc::CPU_SET(cpu,&mut set);assert_eq!(libc::sched_setaffinity(0,std::mem::size_of_val(&set),&set),0);}}
+fn receipt(pool:&rayon::ThreadPool,expected:&[usize])->Vec<Value>{let mut rows=pool.broadcast(|_|{let i=rayon::current_thread_index().unwrap();let allowed=cpus();assert_eq!(allowed,vec![expected[i]]);let cpu=unsafe{libc::sched_getcpu()};assert_eq!(cpu,expected[i]as i32);json!({"worker":i,"tid":unsafe{libc::syscall(libc::SYS_gettid)},"cpu":cpu,"allowed":allowed})});rows.sort_by_key(|x|x["worker"].as_u64().unwrap());assert_eq!(rows.len(),expected.len());rows}
+fn main()->Result<(),Box<dyn std::error::Error>>{
+ let args:Vec<_>=std::env::args().collect();assert_eq!(args.len(),6);let groups:usize=args[1].parse()?;let c=args[2]=="1";let ragged=args[3]=="1";let workers:usize=args[4].parse()?;let paired=args[5]=="paired";assert!([1,4,16].contains(&groups));assert!([16,32].contains(&workers));let allowed=cpus();assert_eq!(allowed.len(),workers);let target=allowed.clone();let pool=rayon::ThreadPoolBuilder::new().num_threads(workers).start_handler(move|i|pin(target[i])).build()?;let before=receipt(&pool,&allowed);let mut control=perf::Control::from_env()?;if paired{assert!(control.is_none());}
+ let mut probe=PoseidonBatchProbe::new(groups,false,c,ragged);probe.reset(0);probe.run(2)?;let expected=probe.snapshot();let profile_mode=args[5].clone();
+ let stages=pool.install(||->Result<Vec<Value>,String>{let mut out=Vec::with_capacity(if paired{28}else{1});let blocks=if paired{7}else{1};for block in 0..blocks{let mut modes=if paired{vec!["control-a","control-b","plain","grouped"]}else{vec![profile_mode.as_str()]};if paired{modes.rotate_left((block+groups+usize::from(c)+usize::from(ragged))%4);if block%2==1{modes.reverse();}}
+  for mode in modes{let code=match mode{"control-a"|"control-b"=>0,"plain"=>1,"grouped"=>2,_=>panic!("mode")};let allocations=CALLS.load(Relaxed);let sorting=Instant::now();probe.arrange(code==2,workers);let sort_ms=sorting.elapsed().as_secs_f64()*1000.;let sort_allocs=CALLS.load(Relaxed)-allocations;let enabled=probe.grouping_enabled();let layout=probe.layout_counts(code==1||code==2&&enabled);probe.reset(0);for _ in 0..3{black_box(&mut probe).parallel(code)?;}assert_eq!(probe.snapshot(),expected);
+   if let Some(p)=control.as_mut(){p.enable().map_err(|e|e.to_string())?;}let usage0=perf::Usage::now().map_err(|e|e.to_string())?;let allocations=CALLS.load(Relaxed);let iterations=if paired{512/groups}else{4096};let started=Instant::now();for _ in 0..iterations{black_box(&mut probe).parallel(code)?;}let ms=started.elapsed().as_secs_f64()*1000.;let calls=CALLS.load(Relaxed)-allocations;let usage1=perf::Usage::now().map_err(|e|e.to_string())?;if let Some(p)=control.as_mut(){p.disable().map_err(|e|e.to_string())?;}assert_eq!(probe.snapshot(),expected);
+   let mut result=usage1.difference(&usage0);result["block"]=json!(block);result["mode"]=json!(mode);result["workers"]=json!(workers);result["groups"]=json!(groups);result["materialize_c"]=json!(c);result["ragged"]=json!(ragged);result["iterations"]=json!(iterations);result["ms"]=json!(ms);result["ns_per_epoch"]=json!(ms*1e6/iterations as f64);result["ns_per_hash"]=json!(ms*1e6/(iterations*probe.hashes())as f64);result["layout_counts"]=json!(layout);result["grouping_enabled"]=json!(enabled);result["sort_ms"]=json!(sort_ms);result["sort_allocation_calls"]=json!(sort_allocs);result["timed_allocation_calls"]=json!(calls);result["all_outputs_match_interpreter"]=json!(true);out.push(result);
+  }}Ok(out)}).map_err(std::io::Error::other)?;
+ let after=receipt(&pool,&allowed);assert_eq!(before,after);println!("AFFINITY {}",json!({"before":before,"after":after}));for result in stages{println!("STAGE {result}");}Ok(())
+}

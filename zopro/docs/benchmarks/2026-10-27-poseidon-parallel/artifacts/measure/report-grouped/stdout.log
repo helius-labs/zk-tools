@@ -1,0 +1,127 @@
+# ========
+# captured on    : Tue Oct 27 00:42:58 2026
+# header version : 1
+# data offset    : 920
+# data size      : 772760
+# feat offset    : 773680
+# hostname : sdevbox
+# os release : 6.8.0-139-generic
+# perf version : 6.8.12
+# arch : x86_64
+# nrcpus online : 32
+# nrcpus avail : 32
+# cpudesc : AMD Ryzen 9 9950X 16-Core Processor
+# cpuid : AuthenticAMD,26,68,0
+# total memory : 129413476 kB
+# cmdline : /usr/lib/linux-tools-6.8.0-139/perf record --no-buildid-cache --clockid mono --delay=-1 --control=fifo:/tmp/zopro-poseidon-parallel/profiles/grouped/ctl,/tmp/zopro-poseidon-parallel/profiles/grouped/ack -e cycles:u -F 999 -o /tmp/zopro-poseidon-parallel/profiles/grouped/perf.data -- sudo -n -u ubuntu env ZOPRO_BENCH_PERF_CTL=/tmp/zopro-poseidon-parallel/profiles/grouped/ctl ZOPRO_BENCH_PERF_ACK=/tmp/zopro-poseidon-parallel/profiles/grouped/ack taskset -c 0-31 /tmp/zopro-poseidon-parallel/native/probe-sdk 16 0 1 32 grouped 
+# event : name = cycles:u, , id = { 841503, 841504, 841505, 841506, 841507, 841508, 841509, 841510, 841511, 841512, 841513, 841514, 841515, 841516, 841517, 841518, 841519, 841520, 841521, 841522, 841523, 841524, 841525, 841526, 841527, 841528, 841529, 841530, 841531, 841532, 841533, 841534 }, type = 0 (PERF_TYPE_HARDWARE), size = 136, config = 0 (PERF_COUNT_HW_CPU_CYCLES), { sample_period, sample_freq } = 999, sample_type = IP|TID|TIME|ID|PERIOD, read_format = ID|LOST, disabled = 1, inherit = 1, exclude_kernel = 1, exclude_hv = 1, freq = 1, sample_id_all = 1, exclude_guest = 1, use_clockid = 1, clockid = 1
+# event : name = dummy:u, , id = { 841535, 841536, 841537, 841538, 841539, 841540, 841541, 841542, 841543, 841544, 841545, 841546, 841547, 841548, 841549, 841550, 841551, 841552, 841553, 841554, 841555, 841556, 841557, 841558, 841559, 841560, 841561, 841562, 841563, 841564, 841565, 841566 }, type = 1 (software), size = 136, config = 0x9 (PERF_COUNT_SW_DUMMY), { sample_period, sample_freq } = 999, sample_type = IP|TID|TIME|ID|PERIOD, read_format = ID|LOST, disabled = 1, inherit = 1, exclude_kernel = 1, exclude_hv = 1, mmap = 1, comm = 1, freq = 1, enable_on_exec = 1, task = 1, sample_id_all = 1, exclude_guest = 1, mmap2 = 1, comm_exec = 1, use_clockid = 1, ksymbol = 1, bpf_event = 1, clockid = 1
+# CPU_TOPOLOGY info available, use -I to display
+# NUMA_TOPOLOGY info available, use -I to display
+# pmu mappings: cpu = 4, amd_iommu_0 = 12, breakpoint = 5, ibs_fetch = 10, ibs_op = 11, kprobe = 8, msr = 13, power = 14, software = 1, tracepoint = 2, uprobe = 9
+# CACHE info available, use -I to display
+# time of first sample : 4433762.737696
+# time of last sample : 4433763.544697
+# sample duration :    807.002 ms
+# MEM_TOPOLOGY info available, use -I to display
+# clockid frequency: 1000 MHz
+# bpf_prog_info 2: bpf_prog_7cc47bbf07148bfe_hid_tail_call addr 0xffffffffc004294c size 133
+# bpf_prog_info 2533: bpf_prog_8b9c33f36f812014_sd_devices addr 0xffffffffc004cba8 size 449
+# bpf_prog_info 2534: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc004cda4 size 56
+# bpf_prog_info 2535: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc004ce18 size 56
+# bpf_prog_info 2543: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc00459b8 size 311
+# bpf_prog_info 2544: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc00452d0 size 56
+# bpf_prog_info 2545: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc0045378 size 56
+# bpf_prog_info 2546: bpf_prog_c8b47a902f1cc68b_sd_devices addr 0xffffffffc00430d0 size 290
+# bpf_prog_info 2547: bpf_prog_ee0e253c78993a24_sd_devices addr 0xffffffffc0043210 size 260
+# bpf_prog_info 2549: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc0042ff8 size 56
+# bpf_prog_info 2550: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc0043050 size 56
+# bpf_prog_info 2551: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc004a524 size 311
+# bpf_prog_info 3835: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc00447a4 size 56
+# bpf_prog_info 3836: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc0044808 size 56
+# bpf_prog_info 3837: bpf_prog_fbee7646fdd03110_sd_devices addr 0xffffffffc0047d90 size 103
+# bpf_prog_info 3839: bpf_prog_41e33eb89741192c_sd_devices addr 0xffffffffc004f9a8 size 1106
+# btf info of id 5
+# cpu pmu capabilities: branches=16, max_precise=0
+# clockid: monotonic (1)
+# reference time: 2026-10-27 00:42:57.534726 = 1793061777.534726 (TOD) = 4433762.627676166 (monotonic)
+# ibs_fetch pmu capabilities: zen4_ibs_extensions=1
+# ibs_op pmu capabilities: zen4_ibs_extensions=1
+# AMD systems uses ibs_op// PMU for some precise events, e.g.: cycles:p, see the 'perf list' man page for further details.
+# missing features: TRACING_DATA BRANCH_STACK GROUP_DESC AUXTRACE STAT DIR_FORMAT COMPRESSED HYBRID_TOPOLOGY 
+# ========
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 15K of event 'cycles:u'
+# Event count (approx.): 64544525120
+#
+# Overhead  Command    Shared Object     Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+# ........  .........  ................  ........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    37.53%  probe-sdk  probe-sdk         [.] _RINvNtCsbYa8AcIWZFT_15crossbeam_epoch7default11with_handleNCNvB2_3pin0NtNtB4_5guard5GuardECs8zaw6vLE3tn_10rayon_core
+    24.44%  probe-sdk  probe-sdk         [.] _RNvNtNtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidon7across84emit
+    12.27%  probe-sdk  probe-sdk         [.] _RNvNtNtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidon7across83run
+     8.74%  probe-sdk  probe-sdk         [.] _RNvMsb_NtCsHW5vo2gROj_10zopro_core6solverNtB5_4Plan3run
+     4.29%  probe-sdk  probe-sdk         [.] _RNvMs5_NtCsbYa8AcIWZFT_15crossbeam_epoch8internalNtB5_6Global11try_advance
+     2.10%  probe-sdk  probe-sdk         [.] _RNvMs_NtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidonNtB6_4Plan13emit_poseidon
+     1.88%  probe-sdk  probe-sdk         [.] _RNvNtNtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidon7across85dense
+     1.75%  probe-sdk  probe-sdk         [.] _RNvMNtCs8zaw6vLE3tn_10rayon_core5sleepNtB2_5Sleep20wake_specific_thread
+     1.64%  probe-sdk  probe-sdk         [.] _RNvMNtNtNtNtCs9k3SxhrAWiO_3std3sys4sync5mutex5futexNtB2_5Mutex14lock_contended
+     1.00%  probe-sdk  probe-sdk         [.] _RNvMs8_NtCsfQ2VmTO9G43_15crossbeam_deque5dequeINtB5_7StealerNtNtCs8zaw6vLE3tn_10rayon_core3job6JobRefE5stealB10_
+     0.90%  probe-sdk  probe-sdk         [.] _RNvMs8_NtCs8zaw6vLE3tn_10rayon_core8registryNtB5_12WorkerThread15wait_until_cold
+     0.81%  probe-sdk  probe-sdk         [.] _RNvMs_NtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidonNtB6_4Plan12run_poseidon
+     0.57%  probe-sdk  [unknown]         [k] 0xffffffffa626a967
+     0.57%  probe-sdk  probe-sdk         [.] _RINvMNtCs8zaw6vLE3tn_10rayon_core5sleepNtB3_5Sleep5sleepNCNvMs8_NtB5_8registryNtB10_12WorkerThread15wait_until_cold0EB5_
+     0.34%  probe-sdk  probe-sdk         [.] _RNCNvMsb_NtCsHW5vo2gROj_10zopro_core6solverNtB7_4Plan3runs0_0B9_
+     0.27%  probe-sdk  probe-sdk         [.] _RNvNvMs_NtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidonNtB8_4Plan12run_poseidon5dense
+     0.12%  probe-sdk  probe-sdk         [.] _RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvNvNtB7_4join12join_context6call_bINtNtCsgxBkk5gSRhY_4core6result6ResultuNtNtCs6i54tJFfzR_5alloc6string6StringENCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtNtB3f_5slice6chunks14ChunksProducerINtNtB2w_3vec3VecmEEINtNtB3d_3map11MapConsumerINtNtB3d_10try_reduce17TryReduceConsumerINvNvNtB3d_16ParallelIterator12try_for_each2okB1P_ENvYuNtNtB1U_7default7Default7defaultENCNvMNtNtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidon9componentNtB7R_5Probe8parallels_0EEs_0E0B1P_ENtB5_3Job7executeB7X_
+     0.11%  probe-sdk  probe-sdk         [.] _RINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtNtB8_5slice6chunks14ChunksProducerINtNtCs6i54tJFfzR_5alloc3vec3VecmEEINtNtB6_3map11MapConsumerINtNtB6_10try_reduce17TryReduceConsumerINvNvNtB6_16ParallelIterator12try_for_each2okINtNtCsgxBkk5gSRhY_4core6result6ResultuNtNtB1V_6string6StringEENvYuNtNtB4f_7default7Default7defaultENCNvMNtNtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidon9componentNtB5R_5Probe8parallels_0EEB5X_
+     0.08%  probe-sdk  libc.so.6         [.] 0x00000000001a1890
+     0.07%  probe-sdk  [unknown]         [k] 0xffffffffa6400080
+     0.06%  probe-sdk  [unknown]         [k] 0xffffffffa522ece2
+     0.06%  probe-sdk  probe-sdk         [.] _RINvNtCsbYa8AcIWZFT_15crossbeam_epoch7default11with_handleNCNvB2_3pin0NtNtB4_5guard5GuardECsHW5vo2gROj_10zopro_core
+     0.05%  probe-sdk  [unknown]         [k] 0xffffffffa6400f30
+     0.04%  probe-sdk  probe-sdk         [.] _RNvMs5_NtCsbYa8AcIWZFT_15crossbeam_epoch8internalNtB5_6Global7collect
+     0.03%  probe-sdk  libc.so.6         [.] 0x00000000001a186f
+     0.02%  probe-sdk  libc.so.6         [.] 0x00000000001a18a4
+     0.02%  probe-sdk  probe-sdk         [.] _RINvNtCsgxBkk5gSRhY_4core3ptr9drop_glueINtNtCs8zaw6vLE3tn_10rayon_core3job9JobResultINtNtB4_6result6ResultuNtNtCs6i54tJFfzR_5alloc6string6StringEEECsHW5vo2gROj_10zopro_core
+     0.02%  probe-sdk  probe-sdk         [.] _RNCINvNtCs8zaw6vLE3tn_10rayon_core4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtNtB10_5slice6chunks14ChunksProducerINtNtCs6i54tJFfzR_5alloc3vec3VecmEEINtNtBY_3map11MapConsumerINtNtBY_10try_reduce17TryReduceConsumerINvNvNtBY_16ParallelIterator12try_for_each2okINtNtCsgxBkk5gSRhY_4core6result6ResultuNtNtB2O_6string6StringEENvYuNtNtB58_7default7Default7defaultENCNvMNtNtNtCsHW5vo2gROj_10zopro_core6solver15sparse_poseidon9componentNtB6K_5Probe8parallels_0EE0NCBR_s_0B53_B53_E0B6Q_
+     0.02%  probe-sdk  libc.so.6         [.] 0x00000000001a18aa
+     0.02%  probe-sdk  libc.so.6         [.] 0x00000000001a187d
+     0.02%  probe-sdk  [unknown]         [k] 0xffffffffa640008c
+     0.02%  probe-sdk  libc.so.6         [.] __sched_yield
+     0.02%  probe-sdk  [unknown]         [k] 0xffffffffa51a7c9b
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa5175e45
+     0.01%  probe-sdk  probe-sdk         [.] _RNvMNtCs8zaw6vLE3tn_10rayon_core5sleepNtB2_5Sleep16wake_any_threads
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa5159ebc
+     0.01%  probe-sdk  probe-sdk         [.] _RNvMs8_NtCs8zaw6vLE3tn_10rayon_core8registryNtB5_12WorkerThread14take_local_job
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa520fba5
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa6252e1d
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa62619ac
+     0.01%  probe-sdk  libc.so.6         [.] 0x00000000001a189e
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa626aaa6
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa522f901
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa522fab5
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa626a97c
+     0.01%  probe-sdk  libc.so.6         [.] 0x00000000001a1640
+     0.01%  probe-sdk  libc.so.6         [.] 0x00000000001a1862
+     0.01%  probe-sdk  libc.so.6         [.] 0x00000000001a1854
+     0.01%  probe-sdk  libc.so.6         [.] 0x00000000001a17e6
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa5175e46
+     0.01%  probe-sdk  libc.so.6         [.] 0x00000000001a1876
+     0.01%  probe-sdk  libc.so.6         [.] 0x00000000001a1897
+     0.01%  probe-sdk  [unknown]         [k] 0xffffffffa6400083
+     0.01%  probe-sdk  libc.so.6         [.] 0x00000000001a183e
+     0.00%  probe-sdk  [unknown]         [k] 0xffffffffa62612ec
+     0.00%  probe-sdk  [unknown]         [k] 0xffffffffa522f8d0
+     0.00%  probe-sdk  [unknown]         [k] 0xffffffffa522b813
+     0.00%  probe-sdk  libc.so.6         [.] read
+     0.00%  probe-sdk  libc.so.6         [.] 0x0000000000098659
+     0.00%  probe-sdk  libc.so.6         [.] 0x00000000000986e1
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#
