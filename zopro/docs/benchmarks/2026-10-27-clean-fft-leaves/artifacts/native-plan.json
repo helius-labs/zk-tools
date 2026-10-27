@@ -1,0 +1,265 @@
+{
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "MALLOC_ARENA_MAX": "32",
+    "MALLOC_MMAP_THRESHOLD_": "1073741824",
+    "MALLOC_TRIM_THRESHOLD_": "-1",
+    "RAYON_NUM_THREADS": "4",
+    "ZOPRO_BASIS_KEY_DIR": "/tmp/zopro-canonical-grain-adoption/images",
+    "ZOPRO_CPU_BOUNDED_SCHEDULE": "1",
+    "ZOPRO_CPU_CANONICAL_WIRES": "1",
+    "ZOPRO_CPU_DEFER_SIGNED_Y": "1",
+    "ZOPRO_CPU_DEFER_SIGN_PARTS": "1",
+    "ZOPRO_CPU_DEFER_SIGN_WIDTH": "12",
+    "ZOPRO_CPU_FFT_COLUMN_ROOTS": "1",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_LAGRANGE": "1",
+    "ZOPRO_CPU_LAGRANGE_DIR": "/tmp/zopro-lagrange-cache",
+    "ZOPRO_CPU_LAGRANGE_FOLD": "1",
+    "ZOPRO_CPU_PROOF_CONCURRENCY": "1",
+    "ZOPRO_CPU_RESOURCE_SCHEDULE": "1",
+    "ZOPRO_CPU_SMALL_CORE_ENTRY": "1",
+    "ZOPRO_CPU_ZERO_AWARE_GROUPS": "1"
+  },
+  "source_pins": "/tmp/zopro-clean-fft-leaves/source-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/tmp/zopro-clean-fft-leaves/fresh/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-clean-fft-leaves/target-fresh",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "fresh-core",
+      "required_tests": [
+        "msm::deferred_sign_reference_tests::borrowed_signed_stream_tails_and_reuse_match_generator",
+        "msm_affine::borrowed_pending::tests::pending_record_sizes_and_collision_reuse",
+        "msm_affine::borrowed_pending::tests::fused_generator_oracle_and_owned_control",
+        "msm_affine::borrowed_pending::tests::ordinary_queries_generator_oracle_and_owned_control",
+        "msm_affine::borrowed_pending::tests::ordinary_trait_dispatch_and_fallback",
+        "msm::adaptive_tree_tests::adaptive_boundaries_preserve_outputs_and_bound_retained_record_capacity",
+        "msm::tree_prefix_tests::prefix_tree_complete_pairs_tails_and_reuse",
+        "solver::sparse_poseidon::tests::every_width_exact_rows_and_adversarial_rejection",
+        "solver::sparse_poseidon::tests::raw_operation_indices_above_tag_limit_fall_back"
+      ],
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/tmp/zopro-clean-fft-leaves/fresh/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-prover",
+        "--lib",
+        "--test",
+        "cubic",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-clean-fft-leaves/target-fresh",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "fresh-prover",
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/tmp/zopro-clean-fft-leaves/fresh/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-clean-fft-leaves/target-fresh",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "fresh-libraries",
+      "timeout_seconds": 1200
+    },
+    {
+      "additional_sources": [
+        "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/support/perf.rs"
+      ],
+      "artifacts": "/tmp/zopro-clean-fft-leaves/native/fresh-libraries/stdout.log",
+      "driver": "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/cpu-sdk.rs",
+      "kind": "link-sdk",
+      "name": "fresh"
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/tmp/zopro-clean-fft-leaves/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-clean-fft-leaves/target-candidate",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "candidate-core",
+      "required_tests": [
+        "msm::deferred_sign_reference_tests::borrowed_signed_stream_tails_and_reuse_match_generator",
+        "msm_affine::borrowed_pending::tests::pending_record_sizes_and_collision_reuse",
+        "msm_affine::borrowed_pending::tests::fused_generator_oracle_and_owned_control",
+        "msm_affine::borrowed_pending::tests::ordinary_queries_generator_oracle_and_owned_control",
+        "msm_affine::borrowed_pending::tests::ordinary_trait_dispatch_and_fallback",
+        "msm::adaptive_tree_tests::adaptive_boundaries_preserve_outputs_and_bound_retained_record_capacity",
+        "msm::tree_prefix_tests::prefix_tree_complete_pairs_tails_and_reuse",
+        "solver::sparse_poseidon::tests::every_width_exact_rows_and_adversarial_rejection",
+        "solver::sparse_poseidon::tests::raw_operation_indices_above_tag_limit_fall_back",
+        "fft::pair::leaf::tests::cutoff_bounds_and_available_parallelism_hold_at_domain_and_worker_edges",
+        "fft::pair::leaf::tests::inverse_and_forward_match_scalar_polynomials_with_cached_and_twisted_roots",
+        "fft::pair::leaf::tests::concurrent_callers_share_roots_with_small_worker_stacks"
+      ],
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/tmp/zopro-clean-fft-leaves/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-prover",
+        "--lib",
+        "--test",
+        "cubic",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-clean-fft-leaves/target-candidate",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "candidate-prover",
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/tmp/zopro-clean-fft-leaves/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-clean-fft-leaves/target-candidate",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "candidate-libraries",
+      "timeout_seconds": 1200
+    },
+    {
+      "additional_sources": [
+        "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/support/perf.rs"
+      ],
+      "artifacts": "/tmp/zopro-clean-fft-leaves/native/candidate-libraries/stdout.log",
+      "driver": "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/cpu-sdk.rs",
+      "kind": "link-sdk",
+      "name": "candidate"
+    },
+    {
+      "argv": [
+        "cargo",
+        "check",
+        "--manifest-path",
+        "/tmp/zopro-clean-fft-leaves/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "--lib",
+        "-p",
+        "zopro-core",
+        "-p",
+        "zopro-prover",
+        "-p",
+        "zopro-zolana"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-clean-fft-leaves/target-portable-consumers",
+        "RUSTFLAGS": "-C target-cpu=x86-64 --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "portable-consumers",
+      "timeout_seconds": 1200
+    },
+    {
+      "argv": [
+        "cargo",
+        "check",
+        "--manifest-path",
+        "/tmp/zopro-clean-fft-leaves/candidate/Cargo.toml",
+        "--offline",
+        "--locked",
+        "--release",
+        "--lib",
+        "-p",
+        "zopro-core",
+        "-p",
+        "zopro-prover",
+        "-p",
+        "zopro-zolana"
+      ],
+      "environment": {
+        "CARGO_TARGET_DIR": "/tmp/zopro-clean-fft-leaves/target-no-ifma-consumers",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg no_ifma"
+      },
+      "kind": "command",
+      "name": "no-ifma-consumers",
+      "timeout_seconds": 1200
+    }
+  ],
+  "version": 1
+}
