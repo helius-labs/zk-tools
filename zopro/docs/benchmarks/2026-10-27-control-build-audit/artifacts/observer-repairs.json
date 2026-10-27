@@ -1,0 +1,12 @@
+{
+  "sections_v1": "The synthetic section-table fixture had a string-slice length/name-index typo; production ELF parsing was separately checked against readelf. Original source and failed test log are retained.",
+  "code_v1": "The observer initially asserted every decoded address was inside a named function. Valid alignment padding violated this. Corrected attribution labels padding explicitly; no executable was changed.",
+  "code_v2": "The first file-image RIP lookup included nonallocated debug sections with zero virtual addresses. That invalidated its literal-load attribution. The v2 summary is retained and superseded for referent analysis. Correct lookup requires SHF_ALLOC, and an overlapping-debug-section regression fixture covers this condition.",
+  "code_v3_test_fixture": "The added regression fixture expected a section name without its leading dot; the expectation was corrected and overlap coverage strengthened before the final observer run.",
+  "final_tests": 4,
+  "new_SDK_calls": 0,
+  "new_proofs": 0,
+  "new_native_builds": 0,
+  "timing_or_profile_capture_repeated": false,
+  "production_changed": false
+}

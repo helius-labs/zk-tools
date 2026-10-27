@@ -1,0 +1,23 @@
+
+running 4 tests
+test elf::tests::x86_64_section_offsets_are_not_virtual_addresses ... ok
+test tests::only_RIP_displacement_is_normalized ... ok
+test tests::read_width_and_targets_preserve_operand_meaning ... ok
+test tests::rip_lookup_ignores_nonallocated_debug_sections ... FAILED
+
+failures:
+
+---- tests::rip_lookup_ignores_nonallocated_debug_sections stdout ----
+
+thread 'tests::rip_lookup_ignores_nonallocated_debug_sections' (1051096) panicked at /tmp/zopro-control-build-audit/code.rs:288:9:
+assertion `left == right` failed
+  left: ".rodata"
+ right: "rodata"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::rip_lookup_ignores_nonallocated_debug_sections
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

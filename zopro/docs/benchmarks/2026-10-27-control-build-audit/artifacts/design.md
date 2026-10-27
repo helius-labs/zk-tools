@@ -1,0 +1,9 @@
+# Offline control-build audit
+
+Previous goal turn made progress: the exact prefix-cutoff SDK study was completed, independently verified, archived, committed and pushed as faafedb6149ba66d88aba4956182931342c66ca3. Candidate remains unadopted, accepted171source/824164SDK unchanged. All-eight M5 CPU10x goal remains active0/8. Last distinct-proof ledger9,904.
+
+The source-identical fresh6740f320control failed five calibration bounds versus accepted. Inspect existing artifacts to determine what is demonstrably identical and different: all accepted source pins, standard driver/support, recorded Cargo and direct-rustc flags/environment, selected direct/transitive dependencies and existing ELF symbols/caller code. The prior reference-staging fresh control may provide an additional existing identity. No new SDK request, timing/profile capture, source/build/flag change or unchanged benchmark reroll is authorized by this audit. Do not infer cache/spill/frequency or latency causality from static differences.
+
+Retain input hashes and commands. If the binaries differ despite exact source/flags/dependencies, compare actual hot caller instruction shapes while preserving registers, stack offsets, constants, local branch topology and available global target identities. Address/relocation normalization can hide differences, so record its scope and cannot claim full semantic equivalence. A static code difference does not establish cause; identical code does not guarantee equal runtime behavior.
+
+Publish a factual report with the supported limitation and next action. Preserve all earlier verdicts/observations and every small positive estimate. Commit AND push this completed diagnostic before another experiment. Production and accepted manifest remain unchanged; no new proof count, M5, AWS/Aeglos, phone/large/memory qualification or speed claim follows from this audit.
