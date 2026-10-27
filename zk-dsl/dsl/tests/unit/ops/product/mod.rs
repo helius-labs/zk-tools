@@ -3,7 +3,7 @@ mod external;
 use ark_bn254::Fr;
 use ark_ff::{One, Zero};
 use proptest::prelude::*;
-use zolana_program::{
+use spr_program::{
     circuit::{constant, Circuit, Field},
     conversion::ProofInput,
     CircuitError,

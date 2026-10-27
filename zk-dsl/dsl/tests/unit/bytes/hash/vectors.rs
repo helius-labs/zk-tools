@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use num_bigint::BigUint;
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 pub struct Vector {
     pub name: String,
@@ -30,7 +30,7 @@ pub fn vectors() -> Vec<Vector> {
 }
 pub fn native_hash<const N: usize>(bytes: &[u8; N]) -> Field {
     Field::from(Fr::from(BigUint::from_bytes_be(
-        &zolana_hasher::primitives::hash_bytes(bytes).expect("native hash"),
+        &spr_hasher::primitives::hash_bytes(bytes).expect("native hash"),
     )))
 }
 impl Vector {

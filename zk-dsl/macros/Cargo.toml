@@ -1,11 +1,11 @@
 [package]
-name = "zolana-zk-macros"
+name = "spr-zk-macros"
 version = "0.1.0"
 description = "Derives of the zk circuit DSL: CircuitType, ProofInput and ErrorName."
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
-publish = false
+publish = ["crates-io"]
 
 [lib]
 proc-macro = true
@@ -13,8 +13,8 @@ proc-macro = true
 [dependencies]
 proc-macro2 = { workspace = true }
 syn = { workspace = true }
-zolana-zk-macros-core = { workspace = true }
+spr-zk-macros-core = { workspace = true }
 
 [dev-dependencies]
 trybuild = "1"
-zolana-zk-dsl = { workspace = true, features = ["client"] }
+spr-zk-dsl = { path = "../dsl", features = ["client"] }

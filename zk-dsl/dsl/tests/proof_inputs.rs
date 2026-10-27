@@ -1,8 +1,8 @@
 #![cfg(feature = "client")]
 
-extern crate zolana_zk_dsl as zolana_program;
+extern crate spr_zk_dsl as spr_program;
 
-use zolana_program::{
+use spr_program::{
     circuit::Assert,
     circuit::{Circuit, CircuitType, Uint},
     conversion::{Allocator, Placeholder, ProofInput},

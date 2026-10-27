@@ -1,7 +1,7 @@
 use ark_bn254::Fr;
 use num_bigint::BigUint;
 use proptest::prelude::*;
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 use super::fixtures::{Borrowed, FILE, WIDTH_RULE, X_WIRE};
 use crate::{
@@ -49,7 +49,7 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(32))]
     #[test]
     fn random_constants_and_bool_conversions_keep_integer_values_and_bind_claims(x in any::<u64>(), offset in 1u64..) {
-        use zolana_program::circuit::{value, CircuitVar, Uint};
+        use spr_program::circuit::{value, CircuitVar, Uint};
         use super::fixtures::{Constants, FromBool, RULE};
         use crate::harness::fixture::{native as native_result, rule_broken};
         let as_field = |x: Uint<64>| value(&CircuitVar::from(x)).expect("constant integer");

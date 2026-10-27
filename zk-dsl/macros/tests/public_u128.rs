@@ -1,11 +1,11 @@
-extern crate zolana_zk_dsl as zolana_program;
+extern crate spr_zk_dsl as spr_program;
 
-use zolana_program::{
+use spr_program::{
     circuit::{value, Field},
     conversion::{Allocator, FromCircuit, Placeholder, ProofInput},
 };
 
-#[derive(Clone, zolana_zk_macros::PublicInputs)]
+#[derive(Clone, spr_zk_macros::PublicInputs)]
 struct WidePublic {
     amount: u128,
 }

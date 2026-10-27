@@ -1,4 +1,4 @@
-use zolana_program::{
+use spr_program::{
     circuit::{Assert, Circuit, CircuitVar, Field, Select, Uint},
     conversion::ProofInput,
     CircuitError,

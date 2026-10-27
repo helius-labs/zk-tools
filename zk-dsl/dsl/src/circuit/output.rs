@@ -31,7 +31,7 @@ pub struct Public<T>(pub T);
 ///
 /// Integers, bools and field values take one public input each. `Bytes<N>`
 /// packs into 31-byte big-endian chunks, one public input per chunk, the same
-/// packing as `zolana_hasher::primitives::pack_be`. Arrays and structs list
+/// packing as `spr_hasher::primitives::pack_be`. Arrays and structs list
 /// their items in order. `#[derive(PublicInputs)]` implements it for a struct.
 pub trait PublicValue {
     const PUBLIC_INPUTS: usize;
@@ -64,7 +64,7 @@ impl<const BITS: usize> PublicValue for Uint<BITS> {
 }
 
 impl<const N: usize> PublicValue for Bytes<N> {
-    const PUBLIC_INPUTS: usize = zolana_hasher::primitives::pack_be_chunks(N);
+    const PUBLIC_INPUTS: usize = spr_hasher::primitives::pack_be_chunks(N);
 
     fn public_inputs(&self, inputs: &mut Vec<CircuitVar>) {
         inputs.extend(self.packed());

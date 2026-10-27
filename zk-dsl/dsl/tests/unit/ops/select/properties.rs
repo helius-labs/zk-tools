@@ -1,5 +1,5 @@
 use proptest::prelude::*;
-use zolana_program::circuit::{value, CircuitVar, Field};
+use spr_program::circuit::{value, CircuitVar, Field};
 
 use super::{
     fixtures::{every_form, form_names, ArraySelected, RULE},

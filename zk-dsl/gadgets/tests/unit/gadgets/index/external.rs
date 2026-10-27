@@ -14,7 +14,7 @@ use crate::harness::{
     WorkDir,
 };
 use serde_json::json;
-use zolana_program::{circuit::Field, ZkCircuit};
+use spr_program::{circuit::Field, ZkCircuit};
 pub fn compiled(name: &str) -> Compiled {
     circomlib::compile(&format!("gadgets/index/{name}.circom"))
 }

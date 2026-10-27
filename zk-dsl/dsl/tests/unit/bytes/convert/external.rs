@@ -3,7 +3,7 @@
 use ark_bn254::Fr;
 use ark_ff::One;
 use serde_json::json;
-use zolana_program::{Bytes, ZkCircuit};
+use spr_program::{Bytes, ZkCircuit};
 
 use super::{
     fixtures::{pack_fixture, split_fixture, Allocated, Pack, Split},

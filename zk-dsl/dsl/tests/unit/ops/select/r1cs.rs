@@ -1,5 +1,5 @@
 use ark_bn254::Fr;
-use zolana_program::{
+use spr_program::{
     circuit::{Field, VariableRole},
     testing::PrivateVariableReport,
 };

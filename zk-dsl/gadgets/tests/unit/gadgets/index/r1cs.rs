@@ -13,7 +13,7 @@ use crate::harness::{
 };
 use ark_bn254::Fr;
 use ark_ff::Field as ArkField;
-use zolana_program::{circuit::VariableRole, ZkCircuit};
+use spr_program::{circuit::VariableRole, ZkCircuit};
 
 #[test]
 fn singleton_decode_exports_the_zero_test_bound_and_claim_rows() {
@@ -128,7 +128,7 @@ fn all_valid_indices_check_the_placeholder_and_bind_each_flag_and_selection() {
 
 /// A complete dishonest witness: all equality tests and output claims hold,
 /// so only the in-bounds sum can reject an index outside 0..3.
-pub fn out_of_bounds_one_hot(index: zolana_program::circuit::Field) -> Vec<Fr> {
+pub fn out_of_bounds_one_hot(index: spr_program::circuit::Field) -> Vec<Fr> {
     let mut witness = assignment(&decoded::<3>(0));
     *witness.get_mut(1).expect("index") = index.into();
     for position in 0..3 {
@@ -142,7 +142,7 @@ pub fn out_of_bounds_one_hot(index: zolana_program::circuit::Field) -> Vec<Fr> {
     witness
 }
 
-pub fn out_of_bounds_selection(index: zolana_program::circuit::Field) -> Vec<Fr> {
+pub fn out_of_bounds_selection(index: spr_program::circuit::Field) -> Vec<Fr> {
     let mut witness = assignment(&selected([field("7"); 3], 0));
     *witness.get_mut(4).expect("index") = index.into();
     for position in 0..3 {

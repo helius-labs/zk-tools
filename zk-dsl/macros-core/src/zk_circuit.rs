@@ -23,8 +23,8 @@ pub fn expand(input: &DeriveInput) -> Result<TokenStream> {
     let r1cs = r1cs_hook::generate(
         input,
         &shape,
-        &quote!(::zolana_program::__zk_circuit_r1cs),
-        &quote!(::zolana_program::__private::write_circuit_r1cs),
+        &quote!(::spr_program::__zk_circuit_r1cs),
+        &quote!(::spr_program::__private::write_circuit_r1cs),
     );
     Ok(proof_input::generate_with(
         input,
@@ -52,23 +52,23 @@ fn wasm_prover(input: &DeriveInput) -> TokenStream {
     let proof_inputs_js = format!("{}ProofInputs", lower_first(&name));
     let prover = format_ident!("{}Prover", ident);
     quote! {
-        ::zolana_program::__zk_circuit_wasm! {
+        ::spr_program::__zk_circuit_wasm! {
             #[doc(hidden)]
             mod #module {
-                use ::zolana_program::__private::wasm_bindgen;
+                use ::spr_program::__private::wasm_bindgen;
                 use wasm_bindgen::prelude::*;
 
                 #[wasm_bindgen(
-                    wasm_bindgen = ::zolana_program::__private::wasm_bindgen,
+                    wasm_bindgen = ::spr_program::__private::wasm_bindgen,
                     js_name = #proof_inputs_js
                 )]
                 pub fn #proof_inputs(
                     #[wasm_bindgen(unchecked_param_type = #name)] inputs: JsValue,
                 ) -> ::core::result::Result<::std::vec::Vec<u8>, JsValue> {
-                    ::zolana_program::wasm::proof_inputs::<super::#ident>(inputs)
+                    ::spr_program::wasm::proof_inputs::<super::#ident>(inputs)
                 }
 
-                ::zolana_program::__zk_circuit_wasm_prover!(#prover, super::#ident);
+                ::spr_program::__zk_circuit_wasm_prover!(#prover, super::#ident);
             }
         }
     }

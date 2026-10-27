@@ -1,7 +1,7 @@
 use ark_bn254::Fr;
 use ark_ff::Field as _;
 use proptest::prelude::*;
-use zolana_program::circuit::{constant, value, Field};
+use spr_program::circuit::{constant, value, Field};
 
 use super::fixtures::{Pow5, POWER_WIRE, RULE, RULE_BROKEN};
 use crate::harness::{

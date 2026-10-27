@@ -14,7 +14,7 @@ use crate::{
 };
 use ark_bn254::Fr;
 use serde_json::json;
-use zolana_program::{Bytes, ZkCircuit};
+use spr_program::{Bytes, ZkCircuit};
 
 fn equivalent<const N: usize>(source: &str, counts: (usize, usize, usize, usize)) {
     let compiled = circomlib::compile(source);

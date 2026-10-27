@@ -1,15 +1,15 @@
 //! Circuit DSL over BN254 for Groth16 proofs verified on Solana: circuit types
 //! and operations, proof input conversion, errors, and the arkworks prover.
-//! Nothing here knows the zolana protocol; `zolana-program` builds on it.
+//! Nothing here knows the zolana protocol; `spr-program` builds on it.
 //!
-//! Derives generate paths under `::zolana_program`. A crate that uses the DSL
-//! without `zolana-program` names this crate so in its root:
-//! `extern crate zolana_zk_dsl as zolana_program;`.
+//! Derives generate paths under `::spr_program`. A crate that uses the DSL
+//! without `spr-program` names this crate so in its root:
+//! `extern crate spr_zk_dsl as spr_program;`.
 
 #![cfg_attr(not(feature = "circuit"), no_std)]
 
 #[cfg(feature = "circuit")]
-extern crate self as zolana_program;
+extern crate self as spr_program;
 
 #[cfg(feature = "circuit")]
 #[doc(hidden)]
@@ -60,7 +60,7 @@ pub use prover::{Groth16Prover, ProofInputs, ProofResult, SolanaProof};
 pub use prover::{SetupKind, VerifyingKeyExport};
 #[cfg(feature = "circuit")]
 #[doc(hidden)]
-pub use zolana_zk_macros::ErrorName;
+pub use spr_zk_macros::ErrorName;
 // The derive; the trait of the same name comes from `client`.
 #[cfg(feature = "circuit")]
-pub use zolana_zk_macros::ZkCircuit;
+pub use spr_zk_macros::ZkCircuit;

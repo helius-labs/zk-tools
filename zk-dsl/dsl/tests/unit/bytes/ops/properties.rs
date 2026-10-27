@@ -4,7 +4,7 @@ use crate::{
     harness::fixture::{assignment, check_constraints, check_tampered, exported, native},
 };
 use proptest::prelude::*;
-use zolana_program::{circuit::Field, Bytes};
+use spr_program::{circuit::Field, Bytes};
 proptest! {
     #![proptest_config(ProptestConfig::with_cases(24))]
     #[test]

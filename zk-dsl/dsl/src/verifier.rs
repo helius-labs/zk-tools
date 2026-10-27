@@ -7,7 +7,7 @@ use groth16_solana::{
     decompression::{decompress_g1, decompress_g2},
     groth16::{Groth16Verifier, Groth16Verifyingkey},
 };
-pub use zolana_hasher::primitives::{pack_be, pack_be_chunks};
+pub use spr_hasher::primitives::{pack_be, pack_be_chunks};
 
 use crate::CompressedProof;
 
