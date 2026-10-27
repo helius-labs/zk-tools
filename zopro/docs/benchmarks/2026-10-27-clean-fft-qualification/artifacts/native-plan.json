@@ -1,0 +1,36 @@
+{
+  "source_pins": "/tmp/zopro-clean-fft-qualification/build-pins.json",
+  "steps": [
+    {
+      "artifacts": "/tmp/zopro-composed-cpu/native/on-libraries/stdout.log",
+      "driver": "/tmp/zopro-clean-fft-qualification/warm.rs",
+      "kind": "link-sdk",
+      "name": "accepted-warm"
+    },
+    {
+      "artifacts": "/tmp/zopro-composed-cpu/native/on-libraries/stdout.log",
+      "driver": "/tmp/zopro-clean-fft-qualification/concurrent.rs",
+      "kind": "link-sdk",
+      "name": "accepted-concurrent"
+    },
+    {
+      "artifacts": "/tmp/zopro-clean-fft-leaves/native/candidate-libraries/stdout.log",
+      "driver": "/tmp/zopro-clean-fft-qualification/warm.rs",
+      "kind": "link-sdk",
+      "name": "composed-warm"
+    },
+    {
+      "artifacts": "/tmp/zopro-clean-fft-leaves/native/candidate-libraries/stdout.log",
+      "driver": "/tmp/zopro-clean-fft-qualification/concurrent.rs",
+      "kind": "link-sdk",
+      "name": "composed-concurrent"
+    },
+    {
+      "artifacts": "/tmp/zopro-clean-fft-leaves/native/candidate-libraries/stdout.log",
+      "driver": "/tmp/zopro-clean-fft-qualification/forester.rs",
+      "kind": "link-sdk",
+      "name": "composed-forester"
+    }
+  ],
+  "version": 1
+}

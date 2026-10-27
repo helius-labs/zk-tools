@@ -1,0 +1,24 @@
+{
+  "source_pins": "/tmp/zopro-clean-fft-qualification/portable-link-pins.json",
+  "steps": [
+    {
+      "additional_sources": [
+        "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/support/perf.rs"
+      ],
+      "artifacts": "/tmp/zopro-clean-fft-qualification/portable/libraries/stdout.log",
+      "driver": "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/cpu-sdk.rs",
+      "kind": "link-sdk",
+      "name": "portable",
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=x86-64",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ]
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "source_pins": "/tmp/zopro-clean-fft-qualification/build-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "link-sdk",
+      "name": "accepted-warm",
+      "artifacts": "/tmp/zopro-composed-cpu/native/on-libraries/stdout.log",
+      "driver": "/tmp/zopro-clean-fft-qualification/warm.rs",
+      "additional_sources": [],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "link-sdk",
+      "name": "accepted-concurrent",
+      "artifacts": "/tmp/zopro-composed-cpu/native/on-libraries/stdout.log",
+      "driver": "/tmp/zopro-clean-fft-qualification/concurrent.rs",
+      "additional_sources": [],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "link-sdk",
+      "name": "composed-warm",
+      "artifacts": "/tmp/zopro-clean-fft-leaves/native/candidate-libraries/stdout.log",
+      "driver": "/tmp/zopro-clean-fft-qualification/warm.rs",
+      "additional_sources": [],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "link-sdk",
+      "name": "composed-concurrent",
+      "artifacts": "/tmp/zopro-clean-fft-leaves/native/candidate-libraries/stdout.log",
+      "driver": "/tmp/zopro-clean-fft-qualification/concurrent.rs",
+      "additional_sources": [],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "link-sdk",
+      "name": "composed-forester",
+      "artifacts": "/tmp/zopro-clean-fft-leaves/native/candidate-libraries/stdout.log",
+      "driver": "/tmp/zopro-clean-fft-qualification/forester.rs",
+      "additional_sources": [],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 600
+    }
+  ]
+}
