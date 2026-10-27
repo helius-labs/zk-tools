@@ -1,0 +1,8 @@
+{
+  "stage": "offline analysis after all341latency/4profile/1preflight processes and output checks finished",
+  "problem": "The new profile reader expected separate whitespace PID/TID fields; actual perf script output combines them. Its zero-sample guard stopped report generation.",
+  "repair": "Parse the actual PID/TID token and retain every sample's period and symbol. Use a separately compiled finish helper so the frozen controller source/binary and pins stay unchanged.",
+  "preserved": ["control.rs", "control", "finish-first.log"],
+  "successful_capture_test_or_verifier_repeated": false,
+  "native_arithmetic_source_changed": false
+}
