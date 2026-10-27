@@ -1,0 +1,28 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "240s",
+    "sudo",
+    "-n",
+    "perf",
+    "record",
+    "--no-buildid-cache",
+    "-e",
+    "cycles:u",
+    "-F",
+    "199",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/profiles/gaussian-r2/perf.data",
+    "--",
+    "taskset",
+    "-c",
+    "2",
+    "/home/ubuntu/src/zopro-perf-work/gaussian-fr-r130/target-native/release/probe",
+    "gaussian-r2",
+    "butterfly",
+    "10000000"
+  ],
+  "environment": {}
+}

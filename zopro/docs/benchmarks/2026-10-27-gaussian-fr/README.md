@@ -71,3 +71,5 @@ The [accepted all-eight report](../2026-10-27-clean-fft-adoption/README.md) rema
 Accepted merge54 remains161.341835ms with no supplied M5 reference. Production172files and accepted14daSDK are unchanged.
 
 [Declaration](artifacts/timing-declaration.json), [exact model bounds](artifacts/model-gate.json), [all results](artifacts/analysis.json), [source pins](artifacts/pins.json), [Cargo artifacts](artifacts/native-cargo-artifacts.jsonl), [artifact hashes](artifact-index.json).
+
+Artifact availability checked later on October 27: the `/tmp` workspaces are absent, so their local-only binaries and raw perf captures are currently unavailable. Committed sources, observations, verification records and decoded profiles remain. Completed benchmarks were not repeated to restore those temporary files.
