@@ -1,0 +1,33 @@
+{
+  "source_pins": "/tmp/zopro-sdk-paired-control/build-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "rustc",
+        "-Vv"
+      ],
+      "kind": "command",
+      "name": "compiler"
+    },
+    {
+      "additional_sources": [
+        "/tmp/zopro-sdk-paired-control/support/perf.rs"
+      ],
+      "artifacts": "/tmp/zopro-grouping-module/native/libraries/stdout.log",
+      "driver": "/tmp/zopro-sdk-paired-control/driver.rs",
+      "kind": "link-sdk",
+      "name": "control",
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 1200
+    }
+  ],
+  "version": 1
+}

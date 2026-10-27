@@ -1,0 +1,30 @@
+warning: struct `Control` is never constructed
+ --> /tmp/zopro-sdk-paired-control/support/perf.rs:9:12
+  |
+9 | pub struct Control {
+  |            ^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated items `from_env`, `open`, `send`, `enable`, and `disable` are never used
+   --> /tmp/zopro-sdk-paired-control/support/perf.rs:16:12
+    |
+ 15 | impl Control {
+    | ------------ associated items in this implementation
+ 16 |     pub fn from_env() -> io::Result<Option<Self>> {
+    |            ^^^^^^^^
+...
+ 32 |     fn open(command: &Path, acknowledgement: &Path) -> io::Result<Self> {
+    |        ^^^^
+...
+ 65 |     fn send(&mut self, command: &[u8]) -> io::Result<()> {
+    |        ^^^^
+...
+135 |     pub fn enable(&mut self) -> io::Result<()> {
+    |            ^^^^^^
+...
+140 |     pub fn disable(&mut self) -> io::Result<()> {
+    |            ^^^^^^^
+
+warning: 2 warnings emitted
+
