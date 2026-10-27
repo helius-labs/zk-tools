@@ -1,0 +1,12 @@
+{
+  "actual_scheduler_preempt_argument_marker": "sched_switch prev_state '+'",
+  "interpretation": "Perf SWITCH preempt flag is not sufficient to distinguish sched_yield from scheduler preemption. Use actual sched_switch state, retain unknown states and observer limits.",
+  "local_matching_kernel_trace_header": "/usr/src/linux-headers-6.8.0-139/include/trace/events/sched.h",
+  "local_trace_header_sha256": "3880676c5b4a69b11ddef51ec0e3b0e082886d7fbd794010f3780d7e9faece6f",
+  "running_kernel": "6.8.0-139-generic",
+  "upstream_perf_flag_condition": "!sched_in && task->on_rq",
+  "upstream_perf_source": "https://github.com/torvalds/linux/blob/v6.8/kernel/events/core.c#L9092",
+  "upstream_perf_source_sha256": "bfbdd6533fc7b02c4a9acf3fa272cddfa6a40217d449180c64e7fea6b0bdd34d",
+  "upstream_trace_source": "https://github.com/torvalds/linux/blob/v6.8/include/trace/events/sched.h#L190",
+  "upstream_version_reviewed": "v6.8"
+}
