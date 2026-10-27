@@ -1,0 +1,11 @@
+# Directions checked during the capture wait
+
+Only lightweight source/report reads and remote web searches occurred; there was no local helper/build/hash/archive or second benchmark during capture. No candidate, protocol or timing was changed.
+
+The existing local operation census at `/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-25-operation-model/README.md` and subsequent prefix-record changes already cover numerator/prefix tradeoffs. That historical census is available locally and is not part of this publication. G1 coordinate reload and reduced records, queue early-flush/drain, short inverses, reverse overlap and reference staging have prior negative results. They are not new directions.
+
+The [opposite-scalar census](https://github.com/helius-labs/zk-tools/blob/sergei/zopro-cpu-perf/zopro/docs/benchmarks/2026-10-26-opposite-scalar-census/README.md) already finds primary class reductions of only 1/17,454 for A and 3/26,142 for B. The modal-scalar census finds zero already modal in all 27 vectors. Do not implement these unchanged as a prospective breakthrough. Existing FFT/query overlap trials also remain closed.
+
+Remote primary-source search found [SRE](https://arxiv.org/abs/2610.27452), already covered by prior local scalar-redundancy audits. [2G2T](https://arxiv.org/abs/2602.23464) concerns outsourced MSM with additional server work and merged bases; it does not demonstrate a faster local CPU prover. [Scribe](https://eprint.iacr.org/2024/1970) concerns another proof system and streaming memory; its published results do not establish a compatible Groth16 speedup here. Accelerator-specific MSM papers likewise cannot supply a local CPU speed claim.
+
+The completed experiment exposes a practical measurement issue: a source-identical fresh build is slower than the frozen accepted executable on several cases, enough to fail declared calibration. Before relying on candidate/fresh gains, audit exact build/link/dependency identities and actual caller code. Use the already captured binaries and data; do not rerun unchanged acceptance timing or attribute the gap to cache, spills or frequency without evidence. Preserve the positive candidate/accepted estimates and all failures.

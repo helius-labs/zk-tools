@@ -1,0 +1,10 @@
+{
+  "after": "    // Distinct nonzero counts are monotone; stop once acceptance is impossible.\n    let max_groups = scalars.len() / 100 * percent\n        + scalars.len() % 100 * percent / 100;\n    for (scalar, class) in scalars.iter().zip(&mut classes) {",
+  "before": "    for (scalar, class) in scalars.iter().zip(&mut classes) {",
+  "file": "crates/zopro-core/src/msm_affine/grouping.rs",
+  "new_insert": "        let index = match groups.entry(*scalar) {\n            std::collections::hash_map::Entry::Occupied(entry) => *entry.get(),\n            std::collections::hash_map::Entry::Vacant(entry) => {\n                if values.len() == max_groups {\n                    return None;\n                }\n                let index = values.len() as u32;\n                values.push(*scalar);\n                counts.push(0);\n                entry.insert(index);\n                index\n            }\n        };",
+  "old_insert": "        let index = *groups.entry(*scalar).or_insert_with(|| {\n            values.push(*scalar);\n            counts.push(0);\n            (values.len() - 1) as u32\n        });",
+  "production_changed": false,
+  "tests": "crates/zopro-core/src/msm_affine/grouping/tests.rs",
+  "tests_addition_sha256": "1a7f9c689574ed126e72123a3465d76adf4f514fb5a9b652ecb734bd956f3ffc"
+}
