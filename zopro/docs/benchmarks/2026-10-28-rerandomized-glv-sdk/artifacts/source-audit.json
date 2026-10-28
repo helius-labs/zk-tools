@@ -1,0 +1,29 @@
+{
+  "adapted_runtime_sha256": "0b4da09de2bd6af973f732958eb095851d37f11623ed48472e2c6921ed3bd657",
+  "core_expected_tests": 119,
+  "edits": [
+    {
+      "file": "crates/zopro-core/src/groth16.rs",
+      "old": "",
+      "suffix": "\n#[cfg(zopro_glv_blinding)]\n#[path = \"groth16/glv_blinding.rs\"]\nmod glv_blinding;\n"
+    },
+    {
+      "file": "crates/zopro-core/src/groth16_rerandomize.rs",
+      "new": "fn pair_g1(base: G1Projective, left: Fr, right: Fr) -> (G1Projective, G1Projective) {\n    #[cfg(zopro_glv_blinding)]\n    { return glv_blinding::pair_g1(base,left,right); }",
+      "old": "fn pair_g1(base: G1Projective, left: Fr, right: Fr) -> (G1Projective, G1Projective) {"
+    },
+    {
+      "file": "crates/zopro-core/src/groth16_rerandomize.rs",
+      "new": "    prepared: Option<&FixedBase<G2Config>>,\n) -> G2Projective {\n    #[cfg(zopro_glv_blinding)]\n    { return glv_blinding::joint_g2(base,u,delta,uv,prepared); }",
+      "old": "    prepared: Option<&FixedBase<G2Config>>,\n) -> G2Projective {"
+    }
+  ],
+  "field_unchanged": true,
+  "new_module": "crates/zopro-core/src/groth16/glv_blinding.rs",
+  "no_new_independent_tests": true,
+  "parent_runtime_sha256": "121f6d2dcc0c2aab8e95401366063a5c07bec20431f9388ae6a60e5b06218776",
+  "private_originals_exact": 170,
+  "production_files": 172,
+  "reverse_edits_recover_accepted": true,
+  "runtime_changes": "parent helper paths and inline exact split module only"
+}
