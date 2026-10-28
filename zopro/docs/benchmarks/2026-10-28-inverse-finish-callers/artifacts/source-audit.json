@@ -1,0 +1,23 @@
+{
+  "core_suffixes": [
+    [
+      "crates/zopro-core/src/msm.rs",
+      "\n#[cfg(zopro_inverse_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_inverse_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1};\n"
+    ],
+    [
+      "crates/zopro-core/src/lib.rs",
+      "\n#[cfg(zopro_inverse_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1};\n"
+    ]
+  ],
+  "fresh_original_exact": 169,
+  "frozen_original_exact": 170,
+  "inverse_source_sha256": "910ffbabfdb3c142902df430edcb1e18d9d18f146c898c68980d79c015b0a9af",
+  "mathematical_core_bodies_unchanged": true,
+  "parent_inverse_edits": [
+    "    #[cfg(zopro_direct_finish_reduction)]\n    if (C::P[3] as u128)*3 > 1u128<<63 && C::P[3] < 1u64<<63 {\n        return Fp::from_montgomery(direct_finish_reduce::<C>(&u,&v,f0,g0));\n    }\n",
+    "\n#[cfg(any(test,zopro_direct_finish_reduction))]\ninclude!(\"inverse/direct_finish.rs\");\n"
+  ],
+  "production_changed": false,
+  "production_files": 172,
+  "reducer_source_sha256": "f3d71fa3aaf244a6c051b545b10166a8219497b2013228de12e1549da06e49cd"
+}
