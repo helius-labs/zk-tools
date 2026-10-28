@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "300s",
+    "rustc",
+    "--edition=2021",
+    "-O",
+    "-C",
+    "overflow-checks=yes",
+    "-C",
+    "debug-assertions=yes",
+    "/home/ubuntu/src/zopro-perf-work/scaled-r260-screen/model.rs",
+    "-L",
+    "dependency=/home/ubuntu/src/zopro-perf-work/paired-callers/target/release/deps",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/scaled-r260-screen/model-tests",
+    "--test",
+    "--extern",
+    "ark_bn254=/home/ubuntu/src/zopro-perf-work/paired-callers/target/release/deps/libark_bn254-d9ceb28748a3bfd8.rlib",
+    "--extern",
+    "ark_ec=/home/ubuntu/src/zopro-perf-work/paired-callers/target/release/deps/libark_ec-e4a9bfa1662bf7f1.rlib",
+    "--extern",
+    "ark_ff=/home/ubuntu/src/zopro-perf-work/paired-callers/target/release/deps/libark_ff-9216c709978bd3d2.rlib",
+    "--extern",
+    "num_bigint=/home/ubuntu/src/zopro-perf-work/paired-callers/target/release/deps/libnum_bigint-158c502562b8bd18.rlib",
+    "--extern",
+    "serde_json=/home/ubuntu/src/zopro-perf-work/paired-callers/target/release/deps/libserde_json-9c41682dbe4e057f.rlib"
+  ],
+  "environment": {}
+}

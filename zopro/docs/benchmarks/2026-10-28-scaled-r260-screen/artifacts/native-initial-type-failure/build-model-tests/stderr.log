@@ -1,0 +1,16 @@
+error[E0282]: type annotations needed
+   --> /home/ubuntu/src/zopro-perf-work/scaled-r260-screen/model.rs:291:13
+    |
+291 |         let x = u(1) << bit;
+    |             ^
+292 |         values.extend([&x - u(1), x.clone(), x + u(1)]);
+    |                                   - type must be known at this point
+    |
+help: consider giving `x` an explicit type
+    |
+291 |         let x: /* Type */ = u(1) << bit;
+    |              ++++++++++++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0282`.
