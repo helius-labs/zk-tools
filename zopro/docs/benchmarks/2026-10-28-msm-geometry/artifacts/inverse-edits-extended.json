@@ -1,0 +1,102 @@
+{
+  "crates/zopro-core/src/lib.rs": [
+    [
+      "",
+      "\n#[cfg(zopro_msm_geometry)]\npub mod msm_geometry;\n"
+    ]
+  ],
+  "crates/zopro-core/src/msm.rs": [
+    [
+      "    let m = s.pairs.len();\n",
+      "    let m = s.pairs.len();\n    #[cfg(zopro_msm_geometry)]\n    crate::msm_geometry::tree::<C>(counts,m);\n"
+    ]
+  ],
+  "crates/zopro-core/src/msm_affine.rs": [
+    [
+      "    affine: Vec<Affine<C>>,\n",
+      "    #[cfg(zopro_msm_geometry)]\n    geometry: crate::msm_geometry::Stream,\n    affine: Vec<Affine<C>>,\n"
+    ],
+    [
+      "            affine: vec![Affine::<C>::IDENTITY; half],\n",
+      "            #[cfg(zopro_msm_geometry)]\n            geometry: crate::msm_geometry::Stream::new::<C>(\"owned\",half,size),\n            affine: vec![Affine::<C>::IDENTITY; half],\n"
+    ],
+    [
+      "    fn execute(&mut self) {\n        if self.batch.is_empty() {\n            return;\n        }\n",
+      "    fn execute(&mut self) {\n        if self.batch.is_empty() {\n            return;\n        }\n        #[cfg(zopro_msm_geometry)]\n        self.geometry.execute(&self.batch,&self.queue);\n"
+    ],
+    [
+      "    fn flush_queue(&mut self) {\n",
+      "    fn flush_queue(&mut self) {\n        #[cfg(zopro_msm_geometry)]\n        self.geometry.flush(&self.batch,&self.queue);\n"
+    ],
+    [
+      "    fn add_projective(&mut self, bucket: usize, point: Affine<C>) {\n",
+      "    fn add_projective(&mut self, bucket: usize, point: Affine<C>) {\n        #[cfg(zopro_msm_geometry)]\n        self.geometry.projective();\n"
+    ],
+    [
+      "        if current.is_identity() {\n",
+      "        if current.is_identity() {\n            #[cfg(zopro_msm_geometry)]\n            self.geometry.empty();\n"
+    ],
+    [
+      "        self.batch.push((encoded, point));\n",
+      "        #[cfg(zopro_msm_geometry)]\n        self.geometry.pushed();\n        self.batch.push((encoded, point));\n"
+    ],
+    [
+      "            w.queue.push((encoded, point));\n",
+      "            #[cfg(zopro_msm_geometry)]\n            w.geometry.queued();\n            w.queue.push((encoded, point));\n"
+    ],
+    [
+      "            if self.busy((bucket&0x7fffffff)as usize) {\n",
+      "            if self.busy((bucket&0x7fffffff)as usize) {\n                #[cfg(zopro_msm_geometry)]\n                self.geometry.blocked();\n"
+    ]
+  ],
+  "crates/zopro-core/src/msm_affine/borrowed_pending.rs": [
+    [
+      "    affine: Vec<Affine<C>>,\n",
+      "    #[cfg(zopro_msm_geometry)]\n    geometry: crate::msm_geometry::Stream,\n    affine: Vec<Affine<C>>,\n"
+    ],
+    [
+      "            affine: vec![Affine::<C>::IDENTITY; half],\n",
+      "            #[cfg(zopro_msm_geometry)]\n            geometry: crate::msm_geometry::Stream::new::<C>(\"borrowed\",half,size),\n            affine: vec![Affine::<C>::IDENTITY; half],\n"
+    ],
+    [
+      "    fn execute(&mut self) {\n        if self.batch.is_empty() {\n            return;\n        }\n",
+      "    fn execute(&mut self) {\n        if self.batch.is_empty() {\n            return;\n        }\n        #[cfg(zopro_msm_geometry)]\n        self.geometry.execute(&self.batch,&self.queue);\n"
+    ],
+    [
+      "    fn flush_queue(&mut self) {\n",
+      "    fn flush_queue(&mut self) {\n        #[cfg(zopro_msm_geometry)]\n        self.geometry.flush(&self.batch,&self.queue);\n"
+    ],
+    [
+      "    fn projective(&mut self, bucket: usize, point: Affine<C>) {\n",
+      "    fn projective(&mut self, bucket: usize, point: Affine<C>) {\n        #[cfg(zopro_msm_geometry)]\n        self.geometry.projective();\n"
+    ],
+    [
+      "        if current.is_identity() {\n",
+      "        if current.is_identity() {\n            #[cfg(zopro_msm_geometry)]\n            self.geometry.empty();\n"
+    ],
+    [
+      "        self.batch.push((encoded, point));\n",
+      "        #[cfg(zopro_msm_geometry)]\n        self.geometry.pushed();\n        self.batch.push((encoded, point));\n"
+    ],
+    [
+      "                self.queue.push((encoded, point));\n",
+      "                #[cfg(zopro_msm_geometry)]\n                self.geometry.queued();\n                self.queue.push((encoded, point));\n"
+    ],
+    [
+      "            if self.busy((encoded & 0x7fffffff) as usize) {\n",
+      "            if self.busy((encoded & 0x7fffffff) as usize) {\n                #[cfg(zopro_msm_geometry)]\n                self.geometry.blocked();\n"
+    ]
+  ],
+  "crates/zopro-core/src/msm_affine/fused_kh.rs": [
+    [
+      "  if state.busy(bucket){state.queue.push((encoded,p));",
+      "  if state.busy(bucket){\n  #[cfg(zopro_msm_geometry)]\n  state.geometry.queued();\n  state.queue.push((encoded,p));"
+    ]
+  ],
+  "crates/zopro-core/src/msm_affine/g2_horner.rs": [
+    [
+      "            state.queue.push((bucket as u32, point));\n",
+      "            #[cfg(zopro_msm_geometry)]\n            state.geometry.queued();\n            state.queue.push((bucket as u32, point));\n"
+    ]
+  ]
+}
