@@ -1,0 +1,21 @@
+use serde_json::{json,Value};use sha2::{Digest,Sha256};use std::{fs,io::Read,path::{Path,PathBuf}};
+const R:&str="/home/ubuntu/src/zopro-perf-work/loose-g1-finish174";
+fn r(p:impl AsRef<Path>)->PathBuf{Path::new(R).join(p)}
+fn read(p:impl AsRef<Path>)->Value{serde_json::from_slice(&fs::read(p).unwrap()).unwrap()}
+fn save(p:impl AsRef<Path>,v:&Value){fs::write(p,serde_json::to_vec_pretty(v).unwrap()).unwrap()}
+fn hash(p:impl AsRef<Path>)->String{let mut f=fs::File::open(p).unwrap();let mut h=Sha256::new();let mut b=[0;65536];loop{let n=f.read(&mut b).unwrap();if n==0{break;}h.update(&b[..n]);}format!("{:x}",h.finalize())}
+fn copy_dir(a:&Path,b:&Path){fs::create_dir_all(b).unwrap();for e in fs::read_dir(a).unwrap(){let e=e.unwrap();let p=e.path();if e.file_type().unwrap().is_dir(){copy_dir(&p,&b.join(e.file_name()));}else{fs::copy(p,b.join(e.file_name())).unwrap();}}}
+fn prepare(){
+ assert!(!r("repair-plan.json").exists());assert_eq!(read(r("native/failure.json"))["completed"].as_array().unwrap().len(),6);
+ let before=r("before-const-bool-repair");fs::create_dir_all(&before).unwrap();copy_dir(&r("source"),&before.join("source"));
+ for f in ["loose_finish.rs","build-pins.json","build-plan.json","native-workflow.log","native-workflow.stderr.log"]{fs::copy(r(f),before.join(f)).unwrap();}
+ for f in ["loose_finish.rs","source/crates/zopro-bn254/src/ifma8/loose_finish.rs"]{let p=r(f);let s=fs::read_to_string(&p).unwrap();assert_eq!(s.matches(".1==0").count(),2);fs::write(p,s.replace(".1==0",".1==false")).unwrap();}
+ let old=fs::read_to_string(r("native.rs")).unwrap();assert!(old.contains("native/libraries-{label}/stdout.log"));fs::write(r("native-repair.rs"),old.replace("native/libraries-{label}/stdout.log","native-repair/libraries-{label}/stdout.log")).unwrap();
+ let initial=read(r("build-plan.json"));let mut steps=initial["steps"].as_array().unwrap()[6..].to_vec();assert_eq!(steps.len(),6);steps[4]["argv"][0]=json!(r("native-repair-helper"));
+ save(r("repair-plan.json"),&json!({"version":1,"source_pins":r("repair-pins.json"),"steps":steps}));
+ save(r("repair-note.json"),&json!({"reason":"compile-time portable::add4 carry flag is bool, not integer","edits":"two const assertions .1==0 -> .1==false;no runtime arithmetic change","original_completed_steps":6,"remaining_steps":6,"successful_tests_or_captures_repeated":false,"initial_source_snapshot":"before-const-bool-repair/source","initial_failure_receipt":"native/failure.json","performance_capture_before_repair":false}));
+}
+fn pins(){let old=read(r("build-pins.json"));let mut pins=serde_json::Map::new();for(p,_)in old.as_object().unwrap(){pins.insert(p.clone(),json!(hash(p)));}
+ for f in ["repair.rs","repair-helper","native-repair.rs","native-repair-helper","repair-plan.json","repair-note.json"]{pins.insert(r(f).display().to_string(),json!(hash(r(f))));}save(r("repair-pins.json"),&json!(pins));}
+fn close(){assert_eq!(read(r("native-repair/result.json"))["status"],"complete");let before=read(r("native/failure.json"))["completed"].as_array().unwrap().clone();assert_eq!(before.len(),6);let mut complete=before.clone();let steps=read(r("repair-plan.json"))["steps"].as_array().unwrap().clone();for s in &steps{complete.push(s["name"].clone());let n=s["name"].as_str().unwrap();copy_dir(&r(format!("native-repair/{n}")),&r(format!("native/{n}")));}fs::copy(r("native-repair/candidate-sdk"),r("native/candidate-sdk")).unwrap();assert_eq!(complete.len(),12);save(r("native-completion.json"),&json!({"unique_successful_steps":12,"control_original_six":before,"candidate_repaired_six":steps.iter().map(|s|s["name"].clone()).collect::<Vec<_>>(),"original_failure_preserved":true,"initial_native_workflow_terminal":true,"repaired_workflow_terminal":true,"original_control_source_difference_compiled_out":true,"successful_tests_repeated":false}));save(r("native/result.json"),&json!({"status":"complete","completed":complete,"merged_completion_index":true,"authoritative_receipts":[r("native/failure.json"),r("native-repair/result.json"),r("native-completion.json")]}));}
+fn main(){match std::env::args().nth(1).as_deref(){Some("prepare")=>prepare(),Some("pins")=>pins(),Some("close")=>close(),_=>panic!("prepare/pins/close")}}

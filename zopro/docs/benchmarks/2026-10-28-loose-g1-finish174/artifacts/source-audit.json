@@ -1,0 +1,23 @@
+{
+  "field_generation_parent_unchanged": true,
+  "heap_scratch_geometry_unchanged": true,
+  "msm_after": "        #[cfg(all(zopro_loose_g1_finish,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))] let loose=if FAST{Some(slope.loose_finish(&g.ax,&g.ay,&g.xsum))}else{None};\n        #[cfg(not(all(zopro_loose_g1_finish,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))] let loose:Option<([Fq;LANES],[Fq;LANES])>=None;\n        let (x,y)=loose.unwrap_or_else(||{let x=slope.mul(&slope).sub(&g.xsum);let y=slope.mul(&g.ax.sub(&x)).sub(&g.ay);(x.get(),y.get())});",
+  "msm_before": "        let x = slope.mul(&slope).sub(&g.xsum);\n        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);\n        let (x, y) = (x.get(), y.get());",
+  "new_module": "crates/zopro-bn254/src/ifma8/loose_finish.rs",
+  "original_files": 174,
+  "original_nonfused_CIOS_body_unchanged": true,
+  "originals_exact": 171,
+  "private_files": 175,
+  "production_changed": false,
+  "reverse174_exact": true,
+  "suffixes": [
+    [
+      "crates/zopro-bn254/src/ifma8.rs",
+      "\n#[cfg(zopro_loose_g1_finish)] mod loose_finish;\n"
+    ],
+    [
+      "crates/zopro-core/src/simd.rs",
+      "\n#[cfg(all(zopro_loose_g1_finish,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch { #[inline(always)] pub(crate) fn loose_finish(&self,ax:&Self,ay:&Self,sum:&Self)->([Fq;8],[Fq;8]) {self.0.affine_finish_loose(&ax.0,&ay.0,&sum.0)} }\n"
+    ]
+  ]
+}
