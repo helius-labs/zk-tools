@@ -1,0 +1,13 @@
+{
+  "caller_adapter_original_exact": true,
+  "coefficient_updates_and_finish_unchanged": true,
+  "core_suffix": "\n#[cfg(zopro_vector_rows_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1};\n",
+  "inverse_suffix": "\n#[cfg(test)]\npub(crate) fn reference_pair(a:[u64;4],b:[u64;4],mut rows:[i64;4])->(([u64;4],[u64;4]),[i64;4]){\n    let(mut f0,mut g0,mut f1,mut g1)=(rows[0],rows[1],rows[2],rows[3]);let aa=integer_update(&a,&b,&mut f0,&mut g0);let bb=integer_update(&a,&b,&mut f1,&mut g1);rows=[f0,g0,f1,g1];((aa,bb),rows)\n}\n#[cfg(test)]\npub(crate) fn reference_matrix(a:[u64;4],b:[u64;4])->[i64;4]{let bits=bit_len(&a).max(bit_len(&b));let(_,_,f0,g0,f1,g1)=zero_run_matrix(approximate(&a,bits),approximate(&b,bits));[f0,g0,f1,g1]}\n\n#[cfg(all(any(test,zopro_gcd_vector_rows),target_arch=\"x86_64\",target_feature=\"avx512f\",target_feature=\"avx2\",not(no_ifma)))]\n#[path=\"inverse_vector_rows.rs\"]\nmod paired;\n",
+  "msm_suffix": "\n#[cfg(zopro_vector_rows_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_vector_rows_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1};\n",
+  "new": "        #[cfg(not(all(zopro_gcd_vector_rows,target_arch=\"x86_64\",target_feature=\"avx512f\",target_feature=\"avx2\",not(no_ifma))))]\n        {a = integer_update(&old_a, &b, &mut f0, &mut g0);\n        b = integer_update(&old_a, &b, &mut f1, &mut g1);}\n        #[cfg(all(zopro_gcd_vector_rows,target_arch=\"x86_64\",target_feature=\"avx512f\",target_feature=\"avx2\",not(no_ifma)))]\n        {let mut rows=[f0,g0,f1,g1];let outputs=paired::update(&old_a,&b,&mut rows);\n        a=outputs.0;b=outputs.1;(f0,g0,f1,g1)=(rows[0],rows[1],rows[2],rows[3]);}",
+  "old": "        a = integer_update(&old_a, &b, &mut f0, &mut g0);\n        b = integer_update(&old_a, &b, &mut f1, &mut g1);",
+  "original_files": 172,
+  "original_inverse_recovered_exact": true,
+  "private_originals_exact": 169,
+  "runtime_change_only": "crates/zopro-bn254/src/inverse.rs"
+}
