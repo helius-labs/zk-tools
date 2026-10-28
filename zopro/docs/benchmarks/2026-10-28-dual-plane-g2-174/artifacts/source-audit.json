@@ -1,0 +1,24 @@
+{
+  "field_G1_solver_key_scheduler_forecasts_exact": true,
+  "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+  "full_new_leaf_times_windows_parts_reserved_once_per_query": true,
+  "new_module": "crates/zopro-core/src/msm_affine/g2_borrowed/dual_plane.rs",
+  "original_files": 174,
+  "original_line_numbers_preserved": true,
+  "originals_exact": 172,
+  "phi_edits": [
+    [
+      "    let windows = 127usize.div_ceil(bits);",
+      "    let windows = 127usize.div_ceil(bits); #[cfg(zopro_g2_dual_plane)] let dual_credit=super::g2_borrowed::dual_credit(bits,windows,parts);"
+    ],
+    [
+      "                    hb_window(&bases[start..end], &short[start..end], w, bits)",
+      "                    { #[cfg(zopro_g2_dual_plane)] if let Some(credit)=dual_credit.as_ref(){if let Some(value)=super::g2_borrowed::try_dual_window(&bases[start..end],&short[start..end],w,bits,credit){return value;}} hb_window(&bases[start..end], &short[start..end], w, bits) }"
+    ]
+  ],
+  "phi_file": "crates/zopro-core/src/msm_affine/g2_phi.rs",
+  "private_files": 175,
+  "production_changed": false,
+  "reverse174_exact": true,
+  "suffix": "\n#[cfg(zopro_g2_dual_plane)] mod dual_plane;\n#[cfg(zopro_g2_dual_plane)] pub(super) fn dual_credit(bits:usize,windows:usize,parts:usize)->Option<crate::preparation::Reservation>{dual_plane::reserve_query(bits,windows,parts)}\n#[cfg(zopro_g2_dual_plane)] pub(super) fn try_dual_window(bases:&[G2Affine],short:&[[u64;4]],w:usize,bits:usize,credit:&crate::preparation::Reservation)->Option<Vec<G2Affine>>{dual_plane::try_window(bases,short,w,bits,credit)}\n"
+}
