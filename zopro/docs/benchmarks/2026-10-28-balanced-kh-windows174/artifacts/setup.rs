@@ -1,0 +1,25 @@
+fn setup(){
+ assert!(!r("build-plan.json").exists());let m=read(MANIFEST);let files=m["source_files_sha256"].as_object().unwrap();assert_eq!(files.len(),174);let mut pins=BTreeMap::new();
+ for(f,h)in files{let from=Path::new(Z).join(f);assert_eq!(hash(&from),h.as_str().unwrap());let to=r("source").join(f);fs::create_dir_all(to.parent().unwrap()).unwrap();fs::copy(&from,&to).unwrap();pin(&mut pins,from);pin(&mut pins,to);}
+ let new="crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs";let module=r("source").join(new);fs::create_dir_all(module.parent().unwrap()).unwrap();fs::copy(r("balanced.rs"),&module).unwrap();pin(&mut pins,&module);
+ let file="crates/zopro-core/src/msm_affine/borrowed_pending.rs";let p=r("source").join(file);let original=fs::read_to_string(&p).unwrap();
+ let before="    assert!(k.len().min(h.len()) >= 1024);";
+ let after="    assert!(k.len().min(h.len()) >= 1024); #[cfg(zopro_balanced_kh)] if bits==13{return balanced::fused(k,sk,h,sh);}";
+ let suffix="\n#[cfg(zopro_balanced_kh)] mod balanced;\n";
+ assert_eq!(original.matches(before).count(),1);let modified=format!("{}{suffix}",original.replace(before,after));assert_eq!(modified.strip_suffix(suffix).unwrap().replace(after,before),original);fs::write(&p,modified).unwrap();pin(&mut pins,&p);
+ let exact=files.iter().filter(|(f,h)|hash(r("source").join(f))==h.as_str().unwrap()).count();assert_eq!(exact,173);
+ save(r("source-audit.json"),&json!({"original_files":174,"private_files":175,"originals_exact":173,"reverse174_exact":true,"file":file,"before":before,"after":after,"suffix":suffix,"new_module":new,"original_line_numbers_preserved":true,"field_G2_solver_key_scheduler_forecasts_exact":true,"largest_parent_and_leaf_not_increased":true,"production_changed":false}));
+ let history=["docs/benchmarks/2026-10-27-fused-top/README.md","docs/benchmarks/2026-10-26-window-order-audit/README.md","docs/benchmarks/2026-10-25-g1-sequential-bands-component/README.md","docs/benchmarks/2026-10-28-dual-plane-g2-174/README.md","docs/benchmarks/2026-10-28-loose-g1-finish174/README.md"];
+ let mut hist=BTreeMap::new();for f in history{pin(&mut hist,Path::new(Z).join(f));pin(&mut pins,Path::new(Z).join(f));}save(r("history-audit.json"),&json!({"closed_trials":hist,"difference":"same20window count,variable12/13bit signed cover255bits;no narrow indexed top;no input table or changed field kernel;not top-first reorder or separate-top merge","new_performance_claim":false}));
+ let flags=m["rustflags"].as_str().unwrap();fs::write(r("native-flags.txt"),flags).unwrap();let cargo=r("source/Cargo.toml");let mut steps=Vec::new();
+ for label in ["control","candidate"]{let flag=if label=="control"{flags.to_string()}else{format!("{flags} --cfg zopro_balanced_kh")};let env=json!({"RUSTFLAGS":flag,"CARGO_TARGET_DIR":r(format!("target-{label}")),"CARGO_BUILD_JOBS":"16","RAYON_NUM_THREADS":"4","ZOPRO_CPU_DEDUP":"1","ZOPRO_CPU_ZERO_AWARE_GROUPS":"1","ZOPRO_CPU_PACKED":"1","ZOPRO_CPU_DIRECT":"1","ZOPRO_CPU_CANONICAL_BATCH":"1","ZOPRO_CPU_VECTOR_INVERSE":"1","ZOPRO_CPU_G2_PREFIX_RECORDS":"1","ZOPRO_CPU_G1_SCRATCH_STORE":"2"});
+  let required=if label=="candidate"{vec!["msm_affine::borrowed_pending::balanced::tests::variable_booth_digits_reconstruct_exact_integers","msm_affine::borrowed_pending::balanced::tests::balanced_complete_generator_oracle_and_uniform_control"]}else{vec![]};
+  steps.push(json!({"kind":"command","name":format!("zopro-core-{label}"),"argv":["cargo","test","--manifest-path",cargo,"--locked","--offline","--release","-p","zopro-core","--lib","--","--test-threads=1","--nocapture"],"environment":env,"unfiltered":true,"required_tests":required,"timeout_seconds":1800}));
+  steps.push(json!({"kind":"command","name":format!("zopro-prover-{label}"),"argv":["cargo","test","--manifest-path",cargo,"--locked","--offline","--release","-p","zopro-prover","--lib","--test","cubic","--","--test-threads=1"],"environment":env,"unfiltered":true,"timeout_seconds":1800}));
+  steps.push(json!({"kind":"command","name":format!("libraries-{label}"),"argv":["cargo","build","--manifest-path",cargo,"--locked","--offline","--release","-p","zopro-bench","--lib","--message-format=json"],"environment":env,"timeout_seconds":1800}));
+  steps.push(json!({"kind":"command","name":format!("freeze-{label}"),"argv":[r("native-helper"),"freeze",label],"environment":env,"timeout_seconds":180}));
+  steps.push(json!({"kind":"link-sdk","name":label,"artifacts":r(format!("frozen-{label}-cargo.jsonl")),"driver":Path::new(Z).join("crates/zopro-bench/examples/cpu-sdk.rs"),"additional_sources":[Path::new(Z).join("crates/zopro-bench/examples/support/perf.rs")],"timeout_seconds":600}));
+ }
+ for f in ["native.rs","native-helper","setup.rs","adapt.rs","balanced.rs","design.md","source-audit.json","history-audit.json","native-flags.txt"]{pin(&mut pins,r(f));}pin(&mut pins,MANIFEST);
+ save(r("build-pins.json"),&json!(pins));save(r("build-plan.json"),&json!({"version":1,"source_pins":r("build-pins.json"),"steps":steps}));println!("Prepared10native steps175source/173exact/reverse174;balanced20window cover255bits");
+}
