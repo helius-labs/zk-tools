@@ -1,0 +1,24 @@
+warning: unused variable: `c_weight`
+   --> /home/ubuntu/src/zopro-perf-work/sdk-control-copies/cpu-euler.rs:157:13
+    |
+157 |         let c_weight = inv_n * divisor;
+    |             ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_c_weight`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `base`
+   --> /home/ubuntu/src/zopro-perf-work/sdk-control-copies/cpu-euler.rs:158:13
+    |
+158 |         let base = coset.inverse().ok_or("zero coset")?;
+    |             ^^^^ help: if this is intentional, prefix it with an underscore: `_base`
+
+warning: function `field` is never used
+  --> /home/ubuntu/src/zopro-perf-work/sdk-control-copies/cpu-euler.rs:70:8
+   |
+70 |     fn field(h: &mut Sha256, value: Fr) {
+   |        ^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: 3 warnings emitted
+
