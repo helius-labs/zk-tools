@@ -1,0 +1,32 @@
+error[E0599]: no method named `double` found for struct `Fp<P, N>` in the current scope
+  --> /home/ubuntu/src/zopro-perf-work/triple-affine-screen/model.rs:18:106
+   |
+18 | fn sq_count(a:Self,c:&mut Cost)->Self{c.mul+=2;c.linear+=3;Self::new((a.c0+a.c1)*(a.c0-a.c1),(a.c0*a.c1).double())}
+   |                                                                                                          ^^^^^^ method not found in `Fp<MontBackend<FqConfig, 4>, 4>`
+   |
+  ::: /home/ubuntu/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ark-ff-0.5.0/src/fields/mod.rs:92:8
+   |
+92 |     fn double(&self) -> Self {
+   |        ------ the method is available for `Fp<MontBackend<FqConfig, 4>, 4>` here
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: trait `AdditiveGroup` which provides `double` is implemented but not in scope; perhaps you want to import it
+   |
+ 1 + use ark_ff::AdditiveGroup;
+   |
+
+error[E0599]: no associated function or constant named `ZERO` found for struct `Fp<P, N>` in the current scope
+  --> /home/ubuntu/src/zopro-perf-work/triple-affine-screen/model.rs:44:452
+   |
+44 | ...p.norm(a);if norm!=Fq::ZERO{assert_eq!(op.denominator_inverse(a,norm.inverse().unwrap()),a.inverse().unwrap());}}}
+   |                           ^^^^ associated function or constant not found in `Fp<MontBackend<FqConfig, 4>, 4>`
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: trait `AdditiveGroup` which provides `ZERO` is implemented but not in scope; perhaps you want to import it
+   |
+40 | #[cfg(test)]mod tests{use ark_ff::AdditiveGroup;
+   |                       ++++++++++++++++++++++++++
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0599`.
