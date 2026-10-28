@@ -1,0 +1,13 @@
+{
+  "lib_suffix": "\n#[cfg(any(test, zopro_scalar_symmetric_square))]\nmod scalar_square;\n",
+  "modified_originals": [
+    "crates/zopro-bn254/src/lib.rs",
+    "crates/zopro-bn254/src/fp.rs"
+  ],
+  "new_module": "crates/zopro-bn254/src/scalar_square.rs",
+  "original_fallback_exact": true,
+  "private_originals_exact": 170,
+  "production_originals_exact": 172,
+  "square_insert": "        #[cfg(all(zopro_scalar_symmetric_square, target_arch = \"x86_64\", target_feature = \"bmi2\", target_feature = \"adx\", not(no_asm)))]\n        if C::P == <crate::FrConfig as FpConfig>::P {\n            return Self(crate::scalar_square::square::<C>(self.0), PhantomData);\n        }\n",
+  "upstream_source_sha256": "c99d628fb0487830572402c766a0463098e3d6d8b7fe288b7fad45a3bf6d3373"
+}
