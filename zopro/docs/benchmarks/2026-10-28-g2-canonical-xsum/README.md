@@ -6,7 +6,7 @@ The candidate **fails the declared native caller screen and is not adopted**. Pr
 
 The prefix reverse loop packs canonical Ax and Bx but uses generic Fq2::lanes_add for their sum. Under FAST=true, route these two base-field sums through existing canonical_add instead. Inputs below p yield a sum below 2p, removing the generic final 2p corrections. FAST=false uses the existing generic fallback. This is separate from the coordinate-scaled R260 model: no representation, wide field primitive, key/bucket layout, table, cache, heap allocation or public option changes.
 
-One runtime expression in msm/g2_prefix.rs changes under private cfg zopro_g2_canonical_xsum; OFF retains its original expression. Original diagnostic adapters are appended in msm/lib. Reversing those edits recovers all 172 accepted sources; 169 originals remain byte-exact. Field, G1, FFT, solver and all other arithmetic are unchanged. Earlier rejected reduced-Gauss and other candidate code is absent.
+One runtime expression in msm/g2_prefix.rs changes under private cfg zopro_g2_canonical_xsum; OFF uses the original generic operation, with the Xsum expression factored into a local variable shared by both builds. Original diagnostic adapters are appended in msm/lib. Reversing those edits recovers all 172 accepted sources; 169 originals remain byte-exact. Field, G1, FFT, solver and all other arithmetic are unchanged. Earlier rejected reduced-Gauss and other candidate code is absent.
 
 ## Complete caller results
 
@@ -86,3 +86,7 @@ No new full-proof timing or peak RSS is established. Accepted FFT adoption retai
 Historical primary peak134.50MiB; merge54 remains161.341835ms /1910.1875MiB with no supplied M5 reference. No new SDK/Gnark, portable/mobile/TEE, concurrent-proof, memory-pressure, giant-circuit or AWS/Aeglos measurement is claimed. Independent proof ledger remains13,181.
 
 [Design](artifacts/design.md), [analysis](artifacts/analysis.json), [source audit](artifacts/source-audit.json), [native suites](artifacts/native/result.json), [harness tests](artifacts/linked/result.json), [all captures](artifacts/runs/result.json), [interpretation](artifacts/interpretation.json), [code generation](artifacts/codegen.json).
+
+## Post-capture control audit
+
+The OFF source preserves generic addition but factors the accepted nested Xsum expression into a local variable. This violates the declared verbatim-OFF source invariant. Its executable differs from the frozen control, so the fresh-control gain is relative to this refactored control; it cannot be attributed entirely to removing corrections. The source structure change is a possible contributor to the control gap, not an isolated cause. The unchanged gate failure and decision against adoption stand. Actual frozen/OFF/ON symbol counts and opcode inventories are in [control audit](artifacts/control-audit.json). No capture is repeated. Future integration controls must preserve the accepted OFF expression byte-for-byte and audit code generation before capture.
