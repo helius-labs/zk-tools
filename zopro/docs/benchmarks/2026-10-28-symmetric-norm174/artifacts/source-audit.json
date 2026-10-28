@@ -1,0 +1,27 @@
+{
+  "OFF_expression_retained_verbatim": true,
+  "candidate_files": 175,
+  "duplicated_product_IFMA_lines": 30,
+  "edits": [
+    {
+      "file": "crates/zopro-bn254/src/ifma8.rs",
+      "suffix": "\n#[cfg(zopro_symmetric_norm)]\nmod symmetric_norm;\n"
+    },
+    {
+      "file": "crates/zopro-core/src/simd.rs",
+      "suffix": "\n#[cfg(all(zopro_symmetric_norm,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch { #[inline(always)] pub(crate) fn sum_squares(&self, b:&Self)->Self {Self(self.0.sum_squares(&b.0))} }\n"
+    },
+    {
+      "after": "            #[cfg(all(zopro_symmetric_norm,feature=\"ifma8\"))] return value[0].sum_squares(&value[1]); value[0].sum2(&value[0], &value[1], &value[1])",
+      "before": "            value[0].sum2(&value[0], &value[1], &value[1])",
+      "file": "crates/zopro-core/src/msm.rs"
+    }
+  ],
+  "forecast_key_solver_G1_unchanged": true,
+  "new_module": "crates/zopro-bn254/src/ifma8/symmetric_norm.rs",
+  "original_files": 174,
+  "originals_exact": 171,
+  "production_changed": false,
+  "reverse174_exact": true,
+  "source_square_template": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-24-integrated-square-component/source/crates/zopro-bn254/src/ifma.rs"
+}
