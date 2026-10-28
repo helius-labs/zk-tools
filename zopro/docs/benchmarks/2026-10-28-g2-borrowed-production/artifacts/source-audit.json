@@ -1,0 +1,28 @@
+{
+  "edits": [
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "suffix": "\n#[cfg(all(zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod g2_borrowed;\n"
+    },
+    {
+      "file": "crates/zopro-core/src/msm_affine.rs",
+      "suffix": "\n#[cfg(all(zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod g2_borrowed;\n"
+    },
+    {
+      "file": "crates/zopro-core/src/msm_affine/g2_phi.rs",
+      "new": "    #[cfg(all(zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    if let Some(value) = super::g2_borrowed::try_window(bases, short, w, bits) {\n        return value;\n    }\n    let size = batch_size(bits).max(32);",
+      "old": "    let size = batch_size(bits).max(32);"
+    }
+  ],
+  "existing_runtime_optouts_unchanged": true,
+  "field_unchanged": true,
+  "forecasts_unchanged": true,
+  "new_modules": 2,
+  "no_public_probe_exports": true,
+  "original_files": 172,
+  "originals_exact": 169,
+  "portable_exclusion": "supported-native guard false under no_ifma or missing AVX512 features both before/after",
+  "private_experiment_flags_removed": true,
+  "production_worktree_changed": false,
+  "reverse172_exact": true
+}
