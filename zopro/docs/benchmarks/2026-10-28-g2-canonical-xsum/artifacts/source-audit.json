@@ -1,0 +1,12 @@
+{
+  "adapter_exact": true,
+  "core_suffix": "\n#[cfg(zopro_canonical_xsum_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1};\n",
+  "field_unchanged": true,
+  "msm_suffix": "\n#[cfg(zopro_canonical_xsum_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_canonical_xsum_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1};\n",
+  "new": "        #[cfg(zopro_g2_canonical_xsum)]\n        let xsum=core::array::from_fn(|i|canonical_add::<FAST>(&ax[i],&bx[i]));\n        #[cfg(not(zopro_g2_canonical_xsum))]\n        let xsum=Fq2::lanes_add(&ax,&bx);\n        let x=Fq2::lanes_sub(&Fq2::lanes_square(&slope),&xsum);",
+  "old": "        let x=Fq2::lanes_sub(&Fq2::lanes_square(&slope),&Fq2::lanes_add(&ax,&bx));",
+  "original_files": 172,
+  "private_originals_exact": 169,
+  "reverse_edit_recovers_accepted": true,
+  "runtime_file": "crates/zopro-core/src/msm/g2_prefix.rs"
+}
