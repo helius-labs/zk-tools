@@ -1,0 +1,11 @@
+pub struct CallerFft{values:Vec<Pair>,source:Vec<Pair>,fields:Vec<[Fr;8]>,roots:Twiddles,inverse:Twiddles,n:usize}
+impl CallerFft{
+pub fn new(n:usize)->Self{assert!(n.is_power_of_two()&&(8..=4096).contains(&n));let root=Fr::root_of_unity(n).unwrap();let powers=|base:Fr|{let mut power=Fr::ONE;(0..n/2).map(|_|{let p=power;power*=base;p}).collect()};let roots=Twiddles::new(powers(root));let inverse=Twiddles::new(powers(root.inverse().unwrap()));let a=[(0,Fr::from(17u64)),(1,Fr::from(7u64)),(n/2+1,Fr::from(13u64)),(n-1,-Fr::ONE)];let b=[(2,Fr::from(11u64)),(n/3,Fr::from(29u64)),(n-2,Fr::from(23u64))];let evaluate=|terms:&[(usize,Fr)]|{let mut out=vec![Fr::ZERO;n];for &(k,c)in terms{let step=root.pow(&[k as u64]);let mut value=c;for v in &mut out{*v+=value;value*=step;}}out};let aa=evaluate(&a);let bb=evaluate(&b);let fields:Vec<[Fr;8]>=(0..n/4).map(|i|core::array::from_fn(|j|if j<4{aa[4*i+j]}else{bb[4*i+j-4]})).collect();let source:Vec<_>=fields.iter().map(Pair::new).collect();let mut f=Self{values:source.clone(),source,fields,roots,inverse,n};
+    dif_serial(&mut f.values,&f.inverse,0);let coeff=|terms:&[(usize,Fr)],k|terms.iter().filter(|(i,_)|*i==k).fold(Fr::ZERO,|s,(_,c)|s+*c);for(i,value)in f.values.iter().enumerate(){let got=value.get();for j in 0..8{let k=bit_reverse(4*i+j%4,n.trailing_zeros()as usize);assert_eq!(got[j],Fr::from(n as u64)*coeff(if j<4{&a}else{&b},k));}}f.reset();f}
+pub fn reset(&mut self){self.values.copy_from_slice(&self.source)}
+pub fn run(&mut self,rounds:usize){for _ in 0..rounds{let s=std::hint::black_box(&mut *self);dif_serial(&mut s.values,&s.inverse,0);dit_serial(&mut s.values,&s.roots);}}
+pub fn check(&self,rounds:usize){let scale=Fr::from(self.n as u64).pow(&[rounds as u64]);for(v,want)in self.values.iter().zip(&self.fields){assert_eq!(v.get(),want.map(|x|x*scale));}}
+pub fn bytes(&self)->Vec<u8>{self.values.iter().flat_map(|v|v.get()).flat_map(|v|v.to_canonical().into_iter().flat_map(u64::to_le_bytes)).collect()}
+pub fn capacity_bytes(&self)->usize{self.values.capacity()*std::mem::size_of::<Pair>()}
+}
+#[cfg(test)]mod caller_fft_tests{use super::*;#[test]fn actual_leaves_inverse_coefficients_and_changing_rounds(){for n in[8,16,128,1024,4096]{let mut f=CallerFft::new(n);for rounds in[0,1,2,3,17]{f.reset();f.run(rounds);f.check(rounds);}}}}

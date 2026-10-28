@@ -1,0 +1,361 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/paired-callers/profile-pins-v2.json",
+  "environment": {
+    "MALLOC_ARENA_MAX": "32",
+    "MALLOC_MMAP_THRESHOLD_": "1073741824",
+    "MALLOC_TRIM_THRESHOLD_": "-1",
+    "RAYON_NUM_THREADS": "1",
+    "ZOPRO_CPU_CANONICAL_BATCH": "1",
+    "ZOPRO_CPU_DIRECT": "1",
+    "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_VECTOR_INVERSE": "1"
+  },
+  "steps": [
+    {
+      "kind": "command",
+      "name": "profile-g2-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "RAYON_NUM_THREADS=1",
+        "ZOPRO_CPU_CANONICAL_BATCH=1",
+        "ZOPRO_CPU_DIRECT=1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE=2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS=1",
+        "ZOPRO_CPU_VECTOR_INVERSE=1",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/g2-fresh/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe",
+        "g2",
+        "128",
+        "32768"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "profile-g2-selected",
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "RAYON_NUM_THREADS=1",
+        "ZOPRO_CPU_CANONICAL_BATCH=1",
+        "ZOPRO_CPU_DIRECT=1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE=2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS=1",
+        "ZOPRO_CPU_VECTOR_INVERSE=1",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/g2-selected/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/selected-probe",
+        "g2",
+        "128",
+        "32768"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "profile-fft-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "RAYON_NUM_THREADS=1",
+        "ZOPRO_CPU_CANONICAL_BATCH=1",
+        "ZOPRO_CPU_DIRECT=1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE=2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS=1",
+        "ZOPRO_CPU_VECTOR_INVERSE=1",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/fft-fresh/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe",
+        "fft",
+        "1024",
+        "16384"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "profile-fft-selected",
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "RAYON_NUM_THREADS=1",
+        "ZOPRO_CPU_CANONICAL_BATCH=1",
+        "ZOPRO_CPU_DIRECT=1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE=2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS=1",
+        "ZOPRO_CPU_VECTOR_INVERSE=1",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/fft-selected/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/selected-probe",
+        "fft",
+        "1024",
+        "16384"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "ownership-g2-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/g2-fresh/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "decode-g2-fresh",
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/g2-fresh/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "loss-g2-fresh",
+      "argv": [
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/g2-fresh/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "ownership-g2-selected",
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/g2-selected/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "decode-g2-selected",
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/g2-selected/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "loss-g2-selected",
+      "argv": [
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/g2-selected/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "ownership-fft-fresh",
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/fft-fresh/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "decode-fft-fresh",
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/fft-fresh/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "loss-fft-fresh",
+      "argv": [
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/fft-fresh/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "ownership-fft-selected",
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/fft-selected/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "decode-fft-selected",
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/fft-selected/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    },
+    {
+      "kind": "command",
+      "name": "loss-fft-selected",
+      "argv": [
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/fft-selected/perf.data"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 240
+    }
+  ]
+}

@@ -1,0 +1,221 @@
+# ========
+# captured on    : Wed Oct 28 01:37:24 2026
+# header version : 1
+# data offset    : 512
+# data size      : 11888
+# feat offset    : 12400
+# hostname : sdevbox
+# os release : 6.8.0-147-generic
+# perf version : 6.8.12
+# arch : x86_64
+# nrcpus online : 32
+# nrcpus avail : 32
+# cpudesc : AMD Ryzen 9 9950X 16-Core Processor
+# cpuid : AuthenticAMD,26,68,0
+# total memory : 129413460 kB
+# cmdline : /usr/lib/linux-tools-6.8.0-147/perf record --no-buildid-cache -e cycles:u -F 199 -o /home/ubuntu/src/zopro-perf-work/paired-callers/profiles-v2/fft-fresh/perf.data -- taskset -c 2 /home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe fft 1024 16384 
+# event : name = cycles:u, , id = { 24007, 24008, 24009, 24010, 24011, 24012, 24013, 24014, 24015, 24016, 24017, 24018, 24019, 24020, 24021, 24022, 24023, 24024, 24025, 24026, 24027, 24028, 24029, 24030, 24031, 24032, 24033, 24034, 24035, 24036, 24037, 24038 }, type = 0 (PERF_TYPE_HARDWARE), size = 136, config = 0 (PERF_COUNT_HW_CPU_CYCLES), { sample_period, sample_freq } = 199, sample_type = IP|TID|TIME|PERIOD, read_format = ID|LOST, disabled = 1, inherit = 1, exclude_kernel = 1, exclude_hv = 1, mmap = 1, comm = 1, freq = 1, enable_on_exec = 1, task = 1, sample_id_all = 1, exclude_guest = 1, mmap2 = 1, comm_exec = 1, ksymbol = 1, bpf_event = 1
+# CPU_TOPOLOGY info available, use -I to display
+# NUMA_TOPOLOGY info available, use -I to display
+# pmu mappings: cpu = 4, amd_iommu_0 = 12, breakpoint = 5, ibs_fetch = 10, ibs_op = 11, kprobe = 8, msr = 13, power = 14, software = 1, tracepoint = 2, uprobe = 9
+# CACHE info available, use -I to display
+# time of first sample : 41019.823142
+# time of last sample : 41020.615612
+# sample duration :    792.470 ms
+# MEM_TOPOLOGY info available, use -I to display
+# bpf_prog_info 2: bpf_prog_7cc47bbf07148bfe_hid_tail_call addr 0xffffffffc021e954 size 133
+# bpf_prog_info 5: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc021e7b8 size 311
+# bpf_prog_info 6: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc021eb18 size 56
+# bpf_prog_info 7: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc021eb8c size 56
+# bpf_prog_info 8: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc0221310 size 56
+# bpf_prog_info 9: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc02213bc size 56
+# bpf_prog_info 10: bpf_prog_c8b47a902f1cc68b_sd_devices addr 0xffffffffc0226910 size 290
+# bpf_prog_info 11: bpf_prog_ee0e253c78993a24_sd_devices addr 0xffffffffc0226a68 size 260
+# bpf_prog_info 12: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc022c3f4 size 311
+# bpf_prog_info 13: bpf_prog_fbee7646fdd03110_sd_devices addr 0xffffffffc022f44c size 103
+# bpf_prog_info 14: bpf_prog_8b9c33f36f812014_sd_devices addr 0xffffffffc022fc90 size 449
+# bpf_prog_info 15: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc022fe8c size 56
+# bpf_prog_info 16: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc022ff0c size 56
+# bpf_prog_info 21: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc023ec58 size 56
+# bpf_prog_info 22: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc023ecf8 size 56
+# bpf_prog_info 80: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232654 size 296
+# bpf_prog_info 84: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc023278c size 358
+# bpf_prog_info 136: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232490 size 296
+# bpf_prog_info 140: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc0232bd4 size 358
+# bpf_prog_info 141: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232d48 size 296
+# bpf_prog_info 145: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc0232e90 size 358
+# bpf_prog_info 179: bpf_prog_832241bd9d6e557d_sd_devices addr 0xffffffffc023c5d4 size 1076
+# btf info of id 5
+# cpu pmu capabilities: branches=16, max_precise=0
+# ibs_fetch pmu capabilities: zen4_ibs_extensions=1
+# ibs_op pmu capabilities: zen4_ibs_extensions=1
+# AMD systems uses ibs_op// PMU for some precise events, e.g.: cycles:p, see the 'perf list' man page for further details.
+# missing features: TRACING_DATA BRANCH_STACK GROUP_DESC AUXTRACE STAT CLOCKID DIR_FORMAT COMPRESSED CLOCK_DATA HYBRID_TOPOLOGY 
+# ========
+#
+ 358378/358378           1  ffffffffa4000ba0 [unknown] ([unknown])
+ 358378/358378           1      729102c34211 [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 358378/358378           1  ffffffffa4000ba0 [unknown] ([unknown])
+ 358378/358378         133  ffffffffa4000ba0 [unknown] ([unknown])
+ 358378/358378       72012      729102c1551c _dl_catch_exception (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 358378/358378           1      60286d5185fd [unknown] (/usr/bin/taskset)
+ 358378/358378           1      60286d5185ff [unknown] (/usr/bin/taskset)
+ 358378/358378           1      60286d518603 [unknown] (/usr/bin/taskset)
+ 358378/358378         210      60286d5185de [unknown] (/usr/bin/taskset)
+ 358378/358378       75864  ffffffffa4000080 [unknown] ([unknown])
+ 358378/358378    29427605      5fa5f8963ae9 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    54465156      5fa5f896776d _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    34619323      5fa5f896772a _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    30696880      5fa5f8963039 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    28945759      5fa5f8967774 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    28248205      5fa5f896778e _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27890751      5fa5f89665ff _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27701127      5fa5f89669ff _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27604070      5fa5f896320d _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27557888      5fa5f8963c41 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27535834      5fa5f8967780 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27480973      5fa5f89632e2 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27490962      5fa5f8963404 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27496337      5fa5f8963c5f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27500135      5fa5f8967537 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27501853      5fa5f896765f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27499663      5fa5f8963470 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27505969      5fa5f896778e _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27502975      5fa5f89635af _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27502266      5fa5f8963336 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27504352      5fa5f89633df _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27506832      5fa5f89676b9 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27504536      5fa5f896767e _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27509244      5fa5f8963373 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27515899      5fa5f8963373 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27513402      5fa5f89676c1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27517431      5fa5f89674ef _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27509892      5fa5f8963058 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27505010      5fa5f89676f7 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27493754      5fa5f8967220 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27494199      5fa5f896770f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27468486      5fa5f89672c5 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27485109      5fa5f89635d9 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27494916      5fa5f89676f1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27487213      5fa5f89664ef _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27492082      5fa5f896775f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27499071      5fa5f89676f1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27498810      5fa5f8963428 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27476705      5fa5f8962fc8 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27479276      5fa5f89635ca _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27459547      5fa5f896324a _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27472535      5fa5f8963d91 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27478657      5fa5f89632bd _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27487340      5fa5f8963a90 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27484204      5fa5f89631f4 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27478728      5fa5f8967759 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27461737      5fa5f8967445 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27479540      5fa5f8963170 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27479210      5fa5f8963058 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27482718      5fa5f8963594 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27486704      5fa5f89635af _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27483247      5fa5f8963336 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27441151      5fa5f8963306 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27459134      5fa5f89633d9 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27468055      5fa5f896334e _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27471233      5fa5f896648a _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27468079      5fa5f89676e4 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27466884      5fa5f8967703 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27472587      5fa5f896768c _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27465451      5fa5f89631ee _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27467823      5fa5f89676f1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27461757      5fa5f8967780 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27468449      5fa5f8967703 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27477183      5fa5f89676e4 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27475175      5fa5f8963107 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27466768      5fa5f8963b2c _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27444493      5fa5f89632ee _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27455645      5fa5f8963026 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27466451      5fa5f89634a1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27465544      5fa5f89676f7 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27468405      5fa5f89633df _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27469505      5fa5f8963530 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27472062      5fa5f8967765 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27473186      5fa5f896778e _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27470764      5fa5f8967258 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27474547      5fa5f896732a _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27475714      5fa5f8967743 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27479902      5fa5f8967703 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27473815      5fa5f89632e2 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27473130      5fa5f8963566 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27479486      5fa5f896661c _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27478592      5fa5f896768c _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27478360      5fa5f89677f3 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27481451      5fa5f8967774 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27473503      5fa5f89635be _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27476327      5fa5f8963312 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27456997      5fa5f8963588 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27468538      5fa5f896334e _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27474266      5fa5f89676c1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27476901      5fa5f89672c5 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27473447      5fa5f896318f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27465620      5fa5f89630a0 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27468750      5fa5f89631e2 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27443528      5fa5f896337f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27459654      5fa5f896318f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27462535      5fa5f8963d91 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27465082      5fa5f8967731 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27468606      5fa5f896767e _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27467064      5fa5f89675a6 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27458437      5fa5f8967759 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27452974      5fa5f8967324 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27455455      5fa5f89676b9 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27462594      5fa5f8967220 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27459165      5fa5f896767e _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27453596      5fa5f896785d _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27459662      5fa5f896772a _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27441118      5fa5f8967780 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27450458      5fa5f8963530 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27459654      5fa5f89632b1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27457541      5fa5f8963594 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27460018      5fa5f8967699 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27459486      5fa5f89677fb _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27464314      5fa5f896753d _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27472940      5fa5f89676f1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27476331      5fa5f8967678 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27454343      5fa5f89676c1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27441858      5fa5f89675ac _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27457664      5fa5f8967672 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27466901      5fa5f896778e _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27471119      5fa5f8967724 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27470623      5fa5f8967415 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27472584      5fa5f8967774 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27474506      5fa5f89676f1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27470231      5fa5f8967445 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27465895      5fa5f8963336 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27464666      5fa5f896782f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27449267      5fa5f896765f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27460421      5fa5f89630c1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27467793      5fa5f8963594 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27472542      5fa5f896787b _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27472439      5fa5f89673b4 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27465439      5fa5f8967672 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27463998      5fa5f89677f3 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27447627      5fa5f89633df _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27441466      5fa5f8963008 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27438558      5fa5f89673a8 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27448954      5fa5f8967415 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27451901      5fa5f896770f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27449845      5fa5f8967324 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27450638      5fa5f89674ef _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27453509      5fa5f8967703 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27454582      5fa5f8967445 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27466225      5fa5f8967445 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27465916      5fa5f89676c1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27464509      5fa5f8963495 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27463497      5fa5f896306b _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27439329      5fa5f896315c _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27448278      5fa5f89630c1 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27453136      5fa5f8963428 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27449719      5fa5f896318f _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27452924      5fa5f8963464 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27455338      5fa5f8967445 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27463746      5fa5f89633df _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27463393      5fa5f89637ec _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27467293      5fa5f8963eb8 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dif_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
+ 358378/358378    27461693      5fa5f8967632 _RNvNtNtNtCsjQFiruuwIAf_10zopro_core3fft4pair4leaf10dit_serial (/home/ubuntu/src/zopro-perf-work/paired-callers/fresh-probe)
