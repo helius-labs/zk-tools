@@ -1,0 +1,267 @@
+# ========
+# captured on    : Wed Oct 28 02:15:11 2026
+# header version : 1
+# data offset    : 512
+# data size      : 13632
+# feat offset    : 14144
+# hostname : sdevbox
+# os release : 6.8.0-147-generic
+# perf version : 6.8.12
+# arch : x86_64
+# nrcpus online : 32
+# nrcpus avail : 32
+# cpudesc : AMD Ryzen 9 9950X 16-Core Processor
+# cpuid : AuthenticAMD,26,68,0
+# total memory : 129413460 kB
+# cmdline : /usr/lib/linux-tools-6.8.0-147/perf record --no-buildid-cache -e cycles:u -F 199 -o /home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-direct/perf.data -- taskset -c 2 /home/ubuntu/src/zopro-perf-work/triple-callers/probe g1 8 1048576 direct 
+# event : name = cycles:u, , id = { 24304, 24305, 24306, 24307, 24308, 24309, 24310, 24311, 24312, 24313, 24314, 24315, 24316, 24317, 24318, 24319, 24320, 24321, 24322, 24323, 24324, 24325, 24326, 24327, 24328, 24329, 24330, 24331, 24332, 24333, 24334, 24335 }, type = 0 (PERF_TYPE_HARDWARE), size = 136, config = 0 (PERF_COUNT_HW_CPU_CYCLES), { sample_period, sample_freq } = 199, sample_type = IP|TID|TIME|PERIOD, read_format = ID|LOST, disabled = 1, inherit = 1, exclude_kernel = 1, exclude_hv = 1, mmap = 1, comm = 1, freq = 1, enable_on_exec = 1, task = 1, sample_id_all = 1, exclude_guest = 1, mmap2 = 1, comm_exec = 1, ksymbol = 1, bpf_event = 1
+# CPU_TOPOLOGY info available, use -I to display
+# NUMA_TOPOLOGY info available, use -I to display
+# pmu mappings: cpu = 4, amd_iommu_0 = 12, breakpoint = 5, ibs_fetch = 10, ibs_op = 11, kprobe = 8, msr = 13, power = 14, software = 1, tracepoint = 2, uprobe = 9
+# CACHE info available, use -I to display
+# time of first sample : 43286.198059
+# time of last sample : 43287.235975
+# sample duration :   1037.916 ms
+# MEM_TOPOLOGY info available, use -I to display
+# bpf_prog_info 2: bpf_prog_7cc47bbf07148bfe_hid_tail_call addr 0xffffffffc021e954 size 133
+# bpf_prog_info 5: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc021e7b8 size 311
+# bpf_prog_info 6: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc021eb18 size 56
+# bpf_prog_info 7: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc021eb8c size 56
+# bpf_prog_info 8: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc0221310 size 56
+# bpf_prog_info 9: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc02213bc size 56
+# bpf_prog_info 10: bpf_prog_c8b47a902f1cc68b_sd_devices addr 0xffffffffc0226910 size 290
+# bpf_prog_info 11: bpf_prog_ee0e253c78993a24_sd_devices addr 0xffffffffc0226a68 size 260
+# bpf_prog_info 12: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc022c3f4 size 311
+# bpf_prog_info 13: bpf_prog_fbee7646fdd03110_sd_devices addr 0xffffffffc022f44c size 103
+# bpf_prog_info 14: bpf_prog_8b9c33f36f812014_sd_devices addr 0xffffffffc022fc90 size 449
+# bpf_prog_info 15: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc022fe8c size 56
+# bpf_prog_info 16: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc022ff0c size 56
+# bpf_prog_info 21: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc023ec58 size 56
+# bpf_prog_info 22: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc023ecf8 size 56
+# bpf_prog_info 80: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232654 size 296
+# bpf_prog_info 84: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc023278c size 358
+# bpf_prog_info 136: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232490 size 296
+# bpf_prog_info 140: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc0232bd4 size 358
+# bpf_prog_info 141: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232d48 size 296
+# bpf_prog_info 145: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc0232e90 size 358
+# btf info of id 5
+# cpu pmu capabilities: branches=16, max_precise=0
+# ibs_fetch pmu capabilities: zen4_ibs_extensions=1
+# ibs_op pmu capabilities: zen4_ibs_extensions=1
+# AMD systems uses ibs_op// PMU for some precise events, e.g.: cycles:p, see the 'perf list' man page for further details.
+# missing features: TRACING_DATA BRANCH_STACK GROUP_DESC AUXTRACE STAT CLOCKID DIR_FORMAT COMPRESSED CLOCK_DATA HYBRID_TOPOLOGY 
+# ========
+#
+ 365341/365341           1  ffffffffa4000ba0 [unknown] ([unknown])
+ 365341/365341           1      7d59a3144543 [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 365341/365341           1  ffffffffa4000ba0 [unknown] ([unknown])
+ 365341/365341         130  ffffffffa4000ba0 [unknown] ([unknown])
+ 365341/365341       70328      7d59a312f640 [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 365341/365341           1      6437999635fd [unknown] (/usr/bin/taskset)
+ 365341/365341           1      643799963603 [unknown] (/usr/bin/taskset)
+ 365341/365341           1      6437999635de [unknown] (/usr/bin/taskset)
+ 365341/365341         206      64379996208c [unknown] (/usr/bin/taskset)
+ 365341/365341       66743      7f5e39b09848 [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 365341/365341    26542289      57db6c9ea6c5 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    84068954      57db6c9e1228 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    35238232      57db6c9e0ff5 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    31041493      57db6c9ea1c9 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    29151464      57db6ca5d69c _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    28392423      57db6c9e1141 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27994629      57db6c9e1717 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27789079      57db6c9e183e _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27688073      57db6c9e23fa _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27614755      57db6c9e1025 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27612996      57db6ca59502 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27603710      57db6ca5e5d2 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27588510      57db6c9e0ff1 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27583774      57db6c9e0ff8 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27597163      57db6c9eac7b _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27587710      57db6c9e16f6 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27608148      57db6c9e9e26 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27595859      57db6ca58baa _RNvMs1_NtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probeNtB5_8TripleG13run (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27589816      57db6c9e1002 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27589865      57db6c9e23fa _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27589087      57db6c9e1144 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27582476      57db6ca5b73f _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27585566      57db6ca5cbf8 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27593414      57db6c9e0f6a _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27604554      57db6c9e100f _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27595309      57db6c9e1014 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27572336      57db6c9e93c2 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27577848      57db6c9e1014 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27573357      57db6c9e1144 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27562632      57db6c9e1025 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27578397      57db6ca5dbbe _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27585343      57db6c9e146e _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27581805      57db6c9e9c1b _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27575619      57db6ca5c34c _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27576750      57db6c9e0ff8 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27560285      57db6ca5f520 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27560917      57db6c9e0efc _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27580983      57db6c9ead74 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27561043      57db6c9e0fe9 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27560523      57db6c9e23e3 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27569790      57db6ca5b450 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27562989      57db6c9e100a _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27564339      57db6c9ea317 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27566973      57db6ca5c498 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27581044      57db6c9e1a1b _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27582217      57db6ca5e0b6 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27578399      57db6c9e98f7 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27566820      57db6c9e100f _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27582402      57db6ca5d798 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27584642      57db6ca5d155 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27581370      57db6c9e2adc _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27564852      57db6c9e1272 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27558657      57db6c9e0ffb _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27556529      57db6c9e2739 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27563983      57db6c9e1002 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27560766      57db6c9e1025 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27566979      57db6c9e23e0 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27569129      57db6ca5962b _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27571142      57db6c9e1025 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27562619      57db6c9e100a _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27552821      57db6ca59f64 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27565305      57db6c9e1132 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27563603      57db6c9e173d _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27561199      57db6c9e0e89 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27556546      57db6c9e1256 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27550049      57db6c9e2400 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27556948      57db6ca5d24c _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27552111      57db6c9e12a8 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27553874      57db6c9e0efc _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27556366      57db6ca5e562 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27559721      57db6c9e1002 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27573175      57db6c9e183e _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27558572      57db6ca5c527 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27558113      57db6c9ea577 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27571168      57db6c9e0ff1 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27552772      57db6c9e9fd3 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27550013      57db6c9e1e83 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27553584      57db6c9e2414 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27567916      57db6c9e102b _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27569037      57db6ca5dbde _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27563272      57db6ca5cdbc _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27554089      57db6c9e2400 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27525685      57db6ca5b643 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27541531      57db6c9e2427 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27548101      57db6c9e23e3 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27548472      57db6c9e1025 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27555265      57db6c9e29ae _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27562927      57db6c9e23b6 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27554378      57db6c9e23fa _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27547370      57db6ca5d8e0 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27550562      57db6ca5d726 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27552574      57db6c9e1043 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27545941      57db6ca5999e _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27528484      57db6c9e24b8 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27537159      57db6c9eac6f _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27537415      57db6ca5dc10 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27552789      57db6c9e100a _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27554885      57db6c9e9ba5 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27553366      57db6ca595a7 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27566167      57db6c9e23f4 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27556209      57db6c9e9450 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27548155      57db6c9e0fe0 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27542232      57db6c9e1014 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27547600      57db6c9e0ff8 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27540183      57db6ca5b4c8 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27539969      57db6c9e2547 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27548457      57db6c9e2427 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27549133      57db6c9e100f _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27558792      57db6ca5aeff _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27556504      57db6ca5d912 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27567550      57db6c9e0fff _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27572875      57db6c9e2427 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27572679      57db6ca5e49f _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27565751      57db6c9e0fff _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27554127      57db6c9e0fff _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27559012      57db6c9e13b7 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27573645      57db6c9e0fff _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27560938      57db6c9e1014 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27559090      57db6ca5b0ca _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27571176      57db6c9e23fa _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27554027      57db6c9e9d7b _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27564536      57db6ca5ad3d _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27578918      57db6c9e2326 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27563283      57db6c9e1025 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27572418      57db6c9e23b6 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27572773      57db6c9e0fa9 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27562137      57db6ca5ad03 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27569760      57db6c9e0e70 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27556191      57db6c9e0ff5 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27557074      57db6ca5aeb3 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27564259      57db6c9e29a8 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27551608      57db6c9e23fa _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27553973      57db6ca5d7e9 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27556969      57db6c9e1235 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27562854      57db6c9e2400 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27552710      57db6ca5ae3a _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27553966      57db6c9e9aa9 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27554473      57db6ca5b544 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27568753      57db6c9e1002 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27563310      57db6ca5d7a9 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27550303      57db6c9e13e2 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27545372      57db6c9ea252 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27553142      57db6c9e1014 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27561029      57db6c9e23fa _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27565248      57db6c9e23fa _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27566513      57db6ca5adb2 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27564170      57db6ca599a4 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27564360      57db6c9e2400 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27553224      57db6ca5f428 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27553413      57db6c9e1272 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27579073      57db6ca5b717 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27582978      57db6ca5b635 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27569079      57db6c9e23b6 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27562230      57db6c9e187d _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27557797      57db6c9e1002 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27564337      57db6ca5afd2 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27566616      57db6c9e17e4 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27550265      57db6c9ea7f5 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27551898      57db6ca5cddc _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27534674      57db6c9e997a _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27553332      57db6c9e0fed _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27548745      57db6ca5d9a5 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27524237      57db6ca5a132 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27537607      57db6c9e1a62 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27543211      57db6c9e0f55 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27536490      57db6c9e9ed1 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27540037      57db6c9e189a _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27537266      57db6c9e0fe3 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27532916      57db6c9e98a4 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27544789      57db6c9e1897 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27553942      57db6ca5c68a _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27541110      57db6c9e1588 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27539119      57db6ca5afde _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27542676      57db6c9e2443 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27544054      57db6ca5b3c6 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27545117      57db6ca5bc3f _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27562361      57db6c9e0f0f _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27544536      57db6c9e12f7 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27543692      57db6c9e16d3 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27541825      57db6c9e23e3 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27531713      57db6c9e100a _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27549208      57db6c9e2400 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27554665      57db6c9e9a90 _RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27546975      57db6c9e1065 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27539389      57db6c9e18d6 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27545781      57db6c9e101e _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27534578      57db6ca5bee6 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27539292      57db6ca5e57f _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27538262      57db6c9e1202 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27554951      57db6ca5eac2 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27539366      57db6c9e0ff5 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27537138      57db6c9e1002 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27526015      57db6c9e0ff8 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27526334      57db6c9e0ff5 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27482858      57db6ca5ea72 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27507786      57db6c9e102b _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27521555      57db6c9e100a _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27525743      57db6ca5a3cd _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27534038      57db6c9e1014 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27525782      57db6c9e100a _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27537162      57db6c9e0ff8 _RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27543592      57db6ca59107 _RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)
+ 365341/365341    27544341  ffffffffa4000f30 [unknown] ([unknown])

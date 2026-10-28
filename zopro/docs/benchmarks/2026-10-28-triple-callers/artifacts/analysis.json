@@ -1,0 +1,722 @@
+{
+  "SDK_requests": 0,
+  "adopted": false,
+  "all_outputs_match": true,
+  "eligible_small_batch_cases": [
+    "g1-8",
+    "g1-16",
+    "g1-32",
+    "g1-64",
+    "g2-8",
+    "g2-16"
+  ],
+  "goal_achieved": false,
+  "latency_processes": 496,
+  "limits": "single active native caller; fixture contract distinct destinations; no production MSM geometry, SDK, proving latency, peakRSS, pressure, TEE, phones, AWS or Aeglos qualification",
+  "new_exports": 0,
+  "new_tests": 2,
+  "preflights": 16,
+  "production_changed": false,
+  "profile_processes": 4,
+  "profiles": {
+    "g1-binary": {
+      "lost": 0,
+      "output": {
+        "SDK_requests": 0,
+        "binary_scratch_capacity_bytes": 1600,
+        "direct_record_bytes": 2560,
+        "direct_scratch_capacity_bytes": 2560,
+        "elapsed_ns": 1662729090,
+        "internally_verified": true,
+        "iterations": 1048576,
+        "kind": "g1",
+        "ns_per_round": 1585.702028274536,
+        "output_sha256": "71135c19bc1eecbc72ea2ce5636e641927a0e1fe236b6ebf737dda1c9aced50e",
+        "prime_calls": 3,
+        "prime_iterations": 8,
+        "size": 8,
+        "timed_allocations": 0,
+        "variant": "binary"
+      },
+      "period": 9087611998,
+      "pids": [
+        365331
+      ],
+      "samples": 338,
+      "symbols": {
+        "[unknown] (/usr/bin/taskset)": 130,
+        "[unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)": 73468,
+        "[unknown] ([unknown])": 2,
+        "_RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 6218212141,
+        "_RNvMs1_NtCsjQFiruuwIAf_10zopro_core3msmINtB5_8BatchAddNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigE5applyB7_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 1545573173,
+        "_RNvMs1_NtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probeNtB5_8TripleG13run (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 27553267,
+        "_RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 1296199817
+      }
+    },
+    "g1-direct": {
+      "lost": 0,
+      "output": {
+        "SDK_requests": 0,
+        "binary_scratch_capacity_bytes": 0,
+        "direct_record_bytes": 2560,
+        "direct_scratch_capacity_bytes": 2560,
+        "elapsed_ns": 1038510985,
+        "internally_verified": true,
+        "iterations": 1048576,
+        "kind": "g1",
+        "ns_per_round": 990.4012537002563,
+        "output_sha256": "71135c19bc1eecbc72ea2ce5636e641927a0e1fe236b6ebf737dda1c9aced50e",
+        "prime_calls": 3,
+        "prime_iterations": 8,
+        "size": 8,
+        "timed_allocations": 0,
+        "variant": "direct"
+      },
+      "period": 5664450941,
+      "pids": [
+        365341
+      ],
+      "samples": 213,
+      "symbols": {
+        "[unknown] (/usr/bin/taskset)": 209,
+        "[unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)": 137072,
+        "[unknown] ([unknown])": 27544473,
+        "_RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 3427967957,
+        "_RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G1ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 1572416903,
+        "_RNvMs1_NtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probeNtB5_8TripleG13run (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 27595859,
+        "_RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 608788468
+      }
+    },
+    "g2-binary": {
+      "lost": 0,
+      "output": {
+        "SDK_requests": 0,
+        "binary_scratch_capacity_bytes": 2560,
+        "direct_record_bytes": 5120,
+        "direct_scratch_capacity_bytes": 5120,
+        "elapsed_ns": 2090974737,
+        "internally_verified": true,
+        "iterations": 1048576,
+        "kind": "g2",
+        "ns_per_round": 1994.1089029312136,
+        "output_sha256": "d30965771726346b4bbffb38563ca5578aecdb481f5562c103960d85627b7b95",
+        "prime_calls": 3,
+        "prime_iterations": 8,
+        "size": 8,
+        "timed_allocations": 0,
+        "variant": "binary"
+      },
+      "period": 11309276551,
+      "pids": [
+        365351
+      ],
+      "samples": 418,
+      "symbols": {
+        "[unknown] (/usr/bin/taskset)": 3,
+        "[unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)": 77332,
+        "[unknown] (/usr/lib/x86_64-linux-gnu/libc.so.6)": 341553,
+        "[unknown] ([unknown])": 162,
+        "_RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 6229474509,
+        "_RINvNtNtCsjQFiruuwIAf_10zopro_core3msm9g2_prefix5applyNtNtCs27kK45cMAIL_11zopro_bn2545curve8G2ConfigKb1_EB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 3010989155,
+        "_RNCNvNtNtNtCs9k3SxhrAWiO_3std3sys3env4unix6getenv0B9_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 386293786,
+        "_RNvMs1_NtCsjQFiruuwIAf_10zopro_core3msmINtB5_8BatchAddNtNtCs27kK45cMAIL_11zopro_bn2545curve8G2ConfigE5applyB7_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 27580156,
+        "_RNvMs2_NtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probeNtB5_8TripleG23run (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 27551350,
+        "_RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 1268515839,
+        "_RNvNtNtNtCs9k3SxhrAWiO_3std3sys3env4unix6getenv (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 358452195,
+        "cfree (/usr/lib/x86_64-linux-gnu/libc.so.6)": 511
+      }
+    },
+    "g2-direct": {
+      "lost": 0,
+      "output": {
+        "SDK_requests": 0,
+        "binary_scratch_capacity_bytes": 0,
+        "direct_record_bytes": 5120,
+        "direct_scratch_capacity_bytes": 5120,
+        "elapsed_ns": 1622029614,
+        "internally_verified": true,
+        "iterations": 1048576,
+        "kind": "g2",
+        "ns_per_round": 1546.8879833221436,
+        "output_sha256": "d30965771726346b4bbffb38563ca5578aecdb481f5562c103960d85627b7b95",
+        "prime_calls": 3,
+        "prime_iterations": 8,
+        "size": 8,
+        "timed_allocations": 0,
+        "variant": "direct"
+      },
+      "period": 8897831322,
+      "pids": [
+        365367
+      ],
+      "samples": 329,
+      "symbols": {
+        "[unknown] (/usr/bin/taskset)": 307,
+        "[unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)": 256196,
+        "[unknown] ([unknown])": 153,
+        "_RINvNtCs27kK45cMAIL_11zopro_bn2547inverse7inverseNtB4_8FqConfigECsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 2665095977,
+        "_RINvNtNtCsjQFiruuwIAf_10zopro_core3msm12triple_probe6directNtNtCs27kK45cMAIL_11zopro_bn2545curve8G2ConfigEB6_ (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 5323364969,
+        "_RNvMs2_NtCs27kK45cMAIL_11zopro_bn2545curveINtB5_10ProjectiveNtB5_8G2ConfigE6doubleCsjQFiruuwIAf_10zopro_core (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 27517112,
+        "_RNvMs3_NtCsjQFiruuwIAf_10zopro_core4simdNtB5_7FqBatch15inverse_nonzero (/home/ubuntu/src/zopro-perf-work/triple-callers/probe)": 881596608
+      }
+    }
+  },
+  "proof_ledger": 12524,
+  "raw_profile_pins": {
+    "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-binary/perf.data": "5c170c7991077a9a3dbf9838aade215849f917198e339bb6886e58671425d437",
+    "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-direct/perf.data": "410d245f9d3852ac99e61a4d2892c3a8f18b7e6de72a88cc7e4c9e4e4e0a9244",
+    "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g2-binary/perf.data": "d3d29de503ed73721a3faa6a57cf6419041472ea9e3bbe118a46c34df459346b",
+    "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g2-direct/perf.data": "ed63c1a5ea50db32212fded129a4b1f822560cc4e4a69cfb7cd016b4592b7e24",
+    "/home/ubuntu/src/zopro-perf-work/triple-callers/runs/loss-g1-binary/stdout.log": "8245b8c99868c5a4bef4cab380a32a21f3ca75e8e375a142576e9ee4cb1d5719",
+    "/home/ubuntu/src/zopro-perf-work/triple-callers/runs/loss-g1-direct/stdout.log": "e5bf7af413aab666ea907a937912c4cbe6410d4b882985b5eba734e36b58b32d",
+    "/home/ubuntu/src/zopro-perf-work/triple-callers/runs/loss-g2-binary/stdout.log": "cba7d205850d3aa0505e21a88a7e15478a9c3867fea7b516d52ec228cabb2b65",
+    "/home/ubuntu/src/zopro-perf-work/triple-callers/runs/loss-g2-direct/stdout.log": "44f5b27652628591e7300b0853782b77d3ab994668f835a21c187f7e18ebe32b"
+  },
+  "rows": [
+    {
+      "caller_gain_gate": true,
+      "case": "g1-8",
+      "direct_vs_binary": {
+        "all_ratios": [
+          0.624447360787073,
+          0.6262894515852012,
+          0.623776146439391,
+          0.62055016056404,
+          0.6250643116499477,
+          0.604785262479352,
+          0.6169017526166459,
+          0.6210000221810229,
+          0.6245147352135743,
+          0.619450234570524,
+          0.6241004235632813,
+          0.6190504754636281,
+          0.6086857853918234,
+          0.6194963403360895,
+          0.6202222192831798,
+          0.6190740390427109,
+          0.6213312962073801,
+          0.6245813851604479,
+          0.6023611517966522,
+          0.6194332775428756,
+          0.6162724946477607,
+          0.6207575937922459,
+          0.6089842539368155,
+          0.6197229622761645,
+          0.6272527884701328,
+          0.6036388256695625,
+          0.6236377544789916,
+          0.6202692589604134,
+          0.6242179271223999,
+          0.619722021424624,
+          0.610161189659411
+        ],
+        "high": 0.6236377544789916,
+        "low": 0.6190740390427109,
+        "median": 0.6202222192831798,
+        "wins": 31
+      },
+      "iterations": 8192,
+      "kind": "g1",
+      "median_binary_ns": 1585.90771484375,
+      "median_direct_ns": 984.2662353515624,
+      "output_sha256": "205770f35de6fab6599971d36b94b4452e6fb803bcde85711245d0df43968450",
+      "scratch_capacity": {
+        "binary": {
+          "binary_capacity_bytes": 1600,
+          "direct_capacity_bytes": 2560,
+          "direct_record_bytes": 2560
+        },
+        "direct": {
+          "binary_capacity_bytes": 0,
+          "direct_capacity_bytes": 2560,
+          "direct_record_bytes": 2560
+        }
+      },
+      "triples": 8
+    },
+    {
+      "caller_gain_gate": true,
+      "case": "g1-16",
+      "direct_vs_binary": {
+        "all_ratios": [
+          0.6946621641500738,
+          0.6591181902781368,
+          0.6992199709995414,
+          0.6970495916203991,
+          0.6948887295446634,
+          0.6647484800573263,
+          0.6958475811636675,
+          0.6952482079845913,
+          0.6643006565575872,
+          0.65674879919985,
+          0.6983817042860078,
+          0.6834390446995067,
+          0.6954864280124475,
+          0.657621616879414,
+          0.6958109253265735,
+          0.6941037497301958,
+          0.6942034087579307,
+          0.691826143717474,
+          0.6605570899928399,
+          0.6947662831159127,
+          0.698051416835378,
+          0.6929558828831303,
+          0.6930452755548723,
+          0.696083655099065,
+          0.6948609780331716,
+          0.6969206429192165,
+          0.6937654787942146,
+          0.6583267526976481,
+          0.7001388277590778,
+          0.6971611078158507,
+          0.6923554389049301
+        ],
+        "high": 0.6958109253265735,
+        "low": 0.6923554389049301,
+        "median": 0.6946621641500738,
+        "wins": 31
+      },
+      "iterations": 4096,
+      "kind": "g1",
+      "median_binary_ns": 1873.103515625,
+      "median_direct_ns": 1301.0576171875,
+      "output_sha256": "9c3d4745f4f9ed40c7b56db2970547b18b48b5c50cc8e2f490f75e41562de7ae",
+      "scratch_capacity": {
+        "binary": {
+          "binary_capacity_bytes": 3200,
+          "direct_capacity_bytes": 5120,
+          "direct_record_bytes": 2560
+        },
+        "direct": {
+          "binary_capacity_bytes": 0,
+          "direct_capacity_bytes": 5120,
+          "direct_record_bytes": 2560
+        }
+      },
+      "triples": 16
+    },
+    {
+      "caller_gain_gate": true,
+      "case": "g1-32",
+      "direct_vs_binary": {
+        "all_ratios": [
+          0.7272824473064136,
+          0.723553197837244,
+          0.7278066025440039,
+          0.7274755521871575,
+          0.7984088516932721,
+          0.7273761514935076,
+          0.7915583235900178,
+          0.7951902914541717,
+          0.796428603694264,
+          0.793134890683991,
+          0.789627341887499,
+          0.7256542525385798,
+          0.7264629826663096,
+          0.7915539816506271,
+          0.7955867518409403,
+          0.793054859675493,
+          0.7927896202379756,
+          0.7935455060122191,
+          0.7946586326413098,
+          0.7903202799349126,
+          0.7940970224756513,
+          0.7949819007095388,
+          0.7945455806248224,
+          0.7269584880629573,
+          0.7958051870816647,
+          0.790416824226303,
+          0.7956091253018659,
+          0.7243695844803216,
+          0.796033381014573,
+          0.7254682568072386,
+          0.7947363572707136
+        ],
+        "high": 0.7946586326413098,
+        "low": 0.7278066025440039,
+        "median": 0.7927896202379756,
+        "wins": 31
+      },
+      "iterations": 2048,
+      "kind": "g1",
+      "median_binary_ns": 2437.2294921875,
+      "median_direct_ns": 1934.73828125,
+      "output_sha256": "75f54adda4cd2112804da03cf70bd51d2b0886cc332f1044f4810e90474bf345",
+      "scratch_capacity": {
+        "binary": {
+          "binary_capacity_bytes": 6400,
+          "direct_capacity_bytes": 10240,
+          "direct_record_bytes": 2560
+        },
+        "direct": {
+          "binary_capacity_bytes": 0,
+          "direct_capacity_bytes": 10240,
+          "direct_record_bytes": 2560
+        }
+      },
+      "triples": 32
+    },
+    {
+      "caller_gain_gate": true,
+      "case": "g1-64",
+      "direct_vs_binary": {
+        "all_ratios": [
+          0.9024837836912223,
+          0.7918961588659901,
+          0.7954200059119871,
+          0.7952510447982545,
+          0.7889532705515935,
+          0.8982137051248459,
+          0.8998971822580482,
+          0.8998670755834034,
+          0.9024859497312301,
+          0.8953247657557174,
+          0.9043632036673502,
+          0.899066698651174,
+          0.7957641012458084,
+          0.7896802193970243,
+          0.89238013158267,
+          0.7951584909018906,
+          0.8953368878421624,
+          0.8977870768178875,
+          0.8934298098038405,
+          0.898819209393188,
+          0.7906865488896985,
+          0.9004297943225053,
+          0.7910634755262759,
+          0.8941829415724041,
+          0.8906708594533013,
+          0.7920112829197938,
+          0.7939314266734,
+          0.9047462171283174,
+          0.7943704254629272,
+          0.9012526113203823,
+          0.8950065879827974
+        ],
+        "high": 0.898819209393188,
+        "low": 0.7952510447982545,
+        "median": 0.8941829415724041,
+        "wins": 31
+      },
+      "iterations": 1024,
+      "kind": "g1",
+      "median_binary_ns": 3582.59765625,
+      "median_direct_ns": 3207.0849609375,
+      "output_sha256": "6732a32e7b3573b129d1730917a7dc1a5f3bcc4fb6be927ae1e610fb2a4ef7a2",
+      "scratch_capacity": {
+        "binary": {
+          "binary_capacity_bytes": 12800,
+          "direct_capacity_bytes": 20480,
+          "direct_record_bytes": 2560
+        },
+        "direct": {
+          "binary_capacity_bytes": 0,
+          "direct_capacity_bytes": 20480,
+          "direct_record_bytes": 2560
+        }
+      },
+      "triples": 64
+    },
+    {
+      "caller_gain_gate": true,
+      "case": "g2-8",
+      "direct_vs_binary": {
+        "all_ratios": [
+          0.7744742298488124,
+          0.7720537043943122,
+          0.778337427746149,
+          0.7711854367828984,
+          0.7784692688785816,
+          0.7615776606060961,
+          0.7688475681146106,
+          0.7579169590891166,
+          0.7503959113839841,
+          0.7696175660393912,
+          0.775707336815535,
+          0.7577722722573133,
+          0.7760992623413163,
+          0.7745527621627994,
+          0.7725252315423453,
+          0.7737949139793652,
+          0.767115571302555,
+          0.7569638607944875,
+          0.7762997240485411,
+          0.7764889682875615,
+          0.7439611981758203,
+          0.7734486225716131,
+          0.7676936892724724,
+          0.7743178256421158,
+          0.7555618668376729,
+          0.7565349552215616,
+          0.7729338718988884,
+          0.7717925831919438,
+          0.7599721294074313,
+          0.7782127415228792,
+          0.762230108210641
+        ],
+        "high": 0.7743178256421158,
+        "low": 0.762230108210641,
+        "median": 0.7717925831919438,
+        "wins": 31
+      },
+      "iterations": 8192,
+      "kind": "g2",
+      "median_binary_ns": 2015.61962890625,
+      "median_direct_ns": 1553.60693359375,
+      "output_sha256": "5294de7c420b7dade727b4a55f199120c893bdc2c163cc67398dc59a7d7d7def",
+      "scratch_capacity": {
+        "binary": {
+          "binary_capacity_bytes": 2560,
+          "direct_capacity_bytes": 5120,
+          "direct_record_bytes": 5120
+        },
+        "direct": {
+          "binary_capacity_bytes": 0,
+          "direct_capacity_bytes": 5120,
+          "direct_record_bytes": 5120
+        }
+      },
+      "triples": 8
+    },
+    {
+      "caller_gain_gate": true,
+      "case": "g2-16",
+      "direct_vs_binary": {
+        "all_ratios": [
+          0.9513895821294829,
+          0.9068271704174211,
+          0.9078328840926081,
+          0.9434057823113107,
+          0.912041006213766,
+          0.9096040713954038,
+          0.9020489049185434,
+          0.9499864272588316,
+          0.9523937117753319,
+          0.9534027087012957,
+          0.9534507880523476,
+          0.9076028452989121,
+          0.9559360295729723,
+          0.945174364939359,
+          0.9065358162578174,
+          0.9527279180096054,
+          0.9098744452775095,
+          0.9433653713754822,
+          0.9444577829160119,
+          0.9480920177831906,
+          0.9022721709389356,
+          0.9426200225810689,
+          0.9562244270861705,
+          0.9524268685312052,
+          0.9550133477290212,
+          0.9491626982845481,
+          0.9463819407296459,
+          0.9550369084197341,
+          0.9482013508289913,
+          0.9069468518547893,
+          0.9062647587512818
+        ],
+        "high": 0.9513895821294829,
+        "low": 0.9098744452775095,
+        "median": 0.945174364939359,
+        "wins": 31
+      },
+      "iterations": 4096,
+      "kind": "g2",
+      "median_binary_ns": 2567.230224609375,
+      "median_direct_ns": 2432.647705078125,
+      "output_sha256": "ff031129de622b5a64cd1079d91936d076376adeb29e5243eaf0e767c8835ec1",
+      "scratch_capacity": {
+        "binary": {
+          "binary_capacity_bytes": 2560,
+          "direct_capacity_bytes": 10240,
+          "direct_record_bytes": 5120
+        },
+        "direct": {
+          "binary_capacity_bytes": 0,
+          "direct_capacity_bytes": 10240,
+          "direct_record_bytes": 5120
+        }
+      },
+      "triples": 16
+    },
+    {
+      "caller_gain_gate": false,
+      "case": "g2-32",
+      "direct_vs_binary": {
+        "all_ratios": [
+          1.1406068665585833,
+          1.1418902149164938,
+          1.1432718130043005,
+          1.1400239084601937,
+          1.1430415158512066,
+          1.1459439210548554,
+          1.1467576141616338,
+          1.1433409838742838,
+          1.1402646106428818,
+          1.1410774641636356,
+          1.1361886434343063,
+          1.142287915261118,
+          1.1443098329979788,
+          1.0616966495063251,
+          1.065849901809633,
+          1.1364204127883748,
+          1.0658968914665699,
+          1.135837527162593,
+          1.1356798202450775,
+          1.1423197189479861,
+          1.1399569922957973,
+          1.1382721267912215,
+          1.1448556535813228,
+          1.1427116799445654,
+          1.138241816718527,
+          1.1425881166467637,
+          1.1390565178914114,
+          1.1405242823005424,
+          1.1427282101607128,
+          1.1368522026247685,
+          1.1361937003160314
+        ],
+        "high": 1.1425881166467637,
+        "low": 1.138241816718527,
+        "median": 1.1405242823005424,
+        "wins": 0
+      },
+      "iterations": 2048,
+      "kind": "g2",
+      "median_binary_ns": 3682.953125,
+      "median_direct_ns": 4202.3115234375,
+      "output_sha256": "d055c0954d0d62ef59da0b5c660b63434f3d4fefe89d40c1021e57b6848c878f",
+      "scratch_capacity": {
+        "binary": {
+          "binary_capacity_bytes": 2560,
+          "direct_capacity_bytes": 20480,
+          "direct_record_bytes": 5120
+        },
+        "direct": {
+          "binary_capacity_bytes": 0,
+          "direct_capacity_bytes": 20480,
+          "direct_record_bytes": 5120
+        }
+      },
+      "triples": 32
+    },
+    {
+      "caller_gain_gate": false,
+      "case": "g2-64",
+      "direct_vs_binary": {
+        "all_ratios": [
+          1.2907921660810409,
+          1.2967068537033137,
+          1.2912046820752427,
+          1.1958013161771157,
+          1.2941580162629012,
+          1.2935011799567881,
+          1.1992857655642615,
+          1.2876193419128505,
+          1.1958992953959293,
+          1.2881904588520223,
+          1.196785249934749,
+          1.291981516085657,
+          1.290237349754758,
+          1.2883192212814187,
+          1.2973557547641288,
+          1.2923839725466517,
+          1.1971152183796416,
+          1.196509852319003,
+          1.2978675874172465,
+          1.293903494881864,
+          1.2926778600521889,
+          1.2953321163597475,
+          1.203194650873317,
+          1.2911792422174564,
+          1.2960420206902863,
+          1.1925827504830007,
+          1.2933529759416675,
+          1.2927025016894476,
+          1.2977925033259223,
+          1.2980665071146986,
+          1.2938332744550876
+        ],
+        "high": 1.2938332744550876,
+        "low": 1.2881904588520223,
+        "median": 1.291981516085657,
+        "wins": 0
+      },
+      "iterations": 1024,
+      "kind": "g2",
+      "median_binary_ns": 5983.2197265625,
+      "median_direct_ns": 7733.42578125,
+      "output_sha256": "5b2bae88a9eb3170ed2e87a1d9c05e13a0538f5022aae07f16d87e0a53c9d938",
+      "scratch_capacity": {
+        "binary": {
+          "binary_capacity_bytes": 5120,
+          "direct_capacity_bytes": 40960,
+          "direct_record_bytes": 5120
+        },
+        "direct": {
+          "binary_capacity_bytes": 0,
+          "direct_capacity_bytes": 40960,
+          "direct_record_bytes": 5120
+        }
+      },
+      "triples": 64
+    }
+  ],
+  "static_code": {
+    "full_assembly_sha256": "7488c07e62a8f3740cd105b97f753df2eb86167e4c40663f5fe61e58888cb19e",
+    "functions": [
+      {
+        "IFMA_sites": 800,
+        "RSP_operand_lines": 610,
+        "frame_subtractions": [
+          "   8cb21:\tsub    $0xfc0,%rsp",
+          "   8cb30:\tsub    $0x380,%rsp"
+        ],
+        "instruction_sites": 4432,
+        "symbol": "000000000008cb10 <zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, false, false, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>>:"
+      },
+      {
+        "IFMA_sites": 1450,
+        "RSP_operand_lines": 1393,
+        "frame_subtractions": [
+          "   e99e1:\tsub    $0xfc0,%rsp",
+          "   e99f0:\tsub    $0x680,%rsp"
+        ],
+        "instruction_sites": 8328,
+        "symbol": "00000000000e99d0 <zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>>:"
+      },
+      {
+        "IFMA_sites": 1450,
+        "RSP_operand_lines": 1431,
+        "frame_subtractions": [
+          "   f5eb1:\tsub    $0xfc0,%rsp",
+          "   f5ec0:\tsub    $0x800,%rsp"
+        ],
+        "instruction_sites": 8490,
+        "symbol": "00000000000f5ea0 <zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, false>>:"
+      },
+      {
+        "IFMA_sites": 1550,
+        "RSP_operand_lines": 494,
+        "frame_subtractions": [
+          "  103051:\tsub    $0xe40,%rsp"
+        ],
+        "instruction_sites": 4234,
+        "symbol": "0000000000103040 <zopro_core::msm::triple_probe::direct::<zopro_bn254::curve::G1Config>>:"
+      },
+      {
+        "IFMA_sites": 4450,
+        "RSP_operand_lines": 1946,
+        "frame_subtractions": [
+          "  10b4a1:\tsub    $0xfc0,%rsp",
+          "  10b4b0:\tsub    $0x1000,%rsp",
+          "  10b4bf:\tsub    $0x440,%rsp"
+        ],
+        "instruction_sites": 11758,
+        "symbol": "000000000010b490 <zopro_core::msm::triple_probe::direct::<zopro_bn254::curve::G2Config>>:"
+      }
+    ]
+  },
+  "status": "complete native triple caller experiment",
+  "timed_allocation_calls": 0
+}

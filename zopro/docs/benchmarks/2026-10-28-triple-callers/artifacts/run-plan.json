@@ -1,0 +1,7997 @@
+{
+  "environment": {
+    "MALLOC_ARENA_MAX": "32",
+    "MALLOC_MMAP_THRESHOLD_": "1073741824",
+    "MALLOC_TRIM_THRESHOLD_": "-1",
+    "RAYON_NUM_THREADS": "1",
+    "ZOPRO_CPU_CANONICAL_BATCH": "1",
+    "ZOPRO_CPU_DIRECT": "1",
+    "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_VECTOR_INVERSE": "1"
+  },
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/triple-callers/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "17",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "preflight-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "17",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "preflight-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "17",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "preflight-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "17",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "preflight-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "17",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "preflight-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "17",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "preflight-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "17",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "preflight-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "17",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "preflight-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "17",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "preflight-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "17",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "preflight-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "17",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "preflight-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "17",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "preflight-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "17",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "preflight-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "17",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "preflight-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "17",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "preflight-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "17",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "preflight-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b00-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b01-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b02-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b03-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b04-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b05-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b06-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b07-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b08-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b09-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b10-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b11-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b12-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b13-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b14-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b15-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b16-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b17-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b18-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b19-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b20-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b21-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b22-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b23-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b24-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b25-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b26-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b27-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b28-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b29-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g1-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g1-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g1-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g1-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g1-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g1-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g2-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g2-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g2-16-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "16",
+        "4096",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g2-16-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g2-32-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "32",
+        "2048",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g2-32-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g2-64-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "64",
+        "1024",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g2-64-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g1-8-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "8192",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "lat-b30-g1-8-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "RAYON_NUM_THREADS=1",
+        "ZOPRO_CPU_CANONICAL_BATCH=1",
+        "ZOPRO_CPU_DIRECT=1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE=2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS=1",
+        "ZOPRO_CPU_VECTOR_INVERSE=1",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-binary/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "1048576",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "profile-g1-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "RAYON_NUM_THREADS=1",
+        "ZOPRO_CPU_CANONICAL_BATCH=1",
+        "ZOPRO_CPU_DIRECT=1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE=2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS=1",
+        "ZOPRO_CPU_VECTOR_INVERSE=1",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-direct/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g1",
+        "8",
+        "1048576",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "profile-g1-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "RAYON_NUM_THREADS=1",
+        "ZOPRO_CPU_CANONICAL_BATCH=1",
+        "ZOPRO_CPU_DIRECT=1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE=2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS=1",
+        "ZOPRO_CPU_VECTOR_INVERSE=1",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g2-binary/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "1048576",
+        "binary"
+      ],
+      "kind": "command",
+      "name": "profile-g2-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "RAYON_NUM_THREADS=1",
+        "ZOPRO_CPU_CANONICAL_BATCH=1",
+        "ZOPRO_CPU_DIRECT=1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE=2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS=1",
+        "ZOPRO_CPU_VECTOR_INVERSE=1",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "-e",
+        "cycles:u",
+        "-F",
+        "199",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g2-direct/perf.data",
+        "--",
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/probe",
+        "g2",
+        "8",
+        "1048576",
+        "direct"
+      ],
+      "kind": "command",
+      "name": "profile-g2-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-binary/perf.data"
+      ],
+      "kind": "command",
+      "name": "owner-g1-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-binary/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "kind": "command",
+      "name": "decode-g1-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-binary/perf.data"
+      ],
+      "kind": "command",
+      "name": "loss-g1-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-direct/perf.data"
+      ],
+      "kind": "command",
+      "name": "owner-g1-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-direct/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "kind": "command",
+      "name": "decode-g1-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g1-direct/perf.data"
+      ],
+      "kind": "command",
+      "name": "loss-g1-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g2-binary/perf.data"
+      ],
+      "kind": "command",
+      "name": "owner-g2-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g2-binary/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "kind": "command",
+      "name": "decode-g2-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g2-binary/perf.data"
+      ],
+      "kind": "command",
+      "name": "loss-g2-binary",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g2-direct/perf.data"
+      ],
+      "kind": "command",
+      "name": "owner-g2-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g2-direct/perf.data",
+        "-F",
+        "pid,tid,period,ip,sym,dso"
+      ],
+      "kind": "command",
+      "name": "decode-g2-direct",
+      "timeout_seconds": 240
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/triple-callers/profiles/g2-direct/perf.data"
+      ],
+      "kind": "command",
+      "name": "loss-g2-direct",
+      "timeout_seconds": 240
+    }
+  ],
+  "version": 1
+}
