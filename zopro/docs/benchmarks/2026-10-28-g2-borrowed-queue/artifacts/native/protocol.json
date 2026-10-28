@@ -1,0 +1,248 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/build-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "libraries-frozen",
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/source-frozen/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/target-frozen",
+        "RAYON_NUM_THREADS": "4",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_queue_probe",
+        "ZOPRO_CPU_CANONICAL_BATCH": "1",
+        "ZOPRO_CPU_DIRECT": "1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+        "ZOPRO_CPU_PACKED": "1",
+        "ZOPRO_CPU_VECTOR_INVERSE": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "freeze-frozen",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/native-helper",
+        "freeze",
+        "frozen"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/target-frozen",
+        "RAYON_NUM_THREADS": "4",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_queue_probe",
+        "ZOPRO_CPU_CANONICAL_BATCH": "1",
+        "ZOPRO_CPU_DIRECT": "1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+        "ZOPRO_CPU_PACKED": "1",
+        "ZOPRO_CPU_VECTOR_INVERSE": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "core-off",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/target-off",
+        "RAYON_NUM_THREADS": "4",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_queue_probe",
+        "ZOPRO_CPU_CANONICAL_BATCH": "1",
+        "ZOPRO_CPU_DIRECT": "1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+        "ZOPRO_CPU_PACKED": "1",
+        "ZOPRO_CPU_VECTOR_INVERSE": "1"
+      },
+      "required_tests": [
+        "msm_affine::g2_phi::tests::decomposition_and_endomorphism_match_independent_field_oracles"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "libraries-off",
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/target-off",
+        "RAYON_NUM_THREADS": "4",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_queue_probe",
+        "ZOPRO_CPU_CANONICAL_BATCH": "1",
+        "ZOPRO_CPU_DIRECT": "1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+        "ZOPRO_CPU_PACKED": "1",
+        "ZOPRO_CPU_VECTOR_INVERSE": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "freeze-off",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/native-helper",
+        "freeze",
+        "off"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/target-off",
+        "RAYON_NUM_THREADS": "4",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_queue_probe",
+        "ZOPRO_CPU_CANONICAL_BATCH": "1",
+        "ZOPRO_CPU_DIRECT": "1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+        "ZOPRO_CPU_PACKED": "1",
+        "ZOPRO_CPU_VECTOR_INVERSE": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    },
+    {
+      "kind": "command",
+      "name": "core-on",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/target-on",
+        "RAYON_NUM_THREADS": "4",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_queue_probe --cfg zopro_g2_borrow_queue",
+        "ZOPRO_CPU_CANONICAL_BATCH": "1",
+        "ZOPRO_CPU_DIRECT": "1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+        "ZOPRO_CPU_PACKED": "1",
+        "ZOPRO_CPU_VECTOR_INVERSE": "1"
+      },
+      "required_tests": [
+        "msm_affine::g2_phi::tests::decomposition_and_endomorphism_match_independent_field_oracles",
+        "msm::g2_borrowed::tests::signed_borrowed_prefix_tails_and_reuse",
+        "msm_affine::g2_borrowed::tests::full_width_phi_msm_matches_generator_sum",
+        "msm_affine::g2_borrowed::tests::exceptional_keys_and_scalar_edges_match_generator_sum"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "libraries-on",
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/target-on",
+        "RAYON_NUM_THREADS": "4",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_queue_probe --cfg zopro_g2_borrow_queue",
+        "ZOPRO_CPU_CANONICAL_BATCH": "1",
+        "ZOPRO_CPU_DIRECT": "1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+        "ZOPRO_CPU_PACKED": "1",
+        "ZOPRO_CPU_VECTOR_INVERSE": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "freeze-on",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/native-helper",
+        "freeze",
+        "on"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue/target-on",
+        "RAYON_NUM_THREADS": "4",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_g2_queue_probe --cfg zopro_g2_borrow_queue",
+        "ZOPRO_CPU_CANONICAL_BATCH": "1",
+        "ZOPRO_CPU_DIRECT": "1",
+        "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+        "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+        "ZOPRO_CPU_PACKED": "1",
+        "ZOPRO_CPU_VECTOR_INVERSE": "1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 180
+    }
+  ]
+}
