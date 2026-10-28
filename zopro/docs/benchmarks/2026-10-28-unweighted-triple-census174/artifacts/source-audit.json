@@ -1,0 +1,35 @@
+{
+  "arithmetic_and_point_mutation_unchanged": true,
+  "candidate_files": 175,
+  "field_key_solver_forecast_source_exact": true,
+  "first_layer_only": true,
+  "hooks": [
+    [
+      "crates/zopro-core/src/msm.rs",
+      "                while local_counts.iter().any(|&count| count > 1) {",
+      "                #[cfg(zopro_reduction_census)] reduction_census::observe::<C>(points,local_starts,local_counts,0);\n                while local_counts.iter().any(|&count| count > 1) {"
+    ],
+    [
+      "crates/zopro-core/src/msm.rs",
+      "            while count[0] > 1 {",
+      "            #[cfg(zopro_reduction_census)] reduction_census::observe::<C>(&points,&[0],&count,1);\n            while count[0] > 1 {"
+    ]
+  ],
+  "new_module": "crates/zopro-core/src/msm/reduction_census.rs",
+  "observer_computes_extra_guard_arithmetic": true,
+  "original_files": 174,
+  "originals_exact": 172,
+  "production_changed": false,
+  "reverse174_exact": true,
+  "suffixes": [
+    [
+      "crates/zopro-core/src/msm.rs",
+      "\n#[cfg(zopro_reduction_census)]\npub mod reduction_census;\n"
+    ],
+    [
+      "crates/zopro-core/src/lib.rs",
+      "\n#[cfg(zopro_reduction_census)]\npub use msm::reduction_census;\n"
+    ]
+  ],
+  "weighted_and_streaming_excluded": true
+}
