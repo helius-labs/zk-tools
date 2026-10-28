@@ -1,0 +1,19 @@
+{
+  "scope": "Post-capture read-only profile triage; no additional benchmark or source change",
+  "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+  "sampled_period_percent": {
+    "primary16_accepted": 3.4391983653030933,
+    "primary16_off": 2.7278153486044925,
+    "primary16_on": 3.0920502638181615,
+    "primary32_accepted": 8.843758097995524,
+    "primary32_off": 8.307119522940948,
+    "primary32_on": 7.2321149394949895
+  },
+  "on_ELF_symbols": [
+    {"address_hex": "ff140", "size_bytes": 489},
+    {"address_hex": "1b54a0", "size_bytes": 489}
+  ],
+  "evidence": "Retained raw perf IP/period maps plus post-capture nm -C -S of fixed borrow-sdk",
+  "interpretation_limit": "A symbol period is not removable wall time or proof of an atomic/cache bottleneck. Two same-demangled copies require raw-address and assembly inspection before optimization.",
+  "next_CPU_investigation": "Resolve sampled IPs within the two bodies and callers, compare16/32, and inspect local Crossbeam/Rayon primary source before selecting a concrete CPU-work reduction. No blind scheduler reroll."
+}

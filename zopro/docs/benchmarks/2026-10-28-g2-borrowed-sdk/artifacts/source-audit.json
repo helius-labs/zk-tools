@@ -1,0 +1,38 @@
+{
+  "borrowed_entry_bytes": 16,
+  "field_unchanged": true,
+  "frozen_originals_exact": 170,
+  "frozen_suffixes": {
+    "lib": "\n#[cfg(all(zopro_g2_queue_probe,zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub fn queue_probe_g2(bases:&[zopro_bn254::G2Affine],words:&mut[[u64;4]])->zopro_bn254::G2Projective{msm_affine::queue_probe_g2(bases,words)}\n",
+    "msm_affine": "\n#[cfg(all(zopro_g2_queue_probe,zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(crate)fn queue_probe_g2(bases:&[zopro_bn254::G2Affine],words:&mut[[u64;4]])->zopro_bn254::G2Projective{g2_phi::raw_exclusive(bases,words)}\n"
+  },
+  "new_key_tables": 0,
+  "original_files": 172,
+  "owned_entry_bytes": 136,
+  "private_originals_exact": 168,
+  "removed_unused_scalar_buffers": 2,
+  "reverse_all172_exact": true,
+  "runtime_dispatch": {
+    "file": "crates/zopro-core/src/msm_affine/g2_phi.rs",
+    "new": "    #[cfg(all(zopro_g2_borrow_queue,zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    if let Some(value)=super::g2_borrowed::try_window(bases,short,w,bits){return value;}\n    let size = batch_size(bits).max(32);",
+    "old": "    let size = batch_size(bits).max(32);"
+  },
+  "suffixes": [
+    {
+      "file": "crates/zopro-core/src/msm_affine.rs",
+      "suffix": "\n#[cfg(all(zopro_g2_queue_probe,zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(crate)fn queue_probe_g2(bases:&[zopro_bn254::G2Affine],words:&mut[[u64;4]])->zopro_bn254::G2Projective{g2_phi::raw_exclusive(bases,words)}\n"
+    },
+    {
+      "file": "crates/zopro-core/src/lib.rs",
+      "suffix": "\n#[cfg(all(zopro_g2_queue_probe,zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub fn queue_probe_g2(bases:&[zopro_bn254::G2Affine],words:&mut[[u64;4]])->zopro_bn254::G2Projective{msm_affine::queue_probe_g2(bases,words)}\n"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "suffix": "\n#[cfg(all(zopro_g2_borrow_queue,zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod g2_borrowed;\n"
+    },
+    {
+      "file": "crates/zopro-core/src/msm_affine.rs",
+      "suffix": "\n#[cfg(all(zopro_g2_borrow_queue,zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod g2_borrowed;\n"
+    }
+  ]
+}

@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/build-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "link-sdk",
+      "name": "frozen",
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/libraries-frozen.jsonl",
+      "driver": "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/cpu-sdk.rs",
+      "additional_sources": [
+        "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/support/perf.rs"
+      ],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "link-sdk",
+      "name": "off",
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/libraries-off.jsonl",
+      "driver": "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/cpu-sdk.rs",
+      "additional_sources": [
+        "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/support/perf.rs"
+      ],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "link-sdk",
+      "name": "on",
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/libraries-on.jsonl",
+      "driver": "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/cpu-sdk.rs",
+      "additional_sources": [
+        "/home/ubuntu/src/zk-tools/zopro/crates/zopro-bench/examples/support/perf.rs"
+      ],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "link-sdk",
+      "name": "heap-accepted",
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/libraries-accepted.jsonl",
+      "driver": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/heap-sdk.rs",
+      "additional_sources": [
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/support/perf.rs"
+      ],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "--cfg",
+        "zopro_queue_heap_probe"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "link-sdk",
+      "name": "heap-frozen",
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/libraries-frozen.jsonl",
+      "driver": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/heap-sdk.rs",
+      "additional_sources": [
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/support/perf.rs"
+      ],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "--cfg",
+        "zopro_queue_heap_probe"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "link-sdk",
+      "name": "heap-off",
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/libraries-off.jsonl",
+      "driver": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/heap-sdk.rs",
+      "additional_sources": [
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/support/perf.rs"
+      ],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "--cfg",
+        "zopro_queue_heap_probe"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "link-sdk",
+      "name": "heap-on",
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/libraries-on.jsonl",
+      "driver": "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/heap-sdk.rs",
+      "additional_sources": [
+        "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/support/perf.rs"
+      ],
+      "rustc_flags": [
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "--cfg",
+        "zopro_queue_heap_probe"
+      ],
+      "timeout_seconds": 600
+    }
+  ]
+}
