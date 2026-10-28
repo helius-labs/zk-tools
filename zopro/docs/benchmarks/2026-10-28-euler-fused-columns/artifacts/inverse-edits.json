@@ -1,0 +1,12 @@
+{
+  "crates/zopro-core/src/fft/pair.rs": [
+    [
+      "    stored_transform::<PackedPair, true>(&mut values, &plan.roots, 0);\n    euler_combine_products(&mut a, &b, &values);",
+      "    if cfg!(zopro_euler_fused_columns) && cfg!(zopro_euler_pointwise8) && values.len() > 1024 && euler_output::enabled() {\n        if std::env::var(\"ZOPRO_CPU_EULER_FUSED_TRACE\").is_ok_and(|v|v==\"1\") {eprintln!(\"EULER_FUSED_COLUMNS n={} rows={}\",plan.n,a.len());}\n        euler_output::transform_output(&mut a, &b, &mut values, &plan.roots);\n    } else {\n    stored_transform::<PackedPair, true>(&mut values, &plan.roots, 0);\n    euler_combine_products(&mut a, &b, &values);\n    }"
+    ],
+    [
+      "",
+      "\nmod euler_output;\n"
+    ]
+  ]
+}

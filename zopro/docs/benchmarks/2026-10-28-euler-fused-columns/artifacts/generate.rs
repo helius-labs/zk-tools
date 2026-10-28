@@ -1,0 +1,3 @@
+use std::fs;
+fn tree(lo:usize,n:usize,pattern:bool)->String {if n==1 {if pattern{format!("o{lo}")}else{format!("output_chunks(s{lo},q/2)")}}else{let a=tree(lo,n/2,pattern);let b=tree(lo+n/2,n/2,pattern);if pattern{format!("({a},{b})")}else{format!("{a}.zip({b})")}}}
+fn main(){let p="euler_output.rs";let s=fs::read_to_string(p).unwrap();assert_eq!(s.matches("/* ZIP_COLUMNS */").count(),1);let vals=(0..32).map(|i|format!("o{i}")).collect::<Vec<_>>().join(",");let code=format!("{}.enumerate().for_each(|(column,{})| consume_columns([{vals}],b,values,roots,q,2*column));",tree(0,32,false),tree(0,32,true));fs::write(p,s.replace("/* ZIP_COLUMNS */",&code)).unwrap();}

@@ -1,0 +1,7 @@
+fn pins()->BTreeMap<String,String>{let r=Path::new(R);let m=read(format!("{Z}/docs/benchmarks/2026-10-27-clean-fft-adoption/artifacts/production-source-manifest.json"));let mut pins=BTreeMap::new();let mut same=0;
+    for(f,h)in m["source_files_sha256"].as_object().unwrap(){let p=Path::new(Z).join(f);assert_eq!(hash(&p),h.as_str().unwrap());pin(&mut pins,&p);let q=r.join("source").join(f);pin(&mut pins,&q);
+        if f=="crates/zopro-core/src/fft/pair.rs"{let edits=read(r.join("inverse-edits.json"));let list=edits[f].as_array().unwrap();let suffix=list[1][1].as_str().unwrap();let mut back=fs::read_to_string(&q).unwrap().strip_suffix(suffix).unwrap().to_string();let e=&list[0];let(a,b)=(e[0].as_str().unwrap(),e[1].as_str().unwrap());assert_eq!(back.matches(b).count(),1);back=back.replacen(b,a,1);assert_eq!(back,fs::read_to_string(p).unwrap());}else{assert_eq!(hash(q),h.as_str().unwrap());same+=1;}}
+    assert_eq!(same,171);assert_eq!(hash(r.join("euler_output.rs")),hash(r.join("source/crates/zopro-core/src/fft/pair/euler_output.rs")));
+    for f in["euler_output.rs","setup.rs","setup","experiment.rs","experiment","design.md","inverse-edits.json","source-audit.json","native-flags.txt","source/crates/zopro-core/src/fft/pair/euler_output.rs"]{pin(&mut pins,r.join(f));}
+    for p in[X,&format!("{Z}/crates/zopro-bench/examples/cpu-sdk.rs"),&format!("{Z}/crates/zopro-bench/examples/support/perf.rs")]{pin(&mut pins,p);}pins
+}
