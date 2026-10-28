@@ -1,0 +1,231 @@
+{
+  "environment": {
+    "RAYON_NUM_THREADS": "4",
+    "ZOPRO_CPU_CANONICAL_BATCH": "1",
+    "ZOPRO_CPU_DIRECT": "1",
+    "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_VECTOR_INVERSE": "1"
+  },
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/build-pins-v3.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/native-helper-v3",
+        "freeze",
+        "frozen"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/target-frozen",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_inverse_caller_probe"
+      },
+      "kind": "command",
+      "name": "frozen-freeze",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bn254",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/target-fresh",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_inverse_caller_probe"
+      },
+      "kind": "command",
+      "name": "fresh-field-tests",
+      "required_tests": [
+        "direct_input::tests::direct_reference_words_match_split_for_unaligned_permuted_and_aliased_inputs"
+      ],
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/target-fresh",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_inverse_caller_probe"
+      },
+      "kind": "command",
+      "name": "fresh-core-tests",
+      "required_tests": [
+        "msm::caller_probe::tests::owned_g1_generator_oracle_tails_and_reuse",
+        "msm::caller_probe::tests::borrowed_signed_g1_generator_oracle_tails_and_reuse",
+        "msm::caller_probe::tests::owned_g2_prefix_generator_oracle_tails_and_reuse"
+      ],
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/target-fresh",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_inverse_caller_probe"
+      },
+      "kind": "command",
+      "name": "fresh-build",
+      "timeout_seconds": 1200
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/native-helper-v3",
+        "freeze",
+        "fresh"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/target-fresh",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_inverse_caller_probe"
+      },
+      "kind": "command",
+      "name": "fresh-freeze",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bn254",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/target-selected",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_inverse_caller_probe --cfg zopro_direct_ref_pack"
+      },
+      "kind": "command",
+      "name": "selected-field-tests",
+      "required_tests": [
+        "direct_input::tests::direct_reference_words_match_split_for_unaligned_permuted_and_aliased_inputs"
+      ],
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/target-selected",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_inverse_caller_probe --cfg zopro_direct_ref_pack"
+      },
+      "kind": "command",
+      "name": "selected-core-tests",
+      "required_tests": [
+        "msm::caller_probe::tests::owned_g1_generator_oracle_tails_and_reuse",
+        "msm::caller_probe::tests::borrowed_signed_g1_generator_oracle_tails_and_reuse",
+        "msm::caller_probe::tests::owned_g2_prefix_generator_oracle_tails_and_reuse"
+      ],
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/target-selected",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_inverse_caller_probe --cfg zopro_direct_ref_pack"
+      },
+      "kind": "command",
+      "name": "selected-build",
+      "timeout_seconds": 1200
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/native-helper-v3",
+        "freeze",
+        "selected"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/target-selected",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_inverse_caller_probe --cfg zopro_direct_ref_pack"
+      },
+      "kind": "command",
+      "name": "selected-freeze",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "python3",
+        "/home/ubuntu/src/zopro-perf-work/direct-ref-pack/source/scripts/ifma8.py",
+        "--check"
+      ],
+      "kind": "command",
+      "name": "generator-check",
+      "timeout_seconds": 180
+    }
+  ],
+  "version": 1
+}

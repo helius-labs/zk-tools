@@ -1,0 +1,49 @@
+{
+  "arithmetic_and_record_formulas_exact": true,
+  "core_suffixes": [
+    [
+      "crates/zopro-core/src/msm.rs",
+      "\n#[cfg(zopro_inverse_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_inverse_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1};\n"
+    ],
+    [
+      "crates/zopro-core/src/lib.rs",
+      "\n#[cfg(zopro_inverse_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1};\n"
+    ]
+  ],
+  "field_suffix": "\n#[cfg(all(any(test, zopro_direct_ref_pack), target_arch=\"x86_64\", target_feature=\"avx2\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\nmod direct_input;\n",
+  "forward_packing_substitutions": [
+    [
+      "let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch_index::<SIGNED>(batch[k + i].0)]);",
+      "let a: [&Affine<C>; LANES] = core::array::from_fn(|i| &buckets[batch_index::<SIGNED>(batch[k + i].0)]);"
+    ],
+    [
+      "let b: [Affine<C>; LANES] = core::array::from_fn(|i| *batch[k + i].1.borrow());",
+      "let b: [&Affine<C>; LANES] = core::array::from_fn(|i| batch[k + i].1.borrow());"
+    ],
+    [
+      "FqBatch::new(&a.map(|p| p.x))",
+      "FqBatch::from_refs(a.map(|p| &p.x))"
+    ],
+    [
+      "FqBatch::new(&a.map(|p| p.y))",
+      "FqBatch::from_refs(a.map(|p| &p.y))"
+    ],
+    [
+      "FqBatch::new(&b.map(|p| p.x))",
+      "FqBatch::from_refs(b.map(|p| &p.x))"
+    ],
+    [
+      "FqBatch::new(&b.map(|p| p.y))",
+      "FqBatch::from_refs(b.map(|p| &p.y))"
+    ]
+  ],
+  "fresh_originals_exact": 168,
+  "frozen_originals_exact": 170,
+  "msm_suffix": "\n#[cfg(all(zopro_direct_ref_pack, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx2\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\nmod direct_input;\n",
+  "new_forward": "    #[cfg(all(zopro_direct_ref_pack, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx2\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\n    { chains = direct_input::forward::<C,FAST,SIGNED>(buckets,batch,s,full); }\n    #[cfg(not(all(zopro_direct_ref_pack, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx2\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma))))]\n    {\n    if s.write_groups {\n        // Reserve all records before taking any pointers. Each record is\n        // Copy and its length is published only after all five fields are\n        // initialized. A panic before then leaves no partial record in len.\n        s.groups.reserve(full / LANES);\n        for k in (0..full).step_by(LANES) {\n            let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch_index::<SIGNED>(batch[k + i].0)]);\n            let b: [Affine<C>; LANES] = core::array::from_fn(|i| *batch[k + i].1.borrow());\n            // SAFETY: reserve covers full/LANES records, k/LANES is in\n            // that range, and no allocation changes during these writes.\n            // addr_of_mut! creates no reference to uninitialized storage.\n            unsafe {\n                let slot = s.groups.as_mut_ptr().add(k / LANES);\n                let ax = FqBatch::new(&a.map(|p| p.x));\n                core::ptr::addr_of_mut!((*slot).ax).write(ax);\n                let bx = FqBatch::new(&b.map(|p| p.x));\n                let denominator = canonical_sub::<FAST>(&bx, &ax);\n                core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));\n                core::ptr::addr_of_mut!((*slot).denominator).write(denominator);\n                let ay = FqBatch::new(&a.map(|p| p.y));\n                core::ptr::addr_of_mut!((*slot).ay).write(ay);\n                let by = FqBatch::new(&b.map(|p| p.y));\n                let numerator = scaled_signed_dy::<FAST,SIGNED>(&by,&ay,&chains,signs::<SIGNED,C>(&batch[k..k+LANES]));\n                core::ptr::addr_of_mut!((*slot).numerator).write(numerator);\n                chains = chains.mul(&denominator);\n                // All five fields of this record are now initialized.\n                s.groups.set_len(k / LANES + 1);\n            }\n        }\n    } else {\n        if s.reserve_groups {\n            s.groups.reserve(full / LANES);\n        }\n        for k in (0..full).step_by(LANES) {\n            let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch_index::<SIGNED>(batch[k + i].0)]);\n            let b: [Affine<C>; LANES] = core::array::from_fn(|i| *batch[k + i].1.borrow());\n            let ax = FqBatch::new(&a.map(|p| p.x));\n            let ay = FqBatch::new(&a.map(|p| p.y));\n            let bx = FqBatch::new(&b.map(|p| p.x));\n            let by = FqBatch::new(&b.map(|p| p.y));\n            // Host coordinates are canonical; only the resulting differences are lazy.\n            let denominator = canonical_sub::<FAST>(&bx, &ax);\n            let numerator = scaled_signed_dy::<FAST,SIGNED>(&by,&ay,&chains,signs::<SIGNED,C>(&batch[k..k+LANES]));\n            chains = chains.mul(&denominator);\n            s.groups.push(FqAddGroup {\n                ax,\n                ay,\n                xsum: canonical_add::<FAST>(&ax, &bx),\n                denominator,\n                numerator,\n            });\n        }\n    }\n    }\n",
+  "no_inverse_changes": true,
+  "official_ifma_generator_unchanged": true,
+  "old_forward": "    if s.write_groups {\n        // Reserve all records before taking any pointers. Each record is\n        // Copy and its length is published only after all five fields are\n        // initialized. A panic before then leaves no partial record in len.\n        s.groups.reserve(full / LANES);\n        for k in (0..full).step_by(LANES) {\n            let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch_index::<SIGNED>(batch[k + i].0)]);\n            let b: [Affine<C>; LANES] = core::array::from_fn(|i| *batch[k + i].1.borrow());\n            // SAFETY: reserve covers full/LANES records, k/LANES is in\n            // that range, and no allocation changes during these writes.\n            // addr_of_mut! creates no reference to uninitialized storage.\n            unsafe {\n                let slot = s.groups.as_mut_ptr().add(k / LANES);\n                let ax = FqBatch::new(&a.map(|p| p.x));\n                core::ptr::addr_of_mut!((*slot).ax).write(ax);\n                let bx = FqBatch::new(&b.map(|p| p.x));\n                let denominator = canonical_sub::<FAST>(&bx, &ax);\n                core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));\n                core::ptr::addr_of_mut!((*slot).denominator).write(denominator);\n                let ay = FqBatch::new(&a.map(|p| p.y));\n                core::ptr::addr_of_mut!((*slot).ay).write(ay);\n                let by = FqBatch::new(&b.map(|p| p.y));\n                let numerator = scaled_signed_dy::<FAST,SIGNED>(&by,&ay,&chains,signs::<SIGNED,C>(&batch[k..k+LANES]));\n                core::ptr::addr_of_mut!((*slot).numerator).write(numerator);\n                chains = chains.mul(&denominator);\n                // All five fields of this record are now initialized.\n                s.groups.set_len(k / LANES + 1);\n            }\n        }\n    } else {\n        if s.reserve_groups {\n            s.groups.reserve(full / LANES);\n        }\n        for k in (0..full).step_by(LANES) {\n            let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch_index::<SIGNED>(batch[k + i].0)]);\n            let b: [Affine<C>; LANES] = core::array::from_fn(|i| *batch[k + i].1.borrow());\n            let ax = FqBatch::new(&a.map(|p| p.x));\n            let ay = FqBatch::new(&a.map(|p| p.y));\n            let bx = FqBatch::new(&b.map(|p| p.x));\n            let by = FqBatch::new(&b.map(|p| p.y));\n            // Host coordinates are canonical; only the resulting differences are lazy.\n            let denominator = canonical_sub::<FAST>(&bx, &ax);\n            let numerator = scaled_signed_dy::<FAST,SIGNED>(&by,&ay,&chains,signs::<SIGNED,C>(&batch[k..k+LANES]));\n            chains = chains.mul(&denominator);\n            s.groups.push(FqAddGroup {\n                ax,\n                ay,\n                xsum: canonical_add::<FAST>(&ax, &bx),\n                denominator,\n                numerator,\n            });\n        }\n    }\n",
+  "production_files": 172,
+  "simd_suffix": "\n#[cfg(all(zopro_direct_ref_pack, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx2\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\nimpl FqBatch {\n    #[inline(always)]\n    pub(crate) fn from_refs(values: [&Fq;8]) -> Self {Self(zopro_bn254::ifma8::Ifma8::from_refs(values))}\n}\n"
+}
