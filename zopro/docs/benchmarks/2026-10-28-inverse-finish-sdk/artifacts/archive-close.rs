@@ -1,0 +1,4 @@
+use sha2::{Digest,Sha256};use std::{fs,path::Path,collections::BTreeMap};
+fn hash(p:impl AsRef<Path>)->String{format!("{:x}",Sha256::digest(fs::read(p).unwrap()))}
+fn walk(p:&Path,root:&Path,m:&mut BTreeMap<String,String>){for e in fs::read_dir(p).unwrap(){let p=e.unwrap().path();if p.is_dir(){walk(&p,root,m)}else if p.file_name().unwrap()!="SHA256SUMS"{m.insert(p.strip_prefix(root).unwrap().display().to_string(),hash(&p));}}}
+fn main(){let root=Path::new("/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-28-inverse-finish-sdk");for f in["close-qualification.rs","close-qualification-build.log","close-qualification.log","close-qualification-error.log","final-qualification-audit.json","archive-close.rs"]{fs::copy(f,root.join("artifacts").join(f)).unwrap();}let mut m=BTreeMap::new();walk(root,root,&mut m);fs::write(root.join("SHA256SUMS"),m.iter().map(|(p,h)|format!("{h}  {p}\n")).collect::<String>()).unwrap();println!("{}finalreporthashes",m.len());}
