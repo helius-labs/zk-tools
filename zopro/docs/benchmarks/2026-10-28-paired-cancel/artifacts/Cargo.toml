@@ -1,0 +1,17 @@
+[package]
+name = "zopro-paired-cancel-probe"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+zopro-bn254 = { path = "bn254" }
+serde_json = "=1.0.149"
+sha2 = "=0.10.9"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

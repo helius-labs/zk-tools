@@ -1,0 +1,27 @@
+// Private experiment included inside the byte-retained ifma8 module.
+impl<C:FpConfig,const MIXED:bool> Ifma8<C,MIXED>{
+    const PAIRED_INV_HI:u64={let p=C::P[0]as u128|((C::P[1]as u128)<<64);let mut inv=1u128;let mut i=0;while i<7{inv=inv.wrapping_mul(2u128.wrapping_sub(p.wrapping_mul(inv)));i+=1;}((inv.wrapping_neg()>>52)as u64)&MASK};
+    #[inline(always)]pub fn mul_lookahead(&self,b:&Self)->Self{self.product_lookahead::<false>(b,self,b)}
+    #[inline(always)]pub fn sum2_lookahead(&self,b:&Self,c:&Self,d:&Self)->Self{self.product_lookahead::<true>(b,c,d)}
+    #[inline(always)]fn product_lookahead<const FUSED:bool>(&self,b:&Self,c:&Self,d:&Self)->Self{unsafe{
+        let zero=Self::splat(0);let mask=Self::splat(MASK);let p=split(C::P).map(Self::splat);let inv=Self::splat(C::INV&MASK);let invhi=Self::splat(Self::PAIRED_INV_HI);let mut t=[zero;7];
+        macro_rules! input{($i:literal,$off:literal)=>{{macro_rules! term{($j:literal)=>{{t[$j+$off]=_mm512_madd52lo_epu64(t[$j+$off],self.0[$j],b.0[$i]);t[$j+$off+1]=_mm512_madd52hi_epu64(t[$j+$off+1],self.0[$j],b.0[$i]);if FUSED{t[$j+$off]=_mm512_madd52lo_epu64(t[$j+$off],c.0[$j],d.0[$i]);t[$j+$off+1]=_mm512_madd52hi_epu64(t[$j+$off+1],c.0[$j],d.0[$i]);}}};}term!(0);term!(1);term!(2);term!(3);term!(4);}};}
+        macro_rules! cancel{($off:literal,$q:expr)=>{{let q=$q;let carry=_mm512_srli_epi64::<52>(_mm512_add_epi64(t[$off],mask));let low=_mm512_madd52hi_epu64(carry,q,p[0]);macro_rules! limb{($j:literal)=>{{t[$off+$j]=_mm512_madd52lo_epu64(t[$off+$j],q,p[$j]);t[$off+$j+1]=_mm512_madd52hi_epu64(t[$off+$j+1],q,p[$j]);}};}limb!(1);limb!(2);limb!(3);limb!(4);t[$off+1]=_mm512_add_epi64(t[$off+1],low);}};}
+        macro_rules! block{($i:literal,$next:literal)=>{{input!($i,0);input!($next,1);let u1=_mm512_add_epi64(t[1],_mm512_srli_epi64::<52>(t[0]));let q0=_mm512_madd52lo_epu64(zero,t[0],inv);let h=_mm512_madd52hi_epu64(zero,t[0],inv);let l0=_mm512_madd52lo_epu64(zero,t[0],invhi);let l1=_mm512_madd52lo_epu64(zero,u1,inv);let q1=_mm512_and_si512(_mm512_add_epi64(_mm512_add_epi64(h,l0),l1),mask);cancel!(0,q0);cancel!(1,q1);t=[t[2],t[3],t[4],t[5],t[6],zero,zero];}};}
+        block!(0,1);block!(2,3);input!(4,0);
+        if MIXED{let mask48=Self::splat((1u64<<48)-1);let q=_mm512_and_si512(_mm512_madd52lo_epu64(zero,t[0],inv),mask48);let carry=_mm512_srli_epi64::<48>(_mm512_add_epi64(t[0],mask48));let low=_mm512_madd52hi_epu64(carry,_mm512_slli_epi64::<4>(q),p[0]);macro_rules! limb{($j:literal)=>{{t[$j]=_mm512_madd52lo_epu64(t[$j],q,p[$j]);t[$j+1]=_mm512_madd52hi_epu64(t[$j+1],q,p[$j]);}};}limb!(1);limb!(2);limb!(3);limb!(4);
+            t=[_mm512_add_epi64(low,_mm512_slli_epi64::<4>(_mm512_and_si512(t[1],mask48))),_mm512_add_epi64(_mm512_srli_epi64::<48>(t[1]),_mm512_slli_epi64::<4>(_mm512_and_si512(t[2],mask48))),_mm512_add_epi64(_mm512_srli_epi64::<48>(t[2]),_mm512_slli_epi64::<4>(_mm512_and_si512(t[3],mask48))),_mm512_add_epi64(_mm512_srli_epi64::<48>(t[3]),_mm512_slli_epi64::<4>(_mm512_and_si512(t[4],mask48))),_mm512_add_epi64(_mm512_srli_epi64::<48>(t[4]),_mm512_slli_epi64::<4>(t[5])),zero,zero];
+        }else{let q=_mm512_madd52lo_epu64(zero,t[0],inv);cancel!(0,q);t=[t[1],t[2],t[3],t[4],t[5],zero,zero];}
+        for j in 0..4{t[j+1]=_mm512_add_epi64(t[j+1],_mm512_srli_epi64::<52>(t[j]));t[j]=_mm512_and_si512(t[j],mask);}let out=[t[0],t[1],t[2],t[3],t[4]];if FUSED&&MIXED{Self::reduce_fused(out)}else{Self(out,PhantomData)}
+    }}
+}
+
+#[cfg(test)]mod paired_tests{use super::*;use ark_ff::{BigInteger,Field,PrimeField};
+fn bytes(x:[u64;4])->Vec<u8>{x.into_iter().flat_map(u64::to_le_bytes).collect()}
+fn check<C:FpConfig,A:PrimeField<BigInt=ark_ff::BigInt<4>>,const M:bool>(){let double=crate::portable::add4(C::P,C::P).0;let mut seed=0x9216d5d98979fb1bu64;let mut next=||{let mut bytes=[0u8;32];for b in bytes.chunks_mut(8){seed^=seed<<13;seed^=seed>>7;seed^=seed<<17;b.copy_from_slice(&seed.to_le_bytes());}let a=A::from_le_bytes_mod_order(&bytes).into_bigint().0;if seed&1!=0{crate::portable::add4(a,C::P).0}else{a}};
+    let vals=[[0;4],[1,0,0,0],crate::portable::sub4(C::P,[1,0,0,0]).0,C::P,crate::portable::sub4(double,[1,0,0,0]).0,double];let ri=A::from(2u64).pow([if M{256}else{260}]).inverse().unwrap();
+    for group in 0..(1296+4096)/8{let inputs:[[[u64;4];8];4]=std::array::from_fn(|slot|std::array::from_fn(|lane|{let idx=group*8+lane;if idx<1296{vals[(idx/6usize.pow(slot as u32))%6]}else{next()}}));let s=inputs.map(|a|Ifma8::<C,M>::raw(&a));for fused in[false,true]{let result=if fused{s[0].sum2_lookahead(&s[1],&s[2],&s[3])}else{s[0].mul_lookahead(&s[1])};let limbs:[[u64;8];5]=unsafe{result.0.map(|v|{let mut a=[0u64;8];_mm512_storeu_si512(a.as_mut_ptr().cast(),v);a})};for lane in 0..8{for j in 0..5{assert!(limbs[j][lane]<1<<52)}let a=std::array::from_fn::<_,5,_>(|j|limbs[j][lane]);assert!(a[4]<1<<48);let raw=[a[0]|a[1]<<52,a[1]>>12|a[2]<<40,a[2]>>24|a[3]<<28,a[3]>>36|a[4]<<16];assert!(crate::portable::less(raw,double));let x=inputs.map(|a|A::from_le_bytes_mod_order(&bytes(a[lane])));let mut want=x[0]*x[1];if fused{want+=x[2]*x[3];}assert_eq!(A::from_le_bytes_mod_order(&bytes(raw)),want*ri);}}}
+}
+#[test]fn native_fq_ordinary_fused_lazy_boundary_arkworks(){check::<crate::FqConfig,ark_ref::Fq,false>();check::<crate::FqConfig,ark_ref::Fq,true>();}
+#[test]fn native_fr_ordinary_fused_lazy_boundary_arkworks(){check::<crate::FrConfig,ark_ref::Fr,false>();check::<crate::FrConfig,ark_ref::Fr,true>();}
+}

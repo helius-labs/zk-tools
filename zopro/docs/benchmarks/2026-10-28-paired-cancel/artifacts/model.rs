@@ -1,0 +1,35 @@
+use num_bigint::{BigInt,Sign};use num_traits::{One,ToPrimitive,Zero};
+use std::{cell::Cell,fs};use serde_json::json;
+pub const B:u64=1<<52;pub const MASK:u64=B-1;
+pub fn rem(x:BigInt,m:&BigInt)->BigInt{let r=x%m;if r.sign()==Sign::Minus{r+m}else{r}}
+pub fn inverse(x:&BigInt,m:&BigInt)->BigInt{let(mut a,mut b)=(m.clone(),rem(x.clone(),m));let(mut s,mut t)=(BigInt::zero(),BigInt::one());while !b.is_zero(){let q=&a/&b;(a,b)=(b.clone(),a-&q*b);(s,t)=(t.clone(),s-q*t);}assert!(a.is_one());rem(s,m)}
+pub fn split(x:&BigInt)->[u64;5]{std::array::from_fn(|i|((x>>(52*i))&BigInt::from(MASK)).to_u64().unwrap())}
+fn value(x:&[u64])->BigInt{x.iter().enumerate().fold(BigInt::zero(),|a,(i,v)|a+(BigInt::from(*v)<<(52*i)))}
+fn next(seed:&mut u64)->BigInt{let mut b=[0u8;32];for c in b.chunks_mut(8){*seed^=*seed<<13;*seed^=*seed>>7;*seed^=*seed<<17;c.copy_from_slice(&seed.to_le_bytes());}BigInt::from_bytes_le(Sign::Plus,&b)}
+pub struct Params{pub p:BigInt,pub limbs:[u64;5],pub inv:[u64;2],pub max:Cell<u64>}
+impl Params{pub fn new(p:BigInt)->Self{let m=BigInt::one()<<104usize;let inv=split(&inverse(&(-&p),&m));let limbs=split(&p);Self{p,limbs,inv:[inv[0],inv[1]],max:Cell::new(0)}}
+fn check(&self,t:&[u64]){for v in t{assert!(*v<1<<61);self.max.set(self.max.get().max(*v));}}
+fn row(&self,t:&mut[u64;7],a:&[u64;5],b:u64,offset:usize){for j in 0..5{let v=a[j]as u128*b as u128;t[j+offset]+=v as u64&MASK;t[j+offset+1]+=(v>>52)as u64;}self.check(t);}
+fn cancel(&self,t:&mut[u64;7],q:u64,offset:usize){assert!(q<B);let carry=(t[offset]+MASK)>>52;let low=carry+((q as u128*self.limbs[0]as u128)>>52)as u64;for j in 1..5{let v=q as u128*self.limbs[j]as u128;t[offset+j]+=v as u64&MASK;t[offset+j+1]+=(v>>52)as u64;}t[offset+1]+=low;t[offset]=0;self.check(t);}
+pub fn apply(&self,input:&[BigInt;4],fused:bool,mixed:bool)->[u64;5]{for x in input{assert!(x>=&BigInt::zero()&&x<= &(2u32*&self.p));}let a=input.each_ref().map(split);let mut t=[0;7];let mut oracle=BigInt::zero();let base=BigInt::from(B);let pair_radix=&base*&base;let ip=inverse(&(-&self.p),&pair_radix);
+    for i in[0,2]{self.row(&mut t,&a[0],a[1][i],0);self.row(&mut t,&a[0],a[1][i+1],1);oracle+=&input[0]*(BigInt::from(a[1][i])+BigInt::from(a[1][i+1])*&base);if fused{self.row(&mut t,&a[2],a[3][i],0);self.row(&mut t,&a[2],a[3][i+1],1);oracle+=&input[2]*(BigInt::from(a[3][i])+BigInt::from(a[3][i+1])*&base);}assert_eq!(value(&t),oracle);
+        let u0=t[0]&MASK;let u1=(t[1]+(t[0]>>52))&MASK;let p0=u0 as u128*self.inv[0]as u128;
+        let q0=p0 as u64&MASK;let q1=(((p0>>52)as u64)+((u0 as u128*self.inv[1]as u128)as u64&MASK)+((u1 as u128*self.inv[0]as u128)as u64&MASK))&MASK;
+        let q=BigInt::from(q0)+BigInt::from(q1)*&base;assert_eq!(q,rem(&oracle*&ip,&pair_radix));
+        let first=(&oracle+q0*&self.p)/&base;self.cancel(&mut t,q0,0);assert_eq!(value(&t[1..]),first);self.cancel(&mut t,q1,1);oracle=(&oracle+q*&self.p)/&pair_radix;assert_eq!(value(&t[2..]),oracle);t=[t[2],t[3],t[4],t[5],t[6],0,0];
+    }
+    self.row(&mut t,&a[0],a[1][4],0);oracle+=&input[0]*a[1][4];if fused{self.row(&mut t,&a[2],a[3][4],0);oracle+=&input[2]*a[3][4];}assert_eq!(value(&t),oracle);let bits=if mixed{48}else{52};let radix=BigInt::one()<<bits;let q=rem(&oracle*inverse(&(-&self.p),&radix),&radix).to_u64().unwrap();let expected=(&oracle+q*&self.p)/&radix;
+    if mixed{let carry=(t[0]+((1<<48)-1))>>48;let low=carry+(((q<<4)as u128*self.limbs[0]as u128)>>52)as u64;for j in 1..5{let v=q as u128*self.limbs[j]as u128;t[j]+=v as u64&MASK;t[j+1]+=(v>>52)as u64;}let mask=(1<<48)-1;t=[low+((t[1]&mask)<<4),(t[1]>>48)+((t[2]&mask)<<4),(t[2]>>48)+((t[3]&mask)<<4),(t[3]>>48)+((t[4]&mask)<<4),(t[4]>>48)+(t[5]<<4),0,0];}
+    else{self.cancel(&mut t,q,0);t=[t[1],t[2],t[3],t[4],t[5],0,0];}self.check(&t);for j in 0..4{t[j+1]+=t[j]>>52;t[j]&=MASK;}assert_eq!(value(&t[..5]),expected);let mut v=value(&t[..5]);if fused&&mixed&&v>=2u32*&self.p{v-=2u32*&self.p;}assert!(v<2u32*&self.p);let out=split(&v);assert!(out.iter().all(|v|*v<B));out
+}
+}
+#[cfg(test)]mod tests{use super::*;
+#[test]fn paired_quotient_carries_exhaustive(){let b=16u64;let mask=b-1;for p in[3u64,13,17,251]{let inv=inverse(&BigInt::from(-(p as i64)),&BigInt::from(b*b)).to_u64().unwrap();for low in 0..b*b{for carry in[0,1,7]{let t0=(low&mask)+carry*b;let t1=low/b;let u0=t0&mask;let u1=(t1+t0/b)&mask;let prod=u0*(inv&mask);let q0=prod&mask;let q1=(prod/b+u0*(inv/b)+u1*(inv&mask))&mask;let want=((t0+b*t1)*inv)%(b*b);assert_eq!(q0+b*q1,want);}}}}
+#[test]fn full_fields_modes_fused_and_changing_chain(){let mut rows=Vec::new();let mut total=0;for(name,p)in[("Fq","21888242871839275222246405745257275088696311157297823662689037894645226208583"),("Fr","21888242871839275222246405745257275088548364400416034343698204186575808495617")]{let p=BigInt::parse_bytes(p.as_bytes(),10).unwrap();let par=Params::new(p.clone());for mixed in[false,true]{let r=BigInt::one()<<if mixed{256usize}else{260usize};let mi=inverse(&r,&p);let pi=inverse(&(-&p),&r);let vals=[BigInt::zero(),&p-1u32,p.clone(),&p+1u32,2u32*&p-1u32,2u32*&p];let mut count=0;let check=|input:[BigInt;4],fused:bool|{let output=par.apply(&input,fused,mixed);let v=value(&output);let mut t=&input[0]*&input[1];if fused{t+=&input[2]*&input[3];}let q=rem(&t*&pi,&r);let mut exact=(&t+q*&p)/&r;if fused&&mixed&&exact>=2u32*&p{exact-=2u32*&p;}assert_eq!(v,exact);assert_eq!(rem(v.clone(),&p),rem(t*&mi,&p));v};
+    for a in &vals{for b in &vals{for c in &vals{for d in &vals{for fused in[false,true]{check([a.clone(),b.clone(),c.clone(),d.clone()],fused);count+=1;}}}}}
+    let mut seed=0x452821e638d01377u64;for _ in 0..4096{let input=std::array::from_fn(|_|rem(next(&mut seed),&(2u32*&p+1u32)));for fused in[false,true]{check(input.clone(),fused);count+=1;}}
+    let mut current=BigInt::one();for i in 0..1024{current=check([current,rem(next(&mut seed),&p),rem(next(&mut seed),&p),rem(next(&mut seed),&p)],i%2==0);count+=1;}
+    total+=count;rows.push(json!({"field":name,"mixed":mixed,"boundary_reductions":2592,"random_reductions":8192,"changing_chain_steps":1024,"total_reductions":count,"max_coefficient":par.max.get(),"coefficient_limit":1u64<<61,"all_agree":true}));
+}}assert_eq!(total,47232);fs::write("/home/ubuntu/src/zopro-perf-work/paired-cancel/arithmetic.json",serde_json::to_vec_pretty(&json!({"rows":rows,"total_reductions":total,"native_trial_justified":true,"justification":"Same representation and accepted carry identity, four extra IFMA sites, independent second quotient before first cancellation, two extra temporary coefficients/quotients. Native component required to evaluate latency/register costs; no speed prediction."})).unwrap()).unwrap();}
+#[test]fn mixed_repack_agrees_with_independent_division(){let mask=(1u64<<48)-1;let mut seed=0xbe5466cf34e90c6cu64;for _ in 0..1024{let t:[u64;6]=std::array::from_fn(|_|next(&mut seed).to_u64_digits().1[0]&((1<<58)-1));let low=t[0]>>48;let packed=[low+((t[1]&mask)<<4),(t[1]>>48)+((t[2]&mask)<<4),(t[2]>>48)+((t[3]&mask)<<4),(t[3]>>48)+((t[4]&mask)<<4),(t[4]>>48)+(t[5]<<4)];assert_eq!(value(&packed),value(&t)>>48usize);}}
+}

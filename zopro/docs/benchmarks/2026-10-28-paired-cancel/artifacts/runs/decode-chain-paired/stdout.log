@@ -1,0 +1,204 @@
+# ========
+# captured on    : Wed Oct 28 01:11:55 2026
+# header version : 1
+# data offset    : 512
+# data size      : 11032
+# feat offset    : 11544
+# hostname : sdevbox
+# os release : 6.8.0-147-generic
+# perf version : 6.8.12
+# arch : x86_64
+# nrcpus online : 32
+# nrcpus avail : 32
+# cpudesc : AMD Ryzen 9 9950X 16-Core Processor
+# cpuid : AuthenticAMD,26,68,0
+# total memory : 129413460 kB
+# cmdline : /usr/lib/linux-tools-6.8.0-147/perf record --no-buildid-cache -e cycles:u -F 199 -o /home/ubuntu/src/zopro-perf-work/paired-cancel/profiles/chain-paired/perf.data -- taskset -c 2 /home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe paired Fq R256 chain 30000000 
+# event : name = cycles:u, , id = { 23509, 23510, 23511, 23512, 23513, 23514, 23515, 23516, 23517, 23518, 23519, 23520, 23521, 23522, 23523, 23524, 23525, 23526, 23527, 23528, 23529, 23530, 23531, 23532, 23533, 23534, 23535, 23536, 23537, 23538, 23539, 23540 }, type = 0 (PERF_TYPE_HARDWARE), size = 136, config = 0 (PERF_COUNT_HW_CPU_CYCLES), { sample_period, sample_freq } = 199, sample_type = IP|TID|TIME|PERIOD, read_format = ID|LOST, disabled = 1, inherit = 1, exclude_kernel = 1, exclude_hv = 1, mmap = 1, comm = 1, freq = 1, enable_on_exec = 1, task = 1, sample_id_all = 1, exclude_guest = 1, mmap2 = 1, comm_exec = 1, ksymbol = 1, bpf_event = 1
+# CPU_TOPOLOGY info available, use -I to display
+# NUMA_TOPOLOGY info available, use -I to display
+# pmu mappings: cpu = 4, amd_iommu_0 = 12, breakpoint = 5, ibs_fetch = 10, ibs_op = 11, kprobe = 8, msr = 13, power = 14, software = 1, tracepoint = 2, uprobe = 9
+# CACHE info available, use -I to display
+# time of first sample : 39490.492326
+# time of last sample : 39491.220855
+# sample duration :    728.530 ms
+# MEM_TOPOLOGY info available, use -I to display
+# bpf_prog_info 2: bpf_prog_7cc47bbf07148bfe_hid_tail_call addr 0xffffffffc021e954 size 133
+# bpf_prog_info 5: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc021e7b8 size 311
+# bpf_prog_info 6: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc021eb18 size 56
+# bpf_prog_info 7: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc021eb8c size 56
+# bpf_prog_info 8: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc0221310 size 56
+# bpf_prog_info 9: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc02213bc size 56
+# bpf_prog_info 10: bpf_prog_c8b47a902f1cc68b_sd_devices addr 0xffffffffc0226910 size 290
+# bpf_prog_info 11: bpf_prog_ee0e253c78993a24_sd_devices addr 0xffffffffc0226a68 size 260
+# bpf_prog_info 12: bpf_prog_e3dbd137be8d6168_sd_devices addr 0xffffffffc022c3f4 size 311
+# bpf_prog_info 13: bpf_prog_fbee7646fdd03110_sd_devices addr 0xffffffffc022f44c size 103
+# bpf_prog_info 14: bpf_prog_8b9c33f36f812014_sd_devices addr 0xffffffffc022fc90 size 449
+# bpf_prog_info 15: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc022fe8c size 56
+# bpf_prog_info 16: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc022ff0c size 56
+# bpf_prog_info 21: bpf_prog_6deef7357e7b4530_sd_fw_egress addr 0xffffffffc023ec58 size 56
+# bpf_prog_info 22: bpf_prog_6deef7357e7b4530_sd_fw_ingress addr 0xffffffffc023ecf8 size 56
+# bpf_prog_info 80: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232654 size 296
+# bpf_prog_info 84: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc023278c size 358
+# bpf_prog_info 136: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232490 size 296
+# bpf_prog_info 140: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc0232bd4 size 358
+# bpf_prog_info 141: bpf_prog_81dfab3bd7eb416a_sd_devices addr 0xffffffffc0232d48 size 296
+# bpf_prog_info 145: bpf_prog_ab4bc4523b7fe6b4 addr 0xffffffffc0232e90 size 358
+# btf info of id 5
+# cpu pmu capabilities: branches=16, max_precise=0
+# ibs_fetch pmu capabilities: zen4_ibs_extensions=1
+# ibs_op pmu capabilities: zen4_ibs_extensions=1
+# AMD systems uses ibs_op// PMU for some precise events, e.g.: cycles:p, see the 'perf list' man page for further details.
+# missing features: TRACING_DATA BRANCH_STACK GROUP_DESC AUXTRACE STAT CLOCKID DIR_FORMAT COMPRESSED CLOCK_DATA HYBRID_TOPOLOGY 
+# ========
+#
+ 347606/347606           1  ffffffffa4000ba0 [unknown] ([unknown])
+ 347606/347606           1      79e8147481d4 [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 347606/347606           1  ffffffffa4000ba0 [unknown] ([unknown])
+ 347606/347606         178  ffffffffa4000ba0 [unknown] ([unknown])
+ 347606/347606       81650      79e81474e924 [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 347606/347606           1      5bc96f70c5fd [unknown] (/usr/bin/taskset)
+ 347606/347606           1      5bc96f70c5d5 [unknown] (/usr/bin/taskset)
+ 347606/347606           1      5bc96f70b08c [unknown] (/usr/bin/taskset)
+ 347606/347606         324      79e8144ade34 cfree (/usr/lib/x86_64-linux-gnu/libc.so.6)
+ 347606/347606      188378      7c46f42e1b0c [unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)
+ 347606/347606   127126086      64bebbe6b8d0 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    50066789      64bebbe6baf3 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    34298055      64bebbe6b86f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    30169387      64bebbe6bcbe _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    28875355      64bebbe6bcbe _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    28199189      64bebbe6b95c _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27809575      64bebbe6bac3 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27653718      64bebbe6b86f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27565936      64bebbe6bbb1 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27521673      64bebbe6bbb1 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27494741      64bebbe6b9a4 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27474562      64bebbe6ba8f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27469686      64bebbe6bac3 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27464579      64bebbe6b86f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27456786      64bebbe6bc91 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27455237      64bebbe6b851 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27444319      64bebbe6bbc4 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27441607      64bebbe6b86f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27452652      64bebbe6b7bf _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27449685      64bebbe6b9d4 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27446613      64bebbe6bc58 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27449030      64bebbe6b9aa _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27435612      64bebbe6b7ec _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27438340      64bebbe6bccf _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27440976      64bebbe6b986 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27445605      64bebbe6b83f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27440543      64bebbe6bac3 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27441986      64bebbe6b807 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27436543      64bebbe6b83f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27440775      64bebbe6b986 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27438472      64bebbe6b83f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27427852      64bebbe6bbd0 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27424106      64bebbe6bcd5 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27432074      64bebbe6b7b9 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27427117      64bebbe6b98c _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27426083      64bebbe6b98c _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27425958      64bebbe6b8a0 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27432865      64bebbe6bb17 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27437746      64bebbe6b7ec _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27433986      64bebbe6ba35 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27427044      64bebbe6bac3 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27426451      64bebbe6b78f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27424826      64bebbe6bbf7 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27418659      64bebbe6bc91 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27424529      64bebbe6b9aa _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27425201      64bebbe6bbb1 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27414825      64bebbe6bbd0 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27414791      64bebbe6bcbe _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27393709      64bebbe6b86f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27407918      64bebbe6b9aa _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27419566      64bebbe6b86f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27414910      64bebbe6b78f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27420655      64bebbe6b9aa _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27424442      64bebbe6bc91 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27418963      64bebbe6b9c2 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27414715      64bebbe6bbd7 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27407351      64bebbe6ba3c _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27413512      64bebbe6bcbe _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27406157      64bebbe6b8b2 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27410434      64bebbe6b807 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27390896      64bebbe6baf9 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27412359      64bebbe6b98c _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27422718      64bebbe6bcd5 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27416916      64bebbe6b8a0 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27417667      64bebbe6baf9 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27421591      64bebbe6bc89 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27428046      64bebbe6b86f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27430453      64bebbe6bcd5 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27416617      64bebbe6bbea _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27416577      64bebbe6b986 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27423033      64bebbe6bb17 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27419862      64bebbe6b986 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27421395      64bebbe6ba8f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27423623      64bebbe6bbb1 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27422846      64bebbe6bbf7 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27425146      64bebbe6b98c _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27413882      64bebbe6ba0b _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27414374      64bebbe6bcc9 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27400937      64bebbe6b86f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27407924      64bebbe6b8a0 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27409304      64bebbe6bbb7 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27417616      64bebbe6baf3 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27409367      64bebbe6b851 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27410695      64bebbe6bcdb _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27406603      64bebbe6b974 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27406478      64bebbe6bccf _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27402240      64bebbe6b98c _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27409913      64bebbe6baf3 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27408967      64bebbe6b986 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27410690      64bebbe6bc91 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27415761      64bebbe6bcbe _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27417177      64bebbe6baf3 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27416333      64bebbe6bbb1 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27402541      64bebbe6bbbd _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27412152      64bebbe6bbb1 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27416898      64bebbe6bcbe _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27415292      64bebbe6b78a _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27417419      64bebbe6ba0b _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27417908      64bebbe6ba0b _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27223866      64bebbe6b98c _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27323049      64bebbe6b9aa _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27370634      64bebbe6b86f _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27408250      64bebbe6b986 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27440733      64bebbe6b98c _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27469375      64bebbe6b8a0 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27492946      64bebbe6bc89 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27511544      64bebbe6bb80 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27521746      64bebbe6ba3c _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27529110      64bebbe6bc89 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27530833      64bebbe6ba23 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27527370      64bebbe6b7bf _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27518131      64bebbe6b8b2 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27502431      64bebbe6baf3 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27486408      64bebbe6bb1d _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27475962      64bebbe6baf9 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27468328      64bebbe6bcc9 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27456782      64bebbe6b807 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27447708      64bebbe6ba0b _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27441181      64bebbe6bbb1 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27431342      64bebbe6bbb7 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27433249      64bebbe6b807 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27433837      64bebbe6baad _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27436733      64bebbe6bcc9 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27432410      64bebbe6bcd5 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27430894      64bebbe6b8d0 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27427373      64bebbe6b955 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27431368      64bebbe6bb80 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27431666      64bebbe6bbde _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27430169      64bebbe6b807 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27388339      64bebbe6ba60 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27402635      64bebbe6b9aa _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27411641      64bebbe6bccf _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27419601      64bebbe6ba60 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27422197      64bebbe6bccf _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27430719      64bebbe6b807 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27429995      64bebbe6baff _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27426816      64bebbe6b807 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27421606      64bebbe6baff _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27419850      64bebbe6b8a0 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
+ 347606/347606    27421487      64bebbe6bb80 _RINvCskwZNhwIq9w8_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/paired-cancel/target/release/probe)
