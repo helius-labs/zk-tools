@@ -1,0 +1,1061 @@
+
+/home/ubuntu/src/zopro-perf-work/g2-borrowed-production/native/candidate-sdk:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000441150 <<zopro_core::Key>::solve_canonical_wires>:
+  441150:	push   %rbp
+  441151:	push   %r15
+  441153:	push   %r14
+  441155:	push   %r13
+  441157:	push   %r12
+  441159:	push   %rbx
+  44115a:	sub    $0x7b8,%rsp
+  441161:	mov    %rdx,%r14
+  441164:	movzbl 0x800(%rsp),%edx
+  44116c:	mov    0x7f8(%rsp),%r11
+  441174:	mov    %r9d,%eax
+  441177:	mov    %r8,%r10
+  44117a:	mov    %rdi,%r12
+  44117d:	mov    %rsi,0x20(%rsp)
+  441182:	mov    %dl,0x7(%rsp)
+  441186:	mov    0x20(%r11),%r9
+  44118a:	mov    0x758(%rsi),%r8
+  441191:	mov    %r14,%rsi
+  441194:	mov    %rcx,%rdx
+  441197:	lea    0x2d0(%rsp),%rdi
+  44119f:	mov    %r10,%rcx
+  4411a2:	push   %rax
+  4411a3:	push   0x28(%r11)
+  4411a7:	call   3f87b0 <<zopro_core::solver::Plan>::solve_in_with_slots>
+  4411ac:	add    $0x10,%rsp
+  4411b0:	mov    0x2d0(%rsp),%rbx
+  4411b8:	mov    0x2d8(%rsp),%r15
+  4411c0:	mov    0x2e0(%rsp),%r13
+  4411c8:	mov    0x2e8(%rsp),%rsi
+  4411d0:	cmp    $0xffffffffffffffff,%rbx
+  4411d4:	je     4412d9 <<zopro_core::Key>::solve_canonical_wires+0x189>
+  4411da:	movzbl 0x808(%rsp),%ecx
+  4411e2:	mov    %rbx,%rax
+  4411e5:	sub    %r13,%rax
+  4411e8:	mov    %rax,%rdx
+  4411eb:	shr    $0x3b,%rdx
+  4411ef:	jne    44259c <<zopro_core::Key>::solve_canonical_wires+0x144c>
+  4411f5:	shl    $0x5,%rax
+  4411f9:	mov    0x2f8(%rsp),%rdi
+  441201:	mov    0x300(%rsp),%r8
+  441209:	cmp    $0x2,%cl
+  44120c:	mov    0x2f0(%rsp),%rdx
+  441214:	mov    %rsi,0xc8(%rsp)
+  44121c:	mov    0x318(%rsp),%rbp
+  441224:	mov    %r12,0xb0(%rsp)
+  44122c:	mov    %r13,0x30(%rsp)
+  441231:	setne  %cl
+  441234:	cmp    $0x1000,%r13
+  44123b:	setae  %sil
+  44123f:	cmp    $0x20000,%rax
+  441245:	setae  %al
+  441248:	and    %cl,%sil
+  44124b:	cmp    %r13,%rbx
+  44124e:	seta   %cl
+  441251:	mov    %rdi,0x48(%rsp)
+  441256:	mov    0x308(%rsp),%rdi
+  44125e:	mov    %r8,0x28(%rsp)
+  441263:	mov    0x310(%rsp),%r8
+  44126b:	and    %sil,%cl
+  44126e:	mov    %rdx,0xc0(%rsp)
+  441276:	and    %al,%cl
+  441278:	mov    %rdi,0xb8(%rsp)
+  441280:	mov    0x320(%rsp),%rdi
+  441288:	mov    %r8,0x58(%rsp)
+  44128d:	mov    %rdi,0x10(%rsp)
+  441292:	cmp    $0x1,%cl
+  441295:	jne    4412f5 <<zopro_core::Key>::solve_canonical_wires+0x1a5>
+  441297:	mov    %r13,%r12
+  44129a:	shl    $0x5,%r12
+  44129e:	mov    %rbx,%rdx
+  4412a1:	shl    $0x5,%rdx
+  4412a5:	mov    $0x8,%esi
+  4412aa:	mov    %r15,%rdi
+  4412ad:	mov    %r12,%rcx
+  4412b0:	call   4b8430 <<zopro_core::alloc::linux::Allocator as core::alloc::global::GlobalAlloc>::realloc>
+  4412b5:	mov    %r13,0x18(%rsp)
+  4412ba:	mov    %rax,0x8(%rsp)
+  4412bf:	test   %rax,%rax
+  4412c2:	je     4426d9 <<zopro_core::Key>::solve_canonical_wires+0x1589>
+  4412c8:	mov    0x8(%rsp),%r12
+  4412cd:	mov    0x20(%rsp),%rbx
+  4412d2:	test   %rbp,%rbp
+  4412d5:	jne    44130e <<zopro_core::Key>::solve_canonical_wires+0x1be>
+  4412d7:	jmp    441355 <<zopro_core::Key>::solve_canonical_wires+0x205>
+  4412d9:	mov    %r15,0x8(%r12)
+  4412de:	mov    %r13,0x10(%r12)
+  4412e3:	mov    %rsi,0x18(%r12)
+  4412e8:	movq   $0x1,(%r12)
+  4412f0:	jmp    442553 <<zopro_core::Key>::solve_canonical_wires+0x1403>
+  4412f5:	mov    %r15,0x8(%rsp)
+  4412fa:	mov    %rbx,0x18(%rsp)
+  4412ff:	mov    0x8(%rsp),%r12
+  441304:	mov    0x20(%rsp),%rbx
+  441309:	test   %rbp,%rbp
+  44130c:	je     441355 <<zopro_core::Key>::solve_canonical_wires+0x205>
+  44130e:	cmp    $0xfff,%rbp
+  441315:	jbe    441348 <<zopro_core::Key>::solve_canonical_wires+0x1f8>
+  441317:	shl    $0x5,%rbp
+  44131b:	movabs $0x7ffffffffffffff9,%rax
+  441325:	mov    %rbp,%rsi
+  441328:	or     $0x1,%rsi
+  44132c:	cmp    %rax,%rsi
+  44132f:	jae    4426e8 <<zopro_core::Key>::solve_canonical_wires+0x1598>
+  441335:	mov    0x10(%rsp),%rdi
+  44133a:	cmpb   $0x1,(%rdi,%rbp,1)
+  44133e:	jne    44134f <<zopro_core::Key>::solve_canonical_wires+0x1ff>
+  441340:	call   *0xa582a(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  441346:	jmp    441355 <<zopro_core::Key>::solve_canonical_wires+0x205>
+  441348:	mov    0x10(%rsp),%rdi
+  44134d:	jmp    44134f <<zopro_core::Key>::solve_canonical_wires+0x1ff>
+  44134f:	call   *0xa5823(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  441355:	mov    0xa8(%r14),%rcx
+  44135c:	cmp    0x30(%rsp),%rcx
+  441361:	ja     442565 <<zopro_core::Key>::solve_canonical_wires+0x1415>
+  441367:	mov    0x7f8(%rsp),%rbp
+  44136f:	mov    0x18(%rsp),%r13
+  441374:	lea    0x758(%rsp),%rdi
+  44137c:	mov    %r12,%rdx
+  44137f:	mov    %rbp,%rsi
+  441382:	call   44c020 <<zopro_core::lagrange::Folded>::public_term>
+  441387:	mov    0x30(%rsp),%rax
+  44138c:	mov    %r12,0x2d0(%rsp)
+  441394:	mov    %rax,0x2d8(%rsp)
+  44139c:	mov    %fs:0xffffffffffffffc0,%rax
+  4413a5:	movq   $0x80,0x2e0(%rsp)
+  4413b1:	test   %rax,%rax
+  4413b4:	je     4413be <<zopro_core::Key>::solve_canonical_wires+0x26e>
+  4413b6:	add    $0x110,%rax
+  4413bc:	jmp    4413c3 <<zopro_core::Key>::solve_canonical_wires+0x273>
+  4413be:	call   104010 <rayon_core::registry::global_registry>
+  4413c3:	mov    (%rax),%rax
+  4413c6:	mov    0x208(%rax),%rdx
+  4413cd:	mov    0x30(%rsp),%rdi
+  4413d2:	lea    0x2d0(%rsp),%r8
+  4413da:	lea    0x57(%rsp),%r9
+  4413df:	mov    $0x80,%ecx
+  4413e4:	xor    %esi,%esi
+  4413e6:	call   454240 <rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>>
+  4413eb:	mov    0x30(%rsp),%rax
+  4413f0:	mov    %fs:0xffffffffffffffc0,%rdx
+  4413f9:	mov    %r14,0x2d0(%rsp)
+  441401:	mov    %r12,0x2d8(%rsp)
+  441409:	mov    %rax,0x2e0(%rsp)
+  441411:	mov    %r14,0x2e8(%rsp)
+  441419:	mov    %r12,0x2f0(%rsp)
+  441421:	mov    %rax,0x2f8(%rsp)
+  441429:	test   %rdx,%rdx
+  44142c:	jne    44145c <<zopro_core::Key>::solve_canonical_wires+0x30c>
+  44142e:	call   104010 <rayon_core::registry::global_registry>
+  441433:	mov    (%rax),%rax
+  441436:	mov    %fs:0xffffffffffffffc0,%rdx
+  44143f:	lea    0x80(%rax),%rsi
+  441446:	test   %rdx,%rdx
+  441449:	je     4425c9 <<zopro_core::Key>::solve_canonical_wires+0x1479>
+  44144f:	cmp    %rax,0x110(%rdx)
+  441456:	jne    4425e3 <<zopro_core::Key>::solve_canonical_wires+0x1493>
+  44145c:	lea    0xd0(%rsp),%rdi
+  441464:	lea    0x2d0(%rsp),%rsi
+  44146c:	call   4968e0 <rayon_core::join::join_context::<rayon_core::join::join::call<alloc::vec::Vec<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}>::{closure#0}, rayon_core::join::join::call<alloc::vec::Vec<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}>::{closure#0}, alloc::vec::Vec<[u64; 4]>, alloc::vec::Vec<[u64; 4]>>::{closure#0}>
+  441471:	mov    0xd8(%rsp),%rcx
+  441479:	mov    0xe8(%rsp),%rdx
+  441481:	mov    0xd0(%rsp),%rax
+  441489:	mov    %rcx,0x10(%rsp)
+  44148e:	mov    0xf0(%rsp),%rcx
+  441496:	mov    %rdx,0x88(%rsp)
+  44149e:	mov    0xa8(%r14),%rdx
+  4414a5:	mov    %rax,0x80(%rsp)
+  4414ad:	mov    %rcx,0x40(%rsp)
+  4414b2:	mov    0x30(%rsp),%rcx
+  4414b7:	mov    %rdx,0x90(%rsp)
+  4414bf:	sub    %rdx,%rcx
+  4414c2:	mov    %rcx,0xa8(%rsp)
+  4414ca:	jb     4425a8 <<zopro_core::Key>::solve_canonical_wires+0x1458>
+  4414d0:	mov    0xc8(%rsp),%r11
+  4414d8:	mov    0xc0(%rsp),%r10
+  4414e0:	mov    0x7f0(%rsp),%rsi
+  4414e8:	mov    0xe0(%rsp),%rax
+  4414f0:	mov    0xf8(%rsp),%rcx
+  4414f8:	mov    %r11,0xd0(%rsp)
+  441500:	mov    %r10,0xd8(%rsp)
+  441508:	mov    0x48(%rsp),%r11
+  44150d:	mov    0x28(%rsp),%r10
+  441512:	movzbl 0x132(%rsi),%edx
+  441519:	movzbl 0x131(%rsi),%esi
+  441520:	mov    %rcx,0x98(%rsp)
+  441528:	mov    %rax,0xa0(%rsp)
+  441530:	lea    0x80(%rbx),%rcx
+  441537:	mov    %r11,0xe0(%rsp)
+  44153f:	mov    %r10,0x2d0(%rsp)
+  441547:	mov    0xb8(%rsp),%r11
+  44154f:	mov    0x58(%rsp),%r10
+  441554:	mov    %r11,0x2d8(%rsp)
+  44155c:	mov    %r10,0x2e0(%rsp)
+  441564:	lea    0x2b8(%rsp),%rdi
+  44156c:	lea    0xd0(%rsp),%r8
+  441574:	lea    0x2d0(%rsp),%r9
+  44157c:	call   444410 <<zopro_core::lagrange::Queries>::product_values>
+  441581:	mov    0x2c0(%rsp),%rax
+  441589:	mov    0x7f0(%rsp),%rcx
+  441591:	mov    0x2c8(%rsp),%r15
+  441599:	mov    %rax,0x38(%rsp)
+  44159e:	mov    0xd0(%rcx),%rax
+  4415a5:	test   %rax,%rax
+  4415a8:	je     441633 <<zopro_core::Key>::solve_canonical_wires+0x4e3>
+  4415ae:	mov    0xd8(%rcx),%rcx
+  4415b5:	mov    0x10(%rcx),%rdx
+  4415b9:	dec    %rdx
+  4415bc:	and    $0xfffffffffffffff0,%rdx
+  4415c0:	lea    0x10(%rax,%rdx,1),%rdi
+  4415c5:	call   *0x18(%rcx)
+  4415c8:	mov    %rax,0x58(%rsp)
+  4415cd:	mov    0x7f0(%rsp),%rax
+  4415d5:	mov    0xe0(%rax),%rdi
+  4415dc:	cmp    %rdx,%rdi
+  4415df:	ja     442588 <<zopro_core::Key>::solve_canonical_wires+0x1438>
+  4415e5:	add    %rdi,0x58(%rsp)
+  4415ea:	mov    0x7f0(%rsp),%rcx
+  4415f2:	mov    0xe8(%rcx),%rdx
+  4415f9:	cmp    %rdx,%r15
+  4415fc:	ja     44164b <<zopro_core::Key>::solve_canonical_wires+0x4fb>
+  4415fe:	mov    0x60(%rbp),%rax
+  441602:	test   %rax,%rax
+  441605:	je     441661 <<zopro_core::Key>::solve_canonical_wires+0x511>
+  441607:	mov    0x68(%rbp),%rcx
+  44160b:	mov    0x10(%rcx),%rdx
+  44160f:	dec    %rdx
+  441612:	and    $0xfffffffffffffff0,%rdx
+  441616:	lea    0x10(%rax,%rdx,1),%rdi
+  44161b:	call   *0x18(%rcx)
+  44161e:	mov    0x70(%rbp),%rdi
+  441622:	cmp    %rdx,%rdi
+  441625:	ja     442588 <<zopro_core::Key>::solve_canonical_wires+0x1438>
+  44162b:	mov    %rax,%r14
+  44162e:	add    %rdi,%r14
+  441631:	jmp    441665 <<zopro_core::Key>::solve_canonical_wires+0x515>
+  441633:	mov    0xe0(%rcx),%rax
+  44163a:	mov    %rax,0x58(%rsp)
+  44163f:	mov    0xe8(%rcx),%rdx
+  441646:	cmp    %rdx,%r15
+  441649:	jbe    4415fe <<zopro_core::Key>::solve_canonical_wires+0x4ae>
+  44164b:	lea    0xa2e6e(%rip),%rcx        # 4e44c0 <__frame_dummy_init_array_entry+0x6630>
+  441652:	xor    %edi,%edi
+  441654:	mov    %r15,%rsi
+  441657:	call   f01e0 <core::slice::index::slice_index_fail>
+  44165c:	jmp    4426e6 <<zopro_core::Key>::solve_canonical_wires+0x1596>
+  441661:	mov    0x70(%rbp),%r14
+  441665:	mov    0x7f0(%rsp),%rcx
+  44166d:	mov    %rbp,%rax
+  441670:	mov    0x90(%rsp),%rbp
+  441678:	mov    0x78(%rax),%rax
+  44167c:	vmovdqu 0xf0(%rcx),%ymm0
+  441684:	shl    $0x5,%rbp
+  441688:	mov    %rax,0x48(%rsp)
+  44168d:	add    %r12,%rbp
+  441690:	cmpb   $0x1,0x7(%rsp)
+  441695:	vmovdqu %ymm0,0x2d0(%rsp)
+  44169e:	jne    441776 <<zopro_core::Key>::solve_canonical_wires+0x626>
+  4416a4:	vmovdqu 0x2d0(%rsp),%ymm0
+  4416ad:	xor    %eax,%eax
+  4416af:	lea    -0x400(%r15),%rdx
+  4416b6:	vpxor  -0x42ff5e(%rip),%ymm0,%ymm0        # 11760 <serde_json::ser::Formatter::write_char_escape::HEX_DIGITS+0x5d20>
+  4416be:	vptest %ymm0,%ymm0
+  4416c3:	setne  %cl
+  4416c6:	cmp    $0xfbff,%rdx
+  4416cd:	ja     441776 <<zopro_core::Key>::solve_canonical_wires+0x626>
+  4416d3:	mov    0x48(%rsp),%rdx
+  4416d8:	add    $0xfffffffffffffc00,%rdx
+  4416df:	cmp    $0xfbff,%rdx
+  4416e6:	ja     441776 <<zopro_core::Key>::solve_canonical_wires+0x626>
+  4416ec:	mov    %cl,%al
+  4416ee:	test   %eax,%eax
+  4416f0:	jne    441776 <<zopro_core::Key>::solve_canonical_wires+0x626>
+  4416f6:	mov    0x48(%rsp),%rax
+  4416fb:	add    %r15,%rax
+  4416fe:	cmp    $0x10000,%rax
+  441704:	jae    44181c <<zopro_core::Key>::solve_canonical_wires+0x6cc>
+  44170a:	lea    -0x421851(%rip),%rsi        # 1fec0 <zmij::STATIC_DATA+0x5c00>
+  441711:	lea    0x2d0(%rsp),%rdi
+  441719:	mov    $0x14,%edx
+  44171e:	vzeroupper
+  441721:	call   142d00 <std::sys::env::unix::getenv>
+  441726:	mov    0x2d0(%rsp),%rax
+  44172e:	cmp    $0xffffffffffffffff,%rax
+  441732:	je     441946 <<zopro_core::Key>::solve_canonical_wires+0x7f6>
+  441738:	test   %rax,%rax
+  44173b:	je     4418b1 <<zopro_core::Key>::solve_canonical_wires+0x761>
+  441741:	mov    0x2d8(%rsp),%rdi
+  441749:	cmp    $0x1ffff,%rax
+  44174f:	jbe    441889 <<zopro_core::Key>::solve_canonical_wires+0x739>
+  441755:	mov    %rax,%rsi
+  441758:	inc    %rsi
+  44175b:	js     44271a <<zopro_core::Key>::solve_canonical_wires+0x15ca>
+  441761:	cmpb   $0x1,(%rdi,%rax,1)
+  441765:	jne    4418ab <<zopro_core::Key>::solve_canonical_wires+0x75b>
+  44176b:	call   *0xa53ff(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  441771:	jmp    4418b1 <<zopro_core::Key>::solve_canonical_wires+0x761>
+  441776:	cmp    $0x3ffff,%r15
+  44177d:	jbe    44181c <<zopro_core::Key>::solve_canonical_wires+0x6cc>
+  441783:	lea    -0x4218e0(%rip),%rsi        # 1feaa <zmij::STATIC_DATA+0x5bea>
+  44178a:	lea    0xd0(%rsp),%rdi
+  441792:	mov    $0x16,%edx
+  441797:	vzeroupper
+  44179a:	call   142d00 <std::sys::env::unix::getenv>
+  44179f:	mov    0xd0(%rsp),%rbx
+  4417a7:	cmp    $0xffffffffffffffff,%rbx
+  4417ab:	je     441824 <<zopro_core::Key>::solve_canonical_wires+0x6d4>
+  4417ad:	mov    0xe0(%rsp),%r12
+  4417b5:	mov    0xd8(%rsp),%rsi
+  4417bd:	lea    0xd0(%rsp),%rdi
+  4417c5:	mov    %r12,%rdx
+  4417c8:	mov    %rsi,0x78(%rsp)
+  4417cd:	call   effe0 <core::str::converts::from_utf8>
+  4417d2:	cmpb   $0x0,0xd0(%rsp)
+  4417da:	je     44182c <<zopro_core::Key>::solve_canonical_wires+0x6dc>
+  4417dc:	mov    $0x1,%r13b
+  4417df:	test   %rbx,%rbx
+  4417e2:	jle    441870 <<zopro_core::Key>::solve_canonical_wires+0x720>
+  4417e8:	mov    0x8(%rsp),%r12
+  4417ed:	cmp    $0x1ffff,%rbx
+  4417f4:	jbe    44187a <<zopro_core::Key>::solve_canonical_wires+0x72a>
+  4417fa:	mov    0x78(%rsp),%rdi
+  4417ff:	mov    %rbx,%rsi
+  441802:	inc    %rsi
+  441805:	js     442715 <<zopro_core::Key>::solve_canonical_wires+0x15c5>
+  44180b:	cmpb   $0x1,(%rdi,%rbx,1)
+  44180f:	jne    44188b <<zopro_core::Key>::solve_canonical_wires+0x73b>
+  441811:	call   *0xa5359(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  441817:	jmp    441ee1 <<zopro_core::Key>::solve_canonical_wires+0xd91>
+  44181c:	xor    %r13d,%r13d
+  44181f:	jmp    441ee6 <<zopro_core::Key>::solve_canonical_wires+0xd96>
+  441824:	mov    $0x1,%r13b
+  441827:	jmp    441ee1 <<zopro_core::Key>::solve_canonical_wires+0xd91>
+  44182c:	mov    0x78(%rsp),%rdi
+  441831:	mov    $0x1,%r13b
+  441834:	cmp    $0x1,%r12
+  441838:	jne    441841 <<zopro_core::Key>::solve_canonical_wires+0x6f1>
+  44183a:	cmpb   $0x30,(%rdi)
+  44183d:	setne  %r13b
+  441841:	mov    0x8(%rsp),%r12
+  441846:	test   %rbx,%rbx
+  441849:	je     441ee1 <<zopro_core::Key>::solve_canonical_wires+0xd91>
+  44184f:	cmp    $0x1ffff,%rbx
+  441856:	jbe    441884 <<zopro_core::Key>::solve_canonical_wires+0x734>
+  441858:	movabs $0x7ffffffffffffff9,%rax
+  441862:	add    $0x6,%rax
+  441866:	cmp    %rax,%rbx
+  441869:	jb     441890 <<zopro_core::Key>::solve_canonical_wires+0x740>
+  44186b:	call   10ff50 <std::process::abort>
+  441870:	mov    0x8(%rsp),%r12
+  441875:	jmp    441ee1 <<zopro_core::Key>::solve_canonical_wires+0xd91>
+  44187a:	mov    0x78(%rsp),%rdi
+  44187f:	jmp    441edb <<zopro_core::Key>::solve_canonical_wires+0xd8b>
+  441884:	jmp    441edb <<zopro_core::Key>::solve_canonical_wires+0xd8b>
+  441889:	jmp    4418ab <<zopro_core::Key>::solve_canonical_wires+0x75b>
+  44188b:	jmp    441edb <<zopro_core::Key>::solve_canonical_wires+0xd8b>
+  441890:	cmpb   $0x1,(%rdi,%rbx,1)
+  441894:	jne    441edb <<zopro_core::Key>::solve_canonical_wires+0xd8b>
+  44189a:	inc    %rbx
+  44189d:	mov    %rbx,%rsi
+  4418a0:	call   *0xa52ca(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  4418a6:	jmp    441ee1 <<zopro_core::Key>::solve_canonical_wires+0xd91>
+  4418ab:	call   *0xa52c7(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  4418b1:	mov    0x48(%rsp),%rax
+  4418b6:	lea    0x60(%rsp),%rcx
+  4418bb:	lea    -0x34f092(%rip),%r9        # f2830 <<u64 as core::fmt::Display>::fmt>
+  4418c2:	lea    -0x4279e5(%rip),%r8        # 19ee4 <itoa::DECIMAL_PAIRS+0xa8a>
+  4418c9:	mov    %r15,0x630(%rsp)
+  4418d1:	mov    %rcx,0xd0(%rsp)
+  4418d9:	lea    0x630(%rsp),%rcx
+  4418e1:	mov    %r9,0xd8(%rsp)
+  4418e9:	mov    %r8,0x570(%rsp)
+  4418f1:	movq   $0x6,0x578(%rsp)
+  4418fd:	mov    %rcx,0xe0(%rsp)
+  441905:	lea    0xa6fdc(%rip),%rcx        # 4e88e8 <std::io::stdio::stderr::INSTANCE>
+  44190c:	mov    %r9,0xe8(%rsp)
+  441914:	mov    %rcx,0x250(%rsp)
+  44191c:	mov    %rax,0x60(%rsp)
+  441921:	lea    -0x42c30d(%rip),%rsi        # 1561b <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0x3cdb>
+  441928:	lea    0x250(%rsp),%rdi
+  441930:	lea    0xd0(%rsp),%rdx
+  441938:	call   13eeb0 <<&std::io::stdio::Stderr as std::io::Write>::write_fmt>
+  44193d:	test   %rax,%rax
+  441940:	jne    442631 <<zopro_core::Key>::solve_canonical_wires+0x14e1>
+  441946:	mov    0x40(%rsp),%rax
+  44194b:	mov    0x98(%rsp),%rcx
+  441953:	mov    0x10(%rsp),%rdx
+  441958:	mov    %rbx,0xd0(%rsp)
+  441960:	mov    %rax,0xd8(%rsp)
+  441968:	mov    %rcx,0xe0(%rsp)
+  441970:	mov    %rbx,0xe8(%rsp)
+  441978:	mov    %rdx,0xf0(%rsp)
+  441980:	mov    0xa0(%rsp),%rcx
+  441988:	mov    0x48(%rsp),%rdx
+  44198d:	mov    %rcx,0xf8(%rsp)
+  441995:	mov    %r14,0x100(%rsp)
+  44199d:	mov    %rdx,0x108(%rsp)
+  4419a5:	mov    0xa8(%rsp),%rcx
+  4419ad:	mov    0x58(%rsp),%rdx
+  4419b2:	mov    %rbp,0x110(%rsp)
+  4419ba:	mov    %rcx,0x118(%rsp)
+  4419c2:	mov    %rdx,0x120(%rsp)
+  4419ca:	mov    0x38(%rsp),%rcx
+  4419cf:	mov    %fs:0xffffffffffffffc0,%rdx
+  4419d8:	mov    %r15,0x128(%rsp)
+  4419e0:	mov    %rcx,0x130(%rsp)
+  4419e8:	mov    %r15,0x138(%rsp)
+  4419f0:	test   %rdx,%rdx
+  4419f3:	jne    441a23 <<zopro_core::Key>::solve_canonical_wires+0x8d3>
+  4419f5:	call   104010 <rayon_core::registry::global_registry>
+  4419fa:	mov    (%rax),%rax
+  4419fd:	mov    %fs:0xffffffffffffffc0,%rdx
+  441a06:	lea    0x80(%rax),%rsi
+  441a0d:	test   %rdx,%rdx
+  441a10:	je     442694 <<zopro_core::Key>::solve_canonical_wires+0x1544>
+  441a16:	cmp    %rax,0x110(%rdx)
+  441a1d:	jne    4426ae <<zopro_core::Key>::solve_canonical_wires+0x155e>
+  441a23:	lea    0x2d0(%rsp),%rdi
+  441a2b:	lea    0xd0(%rsp),%rsi
+  441a33:	call   497460 <rayon_core::join::join_context::<rayon_core::join::join::call<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), <zopro_core::Key>::solve_canonical_wires::{closure#2}>::{closure#0}, rayon_core::join::join::call<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, <zopro_core::Key>::solve_canonical_wires::{closure#3}>::{closure#0}, (zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::{closure#0}>
+  441a38:	vmovups 0x2f0(%rsp),%zmm1
+  441a43:	vmovups 0x330(%rsp),%zmm2
+  441a4e:	vmovdqu64 0x2d0(%rsp),%zmm0
+  441a59:	vmovups 0x350(%rsp),%zmm3
+  441a64:	vmovups %zmm1,0x530(%rsp)
+  441a6f:	vmovups 0x410(%rsp),%zmm1
+  441a7a:	vmovups %zmm2,0x690(%rsp)
+  441a85:	vmovups 0x3d0(%rsp),%zmm2
+  441a90:	vmovdqu64 %zmm0,0x510(%rsp)
+  441a9b:	vmovups %zmm3,0x6b0(%rsp)
+  441aa6:	vmovups %zmm1,0x5f0(%rsp)
+  441ab1:	vmovups 0x390(%rsp),%zmm1
+  441abc:	vmovups %zmm2,0x5b0(%rsp)
+  441ac7:	vmovups %zmm1,0x570(%rsp)
+  441ad2:	mov    $0x180,%edi
+  441ad7:	vzeroupper
+  441ada:	call   *0xa50a8(%rip)        # 4e6b88 <malloc@GLIBC_2.2.5>
+  441ae0:	test   %rax,%rax
+  441ae3:	je     4426c8 <<zopro_core::Key>::solve_canonical_wires+0x1578>
+  441ae9:	movq   $0x180,0x250(%rsp)
+  441af5:	mov    %rax,0x258(%rsp)
+  441afd:	movq   $0x0,0x260(%rsp)
+  441b09:	lea    0x190(%rsp),%rdi
+  441b11:	lea    0x690(%rsp),%rsi
+  441b19:	lea    0x758(%rsp),%rdx
+  441b21:	call   1b7ea0 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_projective>
+  441b26:	vmovups 0x530(%rsp),%zmm1
+  441b31:	vmovups 0x510(%rsp),%zmm0
+  441b3c:	vmovups -0x4228f6(%rip),%zmm2        # 1f250 <zmij::STATIC_DATA+0x4f90>
+  441b46:	vmovups %zmm1,0xf0(%rsp)
+  441b51:	vmovups %zmm0,0xd0(%rsp)
+  441b5c:	vmovups -0x422936(%rip),%zmm0        # 1f230 <zmij::STATIC_DATA+0x4f70>
+  441b66:	vmovups %zmm0,0x130(%rsp)
+  441b71:	vmovups %zmm2,0x150(%rsp)
+  441b7c:	vmovups %zmm0,0x1f0(%rsp)
+  441b87:	vmovups %zmm2,0x210(%rsp)
+  441b92:	vmovups 0x1d0(%rsp),%zmm1
+  441b9d:	vmovups 0x190(%rsp),%zmm2
+  441ba8:	vmovdqu64 0x210(%rsp),%zmm0
+  441bb3:	vmovups %zmm1,0x3d0(%rsp)
+  441bbe:	vmovups 0x150(%rsp),%zmm1
+  441bc9:	vmovups %zmm2,0x390(%rsp)
+  441bd4:	vmovups 0x110(%rsp),%zmm2
+  441bdf:	vmovdqu64 %zmm0,0x410(%rsp)
+  441bea:	vmovups %zmm1,0x350(%rsp)
+  441bf5:	vmovups 0xd0(%rsp),%zmm1
+  441c00:	vmovups %zmm2,0x310(%rsp)
+  441c0b:	vmovups %zmm1,0x2d0(%rsp)
+  441c16:	lea    0xd0(%rsp),%rdi
+  441c1e:	lea    0x2d0(%rsp),%rsi
+  441c26:	vzeroupper
+  441c29:	call   1d3850 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::to_affine>
+  441c2e:	lea    0x250(%rsp),%rdi
+  441c36:	lea    0xd0(%rsp),%rsi
+  441c3e:	call   4442d0 <zopro_core::output_fq>
+  441c43:	lea    0xf0(%rsp),%rbx
+  441c4b:	lea    0x250(%rsp),%rdi
+  441c53:	mov    %rbx,%rsi
+  441c56:	call   4442d0 <zopro_core::output_fq>
+  441c5b:	lea    0x330(%rsp),%rsi
+  441c63:	lea    0xd0(%rsp),%rdi
+  441c6b:	call   1d3850 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::to_affine>
+  441c70:	lea    0x250(%rsp),%rdi
+  441c78:	lea    0xd0(%rsp),%rsi
+  441c80:	call   4442d0 <zopro_core::output_fq>
+  441c85:	lea    0x250(%rsp),%rdi
+  441c8d:	mov    %rbx,%rsi
+  441c90:	call   4442d0 <zopro_core::output_fq>
+  441c95:	lea    0x390(%rsp),%rsi
+  441c9d:	lea    0xd0(%rsp),%rdi
+  441ca5:	call   1d3850 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::to_affine>
+  441caa:	lea    0x250(%rsp),%rdi
+  441cb2:	lea    0xd0(%rsp),%rsi
+  441cba:	call   4442d0 <zopro_core::output_fq>
+  441cbf:	lea    0x250(%rsp),%rdi
+  441cc7:	mov    %rbx,%rsi
+  441cca:	call   4442d0 <zopro_core::output_fq>
+  441ccf:	lea    0x3f0(%rsp),%rsi
+  441cd7:	lea    0xd0(%rsp),%rdi
+  441cdf:	call   1d3850 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::to_affine>
+  441ce4:	lea    0x250(%rsp),%rdi
+  441cec:	lea    0xd0(%rsp),%rsi
+  441cf4:	call   4442d0 <zopro_core::output_fq>
+  441cf9:	lea    0x250(%rsp),%rdi
+  441d01:	mov    %rbx,%rsi
+  441d04:	call   4442d0 <zopro_core::output_fq>
+  441d09:	lea    0x2d0(%rsp),%rdi
+  441d11:	lea    0x570(%rsp),%rsi
+  441d19:	call   240e60 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::to_affine>
+  441d1e:	lea    0x250(%rsp),%rdi
+  441d26:	lea    0x2d0(%rsp),%rsi
+  441d2e:	call   4442d0 <zopro_core::output_fq>
+  441d33:	lea    0x2f0(%rsp),%rsi
+  441d3b:	lea    0x250(%rsp),%rdi
+  441d43:	call   4442d0 <zopro_core::output_fq>
+  441d48:	lea    0x310(%rsp),%rsi
+  441d50:	lea    0x250(%rsp),%rdi
+  441d58:	call   4442d0 <zopro_core::output_fq>
+  441d5d:	lea    0x330(%rsp),%rsi
+  441d65:	lea    0x250(%rsp),%rdi
+  441d6d:	call   4442d0 <zopro_core::output_fq>
+  441d72:	mov    0x260(%rsp),%rax
+  441d7a:	mov    0xb0(%rsp),%rcx
+  441d82:	vmovups 0x250(%rsp),%xmm0
+  441d8b:	mov    %rax,0x18(%rcx)
+  441d8f:	mov    0x2b8(%rsp),%rax
+  441d97:	vmovups %xmm0,0x8(%rcx)
+  441d9c:	movq   $0x0,(%rcx)
+  441da3:	test   %rax,%rax
+  441da6:	je     441dee <<zopro_core::Key>::solve_canonical_wires+0xc9e>
+  441da8:	cmp    $0xfff,%rax
+  441dae:	jbe    441de1 <<zopro_core::Key>::solve_canonical_wires+0xc91>
+  441db0:	shl    $0x5,%rax
+  441db4:	movabs $0x7ffffffffffffff9,%rcx
+  441dbe:	mov    %rax,%rsi
+  441dc1:	or     $0x1,%rsi
+  441dc5:	cmp    %rcx,%rsi
+  441dc8:	jae    442701 <<zopro_core::Key>::solve_canonical_wires+0x15b1>
+  441dce:	mov    0x38(%rsp),%rdi
+  441dd3:	cmpb   $0x1,(%rdi,%rax,1)
+  441dd7:	jne    441de8 <<zopro_core::Key>::solve_canonical_wires+0xc98>
+  441dd9:	call   *0xa4d91(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  441ddf:	jmp    441dee <<zopro_core::Key>::solve_canonical_wires+0xc9e>
+  441de1:	mov    0x38(%rsp),%rdi
+  441de6:	jmp    441de8 <<zopro_core::Key>::solve_canonical_wires+0xc98>
+  441de8:	call   *0xa4d8a(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  441dee:	mov    0x88(%rsp),%rcx
+  441df6:	test   %rcx,%rcx
+  441df9:	je     441e42 <<zopro_core::Key>::solve_canonical_wires+0xcf2>
+  441dfb:	cmp    $0xfff,%rcx
+  441e02:	jbe    441e35 <<zopro_core::Key>::solve_canonical_wires+0xce5>
+  441e04:	shl    $0x5,%rcx
+  441e08:	movabs $0x7ffffffffffffff9,%rax
+  441e12:	mov    %rcx,%rsi
+  441e15:	or     $0x1,%rsi
+  441e19:	cmp    %rax,%rsi
+  441e1c:	jae    442706 <<zopro_core::Key>::solve_canonical_wires+0x15b6>
+  441e22:	mov    0x40(%rsp),%rdi
+  441e27:	cmpb   $0x1,(%rdi,%rcx,1)
+  441e2b:	jne    441e3c <<zopro_core::Key>::solve_canonical_wires+0xcec>
+  441e2d:	call   *0xa4d3d(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  441e33:	jmp    441e42 <<zopro_core::Key>::solve_canonical_wires+0xcf2>
+  441e35:	mov    0x40(%rsp),%rdi
+  441e3a:	jmp    441e3c <<zopro_core::Key>::solve_canonical_wires+0xcec>
+  441e3c:	call   *0xa4d36(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  441e42:	mov    0x80(%rsp),%rax
+  441e4a:	test   %rax,%rax
+  441e4d:	je     441e95 <<zopro_core::Key>::solve_canonical_wires+0xd45>
+  441e4f:	cmp    $0xfff,%rax
+  441e55:	jbe    441e88 <<zopro_core::Key>::solve_canonical_wires+0xd38>
+  441e57:	shl    $0x5,%rax
+  441e5b:	movabs $0x7ffffffffffffff9,%rcx
+  441e65:	mov    %rax,%rsi
+  441e68:	or     $0x1,%rsi
+  441e6c:	cmp    %rcx,%rsi
+  441e6f:	jae    44270b <<zopro_core::Key>::solve_canonical_wires+0x15bb>
+  441e75:	mov    0x10(%rsp),%rdi
+  441e7a:	cmpb   $0x1,(%rdi,%rax,1)
+  441e7e:	jne    441e8f <<zopro_core::Key>::solve_canonical_wires+0xd3f>
+  441e80:	call   *0xa4cea(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  441e86:	jmp    441e95 <<zopro_core::Key>::solve_canonical_wires+0xd45>
+  441e88:	mov    0x10(%rsp),%rdi
+  441e8d:	jmp    441e8f <<zopro_core::Key>::solve_canonical_wires+0xd3f>
+  441e8f:	call   *0xa4ce3(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  441e95:	test   %r13,%r13
+  441e98:	je     442553 <<zopro_core::Key>::solve_canonical_wires+0x1403>
+  441e9e:	cmp    $0xfff,%r13
+  441ea5:	jbe    441ed1 <<zopro_core::Key>::solve_canonical_wires+0xd81>
+  441ea7:	shl    $0x5,%r13
+  441eab:	movabs $0x7ffffffffffffff9,%rax
+  441eb5:	mov    %r13,%rsi
+  441eb8:	or     $0x1,%rsi
+  441ebc:	cmp    %rax,%rsi
+  441ebf:	jae    442710 <<zopro_core::Key>::solve_canonical_wires+0x15c0>
+  441ec5:	cmpb   $0x1,(%r12,%r13,1)
+  441eca:	jne    441ed6 <<zopro_core::Key>::solve_canonical_wires+0xd86>
+  441ecc:	jmp    44253d <<zopro_core::Key>::solve_canonical_wires+0x13ed>
+  441ed1:	jmp    44254a <<zopro_core::Key>::solve_canonical_wires+0x13fa>
+  441ed6:	jmp    44254a <<zopro_core::Key>::solve_canonical_wires+0x13fa>
+  441edb:	call   *0xa4c97(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  441ee1:	mov    0x20(%rsp),%rbx
+  441ee6:	mov    0x40(%rsp),%rcx
+  441eeb:	mov    0x98(%rsp),%rdx
+  441ef3:	lea    0x7(%rsp),%rax
+  441ef8:	mov    %r13b,0x570(%rsp)
+  441f00:	mov    0x18(%rsp),%r13
+  441f05:	mov    %rax,0xd0(%rsp)
+  441f0d:	mov    %rbx,0xd8(%rsp)
+  441f15:	mov    %rcx,0xe0(%rsp)
+  441f1d:	mov    %rdx,0xe8(%rsp)
+  441f25:	mov    0x10(%rsp),%rcx
+  441f2a:	mov    0xa0(%rsp),%rdx
+  441f32:	mov    %rbx,0xf0(%rsp)
+  441f3a:	mov    %rcx,0xf8(%rsp)
+  441f42:	mov    %rdx,0x100(%rsp)
+  441f4a:	mov    0x48(%rsp),%rcx
+  441f4f:	mov    0xa8(%rsp),%rdx
+  441f57:	mov    %r14,0x108(%rsp)
+  441f5f:	mov    %rcx,0x110(%rsp)
+  441f67:	mov    %rbp,0x118(%rsp)
+  441f6f:	mov    %rdx,0x120(%rsp)
+  441f77:	mov    0x58(%rsp),%rdx
+  441f7c:	lea    0x570(%rsp),%rcx
+  441f84:	mov    %rcx,0x128(%rsp)
+  441f8c:	mov    0x38(%rsp),%rcx
+  441f91:	mov    %rdx,0x130(%rsp)
+  441f99:	mov    %fs:0xffffffffffffffc0,%rdx
+  441fa2:	mov    %r15,0x138(%rsp)
+  441faa:	mov    %rcx,0x140(%rsp)
+  441fb2:	mov    %r15,0x148(%rsp)
+  441fba:	test   %rdx,%rdx
+  441fbd:	jne    441ff0 <<zopro_core::Key>::solve_canonical_wires+0xea0>
+  441fbf:	vzeroupper
+  441fc2:	call   104010 <rayon_core::registry::global_registry>
+  441fc7:	mov    (%rax),%rax
+  441fca:	mov    %fs:0xffffffffffffffc0,%rdx
+  441fd3:	lea    0x80(%rax),%rsi
+  441fda:	test   %rdx,%rdx
+  441fdd:	je     4425fd <<zopro_core::Key>::solve_canonical_wires+0x14ad>
+  441fe3:	cmp    %rax,0x110(%rdx)
+  441fea:	jne    442617 <<zopro_core::Key>::solve_canonical_wires+0x14c7>
+  441ff0:	lea    0x2d0(%rsp),%rdi
+  441ff8:	lea    0xd0(%rsp),%rsi
+  442000:	vzeroupper
+  442003:	call   454dc0 <rayon_core::join::join_context::<rayon_core::join::join::call<((zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), <zopro_core::Key>::cpu_msms::{closure#2}>::{closure#0}, rayon_core::join::join::call<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>), <zopro_core::Key>::cpu_msms::{closure#3}>::{closure#0}, ((zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), (zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>)>::{closure#0}>
+  442008:	vmovups 0x2f0(%rsp),%zmm1
+  442013:	vmovups 0x330(%rsp),%zmm2
+  44201e:	vmovups 0x350(%rsp),%zmm3
+  442029:	vmovdqu64 0x2d0(%rsp),%zmm0
+  442034:	vmovups %zmm1,0x650(%rsp)
+  44203f:	vmovups %zmm2,0x6f0(%rsp)
+  44204a:	vmovups 0x3b0(%rsp),%zmm2
+  442055:	vmovups 0x390(%rsp),%zmm1
+  442060:	vmovups %zmm3,0x710(%rsp)
+  44206b:	vmovups 0x450(%rsp),%zmm3
+  442076:	vmovdqu64 %zmm0,0x630(%rsp)
+  442081:	vmovups %zmm2,0x270(%rsp)
+  44208c:	vmovups %zmm1,0x250(%rsp)
+  442097:	vmovups 0x410(%rsp),%zmm1
+  4420a2:	vmovups 0x3f0(%rsp),%zmm2
+  4420ad:	vmovups %zmm3,0x570(%rsp)
+  4420b8:	vmovups %zmm1,0x530(%rsp)
+  4420c3:	vmovups %zmm2,0x510(%rsp)
+  4420ce:	vmovups 0x490(%rsp),%zmm1
+  4420d9:	vmovups 0x4d0(%rsp),%zmm2
+  4420e4:	vmovups %zmm2,0x5f0(%rsp)
+  4420ef:	vmovups %zmm1,0x5b0(%rsp)
+  4420fa:	mov    $0x180,%edi
+  4420ff:	vzeroupper
+  442102:	call   *0xa4a80(%rip)        # 4e6b88 <malloc@GLIBC_2.2.5>
+  442108:	test   %rax,%rax
+  44210b:	je     4426c8 <<zopro_core::Key>::solve_canonical_wires+0x1578>
+  442111:	movq   $0x180,0x60(%rsp)
+  44211a:	mov    %rax,0x68(%rsp)
+  44211f:	movq   $0x0,0x70(%rsp)
+  442128:	lea    0x190(%rsp),%rdi
+  442130:	lea    0x6f0(%rsp),%rsi
+  442138:	lea    0x758(%rsp),%rdx
+  442140:	call   1b7ea0 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_projective>
+  442145:	lea    0x1f0(%rsp),%rdi
+  44214d:	mov    0x7f0(%rsp),%rsi
+  442155:	lea    0x250(%rsp),%rdx
+  44215d:	call   443230 <<zopro_core::lagrange::Queries>::finish_product>
+  442162:	vmovups 0x650(%rsp),%zmm1
+  44216d:	vmovups 0x630(%rsp),%zmm0
+  442178:	vmovups 0x510(%rsp),%zmm2
+  442183:	vmovups %zmm1,0xf0(%rsp)
+  44218e:	vmovups 0x530(%rsp),%zmm1
+  442199:	vmovups %zmm0,0xd0(%rsp)
+  4421a4:	vmovups %zmm2,0x130(%rsp)
+  4421af:	vmovups %zmm1,0x150(%rsp)
+  4421ba:	vmovups 0x1d0(%rsp),%zmm1
+  4421c5:	vmovups 0x210(%rsp),%zmm2
+  4421d0:	vmovdqu64 0x190(%rsp),%zmm0
+  4421db:	vmovups %zmm1,0x3d0(%rsp)
+  4421e6:	vmovups 0x150(%rsp),%zmm1
+  4421f1:	vmovups %zmm2,0x410(%rsp)
+  4421fc:	vmovups 0x110(%rsp),%zmm2
+  442207:	vmovdqu64 %zmm0,0x390(%rsp)
+  442212:	vmovups %zmm1,0x350(%rsp)
+  44221d:	vmovups 0xd0(%rsp),%zmm1
+  442228:	vmovups %zmm2,0x310(%rsp)
+  442233:	vmovups %zmm1,0x2d0(%rsp)
+  44223e:	lea    0xd0(%rsp),%rdi
+  442246:	lea    0x2d0(%rsp),%rsi
+  44224e:	vzeroupper
+  442251:	call   1d3850 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::to_affine>
+  442256:	lea    0x60(%rsp),%rdi
+  44225b:	lea    0xd0(%rsp),%rsi
+  442263:	call   4442d0 <zopro_core::output_fq>
+  442268:	lea    0xf0(%rsp),%rbx
+  442270:	lea    0x60(%rsp),%rdi
+  442275:	mov    %rbx,%rsi
+  442278:	call   4442d0 <zopro_core::output_fq>
+  44227d:	lea    0x330(%rsp),%rsi
+  442285:	lea    0xd0(%rsp),%rdi
+  44228d:	call   1d3850 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::to_affine>
+  442292:	lea    0x60(%rsp),%rdi
+  442297:	lea    0xd0(%rsp),%rsi
+  44229f:	call   4442d0 <zopro_core::output_fq>
+  4422a4:	lea    0x60(%rsp),%rdi
+  4422a9:	mov    %rbx,%rsi
+  4422ac:	call   4442d0 <zopro_core::output_fq>
+  4422b1:	lea    0x390(%rsp),%rsi
+  4422b9:	lea    0xd0(%rsp),%rdi
+  4422c1:	call   1d3850 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::to_affine>
+  4422c6:	lea    0x60(%rsp),%rdi
+  4422cb:	lea    0xd0(%rsp),%rsi
+  4422d3:	call   4442d0 <zopro_core::output_fq>
+  4422d8:	lea    0x60(%rsp),%rdi
+  4422dd:	mov    %rbx,%rsi
+  4422e0:	call   4442d0 <zopro_core::output_fq>
+  4422e5:	lea    0x3f0(%rsp),%rsi
+  4422ed:	lea    0xd0(%rsp),%rdi
+  4422f5:	call   1d3850 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::to_affine>
+  4422fa:	lea    0x60(%rsp),%rdi
+  4422ff:	lea    0xd0(%rsp),%rsi
+  442307:	call   4442d0 <zopro_core::output_fq>
+  44230c:	lea    0x60(%rsp),%rdi
+  442311:	mov    %rbx,%rsi
+  442314:	call   4442d0 <zopro_core::output_fq>
+  442319:	lea    0x2d0(%rsp),%rdi
+  442321:	lea    0x570(%rsp),%rsi
+  442329:	call   240e60 <<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::to_affine>
+  44232e:	lea    0x60(%rsp),%rdi
+  442333:	lea    0x2d0(%rsp),%rsi
+  44233b:	call   4442d0 <zopro_core::output_fq>
+  442340:	lea    0x2f0(%rsp),%rsi
+  442348:	lea    0x60(%rsp),%rdi
+  44234d:	call   4442d0 <zopro_core::output_fq>
+  442352:	lea    0x310(%rsp),%rsi
+  44235a:	lea    0x60(%rsp),%rdi
+  44235f:	call   4442d0 <zopro_core::output_fq>
+  442364:	lea    0x330(%rsp),%rsi
+  44236c:	lea    0x60(%rsp),%rdi
+  442371:	call   4442d0 <zopro_core::output_fq>
+  442376:	mov    0x70(%rsp),%rax
+  44237b:	mov    0xb0(%rsp),%rcx
+  442383:	vmovups 0x60(%rsp),%xmm0
+  442389:	mov    %rax,0x18(%rcx)
+  44238d:	mov    0x2b8(%rsp),%rax
+  442395:	vmovups %xmm0,0x8(%rcx)
+  44239a:	movq   $0x0,(%rcx)
+  4423a1:	test   %rax,%rax
+  4423a4:	je     4423dd <<zopro_core::Key>::solve_canonical_wires+0x128d>
+  4423a6:	cmp    $0xfff,%rax
+  4423ac:	jbe    442409 <<zopro_core::Key>::solve_canonical_wires+0x12b9>
+  4423ae:	shl    $0x5,%rax
+  4423b2:	movabs $0x7ffffffffffffff9,%rcx
+  4423bc:	mov    %rax,%rsi
+  4423bf:	or     $0x1,%rsi
+  4423c3:	cmp    %rcx,%rsi
+  4423c6:	jae    4426ed <<zopro_core::Key>::solve_canonical_wires+0x159d>
+  4423cc:	mov    0x38(%rsp),%rdi
+  4423d1:	cmpb   $0x1,(%rdi,%rax,1)
+  4423d5:	jne    442423 <<zopro_core::Key>::solve_canonical_wires+0x12d3>
+  4423d7:	call   *0xa4793(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  4423dd:	mov    0x88(%rsp),%rcx
+  4423e5:	test   %rcx,%rcx
+  4423e8:	jne    442436 <<zopro_core::Key>::solve_canonical_wires+0x12e6>
+  4423ea:	mov    0x80(%rsp),%rax
+  4423f2:	test   %rax,%rax
+  4423f5:	jne    4424b4 <<zopro_core::Key>::solve_canonical_wires+0x1364>
+  4423fb:	test   %r13,%r13
+  4423fe:	jne    44250f <<zopro_core::Key>::solve_canonical_wires+0x13bf>
+  442404:	jmp    442553 <<zopro_core::Key>::solve_canonical_wires+0x1403>
+  442409:	mov    0x38(%rsp),%rdi
+  44240e:	call   *0xa4764(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  442414:	mov    0x88(%rsp),%rcx
+  44241c:	test   %rcx,%rcx
+  44241f:	jne    442436 <<zopro_core::Key>::solve_canonical_wires+0x12e6>
+  442421:	jmp    4423ea <<zopro_core::Key>::solve_canonical_wires+0x129a>
+  442423:	call   *0xa474f(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  442429:	mov    0x88(%rsp),%rcx
+  442431:	test   %rcx,%rcx
+  442434:	je     4423ea <<zopro_core::Key>::solve_canonical_wires+0x129a>
+  442436:	cmp    $0xfff,%rcx
+  44243d:	jbe    442480 <<zopro_core::Key>::solve_canonical_wires+0x1330>
+  44243f:	shl    $0x5,%rcx
+  442443:	movabs $0x7ffffffffffffff9,%rax
+  44244d:	mov    %rcx,%rsi
+  442450:	or     $0x1,%rsi
+  442454:	cmp    %rax,%rsi
+  442457:	jae    4426f2 <<zopro_core::Key>::solve_canonical_wires+0x15a2>
+  44245d:	mov    0x40(%rsp),%rdi
+  442462:	cmpb   $0x1,(%rdi,%rcx,1)
+  442466:	jne    44249d <<zopro_core::Key>::solve_canonical_wires+0x134d>
+  442468:	call   *0xa4702(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  44246e:	mov    0x80(%rsp),%rax
+  442476:	test   %rax,%rax
+  442479:	jne    4424b4 <<zopro_core::Key>::solve_canonical_wires+0x1364>
+  44247b:	jmp    4423fb <<zopro_core::Key>::solve_canonical_wires+0x12ab>
+  442480:	mov    0x40(%rsp),%rdi
+  442485:	call   *0xa46ed(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  44248b:	mov    0x80(%rsp),%rax
+  442493:	test   %rax,%rax
+  442496:	jne    4424b4 <<zopro_core::Key>::solve_canonical_wires+0x1364>
+  442498:	jmp    4423fb <<zopro_core::Key>::solve_canonical_wires+0x12ab>
+  44249d:	call   *0xa46d5(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  4424a3:	mov    0x80(%rsp),%rax
+  4424ab:	test   %rax,%rax
+  4424ae:	je     4423fb <<zopro_core::Key>::solve_canonical_wires+0x12ab>
+  4424b4:	cmp    $0xfff,%rax
+  4424ba:	jbe    4424f2 <<zopro_core::Key>::solve_canonical_wires+0x13a2>
+  4424bc:	shl    $0x5,%rax
+  4424c0:	movabs $0x7ffffffffffffff9,%rcx
+  4424ca:	mov    %rax,%rsi
+  4424cd:	or     $0x1,%rsi
+  4424d1:	cmp    %rcx,%rsi
+  4424d4:	jae    4426f7 <<zopro_core::Key>::solve_canonical_wires+0x15a7>
+  4424da:	mov    0x10(%rsp),%rdi
+  4424df:	cmpb   $0x1,(%rdi,%rax,1)
+  4424e3:	jne    442504 <<zopro_core::Key>::solve_canonical_wires+0x13b4>
+  4424e5:	call   *0xa4685(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  4424eb:	test   %r13,%r13
+  4424ee:	jne    44250f <<zopro_core::Key>::solve_canonical_wires+0x13bf>
+  4424f0:	jmp    442553 <<zopro_core::Key>::solve_canonical_wires+0x1403>
+  4424f2:	mov    0x10(%rsp),%rdi
+  4424f7:	call   *0xa467b(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  4424fd:	test   %r13,%r13
+  442500:	jne    44250f <<zopro_core::Key>::solve_canonical_wires+0x13bf>
+  442502:	jmp    442553 <<zopro_core::Key>::solve_canonical_wires+0x1403>
+  442504:	call   *0xa466e(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  44250a:	test   %r13,%r13
+  44250d:	je     442553 <<zopro_core::Key>::solve_canonical_wires+0x1403>
+  44250f:	cmp    $0xfff,%r13
+  442516:	jbe    442548 <<zopro_core::Key>::solve_canonical_wires+0x13f8>
+  442518:	shl    $0x5,%r13
+  44251c:	movabs $0x7ffffffffffffff9,%rax
+  442526:	mov    %r13,%rsi
+  442529:	or     $0x1,%rsi
+  44252d:	cmp    %rax,%rsi
+  442530:	jae    4426fc <<zopro_core::Key>::solve_canonical_wires+0x15ac>
+  442536:	cmpb   $0x1,(%r12,%r13,1)
+  44253b:	jne    44254a <<zopro_core::Key>::solve_canonical_wires+0x13fa>
+  44253d:	mov    %r12,%rdi
+  442540:	call   *0xa462a(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  442546:	jmp    442553 <<zopro_core::Key>::solve_canonical_wires+0x1403>
+  442548:	jmp    44254a <<zopro_core::Key>::solve_canonical_wires+0x13fa>
+  44254a:	mov    %r12,%rdi
+  44254d:	call   *0xa4625(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  442553:	add    $0x7b8,%rsp
+  44255a:	pop    %rbx
+  44255b:	pop    %r12
+  44255d:	pop    %r13
+  44255f:	pop    %r14
+  442561:	pop    %r15
+  442563:	pop    %rbp
+  442564:	ret
+  442565:	mov    0x30(%rsp),%rdx
+  44256a:	mov    0x18(%rsp),%r13
+  44256f:	lea    0xa1f7a(%rip),%rax        # 4e44f0 <__frame_dummy_init_array_entry+0x6660>
+  442576:	mov    %rcx,%rsi
+  442579:	xor    %edi,%edi
+  44257b:	mov    %rax,%rcx
+  44257e:	call   f01e0 <core::slice::index::slice_index_fail>
+  442583:	jmp    4426e6 <<zopro_core::Key>::solve_canonical_wires+0x1596>
+  442588:	lea    0xa3389(%rip),%rcx        # 4e5918 <__frame_dummy_init_array_entry+0x7a88>
+  44258f:	mov    %rdx,%rsi
+  442592:	call   f01e0 <core::slice::index::slice_index_fail>
+  442597:	jmp    4426e6 <<zopro_core::Key>::solve_canonical_wires+0x1596>
+  44259c:	mov    $0xffffffffffffffff,%rax
+  4425a3:	jmp    4411f9 <<zopro_core::Key>::solve_canonical_wires+0xa9>
+  4425a8:	mov    0x30(%rsp),%rdx
+  4425ad:	mov    0x90(%rsp),%rdi
+  4425b5:	lea    0xa1f1c(%rip),%rcx        # 4e44d8 <__frame_dummy_init_array_entry+0x6648>
+  4425bc:	mov    %rdx,%rsi
+  4425bf:	call   f01e0 <core::slice::index::slice_index_fail>
+  4425c4:	jmp    4426e6 <<zopro_core::Key>::solve_canonical_wires+0x1596>
+  4425c9:	lea    0xd0(%rsp),%rdi
+  4425d1:	lea    0x2d0(%rsp),%rdx
+  4425d9:	call   4967b0 <<rayon_core::registry::Registry>::in_worker_cold::<rayon_core::join::join_context<rayon_core::join::join::call<alloc::vec::Vec<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}>::{closure#0}, rayon_core::join::join::call<alloc::vec::Vec<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}>::{closure#0}, alloc::vec::Vec<[u64; 4]>, alloc::vec::Vec<[u64; 4]>>::{closure#0}, (alloc::vec::Vec<[u64; 4]>, alloc::vec::Vec<[u64; 4]>)>>
+  4425de:	jmp    441471 <<zopro_core::Key>::solve_canonical_wires+0x321>
+  4425e3:	lea    0xd0(%rsp),%rdi
+  4425eb:	lea    0x2d0(%rsp),%rcx
+  4425f3:	call   497030 <<rayon_core::registry::Registry>::in_worker_cross::<rayon_core::join::join_context<rayon_core::join::join::call<alloc::vec::Vec<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}>::{closure#0}, rayon_core::join::join::call<alloc::vec::Vec<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}>::{closure#0}, alloc::vec::Vec<[u64; 4]>, alloc::vec::Vec<[u64; 4]>>::{closure#0}, (alloc::vec::Vec<[u64; 4]>, alloc::vec::Vec<[u64; 4]>)>>
+  4425f8:	jmp    441471 <<zopro_core::Key>::solve_canonical_wires+0x321>
+  4425fd:	lea    0x2d0(%rsp),%rdi
+  442605:	lea    0xd0(%rsp),%rdx
+  44260d:	call   454cb0 <<rayon_core::registry::Registry>::in_worker_cold::<rayon_core::join::join_context<rayon_core::join::join::call<((zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), <zopro_core::Key>::cpu_msms::{closure#2}>::{closure#0}, rayon_core::join::join::call<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>), <zopro_core::Key>::cpu_msms::{closure#3}>::{closure#0}, ((zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), (zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>)>::{closure#0}, (((zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), (zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>))>>
+  442612:	jmp    442008 <<zopro_core::Key>::solve_canonical_wires+0xeb8>
+  442617:	lea    0x2d0(%rsp),%rdi
+  44261f:	lea    0xd0(%rsp),%rcx
+  442627:	call   4555c0 <<rayon_core::registry::Registry>::in_worker_cross::<rayon_core::join::join_context<rayon_core::join::join::call<((zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), <zopro_core::Key>::cpu_msms::{closure#2}>::{closure#0}, rayon_core::join::join::call<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>), <zopro_core::Key>::cpu_msms::{closure#3}>::{closure#0}, ((zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), (zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>)>::{closure#0}, (((zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), (zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>))>>
+  44262c:	jmp    442008 <<zopro_core::Key>::solve_canonical_wires+0xeb8>
+  442631:	lea    0x570(%rsp),%r8
+  442639:	lea    -0x3544b0(%rip),%rcx        # ee190 <<&str as core::fmt::Display>::fmt>
+  442640:	mov    %rax,0x510(%rsp)
+  442648:	mov    %r8,0x2d0(%rsp)
+  442650:	mov    %rcx,0x2d8(%rsp)
+  442658:	lea    0x510(%rsp),%r8
+  442660:	lea    -0x350097(%rip),%rcx        # f25d0 <<core::io::error::Error as core::fmt::Display>::fmt>
+  442667:	mov    %r8,0x2e0(%rsp)
+  44266f:	mov    %rcx,0x2e8(%rsp)
+  442677:	lea    -0x42d167(%rip),%rdi        # 15517 <<serde_json::value::Value as core::ops::index::Index<_>>::index::NULL+0x3bd7>
+  44267e:	lea    0x9d20b(%rip),%rdx        # 4df890 <__frame_dummy_init_array_entry+0x1a00>
+  442685:	lea    0x2d0(%rsp),%rsi
+  44268d:	call   ee1e0 <core::panicking::panic_fmt>
+  442692:	jmp    4426e6 <<zopro_core::Key>::solve_canonical_wires+0x1596>
+  442694:	lea    0x2d0(%rsp),%rdi
+  44269c:	lea    0xd0(%rsp),%rdx
+  4426a4:	call   497160 <<rayon_core::registry::Registry>::in_worker_cold::<rayon_core::join::join_context<rayon_core::join::join::call<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), <zopro_core::Key>::solve_canonical_wires::{closure#2}>::{closure#0}, rayon_core::join::join::call<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, <zopro_core::Key>::solve_canonical_wires::{closure#3}>::{closure#0}, (zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::{closure#0}, ((zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>)>>
+  4426a9:	jmp    441a38 <<zopro_core::Key>::solve_canonical_wires+0x8e8>
+  4426ae:	lea    0x2d0(%rsp),%rdi
+  4426b6:	lea    0xd0(%rsp),%rcx
+  4426be:	call   4972c0 <<rayon_core::registry::Registry>::in_worker_cross::<rayon_core::join::join_context<rayon_core::join::join::call<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), <zopro_core::Key>::solve_canonical_wires::{closure#2}>::{closure#0}, rayon_core::join::join::call<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, <zopro_core::Key>::solve_canonical_wires::{closure#3}>::{closure#0}, (zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::{closure#0}, ((zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>)>>
+  4426c3:	jmp    441a38 <<zopro_core::Key>::solve_canonical_wires+0x8e8>
+  4426c8:	mov    $0x1,%edi
+  4426cd:	mov    $0x180,%esi
+  4426d2:	call   ed401 <alloc::raw_vec::handle_error>
+  4426d7:	jmp    4426e6 <<zopro_core::Key>::solve_canonical_wires+0x1596>
+  4426d9:	mov    $0x8,%edi
+  4426de:	mov    %r12,%rsi
+  4426e1:	call   ed401 <alloc::raw_vec::handle_error>
+  4426e6:	ud2
+  4426e8:	call   10ff50 <std::process::abort>
+  4426ed:	call   10ff50 <std::process::abort>
+  4426f2:	call   10ff50 <std::process::abort>
+  4426f7:	call   10ff50 <std::process::abort>
+  4426fc:	call   10ff50 <std::process::abort>
+  442701:	call   10ff50 <std::process::abort>
+  442706:	call   10ff50 <std::process::abort>
+  44270b:	call   10ff50 <std::process::abort>
+  442710:	call   10ff50 <std::process::abort>
+  442715:	call   10ff50 <std::process::abort>
+  44271a:	call   10ff50 <std::process::abort>
+  44271f:	mov    %rax,%r14
+  442722:	test   %rbp,%rbp
+  442725:	je     44273d <<zopro_core::Key>::solve_canonical_wires+0x15ed>
+  442727:	shl    $0x5,%rbp
+  44272b:	mov    0x10(%rsp),%rdi
+  442730:	mov    $0x8,%edx
+  442735:	mov    %rbp,%rsi
+  442738:	call   e8700 <__rustc::__rust_dealloc>
+  44273d:	mov    %r15,%r12
+  442740:	mov    %rbx,%r13
+  442743:	jmp    4427cd <<zopro_core::Key>::solve_canonical_wires+0x167d>
+  442748:	jmp    44274a <<zopro_core::Key>::solve_canonical_wires+0x15fa>
+  44274a:	mov    0x250(%rsp),%rsi
+  442752:	mov    %rax,%r14
+  442755:	test   %rsi,%rsi
+  442758:	je     4427a1 <<zopro_core::Key>::solve_canonical_wires+0x1651>
+  44275a:	mov    0x258(%rsp),%rdi
+  442762:	jmp    442778 <<zopro_core::Key>::solve_canonical_wires+0x1628>
+  442764:	jmp    442766 <<zopro_core::Key>::solve_canonical_wires+0x1616>
+  442766:	mov    0x60(%rsp),%rsi
+  44276b:	mov    %rax,%r14
+  44276e:	test   %rsi,%rsi
+  442771:	je     4427a1 <<zopro_core::Key>::solve_canonical_wires+0x1651>
+  442773:	mov    0x68(%rsp),%rdi
+  442778:	mov    $0x1,%edx
+  44277d:	call   e8700 <__rustc::__rust_dealloc>
+  442782:	jmp    4427a1 <<zopro_core::Key>::solve_canonical_wires+0x1651>
+  442784:	mov    %rax,%r14
+  442787:	mov    0x510(%rsp),%rax
+  44278f:	mov    %eax,%ecx
+  442791:	and    $0x3,%ecx
+  442794:	lea    -0x2(%rcx),%edx
+  442797:	cmp    $0x2,%edx
+  44279a:	jb     4427a1 <<zopro_core::Key>::solve_canonical_wires+0x1651>
+  44279c:	test   %rcx,%rcx
+  44279f:	jne    4427ad <<zopro_core::Key>::solve_canonical_wires+0x165d>
+  4427a1:	mov    0x8(%rsp),%r12
+  4427a6:	mov    0x18(%rsp),%r13
+  4427ab:	jmp    4427da <<zopro_core::Key>::solve_canonical_wires+0x168a>
+  4427ad:	lea    -0x1(%rax),%rdi
+  4427b1:	call   *0x17(%rax)
+  4427b4:	mov    0x8(%rsp),%r12
+  4427b9:	mov    0x18(%rsp),%r13
+  4427be:	jmp    4427da <<zopro_core::Key>::solve_canonical_wires+0x168a>
+  4427c0:	call   f1743 <core::panicking::panic_in_cleanup>
+  4427c5:	mov    %rax,%r14
+  4427c8:	jmp    4427fa <<zopro_core::Key>::solve_canonical_wires+0x16aa>
+  4427ca:	mov    %rax,%r14
+  4427cd:	mov    0x28(%rsp),%rsi
+  4427d2:	jmp    44287f <<zopro_core::Key>::solve_canonical_wires+0x172f>
+  4427d7:	mov    %rax,%r14
+  4427da:	mov    0x2b8(%rsp),%rsi
+  4427e2:	test   %rsi,%rsi
+  4427e5:	je     4427fa <<zopro_core::Key>::solve_canonical_wires+0x16aa>
+  4427e7:	shl    $0x5,%rsi
+  4427eb:	mov    0x38(%rsp),%rdi
+  4427f0:	mov    $0x8,%edx
+  4427f5:	call   e8700 <__rustc::__rust_dealloc>
+  4427fa:	mov    0x28(%rsp),%rsi
+  4427ff:	mov    0x88(%rsp),%rax
+  442807:	test   %rax,%rax
+  44280a:	jne    44282d <<zopro_core::Key>::solve_canonical_wires+0x16dd>
+  44280c:	mov    0x80(%rsp),%rax
+  442814:	test   %rax,%rax
+  442817:	jne    442855 <<zopro_core::Key>::solve_canonical_wires+0x1705>
+  442819:	mov    0x90(%rsp),%rax
+  442821:	cmp    %rax,0x30(%rsp)
+  442826:	jb     44287f <<zopro_core::Key>::solve_canonical_wires+0x172f>
+  442828:	jmp    4428bd <<zopro_core::Key>::solve_canonical_wires+0x176d>
+  44282d:	shl    $0x5,%rax
+  442831:	mov    0x40(%rsp),%rdi
+  442836:	mov    $0x8,%edx
+  44283b:	mov    %rax,%rsi
+  44283e:	call   e8700 <__rustc::__rust_dealloc>
+  442843:	mov    0x28(%rsp),%rsi
+  442848:	mov    0x80(%rsp),%rax
+  442850:	test   %rax,%rax
+  442853:	je     442819 <<zopro_core::Key>::solve_canonical_wires+0x16c9>
+  442855:	shl    $0x5,%rax
+  442859:	mov    0x10(%rsp),%rdi
+  44285e:	mov    $0x8,%edx
+  442863:	mov    %rax,%rsi
+  442866:	call   e8700 <__rustc::__rust_dealloc>
+  44286b:	mov    0x28(%rsp),%rsi
+  442870:	mov    0x90(%rsp),%rax
+  442878:	cmp    %rax,0x30(%rsp)
+  44287d:	jae    4428bd <<zopro_core::Key>::solve_canonical_wires+0x176d>
+  44287f:	test   %rsi,%rsi
+  442882:	je     44289a <<zopro_core::Key>::solve_canonical_wires+0x174a>
+  442884:	shl    $0x5,%rsi
+  442888:	mov    0xb8(%rsp),%rdi
+  442890:	mov    $0x8,%edx
+  442895:	call   e8700 <__rustc::__rust_dealloc>
+  44289a:	mov    0xc8(%rsp),%rsi
+  4428a2:	test   %rsi,%rsi
+  4428a5:	je     4428bd <<zopro_core::Key>::solve_canonical_wires+0x176d>
+  4428a7:	shl    $0x5,%rsi
+  4428ab:	mov    0xc0(%rsp),%rdi
+  4428b3:	mov    $0x8,%edx
+  4428b8:	call   e8700 <__rustc::__rust_dealloc>
+  4428bd:	test   %r13,%r13
+  4428c0:	je     4428d6 <<zopro_core::Key>::solve_canonical_wires+0x1786>
+  4428c2:	shl    $0x5,%r13
+  4428c6:	mov    $0x8,%edx
+  4428cb:	mov    %r12,%rdi
+  4428ce:	mov    %r13,%rsi
+  4428d1:	call   e8700 <__rustc::__rust_dealloc>
+  4428d6:	mov    %r14,%rdi
+  4428d9:	call   4dce40 <_Unwind_Resume@plt>
