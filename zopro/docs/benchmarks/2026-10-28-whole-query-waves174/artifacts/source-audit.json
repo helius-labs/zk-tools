@@ -1,0 +1,19 @@
+{
+  "G1_fusedKH_B2_key_solver_sources_exact": true,
+  "after": "            let ((ar,kh),bs2)=if std::env::var(\"ZOPRO_CPU_G1_THEN_G2_PROBE\").as_deref()==Ok(\"1\") {\n                query_waves::g1_then_g2(\n                    || msm(&self.a[..],sa),\n                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13),\n                || {\n                    if (1024..65536).contains(&self.b2.len()) {\n                        msm_affine::g2_query_exclusive(&self.b2,sb)\n                    } else {\n                        let groups=crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n                            .then(||scalar_groups(sb)).flatten();\n                        groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),\n                            |g|msm_grouped_b2(&self.b2,g))\n                    }\n                })\n            } else {\n                rayon::join(\n                || rayon::join(|| msm(&self.a[..],sa),\n                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),\n                || {\n                    if (1024..65536).contains(&self.b2.len()) {\n                        msm_affine::g2_query_exclusive(&self.b2,sb)\n                    } else {\n                        let groups=crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n                            .then(||scalar_groups(sb)).flatten();\n                        groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),\n                            |g|msm_grouped_b2(&self.b2,g))\n                    }\n                })\n            };\n",
+  "before": "            let ((ar,kh),bs2)=rayon::join(\n                || rayon::join(|| msm(&self.a[..],sa),\n                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),\n                || {\n                    if (1024..65536).contains(&self.b2.len()) {\n                        msm_affine::g2_query_exclusive(&self.b2,sb)\n                    } else {\n                        let groups=crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n                            .then(||scalar_groups(sb)).flatten();\n                        groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),\n                            |g|msm_grouped_b2(&self.b2,g))\n                    }\n                });\n",
+  "candidate_files": 175,
+  "changed_file": "crates/zopro-core/src/lib.rs",
+  "field_source_exact": true,
+  "global_DEDUP_one": true,
+  "module_suffix": "\n#[cfg(all(zopro_real_kh, feature = \"ifma8\", target_arch = \"x86_64\", target_os = \"linux\", target_feature = \"avx512ifma\", target_feature = \"avx512vl\", target_feature = \"avx512dq\", not(no_ifma)))]\nmod query_waves;\n",
+  "new_module": "crates/zopro-core/src/query_waves.rs",
+  "new_table_plan_unsafe": false,
+  "original_OFF_expression_exact": true,
+  "original_files": 174,
+  "originals_exact": 173,
+  "production_changed": false,
+  "public_API_export_ISA_changes": false,
+  "reverse174_exact": true,
+  "workspace_forecast_source_exact": true
+}
