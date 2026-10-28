@@ -1,0 +1,15 @@
+{
+  "G1_fusedKH_key_solver_sources_exact": true,
+  "after": "    let bypass = std::env::var(\"ZOPRO_CPU_SKIP_B2_GROUP_PROBE\").as_deref() == Ok(\"1\");\n    let groups = (!bypass && crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\"))\n        .then(|| scalar_groups(words))\n        .flatten();",
+  "before": "    let groups = crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n        .then(|| scalar_groups(words))\n        .flatten();",
+  "changed_file": "crates/zopro-core/src/msm_affine.rs",
+  "field_source_exact": true,
+  "global_DEDUP_one": true,
+  "new_table_plan_unsafe": false,
+  "original_files": 174,
+  "originals_exact": 173,
+  "production_changed": false,
+  "public_API_export_ISA_changes": false,
+  "reverse174_exact": true,
+  "workspace_forecast_source_exact": true
+}

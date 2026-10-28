@@ -1,0 +1,34 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "1800s",
+    "cargo",
+    "build",
+    "--manifest-path",
+    "/home/ubuntu/src/zopro-perf-work/b2-group-only174/source/Cargo.toml",
+    "--locked",
+    "--offline",
+    "--release",
+    "-p",
+    "zopro-bench",
+    "--lib",
+    "--message-format=json"
+  ],
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/b2-group-only174/target-candidate",
+    "RAYON_NUM_THREADS": "4",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records",
+    "ZOPRO_CPU_CANONICAL_BATCH": "1",
+    "ZOPRO_CPU_DEDUP": "1",
+    "ZOPRO_CPU_DIRECT": "1",
+    "ZOPRO_CPU_G1_SCRATCH_STORE": "2",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_PACKED": "1",
+    "ZOPRO_CPU_SKIP_B2_GROUP_PROBE": "0",
+    "ZOPRO_CPU_VECTOR_INVERSE": "1",
+    "ZOPRO_CPU_ZERO_AWARE_GROUPS": "1"
+  }
+}
