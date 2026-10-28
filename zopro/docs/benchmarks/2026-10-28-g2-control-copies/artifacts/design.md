@@ -1,0 +1,11 @@
+# Fresh control backing and frontend counters
+
+Declared before captures. Previous completed controlidentity47a634d8 preserves borrowedG2a30e720d's failedgate/positiveestimates. Samecode controls retire574.55Minstructions/MSM, yet frozen~228.6Mcycles/42.2ms andOFF~336.5Mcycles/61.5ms. Mode and hardlink path changes do not recover the gap. This is not another optimization rerun or adoption test.
+
+New intervention: create two new full byte-exact files from each parent executable via explicit read/write (not hardlinks/reflinks), plus same-inode original aliases. All six executable names have equal byte length in one directory, all mode0/seed17/30089points/soloCPU2/3primes/7countedMSMs. Reuse one fixed ctl/ackFIFO pair across all serial captures so control-path/environment lengths are equal. Pin inode/content/source provenance. Original executables and sources remain unchanged. Different backing inodes do not by themselves establish different physical placement or a cache cause.
+
+Three fixed rotated/reversed blocks×siximages×two counter panels=36processes. Fetch panel cycles/instructions/L1-icache-load-misses/iTLB-load-misses; stall panel cycles/instructions/stalled-cycles-frontend/L1-dcache-load-misses. Capability-only true commands already confirm both4event groups count at100%; preserve their logs. All events requested userland; perf prints cache names without:u and parser normalizes labels. Require4counted events/process, complete output equality, workerCPU2 and pins. Report all3observations/medians; no confidence/adoption gate, exclusions, extensions or unchanged reroll.252countedMSMs+108primes; noSDK/Gnark/newnativebuild.
+
+Sources/pins include the parent754, prioridentityanalysis/identities, all six images, helper/compiler/capabilitymetadata. No build/helper/hash/archive/otherownedbenchmark during capture. No ASLR/globalkernel/cachepolicy changes or killing unrelated work. Host not exclusive. Frontend/cache event association is descriptive, not an exclusive cause or removable proof latency. The study asks whether discrepancy persists in fresh backing, not whether borrowing is adopted.
+
+Production172/SDK14da/historicalprimary8.324853ms/RSS134.50MiB unchanged; proofledger13181; originalall8CPU10xgoalACTIVE0/8. Publish/commit/push complete diagnostic. Noquestions/subagents/largecaches/Casmrewrite.

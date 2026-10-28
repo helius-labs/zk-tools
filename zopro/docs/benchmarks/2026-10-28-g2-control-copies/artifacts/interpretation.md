@@ -1,0 +1,12 @@
+
+## What changed with fresh files
+
+Both fresh copies of OFF's complete ELF run in41.77–41.88ms/MSM in the fetch panel, while the same-inode original alias remains61.48ms. The fresh frozen copies run41.84–42.20ms and its original alias42.06ms. Stall-panel times agree closely. All six files retire approximately574.56million instructions perMSM. Original OFF therefore remains slow after relabeling/hardlinking, but its exact bytes do not require that slow execution rate when written to fresh files.
+
+Original OFF records15.326million L1instruction-cache misses/MSM, versus0.304–0.427million for its fresh copies. Its frontend-stalled event is115.681million cycles/MSM, versus10.173–10.649million for fresh copies. Total cycles fall from336.75million to227.28–227.67million in the fetch observations. L1data misses remain around10.7–10.8million and iTLB misses near zero across files. Event definitions and nonexclusive sampling/aggregation limits still apply; these counters are not an additive causal decomposition.
+
+The intervention supports a backing-associated instruction-fetch/frontend effect in this workload. It rules out ELF contents or output label alone as a sufficient explanation of the earlier45–48% control gap under these conditions. It does not identify a physical page, cachecolor, virtual alias or kernel mechanism: physical placement was not measured. Fresh writes may affect mapping/backing state, and four fresh files on one host do not guarantee that every future copy will run at the same rate. Equal-length names and shared FIFO environment remove the earlier name-length confound without changing the program's arithmetic.
+
+This is a benchmark-comparability finding, not a prover breakthrough or a correction of every historical result. The borrowed-queue component's original failed gate, all positive estimates and separate1.35MiB requested-memory saving remain intact. In particular, do not reinterpret its37.7% fresh-control gain as an isolated algorithm benefit; the original-frozen comparison was6.81% at16workers and uncertain at32workers.
+
+The next distinct measurement should use the actual accepted SDK, original and prospectively fixed fresh copies, with real verified proofs and CPU/Metal comparisons across all supplied shapes. Keep every copy and outcome rather than selecting a favorable file. This will establish whether the observed backing sensitivity matters to real proof latency before choosing a new optimization or qualification protocol. No source or proof-time improvement is claimed by this diagnostic.
