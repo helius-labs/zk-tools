@@ -1,0 +1,9 @@
+# Forced high-limit pressure qualification
+
+Declared before this new scenario. The completed preceding qualification passed all89 independent exports and all248 SDK requests, but every high-limit counter was0. Retain all those successes. This test changes the operating condition; it does not repeat the closed latency screen or enlarge a failed limit.
+
+Reuse the exact accepted/candidate warm SDKs and the privately charged-image controller, four warm cases (accepted/candidate × default/retained allocator). Prime at512MiB. Hold112MiB of touched anonymous ballast, then lower `memory.high` to96MiB while keeping the inherited `memory.max=192MiB` and `memory.swap.max=0`. Ballast alone exceeds the high limit, so fresh request allocations must face a genuine high-limit condition. Require positive high events, normal completion of two fresh proofs per case, no OOM/kill/max events, independent expected key/public verification, uniqueness and owned-service cleanup. Retain every case/outcome, with no larger-limit retry.
+
+Allow300seconds for the SDK child because intentional kernel throttling is not a single-proof latency benchmark. Other controller deadlines remain unchanged. These are test conditions, not a new architectural memory cap, minimum RAM, swap/phone qualification or performance claim. No native source/library/SDK change, new lookup table, source promotion or global kernel setting. No owned build/hash/helper/archive/second benchmark overlaps these captures; the controller's necessary monitoring is part of the test. Leave unrelated services/work untouched.
+
+Four cases ×5complete SDK requests =20requests,8fresh164byte independent exports. Seed ledger14551 from the completed qualification;14559 only after all checks. Full performance gate remains false at two physical16 bounds, with the measured primary32 gain retained. Original all8 CPU10x goal remains active/unmet0/8. Publish/commit/push the result before any adoption assessment.
