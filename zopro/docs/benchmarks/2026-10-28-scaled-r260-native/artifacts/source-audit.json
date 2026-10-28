@@ -1,0 +1,41 @@
+{
+  "adapter_capacity_edit": {
+    "new": "            + self.0.scratch.fq2.tail.capacity() * std::mem::size_of::<[Fq2; 5]>()\n            + {#[cfg(all(zopro_g2_scaled_r260,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))] {self.0.scratch.fq2.scaled_prefix_records.capacity()*std::mem::size_of::<g2_scaled::Record>()} #[cfg(not(all(zopro_g2_scaled_r260,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))] {0}}",
+    "old": "            + self.0.scratch.fq2.tail.capacity() * std::mem::size_of::<[Fq2; 5]>()"
+  },
+  "edits": [
+    {
+      "file": "crates/zopro-core/src/msm/g2_prefix.rs",
+      "new": "    #[cfg(all(zopro_g2_scaled_r260,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    if FAST && batch.len()%LANES==0 {return g2_scaled::apply(buckets,batch,&mut s.scaled_prefix_records);}\n    let full=batch.len()/LANES*LANES;",
+      "old": "    let full=batch.len()/LANES*LANES;"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "    #[cfg(all(zopro_g2_scaled_r260,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    scaled_prefix_records:Vec<g2_scaled::Record>,\n    tail: Vec<[Fq2; 5]>,",
+      "old": "    tail: Vec<[Fq2; 5]>,"
+    }
+  ],
+  "new_native_field_api": "bounded child module only",
+  "old_field_runtime_verbatim": true,
+  "old_prefix_body_verbatim_after_cfg_dispatch": true,
+  "possible_old_and_new_capacity_coexistence": true,
+  "private_originals_exact": 168,
+  "production_files": 172,
+  "record_bytes": 640,
+  "reverse_all172_exact": true,
+  "scratch_optional_vec_bytes": 24,
+  "suffixes": [
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "suffix": "\n#[cfg(all(zopro_g2_scaled_r260,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod g2_scaled;\n#[cfg(zopro_scaled_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_scaled_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1};\n"
+    },
+    {
+      "file": "crates/zopro-core/src/lib.rs",
+      "suffix": "\n#[cfg(zopro_scaled_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1};\n"
+    },
+    {
+      "file": "crates/zopro-bn254/src/ifma8.rs",
+      "suffix": "\n#[cfg(zopro_g2_scaled_r260)]\n#[path=\"scaled.rs\"]\npub mod scaled;\n"
+    }
+  ]
+}

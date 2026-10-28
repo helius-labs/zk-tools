@@ -1,0 +1,26 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "1200s",
+    "cargo",
+    "test",
+    "--manifest-path",
+    "/home/ubuntu/src/zopro-perf-work/scaled-r260-native/source/Cargo.toml",
+    "--locked",
+    "--offline",
+    "--release",
+    "-p",
+    "zopro-bn254",
+    "--lib",
+    "--",
+    "--test-threads=1"
+  ],
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/scaled-r260-native/target-checked",
+    "RAYON_NUM_THREADS": "4",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_scaled_caller_probe --cfg zopro_g2_scaled_r260 -C debug-assertions=yes -C overflow-checks=yes"
+  }
+}
