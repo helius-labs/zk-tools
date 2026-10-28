@@ -1,0 +1,22 @@
+    /// Gather numerical lanes from packed fields without changing Montgomery radix.
+    #[inline(always)]
+    pub fn gather_lanes(values: &[Self], indices: &[usize; LANES]) -> Ifma<C, MIXED> {
+        let limit = values.len().checked_mul(LANES).expect("packed gather length overflow");
+        assert!(indices.iter().all(|&i| i < limit), "packed gather index");
+        let words = core::mem::size_of::<Self>() / 8;
+        let offsets: [i64; LANES] = core::array::from_fn(|j| {
+            i64::try_from(indices[j] / LANES * words + indices[j] % LANES).unwrap()
+        });
+        // SAFETY: each checked logical lane addresses one initialized field
+        // word in values. Word-plane offsets remain within that same element.
+        unsafe {
+            let offsets = _mm256_loadu_si256(offsets.as_ptr().cast());
+            let base = values[0].0.as_ptr().cast::<i64>();
+            let packed = Self(core::array::from_fn(|j| {
+                let base = base.add(j * LANES);
+                _mm256_i64gather_epi64::<8>(base, offsets)
+            }), PhantomData);
+            packed.expand()
+        }
+    }
+

@@ -1,0 +1,22 @@
+    #[test]
+    fn gathered_and_masked_lanes_match_original_fields() {
+        fn check<C: FpConfig, const MIXED: bool>() {
+            let mut seed = 0x41329ef7u64;
+            let mut original = Vec::new();
+            for _ in 0..5*LANES {
+                let mut bytes = [0;64];
+                for part in bytes.chunks_mut(8) { seed^=seed<<13;seed^=seed>>7;seed^=seed<<17;part.copy_from_slice(&seed.to_le_bytes()); }
+                original.push(Fp::<C>::from_random_bytes(&bytes));
+            }
+            original[0]=Fp::<C>::ZERO;original[1]=-Fp::<C>::ONE;
+            let packed:Vec<_>=original.chunks_exact(LANES).map(|s|Ifma::<C,MIXED>::new(s.try_into().unwrap()).compact()).collect();
+            for shift in 0..original.len() {
+                let indices=core::array::from_fn(|i|(shift+i*7)%original.len());
+                let gathered=PackedIfma::<C,MIXED>::gather_lanes(&packed,&indices);
+                assert_eq!(gathered.get(),indices.map(|i|original[i]));
+                for mask in 0..(1u16<<LANES) { assert_eq!(gathered.mask_lanes(mask as u8).get(),core::array::from_fn(|i|if mask>>i&1!=0{original[indices[i]]}else{Fp::<C>::ZERO})); }
+            }
+        }
+        check::<FqConfig,false>();check::<FqConfig,true>();check::<FrConfig,false>();check::<FrConfig,true>();
+    }
+

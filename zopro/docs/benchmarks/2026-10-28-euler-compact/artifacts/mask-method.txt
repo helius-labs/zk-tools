@@ -1,0 +1,11 @@
+    /// Keep selected numerical lanes; all other lanes become field zero.
+    #[inline(always)]
+    pub fn mask_lanes(&self, mask: u8) -> Self {
+        let keep: [i64; LANES] = core::array::from_fn(|i| -i64::from(mask >> i & 1));
+        // SAFETY: keep contains exactly one initialized vector of lane masks.
+        unsafe {
+            let keep = _mm256_loadu_si256(keep.as_ptr().cast());
+            Self(self.0.map(|v| _mm256_and_si256(v, keep)), PhantomData)
+        }
+    }
+

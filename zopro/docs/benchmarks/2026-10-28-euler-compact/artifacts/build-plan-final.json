@@ -1,0 +1,161 @@
+{
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/euler-compact/target",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_euler_capture"
+  },
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/euler-compact/build-pins.json",
+  "steps": [
+    {
+      "kind": "command",
+      "name": "core-isolated-0",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/euler-compact/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "alloc::linux::tests::forecast_policy_uses_available_memory_and_releases_charges",
+        "--",
+        "--exact",
+        "--test-threads=1"
+      ],
+      "required_tests": [
+        "alloc::linux::tests::forecast_policy_uses_available_memory_and_releases_charges"
+      ],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "core-isolated-1",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/euler-compact/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "alloc::linux::tests::layouts_zeroing_and_policy_transitions_preserve_contents",
+        "--",
+        "--exact",
+        "--test-threads=1"
+      ],
+      "required_tests": [
+        "alloc::linux::tests::layouts_zeroing_and_policy_transitions_preserve_contents"
+      ],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "core-isolated-2",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/euler-compact/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "alloc::linux::tests::mapped_free_returns_the_region_after_scope_ends",
+        "--",
+        "--exact",
+        "--test-threads=1"
+      ],
+      "required_tests": [
+        "alloc::linux::tests::mapped_free_returns_the_region_after_scope_ends"
+      ],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "core-isolated-3",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/euler-compact/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "alloc::linux::tests::nested_guards_and_cross_thread_deallocation",
+        "--",
+        "--exact",
+        "--test-threads=1"
+      ],
+      "required_tests": [
+        "alloc::linux::tests::nested_guards_and_cross_thread_deallocation"
+      ],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "core-isolated-4",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/euler-compact/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib",
+        "fft::pair::leaf::tests::inverse_and_forward_match_scalar_polynomials_with_cached_and_twisted_roots",
+        "--",
+        "--exact",
+        "--test-threads=1"
+      ],
+      "required_tests": [
+        "fft::pair::leaf::tests::inverse_and_forward_match_scalar_polynomials_with_cached_and_twisted_roots"
+      ],
+      "unfiltered": false,
+      "timeout_seconds": 1200
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/euler-compact/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "kind": "command",
+      "name": "libraries",
+      "timeout_seconds": 1200
+    },
+    {
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/euler-compact/native/libraries/stdout.log",
+      "driver": "/home/ubuntu/src/zopro-perf-work/euler-compact/driver.rs",
+      "kind": "link-sdk",
+      "name": "capture",
+      "timeout_seconds": 600
+    }
+  ],
+  "version": 1
+}

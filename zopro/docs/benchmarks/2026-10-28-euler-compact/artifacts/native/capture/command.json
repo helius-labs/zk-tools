@@ -1,0 +1,43 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "600s",
+    "rustc",
+    "--edition=2021",
+    "-O",
+    "-C",
+    "target-cpu=native",
+    "-C",
+    "lto=fat",
+    "-C",
+    "codegen-units=1",
+    "-L",
+    "dependency=/home/ubuntu/src/zopro-perf-work/euler-compact/target/release/deps",
+    "--extern",
+    "libc=/home/ubuntu/src/zopro-perf-work/euler-compact/target/release/deps/liblibc-cc61663bc44e2bf1.rlib",
+    "--extern",
+    "memmap2=/home/ubuntu/src/zopro-perf-work/euler-compact/target/release/deps/libmemmap2-042e5431dd861ec1.rlib",
+    "--extern",
+    "rayon=/home/ubuntu/src/zopro-perf-work/euler-compact/target/release/deps/librayon-9578b7dd1a39337a.rlib",
+    "--extern",
+    "serde_json=/home/ubuntu/src/zopro-perf-work/euler-compact/target/release/deps/libserde_json-1f0e709d3567e8f4.rlib",
+    "--extern",
+    "zopro_bn254=/home/ubuntu/src/zopro-perf-work/euler-compact/target/release/deps/libzopro_bn254-f4e4acc533eb5a25.rlib",
+    "--extern",
+    "zopro_core=/home/ubuntu/src/zopro-perf-work/euler-compact/target/release/deps/libzopro_core.rlib",
+    "--extern",
+    "zopro_prover=/home/ubuntu/src/zopro-perf-work/euler-compact/target/release/deps/libzopro_prover.rlib",
+    "--extern",
+    "zopro_zolana=/home/ubuntu/src/zopro-perf-work/euler-compact/target/release/deps/libzopro_zolana.rlib",
+    "/home/ubuntu/src/zopro-perf-work/euler-compact/driver.rs",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/euler-compact/native/capture-sdk"
+  ],
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/euler-compact/target",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_euler_capture"
+  }
+}

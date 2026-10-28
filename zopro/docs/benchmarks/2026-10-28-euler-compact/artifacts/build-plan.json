@@ -1,0 +1,76 @@
+{
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/euler-compact/target",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_euler_capture"
+  },
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/euler-compact/build-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/euler-compact/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bn254",
+        "--lib"
+      ],
+      "kind": "command",
+      "name": "field-tests",
+      "required_tests": [
+        "ifma::tests::gathered_and_masked_lanes_match_original_fields",
+        "ifma8::tests::gathered_and_masked_lanes_match_original_fields"
+      ],
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/euler-compact/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--lib"
+      ],
+      "kind": "command",
+      "name": "core-tests",
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/euler-compact/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "kind": "command",
+      "name": "libraries",
+      "timeout_seconds": 1200
+    },
+    {
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/euler-compact/native/libraries/stdout.log",
+      "driver": "/home/ubuntu/src/zopro-perf-work/euler-compact/driver.rs",
+      "kind": "link-sdk",
+      "name": "capture",
+      "timeout_seconds": 600
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,103 @@
+error[E0599]: cannot write into `std::string::String`
+  --> bench-control.rs:30:18
+   |
+30 | ...   writeln!(table,"| {fixture} | {w} | {:.3} | {:.3} | {:.3} | {:.3} |",display["accepted"],display["fresh"],display["tiled"],dis...
+   |                ^^^^^
+   |
+  --> /rustc/48a229ceaefd4985c50990b14116b6d856af0985/library/core/src/fmt/mod.rs:214:7
+   |
+   = note: the method is available for `std::string::String` here
+note: must implement `io::Write`, `fmt::Write`, or have a `write_fmt` method
+  --> bench-control.rs:30:18
+   |
+30 | ...   writeln!(table,"| {fixture} | {w} | {:.3} | {:.3} | {:.3} | {:.3} |",display["accepted"],display["fresh"],display["tiled"],dis...
+   |                ^^^^^
+   = help: items from traits can only be used if the trait is in scope
+help: trait `Write` which provides `write_fmt` is implemented but not in scope; perhaps you want to import it
+   |
+ 1 + use std::fmt::Write;
+   |
+
+error[E0599]: cannot write into `std::string::String`
+  --> bench-control.rs:31:589
+   |
+31 | .../{b}");if formal&&!pass{failed.push(key.clone());}writeln!(pair_table,"| {fixture} | {w} | {a}/{b} | {:.6} | [{:.6}, {:.6}] | {}/...
+   |                                                               ^^^^^^^^^^
+   |
+  --> /rustc/48a229ceaefd4985c50990b14116b6d856af0985/library/core/src/fmt/mod.rs:214:7
+   |
+   = note: the method is available for `std::string::String` here
+note: must implement `io::Write`, `fmt::Write`, or have a `write_fmt` method
+  --> bench-control.rs:31:589
+   |
+31 | .../{b}");if formal&&!pass{failed.push(key.clone());}writeln!(pair_table,"| {fixture} | {w} | {a}/{b} | {:.6} | [{:.6}, {:.6}] | {}/...
+   |                                                               ^^^^^^^^^^
+   = help: items from traits can only be used if the trait is in scope
+help: trait `Write` which provides `write_fmt` is implemented but not in scope; perhaps you want to import it
+   |
+ 1 + use std::fmt::Write;
+   |
+
+error[E0599]: cannot write into `std::string::String`
+  --> bench-control.rs:34:170
+   |
+34 | ...aw.insert(path.display().to_string(),hash(path));writeln!(profile_table,"| {w} | {label} | {samples} | 0 |",).unwrap();profiles.i...
+   |                                                              ^^^^^^^^^^^^^
+   |
+  --> /rustc/48a229ceaefd4985c50990b14116b6d856af0985/library/core/src/fmt/mod.rs:214:7
+   |
+   = note: the method is available for `std::string::String` here
+note: must implement `io::Write`, `fmt::Write`, or have a `write_fmt` method
+  --> bench-control.rs:34:170
+   |
+34 | ...aw.insert(path.display().to_string(),hash(path));writeln!(profile_table,"| {w} | {label} | {samples} | 0 |",).unwrap();profiles.i...
+   |                                                              ^^^^^^^^^^^^^
+   = help: items from traits can only be used if the trait is in scope
+help: trait `Write` which provides `write_fmt` is implemented but not in scope; perhaps you want to import it
+   |
+ 1 + use std::fmt::Write;
+   |
+
+error[E0599]: cannot write into `std::string::String`
+  --> bench-control.rs:36:275
+   |
+36 | ..."16x2","24x2","merge-24x1"]{let v=&m["m5"][shape];writeln!(comparison,"| {shape} | {:.6} | {:.0} | {:.0} | {:.3}× | {:.3}× |",v["...
+   |                                                               ^^^^^^^^^^
+   |
+  --> /rustc/48a229ceaefd4985c50990b14116b6d856af0985/library/core/src/fmt/mod.rs:214:7
+   |
+   = note: the method is available for `std::string::String` here
+note: must implement `io::Write`, `fmt::Write`, or have a `write_fmt` method
+  --> bench-control.rs:36:275
+   |
+36 | ..."16x2","24x2","merge-24x1"]{let v=&m["m5"][shape];writeln!(comparison,"| {shape} | {:.6} | {:.0} | {:.0} | {:.3}× | {:.3}× |",v["...
+   |                                                               ^^^^^^^^^^
+   = help: items from traits can only be used if the trait is in scope
+help: trait `Write` which provides `write_fmt` is implemented but not in scope; perhaps you want to import it
+   |
+ 1 + use std::fmt::Write;
+   |
+
+error[E0599]: cannot write into `std::string::String`
+  --> bench-control.rs:38:737
+   |
+38 | ...E.md")));let mut sums=String::new();for(p,h)in&index{writeln!(sums,"{h}  {p}").unwrap();}fs::write(format!("{D}/SHA256SUMS"),sums...
+   |                                                                  ^^^^
+   |
+  --> /rustc/48a229ceaefd4985c50990b14116b6d856af0985/library/core/src/fmt/mod.rs:214:7
+   |
+   = note: the method is available for `std::string::String` here
+note: must implement `io::Write`, `fmt::Write`, or have a `write_fmt` method
+  --> bench-control.rs:38:737
+   |
+38 | ...E.md")));let mut sums=String::new();for(p,h)in&index{writeln!(sums,"{h}  {p}").unwrap();}fs::write(format!("{D}/SHA256SUMS"),sums...
+   |                                                                  ^^^^
+   = help: items from traits can only be used if the trait is in scope
+help: trait `Write` which provides `write_fmt` is implemented but not in scope; perhaps you want to import it
+   |
+ 1 + use std::fmt::Write;
+   |
+
+error: aborting due to 5 previous errors
+
+For more information about this error, try `rustc --explain E0599`.
