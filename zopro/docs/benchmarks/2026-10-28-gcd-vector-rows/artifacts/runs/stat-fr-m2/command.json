@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "300s",
+    "sudo",
+    "-n",
+    "env",
+    "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/gcd-vector-rows/profiles/stat-fr-m2/ack",
+    "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/gcd-vector-rows/profiles/stat-fr-m2/ctl",
+    "perf",
+    "stat",
+    "--no-big-num",
+    "-x",
+    ";",
+    "-e",
+    "{cycles:u,instructions:u,cache-misses:u,branch-misses:u}",
+    "--delay=-1",
+    "--control=fifo:/home/ubuntu/src/zopro-perf-work/gcd-vector-rows/profiles/stat-fr-m2/ctl,/home/ubuntu/src/zopro-perf-work/gcd-vector-rows/profiles/stat-fr-m2/ack",
+    "--",
+    "/home/ubuntu/src/zopro-perf-work/gcd-vector-rows/probe",
+    "fr",
+    "2",
+    "logical32",
+    "128"
+  ],
+  "environment": {
+    "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/gcd-vector-rows/profiles/stat-fr-m2/ack",
+    "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/gcd-vector-rows/profiles/stat-fr-m2/ctl"
+  }
+}

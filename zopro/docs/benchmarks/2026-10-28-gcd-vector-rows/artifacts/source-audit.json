@@ -1,0 +1,10 @@
+{
+  "new": "        let mut rows=[f0,g0,f1,g1];\n        let outputs=crate::paired::update(&old_a,&b,&mut rows);\n        a=outputs.0;b=outputs.1;\n        (f0,g0,f1,g1)=(rows[0],rows[1],rows[2],rows[3]);",
+  "old": "        a = integer_update(&old_a, &b, &mut f0, &mut g0);\n        b = integer_update(&old_a, &b, &mut f1, &mut g1);",
+  "only_algorithm_change": "two full31bitintegerrows via4VPMULUDQ/sharedinputconversion,scalar32digitcarrying",
+  "ordinary_original_exact_before_test_suffix": true,
+  "portable_original_exact": true,
+  "production172_unchanged": true,
+  "reference_test_suffix": "\n#[cfg(test)]\npub(crate) fn reference_pair(a:[u64;4],b:[u64;4],mut rows:[i64;4])->(([u64;4],[u64;4]),[i64;4]){\n    let(mut f0,mut g0,mut f1,mut g1)=(rows[0],rows[1],rows[2],rows[3]);let aa=integer_update(&a,&b,&mut f0,&mut g0);let bb=integer_update(&a,&b,&mut f1,&mut g1);rows=[f0,g0,f1,g1];((aa,bb),rows)\n}\n#[cfg(test)]\npub(crate) fn reference_matrix(a:[u64;4],b:[u64;4])->[i64;4]{let bits=bit_len(&a).max(bit_len(&b));let(_,_,f0,g0,f1,g1)=zero_run_matrix(approximate(&a,bits),approximate(&b,bits));[f0,g0,f1,g1]}\n",
+  "selected_inverse_recovered_exact": true
+}
