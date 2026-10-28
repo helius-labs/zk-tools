@@ -1,5 +1,7 @@
 # Fused symmetric G2 denominator norms
 
+**History correction:** the [2026-10-24 G2 norm trial](../2026-10-24-g2-norm-squares/README.md) already tested this arithmetic mechanism. The pre-capture audit missed it. This study supplies later measurements and a different integration context, not a new arithmetic idea. [Correction](artifacts/history-correction.md); timings, failed gate and non-adoption are unchanged.
+
 The candidate is **not adopted**. Primary32 improves by a paired **0.533% / 43.803 µs against OFF**, winning all seven blocks. Its accepted comparison spans parity, and both merge54 nonregression upper bounds fail. Fresh OFF is byte-identical to accepted; the remaining process variation is not assigned to a compiler difference. See the [interpretation](artifacts/interpretation.md) for all positive estimates, failed checks and limitations.
 
 The private candidate replaces general two-product evaluation of a²+b² with fused symmetric squares and a shared Montgomery reduction. The primary32 paired ON/OFF ratio is 0.994669471, with bounds [0.972928175, 0.999106396] and 7/7 wins. The prospective pilot gate is **false**; production remains unchanged.
