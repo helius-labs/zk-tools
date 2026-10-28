@@ -1,0 +1,58 @@
+{
+  "crates/zopro-core/src/lib.rs": [
+    [
+      "let (sa_vec,mut sb_vec):(Vec<_>,Vec<_>)=",
+      "let (mut sa_vec,mut sb_vec):(Vec<_>,Vec<_>)="
+    ],
+    [
+      "|| rayon::join(|| msm(&self.a[..],sa),\n",
+      "|| rayon::join(|| msm_affine::centered::exclusive(&self.a[..],&mut sa_vec),\n"
+    ]
+  ],
+  "crates/zopro-core/src/msm.rs": [
+    [
+      "pub(super) fn reduce_indexed_buckets<C: CurveConfig>(\n    bases: &[Affine<C>],\n    order: &[u32],\n    starts: &[usize],\n) -> Vec<Affine<C>>\nwhere\n    C::Base: BatchInverse,\n{\n",
+      "pub(super) fn reduce_indexed_buckets<C: CurveConfig>(\n    bases: &[Affine<C>],\n    order: &[u32],\n    starts: &[usize],\n) -> Vec<Affine<C>>\nwhere\n    C::Base: BatchInverse,\n{\n    reduce_indexed_buckets_impl::<C,false>(bases,order,starts)\n}\n\n#[cfg(not(target_arch=\"wasm32\"))]\npub(super)fn reduce_indexed_buckets_signed<C:CurveConfig>(bases:&[Affine<C>],order:&[u32],starts:&[usize])->Vec<Affine<C>> where C::Base:BatchInverse {reduce_indexed_buckets_impl::<C,true>(bases,order,starts)}\n\nfn reduce_indexed_buckets_impl<C:CurveConfig,const SIGNED:bool>(bases:&[Affine<C>],order:&[u32],starts:&[usize])->Vec<Affine<C>> where C::Base:BatchInverse {\n"
+    ],
+    [
+      "                .map(|&i| limbs::<C>(bases[i as usize]))\n",
+      "                .map(|&i| {let index=if SIGNED{i&0x7fffffff}else{i};let p=bases[index as usize];limbs::<C>(if SIGNED&&i>>31!=0{-p}else{p})})\n"
+    ]
+  ],
+  "crates/zopro-core/src/msm_affine.rs": [
+    [
+      "mod grouping;\n",
+      "mod grouping;\npub(super) mod centered;\n"
+    ]
+  ],
+  "crates/zopro-core/src/msm_affine/borrowed_pending.rs": [
+    [
+      "    fn feed(\n",
+      "    fn feed<const CENTER:bool>(\n"
+    ],
+    [
+      "            let d = digit(scalar, w, bits);\n",
+      "            let d = if CENTER {super::centered::digit(scalar,w,bits)} else {digit(scalar,w,bits)};\n"
+    ],
+    [
+      "            state.feed(k, sk, w, bits, size);\n",
+      "            state.feed::<false>(k, sk, w, bits, size);\n"
+    ],
+    [
+      "            state.feed(h, sh, w, bits, size);\n",
+      "            state.feed::<false>(h, sh, w, bits, size);\n"
+    ],
+    [
+      "pub(crate) fn msm<C: CurveConfig<Base = Fq>>(\n    bases: &[Affine<C>],\n    scalars: &[[u64; 4]],\n    parts: usize,\n    width: usize,\n) -> Projective<C> {\n",
+      "pub(crate) fn msm<C: CurveConfig<Base = Fq>>(\n    bases: &[Affine<C>],\n    scalars: &[[u64; 4]],\n    parts: usize,\n    width: usize,\n) -> Projective<C> {\n    msm_impl::<C,false>(bases,scalars,parts,width)\n}\n\npub(super)fn msm_centered<C:CurveConfig<Base=Fq>>(bases:&[Affine<C>],scalars:&[[u64;4]],parts:usize,width:usize)->Projective<C>{msm_impl::<C,true>(bases,scalars,parts,width)}\n\nfn msm_impl<C:CurveConfig<Base=Fq>,const CENTER:bool>(bases:&[Affine<C>],scalars:&[[u64;4]],parts:usize,width:usize)->Projective<C>{\n"
+    ],
+    [
+      "            if let Some(sum) = top_window::<C, true>(bases, scalars, w, width) {\n",
+      "            let top=if CENTER {super::centered::top_window::<C>(bases,scalars,w,width)}else{top_window::<C,true>(bases,scalars,w,width)};\n            if let Some(sum) = top {\n"
+    ],
+    [
+      "                    state.feed(&bases[range.clone()], &scalars[range], w, width, size);\n",
+      "                    state.feed::<CENTER>(&bases[range.clone()], &scalars[range], w, width, size);\n"
+    ]
+  ]
+}

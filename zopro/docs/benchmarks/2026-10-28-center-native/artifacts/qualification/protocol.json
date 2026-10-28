@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/center-native/pins.json",
+  "environment": {
+    "CARGO_BUILD_JOBS": "16",
+    "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/center-native/target",
+    "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records",
+    "ZOPRO_CPU_CENTER_G1": "1"
+  },
+  "steps": [
+    {
+      "kind": "command",
+      "name": "raw-final",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/center-native/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-prover",
+        "--lib"
+      ],
+      "environment": {},
+      "required_tests": [
+        "raw::tests::rejects_overflowing_and_truncated_lengths",
+        "raw::tests::sparse_images_cross_four_gib_without_truncation"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 1200
+    },
+    {
+      "kind": "command",
+      "name": "cubic-final",
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/center-native/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-prover",
+        "--test",
+        "cubic"
+      ],
+      "environment": {},
+      "required_tests": [
+        "loads_from_its_raw_form",
+        "parses_values",
+        "proves_by_name",
+        "proves_from_its_image_in_place",
+        "reads_legacy_key_and_raw_image",
+        "writes_dump_directly_without_intermediate_point_copies"
+      ],
+      "unfiltered": true,
+      "timeout_seconds": 1200
+    }
+  ]
+}
