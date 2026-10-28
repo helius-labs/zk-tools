@@ -1,0 +1,18 @@
+{
+  "crates/zopro-core/src/lib.rs": [
+    [
+      "",
+      "\n#[cfg(zopro_msm_geometry)]\npub mod center_census;\n"
+    ]
+  ],
+  "crates/zopro-core/src/msm_affine/borrowed_pending.rs": [
+    [
+      "    assert_eq!(k.len(), sk.len());\n",
+      "    #[cfg(zopro_msm_geometry)]\n    crate::center_census::fused(k,sk,h,sh,bits);\n    assert_eq!(k.len(), sk.len());\n"
+    ],
+    [
+      "    assert_eq!(bases.len(), scalars.len());\n",
+      "    #[cfg(zopro_msm_geometry)]\n    crate::center_census::ordinary(bases,scalars,parts,width);\n    assert_eq!(bases.len(), scalars.len());\n"
+    ]
+  ]
+}
