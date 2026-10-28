@@ -1,0 +1,21 @@
+{
+  "caller_adapter_original_prefix_exact": true,
+  "core_suffix": "\n#[cfg(zopro_reduced_gauss_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1};\n",
+  "field_unchanged": true,
+  "msm_edits": [
+    {
+      "new": "        let value = {\n            #[cfg(zopro_g2_reduced_gauss)]\n            { let p=dy[0].add(&dy[1]).mul(&dx[0]);\n              let q=dy[1].mul(&dx[0].sub(&dx[1]));\n              let r=dy[0].mul(&dx[0].add(&dx[1]));\n              [p.sub(&q),p.sub(&r)] }\n            #[cfg(not(zopro_g2_reduced_gauss))]\n            [\n            dy[0].sum2(&dx[0], &dy[1], &dx[1]),\n            dy[1].difference2(&dx[0], &dy[0], &dx[1]),\n            ]\n        };",
+      "old": "        let value = [\n            dy[0].sum2(&dx[0], &dy[1], &dx[1]),\n            dy[1].difference2(&dx[0], &dy[0], &dx[1]),\n        ];"
+    },
+    {
+      "new": "            #[cfg(zopro_g2_reduced_gauss)]\n            { let p=a[0].add(&a[1]).mul(&b[0]);\n              let q=a[1].mul(&b[0].add(&b[1]));\n              let r=a[0].mul(&b[1].sub(&b[0]));\n              [p.sub(&q),p.add(&r)] }\n            #[cfg(not(zopro_g2_reduced_gauss))]\n            [\n                a[0].difference2(&b[0], &a[1], &b[1]),\n                a[0].sum2(&b[1], &a[1], &b[0]),\n            ]",
+      "old": "            [\n                a[0].difference2(&b[0], &a[1], &b[1]),\n                a[0].sum2(&b[1], &a[1], &b[0]),\n            ]"
+    }
+  ],
+  "msm_suffix": "\n#[cfg(zopro_reduced_gauss_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_reduced_gauss_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1};\n",
+  "new_oracle_only_in_adapter": true,
+  "original_files": 172,
+  "private_originals_exact": 170,
+  "reverse_edits_recover_accepted": true,
+  "runtime_change_only": "crates/zopro-core/src/msm.rs"
+}
