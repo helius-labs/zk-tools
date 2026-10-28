@@ -1,0 +1,42 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "240s",
+    "sudo",
+    "-n",
+    "env",
+    "MALLOC_ARENA_MAX=1",
+    "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/profiles/profile-fr-fifth-candidate/ack",
+    "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/profiles/profile-fr-fifth-candidate/ctl",
+    "perf",
+    "record",
+    "--no-buildid-cache",
+    "-e",
+    "cycles:u",
+    "-F",
+    "199",
+    "-m",
+    "512",
+    "--delay=-1",
+    "--control=fifo:/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/profiles/profile-fr-fifth-candidate/ctl,/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/profiles/profile-fr-fifth-candidate/ack",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/profiles/profile-fr-fifth-candidate/perf.data",
+    "--",
+    "taskset",
+    "-c",
+    "2",
+    "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/candidate-probe",
+    "run",
+    "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/fixture.json",
+    "fr",
+    "fifth",
+    "4194304"
+  ],
+  "environment": {
+    "MALLOC_ARENA_MAX": "1",
+    "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/profiles/profile-fr-fifth-candidate/ack",
+    "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/profiles/profile-fr-fifth-candidate/ctl"
+  }
+}

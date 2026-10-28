@@ -1,0 +1,130 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/build-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bn254",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/target-fresh",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "fresh-tests",
+      "required_tests": [
+        "scalar_square::tests::full_512_bit_square_matches_independent_product",
+        "scalar_square::tests::montgomery_square_and_fifth_match_independent_fields"
+      ],
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bn254",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/target-fresh",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "fresh-library",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/experiment",
+        "freeze",
+        "fresh"
+      ],
+      "kind": "command",
+      "name": "fresh-freeze",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bn254",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/target-candidate",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_scalar_symmetric_square"
+      },
+      "kind": "command",
+      "name": "candidate-tests",
+      "required_tests": [
+        "scalar_square::tests::full_512_bit_square_matches_independent_product",
+        "scalar_square::tests::montgomery_square_and_fifth_match_independent_fields"
+      ],
+      "timeout_seconds": 1200,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bn254",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/target-candidate",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_scalar_symmetric_square"
+      },
+      "kind": "command",
+      "name": "candidate-library",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/scalar-symmetric-square/experiment",
+        "freeze",
+        "candidate"
+      ],
+      "kind": "command",
+      "name": "candidate-freeze",
+      "timeout_seconds": 120
+    }
+  ],
+  "version": 1
+}
