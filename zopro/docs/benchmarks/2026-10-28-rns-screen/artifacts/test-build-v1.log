@@ -1,0 +1,49 @@
+error[E0284]: type annotations needed for `[u64; _]`
+   --> /home/ubuntu/src/zopro-perf-work/rns-screen/rns_model.rs:105:13
+    |
+103 | ...   std::array::from_fn(|i|{let p=mul_mod(x[i],y[i],mods[i]);let q=mul_mod(z[i],w[i],mods[i]);match mode{0=>p,1=>((p as u128+q as u128)%mods[i]as u128)as u64,2=>((sub_mod(p,q,mods[i])as u128+off[i]as u128)%mods[i]as u128)as u64,_=>unreachable!()}})
+    |       ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- type must be known at this point
+104 | ...;
+105 | ...et tl=numerators(&self.left.moduli,&a.left,&b.left,&c.left,&d.left,&self.difference_offset_left);
+    |       ^^
+    |
+note: required by a const generic parameter in `std::array::from_fn`
+   --> /rustc/48a229ceaefd4985c50990b14116b6d856af0985/library/core/src/array/mod.rs:110:0
+help: consider giving `tl` an explicit type, where the value of const parameter `N` is specified
+    |
+105 |         let tl: [_; N]=numerators(&self.left.moduli,&a.left,&b.left,&c.left,&d.left,&self.difference_offset_left);
+    |               ++++++++
+
+error[E0284]: type annotations needed for `[u64; _]`
+   --> /home/ubuntu/src/zopro-perf-work/rns-screen/rns_model.rs:105:13
+    |
+105 |         let tl=numerators(&self.left.moduli,&a.left,&b.left,&c.left,&d.left,&self.difference_offset_left);
+    |             ^^
+106 |         let tr=numerators(&self.right.moduli,&a.right,&b.right,&c.right,&d.right,&self.difference_offset_right);
+107 |         let alpha=std::array::from_fn(|i|mul_mod(tl[i],self.alpha_factor[i],self.left.moduli[i]));
+    |                                                  ----- type must be known at this point
+    |
+    = note: required for `[u64; _]` to implement `Index<usize>`
+help: consider giving `tl` an explicit type, where the value of const parameter `N` is specified
+    |
+105 |         let tl: [_; N]=numerators(&self.left.moduli,&a.left,&b.left,&c.left,&d.left,&self.difference_offset_left);
+    |               ++++++++
+
+error[E0284]: type annotations needed for `[u64; _]`
+   --> /home/ubuntu/src/zopro-perf-work/rns-screen/rns_model.rs:105:13
+    |
+105 |         let tl=numerators(&self.left.moduli,&a.left,&b.left,&c.left,&d.left,&self.difference_offset_left);
+    |             ^^
+...
+112 |             let z=((tr[j]as u128+mul_mod(q,self.p_right[j],self.right.moduli[j])as u128)%self.right.moduli[j]as u128)as u64;
+    |                     ----- type must be known at this point
+    |
+    = note: required for `[u64; _]` to implement `Index<usize>`
+help: consider giving `tl` an explicit type, where the value of const parameter `N` is specified
+    |
+105 |         let tl: [_; N]=numerators(&self.left.moduli,&a.left,&b.left,&c.left,&d.left,&self.difference_offset_left);
+    |               ++++++++
+
+error: aborting due to 3 previous errors
+
+For more information about this error, try `rustc --explain E0284`.

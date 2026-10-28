@@ -1,0 +1,301 @@
+{
+  "SDK_requests": 0,
+  "adopted": false,
+  "constants": {
+    "coordinate_bytes": 80,
+    "coordinate_words": 10,
+    "correction_table_bytes_included": 400,
+    "difference_field_zero_offset": "64p^2",
+    "eight_instance_working_residue_vector_bytes": 640,
+    "finite_difference_split_bits": 26,
+    "fused_nonnegative_numerator_bound": "128p^2",
+    "intermediate_coefficient_l1_bound": 402653184,
+    "moduli": 10,
+    "normal_range": "0<=X<4p",
+    "ordinary_eight_instance_radix_vector_bytes": 320,
+    "ordinary_stored_field_bytes": 32,
+    "proposed_constant_bytes": 1040,
+    "proposed_optimized_u64_constants": 130,
+    "signed64_intermediate_proved": true,
+    "single_linear_input_range": "0<=X<8p",
+    "stride": 2520
+  },
+  "decision": "Both dense and specified structured recipes lack a demonstrated complete arithmetic/dependency advantage over current eight-instance CIOS. The new structured conversion removes dense products but adds many vector operations; no native kernel/SDK trial follows from IFMA counts alone.",
+  "fields": [
+    {
+      "M": "1852673427786686277423942537631368996900135357362958251721827094797104540998493",
+      "M_exceeds_64p": true,
+      "N": "1852673427760769580646394643023315018555941711129804265051039301779770630695493",
+      "N_exceeds_8p": true,
+      "all_moduli_pairwise_coprime": true,
+      "changing_chain_steps": 1024,
+      "corner_reductions": 3888,
+      "dense_normalized_quotient_bits": 54,
+      "dense_normalized_quotient_max_observed": 13964556698861754,
+      "dense_normalized_quotient_witness": {
+        "canonical_X": "2085040739539656444307194586828604746925333271805647949144914805635952325446",
+        "canonical_Y": "3516465970136598223705201037473836477771677259132414810705787318194471331011",
+        "left_normalized_quotient": 13964556698861754
+      },
+      "dense_source_template": {
+        "M": "1852673427797045551364537860223321347929173476078340136317911892175901918492695",
+        "N": "1852673427796997008980096885430634906403643081699186307800941455479952938140601",
+        "correction_quotient_box_upper_bounds": [
+          15131022826580487,
+          12564046983011670
+        ],
+        "eight_instance_residue_planes_IFMA_sites": 200,
+        "left_moduli": [
+          4503599627370495,
+          4503599627370493,
+          4503599627370491,
+          4503599627370487,
+          4503599627370481
+        ],
+        "left_normalized_coefficients": [
+          "849009300928787165568992090042211305933730493561310675972732578096764570509558",
+          "1835011547626794732581252974445459846619890281429926132159195754720632200142915",
+          "1669510378914160507337594600655125225675817493219427767411589575633260537771915",
+          "244216173210907161456989584473478986876427487486638481303783106499052118035940",
+          "1626794353836662649585597090664586546486580159558693993252012132220574906360295"
+        ],
+        "left_reciprocal_estimates": [
+          8453436561161742166,
+          18270887833493192587,
+          16623021751249025048,
+          2431617563187630844,
+          16197705788582191806
+        ],
+        "limits": "Source-template count for inspected algorithm, not native code/cycles or all-RNS lower bound; quotient bounds cover canonical channel inputs",
+        "logical_u64_constant_bytes": 800,
+        "ordinary_eight_instance_IFMA_sites": 100,
+        "padded_coefficient_vectors_bytes_excluding_object_metadata": 1232,
+        "quotient_upper_bits": [
+          54,
+          54
+        ],
+        "right_moduli": [
+          4503599627370479,
+          4503599627370469,
+          4503599627370463,
+          4503599627370461,
+          4503599627370457
+        ],
+        "right_normalized_coefficients": [
+          "916099124547035614092521206803810662026799890979017518410383291572935333174263",
+          "494046247412524692156302605248662928297462210620459158411814755796944209909074",
+          "1178973999507305571517166179533985813261765602693111118748504645312862117773357",
+          "882225441807920644034728051553372691365698382716409897162680597134712063052170",
+          "1697204328960941123398411979275665045064743039699077610597712087592692155128497"
+        ],
+        "right_reciprocal_estimates": [
+          9121438156946577024,
+          4919131752989135668,
+          11738837137816420353,
+          8784163844621871787,
+          16898765550042172323
+        ],
+        "single_integer_residue_lanes_IFMA_sites": 40
+      },
+      "field": "Fq",
+      "first_quotient_extra_p_cases": 0,
+      "first_quotient_max": 4,
+      "first_reciprocal_is_floor_1_over_B": true,
+      "left_deltas": [
+        3,
+        2523,
+        5043,
+        7563,
+        10083
+      ],
+      "left_moduli": [
+        4503599627370493,
+        4503599627367973,
+        4503599627365453,
+        4503599627362933,
+        4503599627360413
+      ],
+      "p": "21888242871839275222246405745257275088696311157297823662689037894645226208583",
+      "random_four_operand_cases": 4096,
+      "random_reductions": 12288,
+      "reverse_quotient_max": 4,
+      "reverse_upward_reciprocals": [
+        4097,
+        4097,
+        4097,
+        4097,
+        4097
+      ],
+      "right_deltas": [
+        12603,
+        15123,
+        17643,
+        20163,
+        22683
+      ],
+      "right_moduli": [
+        4503599627357893,
+        4503599627355373,
+        4503599627352853,
+        4503599627350333,
+        4503599627347813
+      ],
+      "total_reductions": 17200
+    },
+    {
+      "M": "1852673427786686277423942537631368996900135357362958251721827094797104540998493",
+      "M_exceeds_64p": true,
+      "N": "1852673427760769580646394643023315018555941711129804265051039301779770630695493",
+      "N_exceeds_8p": true,
+      "all_moduli_pairwise_coprime": true,
+      "changing_chain_steps": 1024,
+      "corner_reductions": 3888,
+      "dense_normalized_quotient_bits": 54,
+      "dense_normalized_quotient_max_observed": 10848678415258724,
+      "dense_normalized_quotient_witness": {
+        "canonical_X": "896698432809500436600864998244319911834544583301236393796150071802272005114",
+        "canonical_Y": "6723830117021827933006922282107440327607491878315293182278170602788616465823",
+        "left_normalized_quotient": 10848678415258724
+      },
+      "dense_source_template": {
+        "M": "1852673427797045551364537860223321347929173476078340136317911892175901918492695",
+        "N": "1852673427796997008980096885430634906403643081699186307800941455479952938140601",
+        "correction_quotient_box_upper_bounds": [
+          11905216309283012,
+          12564046983011670
+        ],
+        "eight_instance_residue_planes_IFMA_sites": 200,
+        "left_moduli": [
+          4503599627370495,
+          4503599627370493,
+          4503599627370491,
+          4503599627370487,
+          4503599627370481
+        ],
+        "left_normalized_coefficients": [
+          "1313446285301823414877404579472374443482883145343536364213732415696926273952147",
+          "524705969528450105827283927517380418350767279742274592334146719520742895261510",
+          "160170163238853568253213247934806600106473625973942458085070629011531480483695",
+          "1168164714648474070215179297973437494922900386525267417140764030976578712230895",
+          "1731034790487359372556825397650046811957793119651522234211640275828963663218520"
+        ],
+        "left_reciprocal_estimates": [
+          13077754080133233496,
+          5224405223616818585,
+          1594786196628649707,
+          11631210986105293516,
+          17235609516339322943
+        ],
+        "limits": "Source-template count for inspected algorithm, not native code/cycles or all-RNS lower bound; quotient bounds cover canonical channel inputs",
+        "logical_u64_constant_bytes": 800,
+        "ordinary_eight_instance_IFMA_sites": 100,
+        "padded_coefficient_vectors_bytes_excluding_object_metadata": 1232,
+        "quotient_upper_bits": [
+          54,
+          54
+        ],
+        "right_moduli": [
+          4503599627370479,
+          4503599627370469,
+          4503599627370463,
+          4503599627370461,
+          4503599627370457
+        ],
+        "right_normalized_coefficients": [
+          "916099124547035614092521206803810662026799890979017518410383291572935333174263",
+          "494046247412524692156302605248662928297462210620459158411814755796944209909074",
+          "1178973999507305571517166179533985813261765602693111118748504645312862117773357",
+          "882225441807920644034728051553372691365698382716409897162680597134712063052170",
+          "1697204328960941123398411979275665045064743039699077610597712087592692155128497"
+        ],
+        "right_reciprocal_estimates": [
+          9121438156946577024,
+          4919131752989135668,
+          11738837137816420353,
+          8784163844621871787,
+          16898765550042172323
+        ],
+        "single_integer_residue_lanes_IFMA_sites": 40
+      },
+      "field": "Fr",
+      "first_quotient_extra_p_cases": 0,
+      "first_quotient_max": 4,
+      "first_reciprocal_is_floor_1_over_B": true,
+      "left_deltas": [
+        3,
+        2523,
+        5043,
+        7563,
+        10083
+      ],
+      "left_moduli": [
+        4503599627370493,
+        4503599627367973,
+        4503599627365453,
+        4503599627362933,
+        4503599627360413
+      ],
+      "p": "21888242871839275222246405745257275088548364400416034343698204186575808495617",
+      "random_four_operand_cases": 4096,
+      "random_reductions": 12288,
+      "reverse_quotient_max": 4,
+      "reverse_upward_reciprocals": [
+        4097,
+        4097,
+        4097,
+        4097,
+        4097
+      ],
+      "right_deltas": [
+        12603,
+        15123,
+        17643,
+        20163,
+        22683
+      ],
+      "right_moduli": [
+        4503599627357893,
+        4503599627355373,
+        4503599627352853,
+        4503599627350333,
+        4503599627347813
+      ],
+      "total_reductions": 17200
+    }
+  ],
+  "goal_achieved": false,
+  "limits": "Exact models and conservative range arguments only. No native conversion, curve implementation, timings, RSS, phone, TEE, pressure, concurrency, AWS or Aeglos result.",
+  "native_trial_justified": false,
+  "new_exports": 0,
+  "new_tests": 5,
+  "next": "Inspect selected sparse-inverse RNS bases before any further RNS native port; arithmetic progressions alone do not remove inverse-weight/output reduction costs. Preserve current negative. No benchmark of this unchanged unpromising recipe.",
+  "production_changed": false,
+  "proof_ledger_unchanged": 12524,
+  "status": "complete exact RNS conversion/arithmetic screen",
+  "structured_work": {
+    "chosen_recipes": {
+      "fixed_Shoup_product": {
+        "IFMA": 1,
+        "other_vector_operations": 3,
+        "u64_products": 2
+      },
+      "variable_product": {
+        "IFMA": 4,
+        "other_vector_operations": 6,
+        "u32_product": 1
+      }
+    },
+    "excluded": "Polynomial split/recombine/modular fold; both quotient sums/carries; correction lookup/addition/reduction; data conversion/load/store; spills/register allocation; fused sum/difference extra variable products and field-zero offset",
+    "fixed_modular_products_after_factor_fusion": 25,
+    "limits": "A spelling-specific incomplete work ledger, not optimized compiler instructions, timings or a lower bound on RNS",
+    "partial_IFMA_sites": 65,
+    "partial_other_vector_operations": 255,
+    "partial_total_sites": 400,
+    "partial_u32_products": 10,
+    "partial_u64_products": 70,
+    "polynomial_difference_additions": 120,
+    "polynomial_half_conversions": 4,
+    "polynomial_small_constant_multiplications": 20,
+    "variable_modular_products": 10
+  }
+}

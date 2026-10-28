@@ -1,0 +1,29 @@
+warning: unused import: `N`
+ --> /home/ubuntu/src/zopro-perf-work/rns-screen/study.rs:2:43
+  |
+2 | use rns_model::{gcd,inverse,rem,Rns,State,N,D};
+  |                                           ^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `product` is never read
+  --> /home/ubuntu/src/zopro-perf-work/rns-screen/study.rs:14:29
+   |
+14 | struct Dense{moduli:[u64;5],product:BigInt,coefficients:[BigInt;5],estimates:[u64;5]}
+   |        -----                ^^^^^^^
+   |        |
+   |        field in this struct
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `decode` is never used
+  --> /home/ubuntu/src/zopro-perf-work/rns-screen/rns_model.rs:99:12
+   |
+78 | impl Rns {
+   | -------- method in this implementation
+...
+99 |     pub fn decode(&self,x:&State)->BigInt{rem(self.integer(x)*inverse(&self.left.product,&self.p),&self.p)}
+   |            ^^^^^^
+
+warning: 3 warnings emitted
+
