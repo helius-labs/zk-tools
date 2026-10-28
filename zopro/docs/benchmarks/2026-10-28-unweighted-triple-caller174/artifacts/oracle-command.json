@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "--edition=2021",
+    "--test",
+    "-O",
+    "-C",
+    "target-cpu=native",
+    "/home/ubuntu/src/zopro-perf-work/unweighted-triple-caller174/probe.rs",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/unweighted-triple-caller174/oracle-tests",
+    "-L",
+    "dependency=/home/ubuntu/src/zopro-perf-work/unweighted-triple-caller174/target-candidate/release/deps",
+    "-L",
+    "dependency=/home/ubuntu/src/zopro-perf-work/triple-callers/target/release/deps",
+    "-L",
+    "dependency=/home/ubuntu/src/zopro-perf-work/unweighted-triple-caller174/frozen/candidate",
+    "--extern",
+    "zopro_core=/home/ubuntu/src/zopro-perf-work/unweighted-triple-caller174/frozen/candidate/libzopro_core-f3d86766b0b7d8c309e9f5b9032c80a92c9551bf3863c4b082e783370f970d99.rlib",
+    "--extern",
+    "rayon=/home/ubuntu/src/zopro-perf-work/unweighted-triple-caller174/frozen/candidate/librayon-71e98c8f1cd48afa269fb1f4ed78833e218994b7afc693467bace6f4a14bc1ed.rlib",
+    "--extern",
+    "serde_json=/home/ubuntu/src/zopro-perf-work/unweighted-triple-caller174/frozen/candidate/libserde_json-9798293c4753b3518b441bc8a48d5d648c7f5680ca85b8a61df09ce7849ef3a8.rlib",
+    "--extern",
+    "ark_bn254=/home/ubuntu/src/zopro-perf-work/triple-callers/target/release/deps/libark_bn254-e76915bab8349a00.rlib",
+    "--extern",
+    "ark_ec=/home/ubuntu/src/zopro-perf-work/triple-callers/target/release/deps/libark_ec-e4fc8e6766c24e8e.rlib",
+    "--extern",
+    "ark_ff=/home/ubuntu/src/zopro-perf-work/triple-callers/target/release/deps/libark_ff-5e9fcc388dbb9245.rlib"
+  ],
+  "program": "rustc"
+}
