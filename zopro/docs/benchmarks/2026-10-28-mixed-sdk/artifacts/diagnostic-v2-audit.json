@@ -1,0 +1,21 @@
+{
+  "cancel_hooks_inverse_edits": {
+    "crates/zopro-core/src/msm_affine.rs": [
+      [
+        "                *current = Affine::<C>::IDENTITY;\n",
+        "                self.geometry.cancelled();\n                *current = Affine::<C>::IDENTITY;\n"
+      ]
+    ],
+    "crates/zopro-core/src/msm_affine/borrowed_pending.rs": [
+      [
+        "                *current = Affine::<C>::IDENTITY;\n",
+        "                self.geometry.cancelled();\n                *current = Affine::<C>::IDENTITY;\n"
+      ]
+    ]
+  },
+  "change": "Count inverse-point cancellations as logical digit updates; no arithmetic changes",
+  "diagnostic_arithmetic_sha256": "cf57f32ab73ad5b5348452c8ee97c9f595c0734eb46806070bff885031d800c2",
+  "main_arithmetic_sha256": "cf57f32ab73ad5b5348452c8ee97c9f595c0734eb46806070bff885031d800c2",
+  "new_source_files": 174,
+  "old_diagnostic_sources_untouched": true
+}

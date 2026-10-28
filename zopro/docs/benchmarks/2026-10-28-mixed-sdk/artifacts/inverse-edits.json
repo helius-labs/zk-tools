@@ -1,0 +1,42 @@
+{
+  "crates/zopro-core/src/msm.rs": [
+    [
+      "",
+      "\n#[cfg(all(zopro_mixed_g1,zopro_live_preparation_charge,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(super) mod mixed_g1;\n"
+    ]
+  ],
+  "crates/zopro-core/src/msm_affine/borrowed_pending.rs": [
+    [
+      "    packed: BatchAdd<C>,\n",
+      "    packed: BatchAdd<C>,\n    #[cfg(all(zopro_mixed_g1,zopro_live_preparation_charge,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    mixed: Vec<crate::msm::mixed_g1::Admitted>,\n"
+    ],
+    [
+      "            packed: BatchAdd::default(),\n",
+      "            packed: BatchAdd::default(),\n            #[cfg(all(zopro_mixed_g1,zopro_live_preparation_charge,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n            mixed: Vec::new(),\n"
+    ],
+    [
+      "    fn projective(&mut self, bucket: usize, point: Affine<C>) {\n",
+      "    #[cfg(all(zopro_mixed_g1,zopro_live_preparation_charge,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    fn enable_mixed(&mut self,owner:Option<&std::sync::Arc<crate::msm::mixed_g1::Admission>>) {\n        if let Some(owner)=owner {if let Some(state)=owner.window() {self.mixed=state;}}\n    }\n    fn projective(&mut self, bucket: usize, point: Affine<C>) {\n"
+    ],
+    [
+      "        self.packed\n            .apply_signed_borrowed(&mut self.affine, &self.batch);\n",
+      "        #[cfg(all(zopro_mixed_g1,zopro_live_preparation_charge,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        if let Some(state)=self.mixed.first_mut() {\n            if state.apply::<C,_>(&mut self.affine,&self.batch,&mut self.queue) {\n                for(index,_)in &self.batch {self.busy[(index&0x7fffffff)as usize/64]=0;}\n                self.batch.clear();return;\n            }\n        }\n        self.packed\n            .apply_signed_borrowed(&mut self.affine, &self.batch);\n"
+    ],
+    [
+      "    let size = batch_size(bits).max(32);\n",
+      "    let size = batch_size(bits).max(32);\n    #[cfg(all(zopro_mixed_g1,zopro_live_preparation_charge,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    let mixed_admission=crate::msm::mixed_g1::admit(size,windows);\n"
+    ],
+    [
+      "    let size = batch_size(width).max(32);\n",
+      "    let size = batch_size(width).max(32);\n    #[cfg(all(zopro_mixed_g1,zopro_live_preparation_charge,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    let mixed_admission=crate::msm::mixed_g1::admit(size,windows*parts);\n"
+    ],
+    [
+      "            let mut state = Window::new(1usize << (bits - 1), size);\n",
+      "            let mut state = Window::new(1usize << (bits - 1), size);\n            #[cfg(all(zopro_mixed_g1,zopro_live_preparation_charge,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n            state.enable_mixed(mixed_admission.as_ref());\n"
+    ],
+    [
+      "                    let mut state = Window::new(1usize << (width - 1), size);\n",
+      "                    let mut state = Window::new(1usize << (width - 1), size);\n                    #[cfg(all(zopro_mixed_g1,zopro_live_preparation_charge,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n                    state.enable_mixed(mixed_admission.as_ref());\n"
+    ]
+  ]
+}
