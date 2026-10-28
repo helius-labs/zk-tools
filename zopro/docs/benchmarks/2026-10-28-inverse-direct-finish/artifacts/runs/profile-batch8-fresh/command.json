@@ -1,0 +1,43 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "240s",
+    "sudo",
+    "-n",
+    "env",
+    "MALLOC_ARENA_MAX=32",
+    "RAYON_NUM_THREADS=1",
+    "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/inverse-direct-finish/profiles/profile-batch8-fresh/ack",
+    "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/inverse-direct-finish/profiles/profile-batch8-fresh/ctl",
+    "perf",
+    "record",
+    "--no-buildid-cache",
+    "-e",
+    "cycles:u",
+    "-F",
+    "199",
+    "-m",
+    "512",
+    "--delay=-1",
+    "--control=fifo:/home/ubuntu/src/zopro-perf-work/inverse-direct-finish/profiles/profile-batch8-fresh/ctl,/home/ubuntu/src/zopro-perf-work/inverse-direct-finish/profiles/profile-batch8-fresh/ack",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/inverse-direct-finish/profiles/profile-batch8-fresh/perf.data",
+    "--",
+    "taskset",
+    "-c",
+    "2",
+    "/home/ubuntu/src/zopro-perf-work/inverse-direct-finish/fresh-probe",
+    "/home/ubuntu/src/zopro-perf-work/inverse-direct-finish/fixture.json",
+    "fq",
+    "batch8",
+    "8192"
+  ],
+  "environment": {
+    "MALLOC_ARENA_MAX": "32",
+    "RAYON_NUM_THREADS": "1",
+    "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/inverse-direct-finish/profiles/profile-batch8-fresh/ack",
+    "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/inverse-direct-finish/profiles/profile-batch8-fresh/ctl"
+  }
+}

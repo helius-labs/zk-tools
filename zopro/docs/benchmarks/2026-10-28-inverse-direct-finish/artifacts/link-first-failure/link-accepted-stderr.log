@@ -1,0 +1,90 @@
+error[E0433]: cannot find module or crate `libc` in this scope
+  --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/perf.rs:44:31
+   |
+44 |                 .custom_flags(libc::O_NONBLOCK | libc::O_CLOEXEC)
+   |                               ^^^^ use of unresolved module or unlinked crate `libc`
+   |
+   = help: you might be missing a crate named `libc`
+
+error[E0433]: cannot find module or crate `libc` in this scope
+  --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/perf.rs:44:50
+   |
+44 |                 .custom_flags(libc::O_NONBLOCK | libc::O_CLOEXEC)
+   |                                                  ^^^^ use of unresolved module or unlinked crate `libc`
+   |
+   = help: you might be missing a crate named `libc`
+
+error[E0433]: cannot find module or crate `libc` in this scope
+  --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/perf.rs:81:25
+   |
+81 |                 events: libc::POLLIN,
+   |                         ^^^^ use of unresolved module or unlinked crate `libc`
+   |
+   = help: you might be missing a crate named `libc`
+
+error[E0433]: cannot find module or crate `libc` in this scope
+  --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/perf.rs:86:17
+   |
+86 |                 libc::poll(
+   |                 ^^^^ use of unresolved module or unlinked crate `libc`
+   |
+   = help: you might be missing a crate named `libc`
+
+error[E0433]: cannot find module or crate `libc` in this scope
+   --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/perf.rs:159:21
+    |
+159 |         if unsafe { libc::getrusage(libc::RUSAGE_SELF, usage.as_mut_ptr()) } != 0 {
+    |                     ^^^^ use of unresolved module or unlinked crate `libc`
+    |
+    = help: you might be missing a crate named `libc`
+
+error[E0433]: cannot find module or crate `libc` in this scope
+   --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/perf.rs:159:37
+    |
+159 |         if unsafe { libc::getrusage(libc::RUSAGE_SELF, usage.as_mut_ptr()) } != 0 {
+    |                                     ^^^^ use of unresolved module or unlinked crate `libc`
+    |
+    = help: you might be missing a crate named `libc`
+
+error[E0599]: no method named `inverse_nonzero` found for struct `Ifma8<C, MIXED>` in the current scope
+  --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/probe.rs:38:55
+   |
+38 |                 b.copy_from_slice(&Ifma8::new(&lanes).inverse_nonzero().get());
+   |                                                       ^^^^^^^^^^^^^^^ method not found in `Ifma8<C, _>`
+
+error[E0433]: cannot find module or crate `libc` in this scope
+   --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/perf.rs:165:25
+    |
+165 |         let ms = |time: libc::timeval| time.tv_sec as f64 * 1000. + time.tv_usec as f64 / 1000.;
+    |                         ^^^^ use of unresolved module or unlinked crate `libc`
+    |
+    = help: you might be missing a crate named `libc`
+
+error[E0433]: cannot find module or crate `libc` in this scope
+   --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/perf.rs:157:49
+    |
+157 |         let mut usage = std::mem::MaybeUninit::<libc::rusage>::uninit();
+    |                                                 ^^^^ use of unresolved module or unlinked crate `libc`
+    |
+    = help: you might be missing a crate named `libc`
+
+error[E0433]: cannot find module or crate `libc` in this scope
+  --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/perf.rs:79:34
+   |
+79 |             let mut descriptor = libc::pollfd {
+   |                                  ^^^^ use of unresolved module or unlinked crate `libc`
+   |
+   = help: you might be missing a crate named `libc`
+
+error[E0433]: cannot find module or crate `libc` in this scope
+   --> /home/ubuntu/src/zopro-perf-work/inverse-direct-finish/perf.rs:154:18
+    |
+154 | pub struct Usage(libc::rusage);
+    |                  ^^^^ use of unresolved module or unlinked crate `libc`
+    |
+    = help: you might be missing a crate named `libc`
+
+error: aborting due to 11 previous errors
+
+Some errors have detailed explanations: E0433, E0599.
+For more information about an error, try `rustc --explain E0433`.

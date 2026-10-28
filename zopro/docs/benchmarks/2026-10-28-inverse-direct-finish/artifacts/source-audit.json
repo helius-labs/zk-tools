@@ -1,0 +1,12 @@
+{
+  "inverse_edits": [
+    "    #[cfg(zopro_direct_finish_reduction)]\n    if (C::P[3] as u128)*3 > 1u128<<63 && C::P[3] < 1u64<<63 {\n        return Fp::from_montgomery(direct_finish_reduce::<C>(&u,&v,f0,g0));\n    }\n",
+    "\n#[cfg(any(test,zopro_direct_finish_reduction))]\ninclude!(\"inverse/direct_finish.rs\");\n"
+  ],
+  "new_field_module": "crates/zopro-bn254/src/inverse/direct_finish.rs",
+  "no_core_prover_changes": true,
+  "one_changed_file": "crates/zopro-bn254/src/inverse.rs",
+  "original_finish_body_recovered_exact": true,
+  "private_originals_exact": 171,
+  "production_files_exact": 172
+}
