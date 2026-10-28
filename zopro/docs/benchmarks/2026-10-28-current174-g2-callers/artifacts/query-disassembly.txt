@@ -1,0 +1,355 @@
+
+/home/ubuntu/src/zopro-perf-work/g2-borrowed-production/native/candidate-sdk:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000457590 <zopro_core::msm_affine::g2_query_exclusive>:
+  457590:	push   %rbp
+  457591:	push   %r15
+  457593:	push   %r14
+  457595:	push   %r13
+  457597:	push   %r12
+  457599:	push   %rbx
+  45759a:	sub    $0x138,%rsp
+  4575a1:	mov    %rdx,0xa0(%rsp)
+  4575a9:	mov    %r8,0x20(%rsp)
+  4575ae:	cmp    %r8,%rdx
+  4575b1:	jne    457b3c <zopro_core::msm_affine::g2_query_exclusive+0x5ac>
+  4575b7:	mov    %rdx,%r14
+  4575ba:	mov    %rsi,%rbp
+  4575bd:	mov    %rdi,%r15
+  4575c0:	lea    -0x43824a(%rip),%rsi        # 1f37d <zmij::STATIC_DATA+0x50bd>
+  4575c7:	lea    0x20(%rsp),%rdi
+  4575cc:	mov    $0xf,%edx
+  4575d1:	mov    %rcx,%r13
+  4575d4:	call   142d00 <std::sys::env::unix::getenv>
+  4575d9:	mov    0x20(%rsp),%rbx
+  4575de:	cmp    $0xffffffffffffffff,%rbx
+  4575e2:	je     4576e4 <zopro_core::msm_affine::g2_query_exclusive+0x154>
+  4575e8:	mov    %rbp,%r12
+  4575eb:	mov    0x28(%rsp),%rsi
+  4575f0:	mov    0x30(%rsp),%rbp
+  4575f5:	lea    0x20(%rsp),%rdi
+  4575fa:	mov    %rbp,%rdx
+  4575fd:	mov    %rsi,0x18(%rsp)
+  457602:	call   effe0 <core::str::converts::from_utf8>
+  457607:	cmpb   $0x0,0x20(%rsp)
+  45760c:	je     45764d <zopro_core::msm_affine::g2_query_exclusive+0xbd>
+  45760e:	mov    %r12,%rbp
+  457611:	test   %rbx,%rbx
+  457614:	jle    4576e4 <zopro_core::msm_affine::g2_query_exclusive+0x154>
+  45761a:	cmp    $0x1ffff,%rbx
+  457621:	jbe    4576d9 <zopro_core::msm_affine::g2_query_exclusive+0x149>
+  457627:	mov    0x18(%rsp),%rdi
+  45762c:	mov    %rbx,%rsi
+  45762f:	inc    %rsi
+  457632:	js     457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  457638:	cmpb   $0x1,(%rdi,%rbx,1)
+  45763c:	jne    4576de <zopro_core::msm_affine::g2_query_exclusive+0x14e>
+  457642:	call   *0x8f528(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  457648:	jmp    4576e4 <zopro_core::msm_affine::g2_query_exclusive+0x154>
+  45764d:	mov    %r15,0x98(%rsp)
+  457655:	mov    $0x1,%r15b
+  457658:	mov    0x18(%rsp),%rdi
+  45765d:	cmp    $0x1,%rbp
+  457661:	jne    45766a <zopro_core::msm_affine::g2_query_exclusive+0xda>
+  457663:	cmpb   $0x30,(%rdi)
+  457666:	setne  %r15b
+  45766a:	mov    %r12,%rbp
+  45766d:	test   %rbx,%rbx
+  457670:	je     457693 <zopro_core::msm_affine::g2_query_exclusive+0x103>
+  457672:	cmp    $0x1ffff,%rbx
+  457679:	jbe    4576a2 <zopro_core::msm_affine::g2_query_exclusive+0x112>
+  45767b:	mov    %rbx,%rsi
+  45767e:	inc    %rsi
+  457681:	js     457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  457687:	cmpb   $0x1,(%rdi,%rbx,1)
+  45768b:	jne    4576a2 <zopro_core::msm_affine::g2_query_exclusive+0x112>
+  45768d:	call   *0x8f4dd(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  457693:	test   %r15b,%r15b
+  457696:	mov    0x98(%rsp),%r15
+  45769e:	je     4576b5 <zopro_core::msm_affine::g2_query_exclusive+0x125>
+  4576a0:	jmp    4576e4 <zopro_core::msm_affine::g2_query_exclusive+0x154>
+  4576a2:	call   *0x8f4d0(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  4576a8:	test   %r15b,%r15b
+  4576ab:	mov    0x98(%rsp),%r15
+  4576b3:	jne    4576e4 <zopro_core::msm_affine::g2_query_exclusive+0x154>
+  4576b5:	lea    -0x400(%r14),%rax
+  4576bc:	movq   $0xffffffffffffffff,0xc0(%rsp)
+  4576c8:	cmp    $0xfc00,%rax
+  4576ce:	jae    4578de <zopro_core::msm_affine::g2_query_exclusive+0x34e>
+  4576d4:	jmp    4578b9 <zopro_core::msm_affine::g2_query_exclusive+0x329>
+  4576d9:	mov    0x18(%rsp),%rdi
+  4576de:	call   *0x8f494(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  4576e4:	lea    0xc0(%rsp),%rdi
+  4576ec:	mov    %r13,%rsi
+  4576ef:	mov    %r14,%rdx
+  4576f2:	call   217790 <zopro_core::msm_affine::grouping::scalar_groups>
+  4576f7:	mov    0xc0(%rsp),%rax
+  4576ff:	lea    -0x400(%r14),%rcx
+  457706:	cmp    $0xfc00,%rcx
+  45770d:	jae    45781e <zopro_core::msm_affine::g2_query_exclusive+0x28e>
+  457713:	cmp    $0xffffffffffffffff,%rax
+  457717:	je     4578b9 <zopro_core::msm_affine::g2_query_exclusive+0x329>
+  45771d:	vmovups 0xc0(%rsp),%zmm0
+  457725:	vmovups 0xf8(%rsp),%zmm1
+  457730:	movabs $0x7ffffffffffffff9,%r13
+  45773a:	vmovups %zmm0,0x20(%rsp)
+  457745:	vmovups %zmm1,0x58(%rsp)
+  457750:	mov    0x30(%rsp),%r12
+  457755:	lea    -0x400(%r12),%rax
+  45775d:	cmp    $0xfc00,%rax
+  457763:	jae    457903 <zopro_core::msm_affine::g2_query_exclusive+0x373>
+  457769:	vmovaps 0x70(%rsp),%xmm0
+  45776f:	mov    0x60(%rsp),%rax
+  457774:	mov    0x40(%rsp),%rcx
+  457779:	mov    0x48(%rsp),%r8
+  45777e:	mov    0x58(%rsp),%r9
+  457783:	lea    0xa8(%rsp),%rdi
+  45778b:	vmovups %xmm0,0x8(%rsp)
+  457791:	mov    %rax,(%rsp)
+  457795:	mov    %rbp,%rsi
+  457798:	mov    %r14,%rdx
+  45779b:	vzeroupper
+  45779e:	call   22b010 <zopro_core::msm::group_affine::<zopro_bn254::curve::G2Config>>
+  4577a3:	mov    0xb0(%rsp),%r14
+  4577ab:	mov    0xb8(%rsp),%rdx
+  4577b3:	mov    0x28(%rsp),%rcx
+  4577b8:	mov    %r15,%rdi
+  4577bb:	mov    %r14,%rsi
+  4577be:	mov    %r12,%r8
+  4577c1:	call   464480 <zopro_core::msm_affine::g2_phi::raw_exclusive>
+  4577c6:	mov    0xa8(%rsp),%rax
+  4577ce:	test   %rax,%rax
+  4577d1:	je     457919 <zopro_core::msm_affine::g2_query_exclusive+0x389>
+  4577d7:	cmp    $0x3ff,%rax
+  4577dd:	jbe    457b20 <zopro_core::msm_affine::g2_query_exclusive+0x590>
+  4577e3:	shl    $0x7,%rax
+  4577e7:	mov    %rax,%rsi
+  4577ea:	or     $0x1,%rsi
+  4577ee:	cmp    %r13,%rsi
+  4577f1:	jae    457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  4577f7:	cmpb   $0x1,(%r14,%rax,1)
+  4577fc:	jne    457b20 <zopro_core::msm_affine::g2_query_exclusive+0x590>
+  457802:	mov    %r14,%rdi
+  457805:	call   *0x8f365(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  45780b:	mov    0x20(%rsp),%rax
+  457810:	test   %rax,%rax
+  457813:	jne    457927 <zopro_core::msm_affine::g2_query_exclusive+0x397>
+  457819:	jmp    457a31 <zopro_core::msm_affine::g2_query_exclusive+0x4a1>
+  45781e:	cmp    $0xffffffffffffffff,%rax
+  457822:	je     4578de <zopro_core::msm_affine::g2_query_exclusive+0x34e>
+  457828:	vmovups 0xf8(%rsp),%zmm1
+  457833:	vmovups 0xc0(%rsp),%zmm0
+  45783b:	vmovups %zmm1,0x58(%rsp)
+  457846:	vmovups %zmm0,0x20(%rsp)
+  457851:	lea    0x20(%rsp),%rcx
+  457856:	mov    %r15,%rdi
+  457859:	mov    %rbp,%rsi
+  45785c:	mov    %r14,%rdx
+  45785f:	vzeroupper
+  457862:	call   463a20 <zopro_core::msm_affine::g2_query_grouped>
+  457867:	mov    0x20(%rsp),%rax
+  45786c:	movabs $0x7ffffffffffffff9,%rbx
+  457876:	test   %rax,%rax
+  457879:	je     457967 <zopro_core::msm_affine::g2_query_exclusive+0x3d7>
+  45787f:	mov    0x28(%rsp),%rdi
+  457884:	cmp    $0xfff,%rax
+  45788a:	jbe    457961 <zopro_core::msm_affine::g2_query_exclusive+0x3d1>
+  457890:	shl    $0x5,%rax
+  457894:	mov    %rax,%rsi
+  457897:	or     $0x1,%rsi
+  45789b:	cmp    %rbx,%rsi
+  45789e:	jae    457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  4578a4:	cmpb   $0x1,(%rdi,%rax,1)
+  4578a8:	jne    457961 <zopro_core::msm_affine::g2_query_exclusive+0x3d1>
+  4578ae:	call   *0x8f2bc(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  4578b4:	jmp    457967 <zopro_core::msm_affine::g2_query_exclusive+0x3d7>
+  4578b9:	mov    %r15,%rdi
+  4578bc:	mov    %rbp,%rsi
+  4578bf:	mov    %r14,%rdx
+  4578c2:	mov    %r13,%rcx
+  4578c5:	mov    %r14,%r8
+  4578c8:	add    $0x138,%rsp
+  4578cf:	pop    %rbx
+  4578d0:	pop    %r12
+  4578d2:	pop    %r13
+  4578d4:	pop    %r14
+  4578d6:	pop    %r15
+  4578d8:	pop    %rbp
+  4578d9:	jmp    464480 <zopro_core::msm_affine::g2_phi::raw_exclusive>
+  4578de:	mov    %r15,%rdi
+  4578e1:	mov    %rbp,%rsi
+  4578e4:	mov    %r14,%rdx
+  4578e7:	mov    %r13,%rcx
+  4578ea:	mov    %r14,%r8
+  4578ed:	add    $0x138,%rsp
+  4578f4:	pop    %rbx
+  4578f5:	pop    %r12
+  4578f7:	pop    %r13
+  4578f9:	pop    %r14
+  4578fb:	pop    %r15
+  4578fd:	pop    %rbp
+  4578fe:	jmp    459460 <zopro_core::msm_affine::g2_horner::raw>
+  457903:	lea    0x20(%rsp),%rcx
+  457908:	mov    %r15,%rdi
+  45790b:	mov    %rbp,%rsi
+  45790e:	mov    %r14,%rdx
+  457911:	vzeroupper
+  457914:	call   463a20 <zopro_core::msm_affine::g2_query_grouped>
+  457919:	mov    0x20(%rsp),%rax
+  45791e:	test   %rax,%rax
+  457921:	je     457a31 <zopro_core::msm_affine::g2_query_exclusive+0x4a1>
+  457927:	mov    0x28(%rsp),%rdi
+  45792c:	cmp    $0xfff,%rax
+  457932:	jbe    457a2b <zopro_core::msm_affine::g2_query_exclusive+0x49b>
+  457938:	shl    $0x5,%rax
+  45793c:	mov    %rax,%rsi
+  45793f:	or     $0x1,%rsi
+  457943:	cmp    %r13,%rsi
+  457946:	jae    457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  45794c:	cmpb   $0x1,(%rdi,%rax,1)
+  457950:	jne    457a2b <zopro_core::msm_affine::g2_query_exclusive+0x49b>
+  457956:	call   *0x8f214(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  45795c:	jmp    457a31 <zopro_core::msm_affine::g2_query_exclusive+0x4a1>
+  457961:	call   *0x8f211(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  457967:	mov    0x38(%rsp),%rax
+  45796c:	test   %rax,%rax
+  45796f:	je     4579aa <zopro_core::msm_affine::g2_query_exclusive+0x41a>
+  457971:	mov    0x40(%rsp),%rdi
+  457976:	cmp    $0x7fff,%rax
+  45797c:	jbe    4579a4 <zopro_core::msm_affine::g2_query_exclusive+0x414>
+  45797e:	shl    $0x2,%rax
+  457982:	lea    0x4(%rbx),%rcx
+  457986:	mov    %rax,%rsi
+  457989:	or     $0x1,%rsi
+  45798d:	cmp    %rcx,%rsi
+  457990:	jae    457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  457996:	cmpb   $0x1,(%rdi,%rax,1)
+  45799a:	jne    4579a4 <zopro_core::msm_affine::g2_query_exclusive+0x414>
+  45799c:	call   *0x8f1ce(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  4579a2:	jmp    4579aa <zopro_core::msm_affine::g2_query_exclusive+0x41a>
+  4579a4:	call   *0x8f1ce(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  4579aa:	mov    0x50(%rsp),%rax
+  4579af:	test   %rax,%rax
+  4579b2:	je     4579e9 <zopro_core::msm_affine::g2_query_exclusive+0x459>
+  4579b4:	mov    0x58(%rsp),%rdi
+  4579b9:	cmp    $0x3fff,%rax
+  4579bf:	jbe    4579e3 <zopro_core::msm_affine::g2_query_exclusive+0x453>
+  4579c1:	shl    $0x3,%rax
+  4579c5:	mov    %rax,%rsi
+  4579c8:	or     $0x1,%rsi
+  4579cc:	cmp    %rbx,%rsi
+  4579cf:	jae    457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  4579d5:	cmpb   $0x1,(%rdi,%rax,1)
+  4579d9:	jne    4579e3 <zopro_core::msm_affine::g2_query_exclusive+0x453>
+  4579db:	call   *0x8f18f(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  4579e1:	jmp    4579e9 <zopro_core::msm_affine::g2_query_exclusive+0x459>
+  4579e3:	call   *0x8f18f(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  4579e9:	mov    0x68(%rsp),%rax
+  4579ee:	test   %rax,%rax
+  4579f1:	je     457aee <zopro_core::msm_affine::g2_query_exclusive+0x55e>
+  4579f7:	mov    0x70(%rsp),%rdi
+  4579fc:	cmp    $0x3fff,%rax
+  457a02:	jbe    457ae8 <zopro_core::msm_affine::g2_query_exclusive+0x558>
+  457a08:	shl    $0x3,%rax
+  457a0c:	mov    %rax,%rsi
+  457a0f:	or     $0x1,%rsi
+  457a13:	cmp    %rbx,%rsi
+  457a16:	jae    457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  457a1c:	cmpb   $0x1,(%rdi,%rax,1)
+  457a20:	jne    457ae8 <zopro_core::msm_affine::g2_query_exclusive+0x558>
+  457a26:	jmp    457ae0 <zopro_core::msm_affine::g2_query_exclusive+0x550>
+  457a2b:	call   *0x8f147(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  457a31:	mov    0x38(%rsp),%rax
+  457a36:	test   %rax,%rax
+  457a39:	je     457a74 <zopro_core::msm_affine::g2_query_exclusive+0x4e4>
+  457a3b:	mov    0x40(%rsp),%rdi
+  457a40:	cmp    $0x7fff,%rax
+  457a46:	jbe    457a6e <zopro_core::msm_affine::g2_query_exclusive+0x4de>
+  457a48:	shl    $0x2,%rax
+  457a4c:	lea    0x4(%r13),%rcx
+  457a50:	mov    %rax,%rsi
+  457a53:	or     $0x1,%rsi
+  457a57:	cmp    %rcx,%rsi
+  457a5a:	jae    457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  457a60:	cmpb   $0x1,(%rdi,%rax,1)
+  457a64:	jne    457a6e <zopro_core::msm_affine::g2_query_exclusive+0x4de>
+  457a66:	call   *0x8f104(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  457a6c:	jmp    457a74 <zopro_core::msm_affine::g2_query_exclusive+0x4e4>
+  457a6e:	call   *0x8f104(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  457a74:	mov    0x50(%rsp),%rax
+  457a79:	test   %rax,%rax
+  457a7c:	je     457ab3 <zopro_core::msm_affine::g2_query_exclusive+0x523>
+  457a7e:	mov    0x58(%rsp),%rdi
+  457a83:	cmp    $0x3fff,%rax
+  457a89:	jbe    457aad <zopro_core::msm_affine::g2_query_exclusive+0x51d>
+  457a8b:	shl    $0x3,%rax
+  457a8f:	mov    %rax,%rsi
+  457a92:	or     $0x1,%rsi
+  457a96:	cmp    %r13,%rsi
+  457a99:	jae    457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  457a9f:	cmpb   $0x1,(%rdi,%rax,1)
+  457aa3:	jne    457aad <zopro_core::msm_affine::g2_query_exclusive+0x51d>
+  457aa5:	call   *0x8f0c5(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  457aab:	jmp    457ab3 <zopro_core::msm_affine::g2_query_exclusive+0x523>
+  457aad:	call   *0x8f0c5(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  457ab3:	mov    0x68(%rsp),%rax
+  457ab8:	test   %rax,%rax
+  457abb:	je     457aee <zopro_core::msm_affine::g2_query_exclusive+0x55e>
+  457abd:	mov    0x70(%rsp),%rdi
+  457ac2:	cmp    $0x3fff,%rax
+  457ac8:	jbe    457ae8 <zopro_core::msm_affine::g2_query_exclusive+0x558>
+  457aca:	shl    $0x3,%rax
+  457ace:	mov    %rax,%rsi
+  457ad1:	or     $0x1,%rsi
+  457ad5:	cmp    %r13,%rsi
+  457ad8:	jae    457b57 <zopro_core::msm_affine::g2_query_exclusive+0x5c7>
+  457ada:	cmpb   $0x1,(%rdi,%rax,1)
+  457ade:	jne    457ae8 <zopro_core::msm_affine::g2_query_exclusive+0x558>
+  457ae0:	call   *0x8f08a(%rip)        # 4e6b70 <munmap@GLIBC_2.2.5>
+  457ae6:	jmp    457aee <zopro_core::msm_affine::g2_query_exclusive+0x55e>
+  457ae8:	call   *0x8f08a(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  457aee:	mov    0x88(%rsp),%rax
+  457af6:	mov    0x90(%rsp),%rcx
+  457afe:	lock sub %rax,0x90e52(%rip)        # 4e8958 <zopro_core::preparation::RESERVED>
+  457b06:	lock sub %rcx,0x90e52(%rip)        # 4e8960 <zopro_core::preparation::WORKSPACES>
+  457b0e:	add    $0x138,%rsp
+  457b15:	pop    %rbx
+  457b16:	pop    %r12
+  457b18:	pop    %r13
+  457b1a:	pop    %r14
+  457b1c:	pop    %r15
+  457b1e:	pop    %rbp
+  457b1f:	ret
+  457b20:	mov    %r14,%rdi
+  457b23:	call   *0x8f04f(%rip)        # 4e6b78 <free@GLIBC_2.2.5>
+  457b29:	mov    0x20(%rsp),%rax
+  457b2e:	test   %rax,%rax
+  457b31:	jne    457927 <zopro_core::msm_affine::g2_query_exclusive+0x397>
+  457b37:	jmp    457a31 <zopro_core::msm_affine::g2_query_exclusive+0x4a1>
+  457b3c:	lea    0x8d3b5(%rip),%r8        # 4e4ef8 <__frame_dummy_init_array_entry+0x7068>
+  457b43:	lea    0xa0(%rsp),%rdi
+  457b4b:	lea    0x20(%rsp),%rsi
+  457b50:	xor    %edx,%edx
+  457b52:	call   ef632 <core::panicking::assert_failed::<usize, usize>>
+  457b57:	call   10ff50 <std::process::abort>
+  457b5c:	mov    0xa8(%rsp),%rsi
+  457b64:	mov    %rax,%rbx
+  457b67:	test   %rsi,%rsi
+  457b6a:	je     457b97 <zopro_core::msm_affine::g2_query_exclusive+0x607>
+  457b6c:	shl    $0x7,%rsi
+  457b70:	mov    $0x8,%edx
+  457b75:	mov    %r14,%rdi
+  457b78:	call   e8700 <__rustc::__rust_dealloc>
+  457b7d:	lea    0xc0(%rsp),%rdi
+  457b85:	call   1be860 <core::ptr::drop_glue::<zopro_core::msm_affine::grouping::ScalarGroups>>
+  457b8a:	mov    %rbx,%rdi
+  457b8d:	call   4dce40 <_Unwind_Resume@plt>
+  457b92:	jmp    457b94 <zopro_core::msm_affine::g2_query_exclusive+0x604>
+  457b94:	mov    %rax,%rbx
+  457b97:	lea    0xc0(%rsp),%rdi
+  457b9f:	call   1be860 <core::ptr::drop_glue::<zopro_core::msm_affine::grouping::ScalarGroups>>
+  457ba4:	mov    %rbx,%rdi
+  457ba7:	call   4dce40 <_Unwind_Resume@plt>
