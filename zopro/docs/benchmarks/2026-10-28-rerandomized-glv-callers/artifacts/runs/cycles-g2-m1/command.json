@@ -1,0 +1,35 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "300s",
+    "sudo",
+    "-n",
+    "env",
+    "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/rerandomized-glv-callers/profiles/cycles-g2-m1/ack",
+    "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/rerandomized-glv-callers/profiles/cycles-g2-m1/ctl",
+    "perf",
+    "record",
+    "--no-buildid-cache",
+    "-e",
+    "cycles:u",
+    "-F",
+    "199",
+    "-m",
+    "512",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/rerandomized-glv-callers/profiles/cycles-g2-m1/perf.data",
+    "--delay=-1",
+    "--control=fifo:/home/ubuntu/src/zopro-perf-work/rerandomized-glv-callers/profiles/cycles-g2-m1/ctl,/home/ubuntu/src/zopro-perf-work/rerandomized-glv-callers/profiles/cycles-g2-m1/ack",
+    "--",
+    "/home/ubuntu/src/zopro-perf-work/rerandomized-glv-callers/probe",
+    "g2",
+    "1",
+    "16384"
+  ],
+  "environment": {
+    "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/rerandomized-glv-callers/profiles/cycles-g2-m1/ack",
+    "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/rerandomized-glv-callers/profiles/cycles-g2-m1/ctl"
+  }
+}
