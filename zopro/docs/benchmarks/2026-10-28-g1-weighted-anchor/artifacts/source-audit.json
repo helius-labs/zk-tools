@@ -1,0 +1,40 @@
+{
+  "core_suffix": "\n#[cfg(zopro_anchor_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1};\n",
+  "field_and_generated_arithmetic_unchanged": true,
+  "group_record_layout_unchanged": true,
+  "msm_edits": [
+    {
+      "new": "                write_groups: store_mode == 2,\n                weighted_anchor: cfg!(all(zopro_g1_weighted_anchor,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))),\n",
+      "old": "                write_groups: store_mode == 2,\n"
+    },
+    {
+      "new": "struct FqAddScratch {\n    weighted_anchor: bool,\n",
+      "old": "struct FqAddScratch {\n"
+    },
+    {
+      "new": "#[inline(always)]\nfn stream_g1_impl<C: CurveConfig<Base = Fq>, const FAST: bool, const SIGNED: bool>(\n    buckets: &mut [Affine<C>],\n    batch: &[(u32, impl std::borrow::Borrow<Affine<C>> + Copy)],\n    s: &mut FqAddScratch,\n) {\n    if s.weighted_anchor { stream_g1_anchor_kernel::<C,FAST,SIGNED,true>(buckets,batch,s) }\n    else { stream_g1_anchor_kernel::<C,FAST,SIGNED,false>(buckets,batch,s) }\n}\nfn stream_g1_anchor_kernel<C: CurveConfig<Base=Fq>,const FAST:bool,const SIGNED:bool,const WEIGHTED:bool>(\n    buckets:&mut[Affine<C>],batch:&[(u32,impl std::borrow::Borrow<Affine<C>>+Copy)],s:&mut FqAddScratch,\n) {\n",
+      "old": "fn stream_g1_impl<C: CurveConfig<Base = Fq>, const FAST: bool, const SIGNED: bool>(\n    buckets: &mut [Affine<C>],\n    batch: &[(u32, impl std::borrow::Borrow<Affine<C>> + Copy)],\n    s: &mut FqAddScratch,\n) {\n"
+    },
+    {
+      "new": "                if !WEIGHTED { core::ptr::addr_of_mut!((*slot).ax).write(ax); }",
+      "old": "                core::ptr::addr_of_mut!((*slot).ax).write(ax);"
+    },
+    {
+      "new": "                let xsum=canonical_add::<FAST>(&ax,&bx);\n                core::ptr::addr_of_mut!((*slot).xsum).write(xsum);\n                if WEIGHTED { core::ptr::addr_of_mut!((*slot).ax).write(ax.add(&xsum)); }",
+      "old": "                core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));"
+    },
+    {
+      "new": "            let xsum=canonical_add::<FAST>(&ax,&bx);\n            let anchor=if WEIGHTED {ax.add(&xsum)}else{ax};\n            s.groups.push(FqAddGroup {\n                ax:anchor,\n                ay,\n                xsum,",
+      "old": "            s.groups.push(FqAddGroup {\n                ax,\n                ay,\n                xsum: canonical_add::<FAST>(&ax, &bx),"
+    },
+    {
+      "new": "        let square=slope.mul(&slope);\n        let x=square.sub(&g.xsum);\n        let delta=if WEIGHTED {g.ax.sub(&square)}else{g.ax.sub(&x)};\n        let y=slope.mul(&delta).sub(&g.ay);",
+      "old": "        let x = slope.mul(&slope).sub(&g.xsum);\n        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);"
+    }
+  ],
+  "msm_suffix": "\n#[cfg(zopro_anchor_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_anchor_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1};\n",
+  "original_msm_recovered_exact": true,
+  "private_originals_exact": 170,
+  "production_files": 172,
+  "runtime_change": "precompute T=2Ax+Bx in Ax slot, Y from T-square, one private latched bool/dispatch"
+}
