@@ -1,0 +1,13 @@
+{
+  "caller_adapter_original_exact": true,
+  "coefficient_updates_and_finish_unchanged": true,
+  "core_suffix": "\n#[cfg(zopro_active_words_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1};\n",
+  "inverse_suffix": "\n#[cfg(any(test,zopro_gcd_active_words))]\n#[path=\"inverse_active_words.rs\"]\nmod active_words;\n",
+  "msm_suffix": "\n#[cfg(zopro_active_words_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_active_words_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1};\n",
+  "new": "        #[cfg(not(zopro_gcd_active_words))]\n        {a = integer_update(&old_a, &b, &mut f0, &mut g0);\n        b = integer_update(&old_a, &b, &mut f1, &mut g1);}\n        #[cfg(zopro_gcd_active_words)]\n        match bits {\n            65..=128 => {a=active_words::integer_update::<2>(&old_a,&b,&mut f0,&mut g0);b=active_words::integer_update::<2>(&old_a,&b,&mut f1,&mut g1);}\n            129..=192 => {a=active_words::integer_update::<3>(&old_a,&b,&mut f0,&mut g0);b=active_words::integer_update::<3>(&old_a,&b,&mut f1,&mut g1);}\n            _ => {a=active_words::integer_update::<4>(&old_a,&b,&mut f0,&mut g0);b=active_words::integer_update::<4>(&old_a,&b,&mut f1,&mut g1);}\n        }",
+  "old": "        a = integer_update(&old_a, &b, &mut f0, &mut g0);\n        b = integer_update(&old_a, &b, &mut f1, &mut g1);",
+  "original_files": 172,
+  "original_inverse_recovered_exact": true,
+  "private_originals_exact": 169,
+  "runtime_change_only": "crates/zopro-bn254/src/inverse.rs"
+}
