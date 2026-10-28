@@ -1,0 +1,44 @@
+{
+  "caller_adapter_byte_exact_to": "/home/ubuntu/src/zopro-perf-work/inverse-finish-callers/caller_probe.rs",
+  "field_generation_parent_unchanged": true,
+  "msm_replacements": [
+    [
+      "        let x = slope.mul(&slope).sub(&g.xsum);",
+      "        let x = slope.g1_mul_sub(&slope,&g.xsum);"
+    ],
+    [
+      "        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);",
+      "        let y = slope.g1_mul_sub(&g.ax.sub(&x),&g.ay);"
+    ]
+  ],
+  "new_heap_storage": false,
+  "new_method_prefix_derived_from_original_CIOS": true,
+  "new_modules": [
+    "crates/zopro-bn254/src/ifma8/signed_final.rs",
+    "crates/zopro-core/src/msm/caller_probe.rs"
+  ],
+  "original_CIOS_body_unchanged": true,
+  "original_files": 174,
+  "originals_exact": 170,
+  "private_files": 176,
+  "production_changed": false,
+  "reverse174_exact": true,
+  "suffixes": [
+    [
+      "crates/zopro-bn254/src/ifma8.rs",
+      "\n#[cfg(zopro_signed_final_sub)]\nmod signed_final;\n"
+    ],
+    [
+      "crates/zopro-core/src/msm.rs",
+      "\n#[cfg(zopro_finish_caller)]\npub mod caller_probe;\n"
+    ],
+    [
+      "crates/zopro-core/src/lib.rs",
+      "\n#[cfg(zopro_finish_caller)]\npub use msm::caller_probe::{Caller,CallerG1,CallerG2};\n"
+    ],
+    [
+      "crates/zopro-core/src/simd.rs",
+      "\nimpl FqBatch {\n #[inline(always)] pub(crate) fn g1_mul_sub(&self,b:&Self,c:&Self)->Self {\n  #[cfg(all(zopro_signed_final_sub,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))] return Self(self.0.mul_sub_final(&b.0,&c.0));\n  #[allow(unreachable_code)] self.mul(b).sub(c)\n }\n}\n"
+    ]
+  ]
+}
