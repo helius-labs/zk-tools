@@ -1,0 +1,27 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// buckets2.wgsl's (G2) shards_tree: shard s sums tree[start[s] .. start[s] +
+// count[s]) into out[dst[s]].
+#include "field.glsl"
+#include "points2.glsl"
+layout(local_size_x = 64) in;
+// One contiguous descriptor set: Adreno's driver loses the device on a
+// pipeline whose SPIR-V has binding gaps or a second set.
+layout(std430, set = 0, binding = 0) readonly buffer Tree { xyzz2 values[]; } tree;
+layout(std430, set = 0, binding = 1) readonly buffer Start { uint values[]; } start;
+layout(std430, set = 0, binding = 2) readonly buffer Count { uint values[]; } count;
+layout(std430, set = 0, binding = 3) readonly buffer Dst { uint values[]; } dst;
+layout(std430, set = 0, binding = 4) buffer Out { xyzz2 values[]; } outputs;
+layout(std140, set = 0, binding = 5) uniform Shards { uint count; uint pad0; uint pad1; uint pad2; } shards;
+
+void main() {
+  const uint s = gl_GlobalInvocationID.x;
+  if (s >= shards.count)
+    return;
+  const uint begin = start.values[s];
+  const uint end = begin + count.values[s];
+  xyzz2 acc = tree.values[begin];
+  for (uint i = begin + 1u; i < end; i++)
+    acc = xyzz2_add(acc, tree.values[i]);
+  outputs.values[dst.values[s]] = acc;
+}

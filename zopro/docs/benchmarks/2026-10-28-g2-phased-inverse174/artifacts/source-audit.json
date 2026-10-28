@@ -1,0 +1,25 @@
+{
+  "OFF_expression_retained_verbatim": true,
+  "candidate_files": 175,
+  "edits": [
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "suffix": "\n#[cfg(all(zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod g2_phased_inverse;\n"
+    },
+    {
+      "after": "    #[cfg(zopro_g2_phased_inverse)] if batch.len()>=64 {return super::g2_phased_inverse::apply::<C,FAST>(buckets,batch,s);} let full = batch.len() / LANES * LANES;",
+      "before": "    let full = batch.len() / LANES * LANES;",
+      "file": "crates/zopro-core/src/msm/g2_borrowed.rs"
+    }
+  ],
+  "extra_vector_products_per_selected_batch": 9,
+  "field_source_exact": true,
+  "forecast_key_solver_G1_unchanged": true,
+  "new_heap_table_plan_pool": false,
+  "new_module": "crates/zopro-core/src/msm/g2_phased_inverse.rs",
+  "original_files": 174,
+  "originals_exact": 172,
+  "production_changed": false,
+  "reverse174_exact": true,
+  "stack_temporaries_increase": true
+}
