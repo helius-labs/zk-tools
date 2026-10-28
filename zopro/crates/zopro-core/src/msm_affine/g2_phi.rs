@@ -143,6 +143,10 @@ fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> V
         merge_buckets(&mut high, &low);
         return high;
     }
+    #[cfg(all(zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+    if let Some(value) = super::g2_borrowed::try_window(bases, short, w, bits) {
+        return value;
+    }
     let size = batch_size(bits).max(32);
     let mut state = fill_window_impl::<G2Config, false, false>(
         bases,

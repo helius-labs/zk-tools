@@ -2338,3 +2338,6 @@ mod adaptive_tree_tests {
         }
     }
 }
+
+#[cfg(all(zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+mod g2_borrowed;

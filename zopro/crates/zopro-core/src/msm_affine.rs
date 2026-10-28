@@ -1792,3 +1792,6 @@ mod exclusive_g2_tests {
 
 #[cfg(any(test, all(zopro_real_kh, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma))))]
 pub(super) mod fused_kh;
+
+#[cfg(all(zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+mod g2_borrowed;
