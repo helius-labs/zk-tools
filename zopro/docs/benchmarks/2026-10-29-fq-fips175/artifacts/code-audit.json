@@ -1,0 +1,85 @@
+{
+  "actual_G1_G2_IFMA_callers_changed": true,
+  "performance_gain_claimed": false,
+  "selection": "Fq/R256/eight lanes ordinary and fused only",
+  "source_cfg_and_fingerprints_checked": true,
+  "static_counts_not_dynamic_or_stack_bounds": true,
+  "structural_checks_passed": true,
+  "variants": [
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/balanced-kh-production/native/candidate-sdk",
+      "binary_sha256": "20fde19fcfc2f06bb5c640a0ed0fd313fa73af8d03ed46e5df7fdc377791e99f",
+      "selected_functions": [
+        {
+          "G1": true,
+          "G2": false,
+          "assembly": "/home/ubuntu/src/zopro-perf-work/fq-fips175/codegen/accepted-0.asm",
+          "assembly_sha256": "d47d6aa9e2420ddbe5953447d596d4606d1893daceb35d4129ea6e21d134e0f8",
+          "bytes": 26230,
+          "ifma_sites": 800,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "G1": false,
+          "G2": true,
+          "assembly": "/home/ubuntu/src/zopro-perf-work/fq-fips175/codegen/accepted-1.asm",
+          "assembly_sha256": "af58b478a64d884b3c321465c8582ad4dbfde581c9a7933012bbee2f95a994a6",
+          "bytes": 51950,
+          "ifma_sites": 1450,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        }
+      ],
+      "variant": "accepted"
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/fq-fips175/native/control-sdk",
+      "binary_sha256": "56ac98f995e4d5bec3157c54bca6d6bc0ef6c29d9dce04813718ae9788a1c632",
+      "selected_functions": [
+        {
+          "G1": true,
+          "G2": false,
+          "assembly": "/home/ubuntu/src/zopro-perf-work/fq-fips175/codegen/control-0.asm",
+          "assembly_sha256": "d9362cfb518598f59c081ac6d701b48cb01449c15756636ef227c1d9bff75a4b",
+          "bytes": 26230,
+          "ifma_sites": 800,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "G1": false,
+          "G2": true,
+          "assembly": "/home/ubuntu/src/zopro-perf-work/fq-fips175/codegen/control-1.asm",
+          "assembly_sha256": "0e1fe7fa8b0ea29326e32891d803403cc1149f879bf2178ce3b39579a1bc9f57",
+          "bytes": 51950,
+          "ifma_sites": 1450,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        }
+      ],
+      "variant": "control"
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/fq-fips175/native/candidate-sdk",
+      "binary_sha256": "8d3ba39dd93e00c8e9547901e23e263f23c137149da09b38877d32f943867b46",
+      "selected_functions": [
+        {
+          "G1": true,
+          "G2": false,
+          "assembly": "/home/ubuntu/src/zopro-perf-work/fq-fips175/codegen/candidate-0.asm",
+          "assembly_sha256": "938a0d716af6ee98dea918ada5ad3d218209d897ce8e31f85c73475f2844b02b",
+          "bytes": 26096,
+          "ifma_sites": 800,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "G1": false,
+          "G2": true,
+          "assembly": "/home/ubuntu/src/zopro-perf-work/fq-fips175/codegen/candidate-1.asm",
+          "assembly_sha256": "9d07cbb400e5cca28148d65eeda3d4cc6afb3145efc03b84a71ff4391e00447f",
+          "bytes": 51948,
+          "ifma_sites": 1450,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        }
+      ],
+      "variant": "candidate"
+    }
+  ]
+}

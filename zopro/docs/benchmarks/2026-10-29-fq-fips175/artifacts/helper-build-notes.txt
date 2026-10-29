@@ -1,0 +1,31 @@
+All helper compilation completed before performance-plan preparation/capture.
+An initial rustfmt parse of prepare-helpers.rs failed: an embedded Markdown
+heading contained the r## raw-string terminator. Increased delimiter to r####
+before compiling/running the adapter. No benchmark or model execution occurred
+in that failed attempt. No successful timing was repeated.
+
+Build invocations:
+  rustc --edition=2021 bootstrap.rs -o bootstrap
+  ./bootstrap
+  rustfmt --edition 2021 native.rs bootstrap.rs code-audit.rs
+  rustc --edition=2021 -O native.rs [tool-target dependencies below] -o native-helper
+  ./native-helper setup
+  xtask workflow build-plan.json native
+  rustfmt --edition 2021 prepare-helpers.rs
+  rustc --edition=2021 prepare-helpers.rs -o prepare-helpers
+  ./prepare-helpers
+  rustfmt --edition 2021 capture.rs close.rs report.rs
+  rustc --edition=2021 -O capture.rs [serde_json,sha2,libc,rustc_demangle] -o capture-helper
+  rustc --edition=2021 -O close.rs [serde_json,sha2] -o close-helper
+  rustc --edition=2021 -O report.rs [serde_json] -o report-helper
+
+Tool-target directory: /home/ubuntu/src/zopro-perf-work/tool-target/release/deps
+  -L dependency=<directory>
+  --extern serde_json=<directory>/libserde_json-cdebb9338c2784ad.rlib
+  --extern sha2=<directory>/libsha2-16b8f2c03bdf5faa.rlib
+  --extern libc=<directory>/liblibc-a412e712357cc948.rlib
+  --extern rustc_demangle=<directory>/librustc_demangle-3e2a96f78b3a16e4.rlib
+Native helper uses serde_json and sha2. Source and binary pins in build-pins.json
+and pins.json record the exact executables. Workflow JSON archives native Cargo
+commands, flags/environment and linked SDK commands, with their raw outputs.
+Independent model commands are in build-model.sh, including external paths.

@@ -1,0 +1,4 @@
+Initial model compilation failed before execution: E0282 at model.rs:52,
+`let x = N::one() << bit` needed an explicit BigUint type/usize shift.
+Corrected to `let x: N = N::one() << (bit as usize);`.
+No arithmetic model or performance invocation ran in that attempt.
