@@ -1,0 +1,247 @@
+{
+  "activation_requires_separate_primary_preflight_trace": true,
+  "linked_GLS4_present_only_ON": true,
+  "performance_gain_claimed": false,
+  "source_cfg_and_fingerprints_checked": true,
+  "static_counts_not_dynamic_or_stack_bounds": true,
+  "structural_checks_passed": true,
+  "variants": [
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/balanced-kh-production/native/candidate-sdk",
+      "binary_sha256": "20fde19fcfc2f06bb5c640a0ed0fd313fa73af8d03ed46e5df7fdc377791e99f",
+      "selected_functions": [
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/accepted-0.asm",
+          "assembly_sha256": "bc7cbc09491f7f7bb1f4faf6957266452ea17b90cb97c205909fde2e1acdf977",
+          "bytes": 1303,
+          "existing_caller": true,
+          "new_GLS4": false,
+          "symbol": "zopro_core::msm_affine::g2_phi::raw_exclusive"
+        }
+      ],
+      "variant": "accepted"
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/native/control-sdk",
+      "binary_sha256": "20fde19fcfc2f06bb5c640a0ed0fd313fa73af8d03ed46e5df7fdc377791e99f",
+      "selected_functions": [
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/control-0.asm",
+          "assembly_sha256": "f09844b9bdb1d6e44864268f781b297ff57a8fe6cbde0e5a3e1130d4ce40f190",
+          "bytes": 1303,
+          "existing_caller": true,
+          "new_GLS4": false,
+          "symbol": "zopro_core::msm_affine::g2_phi::raw_exclusive"
+        }
+      ],
+      "variant": "control"
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/native/candidate-sdk",
+      "binary_sha256": "519746eabf12e4a6c7c18263001c28afb3b4cb03fb5429ec2166d32ed0217e5e",
+      "selected_functions": [
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-0.asm",
+          "assembly_sha256": "afdea2d94536921407f63b39296f61568e1cf689d82bb26c0c3da237384e29f5",
+          "bytes": 243,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::registry::Registry>::in_worker_cold::<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>)>"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-1.asm",
+          "assembly_sha256": "d85c9101ef346984ce70946db566c6a1b0523dd16b87665bf474e4a47784f537",
+          "bytes": 243,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::registry::Registry>::in_worker_cold::<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>)>"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-2.asm",
+          "assembly_sha256": "1ee8fa185c83f07c4fc0044a36fd292ef4725f953dcce7a6aa8657e650ae53e8",
+          "bytes": 246,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::registry::Registry>::in_worker_cold::<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>)>"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-3.asm",
+          "assembly_sha256": "d50f924a30fe50af881d1a05dbff93dcbaa59b8fbc6291434bbf818d0f15aeb9",
+          "bytes": 287,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::registry::Registry>::in_worker_cross::<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>)>"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-4.asm",
+          "assembly_sha256": "51107e53c839370a9f4eed16735f64b3d6e9c0dbbf10d50ee7b9471db18e031c",
+          "bytes": 287,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::registry::Registry>::in_worker_cross::<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>)>"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-5.asm",
+          "assembly_sha256": "2a72d362a73d32f9bf694981598f318fdab902906133962d288ad8de7f0baf70",
+          "bytes": 296,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::registry::Registry>::in_worker_cross::<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>)>"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-6.asm",
+          "assembly_sha256": "053d08a5ca769212e90b453019032d6ad98239827ccd4ebbc8522fd3272a6a46",
+          "bytes": 356,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::LatchRef<rayon_core::latch::LockLatch>, <rayon_core::registry::Registry>::in_worker_cold<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>)>::{closure#0}::{closure#0}, (rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>)> as rayon_core::job::Job>::execute"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-7.asm",
+          "assembly_sha256": "6b360ca00a664fc9839a46466b8b9b40f9a46358162b067a69e4ef2ae351f9f7",
+          "bytes": 366,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-8.asm",
+          "assembly_sha256": "43eedd229357eea529cd75a6b198fe0adf5a4f315e5889546868179e85b19e93",
+          "bytes": 467,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, <rayon_core::registry::Registry>::in_worker_cross<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>)>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>)> as rayon_core::job::Job>::execute"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-9.asm",
+          "assembly_sha256": "96c7116c0a7aa1436e63d3fc385bd72f941ee1b4dd66160325b9a192250e4350",
+          "bytes": 538,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::LatchRef<rayon_core::latch::LockLatch>, <rayon_core::registry::Registry>::in_worker_cold<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>)>::{closure#0}::{closure#0}, (rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>)> as rayon_core::job::Job>::execute"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-10.asm",
+          "assembly_sha256": "4e56d04ea4f632c9fd3a8e03e30496d5cc5197302e15dc00e4bb01781a5006c2",
+          "bytes": 538,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::LatchRef<rayon_core::latch::LockLatch>, <rayon_core::registry::Registry>::in_worker_cold<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>)>::{closure#0}::{closure#0}, (rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>)> as rayon_core::job::Job>::execute"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-11.asm",
+          "assembly_sha256": "b0240fab6c5350258c7f6daa08b985240bccb0a4462d6563d791c37883eba644",
+          "bytes": 543,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-12.asm",
+          "assembly_sha256": "0b39a5f52de605798be58a902fbc505b2cdf095af586894c15ddc5f78decd156",
+          "bytes": 545,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<[u64; 5]>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-13.asm",
+          "assembly_sha256": "d9dfc1bff421c1dd5386654547494416368d334ec8f6b893a02a001e543b6325",
+          "bytes": 644,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, <rayon_core::registry::Registry>::in_worker_cross<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>)>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>)> as rayon_core::job::Job>::execute"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-14.asm",
+          "assembly_sha256": "bb86c688c4c2fb765984a45b56011db7b1479f81dcedf56efbb8a3986b5728b2",
+          "bytes": 644,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, <rayon_core::registry::Registry>::in_worker_cross<rayon_core::join::join_context<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>)>::{closure#0}, (rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>)> as rayon_core::job::Job>::execute"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-15.asm",
+          "assembly_sha256": "e5efb56cb72fbc64d3064a31827d3ba5ee86b4fffdcd242c391338755fca096f",
+          "bytes": 777,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-16.asm",
+          "assembly_sha256": "d6f183a0bbdb4c3d514fc639cb04489a023629ade01e8830b9e110fd9a643a81",
+          "bytes": 954,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-17.asm",
+          "assembly_sha256": "4e3648f6cb097d43ec866a664272a164614d4f8aa972e80cf49aa557e8a02dc7",
+          "bytes": 1160,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 5]>, rayon::iter::collect::consumer::CollectResult<[u64; 5]>>::{closure#0}"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-18.asm",
+          "assembly_sha256": "d62a8f4749908ca2d018d14941b538e896c362ec096a8f5ddd777c1ce67a68d0",
+          "bytes": 1169,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>::{closure#0}"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-19.asm",
+          "assembly_sha256": "5bd150194e7aced77f061701de1d63f43c1949d39e7628b3c504ad1030d50927",
+          "bytes": 1212,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>>::{closure#0}"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-20.asm",
+          "assembly_sha256": "e8e335e624d8b308dc6e6f83da2891065f8bac12318345bdc18cf90c8dc41283",
+          "bytes": 1526,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<&zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-21.asm",
+          "assembly_sha256": "a15a56153376579d9dde7ee152a72254ae3188a8ef102b007020f52676c0d47b",
+          "bytes": 2008,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<[u64; 4]>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 5]>, zopro_core::msm_affine::g2_borrowed::gls4::try_raw::{closure#0}>>"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-22.asm",
+          "assembly_sha256": "945ce53674ec91cd24182b25899bde056da7f43d39ceeb2ff22b3f96e8fb4ebf",
+          "bytes": 2686,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "zopro_core::msm_affine::g2_borrowed::gls4::top_component"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-23.asm",
+          "assembly_sha256": "fff35af8cd76c9ee932dafd79578e37e2b5507ec3f48bdf041aa3fb711ab82c3",
+          "bytes": 7189,
+          "existing_caller": true,
+          "new_GLS4": false,
+          "symbol": "zopro_core::msm_affine::g2_phi::raw_exclusive"
+        },
+        {
+          "assembly": "/home/ubuntu/src/zopro-perf-work/g2-gls4-indexed-top177/codegen/candidate-24.asm",
+          "assembly_sha256": "24697c5fefcea6d83af76c8577f93a56e68f1c6342162139e0f0d57a9e202614",
+          "bytes": 23074,
+          "existing_caller": false,
+          "new_GLS4": true,
+          "symbol": "<&zopro_core::msm_affine::g2_borrowed::gls4::run_prepared::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        }
+      ],
+      "variant": "candidate"
+    }
+  ]
+}
