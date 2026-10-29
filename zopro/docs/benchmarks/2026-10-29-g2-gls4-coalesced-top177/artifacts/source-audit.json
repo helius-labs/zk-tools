@@ -1,0 +1,40 @@
+{
+  "edits": [
+    {
+      "append": false,
+      "file": "crates/zopro-core/src/msm_affine/g2_phi.rs",
+      "new": "    #[cfg(zopro_gls4_horner)]\n    if let Some(result)=super::g2_borrowed::gls4::try_raw(bases,words){return result;}\n    hb_raw(bases, words, 12, 2)",
+      "old": "    hb_raw(bases, words, 12, 2)",
+      "reverse_exact": true
+    },
+    {
+      "append": true,
+      "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+      "new": "\n#[cfg(zopro_gls4_horner)]\npub(super) mod gls4;\n",
+      "old": "",
+      "reverse_exact": true
+    },
+    {
+      "append": true,
+      "file": "crates/zopro-core/src/msm_affine/workspace.rs",
+      "new": "\n#[cfg(zopro_gls4_horner)]\npub(crate) fn gls4_horner_peak(n:usize,workers:usize)->Option<usize> {\n    // Six-output shape conservatively includes returned top pieces and all merge scratch.\n    let p=shape::<G2Config>(1<<10,6,4,batch_size(11).max(32))?;\n    let t=top::<G2Config>(n.div_ceil(4),11)?;\n    // Two sign classes, split-off negative vector, and retained earlier component.\n    let extra=mul(vector::<Affine<G2Config>>(1<<10,false)?,3)?;\n    let held=add(p.held,mul(add(t.held,extra)?,4)?)?;\n    // Four parts x eight signed 256-bucket groups have disjoint point ranges.\n    // Keep the old conservative routing/output held bound, but charge the\n    // collective point/pair/prefix scratch once across all 32 possible groups.\n    let scratch=crate::msm::workspace_grouping::<G2Config>(n,32)?;\n    let local_stack=mul(32,mul(512,size_of::<usize>())?)?;\n    add(add(add(add(vector::<[u64;5]>(n,false)?,held)?,scratch)?,local_stack)?,mul(p.leaf,workers)?)\n}\n",
+      "old": "",
+      "reverse_exact": true
+    }
+  ],
+  "field_source_files_exact": 17,
+  "native_field_tests_inherited": 33,
+  "new_costs_charged_via_resource_analysis": true,
+  "new_files": [
+    "crates/zopro-core/src/msm_affine/g2_borrowed/gls4.rs",
+    "crates/zopro-core/src/msm_affine/g2_borrowed/gls4/lattice.rs"
+  ],
+  "old_lattice_body_reused": true,
+  "original_borrowed_Window_methods_exact": true,
+  "original_files": 175,
+  "originals_exact": 172,
+  "production_worktree_changed": false,
+  "reverse175_exact": true,
+  "solver_key_field_fft_exact": true,
+  "source_files": 177
+}
