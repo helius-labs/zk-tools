@@ -372,3 +372,18 @@ Twenty-four captures compare frequency 199 Hz with fixed period 16 million at 16
 |w32/instructions/freq|0.744435|false|
 
 At 32 workers, frequency totals cover about 73–74% of simultaneous event counts; fixed-period totals cover about 95–97%. The underlying cause is unresolved. Sampling mode changes the accounting discrepancy, but no per-symbol bias correction follows. Use explicit counters for total work and treat sample shares as qualitative source-inspection guides. The trial adds 3,696 completed SDK requests and 24 distinct independent Gnark exports; ledger 22,234. One earlier controller failure has no completed SDK receipt/export and is retained separately. Production and accepted local/AWS/M5 timings remain unchanged.
+
+## G2 component partitioning pilot
+
+The candidate assigns the two existing G2 per-window tasks to high/low scalar components over the full borrowed point range, replacing two point-range tasks that each feed both components. Ordinary bucket-set count remains two. Full-range narrow-top indices receive an explicit conservative workspace charge. Width, scalar decomposition and field arithmetic remain unchanged. [Complete requests, source and checks](../2026-10-29-component-partition175/README.md).
+
+|Case/variant|Median ms|CPU ms/request|Maximum RSS MiB|
+|---|---:|---:|---:|
+|1x2-w16/OFF|9.807530|118.881|90.25|
+|1x2-w16/ON|9.709446|115.350|90.75|
+|1x2-w16/accepted|9.718853|120.388|90.25|
+|1x2-w32/OFF|8.022146|181.682|133.50|
+|1x2-w32/ON|8.060799|176.783|135.25|
+|1x2-w32/accepted|8.023849|182.238|134.25|
+
+Declared pilot gate: **false**; failures `["1x2-w32/ON/accepted","1x2-w32/ON/OFF","1x2-w16/ON/accepted","1x2-w16/ON/OFF"]`. No adoption. Both primary32 and physical16 must improve against accepted and OFF; a passing pilot still requires all-nine performance/resource/portable qualification. The trial adds 15,708 completed SDK requests and 132 distinct independent Gnark exports; ledger 22,366. Production and every accepted local/AWS/M5 row remain unchanged.
