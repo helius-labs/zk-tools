@@ -1,0 +1,1 @@
+use std::fs;fn main(){for f in["prefix.rs","kernel.rs"]{let p=format!("/home/ubuntu/src/zopro-perf-work/triple-cancel175/{f}");let s=fs::read_to_string(&p).unwrap();let old="d.0[$i]);}};}term!";assert_eq!(s.matches(old).count(),1);fs::write(p,s.replace(old,"d.0[$i]);}}};}term!")).unwrap();}}

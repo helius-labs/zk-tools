@@ -1,0 +1,58 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling autocfg v1.5.1
+   Compiling version_check v0.9.5
+   Compiling zerocopy v0.8.63
+   Compiling typenum v1.20.1
+   Compiling rand_core v0.6.4
+   Compiling paste v1.0.15
+   Compiling either v1.19.0
+   Compiling arrayvec v0.7.8
+   Compiling allocator-api2 v0.2.21
+   Compiling cfg-if v1.0.5
+   Compiling once_cell v1.21.4
+   Compiling itertools v0.13.0
+   Compiling generic-array v0.14.7
+   Compiling ahash v0.8.12
+   Compiling num-traits v0.2.19
+   Compiling hashbrown v0.15.5
+   Compiling syn v2.0.119
+   Compiling syn v3.0.9
+   Compiling num-integer v0.1.47
+   Compiling num-bigint v0.4.8
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling enum-ordinalize-derive v4.4.2
+   Compiling enum-ordinalize v4.4.2
+   Compiling ppv-lite86 v0.2.21
+   Compiling ark-serialize-derive v0.5.0
+   Compiling zeroize_derive v1.5.0
+   Compiling ark-ff-macros v0.5.0
+   Compiling ark-ff-asm v0.5.0
+   Compiling educe v0.6.0
+   Compiling rand_chacha v0.3.1
+   Compiling rand v0.8.8
+   Compiling zeroize v1.9.1
+   Compiling ark-std v0.5.0
+   Compiling ark-serialize v0.5.0
+   Compiling ark-ff v0.5.0
+   Compiling ark-poly v0.5.0
+   Compiling ark-ec v0.5.0
+   Compiling ark-bn254 v0.5.0
+   Compiling zopro-bn254 v0.1.0 (/home/ubuntu/src/zopro-perf-work/triple-cancel175/bn254)
+error: this file contains an unclosed delimiter
+   --> bn254/src/../../kernel.rs:211:3
+    |
+  1 | impl<C:FpConfig,const MIXED:bool> Ifma8<C,MIXED>{
+    |                                                 - unclosed delimiter
+...
+ 18 |     #[inline(always)]fn prefix_three<const FUSED:bool>(&self,b:&Self,c:&Self,d:&Self)->[__m512i;6]{unsafe{
+    |                                                                                                   - this delimiter might not be properly closed...
+...
+211 | }
+    | -^
+    | |
+    | ...as it matches this but it has different indentation
+
+error: could not compile `zopro-bn254` (lib test) due to 1 previous error
