@@ -6,7 +6,7 @@
   "accepted_source_files": 175,
   "all_source175_current_hashes_verified": true,
   "as_of": "2026-10-29",
-  "historical_distinct_Gnark_ledger": 22198,
+  "historical_distinct_Gnark_ledger": 22210,
   "latest_54_diagnostic": {
     "SDK_requests": 204,
     "all_captures_before_analysis": true,
@@ -7634,6 +7634,314 @@
     "production_changed": false,
     "report": "../2026-10-29-cached-hash-groups175/README.md"
   },
+  "latest_instruction_profile_diagnostic": {
+    "SDK_requests": 1848,
+    "aggregates": {
+      "w16/cycles": {
+        "all_attribution_qualified": true,
+        "categories": {
+          "FFT": {
+            "max_share": 0.04482561186999104,
+            "median_period_per_request": 18187016.03311258,
+            "median_share": 0.03636786795345386,
+            "min_share": 0.03564846970013395
+          },
+          "MSM_curve": {
+            "max_share": 0.7649266826093499,
+            "median_period_per_request": 380482450.5231788,
+            "median_share": 0.7535815623727379,
+            "min_share": 0.7512656342136373
+          },
+          "allocator": {
+            "max_share": 0.0024986015396212466,
+            "median_period_per_request": 701725.1721854304,
+            "median_share": 0.0014032125091433592,
+            "min_share": 0.00030423450860785
+          },
+          "crossbeam_epoch": {
+            "max_share": 0.03467369248245993,
+            "median_period_per_request": 14656983.05960265,
+            "median_share": 0.029053147721381088,
+            "min_share": 0.02315906680568656
+          },
+          "grouping": {
+            "max_share": 0.009088987182349151,
+            "median_period_per_request": 3466935.205298013,
+            "median_share": 0.006872176917335573,
+            "min_share": 0.006031811978941172
+          },
+          "inverse": {
+            "max_share": 0.10623344993613933,
+            "median_period_per_request": 42487003.26490066,
+            "median_share": 0.08495960643915629,
+            "min_share": 0.07687756945860935
+          },
+          "other": {
+            "max_share": 0.02510663204909041,
+            "median_period_per_request": 10313340.907284768,
+            "median_share": 0.02044315775366871,
+            "min_share": 0.01380508179673365
+          },
+          "runtime_or_inlined_payload": {
+            "max_share": 0.018145578418137458,
+            "median_period_per_request": 8742522.735099338,
+            "median_share": 0.01727204675513679,
+            "min_share": 0.01726218089212877
+          },
+          "solver": {
+            "max_share": 0.021080690296408185,
+            "median_period_per_request": 10003948.052980132,
+            "median_share": 0.02000450547476246,
+            "min_share": 0.013882925753839048
+          },
+          "unknown": {
+            "max_share": 0.01949537339688609,
+            "median_period_per_request": 7370783.105960265,
+            "median_share": 0.014553670050054162,
+            "min_share": 0.011924770088720097
+          },
+          "verification_field_extensions": {
+            "max_share": 0.008026450882482468,
+            "median_period_per_request": 3901041.205298013,
+            "median_share": 0.007800760233397129,
+            "min_share": 0.0034247899598197043
+          }
+        },
+        "median_period_per_request": 504488642.6821192,
+        "panels": 3,
+        "samples": 9469
+      },
+      "w16/instructions": {
+        "all_attribution_qualified": true,
+        "categories": {
+          "FFT": {
+            "max_share": 0.026074686499613895,
+            "median_period_per_request": 28036385.75496689,
+            "median_share": 0.02275533492358289,
+            "min_share": 0.021051387915875165
+          },
+          "MSM_curve": {
+            "max_share": 0.8303656466716891,
+            "median_period_per_request": 1000516344.7880796,
+            "median_share": 0.8183972550037898,
+            "min_share": 0.8147483649527766
+          },
+          "allocator": {
+            "max_share": 0.004102233118947661,
+            "median_period_per_request": 4292364.423841059,
+            "median_share": 0.0035480439254272356,
+            "min_share": 0.003483836716052867
+          },
+          "crossbeam_epoch": {
+            "max_share": 0.011690973423558716,
+            "median_period_per_request": 14063613.132450333,
+            "median_share": 0.011603445591541832,
+            "min_share": 0.009384113809252954
+          },
+          "grouping": {
+            "max_share": 0.004804213182538586,
+            "median_period_per_request": 3849910.9337748345,
+            "median_share": 0.003200401346790152,
+            "min_share": 0.002756580615143319
+          },
+          "inverse": {
+            "max_share": 0.10709904281038912,
+            "median_period_per_request": 120807999.66887416,
+            "median_share": 0.09805209979415085,
+            "min_share": 0.08547527582552635
+          },
+          "other": {
+            "max_share": 0.022006958494508247,
+            "median_period_per_request": 18674702.549668875,
+            "median_share": 0.015524136588859917,
+            "min_share": 0.014247354015479826
+          },
+          "runtime_or_inlined_payload": {
+            "max_share": 0.0027205637274027696,
+            "median_period_per_request": 3149664.2649006625,
+            "median_share": 0.002614023266833201,
+            "min_share": 0.0013862276985823774
+          },
+          "solver": {
+            "max_share": 0.014364082827630116,
+            "median_period_per_request": 16501293.503311258,
+            "median_share": 0.01369503589039183,
+            "min_share": 0.012680166340416396
+          },
+          "unknown": {
+            "max_share": 0.004792938470370085,
+            "median_period_per_request": 5258627.258278145,
+            "median_share": 0.004268090243379623,
+            "min_share": 0.003114554792069579
+          },
+          "verification_field_extensions": {
+            "max_share": 0.0044444792493565375,
+            "median_period_per_request": 5139929.3311258275,
+            "median_share": 0.004272783718041044,
+            "min_share": 0.001275668550031397
+          }
+        },
+        "median_period_per_request": 1204910570.178808,
+        "panels": 3,
+        "samples": 10703
+      },
+      "w32/cycles": {
+        "all_attribution_qualified": true,
+        "categories": {
+          "FFT": {
+            "max_share": 0.06789396092496686,
+            "median_period_per_request": 35475203.72185431,
+            "median_share": 0.05748036947901809,
+            "min_share": 0.051870110856543056
+          },
+          "MSM_curve": {
+            "max_share": 0.6876088085759292,
+            "median_period_per_request": 419553791.0463576,
+            "median_share": 0.6858918071877768,
+            "min_share": 0.679801788165935
+          },
+          "allocator": {
+            "max_share": 0.002559610545931667,
+            "median_period_per_request": 1340932.1854304636,
+            "median_share": 0.0021820010052913765,
+            "min_share": 0.0002461684002351799
+          },
+          "crossbeam_epoch": {
+            "max_share": 0.10244345172297108,
+            "median_period_per_request": 56817418.41721854,
+            "median_share": 0.09530008066167608,
+            "min_share": 0.09046724560666926
+          },
+          "grouping": {
+            "max_share": 0.011535599053973233,
+            "median_period_per_request": 6761139.36423841,
+            "median_share": 0.011001908262010572,
+            "min_share": 0.005760231012771353
+          },
+          "inverse": {
+            "max_share": 0.0807969962732896,
+            "median_period_per_request": 37371503.66225166,
+            "median_share": 0.0626833709217135,
+            "min_share": 0.059460784669485144
+          },
+          "other": {
+            "max_share": 0.020055973715527815,
+            "median_period_per_request": 8822850.218543047,
+            "median_share": 0.014798601571771314,
+            "min_share": 0.010541620355086106
+          },
+          "runtime_or_inlined_payload": {
+            "max_share": 0.035498938432810954,
+            "median_period_per_request": 19484953.695364237,
+            "median_share": 0.032682189909115894,
+            "min_share": 0.031258668202818474
+          },
+          "solver": {
+            "max_share": 0.01992314311202747,
+            "median_period_per_request": 8714468.80794702,
+            "median_share": 0.014616813003058424,
+            "min_share": 0.01311983010409776
+          },
+          "unknown": {
+            "max_share": 0.01587004546443389,
+            "median_period_per_request": 8817317.867549669,
+            "median_share": 0.014347777359666252,
+            "min_share": 0.012938748517794708
+          },
+          "verification_field_extensions": {
+            "max_share": 0.004874585743423469,
+            "median_period_per_request": 1481302.4569536424,
+            "median_share": 0.002410415295666751,
+            "min_share": 0.002078355886513708
+          }
+        },
+        "median_period_per_request": 614542423.2980132,
+        "panels": 3,
+        "samples": 18850
+      },
+      "w32/instructions": {
+        "all_attribution_qualified": true,
+        "categories": {
+          "FFT": {
+            "max_share": 0.02654015685004318,
+            "median_period_per_request": 24960114.284768213,
+            "median_share": 0.02369801099779205,
+            "min_share": 0.021837465046894006
+          },
+          "MSM_curve": {
+            "max_share": 0.7983046663463075,
+            "median_period_per_request": 840820594.9403974,
+            "median_share": 0.7873790188640916,
+            "min_share": 0.7832911771702591
+          },
+          "allocator": {
+            "max_share": 0.0031011659432479987,
+            "median_period_per_request": 3241400.880794702,
+            "median_share": 0.0030775000805265346,
+            "min_share": 0.002606527104357197
+          },
+          "crossbeam_epoch": {
+            "max_share": 0.046453574686943,
+            "median_period_per_request": 45809143.42384106,
+            "median_share": 0.04349281306456566,
+            "min_share": 0.03810816334376316
+          },
+          "grouping": {
+            "max_share": 0.004888472477657074,
+            "median_period_per_request": 4537572.841059603,
+            "median_share": 0.004258898973891199,
+            "min_share": 0.003318005942815215
+          },
+          "inverse": {
+            "max_share": 0.10512823633920113,
+            "median_period_per_request": 88734989.29139073,
+            "median_share": 0.08230586318565379,
+            "min_share": 0.07822595653832488
+          },
+          "other": {
+            "max_share": 0.02394255861170267,
+            "median_period_per_request": 16963511.105960265,
+            "median_share": 0.01595013727168656,
+            "min_share": 0.015921701441137737
+          },
+          "runtime_or_inlined_payload": {
+            "max_share": 0.0098070869033729,
+            "median_period_per_request": 5226477.490066225,
+            "median_share": 0.004905494721338869,
+            "min_share": 0.004431507640215603
+          },
+          "solver": {
+            "max_share": 0.01707143560327005,
+            "median_period_per_request": 15657628.125827815,
+            "median_share": 0.014865903228321351,
+            "min_share": 0.012223917786870452
+          },
+          "unknown": {
+            "max_share": 0.005624308642518962,
+            "median_period_per_request": 3000296.2450331124,
+            "median_share": 0.002816033824011796,
+            "min_share": 0.0015261252905888728
+          },
+          "verification_field_extensions": {
+            "max_share": 0.006261778872797738,
+            "median_period_per_request": 5193912.781456954,
+            "median_share": 0.004931283599596811,
+            "min_share": 0.003705053606235423
+          }
+        },
+        "median_period_per_request": 1065433312.4304636,
+        "panels": 3,
+        "samples": 21504
+      }
+    },
+    "all_attribution_qualified": true,
+    "diagnostic_only": true,
+    "independent_proof_count": 22210,
+    "new_independent_exports": 12,
+    "production_changed": false,
+    "report": "../2026-10-29-instruction-profile175/README.md",
+    "source_rebuilds": 0
+  },
   "latest_local_experiment": {
     "SDK_requests": 20904,
     "calibration_checks": {
@@ -10637,5 +10945,5 @@
       "shape": "merge-54x1"
     }
   ],
-  "source_commit": "a4ac1d8ae88ebb020fb83f5c51e036741d07cb2d"
+  "source_commit": "7faaeca0cb882ce636f290795c4d1d593fad39bd"
 }

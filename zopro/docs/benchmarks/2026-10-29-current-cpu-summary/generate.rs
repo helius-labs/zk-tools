@@ -50,6 +50,8 @@ fn select_records(value: &Value, fields: &[&str]) -> Value {
 }
 fn main() {
     let root = Path::new(Z);
+    let instruction_profiles=read(root.join("docs/benchmarks/2026-10-29-instruction-profile175/artifacts/analysis.json"));
+    assert_eq!(instruction_profiles["independent_proof_count"],22210);
     let worker_work=read(root.join("docs/benchmarks/2026-10-29-worker-work175/artifacts/analysis.json"));
     assert_eq!(worker_work["independent_proof_count"],22198);
     let stage_trace=read(root.join("docs/benchmarks/2026-10-29-stage-uprobes175/artifacts/analysis.json"));
@@ -101,6 +103,7 @@ fn main() {
         "2026-10-29-interleaved-complex175",
         "2026-10-29-stage-uprobes175",
         "2026-10-29-worker-work175",
+        "2026-10-29-instruction-profile175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -458,6 +461,10 @@ fn main() {
     md+="\n## Retired work across worker counts\n\nThree fixed PMU blocks compare the same frozen SDK at1/16/32workers with no uprobes or source rebuild. Counts include worker-policy differences as well as runtime work; CPU time is not an instruction count. No new latency qualification or adoption follows. [Full diagnostic](../2026-10-29-worker-work175/README.md).\n\n|Workers|Instructions/request|Cycles/request|IPC|CPU ms/request|All panels qualified|\n|---|---:|---:|---:|---:|---|\n";
     for w in[1,16,32]{let p=&worker_work["topologies"][w.to_string()];let num=|v:&Value,n:usize|v.as_f64().map(|v|format!("{v:.n$}")).unwrap_or_else(||"—".into());writeln!(md,"|{w}|{}|{}|{}|{}|{}|",num(&p["counters"]["instructions:u"]["median"],0),num(&p["counters"]["cycles:u"]["median"],0),num(&p["median_IPC"],3),num(&p["median_CPU_ms_per_request"],3),p["all_panels_qualified"]).unwrap();}
     md+="\nAll nine new exports independently verify; the trial adds306SDKrequests and9newGnark proofs. Three existing topology preflights are reused. The ledger is now22,198; production, all accepted local/AWS/M5 tables and the prior failed parallel-trace overhead checks remain unchanged.\n";
+
+    md+="\n## Frozen SDK instruction and cycle attribution\n\nTwelve FIFO-gated profiles compare separate instructions:u and cycles:u sampling at16/32workers, three blocks each, without rebuilding or changing the accepted executable. Flat period shares are diagnostic, not exclusive costs or measured per-IP CPI. [Full profiles](../2026-10-29-instruction-profile175/README.md).\n\n|Topology/event|Samples|All attribution panels qualified|\n|---|---:|---|\n";
+    for(k,p)in instruction_profiles["aggregates"].as_object().unwrap(){writeln!(md,"|{k}|{}|{}|",p["samples"],p["all_attribution_qualified"]).unwrap();}
+    md+="\nThe trial adds1,848SDKrequests and12fresh independent Gnark exports; the ledger is now22,210. No source adoption or new latency qualification follows. All accepted local/AWS/M5 tables and earlier failed gates remain unchanged.\n";
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -575,6 +582,9 @@ fn main() {
     data["source_commit"]=json!("a4ac1d8ae88ebb020fb83f5c51e036741d07cb2d");
     data["historical_distinct_Gnark_ledger"]=json!(22198);
     data["latest_worker_work_diagnostic"]=json!({"report":"../2026-10-29-worker-work175/README.md","diagnostic_only":true,"topologies":worker_work["topologies"],"all_counter_panels_qualified":worker_work["all_counter_panels_qualified"],"SDK_requests":306,"new_independent_exports":9,"independent_proof_count":22198,"source_rebuilds":0,"production_changed":false});
+    data["source_commit"]=json!("7faaeca0cb882ce636f290795c4d1d593fad39bd");
+    data["historical_distinct_Gnark_ledger"]=json!(22210);
+    data["latest_instruction_profile_diagnostic"]=json!({"report":"../2026-10-29-instruction-profile175/README.md","diagnostic_only":true,"aggregates":instruction_profiles["aggregates"],"all_attribution_qualified":instruction_profiles["all_attribution_qualified"],"SDK_requests":1848,"new_independent_exports":12,"independent_proof_count":22210,"source_rebuilds":0,"production_changed":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

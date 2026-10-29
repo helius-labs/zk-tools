@@ -321,7 +321,7 @@ Failed checks: `["all18/on/frozen/gain","all18/on/off/gain","threaded12/on/froze
 
 ## Frozen accepted SDK stage diagnostic
 
-Entry/return probes observe nine function boundaries in the exact accepted executable, without a source rebuild. Seven blocks compare plain and traced primary requests at 1/16/32 workers. These are instrumented stage intervals, not replacement latency results; nested/parallel spans overlap and K/H feed is partial. [Full diagnostic](../2026-10-29-stage-uprobes175/README.md).
+Entry/return probes observe nine function boundaries in the exact accepted executable, without a source rebuild. Seven blocks compare plain and traced primary requests at1/16/32workers. These are instrumented stage intervals, not replacement latency results; nested/parallel spans overlap and K/H feed is partial. [Full diagnostic](../2026-10-29-stage-uprobes175/README.md).
 
 |Workers|Plain ms|Traced ms|Paired ratio|Bounds|Within factor1.03|
 |---|---:|---:|---:|---|---|
@@ -333,7 +333,7 @@ All21recorded processes have31completeSDKintervals, balanced entry/return stacks
 
 ## Retired work across worker counts
 
-Three fixed PMU blocks compare the same frozen SDK at 1/16/32 workers with no uprobes or source rebuild. Counts include worker-policy differences as well as runtime work; CPU time is not an instruction count. No new latency qualification or adoption follows. [Full diagnostic](../2026-10-29-worker-work175/README.md).
+Three fixed PMU blocks compare the same frozen SDK at1/16/32workers with no uprobes or source rebuild. Counts include worker-policy differences as well as runtime work; CPU time is not an instruction count. No new latency qualification or adoption follows. [Full diagnostic](../2026-10-29-worker-work175/README.md).
 
 |Workers|Instructions/request|Cycles/request|IPC|CPU ms/request|All panels qualified|
 |---|---:|---:|---:|---:|---|
@@ -341,4 +341,19 @@ Three fixed PMU blocks compare the same frozen SDK at 1/16/32 workers with no up
 |16|1380964882|588026749|2.348|116.821|true|
 |32|1421211564|838068920|1.696|181.509|true|
 
-All nine new exports independently verify; the trial adds 306 SDK requests and nine new Gnark proofs. Three existing topology preflights are reused. The ledger is now 22,198; production, all accepted local/AWS/M5 tables and the prior failed parallel-trace overhead checks remain unchanged.
+All nine new exports independently verify; the trial adds306SDKrequests and9newGnark proofs. Three existing topology preflights are reused. The ledger is now22,198; production, all accepted local/AWS/M5 tables and the prior failed parallel-trace overhead checks remain unchanged.
+
+## Frozen SDK instruction and cycle attribution
+
+Twelve FIFO-gated profiles compare separate instructions:u and cycles:u sampling at16/32workers, three blocks each, without rebuilding or changing the accepted executable. Flat period shares are diagnostic, not exclusive costs or measured per-IP CPI. [Full profiles](../2026-10-29-instruction-profile175/README.md).
+
+|Topology/event|Samples|All attribution panels qualified|
+|---|---:|---|
+|w16/cycles|9469|true|
+|w16/instructions|10703|true|
+|w32/cycles|18850|true|
+|w32/instructions|21504|true|
+
+The trial adds 1,848 SDK requests and 12 fresh independent Gnark exports; the ledger is now 22,210. No source adoption or new latency qualification follows. All accepted local/AWS/M5 tables and earlier failed gates remain unchanged.
+
+Summed sample periods fall below the earlier nonsampled PMU counts, with the cause unresolved. Passing attribution checks does not validate absolute period coverage. Do not interpret these totals as reduced work or calculate per-symbol CPI from separate event captures; see the full report for the preserved estimates and limitations.
