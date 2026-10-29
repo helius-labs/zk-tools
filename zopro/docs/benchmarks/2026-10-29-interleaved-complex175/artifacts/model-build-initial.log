@@ -1,0 +1,18 @@
+   Compiling autocfg v1.5.1
+   Compiling zmij v1.0.23
+   Compiling serde_core v1.0.229
+   Compiling serde_json v1.0.149
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling num-traits v0.2.19
+   Compiling num-integer v0.1.47
+   Compiling num-bigint v0.4.8
+   Compiling zopro-interleaved-complex-model v0.0.0 (/home/ubuntu/src/zopro-perf-work/interleaved-complex175)
+error[E0282]: type annotations needed
+  --> model.rs:13:99
+   |
+13 |     for i in 0..5 {for v in [U::one()<<(52*i), (U::one()<<(52*i))-1u32]{if v<=twice {inputs.push([v.clone(),twice.clone(),v.clone(),...
+   |                                                                                                   ^ cannot infer type
+
+For more information about this error, try `rustc --explain E0282`.
+error: could not compile `zopro-interleaved-complex-model` (bin "model") due to 1 previous error

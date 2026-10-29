@@ -1,0 +1,25 @@
+{
+  "OFF_build_before_ON_only_bridge_repair": true,
+  "OFF_compiled_tokens_unchanged": true,
+  "field_suffix": "\n#[cfg(zopro_interleaved_complex)] include!(\"interleaved_complex.rs\");\n",
+  "frozen_inverse175_verified": true,
+  "lib_suffix": "\n#[cfg(zopro_gauss_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+  "msm_edits": [
+    [
+      "        let value = [\n            dy[0].sum2(&dx[0], &dy[1], &dx[1]),\n            dy[1].difference2(&dx[0], &dy[0], &dx[1]),\n        ];",
+      "        let value = {\n            #[cfg(zopro_interleaved_complex)]{FqBatch::complex_interleaved::<true>(&dy[0],&dy[1],&dx[0],&dx[1])}\n            #[cfg(not(zopro_interleaved_complex))]{[\n                dy[0].sum2(&dx[0], &dy[1], &dx[1]),\n                dy[1].difference2(&dx[0], &dy[0], &dx[1]),\n            ]}\n        };"
+    ],
+    [
+      "            [\n                a[0].difference2(&b[0], &a[1], &b[1]),\n                a[0].sum2(&b[1], &a[1], &b[0]),\n            ]",
+      "            #[cfg(zopro_interleaved_complex)]{FqBatch::complex_interleaved::<false>(&a[0],&a[1],&b[0],&b[1])}\n            #[cfg(not(zopro_interleaved_complex))]{[\n                a[0].difference2(&b[0], &a[1], &b[1]),\n                a[0].sum2(&b[1], &a[1], &b[0]),\n            ]}"
+    ]
+  ],
+  "msm_suffix": "\n#[cfg(zopro_gauss_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+  "originals": 175,
+  "originals_exact": 171,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "simd_anchor": "    pub(crate) fn difference2(&self, b: &Self, c: &Self, d: &Self) -> Self {\n        Self(self.0.difference2(&b.0, &c.0, &d.0))\n    }",
+  "simd_bridge": "\n    #[cfg(zopro_interleaved_complex)]\n    #[inline(always)]\n    pub(crate) fn complex_interleaved<const CONJ:bool>(a0:&Self,a1:&Self,b0:&Self,b1:&Self)->[Self;2]{\n        let [x,y]=zopro_bn254::ifma8::Ifma8::complex_interleaved::<CONJ>(&a0.0,&a1.0,&b0.0,&b1.0);\n        [Self(x),Self(y)]\n    }\n",
+  "snapshot_files": 177
+}

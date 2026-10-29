@@ -303,3 +303,17 @@ The separately declared component gate **fails**. A different polynomial basis, 
 |norm-affine|1.241030015|[1.239044964, 1.241982669]|0|
 
 Calibration failures: `[]`. Nonregression failures: `["square/frozen","square/fresh","norm/frozen","norm/fresh","norm-affine/frozen","norm-affine/fresh"]`. Gain failures: `["norm-affine/frozen","norm-affine/fresh","aggregate/0","aggregate/1"]`. No SDK proofs or new Gnark exports; the ledger remains 22,144. No new AWS measurement or source adoption follows this arithmetic screen. All earlier failed gates and positive contexts remain.
+
+
+## Latest joint ordinary-basis complex caller
+
+The separately declared caller gate **fails**. Both ordinary-basis complex outputs share a row-CIOS schedule, with the complemented second input streamed one digit at a time. The arithmetic count stays 300 IFMA sites; field basis, square, norm, scratch and point formulas stay unchanged. Fifteen blocks compare all 18 owned/borrowed contexts with exact frozen and fresh OFF controls, including 1/16/32-worker topologies. All output/capacity checks and zero timed allocations pass. [Full results](../2026-10-29-interleaved-complex175/README.md).
+
+|Aggregate|Ratio|Bounds|Wins / 15|
+|---|---:|---|---:|
+|all18/on/frozen|1.005192529|[1.001665512, 1.007275040]|1|
+|all18/on/off|1.003027180|[1.002488278, 1.006735725]|0|
+|threaded12/on/frozen|1.005012217|[1.001018431, 1.008741964]|3|
+|threaded12/on/off|1.004271282|[1.001449142, 1.006445899]|1|
+
+Failed checks: `["all18/on/frozen/gain","all18/on/off/gain","threaded12/on/frozen/gain","threaded12/on/off/gain"]`. No SDK proofs, new Gnark exports or adoption. The ledger remains 22,144; all earlier failed gates and positive contexts remain. These are complete caller waves, not proof timings.

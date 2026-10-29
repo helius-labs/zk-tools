@@ -1,0 +1,21 @@
+{
+  "field_suffix": "\n#[cfg(zopro_interleaved_complex)] include!(\"interleaved_complex.rs\");\n",
+  "frozen_inverse175_verified": true,
+  "lib_suffix": "\n#[cfg(zopro_gauss_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+  "msm_edits": [
+    [
+      "        let value = [\n            dy[0].sum2(&dx[0], &dy[1], &dx[1]),\n            dy[1].difference2(&dx[0], &dy[0], &dx[1]),\n        ];",
+      "        let value = {\n            #[cfg(zopro_interleaved_complex)]{FqBatch::complex_interleaved::<true>(&dy[0],&dy[1],&dx[0],&dx[1])}\n            #[cfg(not(zopro_interleaved_complex))]{[\n                dy[0].sum2(&dx[0], &dy[1], &dx[1]),\n                dy[1].difference2(&dx[0], &dy[0], &dx[1]),\n            ]}\n        };"
+    ],
+    [
+      "            [\n                a[0].difference2(&b[0], &a[1], &b[1]),\n                a[0].sum2(&b[1], &a[1], &b[0]),\n            ]",
+      "            #[cfg(zopro_interleaved_complex)]{FqBatch::complex_interleaved::<false>(&a[0],&a[1],&b[0],&b[1])}\n            #[cfg(not(zopro_interleaved_complex))]{[\n                a[0].difference2(&b[0], &a[1], &b[1]),\n                a[0].sum2(&b[1], &a[1], &b[0]),\n            ]}"
+    ]
+  ],
+  "msm_suffix": "\n#[cfg(zopro_gauss_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+  "originals": 175,
+  "originals_exact": 172,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "snapshot_files": 177
+}

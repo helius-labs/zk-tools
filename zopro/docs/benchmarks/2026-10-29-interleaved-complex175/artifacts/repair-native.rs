@@ -1,0 +1,22 @@
+use serde_json::{json,Value};use sha2::{Digest,Sha256};use std::{collections::BTreeMap,fs,path::{Path,PathBuf}};
+const R:&str="/home/ubuntu/src/zopro-perf-work/interleaved-complex175";
+fn r(p:impl AsRef<Path>)->PathBuf{Path::new(R).join(p)}fn read(p:impl AsRef<Path>)->Value{serde_json::from_slice(&fs::read(p).unwrap()).unwrap()}fn hash(p:impl AsRef<Path>)->String{format!("{:x}",Sha256::digest(fs::read(p).unwrap()))}fn save(p:impl AsRef<Path>,v:&Value){fs::write(p,serde_json::to_vec_pretty(v).unwrap()).unwrap()}
+fn main(){
+    let mut pins:BTreeMap<String,String>=serde_json::from_value(read(r("build-pins.json"))).unwrap();for(p,h)in &pins{assert_eq!(hash(p),*h);}
+    let simd=r("source/crates/zopro-core/src/simd.rs");let mut s=fs::read_to_string(&simd).unwrap();fs::write(r("initial-simd.rs"),&s).unwrap();
+    let anchor="    pub(crate) fn difference2(&self, b: &Self, c: &Self, d: &Self) -> Self {\n        Self(self.0.difference2(&b.0, &c.0, &d.0))\n    }";
+    let bridge="\n    #[cfg(zopro_interleaved_complex)]\n    #[inline(always)]\n    pub(crate) fn complex_interleaved<const CONJ:bool>(a0:&Self,a1:&Self,b0:&Self,b1:&Self)->[Self;2]{\n        let [x,y]=zopro_bn254::ifma8::Ifma8::complex_interleaved::<CONJ>(&a0.0,&a1.0,&b0.0,&b1.0);\n        [Self(x),Self(y)]\n    }\n";
+    assert_eq!(s.matches(anchor).count(),1);s=s.replace(anchor,&format!("{anchor}{bridge}"));fs::write(&simd,&s).unwrap();
+    fs::copy(r("source-audit.json"),r("source-audit-initial.json")).unwrap();let mut audit=read(r("source-audit.json"));audit["simd_anchor"]=json!(anchor);audit["simd_bridge"]=json!(bridge);audit["OFF_build_before_ON_only_bridge_repair"]=json!(true);audit["OFF_compiled_tokens_unchanged"]=json!(true);audit["originals_exact"]=json!(171);
+    let manifest=read("/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-29-balanced-kh-adoption/artifacts/production-source-manifest.json");let mut exact=0;
+    for(f,h)in manifest["source_files_sha256"].as_object().unwrap(){let p=r("source").join(f);if hash(&p)==h.as_str().unwrap(){exact+=1;}else{let mut s=fs::read_to_string(&p).unwrap();if f=="crates/zopro-core/src/simd.rs"{assert_eq!(s.matches(bridge).count(),1);s=s.replace(bridge,"");}else{let key=match f.as_str(){"crates/zopro-core/src/msm.rs"=>"msm_suffix","crates/zopro-core/src/lib.rs"=>"lib_suffix","crates/zopro-bn254/src/ifma8.rs"=>"field_suffix",_=>panic!("unexpected {f}")};let suffix=audit[key].as_str().unwrap();assert!(s.ends_with(suffix));s.truncate(s.len()-suffix.len());if f=="crates/zopro-core/src/msm.rs"{for pair in audit["msm_edits"].as_array().unwrap().iter().rev(){s=s.replace(pair[1].as_str().unwrap(),pair[0].as_str().unwrap());}}}assert_eq!(format!("{:x}",Sha256::digest(s)),h.as_str().unwrap());}}assert_eq!(exact,171);save(r("source-audit.json"),&audit);
+    for name in["core-off","prover-off","field-on"]{let t=read(r(format!("native/{name}/tests.json")));assert_eq!(t["unfiltered"],true);assert_eq!(t["passed_tests"].as_array().unwrap().len(),if name=="core-off"{128}else if name=="field-on"{35}else{8});}
+    let plan=read(r("build-plan.json"));let mut steps=vec![];
+    for step in plan["steps"].as_array().unwrap().iter().skip(6){steps.push(step.clone());if step["name"]=="libraries-on"{steps.push(json!({"kind":"command","name":"retain-on-library-receipt","argv":["cp","-a",r("native-remaining/libraries-on"),r("native/libraries-on")],"timeout_seconds":60}));}}
+    assert_eq!(steps.len(),7);
+    pins.insert(simd.display().to_string(),hash(&simd));pins.insert(r("source-audit.json").display().to_string(),hash(r("source-audit.json")));
+    for p in["build-pins.json","build-plan.json","initial-simd.rs","source-audit-initial.json","repair-native.rs","repair-native"]{pins.insert(r(p).display().to_string(),hash(r(p)));}
+    save(r("remaining-pins.json"),&json!(pins));save(r("remaining-plan.json"),&json!({"version":1,"source_pins":r("remaining-pins.json"),"steps":steps}));
+    save(r("native-inheritance.json"),&json!({"initial_completed_steps":6,"initial_failed_step":"core-on compilation: missing FqBatch forwarding method","field_tests35_inherited_without_change":true,"OFF_core128_prover8_and_linked_executable_inherited":true,"repair_ON_only_cfg_bridge":true,"OFF_compiled_source_tokens_unchanged":true,"initial_receipts":"native","remaining_receipts":"native-remaining","no_successful_test_repeated":true,"production_changed":false}));
+    println!("Prepared7remaining steps; retained all6 successful initial steps; ON-only bridge/inverse175 verified");
+}

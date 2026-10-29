@@ -1,0 +1,17 @@
+[package]
+name="zopro-interleaved-complex-model"
+version="0.0.0"
+edition="2021"
+publish=false
+[workspace]
+[dependencies]
+num-bigint="=0.4.8"
+num-traits="=0.2.19"
+serde_json="=1.0.149"
+[[bin]]
+name="model"
+path="model.rs"
+[profile.release]
+opt-level=3
+lto=true
+codegen-units=1
