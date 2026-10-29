@@ -50,6 +50,8 @@ fn select_records(value: &Value, fields: &[&str]) -> Value {
 }
 fn main() {
     let root = Path::new(Z);
+    let worker_work=read(root.join("docs/benchmarks/2026-10-29-worker-work175/artifacts/analysis.json"));
+    assert_eq!(worker_work["independent_proof_count"],22198);
     let stage_trace=read(root.join("docs/benchmarks/2026-10-29-stage-uprobes175/artifacts/analysis.json"));
     assert_eq!(stage_trace["independent_proof_count"],22189);
     let interleaved=read(root.join("docs/benchmarks/2026-10-29-interleaved-complex175/artifacts/analysis.json"));
@@ -98,6 +100,7 @@ fn main() {
         "2026-10-29-golden-basis175",
         "2026-10-29-interleaved-complex175",
         "2026-10-29-stage-uprobes175",
+        "2026-10-29-worker-work175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -451,6 +454,10 @@ fn main() {
     md+="\n## Frozen accepted SDK stage diagnostic\n\nEntry/return probes observe nine function boundaries in the exact accepted executable, without a source rebuild. Seven blocks compare plain and traced primary requests at1/16/32workers. These are instrumented stage intervals, not replacement latency results; nested/parallel spans overlap and K/H feed is partial. [Full diagnostic](../2026-10-29-stage-uprobes175/README.md).\n\n|Workers|Plain ms|Traced ms|Paired ratio|Bounds|Within factor1.03|\n|---|---:|---:|---:|---|---|\n";
     for w in[1,16,32]{let p=&stage_trace["overhead"][w.to_string()];writeln!(md,"|{w}|{:.6}|{:.6}|{:.9}|[{:.9}, {:.9}]|{}|",p["plain_median_ms"].as_f64().unwrap(),p["traced_median_ms"].as_f64().unwrap(),p["paired_ratio"].as_f64().unwrap(),p["low"].as_f64().unwrap(),p["high"].as_f64().unwrap(),p["within_factor1_03"]).unwrap();}
     md+="\nAll21recorded processes have31completeSDKintervals, balanced entry/return stacks, one PID and zero lost records. The trial adds1440SDKrequests and45fresh independent Gnark exports; the ledger is now22,189. All probes in the owned group were removed. Production and all accepted local/AWS/M5 tables remain unchanged. No source adoption or new performance qualification follows.\n";
+
+    md+="\n## Retired work across worker counts\n\nThree fixed PMU blocks compare the same frozen SDK at1/16/32workers with no uprobes or source rebuild. Counts include worker-policy differences as well as runtime work; CPU time is not an instruction count. No new latency qualification or adoption follows. [Full diagnostic](../2026-10-29-worker-work175/README.md).\n\n|Workers|Instructions/request|Cycles/request|IPC|CPU ms/request|All panels qualified|\n|---|---:|---:|---:|---:|---|\n";
+    for w in[1,16,32]{let p=&worker_work["topologies"][w.to_string()];let num=|v:&Value,n:usize|v.as_f64().map(|v|format!("{v:.n$}")).unwrap_or_else(||"—".into());writeln!(md,"|{w}|{}|{}|{}|{}|{}|",num(&p["counters"]["instructions:u"]["median"],0),num(&p["counters"]["cycles:u"]["median"],0),num(&p["median_IPC"],3),num(&p["median_CPU_ms_per_request"],3),p["all_panels_qualified"]).unwrap();}
+    md+="\nAll nine new exports independently verify; the trial adds306SDKrequests and9newGnark proofs. Three existing topology preflights are reused. The ledger is now22,198; production, all accepted local/AWS/M5 tables and the prior failed parallel-trace overhead checks remain unchanged.\n";
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -565,6 +572,9 @@ fn main() {
     data["source_commit"]=json!("e323fe88b81cc510ab6477ae865a6a7f90a96dd9");
     data["historical_distinct_Gnark_ledger"]=json!(22189);
     data["latest_stage_diagnostic"]=json!({"report":"../2026-10-29-stage-uprobes175/README.md","diagnostic_only":true,"overhead":stage_trace["overhead"],"stages":stage_trace["stages"],"SDK_requests":1440,"new_independent_exports":45,"independent_proof_count":22189,"source_rebuilds":0,"production_changed":false});
+    data["source_commit"]=json!("a4ac1d8ae88ebb020fb83f5c51e036741d07cb2d");
+    data["historical_distinct_Gnark_ledger"]=json!(22198);
+    data["latest_worker_work_diagnostic"]=json!({"report":"../2026-10-29-worker-work175/README.md","diagnostic_only":true,"topologies":worker_work["topologies"],"all_counter_panels_qualified":worker_work["all_counter_panels_qualified"],"SDK_requests":306,"new_independent_exports":9,"independent_proof_count":22198,"source_rebuilds":0,"production_changed":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

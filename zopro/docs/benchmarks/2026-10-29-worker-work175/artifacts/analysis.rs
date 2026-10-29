@@ -1,0 +1,30 @@
+fn event_line(line:&str)->Option<(String,Value)>{
+    let line=line.trim();if line.is_empty()||line.starts_with('#'){return None;}let f=line.split(';').collect::<Vec<_>>();if f.len()<5{return Some(("unparsed".into(),json!({"raw":line,"qualified":false})));}
+    let number=|i:usize|f[i].trim().parse::<f64>().ok().filter(|v|v.is_finite()&&*v>=0.);
+    let count=number(0);let runtime=number(3);let coverage=number(4);let qualified=count.is_some()&&runtime.is_some_and(|v|v>0.)&&coverage.is_some_and(|v|v>=99.9);
+    Some((f[2].trim().into(),json!({"count":count,"runtime_ns":runtime,"running_percent":coverage,"qualified":qualified,"raw":line})))
+}
+fn median(a:&[f64])->f64{assert!(!a.is_empty());let mut s=a.to_vec();s.sort_by(f64::total_cmp);s[s.len()/2]}
+fn finish(){
+    assert_eq!(read(r("runs/result.json"))["status"],"complete");assert_eq!(read(r("offline/result.json"))["status"],"complete");for(p,h)in read(r("pins.json")).as_object().unwrap(){assert_eq!(hash(p),h.as_str().unwrap());}
+    let c=read(r("case.json"));let mut prior:BTreeSet<String>=serde_json::from_value(read(r("prior-proof-sha256.json"))).unwrap();assert_eq!(prior.len(),22189);
+    let mut runs=Vec::new();let mut proofs=Vec::new();let jobs=read(r("jobs.json"));for j in jobs.as_array().unwrap(){let n=j["name"].as_str().unwrap();let log=fs::read_to_string(r(format!("runs/{n}/stdout.log"))).unwrap();let samples=log.lines().filter_map(|l|l.strip_prefix("SAMPLE ")).map(|l|serde_json::from_str::<Value>(l).unwrap()["ms"].as_f64().unwrap()).collect::<Vec<_>>();assert_eq!(samples.len(),31);let s=log.lines().filter_map(|l|l.strip_prefix("SUMMARY ")).map(|l|serde_json::from_str::<Value>(l).unwrap()).collect::<Vec<_>>();assert_eq!(s.len(),1);let usage=&s[0];assert_eq!(usage["rounds"],31);assert_eq!(usage["priming"],3);assert_eq!(usage["workers"],j["workers"]);
+        let mut events=BTreeMap::new();let csv=fs::read_to_string(r(format!("stat/{n}.csv"))).unwrap();for(name,event)in csv.lines().filter_map(event_line){assert!(events.insert(name,event).is_none(),"duplicate PMU event {n}");}
+        let qualified=EVENTS.iter().all(|name|events.get(*name).is_some_and(|e|e["qualified"]==true));let count=|name:&str|events.get(name).and_then(|e|e["count"].as_f64());
+        let per: BTreeMap<_,_>=EVENTS.iter().map(|name|(name.to_string(),count(name).map(|v|v/31.))).collect();
+        let ipc=if qualified{Some(count("instructions:u").unwrap()/count("cycles:u").unwrap())}else{None};
+        let user_ms=usage["user_cpu_ms"].as_f64().unwrap();let system_ms=usage["system_cpu_ms"].as_f64().unwrap();
+        runs.push(json!({"name":n,"workers":j["workers"],"cpu_affinity":j["cpu_affinity"],"block":j["block"],"events":events,"qualified":qualified,"per_request":per,"IPC":ipc,"effective_user_cycle_GHz":count("cycles:u").map(|v|v/user_ms/1e6),"request_median_ms":median(&samples),"CPU_ms_per_request":(user_ms+system_ms)/31.,"usage":usage,"samples_ms":samples}));
+        let proof=r(format!("proofs/{n}/0.proof"));let public=r(format!("proofs/{n}/0.public"));let sha=hash(&proof);assert_eq!(fs::metadata(&proof).unwrap().len(),164);assert_eq!(hash(&public),c["public_sha256"]);let receipt=fs::read_to_string(r(format!("offline/verify-{n}/stdout.log"))).unwrap();verified(&receipt,&sha,c["public_sha256"].as_str().unwrap(),c["image_sha256"].as_str().unwrap());assert!(prior.insert(sha.clone()));proofs.push(json!({"name":n,"sha256":sha,"public_sha256":hash(&public),"bytes":164,"independently_verified":true}));
+    }
+    assert_eq!(prior.len(),22198);let mut topologies=BTreeMap::new();
+    for w in[1,16,32]{let rows=runs.iter().filter(|row|row["workers"]==w).collect::<Vec<_>>();assert_eq!(rows.len(),3);let qualified=rows.iter().all(|r|r["qualified"]==true);let mut counters=BTreeMap::new();for event in EVENTS{let values=rows.iter().filter_map(|r|r["per_request"][event].as_f64()).collect::<Vec<_>>();counters.insert(event,json!({"median":(!values.is_empty()).then(||median(&values)),"minimum":values.iter().copied().reduce(f64::min),"maximum":values.iter().copied().reduce(f64::max)}));}let vals=|key:&str|rows.iter().filter_map(|r|r[key].as_f64()).collect::<Vec<_>>();topologies.insert(w.to_string(),json!({"all_panels_qualified":qualified,"counters":counters,"median_request_ms":median(&vals("request_median_ms")),"median_CPU_ms_per_request":median(&vals("CPU_ms_per_request")),"median_IPC":(!vals("IPC").is_empty()).then(||median(&vals("IPC"))),"median_effective_user_cycle_GHz":(!vals("effective_user_cycle_GHz").is_empty()).then(||median(&vals("effective_user_cycle_GHz")))}));}
+    save(r("proof-inventory.json"),&json!(proofs));save(r("proof-sha256-after.json"),&json!(prior));save(r("analysis.json"),&json!({"complete":true,"diagnostic_only":true,"SDK_requests":306,"new_independent_exports":9,"prior_proof_count":22189,"independent_proof_count":22198,"runs":runs,"topologies":topologies,"all_counter_panels_qualified":runs.iter().all(|r|r["qualified"]==true),"source_rebuilds":0,"production_changed":false,"adopted":false,"goal_achieved":false,"new_latency_qualification":false}));println!("Closed9PMUpanels/9Gnark;ledger22198;noadoption");
+}
+#[cfg(test)]mod tests{use super::*;
+    #[test]fn native_csv_count_coverage(){let(name,v)=event_line("1234;;cycles:u;500000;100.00;;").unwrap();assert_eq!(name,"cycles:u");assert_eq!(v["count"],1234.);assert_eq!(v["qualified"],true);}
+    #[test]fn multiplexed_is_unqualified(){let(_,v)=event_line("1234;;cycles:u;500000;80.00;;").unwrap();assert_eq!(v["qualified"],false);assert_eq!(v["count"],1234.);}
+    #[test]fn unsupported_retained(){let(_,v)=event_line("<not supported>;;cycles:u;0;100.00;;").unwrap();assert_eq!(v["qualified"],false);assert!(v["count"].is_null());}
+    #[test]fn headers_and_bad_row(){assert!(event_line("# started on ...").is_none());assert!(event_line(" ").is_none());let(_,v)=event_line("malformed").unwrap();assert_eq!(v["qualified"],false);}
+    #[test]fn exact_coverage_threshold(){let(_,v)=event_line("1;;instructions:u;12;99.9;").unwrap();assert_eq!(v["qualified"],true);}
+}

@@ -329,4 +329,16 @@ Entry/return probes observe nine function boundaries in the exact accepted execu
 |16|9.318502|10.139739|1.044096260|[0.830575045, 1.106500465]|false|
 |32|8.020676|8.225231|1.029462841|[0.997750683, 1.047691649]|false|
 
-All 21 recorded processes have 31 complete SDK intervals, balanced entry/return stacks, one PID and zero lost records. The trial adds 1,440 SDK requests and 45 fresh independent Gnark exports; the ledger is now 22,189. All probes in the owned group were removed. Production and all accepted local/AWS/M5 tables remain unchanged. No source adoption or new performance qualification follows.
+All21recorded processes have31completeSDKintervals, balanced entry/return stacks, one PID and zero lost records. The trial adds1440SDKrequests and45fresh independent Gnark exports; the ledger is now22,189. All probes in the owned group were removed. Production and all accepted local/AWS/M5 tables remain unchanged. No source adoption or new performance qualification follows.
+
+## Retired work across worker counts
+
+Three fixed PMU blocks compare the same frozen SDK at 1/16/32 workers with no uprobes or source rebuild. Counts include worker-policy differences as well as runtime work; CPU time is not an instruction count. No new latency qualification or adoption follows. [Full diagnostic](../2026-10-29-worker-work175/README.md).
+
+|Workers|Instructions/request|Cycles/request|IPC|CPU ms/request|All panels qualified|
+|---|---:|---:|---:|---:|---|
+|1|1353869659|525000173|2.579|95.585|true|
+|16|1380964882|588026749|2.348|116.821|true|
+|32|1421211564|838068920|1.696|181.509|true|
+
+All nine new exports independently verify; the trial adds 306 SDK requests and nine new Gnark proofs. Three existing topology preflights are reused. The ledger is now 22,198; production, all accepted local/AWS/M5 tables and the prior failed parallel-trace overhead checks remain unchanged.
