@@ -1,0 +1,16 @@
+error[E0282]: type annotations needed
+   --> /home/ubuntu/src/zopro-perf-work/g2-product-sub175/model.rs:115:13
+    |
+115 |         let x = BigUint::one() << bits;
+    |             ^
+116 |         ts.extend([&x - 1u32, x.clone(), x + 1u32]);
+    |                               - type must be known at this point
+    |
+help: consider giving `x` an explicit type
+    |
+115 |         let x: /* Type */ = BigUint::one() << bits;
+    |              ++++++++++++
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0282`.
