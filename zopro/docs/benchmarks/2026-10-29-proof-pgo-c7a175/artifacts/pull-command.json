@@ -1,0 +1,56 @@
+{
+  "Command": {
+    "AlarmConfiguration": {
+      "Alarms": [],
+      "IgnorePollAlarmFailure": false
+    },
+    "CloudWatchOutputConfig": {
+      "CloudWatchLogGroupName": "",
+      "CloudWatchOutputEnabled": false
+    },
+    "CommandId": "349222fd-1174-4f97-b1cb-9cae500246e5",
+    "Comment": "Owned pgo-c7a-20261029-115324 pull",
+    "CompletedCount": 0,
+    "DeliveryTimedOutCount": 0,
+    "DocumentName": "AWS-RunShellScript",
+    "DocumentVersion": "$DEFAULT",
+    "ErrorCount": 0,
+    "ExpiresAfter": "2026-10-29T13:07:35.876000+00:00",
+    "InstanceIds": [
+      "i-019acb8ff0bdc76cc"
+    ],
+    "MaxConcurrency": "50",
+    "MaxErrors": "0",
+    "NotificationConfig": {
+      "NotificationArn": "",
+      "NotificationEvents": [],
+      "NotificationType": ""
+    },
+    "OutputS3BucketName": "",
+    "OutputS3KeyPrefix": "",
+    "OutputS3Region": "eu-north-1",
+    "Parameters": {
+      "commands": [
+        "set -eu",
+        "systemctl is-active zopro-bench-ttl.timer",
+        "install -d -m700 /var/tmp/zopro-pgo-c7a-20261029-115324/docker-auth",
+        "/usr/local/bin/aws ecr get-login-password --region eu-north-1 | docker --config /var/tmp/zopro-pgo-c7a-20261029-115324/docker-auth login --username AWS --password-stdin 558215002830.dkr.ecr.eu-north-1.amazonaws.com >/dev/null",
+        "docker --config /var/tmp/zopro-pgo-c7a-20261029-115324/docker-auth pull 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:afa261e4520f3db808b8a64654f2b3dde8c9380d876659f1d93a448bbf2382e1",
+        "rm -rf -- /var/tmp/zopro-pgo-c7a-20261029-115324/docker-auth",
+        "docker image inspect 558215002830.dkr.ecr.eu-north-1.amazonaws.com/zolana-prover@sha256:afa261e4520f3db808b8a64654f2b3dde8c9380d876659f1d93a448bbf2382e1 --format '{{.Id}}'",
+        "cat /proc/loadavg"
+      ],
+      "executionTimeout": [
+        "600"
+      ]
+    },
+    "RequestedDateTime": "2026-10-29T11:57:35.876000+00:00",
+    "ServiceRole": "",
+    "Status": "Pending",
+    "StatusDetails": "Pending",
+    "TargetCount": 1,
+    "Targets": [],
+    "TimeoutSeconds": 3600,
+    "TriggeredAlarms": []
+  }
+}
