@@ -1,0 +1,17 @@
+{
+  "accepted_KH_and_A_exact": true,
+  "after": "    #[cfg(zopro_balanced_phi)]\n    if let Some(value) = super::g2_borrowed::balanced_raw(bases, words) { return value; }\n    hb_raw(bases, words, 12, 2)",
+  "all17field_source_files_exact": true,
+  "before": "    hb_raw(bases, words, 12, 2)",
+  "changed_file": "crates/zopro-core/src/msm_affine/g2_phi.rs",
+  "field33_tests_inherited": true,
+  "new_helper": "crates/zopro-core/src/msm_affine/g2_borrowed/balanced.rs",
+  "original_files": 175,
+  "originals_exact": 173,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "second_parent": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+  "second_parent_suffix": "\n#[cfg(any(test,zopro_balanced_phi))]\nmod balanced;\n#[cfg(test)]\nthread_local! {static BALANCED_CALLS: std::cell::Cell<usize> = const {std::cell::Cell::new(0)};}\n#[cfg(any(test,zopro_balanced_phi))]\npub(super) fn balanced_raw(bases:&[G2Affine],words:&mut [[u64;4]])->Option<G2Projective> {\n    if !BatchAdd::<G2Config>::default().borrowed_g2_enabled() {return None;}\n    #[cfg(test)] BALANCED_CALLS.with(|c|c.set(c.get()+1));\n    Some(balanced::raw(bases,words,2))\n}\n",
+  "source_files": 176,
+  "workspace_forecast_exact": true
+}
