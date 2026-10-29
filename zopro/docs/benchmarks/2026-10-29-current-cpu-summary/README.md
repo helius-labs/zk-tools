@@ -93,6 +93,16 @@ ON/accepted paired ratio is 0.997222755 [0.995722920, 1.000449909], with 20/31 w
 
 Observed ON peak RSS is 102.50 MiB versus 133.50 MiB accepted, 31 MiB or 23.22% lower in this primary capture. This memory observation is retained without claiming minimum RAM, pressure behavior or a universal reduction. Thirty-one fixed blocks use 151 requests after three primes. Their fresh accepted 8.031 ms is a separate capture from the earlier complete nine-shape 8.022 ms qualification above. [Full proof result](../2026-10-29-swiss-groups-sdk175/README.md), [constructor evidence](../2026-10-29-swiss-groups175/README.md).
 
+## Latest diagnostics and next experiment
+
+An offline audit of the grouping trial finds identical machine-code bytes in the selected accepted/OFF G2 stream, G1 streams and reduction trees. G2 accounts for about 89% of the net increase in flat sampled period, but the control regression remains unexplained. The recordings lack CPU placement data. These observations neither identify a cause nor change the failed calibration result. [Code and profile audit](../2026-10-29-swiss-control-audit175/README.md).
+
+The selected next optimization classifies overlapping A/B witness wires once per proof, then reconstructs each query's stable local groups. It uses existing solved witness values, without a persistent per-key lookup expansion. The completed semantic/count screen reproduces all 18 query metadata outputs across nine fixtures and checks 75 synthetic cases. For 1×2, modeled nonzero dictionary visits fall from 47,762 to 28,638, a **40.04% reduction in hashing visits**. This is not a full-proof speedup or a timed native implementation. [Shared classification screen](../2026-10-29-wire-union-census175/README.md).
+
+The primary dense labels and two remaps account for 366,252 bytes, but that partial count excludes the global dictionary, output buffers, allocator overhead and overlap with FFT scratch. The next native caller prototype must include complete workspace accounting, remapping and scheduling costs. In particular, a shared pass can delay B query readiness despite reducing summed work. Full-proof latency and peak RSS must determine whether the change is useful.
+
+The grouped dictionary's lower observed RSS also remains a valid lead for a separately declared memory/latency qualification. Such a qualification must set its nonregression bound before measurement and preserve the original failed speed gate. It has not been adopted under a new tradeoff. No new AWS run is reported after the comparison above.
+
 ## Earlier local full proof experiment
 
 The early-X candidate moves an existing coordinate correction earlier in the batched affine addition. Its caller benchmark passes with a 0.320% aggregate gain versus fresh OFF, but this does not translate into a verified full-proof gain. Production remains unchanged.
