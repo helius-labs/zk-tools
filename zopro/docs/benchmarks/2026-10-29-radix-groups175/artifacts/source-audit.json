@@ -1,0 +1,18 @@
+{
+  "after": "    let reservation = grouping_cost::reserve(scalars.len(), percent)?;\n    #[cfg(zopro_radix_groups)]\n    if radix::fits(scalars.len(), percent) {\n        return radix::build(scalars, percent, reservation);\n    }",
+  "all17field_source_files_exact": true,
+  "before": "    let reservation = grouping_cost::reserve(scalars.len(), percent)?;",
+  "changed_file": "crates/zopro-core/src/msm_affine/grouping.rs",
+  "field33_tests_inherited": true,
+  "new_helper": "crates/zopro-core/src/msm_affine/grouping/radix.rs",
+  "new_key_tables_point_copies": 0,
+  "original_files": 175,
+  "originals_exact": 174,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "sample_cutoffs_reservation_canonicalization_unchanged": true,
+  "sorted_fingerprints_not_equality": true,
+  "source_files": 176,
+  "stable_first_input_and_membership_order_preserved": true,
+  "suffix": "\n#[cfg(any(test,zopro_radix_groups))]\nmod radix;\n"
+}

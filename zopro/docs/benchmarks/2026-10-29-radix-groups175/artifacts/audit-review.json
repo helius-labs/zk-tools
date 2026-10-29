@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "scope": "correction of symbol visibility assumption before first capture",
+  "original_native_workflow_exit": 1,
+  "successful_native_steps": [
+    "control-core",
+    "control-prover",
+    "libraries-control",
+    "freeze-control",
+    "control",
+    "candidate-core",
+    "candidate-prover",
+    "libraries-candidate",
+    "freeze-candidate",
+    "candidate"
+  ],
+  "successful_native_steps_repeated": false,
+  "original_failed_step": "code-audit",
+  "reason": "LLVM inlines radix builder into scalar_groups; no standalone defining child symbol",
+  "corrected_audit_execution": "direct tool exec observed exit0; audit.log retained; not an xtask workflow receipt",
+  "corrected_audit_input_checks": "all366 build pins, both immutable library pin sets,128core test/dispatch receipts",
+  "actual_group_entry_code_changed": true,
+  "OFF_entry_equal_accepted": true,
+  "collision_sort_instantiations": "ON-only std sort specializations name the exact radix comparison closure; labels are generic context, not defining source-path profile attribution",
+  "standalone_radix_definition_required": false,
+  "arithmetic_or_grouping_changed": false,
+  "measurement_gates_changed": false,
+  "measurements_started": false,
+  "original_failure_retained": true
+}
