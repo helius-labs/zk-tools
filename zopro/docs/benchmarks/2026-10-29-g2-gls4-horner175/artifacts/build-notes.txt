@@ -1,0 +1,8 @@
+Initial rustfmt invocation stopped before compilation: gls4.rs declared lattice
+before bootstrap had created its local file. No tests or timings ran. Bootstrap
+is now built/run first; the new module is formatted with skip_children=true so
+the inherited lattice bodies remain byte-exact apart from function visibility.
+
+First capture-helper compilation failed E0425 before any capture: the new
+verify-traced arm needed a local argv vector because the reused helper's main
+dispatch reads args directly. Added that vector; no benchmark/test rerun.
