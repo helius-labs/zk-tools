@@ -288,3 +288,18 @@ The separately declared caller gate **fails**. Fifteen blocks retain all 18 owne
 |threaded12/on/off|1.017953293|[1.015005397, 1.020129986]|0|
 
 The component adds no SDK requests, independent proof exports or adoption. The distinct-proof ledger remains 22,144, and the accepted CPU/Metal and AWS comparisons above are unchanged.
+
+## Latest trace-one Fq2 basis arithmetic screen
+
+The separately declared component gate **fails**. A different polynomial basis, j²=j+1, reduces complex multiplication to 250 IFMA sites but charges its norm, conjugation and exact-divide-by-three square. Six contexts use 31 blocks against exact-field frozen and fresh controls. Basis conversion is outside the clock: this is an optimistic arithmetic screen, not proof latency or a key-format change. Production remains unchanged. [Full results](../2026-10-29-golden-basis175/README.md).
+
+|Context|Candidate/fresh ratio|Bounds|Wins / 31|
+|---|---:|---|---:|
+|chain|0.937141613|[0.934206979, 0.938293065]|31|
+|streams4|0.904357974|[0.902788741, 0.906007340]|30|
+|scaled|0.956290054|[0.955043936, 0.957971697]|31|
+|square|2.037000272|[2.029242757, 2.038219167]|0|
+|norm|1.134826491|[1.133578652, 1.135965162]|0|
+|norm-affine|1.241030015|[1.239044964, 1.241982669]|0|
+
+Calibration failures: `[]`. Nonregression failures: `["square/frozen","square/fresh","norm/frozen","norm/fresh","norm-affine/frozen","norm-affine/fresh"]`. Gain failures: `["norm-affine/frozen","norm-affine/fresh","aggregate/0","aggregate/1"]`. No SDK proofs or new Gnark exports; the ledger remains 22,144. No new AWS measurement or source adoption follows this arithmetic screen. All earlier failed gates and positive contexts remain.

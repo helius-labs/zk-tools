@@ -50,6 +50,8 @@ fn select_records(value: &Value, fields: &[&str]) -> Value {
 }
 fn main() {
     let root = Path::new(Z);
+    let basis=read(root.join("docs/benchmarks/2026-10-29-golden-basis175/artifacts/analysis.json"));
+    assert_eq!(basis["ledger"],22144);
     let cached_x=read(root.join("docs/benchmarks/2026-10-29-g2-cached-x175/artifacts/analysis.json"));
     assert_eq!(cached_x["complete"],true);
     let cached_sdk=read(root.join("docs/benchmarks/2026-10-29-cached-hash-sdk175/artifacts/analysis.json"));
@@ -89,6 +91,7 @@ fn main() {
         "2026-10-29-cached-hash-groups175",
         "2026-10-29-cached-hash-sdk175",
         "2026-10-29-g2-cached-x175",
+        "2026-10-29-golden-basis175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -429,6 +432,10 @@ fn main() {
     md += "|Aggregate|Ratio|Bounds|Wins / 15|\n|---|---:|---|---:|\n";
     for(k,v)in cached_x["aggregates"].as_object().unwrap(){writeln!(md,"|{k}|{:.9}|[{:.9}, {:.9}]|{}|",v["median"].as_f64().unwrap(),v["low"].as_f64().unwrap(),v["high"].as_f64().unwrap(),v["wins"]).unwrap();}
     md += "\nThe component adds no SDK requests, independent proof exports or adoption. The distinct-proof ledger remains 22,144, and the accepted CPU/Metal and AWS comparisons above are unchanged.\n";
+    md+="\n## Latest trace-one Fq2 basis arithmetic screen\n\n";
+    writeln!(md,"The separately declared component gate **{}**. A different polynomial basis, j²=j+1, reduces complex multiplication to 250 IFMA sites but charges its norm, conjugation and exact-divide-by-three square. Six contexts use 31 blocks against exact-field frozen and fresh controls. Basis conversion is outside the clock: this is an optimistic arithmetic screen, not proof latency or a key-format change. Production remains unchanged. [Full results](../2026-10-29-golden-basis175/README.md).\n\n|Context|Candidate/fresh ratio|Bounds|Wins / 31|\n|---|---:|---|---:|",if basis["gate_passed"]==true{"passes"}else{"fails"}).unwrap();
+    for row in basis["rows"].as_array().unwrap(){let p=&row["paired"]["fresh"];writeln!(md,"|{}|{:.9}|[{:.9}, {:.9}]|{}|",row["pattern"].as_str().unwrap(),p["median"].as_f64().unwrap(),p["low"].as_f64().unwrap(),p["high"].as_f64().unwrap(),p["wins"]).unwrap();}
+    writeln!(md,"\nCalibration failures: `{}`. Nonregression failures: `{}`. Gain failures: `{}`. No SDK proofs or new Gnark exports; the ledger remains 22,144. No new AWS measurement or source adoption follows this arithmetic screen. All earlier failed gates and positive contexts remain.\n",basis["calibration_failures"],basis["nonregression_failures"],basis["gain_failures"]).unwrap();
     fs::write(dest.join("README.md"), md).unwrap();
 
 
@@ -535,6 +542,8 @@ fn main() {
     data["historical_distinct_Gnark_ledger"]=json!(22144);
     data["previous_signed_G2_caller"]=data["latest_actual_G2_caller"].clone();
     data["latest_actual_G2_caller"]=json!({"report":"../2026-10-29-g2-cached-x175/README.md","gate_passed":cached_x["component_gate"],"aggregates":cached_x["aggregates"],"pairs":select_records(&cached_x["pairs"], &["median","low","high","wins"]),"failed_checks":cached_x["failed_checks"],"native_core_tests":cached_x["native_core_tests"],"native_prover_tests":cached_x["native_prover_tests"],"SDK_requests":0,"new_independent_exports":0,"production_changed":false});
+    data["source_commit"]=json!("accbb63d4bc84265ef212e303cccc19a50a6e6d7");
+    data["latest_basis_component"]=json!({"report":"../2026-10-29-golden-basis175/README.md","gate_passed":basis["gate_passed"],"rows":basis["rows"],"aggregates":basis["aggregates"],"calibration_failures":basis["calibration_failures"],"nonregression_failures":basis["nonregression_failures"],"gain_failures":basis["gain_failures"],"SDK_requests":0,"new_proofs":0,"conversion_outside_clock":true,"production_changed":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),
