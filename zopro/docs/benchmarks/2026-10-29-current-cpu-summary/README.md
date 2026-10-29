@@ -83,7 +83,21 @@ The container recorded zero memory/swap/OOM event deltas. It also recorded 39 CP
 
 Direct signed CIOS differences improve the affine arithmetic expression by 7.38% against fresh ordinary code, with 31/31 wins and paired ratio 0.926221229 [0.925461631, 0.927912346]. The four-pattern aggregate improves 0.45%, also 31 wins, but the dependent chain regresses 2.89% and product-plus-scaling 3.81%. Three nonregression checks fail, so the declared generic component gate remains false.
 
-The routine has no new heap buffer or key table. Its BigInt model passes 30,084 exact cases, and two native tests pass 172,544 chained Arkworks lane comparisons. All 372 latency processes and four gated profiles complete; no new SDK proof is measured. This is an arithmetic-expression gain, not faster proving. The result selects a separately declared actual-G2-batch qualification while retaining all synthetic regressions and the failed original gate. [Full component report](../2026-10-29-signed-difference175/README.md).
+The routine has no new heap buffer or key table. Its BigInt model passes 30,084 exact cases, and two native tests pass 172,544 chained Arkworks lane comparisons. All 372 latency processes and four gated profiles complete; no new SDK proof is measured. This is an arithmetic-expression gain, not faster proving. A separately declared actual-G2-batch qualification follows below, retaining all synthetic regressions and the failed original gate. [Full component report](../2026-10-29-signed-difference175/README.md).
+
+## Latest complete G2 caller experiment
+
+The exact signed-difference helper is now measured in complete owned and borrowed G2 prefix batches, including inversion, packing, coordinate output and scatter. Eighteen contexts cover 32/200/352 pairs at 1/16/32 workers; 199/351-pair tails receive correctness preflights. Fifteen fixed blocks compare frozen original libraries, fresh OFF and candidate ON, with no new table, point copy or timed allocation.
+
+The separately declared caller gate **fails**. The earlier generic arithmetic gate remains failed, and production remains unchanged. No SDK proof timing or independent proof is added. All 930 workflow steps complete, including six gated profiles with CPU IDs/timestamps and zero lost records. [Full caller results and failed checks](../2026-10-29-signed-g2-caller175/README.md).
+
+|Caller aggregate|Candidate/control ratio|Bounds|Wins / 15|
+|---|---:|---|---:|
+|all18/on/frozen|0.996913176|[0.996031448, 1.000000895]|11|
+|all18/on/off|0.997421680|[0.995443811, 0.999687934]|13|
+|threaded12/on/frozen|1.002934622|[1.000923399, 1.005559305]|2|
+|threaded12/on/off|1.001960588|[0.999557705, 1.005031514]|5|
+
 
 ## Latest local full proof experiment
 

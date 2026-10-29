@@ -1,0 +1,40 @@
+{
+  "children": [
+    [
+      "kernel.rs",
+      "crates/zopro-bn254/src/signed_difference.rs"
+    ],
+    [
+      "test-field.rs",
+      "crates/zopro-bn254/src/signed_difference_tests.rs"
+    ],
+    [
+      "caller_probe.rs",
+      "crates/zopro-core/src/msm/caller_probe.rs"
+    ]
+  ],
+  "edits": [
+    [
+      "dy[1].difference2(&dx[0], &dy[0], &dx[1])",
+      "{\n                #[cfg(all(zopro_signed_g2,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n                { dy[1].difference2_signed_g2(&dx[0], &dy[0], &dx[1]) }\n                #[cfg(not(all(zopro_signed_g2,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n                { dy[1].difference2(&dx[0], &dy[0], &dx[1]) }\n            }"
+    ],
+    [
+      "a[0].difference2(&b[0], &a[1], &b[1])",
+      "{\n                #[cfg(all(zopro_signed_g2,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n                { a[0].difference2_signed_g2(&b[0], &a[1], &b[1]) }\n                #[cfg(not(all(zopro_signed_g2,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n                { a[0].difference2(&b[0], &a[1], &b[1]) }\n            }"
+    ]
+  ],
+  "exact_parent_kernel": "c525d37c835e33adb7be4863605bb3dedb8eb995aa1fc8c4696cefe69cab7a34",
+  "exact_parent_tests": "4fb88f98c5c53f2bc875bb789aa5faacb36316ff4af9caffb1020332126d1411",
+  "frozen_inverse175_verified": true,
+  "originals": 175,
+  "originals_exact": 171,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "snapshot_files": 178,
+  "suffixes": {
+    "crates/zopro-bn254/src/ifma8.rs": "\n#[cfg(zopro_signed_g2)]\ninclude!(\"signed_difference.rs\");\n#[cfg(zopro_signed_g2)]\ninclude!(\"signed_difference_tests.rs\");\n",
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(zopro_gauss_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(zopro_gauss_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/simd.rs": "\n#[cfg(all(zopro_signed_g2,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch {\n    #[inline(always)] pub(crate) fn difference2_signed_g2(&self,b:&Self,c:&Self,d:&Self)->Self { Self(self.0.difference2_signed(&b.0,&c.0,&d.0)) }\n}\n"
+  }
+}
