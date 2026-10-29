@@ -1,0 +1,228 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/postcapture-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--show-lost-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w32-accept.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-1x2-w32-accept",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w32-accept.data"
+      ],
+      "kind": "command",
+      "name": "evlist-cycles-1x2-w32-accept",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/decode-helper",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w32-accept.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-1x2-w32-accept",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--show-lost-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w32-offset.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-1x2-w32-offset",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w32-offset.data"
+      ],
+      "kind": "command",
+      "name": "evlist-cycles-1x2-w32-offset",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/decode-helper",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w32-offset.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-1x2-w32-offset",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--show-lost-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w32-ready.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-1x2-w32-ready",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w32-ready.data"
+      ],
+      "kind": "command",
+      "name": "evlist-cycles-1x2-w32-ready",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/decode-helper",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w32-ready.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-1x2-w32-ready",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--show-lost-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w16-accept.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-1x2-w16-accept",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w16-accept.data"
+      ],
+      "kind": "command",
+      "name": "evlist-cycles-1x2-w16-accept",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/decode-helper",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w16-accept.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-1x2-w16-accept",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--show-lost-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w16-offset.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-1x2-w16-offset",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w16-offset.data"
+      ],
+      "kind": "command",
+      "name": "evlist-cycles-1x2-w16-offset",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/decode-helper",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w16-offset.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-1x2-w16-offset",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--show-lost-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w16-ready.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-1x2-w16-ready",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w16-ready.data"
+      ],
+      "kind": "command",
+      "name": "evlist-cycles-1x2-w16-ready",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/decode-helper",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/g2-part-ready175/perf/cycles-1x2-w16-ready.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-1x2-w16-ready",
+      "timeout_seconds": 180
+    }
+  ],
+  "version": 1
+}
