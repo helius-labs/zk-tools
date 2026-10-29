@@ -4,6 +4,8 @@ use crate::msm::BatchAdd;
 use rayon::prelude::*;
 use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fr, Projective};
 
+mod balanced;
+
 pub(super) fn enabled() -> bool {
     cfg!(all(
         feature = "ifma8",
@@ -164,6 +166,9 @@ pub(super) fn fused<C: CurveConfig<Base = Fq>>(
     assert_eq!(h.len(), sh.len());
     assert!((12..=14).contains(&bits));
     assert!(k.len().min(h.len()) >= 1024);
+    if bits == 13 {
+        return balanced::fused(k, sk, h, sh);
+    }
     let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(bits);
     let size = batch_size(bits).max(32);
     let sums: Vec<_> = (0..windows)
