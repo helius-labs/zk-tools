@@ -1,0 +1,35 @@
+{
+  "test_compile": [
+    "rustc",
+    "--edition=2021",
+    "--test",
+    "-O",
+    "-C",
+    "target-cpu=native",
+    "--extern",
+    "zopro_bn254=/home/ubuntu/src/zopro-perf-work/balanced-kh-production/frozen/candidate/libzopro_bn254-5778e0f87c7d66ba5e17a5f97bf5992c699ca4d2f3df952e07aca8ff03a40370.rlib",
+    "/home/ubuntu/src/zopro-perf-work/winograd8-caller175/driver.rs",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/winograd8-caller175/tests"
+  ],
+  "test_run": [
+    "/home/ubuntu/src/zopro-perf-work/winograd8-caller175/tests",
+    "--test-threads=1"
+  ],
+  "driver_compile": [
+    "rustc",
+    "--edition=2021",
+    "-O",
+    "-C",
+    "target-cpu=native",
+    "-C",
+    "lto=fat",
+    "-C",
+    "codegen-units=1",
+    "--extern",
+    "zopro_bn254=/home/ubuntu/src/zopro-perf-work/balanced-kh-production/frozen/candidate/libzopro_bn254-5778e0f87c7d66ba5e17a5f97bf5992c699ca4d2f3df952e07aca8ff03a40370.rlib",
+    "/home/ubuntu/src/zopro-perf-work/winograd8-caller175/driver.rs",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/winograd8-caller175/driver"
+  ]
+}

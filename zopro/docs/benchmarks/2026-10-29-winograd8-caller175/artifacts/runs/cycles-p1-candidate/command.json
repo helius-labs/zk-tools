@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "180s",
+    "sudo",
+    "-n",
+    "perf",
+    "record",
+    "--no-buildid-cache",
+    "-e",
+    "cycles:u",
+    "-F",
+    "199",
+    "-m",
+    "512",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/winograd8-caller175/perf/cycles-p1-candidate.data",
+    "--",
+    "taskset",
+    "-c",
+    "2",
+    "/home/ubuntu/src/zopro-perf-work/winograd8-caller175/driver",
+    "candidate",
+    "1",
+    "131071",
+    "88771"
+  ],
+  "environment": {}
+}
