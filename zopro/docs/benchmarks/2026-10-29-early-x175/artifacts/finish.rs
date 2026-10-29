@@ -1,0 +1,34 @@
+//! Reuse output canonical X in Y; defer host export until after Y arithmetic.
+use super::*;
+#[inline(always)]
+pub(super) fn g1(slope:&FqBatch, ax:&FqBatch, ay:&FqBatch,xsum:&FqBatch)->([Fq;8],[Fq;8]) {
+    let x=slope.mul(slope).sub(xsum).canonical_x();
+    let y=slope.mul(&ax.sub_canonical(&x.value())).sub(ay);
+    (x.get(),y.get())
+}
+#[inline(always)]
+pub(super) fn g2(slope:&[FqBatch;2],ax:&[FqBatch;2],ay:&[FqBatch;2],bx:&[FqBatch;2])->([Fq2;8],[Fq2;8]) {
+    let loose=Fq2::lanes_sub(&Fq2::lanes_square(slope),&Fq2::lanes_add(ax,bx));
+    let x=[loose[0].canonical_x(),loose[1].canonical_x()];
+    let dx=[ax[0].sub_canonical(&x[0].value()),ax[1].sub_canonical(&x[1].value())];
+    let y=Fq2::lanes_sub(&Fq2::lanes_mul(slope,&dx),ay);
+    let (x0,x1)=(x[0].get(),x[1].get());
+    (core::array::from_fn(|i|Fq2::new(x0[i],x1[i])),fq2_unpack(y))
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn early_x_coordinate_expressions_match_scalar_fields() {
+        let mut state=Fq::from(817263u64);
+        let mut next=||{state=state*Fq::from(6364136223846793005u64)+Fq::ONE;state};
+        for _ in 0..1024 {
+            let s:[Fq;8]=core::array::from_fn(|_|next());let a:[Fq;8]=core::array::from_fn(|_|next());let b:[Fq;8]=core::array::from_fn(|_|next());let y:[Fq;8]=core::array::from_fn(|_|next());
+            let (gotx,goty)=g1(&FqBatch::new(&s),&FqBatch::new(&a),&FqBatch::new(&y),&FqBatch::new(&a).add_canonical(&FqBatch::new(&b)));
+            for i in 0..8 {let x=s[i].square()-a[i]-b[i];assert_eq!(gotx[i],x);assert_eq!(goty[i],s[i]*(a[i]-x)-y[i]);}
+            let s:[Fq2;8]=core::array::from_fn(|_|Fq2::new(next(),next()));let a:[Fq2;8]=core::array::from_fn(|_|Fq2::new(next(),next()));let b:[Fq2;8]=core::array::from_fn(|_|Fq2::new(next(),next()));let y:[Fq2;8]=core::array::from_fn(|_|Fq2::new(next(),next()));
+            let (gotx,goty)=g2(&fq2_pack(s),&fq2_pack(a),&fq2_pack(y),&fq2_pack(b));
+            for i in 0..8 {let x=s[i].square()-a[i]-b[i];assert_eq!(gotx[i],x);assert_eq!(goty[i],s[i]*(a[i]-x)-y[i]);}
+        }
+    }
+}

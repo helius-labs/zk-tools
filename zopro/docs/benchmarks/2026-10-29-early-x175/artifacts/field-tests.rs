@@ -1,0 +1,28 @@
+#[cfg(test)]
+mod early_x_tests {
+    use super::*;
+    use ark_ff::{Field,UniformRand,AdditiveGroup};
+    use ark_ref as ark;
+    #[test]
+    fn canonical_x_ranges_and_export_match_arkworks() {
+        let mut rng=ark_std::test_rng();
+        let p=crate::Fq::MODULUS;
+        let mut count=0;
+        for step in 0..4096 {
+            let expected:[ark::Fq;8]=core::array::from_fn(|i|match (step+i)%11 {0=>ark::Fq::ZERO,1=>ark::Fq::ONE,2=>-ark::Fq::ONE,_=>ark::Fq::rand(&mut rng)});
+            let raw=core::array::from_fn(|i|{let x=expected[i].0.0;if (step+i)%2==0{crate::portable::add4(x,p).0}else{x}});
+            let loose=Ifma8::<crate::FqConfig,true>::raw(&raw);
+            let canonical=loose.canonical_x();
+            let got=canonical.get();
+            assert_eq!(got,loose.get());
+            assert_eq!(got,canonical.lanes().get());
+            for i in 0..8 {assert_eq!(got[i].0,expected[i].0.0);assert!(crate::portable::less(got[i].0,p));count+=1;}
+            // Both operands are canonical here; unreduced p+a-b is <2p.
+            let a=core::array::from_fn(|i|crate::Fq::from_montgomery(expected[(i+3)%8].0.0));
+            let d=Ifma8::<crate::FqConfig,true>::new(&a).sub_canonical(canonical.lanes()).get();
+            for i in 0..8 {assert_eq!(d[i].0,(expected[(i+3)%8]-expected[i]).0.0);count+=1;}
+        }
+        assert_eq!(count,65536);
+        println!("65536 independent canonical-export/difference lane checks; lazy input spans0..2p");
+    }
+}

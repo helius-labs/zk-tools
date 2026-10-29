@@ -1,0 +1,41 @@
+{
+  "edits": {
+    "crates/zopro-core/src/msm.rs": [
+      "        let x = slope.mul(&slope).sub(&g.xsum);\n        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);\n        let (x, y) = (x.get(), y.get());",
+      "        let (x,y) = {\n            #[cfg(all(zopro_early_x,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n            { if FAST { early_x::g1(&slope,&g.ax,&g.ay,&g.xsum) } else { { let x = slope.mul(&slope).sub(&g.xsum); let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay); (x.get(),y.get()) } } }\n            #[cfg(not(all(zopro_early_x,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n            { let x = slope.mul(&slope).sub(&g.xsum); let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay); (x.get(),y.get()) }\n        };"
+    ],
+    "crates/zopro-core/src/msm/g2_borrowed.rs": [
+      "        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);\n        let (x, y) = (fq2_unpack(x), fq2_unpack(y));",
+      "        let (x,y) = {\n            #[cfg(all(zopro_early_x,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n            { if FAST { super::early_x::g2(&slope,&ax,&ay,&bx) } else { { let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx)); let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay); (fq2_unpack(x),fq2_unpack(y)) } } }\n            #[cfg(not(all(zopro_early_x,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n            { let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx)); let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay); (fq2_unpack(x),fq2_unpack(y)) }\n        };"
+    ]
+  },
+  "export_body_verbatim": true,
+  "field_originals_exact": 16,
+  "new_arithmetic_heap_buffers_key_tables": false,
+  "new_children": [
+    [
+      "field.rs",
+      "crates/zopro-bn254/src/early_x.rs"
+    ],
+    [
+      "finish.rs",
+      "crates/zopro-core/src/msm/early_x.rs"
+    ],
+    [
+      "caller_probe.rs",
+      "crates/zopro-core/src/msm/caller_probe.rs"
+    ]
+  ],
+  "old_frozen_source_reverse175_exact": true,
+  "original_files": 175,
+  "originals_exact": 170,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "snapshot_files": 178,
+  "suffixes": {
+    "crates/zopro-bn254/src/ifma8.rs": "\n#[cfg(zopro_early_x)]\ninclude!(\"early_x.rs\");\n",
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(zopro_gauss_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(zopro_gauss_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n\n#[cfg(all(zopro_early_x,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod early_x;\n",
+    "crates/zopro-core/src/simd.rs": "\n#[cfg(all(zopro_early_x,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(crate) struct CanonicalFqBatch(zopro_bn254::ifma8::CanonicalX<zopro_bn254::FqConfig>);\n#[cfg(all(zopro_early_x,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch {\n#[inline(always)] pub(crate) fn canonical_x(&self)->CanonicalFqBatch { CanonicalFqBatch(self.0.canonical_x()) }\n}\n#[cfg(all(zopro_early_x,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl CanonicalFqBatch {\n#[inline(always)] pub(crate) fn value(&self)->FqBatch { FqBatch(*self.0.lanes()) }\n#[inline(always)] pub(crate) fn get(&self)->[Fq;8] { self.0.get() }\n}\n"
+  }
+}

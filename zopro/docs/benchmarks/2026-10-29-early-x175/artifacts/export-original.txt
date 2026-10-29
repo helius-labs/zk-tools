@@ -1,0 +1,26 @@
+        // Fully initialize eight repr-transparent Fp values in four stores.
+        unsafe {
+            let [t0, t1, t2, t3, t4] = x.0;
+            let w0 = _mm512_or_si512(t0, _mm512_slli_epi64::<52>(t1));
+            let w1 = _mm512_or_si512(_mm512_srli_epi64::<12>(t1), _mm512_slli_epi64::<40>(t2));
+            let w2 = _mm512_or_si512(_mm512_srli_epi64::<24>(t2), _mm512_slli_epi64::<28>(t3));
+            let w3 = _mm512_or_si512(_mm512_srli_epi64::<36>(t3), _mm512_slli_epi64::<16>(t4));
+            let a = _mm512_unpacklo_epi64(w0, w1);
+            let b = _mm512_unpackhi_epi64(w0, w1);
+            let c = _mm512_unpacklo_epi64(w2, w3);
+            let d = _mm512_unpackhi_epi64(w2, w3);
+            let low = _mm512_set_epi64(11, 10, 3, 2, 9, 8, 1, 0);
+            let high = _mm512_set_epi64(15, 14, 7, 6, 13, 12, 5, 4);
+            let even_lo = _mm512_permutex2var_epi64(a, low, c);
+            let even_hi = _mm512_permutex2var_epi64(a, high, c);
+            let odd_lo = _mm512_permutex2var_epi64(b, low, d);
+            let odd_hi = _mm512_permutex2var_epi64(b, high, d);
+            let mut out = core::mem::MaybeUninit::<[Fp<C>; 8]>::uninit();
+            let p = out.as_mut_ptr().cast::<__m512i>();
+            _mm512_storeu_si512(p, _mm512_shuffle_i64x2::<0x44>(even_lo, odd_lo));
+            _mm512_storeu_si512(p.add(1), _mm512_shuffle_i64x2::<0xee>(even_lo, odd_lo));
+            _mm512_storeu_si512(p.add(2), _mm512_shuffle_i64x2::<0x44>(even_hi, odd_hi));
+            _mm512_storeu_si512(p.add(3), _mm512_shuffle_i64x2::<0xee>(even_hi, odd_hi));
+            out.assume_init()
+        }
+    }
