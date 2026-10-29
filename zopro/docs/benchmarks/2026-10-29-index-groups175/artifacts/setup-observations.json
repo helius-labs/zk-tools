@@ -1,0 +1,19 @@
+{
+  "record_type": "summary of observed setup failures; compiler receipts are archived separately",
+  "test_compile": {
+    "receipt": "initial-failure/native/compile-tests/stderr.log in source-and-receipts.json.gz",
+    "error": "E0689: rotate_left on an ambiguous integer type in the test closure",
+    "repair": "annotate the closure input as usize",
+    "successful_tests_repeated": false,
+    "measurements_before_repair": 0
+  },
+  "linked_code_audit": {
+    "observed_assertion": "linked.len(): observed 0, expected 2 separate builder symbols",
+    "initial_source": "initial-code-audit/runner.rs in source-and-receipts.json.gz",
+    "repair": "audit the actual emitted common build symbol containing both algorithms",
+    "preserved_symbol": "_RNvCs4W6t0ZobjTU_5probe5build",
+    "benchmark_source_or_binary_changed": false,
+    "successful_tests_or_builds_repeated": false,
+    "measurements_before_repair": 0
+  }
+}
