@@ -6,7 +6,7 @@
   "accepted_source_files": 175,
   "all_source175_current_hashes_verified": true,
   "as_of": "2026-10-29",
-  "historical_distinct_Gnark_ledger": 21259,
+  "historical_distinct_Gnark_ledger": 21697,
   "latest_actual_G2_caller": {
     "SDK_requests": 0,
     "aggregates": {
@@ -1870,54 +1870,434 @@
     "report": "../2026-10-29-representative-groups175/README.md"
   },
   "latest_local_experiment": {
-    "SDK_requests": 15954,
+    "SDK_requests": 20802,
+    "calibration_checks": {
+      "12x2-w32/OFF/accepted": true,
+      "16x2-w32/OFF/accepted": true,
+      "1x2-w32/OFF/accepted": true,
+      "24x2-w32/OFF/accepted": true,
+      "2x2-w32/OFF/accepted": true,
+      "4x2-w32/OFF/accepted": true,
+      "8x2-w32/OFF/accepted": true,
+      "merge-24x1-w32/OFF/accepted": true,
+      "merge-54x1-w32/OFF/accepted": true
+    },
+    "calibration_gate_required": false,
     "cells": {
+      "12x2-w32/OFF": {
+        "CPU_ms": 931.8543548387096,
+        "max_RSS_MiB": 727.0,
+        "median_ms": 33.798232
+      },
+      "12x2-w32/ON": {
+        "CPU_ms": 927.7114516129031,
+        "max_RSS_MiB": 657.0,
+        "median_ms": 33.531005
+      },
+      "12x2-w32/accepted": {
+        "CPU_ms": 936.225129032258,
+        "max_RSS_MiB": 713.25,
+        "median_ms": 33.869702000000004
+      },
+      "16x2-w32/OFF": {
+        "CPU_ms": 1127.1021612903226,
+        "max_RSS_MiB": 825.75,
+        "median_ms": 40.040498
+      },
+      "16x2-w32/ON": {
+        "CPU_ms": 1114.579741935484,
+        "max_RSS_MiB": 787.0,
+        "median_ms": 39.670771
+      },
+      "16x2-w32/accepted": {
+        "CPU_ms": 1129.3272580645162,
+        "max_RSS_MiB": 814.75,
+        "median_ms": 40.583149
+      },
       "1x2-w32/OFF": {
-        "CPU_ms": 182.087,
-        "max_RSS_MiB": 135.0,
-        "median_ms": 8.037214
+        "CPU_ms": 181.46701986754968,
+        "max_RSS_MiB": 136.25,
+        "median_ms": 8.026144
       },
       "1x2-w32/ON": {
-        "CPU_ms": 193.31597350993377,
-        "max_RSS_MiB": 137.0,
-        "median_ms": 8.481222
+        "CPU_ms": 183.0058476821192,
+        "max_RSS_MiB": 83.75,
+        "median_ms": 8.033347
       },
       "1x2-w32/accepted": {
-        "CPU_ms": 182.8606821192053,
-        "max_RSS_MiB": 133.75,
-        "median_ms": 8.140269
+        "CPU_ms": 183.14701324503312,
+        "max_RSS_MiB": 134.5,
+        "median_ms": 8.152022
+      },
+      "24x2-w32/OFF": {
+        "CPU_ms": 1892.2204516129032,
+        "max_RSS_MiB": 1297.41015625,
+        "median_ms": 66.117965
+      },
+      "24x2-w32/ON": {
+        "CPU_ms": 1922.7401935483872,
+        "max_RSS_MiB": 1221.75,
+        "median_ms": 66.81306500000001
+      },
+      "24x2-w32/accepted": {
+        "CPU_ms": 1901.2299677419355,
+        "max_RSS_MiB": 1282.8359375,
+        "median_ms": 66.70881800000001
+      },
+      "2x2-w32/OFF": {
+        "CPU_ms": 261.28735483870963,
+        "max_RSS_MiB": 273.0,
+        "median_ms": 11.246055
+      },
+      "2x2-w32/ON": {
+        "CPU_ms": 262.1922580645161,
+        "max_RSS_MiB": 217.5,
+        "median_ms": 11.204142
+      },
+      "2x2-w32/accepted": {
+        "CPU_ms": 262.78135483870966,
+        "max_RSS_MiB": 265.0,
+        "median_ms": 11.394626
+      },
+      "4x2-w32/OFF": {
+        "CPU_ms": 417.9446774193548,
+        "max_RSS_MiB": 323.5,
+        "median_ms": 15.896628
+      },
+      "4x2-w32/ON": {
+        "CPU_ms": 411.53467741935486,
+        "max_RSS_MiB": 290.75,
+        "median_ms": 15.852074
+      },
+      "4x2-w32/accepted": {
+        "CPU_ms": 420.63261290322583,
+        "max_RSS_MiB": 314.75,
+        "median_ms": 16.055527
+      },
+      "8x2-w32/OFF": {
+        "CPU_ms": 669.236064516129,
+        "max_RSS_MiB": 502.5,
+        "median_ms": 24.14012
+      },
+      "8x2-w32/ON": {
+        "CPU_ms": 663.8822903225806,
+        "max_RSS_MiB": 479.0,
+        "median_ms": 24.083721
+      },
+      "8x2-w32/accepted": {
+        "CPU_ms": 671.126870967742,
+        "max_RSS_MiB": 517.5,
+        "median_ms": 24.230379
+      },
+      "merge-24x1-w32/OFF": {
+        "CPU_ms": 1805.033612903226,
+        "max_RSS_MiB": 1180.72265625,
+        "median_ms": 64.97616000000001
+      },
+      "merge-24x1-w32/ON": {
+        "CPU_ms": 1817.467677419355,
+        "max_RSS_MiB": 1135.04296875,
+        "median_ms": 65.47005300000001
+      },
+      "merge-24x1-w32/accepted": {
+        "CPU_ms": 1811.6496129032255,
+        "max_RSS_MiB": 1180.0234375,
+        "median_ms": 65.574555
+      },
+      "merge-54x1-w32/OFF": {
+        "CPU_ms": 4442.136032258065,
+        "max_RSS_MiB": 1875.34765625,
+        "median_ms": 162.12888999999998
+      },
+      "merge-54x1-w32/ON": {
+        "CPU_ms": 4673.597677419354,
+        "max_RSS_MiB": 1897.41796875,
+        "median_ms": 172.72836999999998
+      },
+      "merge-54x1-w32/accepted": {
+        "CPU_ms": 4457.805903225806,
+        "max_RSS_MiB": 1885.01171875,
+        "median_ms": 162.474643
       }
     },
+    "failed_checks": [
+      "1x2-w32/ON/OFF",
+      "merge-54x1-w32/ON/OFF",
+      "merge-54x1-w32/ON/accepted",
+      "original8/ON/OFF/gain"
+    ],
     "gate_passed": false,
-    "new_independent_exports": 126,
+    "new_independent_exports": 438,
+    "original8_aggregates": {
+      "OFF": {
+        "high": 1.0022732670911356,
+        "low": 0.9950146286883932,
+        "median": 0.9986364220923016,
+        "nominal_coverage": 0.96484375,
+        "ratios": [
+          0.9950146286883932,
+          0.9976014076148344,
+          1.0022732670911356,
+          0.9960463580221756,
+          1.004125041056983,
+          0.9979735964001132,
+          0.9986364220923016,
+          1.0028320203675145,
+          0.994092955486958,
+          1.0026832131794303,
+          1.0001059296750423,
+          0.9946812099615512,
+          1.0011120604954455,
+          0.9999022776378714,
+          0.9924630435288612
+        ],
+        "wins": 9
+      },
+      "accepted": {
+        "high": 0.9906634583490468,
+        "low": 0.9873027586998748,
+        "median": 0.9890471794973262,
+        "nominal_coverage": 0.96484375,
+        "ratios": [
+          0.9890471794973262,
+          0.9852503644197452,
+          0.9891744975053108,
+          0.9873256053675812,
+          0.998874862117759,
+          0.9898924927981294,
+          0.9882453671611964,
+          0.9978640506553113,
+          0.9909549969945048,
+          0.9873027586998748,
+          0.989318538453818,
+          0.9906634583490468,
+          0.9852622993035351,
+          0.9884768098114014,
+          0.9767778217024534
+        ],
+        "wins": 15
+      }
+    },
     "pairs": {
+      "12x2-w32/OFF/accepted": {
+        "high": 1.0048455137837222,
+        "low": 0.9896005417631102,
+        "median": 0.9991234190952712,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.029536000000007338,
+        "wins": 8
+      },
+      "12x2-w32/ON/OFF": {
+        "high": 0.999252091056124,
+        "low": 0.9839781999748318,
+        "median": 0.9899644482558526,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.33784699999999646,
+        "wins": 13
+      },
+      "12x2-w32/ON/accepted": {
+        "high": 0.9974329147710096,
+        "low": 0.972234688494211,
+        "median": 0.9887909554090554,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.3796470000000056,
+        "wins": 12
+      },
+      "16x2-w32/OFF/accepted": {
+        "high": 1.0007335995681554,
+        "low": 0.9819859426778668,
+        "median": 0.9935797097558076,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.2577749999999952,
+        "wins": 11
+      },
+      "16x2-w32/ON/OFF": {
+        "high": 1.005067290773666,
+        "low": 0.987736447382041,
+        "median": 0.9925429590024516,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.2980129999999974,
+        "wins": 11
+      },
+      "16x2-w32/ON/accepted": {
+        "high": 0.9904485801358328,
+        "low": 0.969811704617266,
+        "median": 0.981256538919893,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.7600739999999959,
+        "wins": 12
+      },
       "1x2-w32/OFF/accepted": {
-        "high": 0.9913950533449508,
-        "low": 0.9834655417700658,
-        "median": 0.9876397602328846,
-        "nominal_coverage": 0.9705506265163422,
-        "paired_saving_ms": 0.10020899999999956,
-        "wins": 29
+        "high": 0.9886173829778035,
+        "low": 0.9801249080699378,
+        "median": 0.985912087720288,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.11461599999999984,
+        "wins": 15
       },
       "1x2-w32/ON/OFF": {
-        "high": 1.0574431616863629,
-        "low": 1.0515736543414314,
-        "median": 1.0552440186363086,
-        "nominal_coverage": 0.9705506265163422,
-        "paired_saving_ms": -0.4448000000000007,
-        "wins": 0
+        "high": 1.0058406815080077,
+        "low": 0.99701275774797,
+        "median": 1.0026622856326513,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": -0.02143099999999798,
+        "wins": 6
       },
       "1x2-w32/ON/accepted": {
-        "high": 1.0455275776120678,
-        "low": 1.0364828442095744,
-        "median": 1.0427330483756352,
-        "nominal_coverage": 0.9705506265163422,
-        "paired_saving_ms": -0.34649400000000163,
+        "high": 0.9894342191195,
+        "low": 0.9828010062385704,
+        "median": 0.986585468674682,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.10914499999999984,
+        "wins": 15
+      },
+      "24x2-w32/OFF/accepted": {
+        "high": 0.9969051718491588,
+        "low": 0.9862132923120416,
+        "median": 0.9892359101272832,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.7163619999999895,
+        "wins": 12
+      },
+      "24x2-w32/ON/OFF": {
+        "high": 1.0192699901795712,
+        "low": 1.0007664629164172,
+        "median": 1.0121149891032255,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": -0.7978469999999902,
+        "wins": 3
+      },
+      "24x2-w32/ON/accepted": {
+        "high": 1.0065116423239586,
+        "low": 0.9959271658918614,
+        "median": 1.0022520836323294,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": -0.14998400000000345,
+        "wins": 6
+      },
+      "2x2-w32/OFF/accepted": {
+        "high": 0.9923204417792052,
+        "low": 0.9850683551223672,
+        "median": 0.9897947296254128,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.1158090000000005,
+        "wins": 15
+      },
+      "2x2-w32/ON/OFF": {
+        "high": 0.9992852832291196,
+        "low": 0.9907210216189648,
+        "median": 0.99770011869315,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.0256779999999992,
+        "wins": 12
+      },
+      "2x2-w32/ON/accepted": {
+        "high": 0.9874807259826444,
+        "low": 0.9787402412330164,
+        "median": 0.9854782840629368,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.1646409999999996,
+        "wins": 15
+      },
+      "4x2-w32/OFF/accepted": {
+        "high": 1.0028641561159717,
+        "low": 0.9797403653583984,
+        "median": 0.991879004492892,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.1292540000000013,
+        "wins": 10
+      },
+      "4x2-w32/ON/OFF": {
+        "high": 1.0067184292251672,
+        "low": 0.9849356185794756,
+        "median": 0.9975379472664334,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.039263000000001824,
+        "wins": 10
+      },
+      "4x2-w32/ON/accepted": {
+        "high": 0.9913482187856384,
+        "low": 0.9714882837230974,
+        "median": 0.9809768935021566,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.30542600000000064,
+        "wins": 13
+      },
+      "8x2-w32/OFF/accepted": {
+        "high": 0.9981896221709796,
+        "low": 0.9856535124968118,
+        "median": 0.9934627736083866,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.1567159999999994,
+        "wins": 12
+      },
+      "8x2-w32/ON/OFF": {
+        "high": 1.0107861718325328,
+        "low": 0.9834087253214367,
+        "median": 1.0034314973812029,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": -0.08281700000000214,
+        "wins": 7
+      },
+      "8x2-w32/ON/accepted": {
+        "high": 1.0041784337937514,
+        "low": 0.9782954082938036,
+        "median": 0.9908250266152464,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.22129699999999983,
+        "wins": 11
+      },
+      "merge-24x1-w32/OFF/accepted": {
+        "high": 0.9977977894722948,
+        "low": 0.985272310833482,
+        "median": 0.9900682512081256,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": 0.6506570000000096,
+        "wins": 13
+      },
+      "merge-24x1-w32/ON/OFF": {
+        "high": 1.011527809326065,
+        "low": 1.0037980393710522,
+        "median": 1.008458765260437,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": -0.5483849999999961,
+        "wins": 1
+      },
+      "merge-24x1-w32/ON/accepted": {
+        "high": 1.0046135476532294,
+        "low": 0.990179617218906,
+        "median": 1.0014215265729989,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": -0.0937460000000101,
+        "wins": 7
+      },
+      "merge-54x1-w32/OFF/accepted": {
+        "high": 1.0084133606800392,
+        "low": 0.9877419605561606,
+        "median": 1.0031729915325982,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": -0.511524000000037,
+        "wins": 6
+      },
+      "merge-54x1-w32/ON/OFF": {
+        "high": 1.0693393694362554,
+        "low": 1.0594086088555097,
+        "median": 1.0658695517981385,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": -10.652697999999988,
+        "wins": 0
+      },
+      "merge-54x1-w32/ON/accepted": {
+        "high": 1.0714819067599153,
+        "low": 1.0593850158530145,
+        "median": 1.0683786451782142,
+        "nominal_coverage": 0.96484375,
+        "paired_saving_ms": -11.11478900000003,
         "wins": 0
       }
     },
     "production_changed": false,
-    "report": "../2026-10-29-glv-kh-borrowed175/README.md"
+    "report": "../2026-10-29-representative-sdk175/README.md"
   },
   "latest_operation_count_screen": {
     "analysis": {
@@ -2206,6 +2586,56 @@
   },
   "new_tests_or_proofs": false,
   "new_timings": false,
+  "previous_GLV_full_proof_experiment": {
+    "SDK_requests": 15954,
+    "cells": {
+      "1x2-w32/OFF": {
+        "CPU_ms": 182.087,
+        "max_RSS_MiB": 135.0,
+        "median_ms": 8.037214
+      },
+      "1x2-w32/ON": {
+        "CPU_ms": 193.31597350993377,
+        "max_RSS_MiB": 137.0,
+        "median_ms": 8.481222
+      },
+      "1x2-w32/accepted": {
+        "CPU_ms": 182.8606821192053,
+        "max_RSS_MiB": 133.75,
+        "median_ms": 8.140269
+      }
+    },
+    "gate_passed": false,
+    "new_independent_exports": 126,
+    "pairs": {
+      "1x2-w32/OFF/accepted": {
+        "high": 0.9913950533449508,
+        "low": 0.9834655417700658,
+        "median": 0.9876397602328846,
+        "nominal_coverage": 0.9705506265163422,
+        "paired_saving_ms": 0.10020899999999956,
+        "wins": 29
+      },
+      "1x2-w32/ON/OFF": {
+        "high": 1.0574431616863629,
+        "low": 1.0515736543414314,
+        "median": 1.0552440186363086,
+        "nominal_coverage": 0.9705506265163422,
+        "paired_saving_ms": -0.4448000000000007,
+        "wins": 0
+      },
+      "1x2-w32/ON/accepted": {
+        "high": 1.0455275776120678,
+        "low": 1.0364828442095744,
+        "median": 1.0427330483756352,
+        "nominal_coverage": 0.9705506265163422,
+        "paired_saving_ms": -0.34649400000000163,
+        "wins": 0
+      }
+    },
+    "production_changed": false,
+    "report": "../2026-10-29-glv-kh-borrowed175/README.md"
+  },
   "previous_deferred_grouping_constructor": {
     "SDK_requests": 0,
     "aggregates": {
@@ -2912,5 +3342,5 @@
       "shape": "merge-54x1"
     }
   ],
-  "source_commit": "0f2064418ddc7eec62b693de250d599b27c05a5f"
+  "source_commit": "a1f789c02350b4a80846330a0de244e362f820ca"
 }

@@ -1,0 +1,26 @@
+use std::{fs,path::{Path,PathBuf}};const R:&str="/home/ubuntu/src/zopro-perf-work/representative-sdk175";fn r(p:&str)->PathBuf{Path::new(R).join(p)}fn rep(s:&mut String,a:&str,b:&str){assert_eq!(s.matches(a).count(),1,"missing {a}");*s=s.replace(a,b);}
+fn main(){assert!(!r("capture.rs").exists());let mut s=fs::read_to_string("/home/ubuntu/src/zopro-perf-work/swiss-groups-sdk175/capture.rs").unwrap().replace("swiss-groups-sdk175","representative-sdk175").replace("/home/ubuntu/src/zopro-perf-work/early-x-sdk175/proof-sha256-after.json","/home/ubuntu/src/zopro-perf-work/glv-kh-borrowed175/proof-sha256-after.json").replace("20881","21259").replace("21007","21697").replace("15954","20802").replace("\"candidate\",125","\"candidate\",127").replace("\"ON\":125","\"ON\":127");
+let old="for b in 0..31{let mut vs=VS;vs.rotate_left(b%3);if b%2!=0{vs.reverse();}for v in vs{push(&cs[0],v,b,false,&base,&ids,&mut jobs,&mut steps);}}assert_eq!(jobs.len(),120);";let new="for b in 0..15{let mut order:Vec<usize>=(0..9).collect();order.rotate_left(b%9);if b%2!=0{order.reverse()}for idx in order{let mut vs=VS;vs.rotate_left((b+idx)%3);if(b+idx)%2!=0{vs.reverse()}for v in vs{push(&cs[idx],v,b,false,&base,&ids,&mut jobs,&mut steps);}}}assert_eq!(jobs.len(),432);";rep(&mut s,old,new);rep(&mut s,"assert_eq!(jobs.len(),126)","assert_eq!(jobs.len(),438)");rep(&mut s,"assert_eq!(steps.len(),276)","assert_eq!(steps.len(),900)");s=s.replace("Prepared276steps27preflight93primary31blocklatency6profiles;20802SDK126freshGnark/ledger21259->21697prospective","Prepared900steps27preflight405all9latency15blocks6profiles;20802SDK438freshGnark/ledger21259->21697prospective");
+rep(&mut s,"assert_eq!(inventory.len(), 252)","assert_eq!(inventory.len(), 876)");rep(&mut s,"assert_eq!(rows.len(), 31)","assert_eq!(rows.len(), 15)");rep(&mut s,".filter(|c|c[\"name\"]==\"1x2-w32\")",".filter(|c|c[\"workers\"]==32)");rep(&mut s,"for i in 0..31","for i in 0..15");rep(&mut s,"\"median\":s[15],\"low\":s[9],\"high\":s[21]","\"median\":s[7],\"low\":s[3],\"high\":s[11]");s=s.replace("0.9705506265163422","0.96484375");rep(&mut s,"let pass = s[9] >= 1. / 1.03 && s[21] <= 1.03;","let pass = s[3] >= 1. / 1.03 && s[11] <= 1.03;");
+let a=s.find("                if c[\"workers\"]==32 {\n                    checks.insert(key.clone(), pass);").unwrap();let b=a+s[a..].find("            } else if case").unwrap();s.replace_range(a..b,"");s=s.replace("let pass = s[21] < 1. && wins >= 21;","let pass = s[11] < 1. && wins >= 10;").replace("let pass = s[21] <= 1.03;","let pass = s[11] <= 1.02;");
+let needle="        if c[\"workers\"] == 32 && !c[\"reference\"].is_null() {";let at=s.find(needle).unwrap();s.insert_str(at,r#"        for control in ["accepted","OFF"] {
+            let on=summaries[&format!("{case}/ON")]["max_RSS_MiB"].as_f64().unwrap();
+            let off=summaries[&format!("{case}/{control}")]["max_RSS_MiB"].as_f64().unwrap();
+            let key=format!("{case}/RSS/ON/{control}");let pass=on/off<=1.05;
+            checks.insert(key.clone(),pass);if !pass{failed.push(key);}
+        }
+"#);
+rep(&mut s,"let aggregates:BTreeMap<String,Value>=BTreeMap::new();",r#"let mut aggregates=BTreeMap::new();
+    let case_data=read(r("cases.json"));let original8:Vec<_>=case_data.as_array().unwrap().iter().filter(|c|c["workers"]==32&&!c["reference"].is_null()).collect();assert_eq!(original8.len(),8);
+    for control in ["accepted","OFF"] {
+        let ratios:Vec<f64>=(0..15).map(|b|(original8.iter().map(|c|pairs[&format!("{}/ON/{control}",c["name"].as_str().unwrap())]["ratios"][b].as_f64().unwrap().ln()).sum::<f64>()/8.).exp()).collect();
+        let mut sorted=ratios.clone();sorted.sort_by(f64::total_cmp);let wins=ratios.iter().filter(|&&r|r<1.).count();let pass=sorted[11]<1.&&wins>=10;
+        let key=format!("original8/ON/{control}/gain");checks.insert(key.clone(),pass);if !pass{failed.push(key);}
+        aggregates.insert(control,json!({"median":sorted[7],"low":sorted[3],"high":sorted[11],"wins":wins,"ratios":ratios,"nominal_coverage":0.96484375}));
+    }"#);
+s=s.replace("\"new_independent_exports\":126","\"new_independent_exports\":438").replace("completed index-only grouped-probing standardSDK primary31blockpilot; no adoption","completed one-passrepresentative all9fullrequest qualification; noadoption").replace("all9preflights; primary32only31blocks;6automaticprofiles16/32; fullshape/resource/portable/finalartifactpending","all9preflights+all9latency15blocks32workers;6profiles16/32; calibrationdiagnosticonly; resource/portable/finalartifactpending").replace("20802SDK/126Gnark/ledger21697","20802SDK/438Gnark/ledger21697");
+rep(&mut s,"\"calibration_checks\":calibration,","\"calibration_checks\":calibration,\"calibration_gate_required\":false,");rep(&mut s,"\"pid,tid,period,ip,sym\"","\"pid,tid,cpu,time,period,ip,sym\"");
+// Perf diagnostic argv is a multiline array in this inherited helper.
+rep(&mut s,"\"--no-buildid-cache\".into(),","\"--no-buildid-cache\".into(),\"--sample-cpu\".into(),\"--timestamp\".into(),");
+rep(&mut s,"f[1].parse::<u64>()","f[3].parse::<u64>()");rep(&mut s,"f[3..].join(\" \")","f[5..].join(\" \")");
+fs::write(r("capture.rs"),s).unwrap();println!("Prepared fullrequest helper source:all9x15blocks;900steps;438exports;newcalibrationdiagnosticprotocol");}

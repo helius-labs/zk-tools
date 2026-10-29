@@ -123,7 +123,26 @@ The separately declared caller gate **fails**. The earlier generic arithmetic ga
 |threaded12/on/off|1.001960588|[0.999557705, 1.005031514]|5|
 
 
-## Latest local full proof experiment
+## Latest complete SDK experiment
+
+One-pass representative grouping is now measured across all nine circuits in complete fresh SDK requests. Its original constructor gate remains failed. This separately declared protocol compares exact accepted, fresh OFF and ON in 15 rotated/reversed blocks at 32 workers, including whole-request latency and lifetime RSS.
+
+The new full-request performance gate **fails**. Calibration intervals are retained as diagnostics under this prospective protocol; both candidate/control gain and nonregression comparisons remain required, together with relative RSS bounds. No production adoption follows from this stage alone. [Complete SDK report and failed checks](../2026-10-29-representative-sdk175/README.md).
+
+|Circuit|Accepted ms|OFF ms|ON ms|ON peak RSS MiB|
+|---|---:|---:|---:|---:|
+|1x2|8.152022|8.026144|8.033347|83.75|
+|2x2|11.394626|11.246055|11.204142|217.50|
+|4x2|16.055527|15.896628|15.852074|290.75|
+|8x2|24.230379|24.140120|24.083721|479.00|
+|12x2|33.869702|33.798232|33.531005|657.00|
+|16x2|40.583149|40.040498|39.670771|787.00|
+|24x2|66.708818|66.117965|66.813065|1221.75|
+|merge-24x1|65.574555|64.976160|65.470053|1135.04|
+|merge-54x1|162.474643|162.128890|172.728370|1897.42|
+
+
+## Previous GLV full proof experiment
 
 Borrowed signed GLV inside the fused K/H stream is slower. It reuses the accepted signed split with ten balanced component windows and two partitions, transforms temporary high-component buckets, and borrows the original K/H point operands. Earlier separate-query G1 GLV trials remain negative; this trial tests a materially revised caller.
 
@@ -210,6 +229,6 @@ The current prover combines vector field arithmetic, batched affine MSM addition
 
 ## Verification and reproducibility
 
-The accepted final-artifact qualification passed 124 native core and eight prover tests, 101 portable core and eight prover tests, plus 28,000 SDK requests and 505 distinct independent Gnark proof exports. The latest AWS comparison adds 37,272 SDK requests and 1,248 distinct Gnark-verified exports across its three engines; all 1,221 cloud exports were also reverified after transport, without counting that repeat as new proofs. The G2 partition-readiness experiment adds 13,824 SDK requests and 246 distinct independent exports. Fq6 and early-X component work add no proofs. The early-X SDK experiment adds 15,954 requests and 126 distinct independent Gnark exports. The grouped-dictionary SDK pilot adds a further 15,954 requests and 126 independent exports. The shared-classification SDK pilot adds another 15,954 internally verified requests and 126 fresh independent exports. The GLV K/H SDK pilot adds a further 15,954 internally verified requests and 126 fresh independent exports. The historical distinct-proof ledger is **21,259**.
+The accepted final-artifact qualification passed 124 native core and eight prover tests, 101 portable core and eight prover tests, plus 28,000 SDK requests and 505 distinct independent Gnark proof exports. The latest AWS comparison adds 37,272 SDK requests and 1,248 distinct Gnark-verified exports across its three engines; all 1,221 cloud exports were also reverified after transport, without counting that repeat as new proofs. The G2 partition-readiness experiment adds 13,824 SDK requests and 246 distinct independent exports. Fq6 and early-X component work add no proofs. The early-X SDK experiment adds 15,954 requests and 126 distinct independent Gnark exports. The grouped-dictionary SDK pilot adds a further 15,954 requests and 126 independent exports. The shared-classification SDK pilot adds another 15,954 internally verified requests and 126 fresh independent exports. The GLV K/H SDK pilot adds a further 15,954 internally verified requests and 126 fresh independent exports. The new all-nine representative SDK qualification adds 20,802 internally verified requests and 438 fresh independent exports. The historical distinct-proof ledger is **21,697**.
 
 All of the latest AWS benchmark resources were removed. Source reports retain exact compiler flags, binary identities, keys and fixture bindings, proof bytes, process blocks, raw profiles, verification receipts and failed checks. This summary consolidates completed runs; it does not introduce new timing or verification samples. Full precision and selected worker counts are in [data.json](data.json), with [source hashes](source-hashes.json).

@@ -1,0 +1,26 @@
+{
+  "field_originals_exact": 17,
+  "field_tests_inherited": 33,
+  "grouping_inverse": {
+    "hooked_body": "    #[cfg(all(zopro_representative_groups,not(target_arch=\"wasm32\")))]\n    {return representative::build(scalars,capacity,percent,ahash::RandomState::new(),reservation);}\n    #[cfg(not(all(zopro_representative_groups,not(target_arch=\"wasm32\"))))]\n    {\n    let mut groups =\n        std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());\n    let mut values = Vec::new();\n    let mut classes = vec![u32::MAX; scalars.len()];\n    let mut counts: Vec<usize> = Vec::new();\n    for (scalar, class) in scalars.iter().zip(&mut classes) {\n        if *scalar == [0; 4] {\n            continue;\n        }\n        let index = *groups.entry(*scalar).or_insert_with(|| {\n            values.push(*scalar);\n            counts.push(0);\n            (values.len() - 1) as u32\n        });\n        *class = index;\n        counts[index as usize] += 1;\n    }\n    drop(groups);\n    if values.len() * 100 > scalars.len() * percent {\n        return None;\n    }\n    if values.is_empty() {\n        return Some(ScalarGroups {\n            _reservation: reservation,\n            len: scalars.len(),\n            values,\n            order: Vec::new(),\n            starts: vec![0],\n            counts,\n        });\n    }\n    let mut starts = Vec::with_capacity(counts.len() + 1);\n    starts.push(0);\n    for &count in &counts {\n        starts.push(starts.last().unwrap() + count);\n    }\n    let mut positions = starts[..counts.len()].to_vec();\n    let mut order = vec![0u32; *starts.last().unwrap()];\n    for (i, &class) in classes.iter().enumerate() {\n        if class != u32::MAX {\n            order[positions[class as usize]] = i as u32;\n            positions[class as usize] += 1;\n        }\n    }\n    drop(classes);\n    drop(positions);\n    Some(ScalarGroups {\n        _reservation: reservation,\n        len: scalars.len(),\n        values,\n        order,\n        starts,\n        counts,\n    })\n    }\n}\n",
+    "source_body": "    let mut groups =\n        std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());\n    let mut values = Vec::new();\n    let mut classes = vec![u32::MAX; scalars.len()];\n    let mut counts: Vec<usize> = Vec::new();\n    for (scalar, class) in scalars.iter().zip(&mut classes) {\n        if *scalar == [0; 4] {\n            continue;\n        }\n        let index = *groups.entry(*scalar).or_insert_with(|| {\n            values.push(*scalar);\n            counts.push(0);\n            (values.len() - 1) as u32\n        });\n        *class = index;\n        counts[index as usize] += 1;\n    }\n    drop(groups);\n    if values.len() * 100 > scalars.len() * percent {\n        return None;\n    }\n    if values.is_empty() {\n        return Some(ScalarGroups {\n            _reservation: reservation,\n            len: scalars.len(),\n            values,\n            order: Vec::new(),\n            starts: vec![0],\n            counts,\n        });\n    }\n    let mut starts = Vec::with_capacity(counts.len() + 1);\n    starts.push(0);\n    for &count in &counts {\n        starts.push(starts.last().unwrap() + count);\n    }\n    let mut positions = starts[..counts.len()].to_vec();\n    let mut order = vec![0u32; *starts.last().unwrap()];\n    for (i, &class) in classes.iter().enumerate() {\n        if class != u32::MAX {\n            order[positions[class as usize]] = i as u32;\n            positions[class as usize] += 1;\n        }\n    }\n    drop(classes);\n    drop(positions);\n    Some(ScalarGroups {\n        _reservation: reservation,\n        len: scalars.len(),\n        values,\n        order,\n        starts,\n        counts,\n    })\n}\n",
+    "suffix": "\n#[cfg(all(zopro_representative_groups,not(target_arch=\"wasm32\")))]\nmod representative;\n"
+  },
+  "modified_originals": [
+    "crates/zopro-core/src/msm_affine/grouping.rs",
+    "crates/zopro-core/Cargo.toml",
+    "Cargo.lock"
+  ],
+  "new_child": "crates/zopro-core/src/msm_affine/grouping/representative.rs",
+  "new_whole_request_protocol": true,
+  "originals": 175,
+  "originals_exact": 172,
+  "parent_component_gate": false,
+  "private_files": 176,
+  "production_changed": false,
+  "runtime_adaptations": [
+    "result type/reservation ownership",
+    "private cfg dispatch/native dependency",
+    "three reused-geometry native tests"
+  ]
+}
