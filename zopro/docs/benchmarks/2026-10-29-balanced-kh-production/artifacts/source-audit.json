@@ -1,0 +1,28 @@
+{
+  "child": "crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs",
+  "clean_child_exact_to_formatted_measured_without_trace": true,
+  "clean_child_sha256": "7fcc50692879a45774322565c2b7435905d5f0e3341d83252d5d95d69182e530",
+  "declaration_after": "use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fr, Projective};\n\nmod balanced;\n",
+  "declaration_before": "use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fr, Projective};\n",
+  "dispatch_after": "    assert!(k.len().min(h.len()) >= 1024);\n    if bits == 13 {\n        return balanced::fused(k, sk, h, sh);\n    }\n",
+  "dispatch_before": "    assert!(k.len().min(h.len()) >= 1024);\n",
+  "field_unchanged": true,
+  "forecasts_unchanged": true,
+  "formatted_measured_without_trace_sha256": "7fcc50692879a45774322565c2b7435905d5f0e3341d83252d5d95d69182e530",
+  "measured_child_sha256": "c9871ba184abfe59ea0d85ae8097bb1d88c0f52119700ba03f515df6bfb7b924",
+  "new_modules": 1,
+  "no_diagnostic_trace": true,
+  "no_experimental_cfg": true,
+  "original_files": 174,
+  "originals_exact": 173,
+  "parent": "crates/zopro-core/src/msm_affine/borrowed_pending.rs",
+  "previous_failed_checks": [
+    "1x2-w16/OFF/accepted"
+  ],
+  "previous_performance_gate_passed": false,
+  "production_worktree_changed": false,
+  "removed_trace": "    if std::env::var_os(\"ZOPRO_BALANCED_KH_TRACE\").is_some(){eprintln!(\"BALANCED_KH windows=20 bits=255 short=5 long=15 k={} h={}\",k.len(),h.len());}\n",
+  "reverse174_exact": true,
+  "runtime_algorithm_unchanged": true,
+  "source_files": 175
+}

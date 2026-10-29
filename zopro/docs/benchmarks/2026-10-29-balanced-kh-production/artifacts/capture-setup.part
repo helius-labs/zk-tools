@@ -1,0 +1,57 @@
+fn prepare() {
+    assert!(std::env::var_os("ZOPRO_BALANCED_KH_TRACE").is_none());
+    assert!(!r("run-plan.json").exists());
+    assert_eq!(read(r("native/result.json"))["status"], "complete");
+    let old = read("/home/ubuntu/src/zopro-perf-work/balanced-kh-qualification175/analysis.json");
+    assert_eq!(old["gate_passed"], false);
+    assert_eq!(old["failed_checks"], json!(["1x2-w16/OFF/accepted"]));
+    let mut pins: BTreeMap<String, String> = serde_json::from_value(read(r("build-pins.json"))).unwrap();
+    for (f,h) in &pins { assert_eq!(hash(f), *h, "{f}"); }
+    let audit = read(r("source-audit.json"));
+    assert_eq!(audit["source_files"], 175);
+    assert_eq!(audit["originals_exact"], 173);
+    assert_eq!(audit["reverse174_exact"], true);
+    assert_eq!(audit["clean_child_exact_to_formatted_measured_without_trace"], true);
+    assert_eq!(audit["production_worktree_changed"], false);
+    assert_eq!(hash(ACCEPTED), ACCEPTED_HASH);
+    pin(&mut pins, ACCEPTED);
+    let required = ["msm_affine::borrowed_pending::balanced::tests::variable_booth_digits_reconstruct_exact_integers", "msm_affine::borrowed_pending::balanced::tests::balanced_complete_generator_oracle_and_uniform_control"];
+    for (label, count) in [("candidate",124),("portable",101)] {
+        let tests = read(r(format!("native/{label}-core/tests.json")));
+        assert_eq!(tests["passed_tests"].as_array().unwrap().len(),count);
+        assert_eq!(tests["unfiltered"],true);
+        for name in required { assert!(tests["passed_tests"].as_array().unwrap().contains(&json!(name))); }
+        assert_eq!(read(r(format!("native/{label}-prover/tests.json")))["passed_tests"].as_array().unwrap().len(),8);
+    }
+    let mut ids = BTreeMap::new();
+    for v in ["accepted", "OFF", "ON", "portable"] {
+        let binary = match v {
+            "accepted" => PathBuf::from(ACCEPTED),
+            "OFF" => r("native/control-sdk"),
+            "ON" => r("native/candidate-sdk"),
+            _ => r("native/portable-sdk"),
+        };
+        pin(&mut pins, &binary);
+        ids.insert(v,json!({"binary":binary,"sha256":hash(&binary),"balanced_default_dispatch":v=="ON"||v=="portable","private_balanced_cfg":false}));
+    }
+    for label in ["control", "candidate", "portable"] {
+        let receipt = read(r(format!("native/{label}/artifacts.json")));
+        assert_eq!(receipt["binary_sha256"], hash(receipt["binary"].as_str().unwrap()));
+        assert_eq!(receipt["libraries"].as_object().unwrap().len(),8);
+        for (f,h) in receipt["input_pins"].as_object().unwrap() { assert_eq!(hash(f),h.as_str().unwrap()); pin(&mut pins,f); }
+        let frozen = read(r(format!("frozen-{label}.json")));
+        let flags = fs::read_to_string(r(if label=="portable" { "portable-flags.txt" } else { "native-flags.txt" })).unwrap();
+        assert_eq!(frozen["rustflags"],flags);
+        assert!(!flags.contains("zopro_balanced_kh"));
+        for (f,h) in frozen["input_pins"].as_object().unwrap() { assert_eq!(hash(f),h.as_str().unwrap()); pin(&mut pins,f); }
+    }
+    assert_ne!(ids["OFF"]["binary"],ids["ON"]["binary"]);
+    save(r("identities.json"),&json!(ids));
+    let mut prior: BTreeSet<String> = serde_json::from_value(read(format!("{OLD}/prior-proof-sha256.json"))).unwrap();
+    assert_eq!(prior.len(),16411);
+    for (f,h) in read(format!("{OLD}/proof-inventory.json")).as_object().unwrap() {
+        assert_eq!(hash(f),h.as_str().unwrap()); pin(&mut pins,f);
+        if f.ends_with(".proof") { assert!(prior.insert(h.as_str().unwrap().into())); }
+    }
+    assert_eq!(prior.len(),16500);
+    save(r("prior-proof-sha256.json"),&json!(prior));
