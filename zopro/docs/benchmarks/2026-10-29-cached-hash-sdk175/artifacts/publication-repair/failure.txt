@@ -1,0 +1,5 @@
+The original publisher stopped at its first assertion before writing report files:
+assertion failed: !Path::new(D).exists()
+Its copied D constant still named the existing representative-sdk175 report, although its runtime root correctly named cached-hash-sdk175. The assertion prevented modifying the earlier report.
+
+The subsequent summary generator stopped while reading the missing new report artifact. It did not write the summary. The repair changes only the standalone publisher destination and makes its include path explicit; original pinned helpers remain unchanged. No test, timing, proof or independent verifier is repeated.
