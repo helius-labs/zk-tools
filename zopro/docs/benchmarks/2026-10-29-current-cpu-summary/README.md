@@ -387,3 +387,18 @@ The candidate assigns the two existing G2 per-window tasks to high/low scalar co
 |1x2-w32/accepted|8.023849|182.238|134.25|
 
 Declared pilot gate: **false**; failures `["1x2-w32/ON/accepted","1x2-w32/ON/OFF","1x2-w16/ON/accepted","1x2-w16/ON/OFF"]`. No adoption. Both primary32 and physical16 must improve against accepted and OFF; a passing pilot still requires all-nine performance/resource/portable qualification. The trial adds 15,708 completed SDK requests and 132 distinct independent Gnark exports; ledger 22,366. Production and every accepted local/AWS/M5 row remain unchanged.
+
+## Affine collision-queue drain pilot
+
+A no-allocation predicate lets suitable queued points use the original affine batch before retaining the existing projective fallback. SIMD-width distinct destinations and pending-batch bounds limit the new route; crowded/short tails retain fallback. There is no new field formula, buffer, Window field, forecast, lookup table or task geometry. [Complete requests and validation](../2026-10-29-queue-drain175/README.md).
+
+|Case/variant|Median ms|CPU ms/request|Maximum RSS MiB|
+|---|---:|---:|---:|
+|1x2-w16/OFF|9.691869|119.900|89.50|
+|1x2-w16/ON|9.729750|116.343|91.00|
+|1x2-w16/accepted|9.649268|120.078|90.00|
+|1x2-w32/OFF|8.069801|182.714|133.75|
+|1x2-w32/ON|7.889011|177.806|134.25|
+|1x2-w32/accepted|8.035988|183.289|132.00|
+
+Declared pilot gate: **false**; failures `["1x2-w16/ON/accepted","1x2-w16/ON/OFF"]`. No adoption. Primary32 requires a gain versus both controls; physical16 requires nonregression. A passing pilot still requires all-nine performance/resource/portable qualification. The trial adds 15,708 SDK requests and 132 distinct independent Gnark exports; ledger 22,498. Accepted source175 and all local/AWS/M5 rows remain unchanged.
