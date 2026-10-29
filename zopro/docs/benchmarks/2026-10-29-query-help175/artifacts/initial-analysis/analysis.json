@@ -1,0 +1,2838 @@
+{
+  "SDK_requests": 0,
+  "adopted": false,
+  "all_prior_boundary_CPU_totals_match": true,
+  "goal_active_original8_unmet": true,
+  "graphs": 9,
+  "independent_proof_ledger": 17811,
+  "inherited_M5": {
+    "12x2": {
+      "accepted_ms": 33.844855,
+      "cpu_reference_ms": 284.0,
+      "cpu_speedup": 8.391231104402722,
+      "goal10x": false,
+      "metal_reference_ms": 101.0,
+      "metal_speedup": 2.9842054279742074,
+      "required_ms_for_CPU10x": 28.4
+    },
+    "16x2": {
+      "accepted_ms": 39.931557,
+      "cpu_reference_ms": 335.0,
+      "cpu_speedup": 8.389354815290574,
+      "goal10x": false,
+      "metal_reference_ms": 124.0,
+      "metal_speedup": 3.105313424167257,
+      "required_ms_for_CPU10x": 33.5
+    },
+    "1x2": {
+      "accepted_ms": 8.022165,
+      "cpu_reference_ms": 37.0,
+      "cpu_speedup": 4.6122212644591585,
+      "goal10x": false,
+      "metal_reference_ms": 24.0,
+      "metal_speedup": 2.9917110904599946,
+      "required_ms_for_CPU10x": 3.7
+    },
+    "24x2": {
+      "accepted_ms": 66.233309,
+      "cpu_reference_ms": 528.0,
+      "cpu_speedup": 7.971819738011277,
+      "goal10x": false,
+      "metal_reference_ms": 176.0,
+      "metal_speedup": 2.657273246003759,
+      "required_ms_for_CPU10x": 52.8
+    },
+    "2x2": {
+      "accepted_ms": 11.335969,
+      "cpu_reference_ms": 59.0,
+      "cpu_speedup": 5.204671960553173,
+      "goal10x": false,
+      "metal_reference_ms": 30.0,
+      "metal_speedup": 2.6464433697728,
+      "required_ms_for_CPU10x": 5.9
+    },
+    "4x2": {
+      "accepted_ms": 15.945543999999998,
+      "cpu_reference_ms": 109.0,
+      "cpu_speedup": 6.835765527974462,
+      "goal10x": false,
+      "metal_reference_ms": 48.0,
+      "metal_speedup": 3.010245370117194,
+      "required_ms_for_CPU10x": 10.9
+    },
+    "8x2": {
+      "accepted_ms": 24.090484999999997,
+      "cpu_reference_ms": 189.0,
+      "cpu_speedup": 7.845421127885139,
+      "goal10x": false,
+      "metal_reference_ms": 74.0,
+      "metal_speedup": 3.0717521876375677,
+      "required_ms_for_CPU10x": 18.9
+    },
+    "merge-24x1": {
+      "accepted_ms": 65.273224,
+      "cpu_reference_ms": 507.0,
+      "cpu_speedup": 7.767350360999481,
+      "goal10x": false,
+      "metal_reference_ms": 175.0,
+      "metal_speedup": 2.6810380930471585,
+      "required_ms_for_CPU10x": 50.7
+    }
+  },
+  "labels": {
+    "covered_serial": {
+      "g2": 9
+    },
+    "query_return": {
+      "g2": 4,
+      "kh": 5
+    },
+    "window_callback": {
+      "g2": 4,
+      "kh": 5
+    }
+  },
+  "limitations": "Service-span elapsed overlap includes descheduling inside leaves. CPU clocks are exact only for fully contained leaves; clipped CPU is unknown. Uncovered preparation/normalization/Horner/coordinator work remains. Boundary labels are not a causal critical path or recoverable proof time.",
+  "new_decoder_tests": 3,
+  "new_proof_exports": 0,
+  "per_graph": [
+    {
+      "block": 0,
+      "job": "b0-on",
+      "last_covered_serial": "g2",
+      "last_query_return": "g2",
+      "last_window_callback": "g2",
+      "queries": {
+        "a": {
+          "covered_serial_CPU_ns": 20620943,
+          "last_window_end_ns": 4844034,
+          "last_window_to_return": {
+            "by_logical_query": {
+              "g2": {
+                "fully_contained_CPU_ns": 1214235,
+                "fully_contained_leaves": 39,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 1224871
+              }
+            },
+            "end_ns": 7221848,
+            "foreign_service_span_overlap_ns": 1224871,
+            "foreign_span_fraction": 0.5151248163228915,
+            "interval_ns": 2377814,
+            "owner_worker": 1,
+            "records": [
+              {
+                "CPU_ns": 33062,
+                "end_ns": 5002603,
+                "full_leaf": true,
+                "id": 4294967313,
+                "kind": 24,
+                "overlap_ns": 33362,
+                "query": "g2",
+                "start_ns": 4969241
+              },
+              {
+                "CPU_ns": 32021,
+                "end_ns": 5035235,
+                "full_leaf": true,
+                "id": 4294967314,
+                "kind": 24,
+                "overlap_ns": 32231,
+                "query": "g2",
+                "start_ns": 5003004
+              },
+              {
+                "CPU_ns": 28223,
+                "end_ns": 5063899,
+                "full_leaf": true,
+                "id": 4294967315,
+                "kind": 24,
+                "overlap_ns": 28524,
+                "query": "g2",
+                "start_ns": 5035375
+              },
+              {
+                "CPU_ns": 32491,
+                "end_ns": 5097082,
+                "full_leaf": true,
+                "id": 4294967316,
+                "kind": 24,
+                "overlap_ns": 32702,
+                "query": "g2",
+                "start_ns": 5064380
+              },
+              {
+                "CPU_ns": 32060,
+                "end_ns": 5129503,
+                "full_leaf": true,
+                "id": 4294967317,
+                "kind": 24,
+                "overlap_ns": 32251,
+                "query": "g2",
+                "start_ns": 5097252
+              },
+              {
+                "CPU_ns": 26540,
+                "end_ns": 5156464,
+                "full_leaf": true,
+                "id": 4294967318,
+                "kind": 24,
+                "overlap_ns": 26791,
+                "query": "g2",
+                "start_ns": 5129673
+              },
+              {
+                "CPU_ns": 28463,
+                "end_ns": 5185388,
+                "full_leaf": true,
+                "id": 4294967319,
+                "kind": 24,
+                "overlap_ns": 28674,
+                "query": "g2",
+                "start_ns": 5156714
+              },
+              {
+                "CPU_ns": 30949,
+                "end_ns": 5217609,
+                "full_leaf": true,
+                "id": 4294967320,
+                "kind": 24,
+                "overlap_ns": 31169,
+                "query": "g2",
+                "start_ns": 5186440
+              },
+              {
+                "CPU_ns": 31719,
+                "end_ns": 5249880,
+                "full_leaf": true,
+                "id": 4294967321,
+                "kind": 24,
+                "overlap_ns": 31951,
+                "query": "g2",
+                "start_ns": 5217929
+              },
+              {
+                "CPU_ns": 31089,
+                "end_ns": 5281319,
+                "full_leaf": true,
+                "id": 4294967322,
+                "kind": 24,
+                "overlap_ns": 31289,
+                "query": "g2",
+                "start_ns": 5250030
+              },
+              {
+                "CPU_ns": 26961,
+                "end_ns": 5308701,
+                "full_leaf": true,
+                "id": 4294967323,
+                "kind": 24,
+                "overlap_ns": 27192,
+                "query": "g2",
+                "start_ns": 5281509
+              },
+              {
+                "CPU_ns": 32100,
+                "end_ns": 5341142,
+                "full_leaf": true,
+                "id": 4294967324,
+                "kind": 24,
+                "overlap_ns": 32301,
+                "query": "g2",
+                "start_ns": 5308841
+              },
+              {
+                "CPU_ns": 30117,
+                "end_ns": 5373252,
+                "full_leaf": true,
+                "id": 4294967325,
+                "kind": 24,
+                "overlap_ns": 30337,
+                "query": "g2",
+                "start_ns": 5342915
+              },
+              {
+                "CPU_ns": 28133,
+                "end_ns": 5401947,
+                "full_leaf": true,
+                "id": 4294967326,
+                "kind": 24,
+                "overlap_ns": 28414,
+                "query": "g2",
+                "start_ns": 5373533
+              },
+              {
+                "CPU_ns": 29406,
+                "end_ns": 5431703,
+                "full_leaf": true,
+                "id": 4294967327,
+                "kind": 24,
+                "overlap_ns": 29606,
+                "query": "g2",
+                "start_ns": 5402097
+              },
+              {
+                "CPU_ns": 28844,
+                "end_ns": 5461809,
+                "full_leaf": true,
+                "id": 4294967328,
+                "kind": 24,
+                "overlap_ns": 29054,
+                "query": "g2",
+                "start_ns": 5432755
+              },
+              {
+                "CPU_ns": 29686,
+                "end_ns": 5492968,
+                "full_leaf": true,
+                "id": 4294967329,
+                "kind": 24,
+                "overlap_ns": 29896,
+                "query": "g2",
+                "start_ns": 5463072
+              },
+              {
+                "CPU_ns": 31048,
+                "end_ns": 5634034,
+                "full_leaf": true,
+                "id": 4294967330,
+                "kind": 24,
+                "overlap_ns": 31249,
+                "query": "g2",
+                "start_ns": 5602785
+              },
+              {
+                "CPU_ns": 24226,
+                "end_ns": 5658681,
+                "full_leaf": true,
+                "id": 4294967331,
+                "kind": 24,
+                "overlap_ns": 24406,
+                "query": "g2",
+                "start_ns": 5634275
+              },
+              {
+                "CPU_ns": 30808,
+                "end_ns": 5689819,
+                "full_leaf": true,
+                "id": 4294967332,
+                "kind": 24,
+                "overlap_ns": 30998,
+                "query": "g2",
+                "start_ns": 5658821
+              },
+              {
+                "CPU_ns": 29967,
+                "end_ns": 5720267,
+                "full_leaf": true,
+                "id": 4294967333,
+                "kind": 24,
+                "overlap_ns": 30177,
+                "query": "g2",
+                "start_ns": 5690090
+              },
+              {
+                "CPU_ns": 27272,
+                "end_ns": 5747989,
+                "full_leaf": true,
+                "id": 4294967334,
+                "kind": 24,
+                "overlap_ns": 27472,
+                "query": "g2",
+                "start_ns": 5720517
+              },
+              {
+                "CPU_ns": 33573,
+                "end_ns": 5783987,
+                "full_leaf": true,
+                "id": 4294967335,
+                "kind": 24,
+                "overlap_ns": 35838,
+                "query": "g2",
+                "start_ns": 5748149
+              },
+              {
+                "CPU_ns": 26640,
+                "end_ns": 5811038,
+                "full_leaf": true,
+                "id": 4294967336,
+                "kind": 24,
+                "overlap_ns": 26811,
+                "query": "g2",
+                "start_ns": 5784227
+              },
+              {
+                "CPU_ns": 25097,
+                "end_ns": 5836807,
+                "full_leaf": true,
+                "id": 4294967337,
+                "kind": 24,
+                "overlap_ns": 25388,
+                "query": "g2",
+                "start_ns": 5811419
+              },
+              {
+                "CPU_ns": 23814,
+                "end_ns": 5861042,
+                "full_leaf": true,
+                "id": 4294967338,
+                "kind": 24,
+                "overlap_ns": 24005,
+                "query": "g2",
+                "start_ns": 5837037
+              },
+              {
+                "CPU_ns": 26900,
+                "end_ns": 5889205,
+                "full_leaf": true,
+                "id": 4294967339,
+                "kind": 24,
+                "overlap_ns": 27081,
+                "query": "g2",
+                "start_ns": 5862124
+              },
+              {
+                "CPU_ns": 24426,
+                "end_ns": 5914223,
+                "full_leaf": true,
+                "id": 4294967340,
+                "kind": 24,
+                "overlap_ns": 24657,
+                "query": "g2",
+                "start_ns": 5889566
+              },
+              {
+                "CPU_ns": 30798,
+                "end_ns": 5945351,
+                "full_leaf": true,
+                "id": 4294967341,
+                "kind": 24,
+                "overlap_ns": 30988,
+                "query": "g2",
+                "start_ns": 5914363
+              },
+              {
+                "CPU_ns": 24456,
+                "end_ns": 5970258,
+                "full_leaf": true,
+                "id": 4294967342,
+                "kind": 24,
+                "overlap_ns": 24646,
+                "query": "g2",
+                "start_ns": 5945612
+              },
+              {
+                "CPU_ns": 27591,
+                "end_ns": 5998171,
+                "full_leaf": true,
+                "id": 4294967343,
+                "kind": 24,
+                "overlap_ns": 27782,
+                "query": "g2",
+                "start_ns": 5970389
+              },
+              {
+                "CPU_ns": 25758,
+                "end_ns": 6024230,
+                "full_leaf": true,
+                "id": 4294967344,
+                "kind": 24,
+                "overlap_ns": 25969,
+                "query": "g2",
+                "start_ns": 5998261
+              },
+              {
+                "CPU_ns": 28454,
+                "end_ns": 6053064,
+                "full_leaf": true,
+                "id": 4294967345,
+                "kind": 24,
+                "overlap_ns": 28694,
+                "query": "g2",
+                "start_ns": 6024370
+              },
+              {
+                "CPU_ns": 32070,
+                "end_ns": 6086237,
+                "full_leaf": true,
+                "id": 4294967346,
+                "kind": 24,
+                "overlap_ns": 32291,
+                "query": "g2",
+                "start_ns": 6053946
+              },
+              {
+                "CPU_ns": 34505,
+                "end_ns": 6792879,
+                "full_leaf": true,
+                "id": 4294967347,
+                "kind": 26,
+                "overlap_ns": 34885,
+                "query": "g2",
+                "start_ns": 6757994
+              },
+              {
+                "CPU_ns": 62898,
+                "end_ns": 6902957,
+                "full_leaf": true,
+                "id": 4294967348,
+                "kind": 25,
+                "overlap_ns": 63089,
+                "query": "g2",
+                "start_ns": 6839868
+              },
+              {
+                "CPU_ns": 27011,
+                "end_ns": 6999269,
+                "full_leaf": true,
+                "id": 4294967349,
+                "kind": 26,
+                "overlap_ns": 27162,
+                "query": "g2",
+                "start_ns": 6972107
+              },
+              {
+                "CPU_ns": 50736,
+                "end_ns": 7063820,
+                "full_leaf": true,
+                "id": 4294967350,
+                "kind": 25,
+                "overlap_ns": 50916,
+                "query": "g2",
+                "start_ns": 7012904
+              },
+              {
+                "CPU_ns": 54323,
+                "end_ns": 7173247,
+                "full_leaf": true,
+                "id": 4294967351,
+                "kind": 25,
+                "overlap_ns": 54623,
+                "query": "g2",
+                "start_ns": 7118624
+              }
+            ],
+            "serial_service_span_overlap_ns": 1224871,
+            "start_ns": 4844034,
+            "uncovered_elapsed_ns": 1152943
+          },
+          "owner_worker": 1,
+          "query_end_ns": 7221848,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2897013,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 735938,
+            "owner_worker": 1,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2161075,
+            "uncovered_elapsed_ns": 735938
+          },
+          "query_start_ns": 2161075,
+          "root_id": 4294967297
+        },
+        "g2": {
+          "covered_serial_CPU_ns": 58257928,
+          "last_window_end_ns": 7432936,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7484995,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 52059,
+            "owner_worker": 27,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7432936,
+            "uncovered_elapsed_ns": 52059
+          },
+          "owner_worker": 27,
+          "query_end_ns": 7484995,
+          "query_entry_to_input": {
+            "by_logical_query": {
+              "a": {
+                "fully_contained_CPU_ns": 458295,
+                "fully_contained_leaves": 11,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 460618
+              },
+              "kh": {
+                "fully_contained_CPU_ns": 200839,
+                "fully_contained_leaves": 7,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 202210
+              }
+            },
+            "end_ns": 4838454,
+            "foreign_service_span_overlap_ns": 662828,
+            "foreign_span_fraction": 0.24762250594747098,
+            "interval_ns": 2676768,
+            "owner_worker": 27,
+            "records": [
+              {
+                "CPU_ns": 85090,
+                "end_ns": 4215198,
+                "full_leaf": true,
+                "id": 115964116996,
+                "kind": 24,
+                "overlap_ns": 85471,
+                "query": "a",
+                "start_ns": 4129727
+              },
+              {
+                "CPU_ns": 79320,
+                "end_ns": 4294969,
+                "full_leaf": true,
+                "id": 115964116997,
+                "kind": 24,
+                "overlap_ns": 79570,
+                "query": "a",
+                "start_ns": 4215399
+              },
+              {
+                "CPU_ns": 82526,
+                "end_ns": 4377885,
+                "full_leaf": true,
+                "id": 115964116998,
+                "kind": 24,
+                "overlap_ns": 82726,
+                "query": "a",
+                "start_ns": 4295159
+              },
+              {
+                "CPU_ns": 8156,
+                "end_ns": 4386321,
+                "full_leaf": true,
+                "id": 115964116999,
+                "kind": 24,
+                "overlap_ns": 8325,
+                "query": "a",
+                "start_ns": 4377996
+              },
+              {
+                "CPU_ns": 79329,
+                "end_ns": 4465911,
+                "full_leaf": true,
+                "id": 115964117000,
+                "kind": 24,
+                "overlap_ns": 79530,
+                "query": "a",
+                "start_ns": 4386381
+              },
+              {
+                "CPU_ns": 28975,
+                "end_ns": 4495878,
+                "full_leaf": true,
+                "id": 115964117001,
+                "kind": 25,
+                "overlap_ns": 29175,
+                "query": "kh",
+                "start_ns": 4466703
+              },
+              {
+                "CPU_ns": 28223,
+                "end_ns": 4524682,
+                "full_leaf": true,
+                "id": 115964117002,
+                "kind": 25,
+                "overlap_ns": 28413,
+                "query": "kh",
+                "start_ns": 4496269
+              },
+              {
+                "CPU_ns": 28564,
+                "end_ns": 4553887,
+                "full_leaf": true,
+                "id": 115964117003,
+                "kind": 25,
+                "overlap_ns": 28754,
+                "query": "kh",
+                "start_ns": 4525133
+              },
+              {
+                "CPU_ns": 28183,
+                "end_ns": 4582551,
+                "full_leaf": true,
+                "id": 115964117004,
+                "kind": 25,
+                "overlap_ns": 28373,
+                "query": "kh",
+                "start_ns": 4554178
+              },
+              {
+                "CPU_ns": 4208,
+                "end_ns": 4588062,
+                "full_leaf": true,
+                "id": 115964117005,
+                "kind": 23,
+                "overlap_ns": 4389,
+                "query": "a",
+                "start_ns": 4583673
+              },
+              {
+                "CPU_ns": 3988,
+                "end_ns": 4592740,
+                "full_leaf": true,
+                "id": 115964117006,
+                "kind": 25,
+                "overlap_ns": 4177,
+                "query": "a",
+                "start_ns": 4588563
+              },
+              {
+                "CPU_ns": 29425,
+                "end_ns": 4623779,
+                "full_leaf": true,
+                "id": 115964117007,
+                "kind": 25,
+                "overlap_ns": 29616,
+                "query": "kh",
+                "start_ns": 4594163
+              },
+              {
+                "CPU_ns": 29165,
+                "end_ns": 4654397,
+                "full_leaf": true,
+                "id": 115964117008,
+                "kind": 25,
+                "overlap_ns": 29356,
+                "query": "a",
+                "start_ns": 4625041
+              },
+              {
+                "CPU_ns": 28804,
+                "end_ns": 4683852,
+                "full_leaf": true,
+                "id": 115964117009,
+                "kind": 25,
+                "overlap_ns": 28984,
+                "query": "a",
+                "start_ns": 4654868
+              },
+              {
+                "CPU_ns": 29125,
+                "end_ns": 4713679,
+                "full_leaf": true,
+                "id": 115964117010,
+                "kind": 25,
+                "overlap_ns": 29316,
+                "query": "a",
+                "start_ns": 4684363
+              },
+              {
+                "CPU_ns": 29085,
+                "end_ns": 4744126,
+                "full_leaf": true,
+                "id": 115964117011,
+                "kind": 25,
+                "overlap_ns": 29285,
+                "query": "kh",
+                "start_ns": 4714841
+              },
+              {
+                "CPU_ns": 28584,
+                "end_ns": 4774824,
+                "full_leaf": true,
+                "id": 115964117012,
+                "kind": 25,
+                "overlap_ns": 28774,
+                "query": "a",
+                "start_ns": 4746050
+              },
+              {
+                "CPU_ns": 28384,
+                "end_ns": 4804209,
+                "full_leaf": true,
+                "id": 115964117013,
+                "kind": 25,
+                "overlap_ns": 28594,
+                "query": "kh",
+                "start_ns": 4775615
+              }
+            ],
+            "serial_service_span_overlap_ns": 662828,
+            "start_ns": 2161686,
+            "uncovered_elapsed_ns": 2013940
+          },
+          "query_start_ns": 2161686,
+          "root_id": 115964116993
+        },
+        "kh": {
+          "covered_serial_CPU_ns": 50066703,
+          "last_window_end_ns": 4850487,
+          "last_window_to_return": {
+            "by_logical_query": {
+              "g2": {
+                "fully_contained_CPU_ns": 1059503,
+                "fully_contained_leaves": 39,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 1067599
+              }
+            },
+            "end_ns": 7102764,
+            "foreign_service_span_overlap_ns": 1067599,
+            "foreign_span_fraction": 0.47400874759188144,
+            "interval_ns": 2252277,
+            "owner_worker": 14,
+            "records": [
+              {
+                "CPU_ns": 30758,
+                "end_ns": 4999347,
+                "full_leaf": true,
+                "id": 60129542161,
+                "kind": 24,
+                "overlap_ns": 31078,
+                "query": "g2",
+                "start_ns": 4968269
+              },
+              {
+                "CPU_ns": 28403,
+                "end_ns": 5028572,
+                "full_leaf": true,
+                "id": 60129542162,
+                "kind": 24,
+                "overlap_ns": 28664,
+                "query": "g2",
+                "start_ns": 4999908
+              },
+              {
+                "CPU_ns": 27291,
+                "end_ns": 5056205,
+                "full_leaf": true,
+                "id": 60129542163,
+                "kind": 24,
+                "overlap_ns": 27502,
+                "query": "g2",
+                "start_ns": 5028703
+              },
+              {
+                "CPU_ns": 30667,
+                "end_ns": 5087233,
+                "full_leaf": true,
+                "id": 60129542164,
+                "kind": 24,
+                "overlap_ns": 30878,
+                "query": "g2",
+                "start_ns": 5056355
+              },
+              {
+                "CPU_ns": 28954,
+                "end_ns": 5116478,
+                "full_leaf": true,
+                "id": 60129542165,
+                "kind": 24,
+                "overlap_ns": 29175,
+                "query": "g2",
+                "start_ns": 5087303
+              },
+              {
+                "CPU_ns": 28564,
+                "end_ns": 5146084,
+                "full_leaf": true,
+                "id": 60129542166,
+                "kind": 24,
+                "overlap_ns": 28864,
+                "query": "g2",
+                "start_ns": 5117220
+              },
+              {
+                "CPU_ns": 26780,
+                "end_ns": 5173175,
+                "full_leaf": true,
+                "id": 60129542167,
+                "kind": 24,
+                "overlap_ns": 26981,
+                "query": "g2",
+                "start_ns": 5146194
+              },
+              {
+                "CPU_ns": 27712,
+                "end_ns": 5201178,
+                "full_leaf": true,
+                "id": 60129542168,
+                "kind": 24,
+                "overlap_ns": 27913,
+                "query": "g2",
+                "start_ns": 5173265
+              },
+              {
+                "CPU_ns": 14527,
+                "end_ns": 5216397,
+                "full_leaf": true,
+                "id": 60129542169,
+                "kind": 24,
+                "overlap_ns": 14728,
+                "query": "g2",
+                "start_ns": 5201669
+              },
+              {
+                "CPU_ns": 26781,
+                "end_ns": 5243648,
+                "full_leaf": true,
+                "id": 60129542170,
+                "kind": 24,
+                "overlap_ns": 26971,
+                "query": "g2",
+                "start_ns": 5216677
+              },
+              {
+                "CPU_ns": 28163,
+                "end_ns": 5272322,
+                "full_leaf": true,
+                "id": 60129542171,
+                "kind": 24,
+                "overlap_ns": 28353,
+                "query": "g2",
+                "start_ns": 5243969
+              },
+              {
+                "CPU_ns": 27923,
+                "end_ns": 5300605,
+                "full_leaf": true,
+                "id": 60129542172,
+                "kind": 24,
+                "overlap_ns": 28143,
+                "query": "g2",
+                "start_ns": 5272462
+              },
+              {
+                "CPU_ns": 28895,
+                "end_ns": 5329800,
+                "full_leaf": true,
+                "id": 60129542173,
+                "kind": 24,
+                "overlap_ns": 29084,
+                "query": "g2",
+                "start_ns": 5300716
+              },
+              {
+                "CPU_ns": 20849,
+                "end_ns": 5351201,
+                "full_leaf": true,
+                "id": 60129542174,
+                "kind": 24,
+                "overlap_ns": 21050,
+                "query": "g2",
+                "start_ns": 5330151
+              },
+              {
+                "CPU_ns": 23454,
+                "end_ns": 5374916,
+                "full_leaf": true,
+                "id": 60129542175,
+                "kind": 24,
+                "overlap_ns": 23645,
+                "query": "g2",
+                "start_ns": 5351271
+              },
+              {
+                "CPU_ns": 26410,
+                "end_ns": 5401616,
+                "full_leaf": true,
+                "id": 60129542176,
+                "kind": 24,
+                "overlap_ns": 26600,
+                "query": "g2",
+                "start_ns": 5375016
+              },
+              {
+                "CPU_ns": 26510,
+                "end_ns": 5428376,
+                "full_leaf": true,
+                "id": 60129542177,
+                "kind": 24,
+                "overlap_ns": 26690,
+                "query": "g2",
+                "start_ns": 5401686
+              },
+              {
+                "CPU_ns": 27882,
+                "end_ns": 5458213,
+                "full_leaf": true,
+                "id": 60129542178,
+                "kind": 24,
+                "overlap_ns": 28083,
+                "query": "g2",
+                "start_ns": 5430130
+              },
+              {
+                "CPU_ns": 26831,
+                "end_ns": 5485474,
+                "full_leaf": true,
+                "id": 60129542179,
+                "kind": 24,
+                "overlap_ns": 27021,
+                "query": "g2",
+                "start_ns": 5458453
+              },
+              {
+                "CPU_ns": 24066,
+                "end_ns": 5626240,
+                "full_leaf": true,
+                "id": 60129542180,
+                "kind": 24,
+                "overlap_ns": 24266,
+                "query": "g2",
+                "start_ns": 5601974
+              },
+              {
+                "CPU_ns": 28884,
+                "end_ns": 5655384,
+                "full_leaf": true,
+                "id": 60129542181,
+                "kind": 24,
+                "overlap_ns": 29064,
+                "query": "g2",
+                "start_ns": 5626320
+              },
+              {
+                "CPU_ns": 22462,
+                "end_ns": 5678658,
+                "full_leaf": true,
+                "id": 60129542182,
+                "kind": 24,
+                "overlap_ns": 22652,
+                "query": "g2",
+                "start_ns": 5656006
+              },
+              {
+                "CPU_ns": 28103,
+                "end_ns": 5707052,
+                "full_leaf": true,
+                "id": 60129542183,
+                "kind": 24,
+                "overlap_ns": 28283,
+                "query": "g2",
+                "start_ns": 5678769
+              },
+              {
+                "CPU_ns": 27151,
+                "end_ns": 5734474,
+                "full_leaf": true,
+                "id": 60129542184,
+                "kind": 24,
+                "overlap_ns": 27342,
+                "query": "g2",
+                "start_ns": 5707132
+              },
+              {
+                "CPU_ns": 26820,
+                "end_ns": 5761605,
+                "full_leaf": true,
+                "id": 60129542185,
+                "kind": 24,
+                "overlap_ns": 27011,
+                "query": "g2",
+                "start_ns": 5734594
+              },
+              {
+                "CPU_ns": 25338,
+                "end_ns": 5787293,
+                "full_leaf": true,
+                "id": 60129542186,
+                "kind": 24,
+                "overlap_ns": 25528,
+                "query": "g2",
+                "start_ns": 5761765
+              },
+              {
+                "CPU_ns": 27271,
+                "end_ns": 5815096,
+                "full_leaf": true,
+                "id": 60129542187,
+                "kind": 24,
+                "overlap_ns": 27502,
+                "query": "g2",
+                "start_ns": 5787594
+              },
+              {
+                "CPU_ns": 22843,
+                "end_ns": 5838309,
+                "full_leaf": true,
+                "id": 60129542188,
+                "kind": 24,
+                "overlap_ns": 23043,
+                "query": "g2",
+                "start_ns": 5815266
+              },
+              {
+                "CPU_ns": 21621,
+                "end_ns": 5860231,
+                "full_leaf": true,
+                "id": 60129542189,
+                "kind": 24,
+                "overlap_ns": 21801,
+                "query": "g2",
+                "start_ns": 5838430
+              },
+              {
+                "CPU_ns": 31028,
+                "end_ns": 5892301,
+                "full_leaf": true,
+                "id": 60129542190,
+                "kind": 24,
+                "overlap_ns": 31269,
+                "query": "g2",
+                "start_ns": 5861032
+              },
+              {
+                "CPU_ns": 27171,
+                "end_ns": 5919963,
+                "full_leaf": true,
+                "id": 60129542191,
+                "kind": 24,
+                "overlap_ns": 27391,
+                "query": "g2",
+                "start_ns": 5892572
+              },
+              {
+                "CPU_ns": 23574,
+                "end_ns": 5943788,
+                "full_leaf": true,
+                "id": 60129542192,
+                "kind": 24,
+                "overlap_ns": 23764,
+                "query": "g2",
+                "start_ns": 5920024
+              },
+              {
+                "CPU_ns": 27442,
+                "end_ns": 5971671,
+                "full_leaf": true,
+                "id": 60129542193,
+                "kind": 24,
+                "overlap_ns": 27622,
+                "query": "g2",
+                "start_ns": 5944049
+              },
+              {
+                "CPU_ns": 26300,
+                "end_ns": 5998211,
+                "full_leaf": true,
+                "id": 60129542194,
+                "kind": 24,
+                "overlap_ns": 26490,
+                "query": "g2",
+                "start_ns": 5971721
+              },
+              {
+                "CPU_ns": 32491,
+                "end_ns": 6030993,
+                "full_leaf": true,
+                "id": 60129542195,
+                "kind": 24,
+                "overlap_ns": 32672,
+                "query": "g2",
+                "start_ns": 5998321
+              },
+              {
+                "CPU_ns": 28383,
+                "end_ns": 6060238,
+                "full_leaf": true,
+                "id": 60129542196,
+                "kind": 24,
+                "overlap_ns": 28614,
+                "query": "g2",
+                "start_ns": 6031624
+              },
+              {
+                "CPU_ns": 24767,
+                "end_ns": 6085445,
+                "full_leaf": true,
+                "id": 60129542197,
+                "kind": 24,
+                "overlap_ns": 25047,
+                "query": "g2",
+                "start_ns": 6060398
+              },
+              {
+                "CPU_ns": 27001,
+                "end_ns": 6113609,
+                "full_leaf": true,
+                "id": 60129542198,
+                "kind": 24,
+                "overlap_ns": 27222,
+                "query": "g2",
+                "start_ns": 6086387
+              },
+              {
+                "CPU_ns": 49433,
+                "end_ns": 6888289,
+                "full_leaf": true,
+                "id": 60129542199,
+                "kind": 25,
+                "overlap_ns": 49593,
+                "query": "g2",
+                "start_ns": 6838696
+              }
+            ],
+            "serial_service_span_overlap_ns": 1067599,
+            "start_ns": 4850487,
+            "uncovered_elapsed_ns": 1184678
+          },
+          "owner_worker": 14,
+          "query_end_ns": 7102764,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2196702,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 811,
+            "owner_worker": 14,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2195891,
+            "uncovered_elapsed_ns": 811
+          },
+          "query_start_ns": 2195891,
+          "root_id": 60129542145
+        }
+      },
+      "round": 0
+    },
+    {
+      "block": 0,
+      "job": "b0-on",
+      "last_covered_serial": "g2",
+      "last_query_return": "g2",
+      "last_window_callback": "g2",
+      "queries": {
+        "a": {
+          "covered_serial_CPU_ns": 20560135,
+          "last_window_end_ns": 4842141,
+          "last_window_to_return": {
+            "by_logical_query": {
+              "g2": {
+                "fully_contained_CPU_ns": 2085823,
+                "fully_contained_leaves": 10,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 2088280
+              }
+            },
+            "end_ns": 7456291,
+            "foreign_service_span_overlap_ns": 2088280,
+            "foreign_span_fraction": 0.7988370981007211,
+            "interval_ns": 2614150,
+            "owner_worker": 1,
+            "records": [
+              {
+                "CPU_ns": 896717,
+                "end_ns": 5773958,
+                "full_leaf": true,
+                "id": 4294967315,
+                "kind": 22,
+                "overlap_ns": 896961,
+                "query": "g2",
+                "start_ns": 4876997
+              },
+              {
+                "CPU_ns": 75582,
+                "end_ns": 5849781,
+                "full_leaf": true,
+                "id": 4294967316,
+                "kind": 28,
+                "overlap_ns": 75763,
+                "query": "g2",
+                "start_ns": 5774018
+              },
+              {
+                "CPU_ns": 841122,
+                "end_ns": 6691158,
+                "full_leaf": true,
+                "id": 4294967317,
+                "kind": 22,
+                "overlap_ns": 841337,
+                "query": "g2",
+                "start_ns": 5849821
+              },
+              {
+                "CPU_ns": 11211,
+                "end_ns": 6702670,
+                "full_leaf": true,
+                "id": 4294967318,
+                "kind": 29,
+                "overlap_ns": 11352,
+                "query": "g2",
+                "start_ns": 6691318
+              },
+              {
+                "CPU_ns": 42620,
+                "end_ns": 6868943,
+                "full_leaf": true,
+                "id": 4294967319,
+                "kind": 26,
+                "overlap_ns": 42791,
+                "query": "g2",
+                "start_ns": 6826152
+              },
+              {
+                "CPU_ns": 46708,
+                "end_ns": 6930269,
+                "full_leaf": true,
+                "id": 4294967320,
+                "kind": 25,
+                "overlap_ns": 46869,
+                "query": "g2",
+                "start_ns": 6883400
+              },
+              {
+                "CPU_ns": 27011,
+                "end_ns": 7029276,
+                "full_leaf": true,
+                "id": 4294967321,
+                "kind": 26,
+                "overlap_ns": 27192,
+                "query": "g2",
+                "start_ns": 7002084
+              },
+              {
+                "CPU_ns": 51136,
+                "end_ns": 7120027,
+                "full_leaf": true,
+                "id": 4294967322,
+                "kind": 25,
+                "overlap_ns": 51447,
+                "query": "g2",
+                "start_ns": 7068580
+              },
+              {
+                "CPU_ns": 38763,
+                "end_ns": 7207211,
+                "full_leaf": true,
+                "id": 4294967323,
+                "kind": 26,
+                "overlap_ns": 39304,
+                "query": "g2",
+                "start_ns": 7167907
+              },
+              {
+                "CPU_ns": 54953,
+                "end_ns": 7308873,
+                "full_leaf": true,
+                "id": 4294967324,
+                "kind": 25,
+                "overlap_ns": 55264,
+                "query": "g2",
+                "start_ns": 7253609
+              }
+            ],
+            "serial_service_span_overlap_ns": 2088280,
+            "start_ns": 4842141,
+            "uncovered_elapsed_ns": 525870
+          },
+          "owner_worker": 1,
+          "query_end_ns": 7456291,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2890721,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 768960,
+            "owner_worker": 1,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2121761,
+            "uncovered_elapsed_ns": 768960
+          },
+          "query_start_ns": 2121761,
+          "root_id": 4294967297
+        },
+        "g2": {
+          "covered_serial_CPU_ns": 57825522,
+          "last_window_end_ns": 7508710,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7551440,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 42730,
+            "owner_worker": 11,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7508710,
+            "uncovered_elapsed_ns": 42730
+          },
+          "owner_worker": 11,
+          "query_end_ns": 7551440,
+          "query_entry_to_input": {
+            "by_logical_query": {
+              "a": {
+                "fully_contained_CPU_ns": 749050,
+                "fully_contained_leaves": 3,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 749854
+              }
+            },
+            "end_ns": 4841430,
+            "foreign_service_span_overlap_ns": 749854,
+            "foreign_span_fraction": 0.2757558284067624,
+            "interval_ns": 2719268,
+            "owner_worker": 11,
+            "records": [
+              {
+                "CPU_ns": 651195,
+                "end_ns": 4691547,
+                "full_leaf": true,
+                "id": 47244640261,
+                "kind": 20,
+                "overlap_ns": 651579,
+                "query": "a",
+                "start_ns": 4039968
+              },
+              {
+                "CPU_ns": 67618,
+                "end_ns": 4759455,
+                "full_leaf": true,
+                "id": 47244640262,
+                "kind": 27,
+                "overlap_ns": 67838,
+                "query": "a",
+                "start_ns": 4691617
+              },
+              {
+                "CPU_ns": 30237,
+                "end_ns": 4815090,
+                "full_leaf": true,
+                "id": 47244640263,
+                "kind": 25,
+                "overlap_ns": 30437,
+                "query": "a",
+                "start_ns": 4784653
+              }
+            ],
+            "serial_service_span_overlap_ns": 749854,
+            "start_ns": 2122162,
+            "uncovered_elapsed_ns": 1969414
+          },
+          "query_start_ns": 2122162,
+          "root_id": 47244640257
+        },
+        "kh": {
+          "covered_serial_CPU_ns": 48498426,
+          "last_window_end_ns": 4843474,
+          "last_window_to_return": {
+            "by_logical_query": {
+              "g2": {
+                "fully_contained_CPU_ns": 2290391,
+                "fully_contained_leaves": 4,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 2291721
+              }
+            },
+            "end_ns": 7262545,
+            "foreign_service_span_overlap_ns": 2291721,
+            "foreign_span_fraction": 0.9473558237852465,
+            "interval_ns": 2419071,
+            "owner_worker": 25,
+            "records": [
+              {
+                "CPU_ns": 1047351,
+                "end_ns": 5958055,
+                "full_leaf": true,
+                "id": 107374182418,
+                "kind": 22,
+                "overlap_ns": 1048036,
+                "query": "g2",
+                "start_ns": 4910019
+              },
+              {
+                "CPU_ns": 81915,
+                "end_ns": 6040240,
+                "full_leaf": true,
+                "id": 107374182419,
+                "kind": 28,
+                "overlap_ns": 82125,
+                "query": "g2",
+                "start_ns": 5958115
+              },
+              {
+                "CPU_ns": 1138663,
+                "end_ns": 7179198,
+                "full_leaf": true,
+                "id": 107374182420,
+                "kind": 22,
+                "overlap_ns": 1138908,
+                "query": "g2",
+                "start_ns": 6040290
+              },
+              {
+                "CPU_ns": 22462,
+                "end_ns": 7202121,
+                "full_leaf": true,
+                "id": 107374182421,
+                "kind": 29,
+                "overlap_ns": 22652,
+                "query": "g2",
+                "start_ns": 7179469
+              }
+            ],
+            "serial_service_span_overlap_ns": 2291721,
+            "start_ns": 4843474,
+            "uncovered_elapsed_ns": 127350
+          },
+          "owner_worker": 25,
+          "query_end_ns": 7262545,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2157288,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 671,
+            "owner_worker": 25,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2156617,
+            "uncovered_elapsed_ns": 671
+          },
+          "query_start_ns": 2156617,
+          "root_id": 107374182401
+        }
+      },
+      "round": 15
+    },
+    {
+      "block": 0,
+      "job": "b0-on",
+      "last_covered_serial": "g2",
+      "last_query_return": "kh",
+      "last_window_callback": "kh",
+      "queries": {
+        "a": {
+          "covered_serial_CPU_ns": 20544565,
+          "last_window_end_ns": 7367814,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7417788,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 49974,
+            "owner_worker": 1,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7367814,
+            "uncovered_elapsed_ns": 49974
+          },
+          "owner_worker": 1,
+          "query_end_ns": 7417788,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2851848,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 736909,
+            "owner_worker": 1,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2114939,
+            "uncovered_elapsed_ns": 736909
+          },
+          "query_start_ns": 2114939,
+          "root_id": 4294967297
+        },
+        "g2": {
+          "covered_serial_CPU_ns": 58234724,
+          "last_window_end_ns": 7399163,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7459217,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 60054,
+            "owner_worker": 4,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7399163,
+            "uncovered_elapsed_ns": 60054
+          },
+          "owner_worker": 4,
+          "query_end_ns": 7459217,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 3710367,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 1594747,
+            "owner_worker": 4,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2115620,
+            "uncovered_elapsed_ns": 1594747
+          },
+          "query_start_ns": 2115620,
+          "root_id": 17179869185
+        },
+        "kh": {
+          "covered_serial_CPU_ns": 48959375,
+          "last_window_end_ns": 7418309,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7467883,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 49574,
+            "owner_worker": 5,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7418309,
+            "uncovered_elapsed_ns": 49574
+          },
+          "owner_worker": 5,
+          "query_end_ns": 7467883,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2153682,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 702,
+            "owner_worker": 5,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2152980,
+            "uncovered_elapsed_ns": 702
+          },
+          "query_start_ns": 2152980,
+          "root_id": 21474836481
+        }
+      },
+      "round": 30
+    },
+    {
+      "block": 1,
+      "job": "b1-on",
+      "last_covered_serial": "g2",
+      "last_query_return": "g2",
+      "last_window_callback": "g2",
+      "queries": {
+        "a": {
+          "covered_serial_CPU_ns": 19573533,
+          "last_window_end_ns": 7303643,
+          "last_window_to_return": {
+            "by_logical_query": {
+              "g2": {
+                "fully_contained_CPU_ns": 187984,
+                "fully_contained_leaves": 6,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 189328
+              }
+            },
+            "end_ns": 7844943,
+            "foreign_service_span_overlap_ns": 189328,
+            "foreign_span_fraction": 0.34976537964160354,
+            "interval_ns": 541300,
+            "owner_worker": 1,
+            "records": [
+              {
+                "CPU_ns": 38002,
+                "end_ns": 7498210,
+                "full_leaf": true,
+                "id": 4294967366,
+                "kind": 26,
+                "overlap_ns": 38222,
+                "query": "g2",
+                "start_ns": 7459988
+              },
+              {
+                "CPU_ns": 52368,
+                "end_ns": 7568823,
+                "full_leaf": true,
+                "id": 4294967367,
+                "kind": 25,
+                "overlap_ns": 52750,
+                "query": "g2",
+                "start_ns": 7516073
+              },
+              {
+                "CPU_ns": 25859,
+                "end_ns": 7624037,
+                "full_leaf": true,
+                "id": 4294967368,
+                "kind": 24,
+                "overlap_ns": 26099,
+                "query": "g2",
+                "start_ns": 7597938
+              },
+              {
+                "CPU_ns": 21841,
+                "end_ns": 7646720,
+                "full_leaf": true,
+                "id": 4294967369,
+                "kind": 24,
+                "overlap_ns": 22002,
+                "query": "g2",
+                "start_ns": 7624718
+              },
+              {
+                "CPU_ns": 25879,
+                "end_ns": 7672909,
+                "full_leaf": true,
+                "id": 4294967370,
+                "kind": 24,
+                "overlap_ns": 26049,
+                "query": "g2",
+                "start_ns": 7646860
+              },
+              {
+                "CPU_ns": 24035,
+                "end_ns": 7697616,
+                "full_leaf": true,
+                "id": 4294967371,
+                "kind": 24,
+                "overlap_ns": 24206,
+                "query": "g2",
+                "start_ns": 7673410
+              }
+            ],
+            "serial_service_span_overlap_ns": 189328,
+            "start_ns": 7303643,
+            "uncovered_elapsed_ns": 351972
+          },
+          "owner_worker": 1,
+          "query_end_ns": 7844943,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2940164,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 771925,
+            "owner_worker": 1,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2168239,
+            "uncovered_elapsed_ns": 771925
+          },
+          "query_start_ns": 2168239,
+          "root_id": 4294967297
+        },
+        "g2": {
+          "covered_serial_CPU_ns": 54942654,
+          "last_window_end_ns": 7772737,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7845324,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 72587,
+            "owner_worker": 10,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7772737,
+            "uncovered_elapsed_ns": 72587
+          },
+          "owner_worker": 10,
+          "query_end_ns": 7845324,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 3215784,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 1047165,
+            "owner_worker": 10,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2168619,
+            "uncovered_elapsed_ns": 1047165
+          },
+          "query_start_ns": 2168619,
+          "root_id": 42949672961
+        },
+        "kh": {
+          "covered_serial_CPU_ns": 47104654,
+          "last_window_end_ns": 7465298,
+          "last_window_to_return": {
+            "by_logical_query": {
+              "g2": {
+                "fully_contained_CPU_ns": 79549,
+                "fully_contained_leaves": 3,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 80121
+              }
+            },
+            "end_ns": 7831157,
+            "foreign_service_span_overlap_ns": 80121,
+            "foreign_span_fraction": 0.21899420268464082,
+            "interval_ns": 365859,
+            "owner_worker": 23,
+            "records": [
+              {
+                "CPU_ns": 26841,
+                "end_ns": 7624237,
+                "full_leaf": true,
+                "id": 98784247876,
+                "kind": 24,
+                "overlap_ns": 27041,
+                "query": "g2",
+                "start_ns": 7597196
+              },
+              {
+                "CPU_ns": 26279,
+                "end_ns": 7650938,
+                "full_leaf": true,
+                "id": 98784247877,
+                "kind": 24,
+                "overlap_ns": 26460,
+                "query": "g2",
+                "start_ns": 7624478
+              },
+              {
+                "CPU_ns": 26429,
+                "end_ns": 7678209,
+                "full_leaf": true,
+                "id": 98784247878,
+                "kind": 24,
+                "overlap_ns": 26620,
+                "query": "g2",
+                "start_ns": 7651589
+              }
+            ],
+            "serial_service_span_overlap_ns": 80121,
+            "start_ns": 7465298,
+            "uncovered_elapsed_ns": 285738
+          },
+          "owner_worker": 23,
+          "query_end_ns": 7831157,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2203385,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 852,
+            "owner_worker": 23,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2202533,
+            "uncovered_elapsed_ns": 852
+          },
+          "query_start_ns": 2202533,
+          "root_id": 98784247809
+        }
+      },
+      "round": 0
+    },
+    {
+      "block": 1,
+      "job": "b1-on",
+      "last_covered_serial": "g2",
+      "last_query_return": "kh",
+      "last_window_callback": "kh",
+      "queries": {
+        "a": {
+          "covered_serial_CPU_ns": 20396299,
+          "last_window_end_ns": 7172836,
+          "last_window_to_return": {
+            "by_logical_query": {
+              "g2": {
+                "fully_contained_CPU_ns": 53120,
+                "fully_contained_leaves": 1,
+                "partially_clipped_leaves": 1,
+                "service_span_overlap_ns": 92615
+              }
+            },
+            "end_ns": 7498320,
+            "foreign_service_span_overlap_ns": 92615,
+            "foreign_span_fraction": 0.28454547688980103,
+            "interval_ns": 325484,
+            "owner_worker": 1,
+            "records": [
+              {
+                "CPU_ns": null,
+                "end_ns": 7212080,
+                "full_leaf": false,
+                "id": 4294967346,
+                "kind": 26,
+                "overlap_ns": 39244,
+                "query": "g2",
+                "start_ns": 7172566
+              },
+              {
+                "CPU_ns": 53120,
+                "end_ns": 7268036,
+                "full_leaf": true,
+                "id": 4294967347,
+                "kind": 25,
+                "overlap_ns": 53371,
+                "query": "g2",
+                "start_ns": 7214665
+              }
+            ],
+            "serial_service_span_overlap_ns": 92615,
+            "start_ns": 7172836,
+            "uncovered_elapsed_ns": 232869
+          },
+          "owner_worker": 1,
+          "query_end_ns": 7498320,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2925858,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 758200,
+            "owner_worker": 1,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2167658,
+            "uncovered_elapsed_ns": 758200
+          },
+          "query_start_ns": 2167658,
+          "root_id": 4294967297
+        },
+        "g2": {
+          "covered_serial_CPU_ns": 58490305,
+          "last_window_end_ns": 7439610,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7503801,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 64191,
+            "owner_worker": 28,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7439610,
+            "uncovered_elapsed_ns": 64191
+          },
+          "owner_worker": 28,
+          "query_end_ns": 7503801,
+          "query_entry_to_input": {
+            "by_logical_query": {
+              "a": {
+                "fully_contained_CPU_ns": 273295,
+                "fully_contained_leaves": 6,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 274518
+              },
+              "kh": {
+                "fully_contained_CPU_ns": 110799,
+                "fully_contained_leaves": 4,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 111580
+              }
+            },
+            "end_ns": 4526847,
+            "foreign_service_span_overlap_ns": 386098,
+            "foreign_span_fraction": 0.16365569985533288,
+            "interval_ns": 2359209,
+            "owner_worker": 28,
+            "records": [
+              {
+                "CPU_ns": 31639,
+                "end_ns": 4024129,
+                "full_leaf": true,
+                "id": 120259084291,
+                "kind": 25,
+                "overlap_ns": 31890,
+                "query": "a",
+                "start_ns": 3992239
+              },
+              {
+                "CPU_ns": 82025,
+                "end_ns": 4232021,
+                "full_leaf": true,
+                "id": 120259084293,
+                "kind": 24,
+                "overlap_ns": 82245,
+                "query": "a",
+                "start_ns": 4149776
+              },
+              {
+                "CPU_ns": 76093,
+                "end_ns": 4308445,
+                "full_leaf": true,
+                "id": 120259084294,
+                "kind": 24,
+                "overlap_ns": 76284,
+                "query": "a",
+                "start_ns": 4232161
+              },
+              {
+                "CPU_ns": 75532,
+                "end_ns": 4384408,
+                "full_leaf": true,
+                "id": 120259084295,
+                "kind": 24,
+                "overlap_ns": 75723,
+                "query": "a",
+                "start_ns": 4308685
+              },
+              {
+                "CPU_ns": 28664,
+                "end_ns": 4414034,
+                "full_leaf": true,
+                "id": 120259084296,
+                "kind": 25,
+                "overlap_ns": 28864,
+                "query": "kh",
+                "start_ns": 4385170
+              },
+              {
+                "CPU_ns": 27282,
+                "end_ns": 4442408,
+                "full_leaf": true,
+                "id": 120259084297,
+                "kind": 25,
+                "overlap_ns": 27472,
+                "query": "kh",
+                "start_ns": 4414936
+              },
+              {
+                "CPU_ns": 26920,
+                "end_ns": 4469949,
+                "full_leaf": true,
+                "id": 120259084298,
+                "kind": 25,
+                "overlap_ns": 27121,
+                "query": "kh",
+                "start_ns": 4442828
+              },
+              {
+                "CPU_ns": 27933,
+                "end_ns": 4498824,
+                "full_leaf": true,
+                "id": 120259084299,
+                "kind": 25,
+                "overlap_ns": 28123,
+                "query": "kh",
+                "start_ns": 4470701
+              },
+              {
+                "CPU_ns": 3938,
+                "end_ns": 4521246,
+                "full_leaf": true,
+                "id": 120259084300,
+                "kind": 23,
+                "overlap_ns": 4128,
+                "query": "a",
+                "start_ns": 4517118
+              },
+              {
+                "CPU_ns": 4068,
+                "end_ns": 4525985,
+                "full_leaf": true,
+                "id": 120259084301,
+                "kind": 25,
+                "overlap_ns": 4248,
+                "query": "a",
+                "start_ns": 4521737
+              }
+            ],
+            "serial_service_span_overlap_ns": 386098,
+            "start_ns": 2167638,
+            "uncovered_elapsed_ns": 1973111
+          },
+          "query_start_ns": 2167638,
+          "root_id": 120259084289
+        },
+        "kh": {
+          "covered_serial_CPU_ns": 50304746,
+          "last_window_end_ns": 7470488,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7512226,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 41738,
+            "owner_worker": 17,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7470488,
+            "uncovered_elapsed_ns": 41738
+          },
+          "owner_worker": 17,
+          "query_end_ns": 7512226,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2202313,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 761,
+            "owner_worker": 17,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2201552,
+            "uncovered_elapsed_ns": 761
+          },
+          "query_start_ns": 2201552,
+          "root_id": 73014444033
+        }
+      },
+      "round": 15
+    },
+    {
+      "block": 1,
+      "job": "b1-on",
+      "last_covered_serial": "g2",
+      "last_query_return": "kh",
+      "last_window_callback": "kh",
+      "queries": {
+        "a": {
+          "covered_serial_CPU_ns": 20559465,
+          "last_window_end_ns": 7061646,
+          "last_window_to_return": {
+            "by_logical_query": {
+              "g2": {
+                "fully_contained_CPU_ns": 99035,
+                "fully_contained_leaves": 4,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 99939
+              }
+            },
+            "end_ns": 7302029,
+            "foreign_service_span_overlap_ns": 99939,
+            "foreign_span_fraction": 0.41574903383350736,
+            "interval_ns": 240383,
+            "owner_worker": 1,
+            "records": [
+              {
+                "CPU_ns": 25878,
+                "end_ns": 7106511,
+                "full_leaf": true,
+                "id": 4294967331,
+                "kind": 24,
+                "overlap_ns": 26039,
+                "query": "g2",
+                "start_ns": 7080472
+              },
+              {
+                "CPU_ns": 21540,
+                "end_ns": 7128763,
+                "full_leaf": true,
+                "id": 4294967332,
+                "kind": 24,
+                "overlap_ns": 21811,
+                "query": "g2",
+                "start_ns": 7106952
+              },
+              {
+                "CPU_ns": 26279,
+                "end_ns": 7156054,
+                "full_leaf": true,
+                "id": 4294967333,
+                "kind": 24,
+                "overlap_ns": 26520,
+                "query": "g2",
+                "start_ns": 7129534
+              },
+              {
+                "CPU_ns": 25338,
+                "end_ns": 7182314,
+                "full_leaf": true,
+                "id": 4294967334,
+                "kind": 24,
+                "overlap_ns": 25569,
+                "query": "g2",
+                "start_ns": 7156745
+              }
+            ],
+            "serial_service_span_overlap_ns": 99939,
+            "start_ns": 7061646,
+            "uncovered_elapsed_ns": 140444
+          },
+          "owner_worker": 1,
+          "query_end_ns": 7302029,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2592989,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 556840,
+            "owner_worker": 1,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2036149,
+            "uncovered_elapsed_ns": 556840
+          },
+          "query_start_ns": 2036149,
+          "root_id": 4294967297
+        },
+        "g2": {
+          "covered_serial_CPU_ns": 57232293,
+          "last_window_end_ns": 7247537,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7309874,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 62337,
+            "owner_worker": 2,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7247537,
+            "uncovered_elapsed_ns": 62337
+          },
+          "owner_worker": 2,
+          "query_end_ns": 7309874,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 3341270,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 1304690,
+            "owner_worker": 2,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2036580,
+            "uncovered_elapsed_ns": 1304690
+          },
+          "query_start_ns": 2036580,
+          "root_id": 8589934593
+        },
+        "kh": {
+          "covered_serial_CPU_ns": 50660573,
+          "last_window_end_ns": 7262866,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7323650,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 60784,
+            "owner_worker": 18,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7262866,
+            "uncovered_elapsed_ns": 60784
+          },
+          "owner_worker": 18,
+          "query_end_ns": 7323650,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2072939,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 571,
+            "owner_worker": 18,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2072368,
+            "uncovered_elapsed_ns": 571
+          },
+          "query_start_ns": 2072368,
+          "root_id": 77309411329
+        }
+      },
+      "round": 30
+    },
+    {
+      "block": 2,
+      "job": "b2-on",
+      "last_covered_serial": "g2",
+      "last_query_return": "kh",
+      "last_window_callback": "kh",
+      "queries": {
+        "a": {
+          "covered_serial_CPU_ns": 20951289,
+          "last_window_end_ns": 8254055,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 8296786,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 42731,
+            "owner_worker": 6,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 8254055,
+            "uncovered_elapsed_ns": 42731
+          },
+          "owner_worker": 6,
+          "query_end_ns": 8296786,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 3342864,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 905417,
+            "owner_worker": 6,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2437447,
+            "uncovered_elapsed_ns": 905417
+          },
+          "query_start_ns": 2437447,
+          "root_id": 25769803777
+        },
+        "g2": {
+          "covered_serial_CPU_ns": 57964586,
+          "last_window_end_ns": 8225331,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 8287889,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 62558,
+            "owner_worker": 13,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 8225331,
+            "uncovered_elapsed_ns": 62558
+          },
+          "owner_worker": 13,
+          "query_end_ns": 8287889,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 4364300,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 1926713,
+            "owner_worker": 13,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2437587,
+            "uncovered_elapsed_ns": 1926713
+          },
+          "query_start_ns": 2437587,
+          "root_id": 55834574849
+        },
+        "kh": {
+          "covered_serial_CPU_ns": 49530051,
+          "last_window_end_ns": 8257632,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 8309951,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 52319,
+            "owner_worker": 9,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 8257632,
+            "uncovered_elapsed_ns": 52319
+          },
+          "owner_worker": 9,
+          "query_end_ns": 8309951,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2471020,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 762,
+            "owner_worker": 9,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2470258,
+            "uncovered_elapsed_ns": 762
+          },
+          "query_start_ns": 2470258,
+          "root_id": 38654705665
+        }
+      },
+      "round": 0
+    },
+    {
+      "block": 2,
+      "job": "b2-on",
+      "last_covered_serial": "g2",
+      "last_query_return": "kh",
+      "last_window_callback": "kh",
+      "queries": {
+        "a": {
+          "covered_serial_CPU_ns": 20645500,
+          "last_window_end_ns": 7204837,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7259460,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 54623,
+            "owner_worker": 1,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7204837,
+            "uncovered_elapsed_ns": 54623
+          },
+          "owner_worker": 1,
+          "query_end_ns": 7259460,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2604982,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 557992,
+            "owner_worker": 1,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2046990,
+            "uncovered_elapsed_ns": 557992
+          },
+          "query_start_ns": 2046990,
+          "root_id": 4294967297
+        },
+        "g2": {
+          "covered_serial_CPU_ns": 57730596,
+          "last_window_end_ns": 7231627,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7288745,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 57118,
+            "owner_worker": 31,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7231627,
+            "uncovered_elapsed_ns": 57118
+          },
+          "owner_worker": 31,
+          "query_end_ns": 7288745,
+          "query_entry_to_input": {
+            "by_logical_query": {
+              "a": {
+                "fully_contained_CPU_ns": 296598,
+                "fully_contained_leaves": 4,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 297852
+              }
+            },
+            "end_ns": 4098830,
+            "foreign_service_span_overlap_ns": 297852,
+            "foreign_span_fraction": 0.14522083560048912,
+            "interval_ns": 2051028,
+            "owner_worker": 31,
+            "records": [
+              {
+                "CPU_ns": 105158,
+                "end_ns": 3905104,
+                "full_leaf": true,
+                "id": 133143986179,
+                "kind": 24,
+                "overlap_ns": 105699,
+                "query": "a",
+                "start_ns": 3799405
+              },
+              {
+                "CPU_ns": 100018,
+                "end_ns": 4005834,
+                "full_leaf": true,
+                "id": 133143986180,
+                "kind": 24,
+                "overlap_ns": 100319,
+                "query": "a",
+                "start_ns": 3905515
+              },
+              {
+                "CPU_ns": 7985,
+                "end_ns": 4014611,
+                "full_leaf": true,
+                "id": 133143986181,
+                "kind": 24,
+                "overlap_ns": 8206,
+                "query": "a",
+                "start_ns": 4006405
+              },
+              {
+                "CPU_ns": 83437,
+                "end_ns": 4098299,
+                "full_leaf": true,
+                "id": 133143986182,
+                "kind": 24,
+                "overlap_ns": 83628,
+                "query": "a",
+                "start_ns": 4014671
+              }
+            ],
+            "serial_service_span_overlap_ns": 297852,
+            "start_ns": 2047802,
+            "uncovered_elapsed_ns": 1753176
+          },
+          "query_start_ns": 2047802,
+          "root_id": 133143986177
+        },
+        "kh": {
+          "covered_serial_CPU_ns": 50206708,
+          "last_window_end_ns": 7247026,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7306428,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 59402,
+            "owner_worker": 27,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7247026,
+            "uncovered_elapsed_ns": 59402
+          },
+          "owner_worker": 27,
+          "query_end_ns": 7306428,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2081646,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 1042,
+            "owner_worker": 27,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2080604,
+            "uncovered_elapsed_ns": 1042
+          },
+          "query_start_ns": 2080604,
+          "root_id": 115964116993
+        }
+      },
+      "round": 15
+    },
+    {
+      "block": 2,
+      "job": "b2-on",
+      "last_covered_serial": "g2",
+      "last_query_return": "g2",
+      "last_window_callback": "g2",
+      "queries": {
+        "a": {
+          "covered_serial_CPU_ns": 20729762,
+          "last_window_end_ns": 4971485,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 5011991,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 40506,
+            "owner_worker": 8,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 4971485,
+            "uncovered_elapsed_ns": 40506
+          },
+          "owner_worker": 8,
+          "query_end_ns": 5011991,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2887745,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 584622,
+            "owner_worker": 8,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2303123,
+            "uncovered_elapsed_ns": 584622
+          },
+          "query_start_ns": 2303123,
+          "root_id": 34359738369
+        },
+        "g2": {
+          "covered_serial_CPU_ns": 57659587,
+          "last_window_end_ns": 7475106,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 7519059,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 43953,
+            "owner_worker": 15,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 7475106,
+            "uncovered_elapsed_ns": 43953
+          },
+          "owner_worker": 15,
+          "query_end_ns": 7519059,
+          "query_entry_to_input": {
+            "by_logical_query": {
+              "a": {
+                "fully_contained_CPU_ns": 349726,
+                "fully_contained_leaves": 6,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 350970
+              },
+              "kh": {
+                "fully_contained_CPU_ns": 400423,
+                "fully_contained_leaves": 14,
+                "partially_clipped_leaves": 0,
+                "service_span_overlap_ns": 403070
+              }
+            },
+            "end_ns": 4966345,
+            "foreign_service_span_overlap_ns": 754040,
+            "foreign_span_fraction": 0.2831573144591832,
+            "interval_ns": 2662972,
+            "owner_worker": 15,
+            "records": [
+              {
+                "CPU_ns": 97072,
+                "end_ns": 4261315,
+                "full_leaf": true,
+                "id": 64424509443,
+                "kind": 24,
+                "overlap_ns": 97343,
+                "query": "a",
+                "start_ns": 4163972
+              },
+              {
+                "CPU_ns": 86593,
+                "end_ns": 4348269,
+                "full_leaf": true,
+                "id": 64424509444,
+                "kind": 24,
+                "overlap_ns": 86803,
+                "query": "a",
+                "start_ns": 4261466
+              },
+              {
+                "CPU_ns": 13585,
+                "end_ns": 4362176,
+                "full_leaf": true,
+                "id": 64424509445,
+                "kind": 24,
+                "overlap_ns": 13766,
+                "query": "a",
+                "start_ns": 4348410
+              },
+              {
+                "CPU_ns": 76774,
+                "end_ns": 4439231,
+                "full_leaf": true,
+                "id": 64424509446,
+                "kind": 24,
+                "overlap_ns": 76985,
+                "query": "a",
+                "start_ns": 4362246
+              },
+              {
+                "CPU_ns": 48291,
+                "end_ns": 4487792,
+                "full_leaf": true,
+                "id": 64424509447,
+                "kind": 24,
+                "overlap_ns": 48481,
+                "query": "a",
+                "start_ns": 4439311
+              },
+              {
+                "CPU_ns": 30988,
+                "end_ns": 4520113,
+                "full_leaf": true,
+                "id": 64424509448,
+                "kind": 25,
+                "overlap_ns": 31188,
+                "query": "kh",
+                "start_ns": 4488925
+              },
+              {
+                "CPU_ns": 29245,
+                "end_ns": 4549980,
+                "full_leaf": true,
+                "id": 64424509449,
+                "kind": 25,
+                "overlap_ns": 29416,
+                "query": "kh",
+                "start_ns": 4520564
+              },
+              {
+                "CPU_ns": 29175,
+                "end_ns": 4579756,
+                "full_leaf": true,
+                "id": 64424509450,
+                "kind": 25,
+                "overlap_ns": 29356,
+                "query": "kh",
+                "start_ns": 4550400
+              },
+              {
+                "CPU_ns": 28734,
+                "end_ns": 4609081,
+                "full_leaf": true,
+                "id": 64424509451,
+                "kind": 25,
+                "overlap_ns": 28914,
+                "query": "kh",
+                "start_ns": 4580167
+              },
+              {
+                "CPU_ns": 29135,
+                "end_ns": 4639408,
+                "full_leaf": true,
+                "id": 64424509452,
+                "kind": 25,
+                "overlap_ns": 29325,
+                "query": "kh",
+                "start_ns": 4610083
+              },
+              {
+                "CPU_ns": 28103,
+                "end_ns": 4668193,
+                "full_leaf": true,
+                "id": 64424509453,
+                "kind": 25,
+                "overlap_ns": 28284,
+                "query": "kh",
+                "start_ns": 4639909
+              },
+              {
+                "CPU_ns": 28133,
+                "end_ns": 4696937,
+                "full_leaf": true,
+                "id": 64424509454,
+                "kind": 25,
+                "overlap_ns": 28324,
+                "query": "kh",
+                "start_ns": 4668613
+              },
+              {
+                "CPU_ns": 27853,
+                "end_ns": 4725390,
+                "full_leaf": true,
+                "id": 64424509455,
+                "kind": 25,
+                "overlap_ns": 28082,
+                "query": "kh",
+                "start_ns": 4697308
+              },
+              {
+                "CPU_ns": 27943,
+                "end_ns": 4754796,
+                "full_leaf": true,
+                "id": 64424509456,
+                "kind": 25,
+                "overlap_ns": 28153,
+                "query": "kh",
+                "start_ns": 4726643
+              },
+              {
+                "CPU_ns": 30978,
+                "end_ns": 4786365,
+                "full_leaf": true,
+                "id": 64424509457,
+                "kind": 25,
+                "overlap_ns": 31148,
+                "query": "kh",
+                "start_ns": 4755217
+              },
+              {
+                "CPU_ns": 27511,
+                "end_ns": 4814569,
+                "full_leaf": true,
+                "id": 64424509458,
+                "kind": 25,
+                "overlap_ns": 27693,
+                "query": "kh",
+                "start_ns": 4786876
+              },
+              {
+                "CPU_ns": 27391,
+                "end_ns": 4842582,
+                "full_leaf": true,
+                "id": 64424509459,
+                "kind": 25,
+                "overlap_ns": 27583,
+                "query": "kh",
+                "start_ns": 4814999
+              },
+              {
+                "CPU_ns": 27592,
+                "end_ns": 4871476,
+                "full_leaf": true,
+                "id": 64424509460,
+                "kind": 25,
+                "overlap_ns": 27782,
+                "query": "kh",
+                "start_ns": 4843694
+              },
+              {
+                "CPU_ns": 27642,
+                "end_ns": 4900150,
+                "full_leaf": true,
+                "id": 64424509461,
+                "kind": 25,
+                "overlap_ns": 27822,
+                "query": "kh",
+                "start_ns": 4872328
+              },
+              {
+                "CPU_ns": 27411,
+                "end_ns": 4929185,
+                "full_leaf": true,
+                "id": 64424509462,
+                "kind": 25,
+                "overlap_ns": 27592,
+                "query": "a",
+                "start_ns": 4901593
+              }
+            ],
+            "serial_service_span_overlap_ns": 754040,
+            "start_ns": 2303373,
+            "uncovered_elapsed_ns": 1908932
+          },
+          "query_start_ns": 2303373,
+          "root_id": 64424509441
+        },
+        "kh": {
+          "covered_serial_CPU_ns": 50545980,
+          "last_window_end_ns": 4966205,
+          "last_window_to_return": {
+            "by_logical_query": {},
+            "end_ns": 5014886,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 48681,
+            "owner_worker": 6,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 4966205,
+            "uncovered_elapsed_ns": 48681
+          },
+          "owner_worker": 6,
+          "query_end_ns": 5014886,
+          "query_entry_to_input": {
+            "by_logical_query": {},
+            "end_ns": 2338840,
+            "foreign_service_span_overlap_ns": 0,
+            "foreign_span_fraction": 0.0,
+            "interval_ns": 1322,
+            "owner_worker": 6,
+            "records": [],
+            "serial_service_span_overlap_ns": 0,
+            "start_ns": 2337518,
+            "uncovered_elapsed_ns": 1322
+          },
+          "query_start_ns": 2337518,
+          "root_id": 25769803777
+        }
+      },
+      "round": 30
+    }
+  ],
+  "pins_verified": 198,
+  "production_changed": false,
+  "queries": {
+    "a": {
+      "last_window_to_return": {
+        "median_foreign_service_span_overlap_ms": 0.092615,
+        "median_foreign_span_fraction": 0.28454547688980103,
+        "median_interval_ms": 0.240383
+      },
+      "query_entry_to_input": {
+        "median_foreign_service_span_overlap_ms": 0.0,
+        "median_foreign_span_fraction": 0.0,
+        "median_interval_ms": 0.736909
+      }
+    },
+    "g2": {
+      "last_window_to_return": {
+        "median_foreign_service_span_overlap_ms": 0.0,
+        "median_foreign_span_fraction": 0.0,
+        "median_interval_ms": 0.060054
+      },
+      "query_entry_to_input": {
+        "median_foreign_service_span_overlap_ms": 0.297852,
+        "median_foreign_span_fraction": 0.14522083560048912,
+        "median_interval_ms": 2.051028
+      }
+    },
+    "kh": {
+      "last_window_to_return": {
+        "median_foreign_service_span_overlap_ms": 0.0,
+        "median_foreign_span_fraction": 0.0,
+        "median_interval_ms": 0.059402
+      },
+      "query_entry_to_input": {
+        "median_foreign_service_span_overlap_ms": 0.0,
+        "median_foreign_span_fraction": 0.0,
+        "median_interval_ms": 0.000762
+      }
+    }
+  },
+  "raw_records_byte_exact": true,
+  "status": "complete offline analysis"
+}

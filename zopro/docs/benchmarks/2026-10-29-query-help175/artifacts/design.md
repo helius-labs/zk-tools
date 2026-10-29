@@ -1,0 +1,15 @@
+# Query return and foreign service attribution
+
+Offline analysis of the nine fixed main graphs already captured in the accepted175 service-trace study. No new capture, SDK request, proof export or timing rerun. All nine graphs remain in scope. The initial audit found that disjoint bucket ranges with full-input rescans were already rejected on23October; do not repeat that mechanism.
+
+Check raw80-byte records against the published per-graph hashes and original GRAPH metadata (thread lengths, record size, limit and zero drops). Reconstruct original record order, IDs, physical worker IDs, logical ancestry, parent containment and non-overlapping nonforking serial leaves. Recompute query/window boundaries and covered CPU against the original summaries. Pin current175production hashes and the published baseline, recorder, insertion and analyzer sources.
+
+For each query, examine (1) query entry to its input-available marker and (2) last own window callback return to query return. On the physical worker owning the query root, classify overlapping serial service by its explicit logical query ancestry. Sum interval overlap only after validating serial non-overlap. Report exact CPU deltas only for leaves completely inside the examined interval; partial-leaf CPU cannot be prorated from elapsed overlap. Preserve partial counts and unclassified/uncovered elapsed spans.
+
+Compare last-query-return labels with last-window-callback and last-covered-serial-service labels. These are different observable boundaries, not definitions of an immutable critical path. Uncovered preparation, Horner/normalization, coordinator work, preemption and internal scheduling remain unknown. A foreign leaf overlap certifies foreign logical-query service on that physical worker; it is not all recovered wall time or a new speed estimate. Infer neither an ideal schedule nor a lower bound on achievable proof latency.
+
+Three new decoder/interval tests cover record roundtrip and malformed ancestry, clipped intervals with full-only CPU accounting, and differing last root versus last serial labels. No prover or inherited native suite is rerun. Publish raw decoded records with byte-exact reconstruction checks, all per-graph results and summarized limitations. Existing failed query ordering/whole-query waves/range/routing policies remain closed. Any new implementation must differ concretely and pass its own correctness, memory and full-proof measurements.
+
+## Explicit exploratory expansion after initial analysis
+
+Initial results retained in initial-analysis: last covered serial event belongs to G2 in9/9 graphs, while K/H query/window returns last in5/9. Add query-last-own-serial to query-return intervals and per-window last-own-serial to callback-return intervals on the same fixed nine graphs. Classify other-window service (including same-query sibling windows) on each callback's physical owner, with full-only CPU accounting. Add one new ownership test; inherit the three successful initial tests. This is post-hoc offline analysis, not a new capture, latency gate or scheduler speedup. Original sources, output, logs and pins are retained.
