@@ -1,0 +1,47 @@
+{
+  "accepted_phi_split_source_exact": true,
+  "edits": {
+    "crates/zopro-core/src/msm_affine/borrowed_pending.rs": [
+      [
+        "mod balanced;",
+        "mod balanced;\n#[cfg(all(zopro_glv_fused_kh, zopro_resource_schedule, zopro_g2_horner_buckets, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\nmod glv_kh;\n#[cfg(all(zopro_glv_fused_kh, zopro_resource_schedule, zopro_g2_horner_buckets, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\npub(super) fn glv_fused(k:&[zopro_bn254::G1Affine],sk:&[[u64;4]],h:&[zopro_bn254::G1Affine],sh:&[[u64;4]])->Option<zopro_bn254::G1Projective>{glv_kh::try_fused(k,sk,h,sh)}"
+      ]
+    ],
+    "crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs": [
+      [
+        "struct Span {\n    start: usize,\n    width: usize,\n}",
+        "pub(super) struct Span {\n    pub(super) start: usize,\n    pub(super) width: usize,\n}"
+      ],
+      [
+        "fn digit_at(s: &[u64; 4], span: Span) -> i16 {",
+        "pub(super) fn digit_at(s: &[u64; 4], span: Span) -> i16 {"
+      ]
+    ],
+    "crates/zopro-core/src/msm_affine/fused_kh.rs": [
+      [
+        " if k.len().min(h.len())>=1024 && super::borrowed_pending::enabled() {return super::borrowed_pending::fused(k,sk,h,sh,bits);}",
+        " if k.len().min(h.len())>=1024 && super::borrowed_pending::enabled() {\n  #[cfg(all(zopro_glv_fused_kh, zopro_resource_schedule, zopro_g2_horner_buckets, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\n  if bits==13 {if let Some(value)=super::borrowed_pending::glv_fused(k,sk,h,sh){return value;}}\n  return super::borrowed_pending::fused(k,sk,h,sh,bits);\n }"
+      ]
+    ],
+    "crates/zopro-core/src/msm_affine/workspace.rs": [
+      [
+        "#[cfg(test)]\nmod tests {",
+        "#[cfg(zopro_glv_fused_kh)]\npub(crate) fn glv_kh_peak(k:usize,h:usize,workers:usize)->Option<usize> {\n    let n=add(k,h)?;\n    let profile=shape::<G1Config>(1<<12,10,2,batch_size(13).max(32))?;\n    add(vector::<[u64;4]>(n,false)?,add(profile.held,mul(profile.leaf,workers.max(1))?)?)\n}\n\n#[cfg(test)]\nmod tests {"
+      ]
+    ]
+  },
+  "field_originals_exact": 17,
+  "historical_GLVMsm_negative_retained": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-22-universal-g1-bucket-horner/README.md",
+  "modified_originals": [
+    "crates/zopro-core/src/msm_affine/borrowed_pending.rs",
+    "crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs",
+    "crates/zopro-core/src/msm_affine/fused_kh.rs",
+    "crates/zopro-core/src/msm_affine/workspace.rs"
+  ],
+  "new_child": "crates/zopro-core/src/msm_affine/borrowed_pending/glv_kh.rs",
+  "new_mechanism": "signed decomposition + borrowed fused K/H + ten balanced windows/two partitions + complete extra reservation",
+  "originals": 175,
+  "originals_exact": 171,
+  "private_files": 176,
+  "production_changed": false
+}
