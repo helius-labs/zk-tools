@@ -50,6 +50,8 @@ fn select_records(value: &Value, fields: &[&str]) -> Value {
 }
 fn main() {
     let root = Path::new(Z);
+    let cached_hash = read(root.join("docs/benchmarks/2026-10-29-cached-hash-groups175/artifacts/analysis.json"));
+    assert_eq!(cached_hash["complete"],true);
     let diagnostic = read(root.join("docs/benchmarks/2026-10-29-representative-54-diagnostic175/artifacts/analysis.json"));
     assert_eq!(diagnostic["complete"], true);
     assert_eq!(diagnostic["independent_proof_count"],21703);
@@ -79,6 +81,7 @@ fn main() {
         "2026-10-29-representative-groups175",
         "2026-10-29-representative-sdk175",
         "2026-10-29-representative-54-diagnostic175",
+        "2026-10-29-cached-hash-groups175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -295,7 +298,12 @@ fn main() {
         .unwrap();
     }
     md+="\nZopro's sampled epoch/scheduler residence rises from 14.09% at 32 workers to 61.48% at 96. Those flat CPU sample categories are not removable wall-time fractions. The evidence directs investigation toward useful work availability, critical paths and coordination, but does not isolate memory capacity, cache misses, clock behavior, syscalls or fences as the cause.\n\nThe container recorded zero memory/swap/OOM event deltas. It also recorded 39 CPU-throttled periods over the entire workflow, including preparation, verification and profiling; that is not a timed-only or per-engine attribution. The measurements do not establish performance under memory pressure, minimum RAM, phone/ARM/TEE performance, concurrent throughput, or forester 250/4999 behavior.\n";
-    md += "\n## Latest scalar grouping constructor\n\nThe new one-pass constructor retains compact representative-row/count records and row classes, copying full scalar values only after exact admission. It removes the previous candidate's second input hash pass, preserves query independence and adds no key table, execution plan or point copy.\n\n";
+
+    md += "\n## Latest cached hash grouping constructor\n\nThe revision retains one u64 hash per distinct class in a separate proof-local vector, so table growth avoids representative-input hashing. Hashes and the dictionary are released before scalar materialization; original output-phase memory bounds remain. Full-value equality, stable class order and the original sample/cutoff policy remain unchanged.\n\n";
+    writeln!(md,"The newly declared constructor gate **{}**. Nine native component tests cover whole outputs, collisions, original allocation forecasts and exactly one hash per nonzero input through forced growth. Thirty-one fixed blocks retain all 18 real A/B inputs against the source-extracted original and exact previous representative constructor; three zero-loss profiles follow latency. No proof timing or adoption follows from this constructor screen. [Full results](../2026-10-29-cached-hash-groups175/README.md).\n",if cached_hash["component_gate"]==true{"passes"}else{"fails"}).unwrap();
+    md += "|All 18 inputs versus|Ratio|Bounds|Wins / 31|\n|---|---:|---|---:|\n";
+    for (k,v) in cached_hash["aggregates"].as_object().unwrap(){writeln!(md,"|{k}|{:.9}|[{:.9}, {:.9}]|{}|",v["median"].as_f64().unwrap(),v["low"].as_f64().unwrap(),v["high"].as_f64().unwrap(),v["wins"]).unwrap();}
+    md += "\n## Previous representative grouping constructor\n\nThe new one-pass constructor retains compact representative-row/count records and row classes, copying full scalar values only after exact admission. It removes the previous candidate's second input hash pass, preserves query independence and adds no key table, execution plan or point copy.\n\n";
     writeln!(md, "The separately declared constructor gate **{}**. Thirty-one fixed blocks cover all 18 real A/B inputs against original and one-pass Swiss builders. Eight component tests pass, including full-output oracles and checked source-extracted allocation forecasts. Three gated profiles have zero lost records. No proof timing or adoption is inferred. [Full constructor report](../2026-10-29-representative-groups175/README.md).\n", if representative_groups["component_gate"] == true { "passes" } else { "fails" }).unwrap();
     md += "|Constructor aggregate versus|Ratio|Bounds|Wins / 31|\n|---|---:|---|---:|\n";
     for (label, v) in representative_groups["aggregates"].as_object().unwrap() {
@@ -417,7 +425,7 @@ fn main() {
             "nominal_coverage",
         ],
     );
-    let mut data = json!({"as_of":"2026-10-29","source_commit":"ab9afc137b813b5e33048c9b4d3514255a9b8fb0","new_timings":false,"new_tests_or_proofs":false,"accepted_source_files":175,"accepted_original8_CPU10x":0,"AWS_plain_original8_CPU10x":0,"AWS_lower_Zopro_best_medians":6,"AWS_circuits":9,"historical_distinct_Gnark_ledger":21007,"latest_local_experiment":{"report":"../2026-10-29-swiss-groups-sdk175/README.md","cells":select_records(&swiss["cells"], &["median_ms","CPU_ms","max_RSS_MiB"]),"pairs":select_records(&swiss["pairs"], &["median","low","high","wins","paired_saving_ms","nominal_coverage"]),"gate_passed":swiss["gate_passed"],"new_independent_exports":swiss["new_independent_exports"],"SDK_requests":swiss["SDK_requests"],"production_changed":swiss["production_changed"]},"previous_local_experiment":{"report":"../2026-10-29-early-x-sdk175/README.md","cells":latest_cells,"pairs":latest_pairs,"gate_passed":early["gate_passed"],"SDK_requests":early["SDK_requests"],"new_independent_exports":early["new_independent_exports"],"production_changed":early["production_changed"],"parent_component_gate_passed":caller["component_gate"]},"all_source175_current_hashes_verified":true,"rows":rows});
+    let mut data = json!({"as_of":"2026-10-29","source_commit":"e56a1c29df260b516fff9524ef875d3a1940e988","new_timings":false,"new_tests_or_proofs":false,"accepted_source_files":175,"accepted_original8_CPU10x":0,"AWS_plain_original8_CPU10x":0,"AWS_lower_Zopro_best_medians":6,"AWS_circuits":9,"historical_distinct_Gnark_ledger":21007,"latest_local_experiment":{"report":"../2026-10-29-swiss-groups-sdk175/README.md","cells":select_records(&swiss["cells"], &["median_ms","CPU_ms","max_RSS_MiB"]),"pairs":select_records(&swiss["pairs"], &["median","low","high","wins","paired_saving_ms","nominal_coverage"]),"gate_passed":swiss["gate_passed"],"new_independent_exports":swiss["new_independent_exports"],"SDK_requests":swiss["SDK_requests"],"production_changed":swiss["production_changed"]},"previous_local_experiment":{"report":"../2026-10-29-early-x-sdk175/README.md","cells":latest_cells,"pairs":latest_pairs,"gate_passed":early["gate_passed"],"SDK_requests":early["SDK_requests"],"new_independent_exports":early["new_independent_exports"],"production_changed":early["production_changed"],"parent_component_gate_passed":caller["component_gate"]},"all_source175_current_hashes_verified":true,"rows":rows});
     data["latest_control_audit"] = json!({
         "report": "../2026-10-29-swiss-control-audit175/README.md",
         "analysis": audit,
@@ -501,6 +509,8 @@ fn main() {
     data["historical_distinct_Gnark_ledger"] = json!(21697);
     data["latest_54_diagnostic"] = diagnostic;
     data["historical_distinct_Gnark_ledger"] = json!(21703);
+    data["previous_representative_grouping_constructor"] = data["latest_grouping_constructor"].clone();
+    data["latest_grouping_constructor"] = json!({"report":"../2026-10-29-cached-hash-groups175/README.md","gate_passed":cached_hash["component_gate"],"aggregates":cached_hash["aggregates"],"pairs":select_records(&cached_hash["pairs"], &["median","low","high","wins","nominal_coverage"]),"failed_checks":cached_hash["failed_checks"],"inputs":cached_hash["inputs"],"native_tests":9,"SDK_requests":0,"new_proofs":0,"production_changed":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

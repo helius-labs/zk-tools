@@ -79,7 +79,18 @@ Zopro's sampled epoch/scheduler residence rises from 14.09% at 32 workers to 61.
 
 The container recorded zero memory/swap/OOM event deltas. It also recorded 39 CPU-throttled periods over the entire workflow, including preparation, verification and profiling; that is not a timed-only or per-engine attribution. The measurements do not establish performance under memory pressure, minimum RAM, phone/ARM/TEE performance, concurrent throughput, or forester 250/4999 behavior.
 
-## Latest scalar grouping constructor
+## Latest cached hash grouping constructor
+
+The revision retains one u64 hash per distinct class in a separate proof-local vector, so table growth avoids representative-input hashing. Hashes and the dictionary are released before scalar materialization; original output-phase memory bounds remain. Full-value equality, stable class order and the original sample/cutoff policy remain unchanged.
+
+The newly declared constructor gate **passes**. Nine native component tests cover whole outputs, collisions, original allocation forecasts and exactly one hash per nonzero input through forced growth. Thirty-one fixed blocks retain all 18 real A/B inputs against the source-extracted original and exact previous representative constructor; three zero-loss profiles follow latency. No proof timing or adoption follows from this constructor screen. [Full results](../2026-10-29-cached-hash-groups175/README.md).
+
+|All 18 inputs versus|Ratio|Bounds|Wins / 31|
+|---|---:|---|---:|
+|original|0.948305731|[0.946040180, 0.952979918]|31|
+|parent|0.949390753|[0.947929195, 0.951318569]|31|
+
+## Previous representative grouping constructor
 
 The new one-pass constructor retains compact representative-row/count records and row classes, copying full scalar values only after exact admission. It removes the previous candidate's second input hash pass, preserves query independence and adds no key table, execution plan or point copy.
 
