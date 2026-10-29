@@ -1,0 +1,50 @@
+{
+  "alias_suffix": "\n#[cfg(zopro_g2_cached_x)]type StreamPrefixRecord=[FqBatch;6];\n#[cfg(not(zopro_g2_cached_x))]type StreamPrefixRecord=[FqBatch;2];\n#[cfg(all(test,zopro_g2_cached_x))]mod cached_x_memory_tests{\nuse super::*;\n#[test]fn streaming_packed_x_record_fits_original_workspace(){\nassert_eq!(core::mem::size_of::<StreamPrefixRecord>(),6*core::mem::size_of::<FqBatch>());\nlet mut records=Vec::<StreamPrefixRecord>::new();let mut high=0;\nfor n in[0usize,1,2,3,8,25,44,64,32,1,0]{records.clear();records.reserve_exact(n);high=high.max(n);assert!(records.capacity()<=high);assert!(records.capacity()*core::mem::size_of::<StreamPrefixRecord>()<=high*core::mem::size_of::<Fq2AddGroup>());}\n}\n}\n",
+  "caller_record_byte_introspection_corrected": true,
+  "caller_suffix_lib": "\n#[cfg(zopro_gauss_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+  "caller_suffix_msm": "\n#[cfg(zopro_gauss_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+  "changes": {
+    "crates/zopro-core/src/msm.rs": [
+      [
+        "prefix_records:Vec<[FqBatch;2]>",
+        "prefix_records:Vec<StreamPrefixRecord>"
+      ]
+    ],
+    "crates/zopro-core/src/msm/g2_borrowed.rs": [
+      [
+        "s.prefix_records.reserve(full / LANES);",
+        "#[cfg(zopro_g2_cached_x)]s.prefix_records.reserve_exact(full/LANES);\n    #[cfg(not(zopro_g2_cached_x))]s.prefix_records.reserve(full / LANES);"
+      ],
+      [
+        "s.prefix_records.push([chains, norm]);",
+        "#[cfg(zopro_g2_cached_x)]s.prefix_records.push([chains,norm,ax[0],ax[1],bx[0],bx[1]]);\n        #[cfg(not(zopro_g2_cached_x))]s.prefix_records.push([chains, norm]);"
+      ],
+      [
+        "        let ax = fq2_pack(a.map(|p| p.x));\n        let ay = fq2_pack(a.map(|p| p.y));\n        let bx = fq2_pack(b.map(|p| p.x));",
+        "        #[cfg(zopro_g2_cached_x)]let ax=[s.prefix_records[j][2],s.prefix_records[j][3]];\n        #[cfg(zopro_g2_cached_x)]let bx=[s.prefix_records[j][4],s.prefix_records[j][5]];\n        #[cfg(not(zopro_g2_cached_x))]let ax = fq2_pack(a.map(|p| p.x));\n        let ay = fq2_pack(a.map(|p| p.y));\n        #[cfg(not(zopro_g2_cached_x))]let bx = fq2_pack(b.map(|p| p.x));"
+      ]
+    ],
+    "crates/zopro-core/src/msm/g2_prefix.rs": [
+      [
+        "s.prefix_records.reserve(full/LANES);",
+        "#[cfg(zopro_g2_cached_x)]s.prefix_records.reserve_exact(full/LANES);\n    #[cfg(not(zopro_g2_cached_x))]s.prefix_records.reserve(full/LANES);"
+      ],
+      [
+        "s.prefix_records.push([chains,norm]);",
+        "#[cfg(zopro_g2_cached_x)]s.prefix_records.push([chains,norm,ax[0],ax[1],bx[0],bx[1]]);\n        #[cfg(not(zopro_g2_cached_x))]s.prefix_records.push([chains,norm]);"
+      ],
+      [
+        "        let ax=fq2_pack(a.map(|p|p.x));let ay=fq2_pack(a.map(|p|p.y));\n        let bx=fq2_pack(b.map(|p|p.x));let by=fq2_pack(b.map(|p|p.y));",
+        "        #[cfg(zopro_g2_cached_x)]let ax=[s.prefix_records[j][2],s.prefix_records[j][3]];\n        #[cfg(zopro_g2_cached_x)]let bx=[s.prefix_records[j][4],s.prefix_records[j][5]];\n        #[cfg(not(zopro_g2_cached_x))]let ax=fq2_pack(a.map(|p|p.x));\n        let ay=fq2_pack(a.map(|p|p.y));\n        #[cfg(not(zopro_g2_cached_x))]let bx=fq2_pack(b.map(|p|p.x));\n        let by=fq2_pack(b.map(|p|p.y));"
+      ]
+    ]
+  },
+  "field_tests33_inherited": true,
+  "frozen_inverse175_verified": true,
+  "native_field17_exact": true,
+  "originals": 175,
+  "originals_exact": 171,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "snapshot_files": 176
+}

@@ -273,3 +273,18 @@ The exact accepted, OFF and ON SDK executables are profiled on 54→1 at 32 work
 |ON|18128207687|22184905006|0.817|27071|0|
 
 These single captures locate sampled work; they do not supply paired speed bounds or assign exclusive wall time to flat symbols. Raw counters retain event running percentages and unavailable or multiplexed events. This diagnostic adds 204 SDK requests and six fresh independent exports, taking the distinct-proof ledger to **21,703**. The all-eight CPU 10× objective remains unmet; the accepted CPU and Metal comparisons above are unchanged.
+
+## Cached packed X coordinates in complete G2 batches
+
+The new native streaming path retains packed Ax/Bx in six-vector per-batch prefix records, eliminating reverse input-X loads/packing while preserving all field formulas. reserve_exact keeps typed capacity below the existing nine-vector workspace allowance. Actual cache bytes are reported rather than requiring them equal to the smaller control records. There is no key-sized cache.
+
+The separately declared caller gate **fails**. Fifteen blocks retain all 18 owned/borrowed G2 contexts across 1/16/32 workers and 32/200/352 pairs, plus 199/351 tails in preflight. All outputs match generator oracles and all timed allocation counts are zero. This is a complete batch-wave measurement, not SDK latency. [Full caller results](../2026-10-29-g2-cached-x175/README.md).
+
+|Aggregate|Ratio|Bounds|Wins / 15|
+|---|---:|---|---:|
+|all18/on/frozen|1.017859445|[1.015400839, 1.018940953]|0|
+|all18/on/off|1.017241273|[1.015096934, 1.019725284]|0|
+|threaded12/on/frozen|1.018575126|[1.014903964, 1.020916122]|0|
+|threaded12/on/off|1.017953293|[1.015005397, 1.020129986]|0|
+
+The component adds no SDK requests, independent proof exports or adoption. The distinct-proof ledger remains 22,144, and the accepted CPU/Metal and AWS comparisons above are unchanged.

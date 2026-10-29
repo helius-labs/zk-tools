@@ -50,6 +50,8 @@ fn select_records(value: &Value, fields: &[&str]) -> Value {
 }
 fn main() {
     let root = Path::new(Z);
+    let cached_x=read(root.join("docs/benchmarks/2026-10-29-g2-cached-x175/artifacts/analysis.json"));
+    assert_eq!(cached_x["complete"],true);
     let cached_sdk=read(root.join("docs/benchmarks/2026-10-29-cached-hash-sdk175/artifacts/analysis.json"));
     assert_eq!(cached_sdk["new_independent_exports"],441);
     assert_eq!(cached_sdk["independent_proof_count"],22144);
@@ -86,6 +88,7 @@ fn main() {
         "2026-10-29-representative-54-diagnostic175",
         "2026-10-29-cached-hash-groups175",
         "2026-10-29-cached-hash-sdk175",
+        "2026-10-29-g2-cached-x175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -420,7 +423,14 @@ fn main() {
         }else{writeln!(md,"|{v}|unqualified|unqualified|unqualified|{}|0|",p["samples"]).unwrap();}
     }
     md += "\nThese single captures locate sampled work; they do not supply paired speed bounds or assign exclusive wall time to flat symbols. Raw counters retain event running percentages and unavailable or multiplexed events. This diagnostic adds 204 SDK requests and six fresh independent exports, taking the distinct-proof ledger to **21,703**. The all-eight CPU 10× objective remains unmet; the accepted CPU and Metal comparisons above are unchanged.\n";
+
+    md += "\n## Cached packed X coordinates in complete G2 batches\n\nThe new native streaming path retains packed Ax/Bx in six-vector per-batch prefix records, eliminating reverse input-X loads/packing while preserving all field formulas. reserve_exact keeps typed capacity below the existing nine-vector workspace allowance. Actual cache bytes are reported rather than requiring them equal to the smaller control records. There is no key-sized cache.\n\n";
+    writeln!(md,"The separately declared caller gate **{}**. Fifteen blocks retain all 18 owned/borrowed G2 contexts across 1/16/32 workers and 32/200/352 pairs, plus 199/351 tails in preflight. All outputs match generator oracles and all timed allocation counts are zero. This is a complete batch-wave measurement, not SDK latency. [Full caller results](../2026-10-29-g2-cached-x175/README.md).\n",if cached_x["component_gate"]==true{"passes"}else{"fails"}).unwrap();
+    md += "|Aggregate|Ratio|Bounds|Wins / 15|\n|---|---:|---|---:|\n";
+    for(k,v)in cached_x["aggregates"].as_object().unwrap(){writeln!(md,"|{k}|{:.9}|[{:.9}, {:.9}]|{}|",v["median"].as_f64().unwrap(),v["low"].as_f64().unwrap(),v["high"].as_f64().unwrap(),v["wins"]).unwrap();}
+    md += "\nThe component adds no SDK requests, independent proof exports or adoption. The distinct-proof ledger remains 22,144, and the accepted CPU/Metal and AWS comparisons above are unchanged.\n";
     fs::write(dest.join("README.md"), md).unwrap();
+
 
     let latest_cells = select_records(&early["cells"], &["median_ms", "CPU_ms", "max_RSS_MiB"]);
     let latest_pairs = select_records(
@@ -434,7 +444,7 @@ fn main() {
             "nominal_coverage",
         ],
     );
-    let mut data = json!({"as_of":"2026-10-29","source_commit":"1bcc4b2abbadc3653d5ff8f1af5b7d54499d4327","new_timings":false,"new_tests_or_proofs":false,"accepted_source_files":175,"accepted_original8_CPU10x":0,"AWS_plain_original8_CPU10x":0,"AWS_lower_Zopro_best_medians":6,"AWS_circuits":9,"historical_distinct_Gnark_ledger":21007,"latest_local_experiment":{"report":"../2026-10-29-swiss-groups-sdk175/README.md","cells":select_records(&swiss["cells"], &["median_ms","CPU_ms","max_RSS_MiB"]),"pairs":select_records(&swiss["pairs"], &["median","low","high","wins","paired_saving_ms","nominal_coverage"]),"gate_passed":swiss["gate_passed"],"new_independent_exports":swiss["new_independent_exports"],"SDK_requests":swiss["SDK_requests"],"production_changed":swiss["production_changed"]},"previous_local_experiment":{"report":"../2026-10-29-early-x-sdk175/README.md","cells":latest_cells,"pairs":latest_pairs,"gate_passed":early["gate_passed"],"SDK_requests":early["SDK_requests"],"new_independent_exports":early["new_independent_exports"],"production_changed":early["production_changed"],"parent_component_gate_passed":caller["component_gate"]},"all_source175_current_hashes_verified":true,"rows":rows});
+    let mut data = json!({"as_of":"2026-10-29","source_commit":"dd162f8557df2f98c5c55a32c7b0c4f632333866","new_timings":false,"new_tests_or_proofs":false,"accepted_source_files":175,"accepted_original8_CPU10x":0,"AWS_plain_original8_CPU10x":0,"AWS_lower_Zopro_best_medians":6,"AWS_circuits":9,"historical_distinct_Gnark_ledger":21007,"latest_local_experiment":{"report":"../2026-10-29-swiss-groups-sdk175/README.md","cells":select_records(&swiss["cells"], &["median_ms","CPU_ms","max_RSS_MiB"]),"pairs":select_records(&swiss["pairs"], &["median","low","high","wins","paired_saving_ms","nominal_coverage"]),"gate_passed":swiss["gate_passed"],"new_independent_exports":swiss["new_independent_exports"],"SDK_requests":swiss["SDK_requests"],"production_changed":swiss["production_changed"]},"previous_local_experiment":{"report":"../2026-10-29-early-x-sdk175/README.md","cells":latest_cells,"pairs":latest_pairs,"gate_passed":early["gate_passed"],"SDK_requests":early["SDK_requests"],"new_independent_exports":early["new_independent_exports"],"production_changed":early["production_changed"],"parent_component_gate_passed":caller["component_gate"]},"all_source175_current_hashes_verified":true,"rows":rows});
     data["latest_control_audit"] = json!({
         "report": "../2026-10-29-swiss-control-audit175/README.md",
         "analysis": audit,
@@ -523,6 +533,8 @@ fn main() {
     data["previous_representative_full_proof_experiment"]=data["latest_local_experiment"].clone();
     data["latest_local_experiment"]=json!({"report":"../2026-10-29-cached-hash-sdk175/README.md","cells":select_records(&cached_sdk["cells"], &["median_ms","CPU_ms","max_RSS_MiB"]),"pairs":select_records(&cached_sdk["pairs"], &["median","low","high","wins","paired_saving_ms","nominal_coverage"]),"original8_aggregates":cached_sdk["original8_aggregates"],"gate_passed":cached_sdk["gate_passed"],"failed_checks":cached_sdk["failed_checks"],"calibration_checks":cached_sdk["calibration_checks"],"calibration_gate_required":false,"SDK_requests":20904,"new_independent_exports":441,"production_changed":false});
     data["historical_distinct_Gnark_ledger"]=json!(22144);
+    data["previous_signed_G2_caller"]=data["latest_actual_G2_caller"].clone();
+    data["latest_actual_G2_caller"]=json!({"report":"../2026-10-29-g2-cached-x175/README.md","gate_passed":cached_x["component_gate"],"aggregates":cached_x["aggregates"],"pairs":select_records(&cached_x["pairs"], &["median","low","high","wins"]),"failed_checks":cached_x["failed_checks"],"native_core_tests":cached_x["native_core_tests"],"native_prover_tests":cached_x["native_prover_tests"],"SDK_requests":0,"new_independent_exports":0,"production_changed":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),
