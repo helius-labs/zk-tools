@@ -354,6 +354,21 @@ Twelve FIFO-gated profiles compare separate instructions:u and cycles:u sampling
 |w32/cycles|18850|true|
 |w32/instructions|21504|true|
 
-The trial adds 1,848 SDK requests and 12 fresh independent Gnark exports; the ledger is now 22,210. No source adoption or new latency qualification follows. All accepted local/AWS/M5 tables and earlier failed gates remain unchanged.
+The trial adds 1,848 SDK requests and 12 fresh independent Gnark exports; its ledger is 22,210. No source adoption or new latency qualification follows. All accepted local/AWS/M5 tables and earlier failed gates remain unchanged. Summed sample periods fall below earlier nonsampled counts; passing attribution checks does not validate absolute coverage.
 
-Summed sample periods fall below the earlier nonsampled PMU counts, with the cause unresolved. Passing attribution checks does not validate absolute period coverage. Do not interpret these totals as reduced work or calculate per-symbol CPI from separate event captures; see the full report for the preserved estimates and limitations.
+## Simultaneous sample and event-count accounting
+
+Twenty-four captures compare frequency 199 Hz with fixed period 16 million at 16 physical and 32 logical workers, with an explicit perf-stat counter enabled alongside each recording. All 24 counter panels have 100% running coverage; attribution checks pass, but only three accounting panels meet the declared 2% tolerance. No threshold changes or new performance qualification. [Full diagnostic and control-reader repair](../2026-10-29-sample-accounting175/README.md).
+
+|Workers/event/mode|Median sample-period/count ratio|All accounting panels qualified|
+|---|---:|---|
+|w16/cycles/fixed|0.979287|false|
+|w16/cycles/freq|0.881443|false|
+|w16/instructions/fixed|0.989859|true|
+|w16/instructions/freq|0.878268|false|
+|w32/cycles/fixed|0.953579|false|
+|w32/cycles/freq|0.734886|false|
+|w32/instructions/fixed|0.972755|false|
+|w32/instructions/freq|0.744435|false|
+
+At 32 workers, frequency totals cover about 73–74% of simultaneous event counts; fixed-period totals cover about 95–97%. The underlying cause is unresolved. Sampling mode changes the accounting discrepancy, but no per-symbol bias correction follows. Use explicit counters for total work and treat sample shares as qualitative source-inspection guides. The trial adds 3,696 completed SDK requests and 24 distinct independent Gnark exports; ledger 22,234. One earlier controller failure has no completed SDK receipt/export and is retained separately. Production and accepted local/AWS/M5 timings remain unchanged.
