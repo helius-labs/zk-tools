@@ -1,0 +1,120 @@
+
+/home/ubuntu/src/zopro-perf-work/serial-phi175/native/candidate-sdk:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+000000000047a180 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_>:
+  47a180:	push   %rbp
+  47a181:	push   %r15
+  47a183:	push   %r14
+  47a185:	push   %r12
+  47a187:	push   %rbx
+  47a188:	sub    $0xd0,%rsp
+  47a18f:	vmovups (%rdi),%xmm0
+  47a193:	cmpq   $0x0,(%rdi)
+  47a197:	movq   $0x0,(%rdi)
+  47a19e:	je     47a2e2 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x162>
+  47a1a4:	mov    %fs:0xffffffffffffffc0,%rdx
+  47a1ad:	mov    %rdi,%rbx
+  47a1b0:	test   %rdx,%rdx
+  47a1b3:	je     47a2c8 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x148>
+  47a1b9:	lea    0x10(%rbx),%rax
+  47a1bd:	vmovaps %xmm0,0x50(%rsp)
+  47a1c3:	lea    0x30(%rbx),%rcx
+  47a1c7:	vmovups (%rax),%ymm0
+  47a1cb:	vmovups %ymm0,0x60(%rsp)
+  47a1d1:	vmovups (%rcx),%zmm0
+  47a1d7:	vmovups %zmm0,0x80(%rsp)
+  47a1df:	mov    0x40(%rcx),%rax
+  47a1e3:	mov    %rax,0xc0(%rsp)
+  47a1eb:	lea    0x20(%rsp),%rdi
+  47a1f0:	lea    0x50(%rsp),%rsi
+  47a1f5:	mov    $0x1,%ecx
+  47a1fa:	vzeroupper
+  47a1fd:	call   479bb0 <_RNCINvNtCs8zaw6vLE3tn_10rayon_core4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB10_5range12IterProducerjEINtNtBY_3map11MapConsumerINtNtNtBY_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB4g_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCBR_s_0INtB32_13CollectResultB3H_EB6t_E0B5o_>
+  47a202:	vmovups 0x30(%rsp),%ymm0
+  47a208:	mov    0x20(%rsp),%r14
+  47a20d:	mov    0x28(%rsp),%r15
+  47a212:	mov    $0x1,%r12d
+  47a218:	vmovups %ymm0,0x50(%rsp)
+  47a21e:	vmovups %ymm0,(%rsp)
+  47a223:	lea    0x78(%rbx),%rdi
+  47a227:	vzeroupper
+  47a22a:	call   294e30 <_RINvNtCsgxBkk5gSRhY_4core3ptr9drop_glueINtNtCs8zaw6vLE3tn_10rayon_core3job9JobResultTINtNtNtNtCsc3XWelWpAp8_5rayon4iter7collect8consumer13CollectResultINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB2Y_8G2ConfigEEEB1l_EEECsHW5vo2gROj_10zopro_core>
+  47a22f:	mov    %r12,0x78(%rbx)
+  47a233:	mov    %r14,0x80(%rbx)
+  47a23a:	mov    %r15,0x88(%rbx)
+  47a241:	vmovups (%rsp),%ymm0
+  47a246:	vmovups %ymm0,0x90(%rbx)
+  47a24e:	mov    0xb0(%rbx),%rax
+  47a255:	movzbl 0xc8(%rbx),%ebp
+  47a25c:	mov    (%rax),%rdi
+  47a25f:	cmp    $0x1,%bpl
+  47a263:	jne    47a277 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0xf7>
+  47a265:	lock incq (%rdi)
+  47a269:	jle    47a333 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x1b3>
+  47a26f:	mov    (%rax),%r14
+  47a272:	mov    %r14,%rdi
+  47a275:	jmp    47a277 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0xf7>
+  47a277:	mov    $0x3,%eax
+  47a27c:	mov    0xc0(%rbx),%rsi
+  47a283:	xchg   %rax,0xb8(%rbx)
+  47a28a:	cmp    $0x2,%rax
+  47a28e:	jne    47a29f <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x11f>
+  47a290:	add    $0x1d8,%rdi
+  47a297:	vzeroupper
+  47a29a:	call   fef40 <_RNvMNtCs8zaw6vLE3tn_10rayon_core5sleepNtB2_5Sleep20wake_specific_thread>
+  47a29f:	test   %bpl,%bpl
+  47a2a2:	je     47a2b5 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x135>
+  47a2a4:	lock decq (%r14)
+  47a2a8:	jne    47a2b5 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x135>
+  47a2aa:	mov    %r14,%rdi
+  47a2ad:	vzeroupper
+  47a2b0:	call   ffd00 <_RNvMsn_NtCs6i54tJFfzR_5alloc4syncINtB5_3ArcNtNtCs8zaw6vLE3tn_10rayon_core8registry8RegistryE9drop_slowBJ_>
+  47a2b5:	add    $0xd0,%rsp
+  47a2bc:	pop    %rbx
+  47a2bd:	pop    %r12
+  47a2bf:	pop    %r14
+  47a2c1:	pop    %r15
+  47a2c3:	pop    %rbp
+  47a2c4:	vzeroupper
+  47a2c7:	ret
+  47a2c8:	lea    -0x45ab81(%rip),%rdi        # 1f74e <_RNvCs2bkUAOhDEmu_4zmij11STATIC_DATA+0x534e>
+  47a2cf:	lea    0x68802(%rip),%rdx        # 4e2ad8 <__frame_dummy_init_array_entry+0x42e8>
+  47a2d6:	mov    $0x36,%esi
+  47a2db:	call   f0450 <_RNvNtCsgxBkk5gSRhY_4core9panicking5panic>
+  47a2e0:	jmp    47a333 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x1b3>
+  47a2e2:	lea    0x6bf5f(%rip),%rdi        # 4e6248 <__frame_dummy_init_array_entry+0x7a58>
+  47a2e9:	call   f1770 <_RNvNtCsgxBkk5gSRhY_4core6option13unwrap_failed>
+  47a2ee:	jmp    47a333 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x1b3>
+  47a2f0:	test   %bpl,%bpl
+  47a2f3:	je     47a32b <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x1ab>
+  47a2f5:	lock decq (%r14)
+  47a2f9:	jne    47a32b <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x1ab>
+  47a2fb:	mov    %r14,%rdi
+  47a2fe:	call   ffd00 <_RNvMsn_NtCs6i54tJFfzR_5alloc4syncINtB5_3ArcNtNtCs8zaw6vLE3tn_10rayon_core8registry8RegistryE9drop_slowBJ_>
+  47a303:	jmp    47a32b <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x1ab>
+  47a305:	call   f18e3 <_RNvNtCsgxBkk5gSRhY_4core9panicking16panic_in_cleanup>
+  47a30a:	mov    %r12,0x78(%rbx)
+  47a30e:	mov    %r14,0x80(%rbx)
+  47a315:	mov    %r15,0x88(%rbx)
+  47a31c:	vmovups (%rsp),%ymm0
+  47a321:	vmovups %ymm0,0x90(%rbx)
+  47a329:	jmp    47a32b <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0x1ab>
+  47a32b:	vzeroupper
+  47a32e:	call   104a50 <_RNvXNtCs8zaw6vLE3tn_10rayon_core6unwindNtB2_12AbortIfPanicNtNtNtCsgxBkk5gSRhY_4core3ops4drop4Drop4drop>
+  47a333:	ud2
+  47a335:	call   f18e3 <_RNvNtCsgxBkk5gSRhY_4core9panicking16panic_in_cleanup>
+  47a33a:	mov    %rax,%rdi
+  47a33d:	call   143fda <_RNvNvNtCs9k3SxhrAWiO_3std9panicking12catch_unwind7cleanup>
+  47a342:	mov    $0x2,%r12d
+  47a348:	mov    %rax,%r14
+  47a34b:	mov    %rdx,%r15
+  47a34e:	jmp    47a223 <_RNvXs2_NtCs8zaw6vLE3tn_10rayon_core3jobINtB5_8StackJobNtNtB7_5latch9SpinLatchNCINvMs4_NtB7_8registryNtB1m_8Registry15in_worker_crossNCINvNtB7_4join12join_contextNCINvNvNtNtCsc3XWelWpAp8_5rayon4iter8plumbing24bridge_producer_consumer6helperINtNtB2K_5range12IterProducerjEINtNtB2I_3map11MapConsumerINtNtNtB2I_7collect8consumer15CollectConsumerINtNtCs6i54tJFfzR_5alloc3vec3VecINtNtCsgHCcee0nhgM_11zopro_bn2545curve6AffineNtB62_8G2ConfigEEENCNCNvNtNtCsHW5vo2gROj_10zopro_core10msm_affine6g2_phi6hb_raws0_00EE0NCB2B_s_0INtB4N_13CollectResultB5t_EB8g_E0TB8g_B8g_EE0B8N_ENtB5_3Job7executeB7a_+0xa3>
+
+Disassembly of section .init:
+
+Disassembly of section .fini:
+
+Disassembly of section .plt:
