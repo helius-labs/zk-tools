@@ -1,0 +1,23 @@
+{
+  "edits": [
+    {
+      "append": "\n#[cfg(all(zopro_index_pack,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod packed_index;\n",
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "    #[cfg(all(zopro_index_pack,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    if let Some(value)=packed_index::try_reduce(bases,order,starts){return value;}\n    let tile = 2048 / (core::mem::size_of::<C::Base>() / 32);\n    let mut tasks = Vec::new();",
+      "old": "    let tile = 2048 / (core::mem::size_of::<C::Base>() / 32);\n    let mut tasks = Vec::new();"
+    }
+  ],
+  "field_source_files_exact": 17,
+  "native_field_tests_inherited": 33,
+  "new_costs_charged_via_resource_analysis": true,
+  "new_files": [
+    "crates/zopro-core/src/msm/packed_index.rs"
+  ],
+  "original_files": 175,
+  "original_indexed_and_layer_bodies_exact": true,
+  "originals_exact": 174,
+  "production_worktree_changed": false,
+  "reverse175_exact": true,
+  "solver_key_field_fft_exact": true,
+  "source_files": 176
+}
