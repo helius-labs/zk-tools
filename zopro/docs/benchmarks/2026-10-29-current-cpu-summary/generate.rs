@@ -50,6 +50,8 @@ fn select_records(value: &Value, fields: &[&str]) -> Value {
 }
 fn main() {
     let root = Path::new(Z);
+    let stage_trace=read(root.join("docs/benchmarks/2026-10-29-stage-uprobes175/artifacts/analysis.json"));
+    assert_eq!(stage_trace["independent_proof_count"],22189);
     let interleaved=read(root.join("docs/benchmarks/2026-10-29-interleaved-complex175/artifacts/analysis.json"));
     assert_eq!(interleaved["complete"],true);
     let basis=read(root.join("docs/benchmarks/2026-10-29-golden-basis175/artifacts/analysis.json"));
@@ -95,6 +97,7 @@ fn main() {
         "2026-10-29-g2-cached-x175",
         "2026-10-29-golden-basis175",
         "2026-10-29-interleaved-complex175",
+        "2026-10-29-stage-uprobes175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -444,6 +447,10 @@ fn main() {
     writeln!(md,"The separately declared caller gate **{}**. Both ordinary-basis complex outputs share a row-CIOS schedule, with the complemented second input streamed one digit at a time. The arithmetic count stays300 IFMA sites; field basis, square, norm, scratch and point formulas stay unchanged. Fifteen blocks compare all18 owned/borrowed contexts with exact frozen and fresh OFF controls, including1/16/32worker topologies. All output/capacity checks and zero timed allocations pass. [Full results](../2026-10-29-interleaved-complex175/README.md).\n\n|Aggregate|Ratio|Bounds|Wins / 15|\n|---|---:|---|---:|",if interleaved["component_gate"]==true{"passes"}else{"fails"}).unwrap();
     for(k,p)in interleaved["aggregates"].as_object().unwrap(){writeln!(md,"|{k}|{:.9}|[{:.9}, {:.9}]|{}|",p["median"].as_f64().unwrap(),p["low"].as_f64().unwrap(),p["high"].as_f64().unwrap(),p["wins"]).unwrap();}
     writeln!(md,"\nFailed checks: `{}`. No SDK proofs, new Gnark exports or adoption. The ledger remains22,144; all earlier failed gates and positive contexts remain. These are complete caller waves, not proof timings.\n",interleaved["failed_checks"]).unwrap();
+
+    md+="\n## Frozen accepted SDK stage diagnostic\n\nEntry/return probes observe nine function boundaries in the exact accepted executable, without a source rebuild. Seven blocks compare plain and traced primary requests at1/16/32workers. These are instrumented stage intervals, not replacement latency results; nested/parallel spans overlap and K/H feed is partial. [Full diagnostic](../2026-10-29-stage-uprobes175/README.md).\n\n|Workers|Plain ms|Traced ms|Paired ratio|Bounds|Within factor1.03|\n|---|---:|---:|---:|---|---|\n";
+    for w in[1,16,32]{let p=&stage_trace["overhead"][w.to_string()];writeln!(md,"|{w}|{:.6}|{:.6}|{:.9}|[{:.9}, {:.9}]|{}|",p["plain_median_ms"].as_f64().unwrap(),p["traced_median_ms"].as_f64().unwrap(),p["paired_ratio"].as_f64().unwrap(),p["low"].as_f64().unwrap(),p["high"].as_f64().unwrap(),p["within_factor1_03"]).unwrap();}
+    md+="\nAll21recorded processes have31completeSDKintervals, balanced entry/return stacks, one PID and zero lost records. The trial adds1440SDKrequests and45fresh independent Gnark exports; the ledger is now22,189. All probes in the owned group were removed. Production and all accepted local/AWS/M5 tables remain unchanged. No source adoption or new performance qualification follows.\n";
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -555,6 +562,9 @@ fn main() {
     data["source_commit"]=json!("f5aa862c646a887388e3f5ed40650280a5399555");
     data["previous_cached_X_G2_caller"]=data["latest_actual_G2_caller"].clone();
     data["latest_actual_G2_caller"]=json!({"report":"../2026-10-29-interleaved-complex175/README.md","gate_passed":interleaved["component_gate"],"aggregates":interleaved["aggregates"],"pairs":select_records(&interleaved["pairs"], &["median","low","high","wins"]),"failed_checks":interleaved["failed_checks"],"native_field_tests":interleaved["native_field_tests"],"native_core_tests":interleaved["native_core_tests"],"native_prover_tests":interleaved["native_prover_tests"],"SDK_requests":0,"new_independent_exports":0,"production_changed":false});
+    data["source_commit"]=json!("e323fe88b81cc510ab6477ae865a6a7f90a96dd9");
+    data["historical_distinct_Gnark_ledger"]=json!(22189);
+    data["latest_stage_diagnostic"]=json!({"report":"../2026-10-29-stage-uprobes175/README.md","diagnostic_only":true,"overhead":stage_trace["overhead"],"stages":stage_trace["stages"],"SDK_requests":1440,"new_independent_exports":45,"independent_proof_count":22189,"source_rebuilds":0,"production_changed":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

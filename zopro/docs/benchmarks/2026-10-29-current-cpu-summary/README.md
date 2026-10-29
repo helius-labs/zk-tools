@@ -307,7 +307,7 @@ Calibration failures: `[]`. Nonregression failures: `["square/frozen","square/fr
 
 ## Latest joint ordinary-basis complex caller
 
-The separately declared caller gate **fails**. Both ordinary-basis complex outputs share a row-CIOS schedule, with the complemented second input streamed one digit at a time. The arithmetic count stays 300 IFMA sites; field basis, square, norm, scratch and point formulas stay unchanged. Fifteen blocks compare all 18 owned/borrowed contexts with exact frozen and fresh OFF controls, including 1/16/32-worker topologies. All output/capacity checks and zero timed allocations pass. [Full results](../2026-10-29-interleaved-complex175/README.md).
+The separately declared caller gate **fails**. Both ordinary-basis complex outputs share a row-CIOS schedule, with the complemented second input streamed one digit at a time. The arithmetic count stays300 IFMA sites; field basis, square, norm, scratch and point formulas stay unchanged. Fifteen blocks compare all18 owned/borrowed contexts with exact frozen and fresh OFF controls, including1/16/32worker topologies. All output/capacity checks and zero timed allocations pass. [Full results](../2026-10-29-interleaved-complex175/README.md).
 
 |Aggregate|Ratio|Bounds|Wins / 15|
 |---|---:|---|---:|
@@ -316,4 +316,17 @@ The separately declared caller gate **fails**. Both ordinary-basis complex outpu
 |threaded12/on/frozen|1.005012217|[1.001018431, 1.008741964]|3|
 |threaded12/on/off|1.004271282|[1.001449142, 1.006445899]|1|
 
-Failed checks: `["all18/on/frozen/gain","all18/on/off/gain","threaded12/on/frozen/gain","threaded12/on/off/gain"]`. No SDK proofs, new Gnark exports or adoption. The ledger remains 22,144; all earlier failed gates and positive contexts remain. These are complete caller waves, not proof timings.
+Failed checks: `["all18/on/frozen/gain","all18/on/off/gain","threaded12/on/frozen/gain","threaded12/on/off/gain"]`. No SDK proofs, new Gnark exports or adoption. The ledger remains22,144; all earlier failed gates and positive contexts remain. These are complete caller waves, not proof timings.
+
+
+## Frozen accepted SDK stage diagnostic
+
+Entry/return probes observe nine function boundaries in the exact accepted executable, without a source rebuild. Seven blocks compare plain and traced primary requests at 1/16/32 workers. These are instrumented stage intervals, not replacement latency results; nested/parallel spans overlap and K/H feed is partial. [Full diagnostic](../2026-10-29-stage-uprobes175/README.md).
+
+|Workers|Plain ms|Traced ms|Paired ratio|Bounds|Within factor1.03|
+|---|---:|---:|---:|---|---|
+|1|95.780472|95.716950|0.998941945|[0.996121783, 1.000236370]|true|
+|16|9.318502|10.139739|1.044096260|[0.830575045, 1.106500465]|false|
+|32|8.020676|8.225231|1.029462841|[0.997750683, 1.047691649]|false|
+
+All 21 recorded processes have 31 complete SDK intervals, balanced entry/return stacks, one PID and zero lost records. The trial adds 1,440 SDK requests and 45 fresh independent Gnark exports; the ledger is now 22,189. All probes in the owned group were removed. Production and all accepted local/AWS/M5 tables remain unchanged. No source adoption or new performance qualification follows.
