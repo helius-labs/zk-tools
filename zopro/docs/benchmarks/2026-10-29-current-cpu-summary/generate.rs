@@ -77,6 +77,10 @@ fn main() {
     assert_eq!(diagnostic["complete"], true);
     assert_eq!(diagnostic["independent_proof_count"],21703);
     let combined=read(root.join("docs/benchmarks/2026-10-29-cached-drain175/artifacts/analysis.json"));assert_eq!(combined["complete"],true);assert_eq!(combined["independent_proof_count"],22990);
+    let control_codegen=read(root.join("docs/benchmarks/2026-10-29-control-codegen175/artifacts/function-differences.json"));
+    let control_literals=read(root.join("docs/benchmarks/2026-10-29-control-codegen175/artifacts/literal-review.json"));
+    assert_eq!(control_codegen["unique_functions_exact_bytes"],2918);
+    assert_eq!(control_literals["grouping_instructions_differ_only_in_eight_RIP_relative_literal_relocations"],true);
     let dest = std::env::args()
         .nth(1)
         .map(PathBuf::from)
@@ -115,6 +119,7 @@ fn main() {
         "2026-10-29-component-partition175",
         "2026-10-29-queue-drain175",
         "2026-10-29-cached-drain175",
+        "2026-10-29-control-codegen175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -124,6 +129,10 @@ fn main() {
                 sources.insert(p.strip_prefix(root).unwrap().display().to_string(), hash(p));
             }
         }
+    }
+    for name in ["function-differences.json","literal-review.json"] {
+        let p=root.join("docs/benchmarks/2026-10-29-control-codegen175/artifacts").join(name);
+        sources.insert(p.strip_prefix(root).unwrap().display().to_string(),hash(&p));
     }
     let manifest_rel =
         "docs/benchmarks/2026-10-29-balanced-kh-adoption/artifacts/production-source-manifest.json";
@@ -489,6 +498,7 @@ fn main() {
     md+="\n## Combined cached hashes and affine queue drain\n\nThis new all-nine-circuit32-worker plus primary16 experiment composes the exact two parent candidates, preserving their earlier failed gates. It adds no buffer/keytable/pointcopy/plan beyond the original bounded temporary grouping state and reuses existing affine scratch. Gains are measured together rather than assumed additive. [Full complete-request results](../2026-10-29-cached-drain175/README.md).\n\n|Case/variant|Median ms|CPU ms/request|Maximum RSS MiB|\n|---|---:|---:|---:|\n";
     for(k,c)in combined["cells"].as_object().unwrap(){writeln!(md,"|{k}|{:.6}|{:.3}|{:.2}|",c["median_ms"].as_f64().unwrap(),c["CPU_ms"].as_f64().unwrap(),c["max_RSS_MiB"].as_f64().unwrap()).unwrap();}
     writeln!(md,"\nDeclared gate **{}**; failures `{}`. No adoption. Primary32 and original-eight aggregate require gain against accepted/OFF, allothercases includingphysical16 require nonregression, andallten calibration/RSSguards are required. The new trial adds27948SDKrequests and492freshGnarkexports, ledger22990. Accepted source175 and all local/AWS/M5 rows remain unchanged.\n",combined["gate_passed"],combined["failed_checks"]).unwrap();
+    md+="\n## Static audit of the grouping OFF control\n\nCombined OFF is byte-identical to earlier grouping OFF; standalone queue OFF is byte-identical to accepted. All3,036 demangled function-name size inventories match accepted/OFF. Of2,985 uniquely matched functions,2,918 have byte-identical bodies;51 additional names need alias/multiple-implementation review. The7,624-byte grouping body differs only in eight RIP-relative loads to two identical16-byte constants relocated by16bytes. Both reviewed Fq inversion bodies are byte-identical. Other code/layout differences remain, so this does not establish runtime equivalence or explain8×2/calibration. It gives no evidence for a large OFF arithmetic rewrite. [Static evidence and limitations](../2026-10-29-control-codegen175/README.md).\n\nNo new SDK requests, proofs, timing, adoption or AWS measurements. Ledger22,990 and all accepted/M5 rows remain unchanged. The combined candidate's useful speed/RSS gains and both failed checks remain intact.\n";
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -621,6 +631,8 @@ fn main() {
 
     data["source_commit"]=json!("93bdd89f3709a81866915de4b9ad5d526a36c908");data["historical_distinct_Gnark_ledger"]=json!(22990);
     data["latest_combined_grouping_drain_experiment"]=json!({"report":"../2026-10-29-cached-drain175/README.md","cells":combined["cells"],"pairs":combined["pairs"],"original8_aggregates":combined["original8_aggregates"],"gate_passed":combined["gate_passed"],"failed_checks":combined["failed_checks"],"SDK_requests":27948,"new_independent_exports":492,"independent_proof_count":22990,"production_changed":false,"adopted":false});
+    data["source_commit"]=json!("d93f1cf539b2dd098f001b881e883d765ec9d79d");
+    data["latest_control_codegen_diagnostic"]=json!({"report":"../2026-10-29-control-codegen175/README.md","static_only":true,"unique_functions_exact_bytes":control_codegen["unique_functions_exact_bytes"],"exact_address_size_multiset_names":control_codegen["exact_address_size_multiset_names"],"unique_functions_different_bytes":control_codegen["unique_functions_different_bytes"].as_array().unwrap().len(),"ambiguous_names":control_codegen["ambiguous_names"].as_array().unwrap().len(),"grouping_literal_review":control_literals,"SDK_requests":0,"new_independent_exports":0,"independent_proof_count":22990,"production_changed":false,"new_latency_qualification":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

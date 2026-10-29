@@ -441,3 +441,10 @@ This new all-nine-circuit32-worker plus primary16 experiment composes the exact 
 |merge-54x1-w32/accepted|162.698435|4458.645|1911.56|
 
 Declared gate **false**; failures `["8x2-w32/ON/accepted","1x2-w16/OFF/accepted"]`. No adoption. Primary32 and original-eight aggregate require gain against accepted/OFF, allothercases includingphysical16 require nonregression, andallten calibration/RSSguards are required. The new trial adds27948SDKrequests and492freshGnarkexports, ledger22990. Accepted source175 and all local/AWS/M5 rows remain unchanged.
+
+
+## Static audit of the grouping OFF control
+
+Combined OFF is byte-identical to earlier grouping OFF; standalone queue OFF is byte-identical to accepted. All3,036 demangled function-name size inventories match accepted/OFF. Of2,985 uniquely matched functions,2,918 have byte-identical bodies;51 additional names need alias/multiple-implementation review. The7,624-byte grouping body differs only in eight RIP-relative loads to two identical16-byte constants relocated by16bytes. Both reviewed Fq inversion bodies are byte-identical. Other code/layout differences remain, so this does not establish runtime equivalence or explain8×2/calibration. It gives no evidence for a large OFF arithmetic rewrite. [Static evidence and limitations](../2026-10-29-control-codegen175/README.md).
+
+No new SDK requests, proofs, timing, adoption or AWS measurements. Ledger22,990 and all accepted/M5 rows remain unchanged. The combined candidate's useful speed/RSS gains and both failed checks remain intact.

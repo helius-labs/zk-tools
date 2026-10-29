@@ -1,0 +1,91 @@
+{
+  "changed_grouping_instructions": [
+    {
+      "OFF": "  217a16:\tvmovdqa -0x20c19e(%rip),%xmm10        # b880 ",
+      "accepted": "  217a16:\tvmovdqa -0x20c1ae(%rip),%xmm10        # b870 "
+    },
+    {
+      "OFF": "  217bfd:\tvmovdqa -0x20c385(%rip),%xmm4        # b880 ",
+      "accepted": "  217bfd:\tvmovdqa -0x20c395(%rip),%xmm4        # b870 "
+    },
+    {
+      "OFF": "  217c1f:\tvpaddq -0x20c397(%rip),%xmm2,%xmm1        # b890 ",
+      "accepted": "  217c1f:\tvpaddq -0x20c3a7(%rip),%xmm2,%xmm1        # b880 "
+    },
+    {
+      "OFF": "  217f52:\tvmovdqa -0x20c6da(%rip),%xmm3        # b880 ",
+      "accepted": "  217f52:\tvmovdqa -0x20c6ea(%rip),%xmm3        # b870 "
+    },
+    {
+      "OFF": "  217f74:\tvpaddq -0x20c6ec(%rip),%xmm1,%xmm1        # b890 ",
+      "accepted": "  217f74:\tvpaddq -0x20c6fc(%rip),%xmm1,%xmm1        # b880 "
+    },
+    {
+      "OFF": "  2186ac:\tvmovdqa -0x20ce34(%rip),%xmm10        # b880 ",
+      "accepted": "  2186ac:\tvmovdqa -0x20ce44(%rip),%xmm10        # b870 "
+    },
+    {
+      "OFF": "  2188da:\tvmovdqa -0x20d062(%rip),%xmm5        # b880 ",
+      "accepted": "  2188da:\tvmovdqa -0x20d072(%rip),%xmm5        # b870 "
+    },
+    {
+      "OFF": "  218933:\tvpaddq -0x20d0ab(%rip),%xmm0,%xmm0        # b890 ",
+      "accepted": "  218933:\tvpaddq -0x20d0bb(%rip),%xmm0,%xmm0        # b880 "
+    }
+  ],
+  "grouping_instructions_differ_only_in_eight_RIP_relative_literal_relocations": true,
+  "new_SDK_requests": 0,
+  "new_proofs": 0,
+  "not_a_runtime_or_cache_placement_causality_claim": true,
+  "same16byte_literal_payloads": [
+    {
+      "OFF_VA": "b880",
+      "accepted_VA": "b870",
+      "bytes": "040b0906080d0f050e03010c00070a02",
+      "equal16bytes": true
+    },
+    {
+      "OFF_VA": "b890",
+      "accepted_VA": "b880",
+      "bytes": "20000000000000000000000000000000",
+      "equal16bytes": true
+    }
+  ],
+  "selected_ambiguous_function_range_review": [
+    {
+      "name": "core::ptr::drop_glue::<core::option::Option<zopro_core::msm_affine::PreparedEqualWitness>>",
+      "pairs": [
+        {
+          "address": 941504,
+          "exact_bytes": false,
+          "length": 755,
+          "same_range_exists": true
+        },
+        {
+          "address": 5005488,
+          "exact_bytes": false,
+          "length": 755,
+          "same_range_exists": false
+        }
+      ]
+    },
+    {
+      "name": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+      "pairs": [
+        {
+          "address": 1340304,
+          "exact_bytes": true,
+          "length": 7723,
+          "same_range_exists": true
+        },
+        {
+          "address": 1922320,
+          "exact_bytes": true,
+          "length": 7723,
+          "same_range_exists": true
+        }
+      ]
+    }
+  ],
+  "static_only": true
+}
