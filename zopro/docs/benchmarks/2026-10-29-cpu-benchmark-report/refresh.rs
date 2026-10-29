@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, path::Path};
 
 const ROOT: &str = "/home/ubuntu/src/zk-tools/zopro";
-const SNAPSHOT: &str = "7faaeca0cb882ce636f290795c4d1d593fad39bd";
+const SNAPSHOT: &str = "acf55600b5fc239881792e5418a8387931b35f57";
 
 fn read(path: impl AsRef<Path>) -> Value {
     serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
@@ -22,7 +22,7 @@ fn main() {
     let mut data = read(summary.join("data.json"));
     let previous = read(report.join("data.json"));
     assert_eq!(previous["rows"], data["rows"], "accepted rows changed");
-    assert_eq!(data["historical_distinct_Gnark_ledger"], 22210);
+    assert_eq!(data["historical_distinct_Gnark_ledger"], 22498);
     assert_eq!(data["accepted_original8_CPU10x"], 0);
     assert_eq!(data["accepted_source_files"], 175);
     let md = fs::read_to_string(report.join("README.md")).unwrap();
@@ -39,7 +39,34 @@ fn main() {
             aws["plain"]["max_RSS_MiB"].as_f64().unwrap(),
             aws["aeglos"]["max_RSS_MiB"].as_f64().unwrap())));
     }
-    for dir in [&report, &summary, &root.join("docs/benchmarks/2026-10-29-instruction-profile175")] {
+    let queue_dir = root.join("docs/benchmarks/2026-10-29-queue-drain175");
+    let queue = read(queue_dir.join("artifacts/analysis.json"));
+    assert_eq!(queue["gate_passed"], false);
+    assert_eq!(queue["production_changed"], false);
+    assert_eq!(queue["failed_checks"], json!(["1x2-w16/ON/accepted", "1x2-w16/ON/OFF"]));
+    assert_eq!(queue["SDK_requests"], 15708);
+    assert_eq!(queue["new_independent_exports"], 132);
+    assert_eq!(queue["independent_proof_count"], 22498);
+    for workers in [32, 16] {
+        for variant in ["accepted", "OFF", "ON"] {
+            let cell = &queue["cells"][format!("1x2-w{workers}/{variant}")];
+            let label = if variant == "accepted" { "Accepted" } else { variant };
+            assert!(md.contains(&format!("|{workers}|{label}|{:.6}|{:.3}|{:.2}|",
+                cell["median_ms"].as_f64().unwrap(), cell["CPU_ms"].as_f64().unwrap(),
+                cell["max_RSS_MiB"].as_f64().unwrap())));
+        }
+        for control in ["accepted", "OFF"] {
+            let pair = &queue["pairs"][format!("1x2-w{workers}/ON/{control}")];
+            let stats = &pair["statistics"];
+            assert!(md.contains(&format!("|{workers} workers ON/{control}|{:.9}|[{:.9}, {:.9}]|{}|{}|",
+                stats["median"].as_f64().unwrap(), stats["low"].as_f64().unwrap(),
+                stats["high"].as_f64().unwrap(), stats["wins"],
+                if pair["passed"] == true { "Pass" } else { "Fail" })));
+        }
+    }
+    assert_eq!(data["latest_queue_drain_experiment"]["cells"], queue["cells"]);
+    assert_eq!(data["latest_queue_drain_experiment"]["pairs"], queue["pairs"]);
+    for dir in [&report, &summary, &queue_dir] {
         let text = fs::read_to_string(dir.join("README.md")).unwrap();
         for tail in text.split("](").skip(1) {
             let target = tail.split(')').next().unwrap();
@@ -49,12 +76,12 @@ fn main() {
         }
     }
     data["source_commit"] = json!(SNAPSHOT);
-    data["snapshot_kind"] = json!("Consolidated accepted benchmarks and completed experiments, including instruction-profile175 published with this refresh; no new measurements");
+    data["snapshot_kind"] = json!("Consolidated accepted benchmarks and completed experiments through affine queue-drain pilot; no new measurements");
     data["upstream_summary_source_commit"] = read(summary.join("data.json"))["source_commit"].clone();
     data["instruction_profile_interpretation"] = json!({
         "absolute_sample_period_coverage_validated": false,
         "period_totals_below_preceding_nonsampled_counts": true,
-        "cause_of_period_difference": "unresolved; separate runs",
+        "cause_of_period_difference": "unresolved; later simultaneous sample/count diagnostic also fails 21 of 24 accounting checks",
         "separate_event_profiles_measure_local_CPI": false,
         "sample_shares_are_exclusive_stage_costs": false,
         "new_performance_qualification": false
@@ -64,6 +91,11 @@ fn main() {
     for (path, expected) in pins.as_object().unwrap() {
         assert_eq!(hash(root.join(path)), expected.as_str().unwrap());
         sources.insert(path.clone(), expected.as_str().unwrap().to_owned());
+    }
+    let manifest = read(root.join("docs/benchmarks/2026-10-29-balanced-kh-adoption/artifacts/production-source-manifest.json"));
+    assert_eq!(manifest["source_files_sha256"].as_object().unwrap().len(), 175);
+    for (path, expected) in manifest["source_files_sha256"].as_object().unwrap() {
+        assert_eq!(hash(root.join(path)), expected.as_str().unwrap(), "accepted source changed: {path}");
     }
     for name in ["README.md", "data.json", "source-hashes.json", "generate.rs", "SHA256SUMS"] {
         let path = summary.join(name);
@@ -80,5 +112,5 @@ fn main() {
         format!("{}  {}\n", hash(path), path.file_name().unwrap().to_str().unwrap())
     }).collect::<String>();
     fs::write(report.join("SHA256SUMS"), sums).unwrap();
-    println!("Refreshed report: 9 unchanged accepted rows; 8 CPU/Metal references; {} source hashes; ledger 22210; no new captures", sources.len());
+    println!("Refreshed report: 9 unchanged accepted rows; 8 CPU/Metal references; 6 queue-drain cells and 4 paired intervals; {} source hashes; ledger 22498; 175 accepted source files unchanged; no new captures", sources.len());
 }

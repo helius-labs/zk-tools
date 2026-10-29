@@ -1,10 +1,12 @@
 # Zopro CPU benchmark report
 
-29 October 2026. Snapshot of accepted benchmarks and completed experiments through repository commit `7faaeca0cb882ce636f290795c4d1d593fad39bd`, including the subsequent completed instruction/cycle profiles published with this report. This document consolidates existing captures; it adds no benchmark samples.
+29 October 2026. Snapshot of accepted benchmarks and completed experiments through repository commit `acf55600b5`, including the affine collision-queue drain pilot. This document consolidates existing captures; it adds no benchmark samples.
 
 The accepted Zopro build proves **1×2 in 8.022 ms locally**, with **134 MiB observed peak RSS**. On AWS c7a.24xlarge, its best tested 1×2 result is **11.916 ms**, compared with **7.959 ms for Aeglos Sorted**. Across the nine AWS circuits, Zopro has lower best-count latency on six and lower observed peak RSS on all nine. Aeglos leads the three smallest circuits.
 
-The latest complete SDK experiment reduces observed 1×2 peak RSS by **35.22%**, from **132.75 to 86.00 MiB** in its fresh comparison, and improves paired 54→1 latency by **2.68%**, to **158.334 ms**. It does not establish a 1×2 speed gain. Its declared gate fails, so production remains unchanged. Subsequent complete-caller arithmetic experiments also fail their gain gates. The CPU 10× objective against the supplied M5 references remains unmet on all eight reference circuits.
+The latest complete SDK pilot proves **1×2 in 7.889 ms at 32 workers**, a **1.71% paired gain versus its fresh accepted control**, with 15/15 wins. It adds no buffer or key table. Its declared gate still fails because the 16-core nonregression intervals exceed the allowed upper bound; it is **not adopted**. No new AWS measurement of this candidate exists. The CPU 10× objective against the supplied M5 references remains unmet on all eight reference circuits.
+
+A separate all-nine-circuit cached-hash experiment reduces observed 1×2 peak RSS by **35.22%**, from **132.75 to 86.00 MiB**, and improves paired 54→1 latency by **2.68%**, to **158.334 ms**. It does not establish a 1×2 speed gain and remains unadopted under its own gate. These are different candidates; their gains have not been measured together.
 
 The newest local PMU diagnostic finds **4.97% more retired instructions but 89.89% more summed CPU time** at 32 versus one worker. Higher CPU time therefore does not imply a proportional increase in executed instructions. Separate instruction/cycle samples still place most instruction period in MSM/curve arithmetic and scalar inversion. These results guide further investigation; they establish neither a new latency improvement nor a single cause of the AWS scaling gap.
 
@@ -96,9 +98,39 @@ Separate event captures do not measure per-symbol CPI. Their summed sample perio
 
 The earlier [stage-entry/return diagnostic](../2026-10-29-stage-uprobes175/README.md) finds G1 and G2 often returning close together at 32 workers. Its parallel tracing-overhead checks fail, so its parallel stage spans remain instrumented observations. They are not an untraced critical path or additive wall-time breakdown. Together these diagnostics support examining complete MSM callers and coordination while preserving both arithmetic and instrumentation limitations.
 
+A later [simultaneous sampling/counting diagnostic](../2026-10-29-sample-accounting175/README.md) compares frequency and fixed-period instruction/cycle sampling at 16 and 32 workers. All 24 attribution panels pass, but **21/24 absolute-period accounting checks fail**. Even fixed-period cycle totals reach only about 97.93% of counted cycles at 16 workers and 95.36% at 32. This confirms that attribution checks alone do not validate period accounting. The cause remains unresolved; sample shares remain qualitative, and they cannot establish per-symbol CPI or removable wall time.
+
 ## Recent experiments
 
 All results below remain experimental; the accepted implementation is unchanged. Full-proof comparisons use their own fresh accepted controls, so their medians should not be substituted into the earlier nine-circuit table. These latest experiments have not been measured on AWS.
+
+### Affine collision-queue drain: latest complete SDK pilot
+
+The candidate sends suitable queued G1/G2 contributions through the existing affine batch before the original projective fallback. It checks that the last SIMD-width destinations are distinct after masking their sign bits and that the pending batch is empty or sufficiently large. It reuses the existing queue, batch and scratch; scalar decomposition, field arithmetic, query readiness and worker policy remain unchanged. It introduces no persistent lookup table, point copy or new allocation site. Retained vector capacities and process RSS can still differ.
+
+Fifteen fixed blocks rotate/reverse accepted, fresh OFF and candidate ON order. Each process measures 151 complete requests after three primes. Topology order is fixed at 32 workers followed by 16; the host is shared. The timing scope matches the accepted table. The following medians and RSS belong only to this fresh comparison.
+
+|Workers|Variant|Latency ms|Summed CPU ms/request|Peak RSS MiB|
+|---|---|---:|---:|---:|
+|32|Accepted|8.035988|183.289|132.00|
+|32|OFF|8.069801|182.714|133.75|
+|32|ON|7.889011|177.806|134.25|
+|16|Accepted|9.649268|120.078|90.00|
+|16|OFF|9.691869|119.900|89.50|
+|16|ON|9.729750|116.343|91.00|
+
+|Paired comparison|Candidate/control ratio|Bounds|Wins / 15|Declared check|
+|---|---:|---|---:|---|
+|32 workers ON/accepted|0.982904529|[0.979309999, 0.985773825]|15|Pass|
+|32 workers ON/OFF|0.976444150|[0.972827853, 0.980220282]|15|Pass|
+|16 workers ON/accepted|1.006360183|[0.987416279, 1.064764849]|6|Fail|
+|16 workers ON/OFF|0.993655827|[0.972210529, 1.038989634]|9|Fail|
+
+The 32-worker gain is **1.710% versus accepted and 2.356% versus OFF**. The 16-worker bounds span parity and exceed the declared 1.02 upper limit: they establish neither a 6.5% slowdown nor a gain. Both fresh-control calibration checks and all relative RSS guards pass. These two nonregression failures are the only failed checks, and the pilot is not adopted. Its measured 32-worker gain remains a positive result. Passing this pilot would still require separate all-nine performance, resource and portable qualification.
+
+The prospective checks require 32-worker upper ratios below 1 and at least 10/15 wins against both controls, 16-worker upper ratios at most 1.02, calibration within factor 1.03 and maximum RSS at most 1.05 times either control. Ranks 4–12 of 15 give nominal 96.484375% individual median coverage under independent/exchangeable blocks, without a familywise guarantee. No samples or thresholds changed after capture.
+
+Single diagnostic PMU panels show approximately **3.3% fewer retired instructions** versus OFF at both worker counts, with 100% counter running coverage. Summed CPU service falls about 2.7–3.0%; RSS rises slightly. Six profiles pass attribution and zero-loss checks, but absolute-period coverage remains unvalidated. LLVM inlines the drain routine, so absent standalone-symbol samples do not measure zero execution. No dynamic drain count or exact causal fraction was measured. These results do not qualify concurrency, energy use or minimum RAM. [Full pilot, correctness, source and raw receipts](../2026-10-29-queue-drain175/README.md).
 
 ### Complete SDK proofs with temporary cached hashes
 
@@ -147,6 +179,7 @@ The all-18 aggregate is **1.72% slower versus OFF**, with bounds [1.015096934, 1
 
 |Experiment|Measured result|Decision|
 |---|---|---|
+|[G2 component partitioning](../2026-10-29-component-partition175/README.md)|Complete 32-worker proof 8.061 ms versus accepted 8.024 ms; paired ratio 1.003314 versus accepted and 1.007996 versus OFF. Instructions fall about 2.4–2.5% without a qualified latency gain.|All four gain checks fail; calibration and RSS guards pass. Not adopted.|
 |[Interleaved complex products in G2 batches](../2026-10-29-interleaved-complex175/README.md)|All-18 caller aggregate 0.303% slower versus OFF; threaded aggregate 0.427% slower. All calibration and nonregression checks pass.|Four aggregate gain checks fail; no SDK integration or adoption.|
 |[Alternative Fq2 basis](../2026-10-29-golden-basis175/README.md)|Multiplication streams improve 9.56%, but square cost rises 103.7%, norm 13.48% and the six-context aggregate 15.02%.|Component gate fails; no complete-proof speedup or adoption.|
 |[Earlier representative grouping SDK](../2026-10-29-representative-sdk175/README.md)|Primary RSS 83.75 versus 134.50 MiB; 54→1 paired latency regresses 6.84%.|Not adopted. The later cached-hash revision above has a separate protocol and retains this failed gate.|
@@ -165,9 +198,9 @@ The signed-difference helper adds no heap buffer, persistent key table or point 
 
 Zopro's accepted approach combines vector field arithmetic, batched affine MSM additions, borrowed point operands, scalar endomorphism decomposition and balanced fused K/H windows. Its observed AWS memory advantage is useful, while Aeglos retains the small-circuit latency lead in the measured matrix. None of the recent SDK experiments above passes its declared complete-request performance gate.
 
-The frozen 54→1 diagnostic and cached-hash revision produced a verified larger-circuit latency gain and a substantial primary memory reduction, while leaving primary latency unresolved. Packed-X, alternative-basis and interleaved-product trials show why complete-caller measurements matter: improvements to individual operations have not translated into a qualified general proof improvement. The latest PMU counts narrow the interpretation of CPU-time growth, but do not resolve its cause. Flat sample shares cannot be converted directly into potential wall-time savings.
+The queue-drain candidate now demonstrates a verified 32-worker primary latency gain without new storage, while its 16-core nonregression checks remain unresolved. The separate cached-hash revision demonstrates a larger-circuit latency gain and a substantial primary memory reduction. These useful results do not yet qualify a replacement for the accepted implementation. Packed-X, alternative-basis, interleaved-product and component-partition trials also show why individual-operation or CPU-work savings need complete-request qualification. The PMU counts narrow the interpretation of CPU-time growth, but do not resolve its cause. Flat sample shares cannot be converted directly into potential wall-time savings.
 
-Next work should target a measured complete-caller cost while preserving independent query readiness and bounded temporary memory. Any alternative field representation must charge norm, square, conversion and complete-caller costs before SDK integration. Sampling-based hypotheses need a controlled measurement that can distinguish work counts from waiting or resource contention, and must address the period-accounting discrepancy before making quantitative attribution claims. A revised implementation needs complete-request measurements across the circuit matrix; constructor gains and low RSS alone do not establish a production improvement. No new implementation or speedup is qualified at this snapshot.
+Next work should target complete-request costs while preserving independent query readiness and bounded temporary memory. The queue-drain and cached-hash results motivate investigating a materially revised implementation, with a new prospective protocol; their gains cannot be added or assumed to fix the 16-core uncertainty. Any revised implementation needs measurements across the circuit matrix before adoption. Quantitative sampling attribution also needs its accounting discrepancy resolved. The latest local candidate has not been measured on AWS, so the measured AWS comparison with Aeglos remains unchanged.
 
 ## Verification and source records
 
@@ -177,6 +210,10 @@ The latest cached-hash SDK trial passes 124/128 native core tests and eight/eigh
 
 The later packed-X trial passes 128/129 native core tests and eight/eight prover tests, and completes 930 workflow steps with six profiles, each with one sampled process and zero lost records. It measures 196,020,160 batch calls including primes and profiles, with independent output oracles and zero timed allocations; it adds no SDK proofs. Subsequent basis and interleaved-product experiments preserve their separate model, correctness and caller records; neither adds SDK proofs.
 
-Stage tracing, worker PMU counts and instruction/cycle profiling subsequently add 45, nine and twelve distinct independent Gnark exports respectively. The historical distinct-proof ledger is now **22,210**. The latest twelve profiles complete all 84 capture/offline steps and 1,848 internally verified SDK requests, with six parser tests passing. All captures finish before remaining independent verification and offline analysis; no owned compiler, analysis helper or second CPU workload overlaps capture. Source and executable are unchanged. The report itself adds no timing or verification samples.
+Stage tracing, worker PMU counts and instruction/cycle profiling add 45, nine and twelve distinct independent Gnark exports respectively, reaching ledger 22,210. The simultaneous sampling/counting diagnostic adds 24, and component partitioning and queue draining add 132 each. The historical distinct-proof ledger is now **22,498**. Each experiment retains its own inventory; the totals are not independent repetitions of a single comparison.
+
+The queue-drain pilot passes 127 native core and eight prover tests in each OFF/ON build, including three new guard/G1/G2 tests with independent bucket oracles and compiled-route assertions. All 17 field files are unchanged. All-nine-circuit correctness preflights and independent Gnark verification precede latency; only 1×2 receives new latency qualification at both worker counts. The workflow completes all 294 steps, 15,708 internally verified SDK requests and 132 fresh independent Gnark exports. Six grouped counter panels and six profiles follow latency; remaining verification and analysis follow all captures. No owned compiler, analysis helper or independent CPU workload overlaps capture. The shared-host setting and all observations are retained.
+
+The OFF executable is byte-identical to accepted SDK SHA-256 `20fde19fcfc2f06bb5c640a0ed0fd313fa73af8d03ed46e5df7fdc377791e99f`; ON is `e68bbfc87a09c59dc7367695dc698e2e37e6a2b0d02e5573956e7ef30eec0040`. The original publisher's incorrect inherited destination was rejected before any write. A separate destination-only correction published the existing results without repeating runtime work; the pilot retains the original helper, correction and disclosure. The report itself adds no timing or verification samples.
 
 The [detailed current summary](../2026-10-29-current-cpu-summary/README.md) retains the wider experiment history. This snapshot includes [full-precision data](data.json), [supporting source hashes](source-hashes.json), and [file checksums](SHA256SUMS). Source-hash paths are relative to the repository's `zopro/` directory. Each linked experiment preserves its declared checks, failed checks, compiler flags, source/binary identities, process results and verification receipts.
