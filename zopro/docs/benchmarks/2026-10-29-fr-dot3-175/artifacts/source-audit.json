@@ -1,0 +1,32 @@
+{
+  "IFMA_sources_exact": true,
+  "changes": [
+    {
+      "file": "crates/zopro-bn254/src/fp.rs",
+      "inverse_exact": true,
+      "new": "    /// Three canonical-input products with one reduction (private experiment).\n    #[cfg(zopro_fr_dot3)]\n    #[inline(always)]\n    pub fn sum_of_three_products(a:&Self,b:&Self,c:&Self,d:&Self,e:&Self,f:&Self)->Self {\n        Self(crate::sop3::sum3([a.0,c.0,e.0],[b.0,d.0,f.0],C::P,C::INV),PhantomData)\n    }\n    /// self^e, e little-endian limbs.",
+      "old": "    /// self^e, e little-endian limbs."
+    },
+    {
+      "file": "crates/zopro-bn254/src/lib.rs",
+      "inverse_exact": true,
+      "new": "pub mod fp;\n#[cfg(zopro_fr_dot3)]\nmod sop3;",
+      "old": "pub mod fp;"
+    },
+    {
+      "file": "crates/zopro-core/src/solver/sparse_poseidon.rs",
+      "inverse_exact": true,
+      "new": "                    #[cfg(zopro_fr_dot3)]\n                    { next[i]=Fr::sum_of_three_products(&a[row],&s[0],&a[row+1],&s[1],&a[row+2],&s[2]); }\n                    #[cfg(not(zopro_fr_dot3))]\n                    {\n                    next[i] = Fr::sum_of_products(&a[row], &s[0], &a[row + 1], &s[1])\n                        + a[row + 2] * s[2];\n                    }",
+      "old": "                    next[i] = Fr::sum_of_products(&a[row], &s[0], &a[row + 1], &s[1])\n                        + a[row + 2] * s[2];"
+    }
+  ],
+  "key_scheduler_forecast_exact": true,
+  "new_module": "crates/zopro-bn254/src/sop3.rs",
+  "original_files": 175,
+  "originals_exact": 172,
+  "partial_rounds_exact": true,
+  "production_worktree_changed": false,
+  "reverse175_by_inverse_edits": true,
+  "solver_dense_dot_only": true,
+  "source_files": 176
+}
