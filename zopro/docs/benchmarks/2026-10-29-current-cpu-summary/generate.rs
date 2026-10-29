@@ -72,6 +72,7 @@ fn main() {
         "2026-10-29-glv-kh-borrowed175",
         "2026-10-29-signed-difference175",
         "2026-10-29-signed-g2-caller175",
+        "2026-10-29-deferred-groups175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -121,6 +122,11 @@ fn main() {
     assert_eq!(signed_caller["complete"], true);
     assert_eq!(signed_caller["proof_ledger"], 21259);
     assert_eq!(signed_caller["production_changed"], false);
+    let deferred_groups = read(root.join(
+        "docs/benchmarks/2026-10-29-deferred-groups175/artifacts/analysis.json",
+    ));
+    assert_eq!(deferred_groups["complete"], true);
+    assert_eq!(deferred_groups["ledger"], 21259);
     assert_eq!(shared["gate_passed"], false);
     assert_eq!(shared["independent_proof_count"], 21133);
     assert_eq!(audit["no_new_capture"], true);
@@ -273,6 +279,13 @@ fn main() {
         .unwrap();
     }
     md+="\nZopro's sampled epoch/scheduler residence rises from 14.09% at 32 workers to 61.48% at 96. Those flat CPU sample categories are not removable wall-time fractions. The evidence directs investigation toward useful work availability, critical paths and coordination, but does not isolate memory capacity, cache misses, clock behavior, syscalls or fences as the cause.\n\nThe container recorded zero memory/swap/OOM event deltas. It also recorded 39 CPU-throttled periods over the entire workflow, including preparation, verification and profiling; that is not a timed-only or per-engine attribution. The measurements do not establish performance under memory pressure, minimum RAM, phone/ARM/TEE performance, concurrent throughput, or forester 250/4999 behavior.\n";
+    md += "\n## Latest scalar grouping constructor\n\nThe deferred builder first determines exact admission using a compact dictionary of borrowed row indices. Only admitted inputs allocate class/value/count arrays; a second pass converts the same dictionary to class indices in place. It preserves query independence and adds no key table, plan or point copy.\n\n";
+    writeln!(md, "The separately declared constructor gate **{}**. Thirty-one fixed blocks compare source-extracted original, one-pass Swiss and deferred builders on all 18 real A/B inputs. Every result matches an independent ordered-map oracle; eight component tests and three zero-loss profiles pass. This is constructor evidence, with no new proof timing or adoption. [Full constructor results](../2026-10-29-deferred-groups175/README.md).\n", if deferred_groups["component_gate"] == true { "passes" } else { "fails" }).unwrap();
+    md += "|Constructor aggregate versus|Ratio|Bounds|Wins / 31|\n|---|---:|---|---:|\n";
+    for (label, v) in deferred_groups["aggregates"].as_object().unwrap() {
+        writeln!(md, "|{label}|{:.9}|[{:.9}, {:.9}]|{}|", v["median"].as_f64().unwrap(), v["low"].as_f64().unwrap(), v["high"].as_f64().unwrap(), v["wins"]).unwrap();
+    }
+    md += "\n";
     md += "\n## Latest arithmetic screen\n\nDirect signed CIOS differences improve the affine arithmetic expression by 7.38% against fresh ordinary code, with 31/31 wins and paired ratio 0.926221229 [0.925461631, 0.927912346]. The four-pattern aggregate improves 0.45%, also 31 wins, but the dependent chain regresses 2.89% and product-plus-scaling 3.81%. Three nonregression checks fail, so the declared generic component gate remains false.\n\nThe routine has no new heap buffer or key table. Its BigInt model passes 30,084 exact cases, and two native tests pass 172,544 chained Arkworks lane comparisons. All 372 latency processes and four gated profiles complete; no new SDK proof is measured. This is an arithmetic-expression gain, not faster proving. A separately declared actual-G2-batch qualification follows below, retaining all synthetic regressions and the failed original gate. [Full component report](../2026-10-29-signed-difference175/README.md).\n";
     md += "\n## Latest complete G2 caller experiment\n\nThe exact signed-difference helper is now measured in complete owned and borrowed G2 prefix batches, including inversion, packing, coordinate output and scatter. Eighteen contexts cover 32/200/352 pairs at 1/16/32 workers; 199/351-pair tails receive correctness preflights. Fifteen fixed blocks compare frozen original libraries, fresh OFF and candidate ON, with no new table, point copy or timed allocation.\n\n";
     writeln!(md, "The separately declared caller gate **{}**. The earlier generic arithmetic gate remains failed, and production remains unchanged. No SDK proof timing or independent proof is added. All 930 workflow steps complete, including six gated profiles with CPU IDs/timestamps and zero lost records. [Full caller results and failed checks](../2026-10-29-signed-g2-caller175/README.md).\n", if signed_caller["component_gate"] == true { "passes" } else { "fails" }).unwrap();
@@ -362,7 +375,7 @@ fn main() {
             "nominal_coverage",
         ],
     );
-    let mut data = json!({"as_of":"2026-10-29","source_commit":"5acd2b60bc08b3ac2259e18159cc8d1487061076","new_timings":false,"new_tests_or_proofs":false,"accepted_source_files":175,"accepted_original8_CPU10x":0,"AWS_plain_original8_CPU10x":0,"AWS_lower_Zopro_best_medians":6,"AWS_circuits":9,"historical_distinct_Gnark_ledger":21007,"latest_local_experiment":{"report":"../2026-10-29-swiss-groups-sdk175/README.md","cells":select_records(&swiss["cells"], &["median_ms","CPU_ms","max_RSS_MiB"]),"pairs":select_records(&swiss["pairs"], &["median","low","high","wins","paired_saving_ms","nominal_coverage"]),"gate_passed":swiss["gate_passed"],"new_independent_exports":swiss["new_independent_exports"],"SDK_requests":swiss["SDK_requests"],"production_changed":swiss["production_changed"]},"previous_local_experiment":{"report":"../2026-10-29-early-x-sdk175/README.md","cells":latest_cells,"pairs":latest_pairs,"gate_passed":early["gate_passed"],"SDK_requests":early["SDK_requests"],"new_independent_exports":early["new_independent_exports"],"production_changed":early["production_changed"],"parent_component_gate_passed":caller["component_gate"]},"all_source175_current_hashes_verified":true,"rows":rows});
+    let mut data = json!({"as_of":"2026-10-29","source_commit":"40c53f6b49d8ae950a16bd5d5c8387e61a5694f4","new_timings":false,"new_tests_or_proofs":false,"accepted_source_files":175,"accepted_original8_CPU10x":0,"AWS_plain_original8_CPU10x":0,"AWS_lower_Zopro_best_medians":6,"AWS_circuits":9,"historical_distinct_Gnark_ledger":21007,"latest_local_experiment":{"report":"../2026-10-29-swiss-groups-sdk175/README.md","cells":select_records(&swiss["cells"], &["median_ms","CPU_ms","max_RSS_MiB"]),"pairs":select_records(&swiss["pairs"], &["median","low","high","wins","paired_saving_ms","nominal_coverage"]),"gate_passed":swiss["gate_passed"],"new_independent_exports":swiss["new_independent_exports"],"SDK_requests":swiss["SDK_requests"],"production_changed":swiss["production_changed"]},"previous_local_experiment":{"report":"../2026-10-29-early-x-sdk175/README.md","cells":latest_cells,"pairs":latest_pairs,"gate_passed":early["gate_passed"],"SDK_requests":early["SDK_requests"],"new_independent_exports":early["new_independent_exports"],"production_changed":early["production_changed"],"parent_component_gate_passed":caller["component_gate"]},"all_source175_current_hashes_verified":true,"rows":rows});
     data["latest_control_audit"] = json!({
         "report": "../2026-10-29-swiss-control-audit175/README.md",
         "analysis": audit,
@@ -412,6 +425,15 @@ fn main() {
         "SDK_requests": 0, "new_independent_exports": 0, "production_changed": false
     });
     data["latest_arithmetic_component"]["next"] = json!("actual G2 caller qualification completed separately; generic arithmetic gate remains failed");
+    data["latest_grouping_constructor"] = json!({
+        "report": "../2026-10-29-deferred-groups175/README.md",
+        "gate_passed": deferred_groups["component_gate"],
+        "aggregates": deferred_groups["aggregates"],
+        "failed_checks": deferred_groups["failed_checks"],
+        "inputs": deferred_groups["inputs"],
+        "native_tests": deferred_groups["native_tests"],
+        "SDK_requests": 0, "new_proofs": 0, "production_changed": false
+    });
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

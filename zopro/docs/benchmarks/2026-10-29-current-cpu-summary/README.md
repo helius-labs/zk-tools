@@ -79,6 +79,18 @@ Zopro's sampled epoch/scheduler residence rises from 14.09% at 32 workers to 61.
 
 The container recorded zero memory/swap/OOM event deltas. It also recorded 39 CPU-throttled periods over the entire workflow, including preparation, verification and profiling; that is not a timed-only or per-engine attribution. The measurements do not establish performance under memory pressure, minimum RAM, phone/ARM/TEE performance, concurrent throughput, or forester 250/4999 behavior.
 
+## Latest scalar grouping constructor
+
+The deferred builder first determines exact admission using a compact dictionary of borrowed row indices. Only admitted inputs allocate class/value/count arrays; a second pass converts the same dictionary to class indices in place. It preserves query independence and adds no key table, plan or point copy.
+
+The separately declared constructor gate **fails**. Thirty-one fixed blocks compare source-extracted original, one-pass Swiss and deferred builders on all 18 real A/B inputs. Every result matches an independent ordered-map oracle; eight component tests and three zero-loss profiles pass. This is constructor evidence, with no new proof timing or adoption. [Full constructor results](../2026-10-29-deferred-groups175/README.md).
+
+|Constructor aggregate versus|Ratio|Bounds|Wins / 31|
+|---|---:|---|---:|
+|original|1.208738792|[1.206586580, 1.209804937]|0|
+|swiss|1.198512259|[1.197358081, 1.199062747]|0|
+
+
 ## Latest arithmetic screen
 
 Direct signed CIOS differences improve the affine arithmetic expression by 7.38% against fresh ordinary code, with 31/31 wins and paired ratio 0.926221229 [0.925461631, 0.927912346]. The four-pattern aggregate improves 0.45%, also 31 wins, but the dependent chain regresses 2.89% and product-plus-scaling 3.81%. Three nonregression checks fail, so the declared generic component gate remains false.
