@@ -1,0 +1,26 @@
+use serde_json::{json,Value};use sha2::{Sha256,Digest};
+use std::{fs,path::{Path,PathBuf},collections::{BTreeMap,BTreeSet},process::{Command,Stdio},io::{BufRead,BufReader},fmt::Write};
+const R:&str="/home/ubuntu/src/zopro-perf-work/representative-groups175";
+fn r(p:impl AsRef<Path>)->PathBuf{Path::new(R).join(p)}
+fn read(p:impl AsRef<Path>)->Value{serde_json::from_slice(&fs::read(p).unwrap()).unwrap()}
+fn save(p:impl AsRef<Path>,v:&Value){fs::write(p,serde_json::to_vec_pretty(v).unwrap()).unwrap()}
+fn hash(p:impl AsRef<Path>)->String{format!("{:x}",Sha256::digest(fs::read(p).unwrap()))}
+fn checkpins(p:&BTreeMap<String,String>){for(f,h)in p {assert_eq!(hash(f),*h,"pin {f}");}}
+fn prepare(){assert_eq!(read(r("native/result.json"))["status"],"complete");let mut pins:BTreeMap<String,String>=serde_json::from_value(read(r("pins-before.json"))).unwrap();checkpins(&pins);
+let tests=fs::read_to_string(r("native/run-tests/stdout.log")).unwrap();assert!(tests.contains("8 passed; 0 failed"));
+for p in ["perf","codegen"]{fs::create_dir_all(r(p)).unwrap();}for p in ["ctl","ack"]{if !r(p).exists(){assert!(Command::new("mkfifo").arg(r(p)).status().unwrap().success());}}
+let nm=Command::new("nm").args(["-S","--size-sort","--defined-only"]).arg(r("probe")).output().unwrap();assert!(nm.status.success());let syms=String::from_utf8(nm.stdout).unwrap();fs::write(r("codegen/symbols.txt"),&syms).unwrap();
+let mut linked=vec![];for line in syms.lines().filter(|l|l.contains("_5probe5build")){let sym=line.split_whitespace().last().unwrap();let d=Command::new("objdump").args(["-d","--no-show-raw-insn"]).arg(format!("--disassemble={sym}")).arg(r("probe")).output().unwrap();assert!(d.status.success());let f=format!("codegen/{}.asm",linked.len());fs::write(r(&f),d.stdout).unwrap();linked.push(json!({"symbol":sym,"row":line,"file":f}));}
+assert_eq!(linked.len(),1);save(r("codegen.json"),&json!(linked));
+let manifest=read("/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-29-balanced-kh-adoption/artifacts/production-source-manifest.json");let env=manifest["environment"].clone();
+let mut steps=vec![json!({"kind":"command","name":"latency","argv":[r("probe"),"latency",r("cases.json")],"environment":env,"timeout_seconds":1800})];
+for (variant,mode)in[("original","0"),("swiss","1"),("candidate","2")]{let mut e=env.clone();e["ZOPRO_BENCH_PERF_CTL"]=json!(r("ctl"));e["ZOPRO_BENCH_PERF_ACK"]=json!(r("ack"));let mut args=vec!["sudo".to_string(),"-n".into(),"env".into()];for(k,v)in e.as_object().unwrap(){args.push(format!("{k}={}",v.as_str().unwrap()));}args.extend(["perf".into(),"record".into(),"--no-buildid-cache".into(),"--sample-cpu".into(),"--timestamp".into(),"-e".into(),"cycles:u".into(),"-F".into(),"199".into(),"-m".into(),"512".into(),"-o".into(),r(format!("perf/{variant}.data")).display().to_string(),"--delay=-1".into(),format!("--control=fifo:{},{}",r("ctl").display(),r("ack").display()),"--".into(),r("probe").display().to_string(),"profile".into(),r("cases.json").display().to_string(),mode.into()]);steps.push(json!({"kind":"command","name":format!("profile-{variant}"),"argv":args,"environment":env,"timeout_seconds":1800}));}
+let uid=String::from_utf8(Command::new("id").arg("-u").output().unwrap().stdout).unwrap();let gid=String::from_utf8(Command::new("id").arg("-g").output().unwrap().stdout).unwrap();
+for variant in ["original","swiss","candidate"]{steps.push(json!({"kind":"command","name":format!("own-{variant}"),"argv":["sudo","-n","chown",format!("{}:{}",uid.trim(),gid.trim()),r(format!("perf/{variant}.data"))],"timeout_seconds":60}));}
+for variant in ["original","swiss","candidate"]{let data=r(format!("perf/{variant}.data"));steps.push(json!({"kind":"command","name":format!("decode-{variant}"),"argv":["perf","script","--header","--show-lost-events","-i",data,"-F","pid,tid,cpu,time,period,ip,sym"],"timeout_seconds":180}));steps.push(json!({"kind":"command","name":format!("events-{variant}"),"argv":["perf","evlist","-v","-i",data],"timeout_seconds":60}));steps.push(json!({"kind":"command","name":format!("loss-{variant}"),"argv":[r("runner"),"loss",data],"timeout_seconds":180}));}
+for f in ["runner.rs","runner","native/result.json","native/run-tests/stdout.log","probe","probe-tests","codegen.json","codegen/symbols.txt"]{pins.insert(r(f).display().to_string(),hash(r(f)));}for l in linked{let f=r(l["file"].as_str().unwrap());pins.insert(f.display().to_string(),hash(f));}
+save(r("pins.json"),&json!(pins));save(r("run-plan.json"),&json!({"version":1,"source_pins":r("pins.json"),"steps":steps}));println!("Prepared16steps,1674latencycells/13392constructors,threeprofiles; nootherownedCPUduringcapture");}
+fn loss(p:&str){let mut c=Command::new("perf").args(["script","-D","-i",p]).stdout(Stdio::piped()).spawn().unwrap();let mut lost=vec![];let mut lines=0;for line in BufReader::new(c.stdout.take().unwrap()).lines(){let line=line.unwrap();lines+=1;if line.contains("PERF_RECORD_LOST"){lost.push(line);}}assert!(c.wait().unwrap().success());println!("{}",json!({"lines":lines,"lost":lost,"zero_lost":lost.is_empty()}));}
+
+include!("analysis.rs");
+fn main(){let a:Vec<_>=std::env::args().collect();match a[1].as_str(){"prepare"=>prepare(),"loss"=>loss(&a[2]),"finish"=>finish(),_=>panic!()}}

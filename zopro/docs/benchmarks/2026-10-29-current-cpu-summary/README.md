@@ -81,6 +81,18 @@ The container recorded zero memory/swap/OOM event deltas. It also recorded 39 CP
 
 ## Latest scalar grouping constructor
 
+The new one-pass constructor retains compact representative-row/count records and row classes, copying full scalar values only after exact admission. It removes the previous candidate's second input hash pass, preserves query independence and adds no key table, execution plan or point copy.
+
+The separately declared constructor gate **fails**. Thirty-one fixed blocks cover all 18 real A/B inputs against original and one-pass Swiss builders. Eight component tests pass, including full-output oracles and checked source-extracted allocation forecasts. Three gated profiles have zero lost records. No proof timing or adoption is inferred. [Full constructor report](../2026-10-29-representative-groups175/README.md).
+
+|Constructor aggregate versus|Ratio|Bounds|Wins / 31|
+|---|---:|---|---:|
+|original|0.996738665|[0.989779084, 0.997448289]|31|
+|swiss|0.989996984|[0.988998289, 0.990332830]|31|
+
+
+## Previous two pass grouping constructor
+
 The deferred builder first determines exact admission using a compact dictionary of borrowed row indices. Only admitted inputs allocate class/value/count arrays; a second pass converts the same dictionary to class indices in place. It preserves query independence and adds no key table, plan or point copy.
 
 The separately declared constructor gate **fails**. Thirty-one fixed blocks compare source-extracted original, one-pass Swiss and deferred builders on all 18 real A/B inputs. Every result matches an independent ordered-map oracle; eight component tests and three zero-loss profiles pass. This is constructor evidence, with no new proof timing or adoption. [Full constructor results](../2026-10-29-deferred-groups175/README.md).
