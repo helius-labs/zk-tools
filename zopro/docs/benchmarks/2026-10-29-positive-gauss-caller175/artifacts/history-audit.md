@@ -1,0 +1,9 @@
+# History and exact scope
+
+26 October nonnegative-gauss component passed its aggregate gate: candidate/accepted0.963646405, candidate/fresh0.963722514,31/31 wins. Its affine expression regressed2.8107% versus fresh, inside the declared old3% nonregression limit. That expression is not an actual bucket caller. The report explicitly required a caller/SDK study; none for this exact method was found in report/source searches and inspected work roots.
+
+The g2-reduced-gauss caller work uses three ordinary field products/three reductions (300 IFMA); it is not this exact three-raw-product/two-reduction250-IFMA method. Earlier signed/shared/streamed Gauss SDK negatives remain separate and closed. No repeated isolated expression timing is being presented as a new mechanism. Earlier broad statements that every Gauss variant was closed were too broad.
+
+Current ifma8.rs hash4a31a8f6095e0da56a40c7ebd2d1bc4a1d8360d83d8cad48d3dc9860a4deb4c6 and ifma.rs719a9a11c1c7668c0d1885edeab565bca1b228b5284bb5793e2313cfe90f36d5 match the qualified old bases. Exact body is extracted between NONNEGATIVE_GAUSS markers from the old full eight-lane candidate; its complete old candidate hash is checked against source-audit. Arithmetic proof and731136 Arkworks lane comparisons plus91392 exact raw cases are inherited, not rerun or newly counted. New current-core/native caller tests remain required.
+
+The universal/mobile/huge-circuit requirement excludes large per-key tables and duplicate execution plans. This trial has no persistent table or heap addition; it changes only arithmetic inside existing records and keeps original caller storage. Zero allocation is verified in timed caller intervals. No claim follows for minimum RAM, phones, ARM, huge-circuit pressure, AWS, Aeglos or full proofs without separate measurements.

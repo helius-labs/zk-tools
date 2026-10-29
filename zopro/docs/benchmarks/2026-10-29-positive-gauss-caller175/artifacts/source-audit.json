@@ -1,0 +1,30 @@
+{
+  "borrowed_body_edits": [
+    [
+      "        let slope = Fq2::lanes_scaled_numerator(&dy, &denominator, &factor);",
+      "        #[cfg(all(zopro_gauss_positive,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let slope = {let denominator:&[FqBatch;2]=&denominator;let conjugate=[denominator[0],FqBatch::zero().sub(&denominator[1])];Fq2::lanes_scale(&FqBatch::complex_gauss(&dy,&conjugate),&factor)};\n        #[cfg(not(all(zopro_gauss_positive,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let slope = Fq2::lanes_scaled_numerator(&dy, &denominator, &factor);"
+    ],
+    [
+      "        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);",
+      "        #[cfg(all(zopro_gauss_positive,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let y = Fq2::lanes_sub(&FqBatch::complex_gauss(&slope,&Fq2::lanes_sub(&ax,&x)),&ay);\n        #[cfg(not(all(zopro_gauss_positive,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);"
+    ]
+  ],
+  "compile_repair": "explicit &[FqBatch;2] local alias in ON slope closure; no formula change; native compile failed before execution",
+  "extra_input_conjugation": "zero.sub(dx1) normalized below2p before original Gauss helper",
+  "field_helper": "crates/zopro-bn254/src/nonnegative_gauss.rs",
+  "field_method_verbatim_from_qualified_component": true,
+  "forward_norm_inverse_prefix_scratch_geometry_original": true,
+  "frozen_originals_exact": 173,
+  "new_heap_tables": 0,
+  "only_runtime_core_change": "two current borrowedG2 complex products",
+  "original_files": 175,
+  "originals_exact": 170,
+  "private_source_files": 177,
+  "reverse175_exact": true,
+  "suffixes": {
+    "crates/zopro-bn254/src/ifma8.rs": "\n#[cfg(zopro_gauss_positive)]\ninclude!(\"nonnegative_gauss.rs\");\n",
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(zopro_gauss_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(zopro_gauss_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/simd.rs": "\n#[cfg(all(zopro_gauss_positive,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch{\n#[inline(always)]pub(crate)fn complex_gauss(a:&[Self;2],b:&[Self;2])->[Self;2]{let[x,y]=zopro_bn254::ifma8::Ifma8::complex_product_gauss(&a[0].0,&a[1].0,&b[0].0,&b[1].0);[Self(x),Self(y)]}\n}\n"
+  }
+}
