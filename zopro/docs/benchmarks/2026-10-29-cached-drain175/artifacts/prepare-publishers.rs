@@ -1,0 +1,16 @@
+use std::{fs,path::Path};
+const R:&str="/home/ubuntu/src/zopro-perf-work/cached-drain175";
+fn change(s:&mut String,a:&str,b:&str){assert!(s.contains(a),"missing {a}");*s=s.replace(a,b);}
+fn main(){let root=Path::new(R);let old="/home/ubuntu/src/zopro-perf-work/queue-drain175";let mut publisher=fs::read_to_string(Path::new(old).join("publish.rs")).unwrap();change(&mut publisher,old,R);change(&mut publisher,"2026-10-29-component-partition175","2026-10-29-cached-drain175");fs::write(root.join("publish.rs"),publisher).unwrap();
+let mut summary=fs::read_to_string("/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-29-current-cpu-summary/generate.rs").unwrap();change(&mut summary,"        \"2026-10-29-queue-drain175\",","        \"2026-10-29-queue-drain175\",\n        \"2026-10-29-cached-drain175\",");
+let a=summary.find("    let dest =").unwrap();summary.insert_str(a,"    let combined=read(root.join(\"docs/benchmarks/2026-10-29-cached-drain175/artifacts/analysis.json\"));assert_eq!(combined[\"complete\"],true);assert_eq!(combined[\"independent_proof_count\"],22990);\n");
+let a=summary.find("    fs::write(dest.join(\"README.md\")").unwrap();summary.insert_str(a,r#"
+    md+="\n## Combined cached hashes and affine queue drain\n\nThis new all-nine-circuit32-worker plus primary16 experiment composes the exact two parent candidates, preserving their earlier failed gates. It adds no buffer/keytable/pointcopy/plan beyond the original bounded temporary grouping state and reuses existing affine scratch. Gains are measured together rather than assumed additive. [Full complete-request results](../2026-10-29-cached-drain175/README.md).\n\n|Case/variant|Median ms|CPU ms/request|Maximum RSS MiB|\n|---|---:|---:|---:|\n";
+    for(k,c)in combined["cells"].as_object().unwrap(){writeln!(md,"|{k}|{:.6}|{:.3}|{:.2}|",c["median_ms"].as_f64().unwrap(),c["CPU_ms"].as_f64().unwrap(),c["max_RSS_MiB"].as_f64().unwrap()).unwrap();}
+    writeln!(md,"\nDeclared gate **{}**; failures `{}`. No adoption. Primary32 and original-eight aggregate require gain against accepted/OFF, allothercases includingphysical16 require nonregression, andallten calibration/RSSguards are required. The new trial adds27828SDKrequests and492freshGnarkexports, ledger22990. Accepted source175 and all local/AWS/M5 rows remain unchanged.\n",combined["gate_passed"],combined["failed_checks"]).unwrap();
+"#);
+let a=summary.find("    fs::write(\n        dest.join(\"data.json\")").unwrap();summary.insert_str(a,r#"
+    data["source_commit"]=json!("93bdd89f3709a81866915de4b9ad5d526a36c908");data["historical_distinct_Gnark_ledger"]=json!(22990);
+    data["latest_combined_grouping_drain_experiment"]=json!({"report":"../2026-10-29-cached-drain175/README.md","cells":combined["cells"],"pairs":combined["pairs"],"original8_aggregates":combined["original8_aggregates"],"gate_passed":combined["gate_passed"],"failed_checks":combined["failed_checks"],"SDK_requests":27828,"new_independent_exports":492,"independent_proof_count":22990,"production_changed":false,"adopted":false});
+"#);
+fs::write(root.join("summary-generator.rs"),summary).unwrap();println!("Prepared unique-destination publisher and full-history summary generator before capture");}

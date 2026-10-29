@@ -1,0 +1,7 @@
+# Pre-capture helper corrections
+
+Native workflow completed all10steps successfully,127OFF/131ONcore and8/8prover tests. No native test/build/link is repeated.
+
+The first independent review incorrectly attempted UTF8 decoding for every original175manifest member, including an unchanged binary circuit fixture. It stopped before writing review output. The correction decodes only the six modified text files and compares all other files as exact bytes. The original reviewer source is retained in pre-capture-originals/.
+
+The first capture preparation stopped before writing a plan/pins/jobs or launching any capture: declared total27828requests was120too low. Actual arithmetic is primary latency13860 + other latency12240 + preflight120 + stat204 + profiles1524 = **27948**. There are still492jobs/freshproofs,1014workflowsteps,ledger22498→22990. Correct only the accounting assertion/descriptive expected counts, with no gate/round/block/case/variant/order/resource change. Existing inert FIFO files from failed preparation are reused only after file-type verification. No measured request/preflight/proof exists before final preparation. Original capture/analyzer sources retained in pre-capture-originals/. Original design.md/build-pins remain unchanged and this document records the corrected accounting before capture. Final original helpers are compiled and pinned before capture. No successful native/capture/verification is repeated.

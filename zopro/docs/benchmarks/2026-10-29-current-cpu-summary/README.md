@@ -402,3 +402,42 @@ A no-allocation predicate lets suitable queued points use the original affine ba
 |1x2-w32/accepted|8.035988|183.289|132.00|
 
 Declared pilot gate: **false**; failures `["1x2-w16/ON/accepted","1x2-w16/ON/OFF"]`. No adoption. Primary32 requires a gain versus both controls; physical16 requires nonregression. A passing pilot still requires all-nine performance/resource/portable qualification. The trial adds 15,708 SDK requests and 132 distinct independent Gnark exports; ledger 22,498. Accepted source175 and all local/AWS/M5 rows remain unchanged.
+
+## Combined cached hashes and affine queue drain
+
+This new all-nine-circuit32-worker plus primary16 experiment composes the exact two parent candidates, preserving their earlier failed gates. It adds no buffer/keytable/pointcopy/plan beyond the original bounded temporary grouping state and reuses existing affine scratch. Gains are measured together rather than assumed additive. [Full complete-request results](../2026-10-29-cached-drain175/README.md).
+
+|Case/variant|Median ms|CPU ms/request|Maximum RSS MiB|
+|---|---:|---:|---:|
+|12x2-w32/OFF|33.921189|942.494|708.50|
+|12x2-w32/ON|33.447728|931.622|673.00|
+|12x2-w32/accepted|33.836735|938.988|703.75|
+|16x2-w32/OFF|40.157244|1124.433|815.25|
+|16x2-w32/ON|39.836068|1120.136|816.25|
+|16x2-w32/accepted|40.185346|1126.523|822.50|
+|1x2-w16/OFF|9.672253|119.439|90.75|
+|1x2-w16/ON|9.423573|115.956|66.00|
+|1x2-w16/accepted|9.768923|120.382|91.00|
+|1x2-w32/OFF|8.017230|181.573|134.75|
+|1x2-w32/ON|7.846378|176.910|87.00|
+|1x2-w32/accepted|8.037538|182.492|135.25|
+|24x2-w32/OFF|65.884075|1885.131|1316.10|
+|24x2-w32/ON|65.198557|1876.907|1211.75|
+|24x2-w32/accepted|66.410932|1889.302|1290.75|
+|2x2-w32/OFF|11.270167|260.854|273.00|
+|2x2-w32/ON|11.123419|258.085|220.00|
+|2x2-w32/accepted|11.282220|262.576|269.25|
+|4x2-w32/OFF|15.960534|419.590|317.50|
+|4x2-w32/ON|15.701353|412.383|292.00|
+|4x2-w32/accepted|15.987681|419.663|310.75|
+|8x2-w32/OFF|24.522912|676.229|502.25|
+|8x2-w32/ON|24.323188|666.033|489.50|
+|8x2-w32/accepted|24.108389|667.596|515.00|
+|merge-24x1-w32/OFF|65.128227|1810.142|1186.81|
+|merge-24x1-w32/ON|64.705300|1795.924|1142.52|
+|merge-24x1-w32/accepted|65.249697|1809.574|1190.25|
+|merge-54x1-w32/OFF|160.922362|4427.465|1852.27|
+|merge-54x1-w32/ON|157.582356|4360.069|1837.85|
+|merge-54x1-w32/accepted|162.698435|4458.645|1911.56|
+
+Declared gate **false**; failures `["8x2-w32/ON/accepted","1x2-w16/OFF/accepted"]`. No adoption. Primary32 and original-eight aggregate require gain against accepted/OFF, allothercases includingphysical16 require nonregression, andallten calibration/RSSguards are required. The new trial adds27948SDKrequests and492freshGnarkexports, ledger22990. Accepted source175 and all local/AWS/M5 rows remain unchanged.

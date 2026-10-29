@@ -76,6 +76,7 @@ fn main() {
     let diagnostic = read(root.join("docs/benchmarks/2026-10-29-representative-54-diagnostic175/artifacts/analysis.json"));
     assert_eq!(diagnostic["complete"], true);
     assert_eq!(diagnostic["independent_proof_count"],21703);
+    let combined=read(root.join("docs/benchmarks/2026-10-29-cached-drain175/artifacts/analysis.json"));assert_eq!(combined["complete"],true);assert_eq!(combined["independent_proof_count"],22990);
     let dest = std::env::args()
         .nth(1)
         .map(PathBuf::from)
@@ -113,6 +114,7 @@ fn main() {
         "2026-10-29-sample-accounting175",
         "2026-10-29-component-partition175",
         "2026-10-29-queue-drain175",
+        "2026-10-29-cached-drain175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -483,6 +485,10 @@ fn main() {
     md+="\n## Affine collision-queue drain pilot\n\nA no-allocation predicate lets suitable queued points use the original affine batch before retaining the existing projective fallback. SIMD-width distinct destinations and pending-batch bounds limit the new route; crowded/short tails retain fallback. There is no new field formula, buffer, Window field, forecast, lookup table or task geometry. [Complete requests and validation](../2026-10-29-queue-drain175/README.md).\n\n|Case/variant|Median ms|CPU ms/request|Maximum RSS MiB|\n|---|---:|---:|---:|\n";
     for(k,c)in queue_drain["cells"].as_object().unwrap(){writeln!(md,"|{k}|{:.6}|{:.3}|{:.2}|",c["median_ms"].as_f64().unwrap(),c["CPU_ms"].as_f64().unwrap(),c["max_RSS_MiB"].as_f64().unwrap()).unwrap();}
     writeln!(md,"\nDeclared pilot gate: **{}**; failures `{}`. No adoption. Primary32 requires a gain versus both controls; physical16 requires nonregression. A passing pilot still requires all-nine performance/resource/portable qualification. The trial adds 15,708 SDK requests and 132 distinct independent Gnark exports; ledger 22,498. Accepted source175 and all local/AWS/M5 rows remain unchanged.",queue_drain["gate_passed"],queue_drain["failed_checks"]).unwrap();
+
+    md+="\n## Combined cached hashes and affine queue drain\n\nThis new all-nine-circuit32-worker plus primary16 experiment composes the exact two parent candidates, preserving their earlier failed gates. It adds no buffer/keytable/pointcopy/plan beyond the original bounded temporary grouping state and reuses existing affine scratch. Gains are measured together rather than assumed additive. [Full complete-request results](../2026-10-29-cached-drain175/README.md).\n\n|Case/variant|Median ms|CPU ms/request|Maximum RSS MiB|\n|---|---:|---:|---:|\n";
+    for(k,c)in combined["cells"].as_object().unwrap(){writeln!(md,"|{k}|{:.6}|{:.3}|{:.2}|",c["median_ms"].as_f64().unwrap(),c["CPU_ms"].as_f64().unwrap(),c["max_RSS_MiB"].as_f64().unwrap()).unwrap();}
+    writeln!(md,"\nDeclared gate **{}**; failures `{}`. No adoption. Primary32 and original-eight aggregate require gain against accepted/OFF, allothercases includingphysical16 require nonregression, andallten calibration/RSSguards are required. The new trial adds27948SDKrequests and492freshGnarkexports, ledger22990. Accepted source175 and all local/AWS/M5 rows remain unchanged.\n",combined["gate_passed"],combined["failed_checks"]).unwrap();
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -612,6 +618,9 @@ fn main() {
     data["latest_component_partition_experiment"]=json!({"report":"../2026-10-29-component-partition175/README.md","cells":component_partition["cells"],"pairs":component_partition["pairs"],"gate_passed":component_partition["gate_passed"],"failed_checks":component_partition["failed_checks"],"SDK_requests":15708,"new_independent_exports":132,"independent_proof_count":22366,"production_changed":false,"adopted":false});
     data["latest_sampling_accounting_diagnostic"]=json!({"report":"../2026-10-29-sample-accounting175/README.md","diagnostic_only":true,"aggregates":accounting["aggregates"],"all_attribution_qualified":accounting["all_attribution_qualified"],"all_accounting_qualified":accounting["all_accounting_qualified"],"SDK_requests":3696,"new_independent_exports":24,"independent_proof_count":22234,"production_changed":false,"new_latency_qualification":false});
     data["latest_instruction_profile_diagnostic"]=json!({"report":"../2026-10-29-instruction-profile175/README.md","diagnostic_only":true,"aggregates":instruction_profiles["aggregates"],"all_attribution_qualified":instruction_profiles["all_attribution_qualified"],"SDK_requests":1848,"new_independent_exports":12,"independent_proof_count":22210,"source_rebuilds":0,"production_changed":false});
+
+    data["source_commit"]=json!("93bdd89f3709a81866915de4b9ad5d526a36c908");data["historical_distinct_Gnark_ledger"]=json!(22990);
+    data["latest_combined_grouping_drain_experiment"]=json!({"report":"../2026-10-29-cached-drain175/README.md","cells":combined["cells"],"pairs":combined["pairs"],"original8_aggregates":combined["original8_aggregates"],"gate_passed":combined["gate_passed"],"failed_checks":combined["failed_checks"],"SDK_requests":27948,"new_independent_exports":492,"independent_proof_count":22990,"production_changed":false,"adopted":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),
