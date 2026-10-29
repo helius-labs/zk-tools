@@ -1,0 +1,4 @@
+use std::fs;
+const R:&str="/home/ubuntu/src/zopro-perf-work/balanced-kh-compatibility175";
+const OLD:&str="/home/ubuntu/src/zopro-perf-work/g2-borrowed-qualification";
+fn main(){let old=fs::read_to_string(format!("{OLD}/prepare.rs")).unwrap();let a=old.find("fn setup()").unwrap();let b=old.find("fn freeze()").unwrap();let header=old[..a].replace(OLD,R).replace("/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk","/home/ubuntu/src/zopro-perf-work/balanced-kh-windows174").replace("/home/ubuntu/src/zopro-perf-work/g2-borrowed-queue","/home/ubuntu/src/zopro-perf-work/balanced-kh-qualification175");let s=format!("{header}\ninclude!(\"setup.rs\");\n{}",&old[b..]);fs::write(format!("{R}/prepare.rs"),s).unwrap();for f in ["warm.rs","concurrent.rs"]{fs::copy(format!("{OLD}/{f}"),format!("{R}/{f}")).unwrap();}}

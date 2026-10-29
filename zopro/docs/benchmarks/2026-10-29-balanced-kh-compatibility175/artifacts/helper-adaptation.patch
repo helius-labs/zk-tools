@@ -1,0 +1,441 @@
+--- /home/ubuntu/src/zopro-perf-work/g2-borrowed-qualification/qualify.rs
++++ /home/ubuntu/src/zopro-perf-work/balanced-kh-compatibility175/qualify.rs
+@@ -7,8 +7,9 @@
+     path::{Path, PathBuf},
+     process::Command,
+ };
+-const R: &str = "/home/ubuntu/src/zopro-perf-work/g2-borrowed-qualification";
+-const P: &str = "/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk";
++const R: &str = "/home/ubuntu/src/zopro-perf-work/balanced-kh-compatibility175";
++const P: &str = "/home/ubuntu/src/zopro-perf-work/balanced-kh-qualification175";
++const N: &str = "/home/ubuntu/src/zopro-perf-work/balanced-kh-windows174/native";
+ const I: &str = "/home/ubuntu/src/zopro-perf-work/sdk-control-copies";
+ const V: &str = "/home/ubuntu/src/zopro-perf-work/batch-local-steal/gnark/verify";
+ fn r(p: impl AsRef<Path>) -> PathBuf {
+@@ -38,8 +39,7 @@
+     p.insert(f.display().to_string(), hash(f));
+ }
+ fn base() -> Value {
+-    let mut e =
+-        read("/home/ubuntu/src/zopro-perf-work/center-census/run-plan.json")["environment"].clone();
++    let mut e = read(format!("{P}/run-plan.json"))["steps"][0]["environment"].clone();
+     e["ZOPRO_BASIS_KEY_DIR"] = json!(format!("{I}/images"));
+     e["ZOPRO_CPU_LAGRANGE_DIR"] = json!(format!("{I}/lagrange-cache"));
+     e
+@@ -48,10 +48,10 @@
+     if v == "portable" {
+         r("build/portable-sdk")
+     } else {
+-        Path::new(P).join(if v == "accepted" {
+-            "accept-sdk"
++        Path::new(N).join(if v == "accepted" {
++            "control-sdk"
+         } else {
+-            "borrow-sdk"
++            "candidate-sdk"
+         })
+     }
+ }
+@@ -68,6 +68,9 @@
+ fn prepare() {
+     assert!(!r("functional-plan.json").exists());
+     assert_eq!(read(r("build/result.json"))["status"], "complete");
++    let full = read(format!("{P}/analysis.json"));
++    assert_eq!(full["gate_passed"], false);
++    assert_eq!(full["failed_checks"], json!(["1x2-w16/OFF/accepted"]));
+     let mut pins: BTreeMap<String, String> =
+         serde_json::from_value(read(r("build-pins.json"))).unwrap();
+     for (p, h) in &pins {
+@@ -203,7 +206,7 @@
+     }
+     let mut prior: BTreeSet<String> =
+         serde_json::from_value(read(format!("{P}/prior-proof-sha256.json"))).unwrap();
+-    assert_eq!(prior.len(), 13712);
++    assert_eq!(prior.len(), 15919);
+     for (p, h) in read(format!("{P}/proof-inventory.json"))
+         .as_object()
+         .unwrap()
+@@ -213,7 +216,7 @@
+             assert!(prior.insert(h.as_str().unwrap().into()));
+         }
+     }
+-    assert_eq!(prior.len(), 14462);
++    assert_eq!(prior.len(), 16411);
+     save(r("prior-proof-sha256.json"), &json!(prior));
+     save(r("jobs.json"), &json!(jobs));
+     save(r("resource-cases.json"), &json!(resources));
+@@ -238,6 +241,9 @@
+         "jobs.json",
+         "inputs.json",
+         "resource-cases.json",
++        "resource-limit-derivation.json",
++        "inherited-field-tests.json",
++        "source-reuse.json",
+     ] {
+         pin(&mut pins, r(p));
+     }
+@@ -247,7 +253,7 @@
+         r("functional-plan.json"),
+         &json!({"version":1,"source_pins":r("pins.json"),"steps":steps}),
+     );
+-    println!("Prepared45functional+4concurrent,77exports; resources8cases/12exports; total248SDK89exports ledger14551 after validation");
++    println!("Prepared45functional+4concurrent,77exports; resources8cases/12exports; total248SDK89exports ledger16500 after validation");
+ }
+ fn files(root: &Path, out: &mut Vec<PathBuf>) {
+     for e in fs::read_dir(root).unwrap() {
+--- /home/ubuntu/src/zopro-perf-work/g2-borrowed-qualification/resources.rs
++++ /home/ubuntu/src/zopro-perf-work/balanced-kh-compatibility175/resources.rs
+@@ -8,7 +8,7 @@
+     process::{Child, Command, Stdio},
+     time::{Duration, Instant},
+ };
+-const R: &str = "/home/ubuntu/src/zopro-perf-work/g2-borrowed-qualification";
++const R: &str = "/home/ubuntu/src/zopro-perf-work/balanced-kh-compatibility175";
+ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+ fn read(p: impl AsRef<Path>) -> Result<Value> {
+     Ok(serde_json::from_slice(&fs::read(p)?)?)
+@@ -52,7 +52,7 @@
+             .join(unsafe { libc::getuid() }.to_string())
+             .join("systemd/user.control")
+             .join(format!("{}.d", self.0));
+-        if self.0.starts_with("zopro-borrow-q-") && path.exists() {
++        if self.0.starts_with("zopro-bal-kh-q-") && path.exists() {
+             let _ = fs::remove_dir_all(path);
+         }
+     }
+@@ -243,7 +243,7 @@
+     if large {
+         cold_cache(case, &out)?;
+     }
+-    let unit = format!("zopro-borrow-q-{}-{name}.service", std::process::id());
++    let unit = format!("zopro-bal-kh-q-{}-{name}.service", std::process::id());
+     let before = properties(&unit)?;
+     if before.get("LoadState").is_some_and(|s| s != "not-found") {
+         return Err("refusing to reuse an existing systemd unit".into());
+@@ -468,6 +468,21 @@
+ fn run() -> Result<()> {
+     let root = Path::new(R);
+     let cfg = read(root.join("resource-cases.json"))?;
++    let limits = read(root.join("resource-limit-derivation.json"))?;
++    if limits["test_memory_max_MiB"] != 192
++        || limits["test_warm_high_MiB"] != 128
++        || limits["warm_priming_max_MiB"] != 512
++        || limits["ballast_MiB"] != 32
++        || limits["swap_max"] != 0
++        || cfg.as_array().map(Vec::len) != Some(8)
++        || cfg
++            .as_array()
++            .unwrap()
++            .iter()
++            .any(|c| c["kind"] != "cold" && c["kind"] != "warm")
++    {
++        return Err("resource limits or declared eight-case scope changed".into());
++    }
+     fs::create_dir(root.join("runs"))?;
+     let mut rows = Vec::new();
+     for case in cfg.as_array().unwrap() {
+--- /home/ubuntu/src/zopro-perf-work/g2-borrowed-qualification/finish.rs
++++ /home/ubuntu/src/zopro-perf-work/balanced-kh-compatibility175/finish.rs
+@@ -6,7 +6,7 @@
+     io::Read,
+     path::{Path, PathBuf},
+ };
+-const R: &str = "/home/ubuntu/src/zopro-perf-work/g2-borrowed-qualification";
++const R: &str = "/home/ubuntu/src/zopro-perf-work/balanced-kh-compatibility175";
+ fn r(p: impl AsRef<Path>) -> PathBuf {
+     Path::new(R).join(p)
+ }
+@@ -46,11 +46,7 @@
+         assert_eq!(hash(p), h.as_str().unwrap(), "{p}")
+     }
+     let mut counts = BTreeMap::new();
+-    for (n, expected) in [
+-        ("portable-field", 11),
+-        ("portable-core", 99),
+-        ("portable-prover", 8),
+-    ] {
++    for (n, expected) in [("portable-core", 101), ("portable-prover", 8)] {
+         let t = fs::read_to_string(r(format!("build/{n}/stdout.log"))).unwrap();
+         let mut count = 0;
+         for l in t
+@@ -68,9 +64,18 @@
+         assert_eq!(count, expected);
+         counts.insert(n, count);
+     }
++    let inherited = read(r("inherited-field-tests.json"));
++    assert_eq!(inherited["portable_field_tests"], 11);
++    assert_eq!(inherited["new_field_tests"], 0);
++    assert_eq!(inherited["same_arithmetic_source"], true);
++    let field_receipt = read(inherited["receipt"].as_str().unwrap());
++    assert_eq!(field_receipt["passed_tests"].as_array().unwrap().len(), 11);
++    let full = read("/home/ubuntu/src/zopro-perf-work/balanced-kh-qualification175/analysis.json");
++    assert_eq!(full["gate_passed"], false);
++    assert_eq!(full["failed_checks"], json!(["1x2-w16/OFF/accepted"]));
+     let mut seen: BTreeSet<String> =
+         serde_json::from_value(read(r("prior-proof-sha256.json"))).unwrap();
+-    assert_eq!(seen.len(), 14462);
++    assert_eq!(seen.len(), 16411);
+     let mut inventory = BTreeMap::new();
+     let jobs = read(r("jobs.json"));
+     let mut exports = 0;
+@@ -162,10 +167,10 @@
+     assert_eq!(requests, 248);
+     assert_eq!(exports, 89);
+     assert_eq!(inventory.len(), 178);
+-    assert_eq!(seen.len(), 14551);
++    assert_eq!(seen.len(), 16500);
+     assert_eq!(cases.len(), 8);
+     save(r("proof-inventory.json"), &json!(inventory));
+-    let a = json!({"status":"additional qualification passed; adoption assessment required","qualified_additional_scope":true,"production_changed":false,"adopted":false,"original_performance_screen_passed":false,"original_failed_checks":["1x2-w16/off/frozen","1x2-w16/on/frozen"],"primary32_gain_retained":true,"new_portable_tests":counts,"native_tests_inherited":{"off":119,"on":122},"new_native_tests":0,"functional_processes":45,"concurrent_processes":4,"resource_processes":8,"SDK_requests":requests,"new_independent_exports":exports,"independent_proof_count":14551,"resources":cases,"goal_status":"active","goal_achieved":false,"original8_CPU10x_rows":0,"scope":"portable all8+54; native1/4worker small-stack raw/basis/denied; native opt-outs; concurrent4callers/32workers primary/54; cold/warm192MiB cgroup primary no swap. No new latency/AWS/mobile/250/4999/minimumRAM result."});
++    let a = json!({"status":"compatibility/resource study passed; full performance calibration remains failed; not adopted","qualified_additional_scope":true,"production_changed":false,"adopted":false,"original_performance_screen_passed":false,"original_failed_checks":["1x2-w16/OFF/accepted"],"primary32_gain_retained":true,"new_portable_tests":counts,"native_tests_inherited":{"off_core":122,"on_core":124,"prover_each":8,"field":33},"inherited_portable_field_tests":11,"new_field_tests":0,"new_native_tests":0,"functional_processes":45,"concurrent_processes":4,"resource_processes":8,"SDK_requests":requests,"new_independent_exports":exports,"independent_proof_count":16500,"resources":cases,"goal_status":"active","goal_achieved":false,"original8_CPU10x_rows":0,"scope":"portable all8+54; native1/4worker small-stack raw/basis/denied; native opt-outs; concurrent4callers/32workers primary/54; cold/warm192MiB cgroup primary no swap. No new latency/AWS/mobile/250/4999/minimumRAM result."});
+     save(r("analysis.json"), &a);
+-    println!("Qualification passed;248SDK/89Gnark/ledger14551; portable11field99core8prover;8pressurecases; performancegate stillFALSE; sourceunchanged");
++    println!("Qualification passed;248SDK/89Gnark/ledger16500; portable101core8prover;11field inherited;8pressurecases; performancegate stillFALSE; sourceunchanged");
+ }
+--- /home/ubuntu/src/zopro-perf-work/g2-borrowed-qualification/close.rs
++++ /home/ubuntu/src/zopro-perf-work/balanced-kh-compatibility175/close.rs
+@@ -6,14 +6,11 @@
+     fs,
+     io::Read,
+     path::{Path, PathBuf},
+-    process::Command,
+ };
+-const R: &str = "/home/ubuntu/src/zopro-perf-work/g2-borrowed-qualification";
++const R: &str = "/home/ubuntu/src/zopro-perf-work/balanced-kh-compatibility175";
++const Q: &str = "/home/ubuntu/src/zopro-perf-work/balanced-kh-qualification175";
+ const D: &str =
+-    "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-28-g2-borrowed-qualification";
+-fn r(p: impl AsRef<Path>) -> PathBuf {
+-    Path::new(R).join(p)
+-}
++    "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-29-balanced-kh-compatibility175";
+ fn read(p: impl AsRef<Path>) -> Value {
+     serde_json::from_slice(&fs::read(p).unwrap()).unwrap()
+ }
+@@ -36,20 +33,18 @@
+ fn walk(p: &Path, out: &mut Vec<PathBuf>) {
+     for e in fs::read_dir(p).unwrap() {
+         let e = e.unwrap();
++        let n = e.file_name().to_string_lossy().to_string();
+         if e.file_type().unwrap().is_dir() {
+-            if !["target-portable", "frozen-portable"]
+-                .contains(&e.file_name().to_string_lossy().as_ref())
+-            {
++            if !["target-portable", "frozen-portable"].contains(&n.as_str()) {
+                 walk(&e.path(), out)
+             }
+         } else if e.file_type().unwrap().is_file() {
+-            out.push(e.path())
++            out.push(e.path());
+         }
+     }
+ }
+-fn report(a: &Value) -> String {
+-    let mut s=String::from("# Borrowed G2 compatibility and resource qualification\n\nThe exact candidate passes the added qualification:11 portable field tests,99 core tests,8 prover tests,248 complete SDK requests and89 independent Gnark exports. Eight cold/warmed memory cases finish under their declared limits without OOM/max events. Production remains unchanged pending an explicit adoption assessment. The original SDK performance screen remains **failed** at two physical16 bounds; its clear primary32 improvement is retained.\n\n");
+-    s.push_str("The [full SDK experiment](../2026-10-28-g2-borrowed-sdk/README.md) measured primary32 at8.226135ms versus accepted8.379021ms, paired2.13% faster with bounds1.53–2.61% and15/15wins. It removes40requests/1472000requestedbytes per primary proof, without a stable whole-process RSS reduction. Physical16 point estimates improve, but OFF/frozen calibration and ON/frozen nonregression missed required bounds. This qualification does not repeat latency, select another executable, exclude blocks or turn those failed checks into passes.\n\n## Coverage\n\n- The174-file private candidate snapshot matches the measured source. Portable x86-64/no-ASM/no-IFMA builds keep the private borrowed flag enabled while its native guards exclude the new path. All unfiltered suites pass, and native119/122 tests are inherited rather than rerun.\n\n- 13 portable real-proof cases cover all8 reference shapes plus54 with basis images, and primary/54 with raw and denied optional-preparation paths.\n\n- 24 native cases cover1/4workers,512KiB/1MiB worker stacks, primary/54, and basis/raw/denied paths.8 additional cases disable packed/direct/canonical-batch/vector-inverse on accepted and candidate SDKs.\n\n- 4 concurrent cases cover accepted/candidate × primary/54,4callers ×2requests. They check37 loaded TIDs and33 idle TIDs: one32worker global pool plus callers, without a replacement pool. All32 fresh exports pass independent verification.\n\n- 8 pressure cases cover cold/warm × accepted/candidate × default/retained allocator settings. The controller creates and charges a private image copy inside each owned transient service. Cold limits are192MiB; warmed cases prime at512MiB, add32MiB ballast, then lower high/maximum limits to128/192MiB before two fresh proofs. Swap is disabled for these cases. These are inherited validation conditions, not an architectural cap, minimum RAM or proof of swap behavior.\n\nRaw proving images are checked against historical hashes. The unchanged independent Gnark verifier obtains the matching verifying key from the corresponding historical Euler image; it is the same circuit/key in a different query representation. Both image identities and expected public hashes are retained. This checks raw-loader proof correctness without changing the verifier parser.\n\n## Resource observations\n\n| Case | Passed | Peak MiB | High events | Max events | OOM/kill | Swap limit |\n|---|---|---:|---:|---:|---|---|\n");
++fn report(a: &Value, full: &Value) -> String {
++    let mut s=String::from("# Balanced K/H portability and resource checks\n\nThe measured 175-file candidate passes the additional compatibility and resource checks: 101 portable core tests, 8 portable prover tests, 248 internally verified SDK requests and 89 independently verified Gnark exports. All eight cold/warm cgroup cases finish under the declared limits without OOM or maximum-limit events. Production remains unchanged; the candidate is not adopted.\n\nThe [full performance qualification](../2026-10-28-balanced-kh-qualification175/README.md) remains **failed** solely on physical-16 identical-baseline calibration. At 32 workers it measured 8.039940 ms versus accepted 8.105814 ms, paired 0.813% faster. This study adds no latency measurements, repeats no successful capture and changes no performance gate.\n\n## Coverage\n\nThe source is copied byte for byte from the measured candidate: 173 of 174 original files are unchanged, one parent has the private balanced K/H hook, and one child implements the variable-width windows. No runtime arithmetic, scheduler, key, allocation forecast, native flag or library changes are made here. Native 122/124 core tests, 8 prover tests per variant and 33 field tests are inherited. Portable field source and manifests match the earlier qualified snapshot; its 11 field tests are inherited, not rerun. The new portable x86-64/no-IFMA/no-ASM build includes both balanced scalar/point oracle tests in its unfiltered 101-test core suite.\n\n- 13 portable processes cover all eight reference shapes plus 54→1 with basis images, and primary/54 with raw and denied optional-preparation paths.\n- 24 native candidate processes cover 1/4 workers, 512 KiB/1 MiB worker stacks, primary/54 and basis/raw/denied paths. Eight accepted/candidate processes disable packed, direct, canonical-batch or vector-inverse processing individually.\n- Four concurrent processes cover accepted/candidate × primary/54, with four callers making two proofs each. They check 33 idle and 37 loaded TIDs, consistent with the existing global 32-worker pool plus callers. All 32 exports verify independently.\n- Eight resource processes cover accepted/candidate × cold/warm × default/retained allocator settings. Each charges its own private image copy inside its owned transient service. Swap is disabled.\n\nResource maximum is derived from accepted primary peak RSS: rounding 1.25 × 133.5 MiB upward to 64 MiB gives 192 MiB. Warm high is 0.9 × 133.5 MiB rounded upward to 8 MiB, giving 128 MiB. Warm cases prime at 512 MiB, add 32 MiB ballast and lower high/maximum to 128/192 MiB before two fresh proofs. These are controlled test conditions, not an architectural cap or minimum-RAM estimate. No larger-limit retry is allowed.\n\nRaw and basis images retain their recorded identities and public bindings. Independent Gnark verification uses the corresponding Euler image for its verifying key; raw-loader correctness does not require changing the verifier parser.\n\n## Resource observations\n\n| Case | Passed | Cgroup peak MiB | High events | Max events | OOM/kill | Swap limit |\n|---|---|---:|---:|---:|---|---|\n");
+     for c in a["resources"].as_array().unwrap() {
+         let peak = c["metrics"]["memory.peak"]
+             .as_str()
+@@ -70,125 +65,104 @@
+         )
+         .unwrap();
+     }
+-    s.push_str("\nHigh events distinguish observed throttling from merely running under configured limits; complete current/peak/pressure/event/stat snapshots are retained. No larger-limit retry is permitted on failure. The service controller stops and resets only its uniquely prefixed units and removes their owned control directories. No global memory/kernel setting or unrelated process changes. Actual resource peaks include the private charged image, controller, SDK and any ballast; they are not a minimum-RAM guarantee.\n\n## Verification and adoption assessment\n\nAll248 SDK requests verify internally. All89 fresh164byte exports independently pass Gnark, expected public/key binding, member hashing and uniqueness against14462 prior identities. The independent ledger is14551;178 proof/public members are not178 proofs. There are45 functional processes,4 concurrent processes and8 resource cases. Builds finish before proof capture, and no owned build/hash/helper/archive/second benchmark overlaps capture. Unrelated host work is not excluded.\n\nThe candidate is eligible for an explicit engineering adoption assessment using the clear primary32 improvement and this added coverage, while accepting the documented physical16 uncertainty. The old performance gates remain false. Source promotion must still be concrete and reviewed; this report alone does not change production. No new mobile/TEE, AWS/Aeglos, swap,250/4999 or minimum-RAM result is claimed. Giant images from earlier qualification are absent. The original all8 CPU10x objective remains active/unmet0/8, with primary requiring3.7ms.\n\n## Inherited CPU and Metal comparisons\n\nThe following are the preceding full SDK measurements and supplied historical M5 references, not timings from these functional/resource checks.\n\n| Shape | Accepted ms | Candidate ms | M5 CPU ms | M5 Metal ms | CPU/candidate | Metal/candidate |\n|---|---:|---:|---:|---:|---:|---:|\n");
+-    let p = read("/home/ubuntu/src/zopro-perf-work/g2-borrowed-sdk/analysis.json");
+-    for (shape, v) in p["m5"].as_object().unwrap() {
++    s.push_str("\nPeaks include the private image, controller, SDK and any ballast. High events identify observed throttling; complete pressure, event, CPU, memory and thread receipts are retained. The controller stops/resets only uniquely prefixed owned units and removes only their control directories. No global memory/kernel settings are changed.\n\n## Verification and limits\n\nAll 248 SDK requests verify internally. The 89 fresh 164-byte exports pass independent Gnark verification, expected public/key binding, member hashing and uniqueness against 16,411 previous proof identities. The ledger reaches 16,500; 178 proof/public members represent 89 proofs. All build, helper and source pins close. Helpers and consumer builds complete before proof/resource captures; no owned build, hash, archive or second workload overlaps them. Unrelated host work is not excluded.\n\nThis result does not authorize adoption or turn the failed full-performance gate into a pass. No fresh mobile, TEE, AWS/Aeglos, swap, 250/4999 or minimum-RAM claim is made. The giant images are unavailable here. There is no new lookup table, duplicate key plan or prover memory cap.\n\n## Inherited CPU and Metal comparisons\n\nThese are the preceding full performance qualification and supplied historical M5 references, not measurements from these functional/resource checks.\n\n| Shape | Accepted ms | Candidate ms | M5 CPU ms | M5 Metal ms | CPU/candidate | Metal/candidate |\n|---|---:|---:|---:|---:|---:|---:|\n");
++    for (shape, v) in full["new_reference_comparisons"].as_object().unwrap() {
+         writeln!(
+             s,
+-            "| {shape} | {:.6} | {:.6} | {:.0} | {:.0} | {:.3}× | {:.3}× |",
++            "| {} | {:.6} | {:.6} | {:.0} | {:.0} | {:.3}× | {:.3}× |",
++            shape,
+             v["variants"]["accepted"]["ms"].as_f64().unwrap(),
+-            v["variants"]["on"]["ms"].as_f64().unwrap(),
+-            v["cpu_reference_ms"].as_f64().unwrap(),
+-            v["metal_reference_ms"].as_f64().unwrap(),
+-            v["variants"]["on"]["cpu_speedup"].as_f64().unwrap(),
+-            v["variants"]["on"]["metal_speedup"].as_f64().unwrap()
++            v["variants"]["ON"]["ms"].as_f64().unwrap(),
++            v["reference"]["cpu_ms"].as_f64().unwrap(),
++            v["reference"]["metal_ms"].as_f64().unwrap(),
++            v["variants"]["ON"]["CPU_speedup"].as_f64().unwrap(),
++            v["variants"]["ON"]["Metal_speedup"].as_f64().unwrap()
+         )
+         .unwrap();
+     }
+-    s.push_str("\n[Design](artifacts/design.md), [analysis](artifacts/analysis.json), [build/test receipts](artifacts/build/result.json), [functional receipts](artifacts/functional/result.json), [resource receipts](artifacts/resource-result.json), [proof inventory](artifacts/proof-inventory.json). Executable/rlib payloads remain local with hashes and exact library receipts.\n");
+-    if let Ok(x) = fs::read_to_string(r("interpretation.md")) {
+-        s.push('\n');
+-        s.push_str(&x)
+-    }
++    s.push_str("\nThe original all-eight CPU 10× goal remains active and unmet, **0/8**. Primary requires 3.7 ms. There is no supplied M5 reference for 54→1.\n\n[Design](artifacts/design.md), [analysis](artifacts/analysis.json), [source reuse](artifacts/source-reuse.json), [build receipts](artifacts/build/result.json), [functional receipts](artifacts/functional/result.json), [resource receipts](artifacts/resource-result.json), [proof inventory](artifacts/proof-inventory.json). Native and portable binary payloads remain local with hashes and frozen-library receipts.\n");
+     s
+ }
++fn seal() {
++    let d = Path::new(D);
++    let mut paths = Vec::new();
++    walk(d, &mut paths);
++    let mut pins = BTreeMap::new();
++    for p in paths {
++        let rel = p.strip_prefix(d).unwrap().display().to_string();
++        if ["SHA256SUMS", "artifact-index.json"].contains(&rel.as_str()) {
++            continue;
++        }
++        pins.insert(rel, hash(p));
++    }
++    save(d.join("artifact-index.json"), &json!(pins));
++    pins.insert(
++        "artifact-index.json".into(),
++        hash(d.join("artifact-index.json")),
++    );
++    fs::write(
++        d.join("SHA256SUMS"),
++        pins.iter()
++            .map(|(p, h)| format!("{h}  {p}\n"))
++            .collect::<String>(),
++    )
++    .unwrap();
++    println!("Sealed {} hashes", pins.len());
++}
+ fn archive() {
+-    assert!(!Path::new(D).exists());
+-    let a = read(r("analysis.json"));
+-    assert_eq!(a["independent_proof_count"], 14551);
+-    for (p, h) in read(r("pins.json")).as_object().unwrap() {
+-        assert_eq!(hash(p), h.as_str().unwrap())
++    let r = Path::new(R);
++    let d = Path::new(D);
++    assert!(!d.exists());
++    let a = read(r.join("analysis.json"));
++    let full = read(Path::new(Q).join("analysis.json"));
++    assert_eq!(a["independent_proof_count"], 16500);
++    assert_eq!(a["production_changed"], false);
++    assert_eq!(full["gate_passed"], false);
++    assert_eq!(full["failed_checks"], json!(["1x2-w16/OFF/accepted"]));
++    for (p, h) in read(r.join("pins.json")).as_object().unwrap() {
++        assert_eq!(hash(p), h.as_str().unwrap(), "{p}");
+     }
+-    let out = Path::new(D);
+-    fs::create_dir_all(out.join("artifacts")).unwrap();
+-    let text = report(&a);
+-    fs::write(r("report.md"), &text).unwrap();
+-    let mut files = vec![];
+-    walk(Path::new(R), &mut files);
++    fs::create_dir_all(d.join("artifacts")).unwrap();
++    let mut paths = Vec::new();
++    walk(r, &mut paths);
+     let mut local = BTreeMap::new();
+-    for p in files {
+-        let rel = p.strip_prefix(R).unwrap();
+-        let name = p.file_name().unwrap().to_string_lossy();
++    for p in paths {
++        let rel = p.strip_prefix(r).unwrap();
++        let name = p.file_name().unwrap().to_str().unwrap();
+         if name.starts_with("git-")
+-            || ["close.log", "archive-verification.log"].contains(&name.as_ref())
++            || [
++                "archive.log",
++                "archive.stderr.log",
++                "strict-hashes.log",
++                "push.log",
++                "commit.log",
++            ]
++            .contains(&name)
++            || name.ends_with(".note")
+         {
+             continue;
+         }
+         let bytes = fs::read(&p).unwrap();
+         if bytes.starts_with(b"\x7fELF") || bytes.starts_with(b"!<arch>") {
+-            local.insert(p.display().to_string(), hash(&p));
++            local.insert(p.display().to_string(), hash(p));
+             continue;
+         }
+-        let q = out.join("artifacts").join(rel);
+-        fs::create_dir_all(q.parent().unwrap()).unwrap();
+-        fs::write(q, bytes).unwrap();
++        let to = d.join("artifacts").join(rel);
++        fs::create_dir_all(to.parent().unwrap()).unwrap();
++        fs::write(&to, bytes).unwrap();
++        assert_eq!(hash(&p), hash(to));
+     }
+-    save(out.join("artifacts/local-binary-pins.json"), &json!(local));
+-    fs::write(out.join("README.md"), text).unwrap();
+-    let mut files = vec![];
+-    walk(out, &mut files);
+-    files.sort();
+-    let mut index = BTreeMap::new();
+-    let mut sums = String::new();
+-    for p in files {
+-        let key = p.strip_prefix(out).unwrap().display().to_string();
+-        let h = hash(p);
+-        sums.push_str(&format!("{h}  {key}\n"));
+-        index.insert(key, h);
+-    }
+-    save(out.join("artifact-index.json"), &json!(index));
+-    fs::write(out.join("SHA256SUMS"), sums).unwrap();
+-    println!("Archived{}hashes", index.len());
+-}
+-fn state() {
+-    let o = Command::new("git")
+-        .args(["rev-parse", "HEAD"])
+-        .output()
+-        .unwrap();
+-    assert!(o.status.success());
+-    let head = String::from_utf8(o.stdout).unwrap().trim().to_string();
+-    let o = Command::new("git")
+-        .args([
+-            "-c",
+-            "url.https://github.com/.insteadOf=git@github.com:",
+-            "-c",
+-            "credential.helper=!gh auth git-credential",
+-            "ls-remote",
+-            "origin",
+-            "refs/heads/sergei/zopro-cpu-perf",
+-        ])
+-        .output()
+-        .unwrap();
+-    assert!(o.status.success());
+-    assert!(String::from_utf8(o.stdout).unwrap().starts_with(&head));
+-    let a = read(r("analysis.json"));
+-    let p = "/home/ubuntu/src/zopro-perf-work/latest-status.json";
+-    let mut s = read(p);
+-    s["previous_completed_experiment"] =
+-        json!({"commit":s["commit"],"root":s["root"],"report":s["report"]});
+-    s["commit"] = json!(head);
+-    s["root"] = json!(R);
+-    s["report"] = json!(format!("{D}/README.md"));
+-    s["status"]=json!("Borrowed G2 added qualification passed; prior performancegate false; adoption assessment pending");
+-    s["g2_borrowed_qualification"] = a;
+-    s["independent_proof_count"] = json!(14551);
+-    s["new_independent_exports"] = json!(89);
+-    s["SDK_requests"] = json!(248);
+-    s["owned_live_jobs"] = json!([]);
+-    s["last_goal_turn_classification"] = json!("progress");
+-    s["pushed"] = json!(true);
+-    s["remote_verified"] = json!(true);
+-    s["next_action"]=json!("Review/promote clean borrowed G2 production source as an explicit engineering exception if justified; preserve physical16 failed bounds, exact qualified behavior and full8 target. Inspect actual epoch-pin offsets before selecting next CPU-work change.");
+-    save(p, &s);
+-    let hand = "/home/ubuntu/src/zopro-cpu-perf-handoff.md";
+-    let old = fs::read_to_string(hand).unwrap();
+-    fs::write(hand,format!("CURRENT COMPLETE/PUSHED — BORROWED G2 ADDED QUALIFICATION\n\nHEAD/remoteverified{head};root{R};report{D}/README.md. Additionalqualpassed11field/99core/8proverportable;45functional+4concurrent+8resourcecases;248SDK/89freshGnark/ledger14551. Native119/122inherited/no newnative tests;exactcandidate notlatencyrerun. Primaryclear2.13%gainretained;priorperformancegateFALSE2physical16bounds;productionunchanged/notadopted.8cold/warm privatechargedcgroupcases192MiB/noSwap allpass, actualhigh events inanalysis;nativeoptouts/smallstacks/portableall8+54/raw/denied/concurrentchecked. No new250/4999/mobile/AWS/minRAM/swapclaim;goalACTIVE0/8. NextcleanproductionadoptionassessmentexplicitengineeringexceptionifjustifiedandepochhotIPinspection;neverhidefailedbounds/rerollunchangedlatency. Noownedjobs/cloud.\n\n{old}")).unwrap();
+-    println!("State/handoffupdated {head}");
++    let mut source = Vec::new();
++    walk(&d.join("artifacts/source"), &mut source);
++    assert_eq!(source.len(), 175);
++    save(d.join("artifacts/local-binary-pins.json"), &json!(local));
++    fs::write(d.join("README.md"), report(&a, &full)).unwrap();
++    seal();
+ }
+ fn main() {
+     match std::env::args().nth(1).as_deref() {
+         Some("archive") => archive(),
+-        Some("state") => state(),
+-        _ => panic!("archive/state"),
++        Some("seal") => seal(),
++        _ => panic!("archive/seal"),
+     }
+ }
