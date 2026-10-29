@@ -1,0 +1,17 @@
+{
+  "core_solver_key_scheduler_forecast_exact": true,
+  "generated_file": "crates/zopro-bn254/src/ifma8.rs",
+  "generator_unchanged": true,
+  "helper": "#[cfg(zopro_g2_fused_outline)]\nimpl<C: FpConfig, const MIXED: bool> Ifma<C, MIXED> {\n    #[inline(never)]\n    fn product_cios_outlined<const FUSED: bool>(&self, b: &Self, c: &Self, d: &Self) -> Self {\n        self.product_cios::<FUSED>(b, c, d)\n    }\n}\n\n",
+  "marker": "#[cfg(test)]\nmod tests {",
+  "new": "    fn product<const FUSED: bool>(&self, b: &Self, c: &Self, d: &Self) -> Self { #[cfg(zopro_g2_fused_outline)] if LANES==8 && MIXED && FUSED && C::P==crate::FqConfig::P {return self.product_cios_outlined::<FUSED>(b,c,d);}",
+  "no_new_arithmetic_or_representation": true,
+  "old": "    fn product<const FUSED: bool>(&self, b: &Self, c: &Self, d: &Self) -> Self {",
+  "original_files": 175,
+  "originals_exact": 173,
+  "product_cios_body_exact": true,
+  "production_worktree_changed": false,
+  "reverse175_by_unedit_and_official_generator": true,
+  "source_files": 175,
+  "template_file": "crates/zopro-bn254/src/ifma.rs"
+}

@@ -1,0 +1,369 @@
+warning: profiles for the non root package will be ignored, specify profiles at the workspace root:
+package:   /home/ubuntu/src/zopro-perf-work/g2-fused-outline175/source/crates/zopro-core/Cargo.toml
+workspace: /home/ubuntu/src/zopro-perf-work/g2-fused-outline175/source/Cargo.toml
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling autocfg v1.5.1
+   Compiling version_check v0.9.5
+   Compiling zerocopy v0.8.63
+   Compiling typenum v1.20.1
+   Compiling rand_core v0.6.4
+   Compiling paste v1.0.15
+   Compiling either v1.19.0
+   Compiling arrayvec v0.7.8
+   Compiling cfg-if v1.0.5
+   Compiling once_cell v1.21.4
+   Compiling allocator-api2 v0.2.21
+   Compiling itertools v0.13.0
+   Compiling generic-array v0.14.7
+   Compiling ahash v0.8.12
+   Compiling num-traits v0.2.19
+   Compiling hashbrown v0.15.5
+   Compiling syn v2.0.119
+   Compiling syn v3.0.9
+   Compiling num-integer v0.1.47
+   Compiling num-bigint v0.4.8
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling enum-ordinalize-derive v4.4.2
+   Compiling enum-ordinalize v4.4.2
+   Compiling ppv-lite86 v0.2.21
+   Compiling ark-serialize-derive v0.5.0
+   Compiling zeroize_derive v1.5.0
+   Compiling ark-ff-asm v0.5.0
+   Compiling ark-ff-macros v0.5.0
+   Compiling educe v0.6.0
+   Compiling rand_chacha v0.3.1
+   Compiling zeroize v1.9.1
+   Compiling rand v0.8.8
+   Compiling ark-std v0.5.0
+   Compiling ark-serialize v0.5.0
+   Compiling ark-ff v0.5.0
+   Compiling ark-poly v0.5.0
+   Compiling ark-ec v0.5.0
+   Compiling ark-bn254 v0.5.0
+   Compiling zopro-bn254 v0.1.0 (/home/ubuntu/src/zopro-perf-work/g2-fused-outline175/source/crates/zopro-bn254)
+warning: unexpected `cfg` condition name: `zopro_g2_fused_outline`
+   --> crates/zopro-bn254/src/ifma.rs:675:7
+    |
+675 | #[cfg(zopro_g2_fused_outline)]
+    |       ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: expected names are: `docsrs`, `feature`, `no_asm`, `no_ifma`, and `test` and 32 more
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_fused_outline)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_fused_outline)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: requested on the command line with `-W unexpected-cfgs`
+
+warning: unexpected `cfg` condition name: `zopro_g2_fused_outline`
+   --> crates/zopro-bn254/src/ifma.rs:309:88
+    |
+309 |     fn product<const FUSED: bool>(&self, b: &Self, c: &Self, d: &Self) -> Self { #[cfg(zopro_g2_fused_outline)] if LANES==8 && MIXE...
+    |                                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_fused_outline)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_fused_outline)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma.rs:452:29
+    |
+452 |                     if cfg!(zopro_cios_cancel_carry) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^
+...
+473 |             row!(0);
+    |             ------- in this macro invocation
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `row` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma.rs:452:29
+    |
+452 |                     if cfg!(zopro_cios_cancel_carry) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^
+...
+474 |             row!(1);
+    |             ------- in this macro invocation
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `row` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma.rs:452:29
+    |
+452 |                     if cfg!(zopro_cios_cancel_carry) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^
+...
+475 |             row!(2);
+    |             ------- in this macro invocation
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `row` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma.rs:452:29
+    |
+452 |                     if cfg!(zopro_cios_cancel_carry) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^
+...
+476 |             row!(3);
+    |             ------- in this macro invocation
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `row` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma.rs:514:25
+    |
+514 |                 if cfg!(zopro_cios_cancel_carry) {
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma.rs:452:29
+    |
+452 |                     if cfg!(zopro_cios_cancel_carry) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^
+...
+552 |                 row!(4);
+    |                 ------- in this macro invocation
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `row` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition name: `zopro_g2_fused_outline`
+   --> crates/zopro-bn254/src/ifma8.rs:745:7
+    |
+745 | #[cfg(zopro_g2_fused_outline)]
+    |       ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_fused_outline)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_fused_outline)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_g2_fused_outline`
+   --> crates/zopro-bn254/src/ifma8.rs:367:15
+    |
+367 |         #[cfg(zopro_g2_fused_outline)]
+    |               ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_g2_fused_outline)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_g2_fused_outline)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma8.rs:513:29
+    |
+513 |                     if cfg!(zopro_cios_cancel_carry) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^
+...
+534 |             row!(0);
+    |             ------- in this macro invocation
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `row` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma8.rs:513:29
+    |
+513 |                     if cfg!(zopro_cios_cancel_carry) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^
+...
+535 |             row!(1);
+    |             ------- in this macro invocation
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `row` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma8.rs:513:29
+    |
+513 |                     if cfg!(zopro_cios_cancel_carry) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^
+...
+536 |             row!(2);
+    |             ------- in this macro invocation
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `row` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma8.rs:513:29
+    |
+513 |                     if cfg!(zopro_cios_cancel_carry) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^
+...
+537 |             row!(3);
+    |             ------- in this macro invocation
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `row` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma8.rs:575:25
+    |
+575 |                 if cfg!(zopro_cios_cancel_carry) {
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_cios_cancel_carry`
+   --> crates/zopro-bn254/src/ifma8.rs:513:29
+    |
+513 |                     if cfg!(zopro_cios_cancel_carry) {
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^
+...
+628 |                 row!(4);
+    |                 ------- in this macro invocation
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_cios_cancel_carry)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_cios_cancel_carry)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the macro `row` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition name: `zopro_gcd_balanced_runs`
+   --> crates/zopro-bn254/src/inverse.rs:119:19
+    |
+119 |         #[cfg(not(zopro_gcd_balanced_runs))]
+    |                   ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_gcd_balanced_runs)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_gcd_balanced_runs)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `zopro_gcd_balanced_runs`
+   --> crates/zopro-bn254/src/inverse.rs:148:15
+    |
+148 |         #[cfg(zopro_gcd_balanced_runs)]
+    |               ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(zopro_gcd_balanced_runs)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(zopro_gcd_balanced_runs)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unused import: `ark_ff::Field`
+   --> crates/zopro-bn254/src/ifma.rs:809:17
+    |
+809 |             use ark_ff::Field;
+    |                 ^^^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `ark_ff::Field`
+   --> crates/zopro-bn254/src/ifma.rs:916:17
+    |
+916 |             use ark_ff::Field;
+    |                 ^^^^^^^^^^^^^
+
+warning: unused import: `ark_ff::Field`
+   --> crates/zopro-bn254/src/ifma.rs:970:17
+    |
+970 |             use ark_ff::Field;
+    |                 ^^^^^^^^^^^^^
+
+warning: unused import: `ark_ff::Field`
+   --> crates/zopro-bn254/src/ifma8.rs:951:17
+    |
+951 |             use ark_ff::Field;
+    |                 ^^^^^^^^^^^^^
+
+warning: unused import: `ark_ff::Field`
+    --> crates/zopro-bn254/src/ifma8.rs:1036:17
+     |
+1036 |             use ark_ff::Field;
+     |                 ^^^^^^^^^^^^^
+
+warning: unused import: `ark_ff::Field`
+    --> crates/zopro-bn254/src/ifma8.rs:1138:17
+     |
+1138 |             use ark_ff::Field;
+     |                 ^^^^^^^^^^^^^
+
+warning: unused import: `ark_ff::Field`
+    --> crates/zopro-bn254/src/ifma8.rs:1401:13
+     |
+1401 |         use ark_ff::Field;
+     |             ^^^^^^^^^^^^^
+
+warning: `zopro-bn254` (lib test) generated 25 warnings
+    Finished `release` profile [optimized] target(s) in 19.76s
+     Running unittests src/lib.rs (/home/ubuntu/src/zopro-perf-work/g2-fused-outline175/target-candidate/release/deps/zopro_bn254-e1aa384bacd33660)
