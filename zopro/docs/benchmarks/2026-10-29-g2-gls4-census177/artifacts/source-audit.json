@@ -1,0 +1,28 @@
+{
+  "arithmetic_and_queue_order_unchanged": true,
+  "changed": "crates/zopro-core/src/msm_affine/g2_borrowed/gls4.rs",
+  "edits": [
+    {
+      "new": "        size: usize,\n    ) {\n        #[cfg(zopro_gls4_census)]\n        if census::enabled(){return census::run_feed(self,bases,short,component,w,size);}\n        for (p, s) in bases.iter().zip(short) {",
+      "old": "        size: usize,\n    ) {\n        for (p, s) in bases.iter().zip(short) {"
+    },
+    {
+      "new": "    let chunk = bases.len().div_ceil(PARTS);\n    #[cfg(zopro_gls4_census)]\n    let query_id=census::query();",
+      "old": "    let chunk = bases.len().div_ceil(PARTS);"
+    },
+    {
+      "new": "                    #[cfg(zopro_gls4_census)]\n                    let _context=census::context(query_id,w,part);\n                    window(&bases[start..end], &short[start..end], w, &x_factor)",
+      "old": "                    window(&bases[start..end], &short[start..end], w, &x_factor)"
+    }
+  ],
+  "field_source_files_exact": 17,
+  "native128core8prover33field_inherited": true,
+  "new_file": "crates/zopro-core/src/msm_affine/g2_borrowed/gls4/census.rs",
+  "no_production_edits": true,
+  "original_Window_methods_exact": true,
+  "parent_files_exact": 176,
+  "parent_recovered_by_inverse_edits": true,
+  "parent_source_files": 177,
+  "source_files": 178,
+  "suffix": "\n#[cfg(zopro_gls4_census)]\nmod census;\n"
+}
