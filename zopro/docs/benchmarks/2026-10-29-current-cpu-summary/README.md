@@ -4,7 +4,7 @@
 
 The accepted Zopro build measures **8.022 ms locally for 1×2**. On the latest AWS c7a.24xlarge comparison, Zopro measures **11.916 ms versus 7.959 ms for pinned Aeglos Sorted**, using each engine's fastest tested worker count. Zopro has lower best-count latency on six of nine AWS circuits and lower observed peak process RSS on all nine. The supplied M5 CPU 10× target remains **unmet on all eight reference shapes**.
 
-Production remains the accepted 175-file implementation. Recent PGO, G2 scheduling, Fq6 arithmetic and early-X experiments have not replaced it.
+Production remains the accepted 175-file implementation. Recent PGO, G2 scheduling, arithmetic and grouping experiments have not replaced it.
 
 ## Measurement scope
 
@@ -81,6 +81,20 @@ The container recorded zero memory/swap/OOM event deltas. It also recorded 39 CP
 
 ## Latest local full proof experiment
 
+Shared A/B witness classification reduces modeled hashing visits by about 40%, but the actual native caller is slower. It builds one proof-local dictionary over existing witness values, reconstructs both stable local groupings, and overlaps that work with product FFT preparation.
+
+|Variant|1×2 ms|CPU ms per request|Peak RSS MiB|
+|---|---:|---:|---:|
+|accepted|8.129776|182.753|136.75|
+|OFF|8.077206|181.573|135.25|
+|ON|9.401192|189.313|99.25|
+
+ON/accepted paired ratio is 1.159005632 [1.153296967, 1.159845819], with zero wins in 31 blocks and a 1.287 ms slowdown estimate. ON/OFF is 1.163638735 [1.159946487, 1.167238766], also zero wins. Fresh OFF/accepted calibration passes. The speed pilot fails, and production remains unchanged.
+
+Observed maximum lifetime RSS falls from 136.75 MiB accepted to 99.25 MiB ON, 37.50 MiB or 27.42% lower in this capture. This memory observation does not establish minimum RAM or pressure behavior. Thirty-one fixed blocks use 151 requests after three primes. This fresh accepted 8.130 ms measurement is separate from the complete nine-shape qualification above. The change reaches the canonical-wire path used by 1×2 and 2×2; larger paths receive correctness preflights without a new latency qualification. [Full native caller pilot and profiles](../2026-10-29-shared-wire-sdk175/README.md).
+
+## Previous grouped dictionary experiment
+
 The index-only grouping candidate uses grouped hash-table probing and stores class indices instead of complete scalar keys. Its real-input constructor benchmark passes, but the full-proof pilot fails calibration and the gain check against accepted production. The fresh OFF control is 10.04% slower by its paired estimate.
 
 |Variant|1×2 ms|CPU ms per request|Peak RSS MiB|
@@ -93,15 +107,13 @@ ON/accepted paired ratio is 0.997222755 [0.995722920, 1.000449909], with 20/31 w
 
 Observed ON peak RSS is 102.50 MiB versus 133.50 MiB accepted, 31 MiB or 23.22% lower in this primary capture. This memory observation is retained without claiming minimum RAM, pressure behavior or a universal reduction. Thirty-one fixed blocks use 151 requests after three primes. Their fresh accepted 8.031 ms is a separate capture from the earlier complete nine-shape 8.022 ms qualification above. [Full proof result](../2026-10-29-swiss-groups-sdk175/README.md), [constructor evidence](../2026-10-29-swiss-groups175/README.md).
 
-## Latest diagnostics and next experiment
+## Diagnostics and implications
 
-An offline audit of the grouping trial finds identical machine-code bytes in the selected accepted/OFF G2 stream, G1 streams and reduction trees. G2 accounts for about 89% of the net increase in flat sampled period, but the control regression remains unexplained. The recordings lack CPU placement data. These observations neither identify a cause nor change the failed calibration result. [Code and profile audit](../2026-10-29-swiss-control-audit175/README.md).
+The earlier dictionary trial's control gap remains unresolved after an offline audit found identical selected G2/G1 kernel bytes. That earlier failure is retained. In contrast, fresh control calibration passes in the new shared-classification trial, whose candidate still loses every block. [Earlier control audit](../2026-10-29-swiss-control-audit175/README.md).
 
-The selected next optimization classifies overlapping A/B witness wires once per proof, then reconstructs each query's stable local groups. It uses existing solved witness values, without a persistent per-key lookup expansion. The completed semantic/count screen reproduces all 18 query metadata outputs across nine fixtures and checks 75 synthetic cases. For 1×2, modeled nonzero dictionary visits fall from 47,762 to 28,638, a **40.04% reduction in hashing visits**. This is not a full-proof speedup or a timed native implementation. [Shared classification screen](../2026-10-29-wire-union-census175/README.md).
+The [shared-wire screen](../2026-10-29-wire-union-census175/README.md) established exact metadata and fewer hashing visits across nine fixtures. The native trial demonstrates that this reduction is insufficient for a proof-speed gain. A global classification pass changes the dependency graph: both query MSMs await it and quotient preparation. Its latency regression rules out adoption of this implementation; the flat CPU profiles do not isolate the regression's cause. Further work should preserve query readiness and target arithmetic or data movement on the critical path.
 
-The primary dense labels and two remaps account for 366,252 bytes, but that partial count excludes the global dictionary, output buffers, allocator overhead and overlap with FFT scratch. The next native caller prototype must include complete workspace accounting, remapping and scheduling costs. In particular, a shared pass can delay B query readiness despite reducing summed work. Full-proof latency and peak RSS must determine whether the change is useful.
-
-The grouped dictionary's lower observed RSS also remains a valid lead for a separately declared memory/latency qualification. Such a qualification must set its nonregression bound before measurement and preserve the original failed speed gate. It has not been adopted under a new tradeoff. No new AWS run is reported after the comparison above.
+Both grouping experiments retain lower observed primary RSS. A separately declared memory/latency qualification may investigate that tradeoff with a nonregression bound set before measurement, while preserving each original failed speed gate. Neither candidate has been adopted under such a tradeoff. No AWS measurement follows the matrix above.
 
 ## Earlier local full proof experiment
 
@@ -132,11 +144,12 @@ The paired saving versus OFF is 6.021 µs with bounds spanning parity. Versus ac
 |[Five-product Fq6 arithmetic](../2026-10-29-fq6-toom175/README.md)|Correct field results, but complete final exponentiation 0.625% slower versus fresh OFF. Component aggregate/gain checks failed.|No prover integration.|
 |[Early-X caller and full proof](../2026-10-29-early-x-sdk175/README.md)|Caller aggregate 0.320% faster versus OFF; full proof ON 8.068 ms, OFF 8.083 ms, accepted 8.040 ms. Full-proof gain checks fail.|Not adopted; component gain retained.|
 |[Index-only grouped dictionary](../2026-10-29-swiss-groups-sdk175/README.md)|Constructor aggregate 55.93% faster in its compiled context; full proof ON 8.012 ms versus accepted 8.031 ms, with uncertainty spanning parity. Peak RSS 102.50 versus 133.50 MiB.|Not adopted; accepted-relative gain and control calibration checks fail.|
+|[Shared witness classification](../2026-10-29-shared-wire-sdk175/README.md)|ON 9.401 ms versus accepted 8.130 ms; paired regression 15.90%, zero wins. Peak RSS 99.25 versus 136.75 MiB. Control calibration passes.|Not adopted; both gain checks fail.|
 
 The current prover combines vector field arithmetic, batched affine MSM additions, borrowed point operands, scalar endomorphism decomposition and balanced fused K/H windows. These experiments add no adopted per-key lookup expansion. Further work should target the dominant MSM arithmetic and its critical path; the latest component gains have not established another full-proof improvement.
 
 ## Verification and reproducibility
 
-The accepted final-artifact qualification passed 124 native core and eight prover tests, 101 portable core and eight prover tests, plus 28,000 SDK requests and 505 distinct independent Gnark proof exports. The latest AWS comparison adds 37,272 SDK requests and 1,248 distinct Gnark-verified exports across its three engines; all 1,221 cloud exports were also reverified after transport, without counting that repeat as new proofs. The G2 partition-readiness experiment adds 13,824 SDK requests and 246 distinct independent exports. Fq6 and early-X component work add no proofs. The early-X SDK experiment adds 15,954 requests and 126 distinct independent Gnark exports. The grouped-dictionary SDK pilot adds a further 15,954 requests and 126 independent exports. The historical distinct-proof ledger is **21,007**.
+The accepted final-artifact qualification passed 124 native core and eight prover tests, 101 portable core and eight prover tests, plus 28,000 SDK requests and 505 distinct independent Gnark proof exports. The latest AWS comparison adds 37,272 SDK requests and 1,248 distinct Gnark-verified exports across its three engines; all 1,221 cloud exports were also reverified after transport, without counting that repeat as new proofs. The G2 partition-readiness experiment adds 13,824 SDK requests and 246 distinct independent exports. Fq6 and early-X component work add no proofs. The early-X SDK experiment adds 15,954 requests and 126 distinct independent Gnark exports. The grouped-dictionary SDK pilot adds a further 15,954 requests and 126 independent exports. The shared-classification SDK pilot adds another 15,954 internally verified requests and 126 fresh independent exports. The historical distinct-proof ledger is **21,133**.
 
 All of the latest AWS benchmark resources were removed. Source reports retain exact compiler flags, binary identities, keys and fixture bindings, proof bytes, process blocks, raw profiles, verification receipts and failed checks. This summary consolidates completed runs; it does not introduce new timing or verification samples. Full precision and selected worker counts are in [data.json](data.json), with [source hashes](source-hashes.json).
