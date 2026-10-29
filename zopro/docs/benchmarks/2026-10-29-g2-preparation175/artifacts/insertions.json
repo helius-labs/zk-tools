@@ -1,0 +1,197 @@
+[
+  {
+    "file": "lib.rs",
+    "function": "mod msm;",
+    "inserted": "\n#[cfg(zopro_service_trace)] pub mod service_trace;\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "function": "pub(super) fn msm_canonical<C:",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_boundary=crate::service_trace::root(6,bases.len(),core::mem::size_of::<C::Base>());\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "function": "pub(super) fn g2_query_exclusive(",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_boundary=crate::service_trace::root(5,bases.len(),0);\n"
+  },
+  {
+    "file": "msm_affine/fused_kh.rs",
+    "function": "pub(crate)fn fused(",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_boundary=crate::service_trace::root(2,k.len(),h.len());\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "function": "fn merge_split_width<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_boundary=crate::service_trace::kernel(1,bases.len(),width);\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending.rs",
+    "function": "pub(crate) fn msm<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_boundary=crate::service_trace::kernel(7,bases.len(),width);\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending/balanced.rs",
+    "function": "pub(super) fn fused<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_boundary=crate::service_trace::kernel(8,k.len(),h.len());\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "function": "fn hb_raw(",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_boundary=crate::service_trace::kernel(3,bases.len(),bits);\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending.rs",
+    "function": "pub(crate) fn msm<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let trace_kernel_id=_trace_boundary.id();\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending.rs",
+    "function": "pub(crate) fn msm<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_window=crate::service_trace::scope(trace_kernel_id,10,w,width,false);\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending.rs",
+    "function": "pub(crate) fn msm<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let trace_window_id=_trace_window.id();\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending.rs",
+    "function": "pub(crate) fn msm<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_part=crate::service_trace::scope(trace_window_id,13,p,0,false);\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending/balanced.rs",
+    "function": "pub(super) fn fused<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let trace_kernel_id=_trace_boundary.id();\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending/balanced.rs",
+    "function": "pub(super) fn fused<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_window=crate::service_trace::scope(trace_kernel_id,11,span.start,span.width,false);\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "function": "fn hb_raw(",
+    "inserted": "\n#[cfg(zopro_service_trace)] let trace_kernel_id=_trace_boundary.id();\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "function": "fn hb_raw(",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_window=crate::service_trace::scope(trace_kernel_id,12,w,bits,false);\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "function": "fn hb_raw(",
+    "inserted": "\n#[cfg(zopro_service_trace)] let trace_window_id=_trace_window.id();\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "function": "fn hb_raw(",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_part=crate::service_trace::scope(trace_window_id,14,part,0,false);\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "function": "fn hb_raw(",
+    "inserted": "\n#[cfg(zopro_service_trace)] {let ready=crate::service_trace::scope(trace_kernel_id,4,0,0,false);drop(ready);}\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending.rs",
+    "function": "    fn feed(",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_service=crate::service_trace::serial(20,points.len(),w);\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending/balanced.rs",
+    "function": "fn feed<'a,",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_service=crate::service_trace::serial(21,points.len(),span.start);\n"
+  },
+  {
+    "file": "msm_affine/g2_borrowed.rs",
+    "function": "    fn feed(",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_service=crate::service_trace::serial(22,bases.len(),w);\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending.rs",
+    "function": "    fn finish(mut self)",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_tail=crate::service_trace::serial(27,self.affine.len(),self.projective.len());\n"
+  },
+  {
+    "file": "msm_affine/borrowed_pending.rs",
+    "function": "    fn finish(mut self)",
+    "inserted": "\n#[cfg(zopro_service_trace)] drop(_trace_tail);\n"
+  },
+  {
+    "file": "msm_affine/g2_borrowed.rs",
+    "function": "    fn finish(mut self)",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_tail=crate::service_trace::serial(29,self.affine.len(),self.projective.len());\n"
+  },
+  {
+    "file": "msm_affine/g2_borrowed.rs",
+    "function": "    fn finish(mut self)",
+    "inserted": "\n#[cfg(zopro_service_trace)] drop(_trace_tail);\n"
+  },
+  {
+    "file": "msm_affine/g2_borrowed.rs",
+    "new": "{\n#[cfg(zopro_service_trace)] let _trace_maps=crate::service_trace::serial(28,s.affine.len(),s.projective.len());\n    for p in &mut s.affine {\n        if !p.is_identity() {\n            p.x = p.x.mul_by_fp(&BETA);\n        }\n    }\n    for p in &mut s.projective {\n        p.x = p.x.mul_by_fp(&BETA);\n    }\n}\n",
+    "old": "    for p in &mut s.affine {\n        if !p.is_identity() {\n            p.x = p.x.mul_by_fp(&BETA);\n        }\n    }\n    for p in &mut s.projective {\n        p.x = p.x.mul_by_fp(&BETA);\n    }\n"
+  },
+  {
+    "file": "msm.rs",
+    "function": "fn group_affine_impl<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let trace_parent=crate::service_trace::parent();\n"
+  },
+  {
+    "file": "msm.rs",
+    "function": "fn group_affine_impl<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_leaf=crate::service_trace::scope(trace_parent,23,output.len(),i,true);\n"
+  },
+  {
+    "file": "msm.rs",
+    "function": "pub(super) fn reduce_indexed_buckets<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let trace_parent=crate::service_trace::parent();\n"
+  },
+  {
+    "file": "msm.rs",
+    "function": "pub(super) fn reduce_indexed_buckets<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_leaf=crate::service_trace::scope(trace_parent,24,end-first,first,true);\n"
+  },
+  {
+    "file": "msm.rs",
+    "function": "pub(super) fn weighted_affine<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let trace_parent=crate::service_trace::parent();\n"
+  },
+  {
+    "file": "msm.rs",
+    "function": "pub(super) fn weighted_affine<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_leaf=crate::service_trace::scope(trace_parent,25,buckets.len(),0,true);\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "function": "fn merge_buckets<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let trace_parent=crate::service_trace::parent();\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "function": "fn merge_buckets<",
+    "inserted": "\n#[cfg(zopro_service_trace)] let _trace_leaf=crate::service_trace::scope(trace_parent,26,left.len(),0,true);\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "new": "let groups = {\n#[cfg(zopro_service_trace)] let trace_group=crate::service_trace::serial(30,words.len(),0);\nlet groups = crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n        .then(|| scalar_groups(words))\n        .flatten();\n#[cfg(zopro_service_trace)] drop(trace_group);\ngroups\n};",
+    "old": "let groups = crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n        .then(|| scalar_groups(words))\n        .flatten();"
+  },
+  {
+    "file": "msm_affine.rs",
+    "function": "pub(super) fn g2_query_exclusive(",
+    "inserted": "\n#[cfg(zopro_service_trace)] drop(trace_points);\n"
+  },
+  {
+    "file": "msm_affine.rs",
+    "function": "pub(super) fn g2_query_exclusive(",
+    "inserted": "\n#[cfg(zopro_service_trace)] let trace_points=crate::service_trace::kernel(31,bases.len(),g.values.len());\n"
+  },
+  {
+    "file": "msm_affine/g2_phi.rs",
+    "new": "\n    #[cfg(zopro_service_trace)]\n    {\n        let trace_split=crate::service_trace::scope(trace_kernel_id,32,short.len(),0,false);\n        if crate::service_trace::enabled() {\n            let trace_split_id=trace_split.id();\n            short.par_iter_mut().map_init(||crate::service_trace::Fold::new(trace_split_id),|fold,s|{\n                fold.item();*s=phi_split(*s);\n            }).for_each(drop);\n        } else {\n            short.par_iter_mut().for_each(|s| *s = phi_split(*s));\n        }\n        drop(trace_split);\n    }\n    #[cfg(not(zopro_service_trace))]\n    short.par_iter_mut().for_each(|s| *s = phi_split(*s));\n",
+    "old": "short.par_iter_mut().for_each(|s| *s = phi_split(*s));"
+  }
+]

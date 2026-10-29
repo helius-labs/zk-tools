@@ -1,0 +1,78 @@
+
+pub fn enabled() -> bool { ENABLED.load(Ordering::Relaxed) }
+
+/// One actual Rayon consumer fold; its state is constructed and dropped locally.
+pub struct Fold {
+    scope: Scope,
+    count: usize,
+}
+impl Fold {
+    pub fn new(parent: u64) -> Self {
+        Self { scope: scope(parent, 33, 0, 0, true), count: 0 }
+    }
+    #[inline(always)]
+    pub fn item(&mut self) { self.count += 1; }
+}
+impl Drop for Fold {
+    fn drop(&mut self) {
+        if let Some(index) = self.scope.slot {
+            EVENTS.with(|v| v.borrow_mut()[index][3] = self.count as u64);
+        }
+        // Scope's own Drop closes clocks and restores the thread-local parent.
+    }
+}
+
+#[cfg(test)]
+mod fold_tests {
+    use super::*;
+    use rayon::prelude::*;
+
+    #[test]
+    fn folds_count_items_and_restore_parent_before_snapshot() {
+        reset(true);
+        let stage;
+        let mut values: Vec<u64> = (0..4097).collect();
+        {
+            let _api = api();
+            let _query = root(5, values.len(), 0);
+            let prep = kernel(32, values.len(), 0);
+            stage = prep.id();
+            values.par_iter_mut().map_init(|| Fold::new(stage), |fold, value| {
+                fold.item();
+                *value = value.wrapping_mul(3).wrapping_add(1);
+            }).for_each(drop);
+        }
+        assert!(values.iter().enumerate().all(|(i,v)| *v == i as u64 * 3 + 1));
+        let snapshot = snapshot();
+        assert!(snapshot.iter().all(|(_,drops)| *drops == 0));
+        let folds: Vec<_> = snapshot.iter().flat_map(|(v,_)| v).filter(|e|e[2]==33).collect();
+        assert!(!folds.is_empty());
+        assert_eq!(folds.iter().map(|e|e[3]).sum::<u64>(),4097);
+        for e in folds { assert_eq!(e[1],stage);assert!(e[8]>0&&e[9]>=e[8]);assert!(e[6]>=e[5]); }
+    }
+
+    #[test]
+    fn map_init_preserves_indexed_producer_bounds_and_fixed_splits() {
+        use rayon::iter::plumbing::{Producer,ProducerCallback};
+        struct Bounds { len:usize }
+        fn walk<P:Producer>(p:P,n:usize,depth:usize,out:&mut Vec<(usize,usize,usize)>) {
+            out.push((n,p.min_len(),p.max_len()));
+            if depth==0||n<2 { assert_eq!(p.into_iter().count(),n);return; }
+            let mid=n/2;let(a,b)=p.split_at(mid);
+            walk(a,mid,depth-1,out);walk(b,n-mid,depth-1,out);
+        }
+        impl<T> ProducerCallback<T> for Bounds {
+            type Output=Vec<(usize,usize,usize)>;
+            fn callback<P:Producer<Item=T>>(self,p:P)->Self::Output {
+                let mut out=vec![];walk(p,self.len,5,&mut out);out
+            }
+        }
+        for n in [0usize,1,17,1024,30089] {
+            let original=(0..n).into_par_iter().with_min_len(7).with_max_len(2048)
+                .with_producer(Bounds{len:n});
+            let adapted=(0..n).into_par_iter().with_min_len(7).with_max_len(2048)
+                .map_init(||(),|_,v|v).with_producer(Bounds{len:n});
+            assert_eq!(adapted,original);
+        }
+    }
+}
