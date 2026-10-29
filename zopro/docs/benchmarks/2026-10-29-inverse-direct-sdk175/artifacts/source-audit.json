@@ -1,0 +1,17 @@
+{
+  "after": "    let (f0, g0) = (f1, g1);\n    #[cfg(zopro_direct_finish_reduction)]\n    if (C::P[3] as u128)*3 > 1u128<<63 && C::P[3] < 1u64<<63 {\n        return Fp::from_montgomery(direct_finish_reduce::<C>(&u,&v,f0,g0));\n    }",
+  "before": "    let (f0, g0) = (f1, g1);",
+  "changed_file": "crates/zopro-bn254/src/inverse.rs",
+  "core_solver_key_scheduler_forecast_exact": true,
+  "exact_old_candidate_inverse": true,
+  "exact_old_direct_helper": true,
+  "exact_old_original_inverse": true,
+  "heap_tables_key_copies_added": 0,
+  "new_helper": "crates/zopro-bn254/src/inverse/direct_finish.rs",
+  "original_files": 175,
+  "originals_exact": 174,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "source_files": 176,
+  "suffix": "\n#[cfg(any(test,zopro_direct_finish_reduction))]\ninclude!(\"inverse/direct_finish.rs\");\n"
+}
