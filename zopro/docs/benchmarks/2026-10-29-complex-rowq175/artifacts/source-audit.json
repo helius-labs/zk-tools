@@ -1,0 +1,33 @@
+{
+  "borrowed_body_edits": [
+    [
+      "        let slope = Fq2::lanes_scaled_numerator(&dy, &denominator, &factor);",
+      "        #[cfg(all(zopro_complex_rowq,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let slope = Fq2::lanes_scale(&FqBatch::complex_rowq::<true>(&dy,&denominator),&factor);\n        #[cfg(not(all(zopro_complex_rowq,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let slope = Fq2::lanes_scaled_numerator(&dy, &denominator, &factor);"
+    ],
+    [
+      "        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);",
+      "        #[cfg(all(zopro_complex_rowq,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let y = Fq2::lanes_sub(&FqBatch::complex_rowq::<false>(&slope,&Fq2::lanes_sub(&ax,&x)),&ay);\n        #[cfg(not(all(zopro_complex_rowq,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);"
+    ]
+  ],
+  "extra_input_conjugation": false,
+  "field_files_original": 17,
+  "field_originals_exact": 16,
+  "field_recovery_exact": true,
+  "frozen_baseline_reused_byte_exact": true,
+  "frozen_source_reverse175_exact": true,
+  "inherited_frozen_core_tests": 128,
+  "new_field_helper": "crates/zopro-bn254/src/complex_rowq.rs",
+  "new_heap_tables": 0,
+  "only_runtime_core_change": "two borrowed G2 complex products",
+  "original_files": 175,
+  "originals_exact": 170,
+  "reverse175_exact": true,
+  "scratch_allocations_and_geometry_unchanged": true,
+  "source_files": 177,
+  "suffixes": {
+    "crates/zopro-bn254/src/ifma8.rs": "\n#[cfg(zopro_complex_rowq)]\ninclude!(\"complex_rowq.rs\");\n",
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(zopro_gauss_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(zopro_gauss_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/simd.rs": "\n#[cfg(all(zopro_complex_rowq,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch{\n#[inline(always)]pub(crate)fn complex_rowq<const CONJ:bool>(a:&[Self;2],b:&[Self;2])->[Self;2]{let[x,y]=zopro_bn254::ifma8::Ifma8::complex_rowq::<CONJ>(&a[0].0,&a[1].0,&b[0].0,&b[1].0);[Self(x),Self(y)]}\n}\n"
+  }
+}
