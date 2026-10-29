@@ -1,0 +1,20 @@
+{
+  "accepted_balanced13_byte_exact": true,
+  "child": "crates/zopro-core/src/fft/pair/leaf/eight.rs",
+  "existing_forecast_conservative": true,
+  "field_source_files_exact": 17,
+  "field_tests_inherited": 33,
+  "fixed_tile_stack_extra": true,
+  "new": "    #[cfg(zopro_fft_eight_columns)] if values.len()>=8 && roots.single.is_none() {return eight::dif_serial(values,roots,level);}\n    let mut gap=values.len()/2;",
+  "new_field_tests": 0,
+  "no_new_heap_capacity": true,
+  "old": "    let mut gap=values.len()/2;",
+  "original_files": 175,
+  "originals_exact": 174,
+  "parent": "crates/zopro-core/src/fft/pair/leaf.rs",
+  "point_formulas_unchanged": true,
+  "production_worktree_changed": false,
+  "reverse175_exact": true,
+  "source_files": 176,
+  "suffix": "\n#[cfg(zopro_fft_eight_columns)] mod eight;\n"
+}
