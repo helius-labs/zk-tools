@@ -75,3 +75,7 @@ No SDK proof or independent Gnark export is produced; the proof ledger remains 2
 Original verified all-eight CPU 10× goal remains active/unmet 0/8. Latest [AWS comparison](../2026-10-29-current-cpu-summary/README.md) remains 11.916 ms Zopro versus 7.959 ms Aeglos for 1×2 at each engine's fastest tested worker count. No new AWS, mobile/ARM/TEE, forester 250/4999, memory-pressure, swap, minimum-RAM or concurrent-throughput result is claimed. Next: qualify this exact mechanism in clean full SDK builds and compare accepted/fresh-OFF/ON before further adoption work.
 
 [Protocol](artifacts/design.md), [all blocks and profiles](artifacts/analysis.json), [source and receipt archive](artifacts/source-and-receipts.json.gz), [closing pins](artifacts/pins.json), [dependency lockfile](artifacts/dependency-Cargo.lock).
+
+## Full proof follow up
+
+The [SDK pilot](../2026-10-29-swiss-groups-sdk175/README.md) measures 8.012 ms ON versus 8.031 ms accepted, with a 22.313 µs paired saving estimate and bounds spanning parity. Fresh OFF fails calibration. Observed ON peak RSS is 102.50 MiB versus 133.50 MiB accepted. The full-proof gate fails and the candidate is not adopted; the component result remains within its original scope.

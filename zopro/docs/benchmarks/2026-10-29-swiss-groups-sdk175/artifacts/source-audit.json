@@ -1,0 +1,33 @@
+{
+  "edits": {
+    "Cargo.lock": {
+      "added_core_dependency": "hashbrown 0.16.1"
+    },
+    "crates/zopro-core/Cargo.toml": {
+      "inserted_line": "hashbrown = { version = \"=0.16.1\", default-features = false, features = [\"inline-more\"] }\n"
+    },
+    "crates/zopro-core/src/msm_affine/grouping.rs": {
+      "candidate_entry": "        #[cfg(not(zopro_swiss_groups))]\n        let index = *groups.entry(*scalar).or_insert_with(|| {\n            values.push(*scalar);\n            counts.push(0);\n            (values.len() - 1) as u32\n        });\n        #[cfg(zopro_swiss_groups)]\n        let index = { let (id, fresh) = groups.insert(scalar, &mut values); if fresh { counts.push(0); } id };",
+      "candidate_map": "    #[cfg(zopro_swiss_groups)]\n    let mut groups = index_map::IndexMap::new(capacity, ahash::RandomState::new());\n    #[cfg(not(zopro_swiss_groups))]\n    let mut groups =\n        std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());",
+      "original_entry": "        let index = *groups.entry(*scalar).or_insert_with(|| {\n            values.push(*scalar);\n            counts.push(0);\n            (values.len() - 1) as u32\n        });",
+      "original_map": "    let mut groups =\n        std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());",
+      "suffix": "\n#[cfg(zopro_swiss_groups)]\nmod index_map;\n"
+    }
+  },
+  "field_original_files_exact": 17,
+  "field_tests_inherited": 33,
+  "modified_originals": [
+    "crates/zopro-core/src/msm_affine/grouping.rs",
+    "crates/zopro-core/Cargo.toml",
+    "Cargo.lock"
+  ],
+  "new_child": "crates/zopro-core/src/msm_affine/grouping/index_map.rs",
+  "not_arithmetic_binary_identity_claim": true,
+  "originals": 175,
+  "originals_exact": 172,
+  "parent": "swiss-groups175",
+  "parent_component_gate": true,
+  "parent_runtime_prefix_exact": true,
+  "private_files": 176,
+  "production_changed": false
+}
