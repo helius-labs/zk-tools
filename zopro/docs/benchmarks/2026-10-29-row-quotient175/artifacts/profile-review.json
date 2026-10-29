@@ -1,0 +1,125 @@
+{
+  "limits": "Wholeprocess capture includes setup/prime/scalar oracle; function loop coverage uses defining probe::chain/probe::fused. Small sample counts descriptive; no causal stall or exclusive CPU claim.",
+  "profiles": {
+    "chain-fresh": {
+      "lost": 0,
+      "samples": 150,
+      "symbols": [
+        {
+          "demangled": "[unknown]",
+          "period": 183,
+          "raw": "[unknown] (/usr/bin/taskset)"
+        },
+        {
+          "demangled": "[unknown]",
+          "period": 94703,
+          "raw": "[unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)"
+        },
+        {
+          "demangled": "[unknown]",
+          "period": 1,
+          "raw": "[unknown] ([unknown])"
+        },
+        {
+          "demangled": "probe::chain::<zopro_bn254::FqConfig, true, false>",
+          "period": 3935947393,
+          "raw": "_RINvCs4bDRHhTyVNZ_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_Kb0_EB2_ (/home/ubuntu/src/zopro-perf-work/row-quotient175/target/release/probe)"
+        }
+      ],
+      "vector_loop_period_fraction": 0.9999758927894443
+    },
+    "chain-rowq": {
+      "lost": 0,
+      "samples": 150,
+      "symbols": [
+        {
+          "demangled": "[unknown]",
+          "period": 204,
+          "raw": "[unknown] (/usr/bin/taskset)"
+        },
+        {
+          "demangled": "[unknown]",
+          "period": 112199,
+          "raw": "[unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)"
+        },
+        {
+          "demangled": "[unknown]",
+          "period": 107,
+          "raw": "[unknown] ([unknown])"
+        },
+        {
+          "demangled": "probe::chain::<zopro_bn254::FqConfig, true, true>",
+          "period": 3925567926,
+          "raw": "_RINvCs4bDRHhTyVNZ_5probe5chainNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/row-quotient175/target/release/probe)"
+        }
+      ],
+      "vector_loop_period_fraction": 0.9999713400003301
+    },
+    "fused-fresh": {
+      "lost": 0,
+      "samples": 160,
+      "symbols": [
+        {
+          "demangled": "[unknown]",
+          "period": 168,
+          "raw": "[unknown] (/usr/bin/taskset)"
+        },
+        {
+          "demangled": "[unknown]",
+          "period": 133711,
+          "raw": "[unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)"
+        },
+        {
+          "demangled": "[unknown]",
+          "period": 133,
+          "raw": "[unknown] ([unknown])"
+        },
+        {
+          "demangled": "probe::fused::<zopro_bn254::FqConfig, true, false>",
+          "period": 4195159290,
+          "raw": "_RINvCs4bDRHhTyVNZ_5probe5fusedNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_Kb0_EB2_ (/home/ubuntu/src/zopro-perf-work/row-quotient175/target/release/probe)"
+        }
+      ],
+      "vector_loop_period_fraction": 0.9999680565838064
+    },
+    "fused-rowq": {
+      "lost": 0,
+      "samples": 159,
+      "symbols": [
+        {
+          "demangled": "[unknown]",
+          "period": 185,
+          "raw": "[unknown] (/usr/bin/taskset)"
+        },
+        {
+          "demangled": "[unknown]",
+          "period": 108127,
+          "raw": "[unknown] (/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2)"
+        },
+        {
+          "demangled": "[unknown]",
+          "period": 1,
+          "raw": "[unknown] (/usr/lib/x86_64-linux-gnu/libc.so.6)"
+        },
+        {
+          "demangled": "[unknown]",
+          "period": 306,
+          "raw": "[unknown] ([unknown])"
+        },
+        {
+          "demangled": "probe::fused::<zopro_bn254::FqConfig, true, true>",
+          "period": 4043511184,
+          "raw": "_RINvCs4bDRHhTyVNZ_5probe5fusedNtCskGmAKeaQwSq_11zopro_bn2548FqConfigKb1_KB15_EB2_ (/home/ubuntu/src/zopro-perf-work/row-quotient175/target/release/probe)"
+        },
+        {
+          "demangled": "__open64_nocancel",
+          "period": 1,
+          "raw": "__open64_nocancel (/usr/lib/x86_64-linux-gnu/libc.so.6)"
+        }
+      ],
+      "vector_loop_period_fraction": 0.9999731379295619
+    }
+  },
+  "raw_v0_demangled": true,
+  "samples": 619
+}
