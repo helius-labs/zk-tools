@@ -1,0 +1,13 @@
+# Scoped arithmetic experiment after current IBS evidence
+
+Previous goal turn made progress: accepted175 op/fetch diagnostic completed/pushed c82dd63f58 with517186ops/67569fetchsamples and6Gnark proofs. Original goal remains all8verifiedCPU10x, active/unmet0/8. Accepted primary8.022165ms/max134MiB unchanged; proof ledger17811. No owned jobs or newAWSresources at start.
+
+History audit found parallel normalization24Oct and prefix-controlled integration already rejected. They will not be rerun. New candidate: branchless carry mask propagation, with precise proof/bounds and no conditional ripple branch. Current accepted CIOS cancelled-low carry identity and mixed packing retained. FIPS/paired quotient/outlined/GLS4/packedindex/ordinaryqueue experiments remain closed. This is a distinct component question; no claim of literature novelty or expected2xgain.
+
+Before captures, complete exact mathematical model, native Arkworks/direct-coefficient tests, freeze original and fresh executables, compile observers and pin17privatefieldfiles (inverseinclude recovery),175productionfiles, tools/libraries/executables. All controls use accepted175 field code and same probe/oracle. No newPython or official generator edits: private include only in copied eight-lane module. No production source/build changes.
+
+Fixed component plan:31rotated/reversed blocks of12cases (Fq/Fr, R256/R260, dependent chain/four streams/fused chain), frozen ordinary/fresh ordinary/masked.100000iterations and3x2000primes, one thread CPU2. Each process checks final32fields by scalar closed-form affine powers outside timer, but duplicated chain/fused outputs represent8states, not32. Preflight12maskedprocesses17iterations. Four independent profiles after all latency (FqR256chain/fused fresh/masked,30000000iterations,199Hz cycles:u, whole-process inclprimes/setup/oracle). No own build/helper/hash/archive/otherworkload during captures. All profiles before decode. All samples/outliers retained, no exclusions/extensions/successfulrerun.
+
+Gate declared before capture: fresh/frozen calibration intervals eachcase within1.03; intended FqR2563case geometric masked aggregate upper<1 and>=21/31blockwins againstBOTHcontrols; all12case uppernonreg<=1.03; no minimum gain floor. Intervals individual order ranks10..22of31 (97.055%nominal conditionalexchangeability), notfamilywise orfullproof speed. Any component failure closes exactbranchlessrecipe; passing only admits a separatelydeclared actualcaller/SDKstudy, not adoption. No rescues by changing thresholds/cfg/compilerlayout/iterations.
+
+ZeroSDK/exports planned; ledger17811 unchanged. Publish completed component including negatives, inherited all8CPU/Metal table, no newAWS/Aeglos/mobile/huge/pressure/minRAM/concurrency claims.

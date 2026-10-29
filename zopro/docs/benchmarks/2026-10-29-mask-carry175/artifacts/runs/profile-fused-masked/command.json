@@ -1,0 +1,30 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "180s",
+    "sudo",
+    "-n",
+    "perf",
+    "record",
+    "--no-buildid-cache",
+    "-e",
+    "cycles:u",
+    "-F",
+    "199",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/mask-carry175/profiles/fused-masked/perf.data",
+    "--",
+    "taskset",
+    "-c",
+    "2",
+    "/home/ubuntu/src/zopro-perf-work/mask-carry175/target/release/probe",
+    "masked",
+    "Fq",
+    "R256",
+    "fused",
+    "30000000"
+  ],
+  "environment": {}
+}

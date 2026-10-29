@@ -1,0 +1,95 @@
+{
+  "complete_local_assembly_hashes": {
+    "candidate": "9c9b9f1fadb5520d260cf3098539c9966aeb8e9035c93d412cff6be6051a07ff",
+    "frozen": "8ab7587bda2662a199912402381e1e0c23e8c1f149486aa856b43804de42e90f"
+  },
+  "original_stack_subtractions_field_is_broad": "Original analysis counts any subtract mnemonic with RSP including vpsubq. Only scalar sub immediate,RSP is a literal frame reservation; new records filter that distinction.",
+  "records": {
+    "candidate": [
+      {
+        "IFMA_sites": 100,
+        "RSP_operand_lines": 42,
+        "instructions": 327,
+        "literal_stack_reservations": [
+          "   1a6a8:\tsub    $0x180,%rsp"
+        ],
+        "symbol": "000000000001a6a0 <probe::chain::<zopro_bn254::FqConfig, true, true>>:"
+      },
+      {
+        "IFMA_sites": 100,
+        "RSP_operand_lines": 42,
+        "instructions": 307,
+        "literal_stack_reservations": [
+          "   1ae88:\tsub    $0x180,%rsp"
+        ],
+        "symbol": "000000000001ae80 <probe::chain::<zopro_bn254::FqConfig, true, false>>:"
+      },
+      {
+        "IFMA_sites": 150,
+        "RSP_operand_lines": 44,
+        "instructions": 371,
+        "literal_stack_reservations": [
+          "   1e2a8:\tsub    $0x1c0,%rsp"
+        ],
+        "symbol": "000000000001e2a0 <probe::fused::<zopro_bn254::FqConfig, true, true>>:"
+      },
+      {
+        "IFMA_sites": 150,
+        "RSP_operand_lines": 44,
+        "instructions": 344,
+        "literal_stack_reservations": [
+          "   1ebb8:\tsub    $0x1c0,%rsp"
+        ],
+        "symbol": "000000000001ebb0 <probe::fused::<zopro_bn254::FqConfig, true, false>>:"
+      },
+      {
+        "IFMA_sites": 100,
+        "RSP_operand_lines": 14,
+        "instructions": 291,
+        "literal_stack_reservations": [
+          "   22be1:\tsub    $0x30,%rsp"
+        ],
+        "symbol": "0000000000022be0 <probe::streams::<zopro_bn254::FqConfig, true, true>>:"
+      },
+      {
+        "IFMA_sites": 100,
+        "RSP_operand_lines": 14,
+        "instructions": 271,
+        "literal_stack_reservations": [
+          "   232b1:\tsub    $0x30,%rsp"
+        ],
+        "symbol": "00000000000232b0 <probe::streams::<zopro_bn254::FqConfig, true, false>>:"
+      }
+    ],
+    "frozen": [
+      {
+        "IFMA_sites": 100,
+        "RSP_operand_lines": 42,
+        "instructions": 307,
+        "literal_stack_reservations": [
+          "   19b08:\tsub    $0x180,%rsp"
+        ],
+        "symbol": "0000000000019b00 <probe::chain::<zopro_bn254::FqConfig, true, true>>:"
+      },
+      {
+        "IFMA_sites": 150,
+        "RSP_operand_lines": 44,
+        "instructions": 344,
+        "literal_stack_reservations": [
+          "   1b848:\tsub    $0x1c0,%rsp"
+        ],
+        "symbol": "000000000001b840 <probe::fused::<zopro_bn254::FqConfig, true, true>>:"
+      },
+      {
+        "IFMA_sites": 100,
+        "RSP_operand_lines": 14,
+        "instructions": 271,
+        "literal_stack_reservations": [
+          "   1dc11:\tsub    $0x30,%rsp"
+        ],
+        "symbol": "000000000001dc10 <probe::streams::<zopro_bn254::FqConfig, true, true>>:"
+      }
+    ]
+  },
+  "selected_disassembly": "Fq/R256 complete linked loops; static sites include setup/final copy/cold paths, not executed counts or measured spills"
+}
