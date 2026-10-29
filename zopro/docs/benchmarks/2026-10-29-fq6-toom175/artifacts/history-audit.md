@@ -1,0 +1,5 @@
+# History audit
+
+Checked report names and text for Toom/imaginary/five-Fq6 products. No previous Fq6-Toom implementation found; paper-2026-2667-review.json explicitly listed it as untested. Source fq6.rs still uses six-product Karatsuba. Shared-complex/streamed-complex/nonnegative-Gauss/reduced-Gauss/product-sub/symmetric-norm/triple-affine studies are different quadratic/point kernels and remain rejected; do not import their performance as evidence here. G1prefix-records, queue scanning/affineflush/earlydrain, GLS4, whole/partition serial decomposition, scalargrain, workerpools and epoch variations also remain closed. Previous g2-part-ready175 completed/pushed4cb66b95f8 with no established gain and ledger20755.
+
+The arXiv2608.13948 field section was read: its prime c*2^f-1 enables special Montgomery reduction, absent in BN254. Its SIMD field organizations overlap existing implementations/trials. It does not justify repeating those layouts or claiming its speedups here. Its warning about conversion overhead is consistent with prior source-level/codegen measurements, not new proof of a bottleneck.
