@@ -1,0 +1,16 @@
+error[E0428]: the name `median` is defined multiple times
+  --> /home/ubuntu/src/zopro-perf-work/g2-queue-scan175/sampling.rs:16:1
+   |
+16 | fn median(a:&[f64])->f64{assert!(!a.is_empty());let mut s=a.to_vec();s.sort_by(f64::total_cmp);s[s.len()/2]}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^ `median` redefined here
+   |
+  ::: /home/ubuntu/src/zopro-perf-work/g2-queue-scan175/controller.rs:56:1
+   |
+56 | fn median(v: &[f64]) -> f64 {
+   | --------------------------- previous definition of the value `median` here
+   |
+   = note: `median` must be defined only once in the value namespace of this module
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0428`.

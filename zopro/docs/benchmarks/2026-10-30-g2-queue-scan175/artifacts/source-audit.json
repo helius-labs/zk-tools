@@ -1,0 +1,28 @@
+{
+  "edits": {
+    "crates/zopro-core/src/lib.rs": {
+      "suffix": "\n#[cfg(all(zopro_g2_queue_probe,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub fn g2_queue_probe(bases:&[G2Affine],words:&mut[[u64;4]])->G2Affine{msm_affine::g2_query_exclusive(bases,words).to_affine()}\n"
+    },
+    "crates/zopro-core/src/msm_affine/g2_borrowed.rs": {
+      "after": "fn take_from_queue(&mut self) {\n        #[cfg(zopro_g2_queue_scan)]\n        for i in (0..self.queue.len()).rev() {\n            let (encoded,p)=self.queue[i];\n            if self.busy((encoded&0x7fffffff)as usize) {continue;}\n            self.queue.swap_remove(i);\n            self.add(encoded,p);\n        }\n        #[cfg(not(zopro_g2_queue_scan))]\n        {\n        while let Some(&(encoded, p)) = self.queue.last() {\n            if self.busy((encoded & 0x7fffffff) as usize) {\n                return;\n            }\n            self.queue.pop();\n            self.add(encoded, p);\n        }\n    }\n    }",
+      "before": "fn take_from_queue(&mut self) {\n        while let Some(&(encoded, p)) = self.queue.last() {\n            if self.busy((encoded & 0x7fffffff) as usize) {\n                return;\n            }\n            self.queue.pop();\n            self.add(encoded, p);\n        }\n    }",
+      "suffix": "\n#[cfg(test)]\nmod scan_queue_tests {\n    use super::*;\n    use zopro_bn254::Fr;\n\n    #[test]\n    fn blocked_tail_route_and_real_curve_outputs() {\n        let g=G2Projective::generator();let p=(g*Fr::from(3u64)).to_affine();\n        let mut s=Window::new(16,8,BatchAdd::default());\n        s.affine[1]=(g*Fr::from(7u64)).to_affine();s.affine[2]=(g*Fr::from(11u64)).to_affine();\n        s.queue=vec![(1,&p),(2,&p),(2,&p)];s.take_from_queue();\n        if cfg!(zopro_g2_queue_scan){assert_eq!(s.batch.len(),2);assert_eq!(s.queue.len(),1);}else{assert_eq!(s.batch.len(),1);assert_eq!(s.queue.len(),2);}\n        s.execute();s.flush_queue();let out=s.finish();\n        assert_eq!(out[1],(g*Fr::from(10u64)).to_affine());assert_eq!(out[2],(g*Fr::from(17u64)).to_affine());\n        assert!(out.iter().enumerate().all(|(i,p)|i==1||i==2||p.is_identity()));\n    }\n\n    #[test]\n    fn actual_window_full_tails_and_exceptional_points() {\n        let g=G2Projective::generator();\n        for n in [0usize,1,7,8,9,199,200,201,1025,4097] {for pattern in 0..4 {\n            let half=512;let size=200;let mut expected=vec![Fr::ZERO;half];let mut raw=Vec::with_capacity(n);let mut short=Vec::with_capacity(n);\n            for i in 0..n {\n                let b=match pattern{0=>i%half,1=>if i%5==0{3}else{i*37%half},2=>i%3,_=>i*1597%half};\n                let coefficient=match pattern{2=>if i%7==0{Fr::ZERO}else{Fr::ONE},3=>if i%9==0{-Fr::ONE}else{Fr::from((i%31+1)as u64)},_=>Fr::from((i%127+1)as u64)};\n                let neg=i%3==0;expected[b]+=if neg{-coefficient}else{coefficient};raw.push(g*coefficient);short.push([(b+1)as u64,if neg{1u64<<63}else{0},0,0]);\n            }\n            let bases=G2Projective::batch_to_affine(&raw);let before=bases.clone();let mut s=Window::new(half,size,BatchAdd::default());\n            s.feed(&bases,&short,false,0,12,size);assert!(s.batch.is_empty()&&s.queue.is_empty());assert!(s.busy.iter().all(|&w|w==0));assert!(s.batch.capacity()>=size&&s.queue.capacity()>=size);\n            let out=s.finish();for(b,p)in out.iter().enumerate(){assert_eq!(*p,(g*expected[b]).to_affine(),\"n={n} pattern={pattern} bucket={b}\");}assert_eq!(bases,before);\n        }}\n    }\n}\n"
+    }
+  },
+  "extra_heap_or_key_state": false,
+  "production_changed": false,
+  "trees": {
+    "source": {
+      "field_files_exact": 17,
+      "originals_exact": 173,
+      "reverse175_exact": true,
+      "source_files": 175
+    },
+    "source-frozen": {
+      "field_files_exact": 17,
+      "originals_exact": 174,
+      "reverse175_exact": true,
+      "source_files": 175
+    }
+  }
+}
