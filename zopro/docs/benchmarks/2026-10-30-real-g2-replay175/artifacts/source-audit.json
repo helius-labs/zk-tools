@@ -1,0 +1,41 @@
+{
+  "child": "crates/zopro-core/src/msm/g2_replay.rs",
+  "diagnostic_only": true,
+  "edits": {
+    "crates/zopro-core/src/lib.rs": {
+      "suffix": "\n#[cfg(all(zopro_real_g2_replay, feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub use msm::g2_replay;\n"
+    },
+    "crates/zopro-core/src/msm.rs": {
+      "suffix": "\n#[cfg(all(zopro_real_g2_replay, feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod g2_replay;\n"
+    },
+    "crates/zopro-core/src/msm/g2_borrowed.rs": {
+      "changes": [
+        {
+          "after": "    #[cfg(zopro_real_g2_replay)]\n    let replay=super::g2_replay::before_borrowed(buckets,batch);\n    let full = batch.len() / LANES * LANES;",
+          "before": "    let full = batch.len() / LANES * LANES;"
+        },
+        {
+          "after": "    }\n    #[cfg(zopro_real_g2_replay)]\n    if let Some(record)=replay {record.finish(buckets);}\n}\n\nimpl",
+          "before": "    }\n}\n\nimpl"
+        }
+      ]
+    },
+    "crates/zopro-core/src/msm/g2_prefix.rs": {
+      "changes": [
+        {
+          "after": "    #[cfg(zopro_real_g2_replay)]\n    let replay=super::g2_replay::before_owned(buckets,batch);\n    let full=batch.len()/LANES*LANES;",
+          "before": "    let full=batch.len()/LANES*LANES;"
+        },
+        {
+          "after": "    }\n    #[cfg(zopro_real_g2_replay)]\n    if let Some(record)=replay {record.finish(buckets);}\n}\n\n#[cfg(test)]",
+          "before": "    }\n}\n\n#[cfg(test)]"
+        }
+      ]
+    }
+  },
+  "field_files_exact": 17,
+  "files": 176,
+  "originals_exact": 171,
+  "originals_recovered": 175,
+  "production_changed": false
+}

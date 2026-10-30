@@ -1,0 +1,35 @@
+warning: unused import: `Field`
+ --> /home/ubuntu/src/zopro-perf-work/g2-real-replay175/fixture-audit.rs:2:21
+  |
+2 | use ark_ff::{BigInt,Field};
+  |                     ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0599]: no associated function or constant named `ZERO` found for struct `QuadExtField<P>` in the current scope
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-replay175/fixture-audit.rs:10:33
+   |
+10 |     let p=if x==ark_bn254::Fq2::ZERO&&y==ark_bn254::Fq2::ZERO{ark_bn254::G2Affine::identity()}else{ark_bn254::G2Affine::new_unchecke...
+   |                                 ^^^^ associated function or constant not found in `QuadExtField<Fp2ConfigWrapper<Fq2Config>>`
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: trait `AdditiveGroup` which provides `ZERO` is implemented but not in scope; perhaps you want to import it
+   |
+ 1 + use ark_ec::AdditiveGroup;
+   |
+
+error[E0599]: no associated function or constant named `ZERO` found for struct `QuadExtField<P>` in the current scope
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-replay175/fixture-audit.rs:10:58
+   |
+10 | ...==ark_bn254::Fq2::ZERO{ark_bn254::G2Affine::identity()}else{ark_bn254::G2Affine::new_unchecked(x,y)};assert!(p.is_on_curve());p
+   |                      ^^^^ associated function or constant not found in `QuadExtField<Fp2ConfigWrapper<Fq2Config>>`
+   |
+   = help: items from traits can only be used if the trait is in scope
+help: trait `AdditiveGroup` which provides `ZERO` is implemented but not in scope; perhaps you want to import it
+   |
+ 1 + use ark_ec::AdditiveGroup;
+   |
+
+error: aborting due to 2 previous errors; 1 warning emitted
+
+For more information about this error, try `rustc --explain E0599`.

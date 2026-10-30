@@ -83,6 +83,7 @@ fn main() {
     assert_eq!(control_literals["grouping_instructions_differ_only_in_eight_RIP_relative_literal_relocations"],true);
     let loose_delta=read(root.join("docs/benchmarks/2026-10-30-loose-delta175/artifacts/analysis.json"));assert_eq!(loose_delta["complete"],true);assert_eq!(loose_delta["proof_ledger"],22990);
     let delta_sdk=read(root.join("docs/benchmarks/2026-10-30-loose-delta-sdk175/artifacts/analysis.json"));assert_eq!(delta_sdk["complete"],true);assert_eq!(delta_sdk["independent_proof_count"],23962);
+    let replay=read(root.join("docs/benchmarks/2026-10-30-real-g2-replay175/artifacts/analysis.json"));assert_eq!(replay["complete"],true);assert_eq!(replay["independent_proof_count"],23971);assert_eq!(replay["production_changed"],false);
     let dest = std::env::args()
         .nth(1)
         .map(PathBuf::from)
@@ -124,6 +125,7 @@ fn main() {
         "2026-10-29-control-codegen175",
         "2026-10-30-loose-delta175",
         "2026-10-30-loose-delta-sdk175",
+        "2026-10-30-real-g2-replay175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -511,6 +513,9 @@ fn main() {
     md+="\n## Full SDK qualification of bounded G2 delta multiplication\n\nFollowing the passed actual-caller gate, the exact helper is integrated without diagnostic adapters. Native ifma8 guards are explicit; portable fallback retains the original expression. Thirty-one fixed blocks cover all nine32-worker circuits and primary16, accepted/OFF/ON. [Complete requests and source](../2026-10-30-loose-delta-sdk175/README.md).\n\n|Case/variant|Median ms|CPU ms/request|Maximum RSS MiB|\n|---|---:|---:|---:|\n";
     for(k,c)in delta_sdk["cells"].as_object().unwrap(){writeln!(md,"|{k}|{:.6}|{:.3}|{:.2}|",c["median_ms"].as_f64().unwrap(),c["CPU_ms"].as_f64().unwrap(),c["max_RSS_MiB"].as_f64().unwrap()).unwrap();}
     writeln!(md,"\nFull-request gate **{}**; failures `{}`. No adoption. The trial adds55788internallyverifiedSDKrequests and972freshindependentGnarkexports,ledger23962. Accepted source175 and all local/AWS/M5 rows remain unchanged.\n",delta_sdk["gate_passed"],delta_sdk["failed_checks"]).unwrap();
+    md=md.replacen("29 October 2026","30 October 2026",1);
+    md=md.replacen("## Measurement scope","The latest bounded G2 delta SDK candidate is not adopted: 1×2 is 1.61% slower versus OFF, and the original-eight aggregate is 0.34% slower. [Consolidated report](../2026-10-30-cpu-benchmark-report/README.md).\n\n## Measurement scope",1);
+    writeln!(md,"\n## Production G2 operand replay\n\nA new bounded diagnostic captures actual G2 prefix operands across all nine shapes and checks {} batches / {} signed point additions independently with Arkworks, then replays the unchanged native kernels. It retains at most 7,947,520 bytes of raw operands per process locally; no coordinates are published. Compact replay does not preserve original key/bucket locality or proof scheduling, and this stage collects no replay timings. All 36 SDK requests and nine fresh independent Gnark exports pass; ledger 23,971. Accepted source and latency/RSS tables remain unchanged. [Capture, histograms, independent oracles and limits](../2026-10-30-real-g2-replay175/README.md).\n",replay["total_capture_files"],replay["total_captured_pairs"]).unwrap();
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -651,6 +656,8 @@ fn main() {
 
     data["source_commit"]=json!("3d3630f5e4257423187a9d2e55e79a7cf4819aee");data["historical_distinct_Gnark_ledger"]=json!(23962);
     data["latest_loose_delta_SDK_experiment"]=json!({"report":"../2026-10-30-loose-delta-sdk175/README.md","cells":delta_sdk["cells"],"pairs":delta_sdk["pairs"],"original8_aggregates":delta_sdk["original8_aggregates"],"gate_passed":delta_sdk["gate_passed"],"failed_checks":delta_sdk["failed_checks"],"SDK_requests":55788,"new_independent_exports":972,"independent_proof_count":23962,"production_changed":false,"adopted":false});
+    data["as_of"]=json!("2026-10-30");data["source_commit"]=json!("6ff9fc483fb475b395ffa6833c1f4951b8e19c2f");data["historical_distinct_Gnark_ledger"]=json!(23971);
+    data["latest_real_G2_replay_diagnostic"]=json!({"report":"../2026-10-30-real-g2-replay175/README.md","diagnostic_only":true,"new_latency_qualification":false,"SDK_requests":36,"new_independent_exports":9,"independent_proof_count":23971,"capture_files":replay["total_capture_files"],"captured_pairs":replay["total_captured_pairs"],"capture_bytes":replay["total_capture_bytes"],"production_changed":false,"raw_coordinates_published":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

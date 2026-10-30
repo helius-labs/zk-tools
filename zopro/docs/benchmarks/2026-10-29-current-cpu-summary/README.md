@@ -503,3 +503,8 @@ Following the passed actual-caller gate, the exact helper is integrated without 
 |merge-54x1-w32/accepted|162.340349|4463.248|1886.72|
 
 Full-request gate **false**; failures `["1x2-w32/ON/accepted","1x2-w32/ON/OFF","1x2-w16/OFF/accepted","1x2-w16/ON/accepted","original8/ON/accepted/gain","original8/ON/OFF/gain"]`. No adoption. The trial adds55788internallyverifiedSDKrequests and972freshindependentGnarkexports,ledger23962. Accepted source175 and all local/AWS/M5 rows remain unchanged.
+
+
+## Production G2 operand replay
+
+A new bounded diagnostic captures actual G2 prefix operands across all nine shapes and checks 152 batches / 42658 signed point additions independently with Arkworks, then replays the unchanged native kernels. It retains at most 7,947,520 bytes of raw operands per process locally; no coordinates are published. Compact replay does not preserve original key/bucket locality or proof scheduling, and this stage collects no replay timings. All 36 SDK requests and nine fresh independent Gnark exports pass; ledger 23,971. Accepted source and latency/RSS tables remain unchanged. [Capture, histograms, independent oracles and limits](../2026-10-30-real-g2-replay175/README.md).
