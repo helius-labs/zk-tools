@@ -1,0 +1,8 @@
+#[cfg(test)]mod tests{
+ use super::*;use zopro_bn254::Fr;
+ fn random(seed:&mut u64)->Fr{let mut b=[0;32];for c in b.chunks_mut(8){*seed^=*seed<<13;*seed^=*seed>>7;*seed^=*seed<<17;c.copy_from_slice(&seed.to_le_bytes());}Fr::from_le_bytes_mod_order(&b)}
+ fn fixture(n:usize,mode:usize)->(Vec<G2Affine>,Vec<[u64;4]>,G2Projective){let mut seed=0x62616c616e636532u64;let mut coeff=vec![];let mut scalars=vec![];let mut expected=Fr::ZERO;for i in 0..n{let c=if mode==1{match i%7{0=>Fr::ZERO,1..=3=>Fr::ONE,4=>-Fr::ONE,_=>Fr::from((i%31+1)as u64)}}else{Fr::from((i*37+991)as u64)};let s=match (mode,i%9){(_,0)=>Fr::ZERO,(_,1)=>Fr::ONE,(_,2)=>-Fr::ONE,(2,_)=>Fr::from((i%17+1)as u64),_=>random(&mut seed)};expected+=c*s;coeff.push(G2Projective::generator()*c);scalars.push(s.to_canonical());}(G2Projective::batch_to_affine(&coeff),scalars,G2Projective::generator()*expected)}
+ #[test]fn balanced_actual_curve_full_tail_sums(){for n in[0usize,1,7,8,9,31,199,200,201,1025]{let(p,mut s,want)=fixture(n,0);let before=p.clone();assert_eq!(raw(&p,&mut s),want,"n={n}");assert_eq!(p,before);}}
+ #[test]fn balanced_actual_identity_double_opposite_and_sparse(){for mode in[1usize,2]{for n in[8usize,199,1025]{let(p,mut s,want)=fixture(n,mode);let before=p.clone();assert_eq!(raw(&p,&mut s),want,"mode={mode} n={n}");assert_eq!(p,before);}}}
+ #[test]fn balanced_complete_msm_in_custom_pools(){let(p,words,want)=fixture(1025,1);let before=p.clone();for workers in[1usize,4,16,32]{let pool=rayon::ThreadPoolBuilder::new().num_threads(workers).build().unwrap();let mut s=words.clone();assert_eq!(pool.install(||raw(&p,&mut s)),want,"workers={workers}");assert_eq!(p,before);}}
+}

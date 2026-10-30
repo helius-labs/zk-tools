@@ -1,0 +1,5 @@
+# Reused complete-query inputs and baseline
+
+Use the exact successful corrected fixtures and Arkworks output hashes at /home/ubuntu/src/zopro-perf-work/g2-queue-scan175/inputs/{1x2,2x2}.b2q and oracle-fixed-runs/oracle-{shape}/stdout.log. Canonical BE Gnark raw x.c1,x.c0,y.c1,y.c0 point bytes; canonical LE Fr words. Existing independent oracles checked every point and whole sum. No fresh solve, fixture regeneration or oracle execution is needed. Hashes must be verified before capture.
+
+FROZEN is the exact prior API-only driver /home/ubuntu/src/zopro-perf-work/g2-queue-scan175/drivers/frozen, with driver-frozen.json/frozen-frozen.json/source-frozen/native124core8prover receipts and flags checked. No rebuild/retest of successful baseline. New driver and perf source are byte-exact copies of that already qualified driver, including corrected canonical decoding, runtime PID and worker affinities. Fresh OFF/ON use new coherent libraries and the same source. Candidate caller samples should retain new balanced namespace evidence; profiles are qualitative and do not replace whole-query correctness or full SDK proof verification.

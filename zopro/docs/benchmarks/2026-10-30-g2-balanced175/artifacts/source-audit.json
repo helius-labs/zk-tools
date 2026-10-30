@@ -1,0 +1,23 @@
+{
+  "child": "crates/zopro-core/src/msm_affine/g2_borrowed/balanced.rs",
+  "edits": {
+    "crates/zopro-core/src/lib.rs": {
+      "suffix": "\n#[cfg(all(zopro_g2_queue_probe,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub fn g2_queue_probe(bases:&[G2Affine],words:&mut[[u64;4]])->G2Affine{msm_affine::g2_query_exclusive(bases,words).to_affine()}\n"
+    },
+    "crates/zopro-core/src/msm_affine/g2_borrowed.rs": {
+      "suffix": "\n#[cfg(all(any(zopro_g2_balanced,test),all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\npub(super) mod balanced;\n"
+    },
+    "crates/zopro-core/src/msm_affine/g2_phi.rs": {
+      "after": "    #[cfg(all(zopro_g2_balanced,all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n    if crate::msm::BatchAdd::<G2Config>::default().borrowed_g2_enabled() {\n        return super::g2_borrowed::balanced::raw(bases,words);\n    }\n    hb_raw(bases, words, 12, 2)\n}",
+      "before": "    hb_raw(bases, words, 12, 2)\n}"
+    }
+  },
+  "field_files_exact": 17,
+  "heap_forecast_envelope_unchanged": true,
+  "new_key_table_or_point_copy": false,
+  "no_changed_queue_drain": true,
+  "originals_exact": 172,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "source_files": 176
+}

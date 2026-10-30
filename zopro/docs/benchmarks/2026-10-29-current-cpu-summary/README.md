@@ -537,3 +537,8 @@ The bounded descending queue scan is measured as a complete G2 query on both eli
 ## Balanced G2 window count screen
 
 Eleven variable spans covering127bits replace ten ordinary12-bit windows and the narrow indexed top with eleven original borrowed ordinary streams. Bucket slots fall20,544→17,408perpart; the indexed-top route is removed without a digit array, key table or larger heap forecast. Exact Phi/Booth reconstructions and both whole token sums pass on both real scalar populations, with two new geometry tests and an independent grouping review. Ordinary affine/projective work increases; baseline indexed arithmetic/inversion costs are not modeled, so no total inversion or speed saving is established. The necessary opportunity check passes and selects native qualification. Zero new solves, SDK requests or Gnark exports; ledger23,971. [Counts, assumptions and source](../2026-10-30-g2-balanced-count175/README.md).
+
+
+## Complete balanced G2 window caller
+
+Variable-width Phi2 windows now receive complete-query timing against exact API-onlyFROZEN and freshOFF, with the original LIFO queue. All actual outputs match reused independent whole-sum oracles; nativeOFF/ON127core/8prover tests pass. The31-block four-context gate is **true**, failed checks `[]`; diagnostic qualification **true**. Primary32 improves3.110% versus FROZEN; the two-shape aggregate improves3.467%, both31/31wins. Primary16latency remains inconclusive. This selects complete SDK qualification; no full-proof timing or adoption follows from this stage. This adds9216complete queries including primes,0newsolves/oracle executions/SDK requests/Gnark exports; ledger23,971. [Full results and profiles](../2026-10-30-g2-balanced175/README.md).
