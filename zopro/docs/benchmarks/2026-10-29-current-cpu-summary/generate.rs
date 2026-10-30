@@ -88,6 +88,7 @@ fn main() {
     let trace_square=read(root.join("docs/benchmarks/2026-10-30-trace-one-square175/artifacts/analysis.json"));assert_eq!(trace_square["complete"],true);assert_eq!(trace_square["proof_ledger"],23971);assert_eq!(trace_square["production_changed"],false);
     let queue_scan=read(root.join("docs/benchmarks/2026-10-30-g2-queue-scan-count175/artifacts/analysis.json"));assert_eq!(queue_scan["complete"],true);assert_eq!(queue_scan["proof_ledger"],23971);assert_eq!(queue_scan["performance_claim"],false);assert_eq!(queue_scan["production_changed"],false);
     let queue_caller=read(root.join("docs/benchmarks/2026-10-30-g2-queue-scan175/artifacts/analysis.json"));assert_eq!(queue_caller["complete"],true);assert_eq!(queue_caller["proof_ledger"],23971);assert_eq!(queue_caller["complete_queries_including_primes"],9216);assert_eq!(queue_caller["production_changed"],false);
+    let g2_balanced=read(root.join("docs/benchmarks/2026-10-30-g2-balanced-count175/artifacts/analysis.json"));assert_eq!(g2_balanced["complete"],true);assert_eq!(g2_balanced["proof_ledger"],23971);assert_eq!(g2_balanced["capture_or_performance_claim"],false);
     let cold_tail=read(root.join("docs/benchmarks/2026-10-30-g2-cold-tail175/artifacts/analysis.json"));assert_eq!(cold_tail["complete"],true);assert_eq!(cold_tail["proof_ledger"],23971);assert_eq!(cold_tail["production_changed"],false);assert_eq!(cold_tail["kernel_calls_including_primes_and_profiles"],1059202848u64);
     let dest = std::env::args()
         .nth(1)
@@ -136,6 +137,7 @@ fn main() {
         "2026-10-30-trace-one-square175",
         "2026-10-30-g2-queue-scan-count175",
         "2026-10-30-g2-queue-scan175",
+        "2026-10-30-g2-balanced-count175",
     ];
     let mut sources = BTreeMap::new();
     let queue_audit=root.join("docs/benchmarks/2026-10-30-g2-queue-scan175/artifacts/source-audit.json");
@@ -537,6 +539,7 @@ fn main() {
     writeln!(md,"\n## Direct trace-one symmetric square\n\nThe trace-one basis square now computes shared symmetric raw products directly, removing its earlier division by three. The old rejected basis experiment remains unchanged. The new six-context arithmetic screen retains the known norm and conjugation costs; conversion is outside timing. Norm-affine SQUARE/OFF **{:.9} [{:.9}, {:.9}], {}/31 wins**. Composite gate **{}**; failures `{}`. Only the composite versus both ordinary controls and all calibration checks select further valid-curve caller work; isolated rows are diagnostic. No new SDK/Gnark proofs or adoption; ledger remains23,971. [All four variants, correctness and profiles](../2026-10-30-trace-one-square175/README.md).\n",t["median"].as_f64().unwrap(),t["low"].as_f64().unwrap(),t["high"].as_f64().unwrap(),t["wins"],trace_square["gate_passed"],trace_square["failed_checks"]).unwrap();
     md.push_str("\n## G2 blocked-queue scan count model\n\nA bounded descending scan examines entries hidden below a busy queue tail, retaining the original batch200 and queue storage. In an ordinary noncancelling model using real primary scalar digits, projective arrivals fall from1,178 to617 and final merges from429 to114; five batch inversions and8,779 busy checks are added. The2×2 model also reduces projective work. Every modeled bucket matches direct field-token sums, all Phi/Booth reconstructions pass and existing capacity limits hold. The necessary opportunity check passes; **no latency or proving-speed improvement is measured**. Actual curve exceptions and complete caller/SDK performance still require qualification. The model makes two fresh solver calls, no SDK proof or Gnark export; ledger stays23,971. [Counts, assumptions and source](../2026-10-30-g2-queue-scan-count175/README.md).\n");
     writeln!(md,"\n## Complete G2 queue-scan caller\n\nThe bounded descending queue scan is measured as a complete G2 query on both eligible real inputs, with primary at1/16/32workers and2×2 at32. Native124/126/126core and8prover tests per variant pass; all outputs match independent Arkworks whole sums. Primary32 improves2.059% versus FROZEN and3.843% versus OFF, but the two-shape FROZEN aggregate interval spans parity. The31-block caller gate is **{}**, failed checks `{}`; diagnostic qualification **{}**. All calibration and individual nonregression checks pass. No SDK advancement or adoption under this protocol; positive primary results remain recorded. This adds9216complete queries including primes, two fresh fixture solves,0SDK requests and0new Gnark exports; ledger23971. [Complete results and automatic profiles](../2026-10-30-g2-queue-scan175/README.md).\n",queue_caller["caller_gate"],queue_caller["failed_checks"],queue_caller["diagnostic_qualified"]).unwrap();
+    md.push_str("\n## Balanced G2 window count screen\n\nEleven variable spans covering127bits replace ten ordinary12-bit windows and the narrow indexed top with eleven original borrowed ordinary streams. Bucket slots fall20,544→17,408perpart; the indexed-top route is removed without a digit array, key table or larger heap forecast. Exact Phi/Booth reconstructions and both whole token sums pass on both real scalar populations, with two new geometry tests and an independent grouping review. Ordinary affine/projective work increases; baseline indexed arithmetic/inversion costs are not modeled, so no total inversion or speed saving is established. The necessary opportunity check passes and selects native qualification. Zero new solves, SDK requests or Gnark exports; ledger23,971. [Counts, assumptions and source](../2026-10-30-g2-balanced-count175/README.md).\n");
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -691,6 +694,9 @@ fn main() {
     let mut queue_caller=queue_caller;
     queue_caller["report"]=json!("../2026-10-30-g2-queue-scan175/README.md");
     data["latest_G2_queue_scan_caller"]=queue_caller;
+    data["source_commit"]=json!("3731b77a1324a3f14690c851b77ca35a283819ee");
+    let mut g2_balanced=g2_balanced;g2_balanced["report"]=json!("../2026-10-30-g2-balanced-count175/README.md");
+    data["latest_G2_balanced_count_model"]=g2_balanced;
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),
