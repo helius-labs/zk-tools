@@ -1,0 +1,27 @@
+{
+  "child": "crates/zopro-core/src/msm/g2_staged.rs",
+  "edits": {
+    "crates/zopro-core/src/lib.rs": {
+      "suffix": "\n#[cfg(all(zopro_g2_queue_probe,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub fn g2_queue_probe(bases:&[G2Affine],words:&mut[[u64;4]])->G2Affine{msm_affine::g2_query_exclusive(bases,words).to_affine()}\n"
+    },
+    "crates/zopro-core/src/msm.rs": {
+      "suffix": "\n#[cfg(all(any(zopro_g2_staged,test),feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod g2_staged;\n"
+    },
+    "crates/zopro-core/src/msm/g2_borrowed.rs": {
+      "after": "    #[cfg(zopro_g2_staged)]\n    g2_staged::reverse::<C,FAST,_>(buckets,full,&s.prefix_records,&mut inverse,|i| {let (id,p)=batch[i];(id&0x7fffffff,if id>>31!=0{-*p}else{*p})});\n    #[cfg(not(zopro_g2_staged))]\n    for j in (0..full / LANES).rev() {",
+      "before": "    for j in (0..full / LANES).rev() {"
+    },
+    "crates/zopro-core/src/msm/g2_prefix.rs": {
+      "after": "    #[cfg(zopro_g2_staged)]\n    g2_staged::reverse::<C,FAST,_>(buckets,full,&s.prefix_records,&mut inverse,|i| batch[i]);\n    #[cfg(not(zopro_g2_staged))]\n    for j in (0..full/LANES).rev() {",
+      "before": "    for j in (0..full/LANES).rev() {"
+    }
+  },
+  "extra_fixed_stack_tile": true,
+  "field_files_exact": 17,
+  "heap_capacity_forecasts_unchanged": true,
+  "new_key_table_or_persistent_point_copy": false,
+  "originals_exact": 171,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "source_files": 176
+}
