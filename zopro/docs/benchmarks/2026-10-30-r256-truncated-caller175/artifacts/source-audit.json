@@ -1,0 +1,18 @@
+{
+  "field_after": "    fn product<const FUSED: bool>(&self, b: &Self, c: &Self, d: &Self) -> Self {\n        #[cfg(zopro_r256_truncated)]\n        if LANES == 8 && MIXED {\n            #[cfg(test)] r256_truncated_tests::HITS.fetch_add(1,core::sync::atomic::Ordering::Relaxed);\n            return self.product_truncated::<FUSED>(b,c,d);\n        }\n",
+  "field_before": "    fn product<const FUSED: bool>(&self, b: &Self, c: &Self, d: &Self) -> Self {\n",
+  "field_originals_exact": 16,
+  "frozen_probe_and_driver_exact": true,
+  "frozen_source_reverse175_exact": true,
+  "inherited_arithmetic_body_exact": true,
+  "original_files": 175,
+  "originals_exact": 172,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "snapshot_files": 177,
+  "suffixes": {
+    "crates/zopro-bn254/src/ifma8.rs": "\n#[cfg(zopro_r256_truncated)]\ninclude!(\"r256_truncated.rs\");\n",
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(zopro_gauss_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(zopro_gauss_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n"
+  }
+}
