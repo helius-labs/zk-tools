@@ -1,0 +1,3 @@
+# Diagnostic qualification in the full SDK gate
+
+Declared before capture. Existing performance, calibration and RSS checks remain unchanged. Each of six PMU panels and six profiles must also meet the predeclared running/sample/unknown/loss/event/affinity/mapping requirements. A failed diagnostic is retained explicitly in failed_checks rather than silently treating a performance-only pass as complete qualification. New balanced-namespace samples are attribution evidence, not an exclusive cost or a necessary symbol-name gate (inlining can alter names). Known absolute-period undercoverage remains unresolved and prevents exclusive/local-CPI/removable-wall claims even when attribution qualifies.

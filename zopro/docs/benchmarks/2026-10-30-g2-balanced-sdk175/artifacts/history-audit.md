@@ -1,0 +1,3 @@
+# Exact parent and scope
+
+Parent /home/ubuntu/src/zopro-perf-work/g2-balanced175 complete-query geometry passed31fixedblocks in allfourcontexts versus both controls, with3.110%primary32 and3.467%two-shapeFROZEN-relativegains. Native127/8OFFON and countscreen source/oracles qualified; actual standaloneCPU savings are not proof savings. This SDKstage changes only removal of the private diagnosticexport/unusedprobe flag. The balancedchild and originaltwo parentguard/module edits remain byte-exact to parent. No failedqueue-scan/drain/GLS4/arithmetic candidate is mixed in. Previous bounded-delta callergain did not transfer to its SDKtrial, motivating fullall9+primary16 evidence here.

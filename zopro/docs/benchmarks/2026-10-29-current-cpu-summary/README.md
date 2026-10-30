@@ -529,16 +529,20 @@ The trace-one basis square now computes shared symmetric raw products directly, 
 
 A bounded descending scan examines entries hidden below a busy queue tail, retaining the original batch200 and queue storage. In an ordinary noncancelling model using real primary scalar digits, projective arrivals fall from1,178 to617 and final merges from429 to114; five batch inversions and8,779 busy checks are added. The2×2 model also reduces projective work. Every modeled bucket matches direct field-token sums, all Phi/Booth reconstructions pass and existing capacity limits hold. The necessary opportunity check passes; **no latency or proving-speed improvement is measured**. Actual curve exceptions and complete caller/SDK performance still require qualification. The model makes two fresh solver calls, no SDK proof or Gnark export; ledger stays23,971. [Counts, assumptions and source](../2026-10-30-g2-queue-scan-count175/README.md).
 
-
 ## Complete G2 queue-scan caller
 
 The bounded descending queue scan is measured as a complete G2 query on both eligible real inputs, with primary at1/16/32workers and2×2 at32. Native124/126/126core and8prover tests per variant pass; all outputs match independent Arkworks whole sums. Primary32 improves2.059% versus FROZEN and3.843% versus OFF, but the two-shape FROZEN aggregate interval spans parity. The31-block caller gate is **false**, failed checks `["two_shapes/ON/FROZEN/gain"]`; diagnostic qualification **true**. All calibration and individual nonregression checks pass. No SDK advancement or adoption under this protocol; positive primary results remain recorded. This adds9216complete queries including primes, two fresh fixture solves,0SDK requests and0new Gnark exports; ledger23971. [Complete results and automatic profiles](../2026-10-30-g2-queue-scan175/README.md).
+
 
 ## Balanced G2 window count screen
 
 Eleven variable spans covering127bits replace ten ordinary12-bit windows and the narrow indexed top with eleven original borrowed ordinary streams. Bucket slots fall20,544→17,408perpart; the indexed-top route is removed without a digit array, key table or larger heap forecast. Exact Phi/Booth reconstructions and both whole token sums pass on both real scalar populations, with two new geometry tests and an independent grouping review. Ordinary affine/projective work increases; baseline indexed arithmetic/inversion costs are not modeled, so no total inversion or speed saving is established. The necessary opportunity check passes and selects native qualification. Zero new solves, SDK requests or Gnark exports; ledger23,971. [Counts, assumptions and source](../2026-10-30-g2-balanced-count175/README.md).
 
-
 ## Complete balanced G2 window caller
 
 Variable-width Phi2 windows now receive complete-query timing against exact API-onlyFROZEN and freshOFF, with the original LIFO queue. All actual outputs match reused independent whole-sum oracles; nativeOFF/ON127core/8prover tests pass. The31-block four-context gate is **true**, failed checks `[]`; diagnostic qualification **true**. Primary32 improves3.110% versus FROZEN; the two-shape aggregate improves3.467%, both31/31wins. Primary16latency remains inconclusive. This selects complete SDK qualification; no full-proof timing or adoption follows from this stage. This adds9216complete queries including primes,0newsolves/oracle executions/SDK requests/Gnark exports; ledger23,971. [Full results and profiles](../2026-10-30-g2-balanced175/README.md).
+
+
+## Balanced G2 windows in complete SDK proofs
+
+The variable-width G2 candidate completes 31 blocks across all nine circuits at 32 workers and primary at 16, against accepted and fresh OFF. Primary32 measures 8.013709 ms and 133.75 MiB peak RSS, with paired gains of 0.416% versus accepted and 0.729% versus OFF. The full gate is **false**, failed checks `["1x2-w16/ON/accepted","1x2-w16/ON/OFF","original8/ON/OFF/gain"]`; diagnostics qualify. The original-eight aggregate versus OFF spans parity, and both physical-16 nonregression upper bounds exceed 1.02. These results do not establish a physical-16 slowdown. The candidate is not adopted. All 55,788 requests verify internally and 972 fresh exports independently pass Gnark, advancing the unique proof ledger to **24,943**. Native OFF/ON each pass 127 core and eight prover tests; portable ON passes 101 core and eight prover tests. Accepted local/AWS rows remain unchanged. [Full results, memory and profiles](../2026-10-30-g2-balanced-sdk175/README.md).
