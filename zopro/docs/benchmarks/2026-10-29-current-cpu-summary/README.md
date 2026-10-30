@@ -523,3 +523,8 @@ The exact scalar fallback statements move to private cold, never-inline helpers;
 ## Direct trace-one symmetric square
 
 The trace-one basis square now computes shared symmetric raw products directly, removing its earlier division by three. The old rejected basis experiment remains unchanged. The new six-context arithmetic screen retains the known norm and conjugation costs; conversion is outside timing. Norm-affine SQUARE/OFF **1.045108395 [1.043746316, 1.046602792], 0/31 wins**. Composite gate **false**; failures `["norm-affine/SQUARE/OFF/gain","norm-affine/SQUARE/FROZEN/gain"]`. Only the composite versus both ordinary controls and all calibration checks select further valid-curve caller work; isolated rows are diagnostic. No new SDK/Gnark proofs or adoption; ledger remains23,971. [All four variants, correctness and profiles](../2026-10-30-trace-one-square175/README.md).
+
+
+## G2 blocked-queue scan count model
+
+A bounded descending scan examines entries hidden below a busy queue tail, retaining the original batch200 and queue storage. In an ordinary noncancelling model using real primary scalar digits, projective arrivals fall from1,178 to617 and final merges from429 to114; five batch inversions and8,779 busy checks are added. The2×2 model also reduces projective work. Every modeled bucket matches direct field-token sums, all Phi/Booth reconstructions pass and existing capacity limits hold. The necessary opportunity check passes; **no latency or proving-speed improvement is measured**. Actual curve exceptions and complete caller/SDK performance still require qualification. The model makes two fresh solver calls, no SDK proof or Gnark export; ledger stays23,971. [Counts, assumptions and source](../2026-10-30-g2-queue-scan-count175/README.md).
