@@ -1,0 +1,20 @@
+{
+  "edits": [
+    {
+      "after": "    let timeline_enabled=match std::env::var(\"ZOPRO_QUERY_TIMELINE\").as_deref(){Ok(\"1\")=>true,Ok(\"0\")=>false,_=>return Err(\"expected ZOPRO_QUERY_TIMELINE=0 or1\".into())};\n    zopro_prover::zopro_core::query_timeline::prepare();\n    for _ in 0..3 {",
+      "before": "    for _ in 0..3 {"
+    },
+    {
+      "after": "    zopro_prover::zopro_core::query_timeline::begin(timeline_enabled);\n    let before = perf::Usage::now()?;",
+      "before": "    let before = perf::Usage::now()?;"
+    },
+    {
+      "after": "    let timeline=zopro_prover::zopro_core::query_timeline::take();\n    if timeline_enabled {assert_eq!(timeline.len(),rounds);} else {assert!(timeline.is_empty());}\n    for(round,offsets_ns)in timeline.into_iter().enumerate(){println!(\"TIMELINE {}\",serde_json::json!({\"round\":round,\"offsets_ns\":offsets_ns}));}\n    if let Some(directory) = args.get(4) {",
+      "before": "    if let Some(directory) = args.get(4) {"
+    }
+  ],
+  "original_driver_reversed_exact": true,
+  "performance_helper_exact": true,
+  "proof_timing_loop_unchanged": true,
+  "same_OFF_and_traced_executable": true
+}

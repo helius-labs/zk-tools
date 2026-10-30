@@ -1,0 +1,44 @@
+{
+  "algorithm_changed": false,
+  "edits": [
+    {
+      "after": "        use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};\n        #[cfg(zopro_query_timeline)] let timeline=query_timeline::Start::new();\n        let solver::Solution",
+      "before": "        use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};\n        let solver::Solution"
+    },
+    {
+      "after": "        let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;\n        #[cfg(zopro_query_timeline)] let solver_end=timeline.stamp();",
+      "before": "        let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;"
+    },
+    {
+      "after": "        let correction=folded.public_term(&w[..plan.n_public]);\n        #[cfg(zopro_query_timeline)] let correction_end=timeline.stamp();",
+      "before": "        let correction=folded.public_term(&w[..plan.n_public]);"
+    },
+    {
+      "after": "        let words=canonical(&mut w);\n        #[cfg(zopro_query_timeline)] let canonical_end=timeline.stamp();",
+      "before": "        let words=canonical(&mut w);"
+    },
+    {
+      "after": "        let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);\n        #[cfg(zopro_query_timeline)] let extraction_end=timeline.stamp();",
+      "before": "        let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);"
+    },
+    {
+      "after": "        let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);\n        #[cfg(zopro_query_timeline)] let product_end=timeline.stamp();",
+      "before": "        let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);"
+    },
+    {
+      "after": "            #[cfg(not(zopro_query_timeline))]\n            let ((ar,kh),bs2)=rayon::join(\n                || rayon::join(|| msm(&self.a[..],sa),\n                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),\n                || {\n                    if (1024..65536).contains(&self.b2.len()) {\n                        msm_affine::g2_query_exclusive(&self.b2,sb)\n                    } else {\n                        let groups=crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n                            .then(||scalar_groups(sb)).flatten();\n                        groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),\n                            |g|msm_grouped_b2(&self.b2,g))\n                    }\n                });\n            #[cfg(zopro_query_timeline)]\n            let (((ar,a_span),(kh,kh_span)),(bs2,b_span))=rayon::join(\n                || rayon::join(|| timeline.measure(|| msm(&self.a[..],sa)),\n                    || timeline.measure(|| msm_affine::fused_kh::fused(k,sk,z,canonical(h),13))),\n                || timeline.measure(|| {\n                    if (1024..65536).contains(&self.b2.len()) {\n                        msm_affine::g2_query_exclusive(&self.b2,sb)\n                    } else {\n                        let groups=crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n                            .then(||scalar_groups(sb)).flatten();\n                        groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),\n                            |g|msm_grouped_b2(&self.b2,g))\n                    }\n                }));\n            #[cfg(zopro_query_timeline)] let join_end=timeline.stamp();",
+      "before": "            let ((ar,kh),bs2)=rayon::join(\n                || rayon::join(|| msm(&self.a[..],sa),\n                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),\n                || {\n                    if (1024..65536).contains(&self.b2.len()) {\n                        msm_affine::g2_query_exclusive(&self.b2,sb)\n                    } else {\n                        let groups=crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n                            .then(||scalar_groups(sb)).flatten();\n                        groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),\n                            |g|msm_grouped_b2(&self.b2,g))\n                    }\n                });"
+    },
+    {
+      "after": "            output_g2(&mut out,bs2);\n            #[cfg(zopro_query_timeline)] timeline.finish([solver_end,correction_end,canonical_end,extraction_end,product_end,join_end,timeline.stamp()],[a_span,kh_span,b_span]);\n            return Ok(out);",
+      "before": "            output_g2(&mut out,bs2);\n            return Ok(out);"
+    }
+  ],
+  "field_files_exact": 17,
+  "new_timeline_payload_bytes": 26624,
+  "originals_exact": 174,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "source_files": 176,
+  "suffix": "\n#[cfg(zopro_query_timeline)]\n#[doc(hidden)]\npub mod query_timeline;\n"
+}
