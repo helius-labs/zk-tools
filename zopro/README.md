@@ -167,7 +167,11 @@ witness against gnark's byte for byte, and leave raw proofs that
 
 ## Measured
 
-The validated x86 CPU checkpoint, including comparison with M5 Pro Metal,
+The latest adopted AVX CPU results, including all eight supplied M5 CPU and
+Metal comparisons, source hashes and validation, are in the
+[G2 vector-sign adoption report](docs/benchmarks/2026-10-30-g2-vector-sign-adoption176/README.md).
+
+The earlier x86 CPU checkpoint, including comparison with M5 Pro Metal,
 measurement details, and reproducible commands, is in the
 [Framework CPU report](docs/benchmarks/2026-10-20/README.md).
 

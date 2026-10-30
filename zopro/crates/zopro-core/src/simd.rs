@@ -372,6 +372,8 @@ impl FqBatch {
         Self(self.0.sub_canonical(&b.0))
     }
     #[inline(always)]
+    pub(crate) fn signed_difference_canonical(&self, ay:&Self, negative:u8)->Self{Self(self.0.signed_difference_canonical(&ay.0,negative))}
+    #[inline(always)]
     pub(crate) fn sum2(&self, b: &Self, c: &Self, d: &Self) -> Self {
         Self(self.0.sum2(&b.0, &c.0, &d.0))
     }

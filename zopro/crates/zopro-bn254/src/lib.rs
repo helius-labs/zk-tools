@@ -35,6 +35,14 @@ pub mod ifma;
 ))]
 pub mod ifma8;
 #[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+mod signed_delta;
+#[cfg(all(
     feature = "fast-inverse",
     target_arch = "x86_64",
     target_feature = "bmi2",
