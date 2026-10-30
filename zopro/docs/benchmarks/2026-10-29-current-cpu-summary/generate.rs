@@ -85,6 +85,7 @@ fn main() {
     let delta_sdk=read(root.join("docs/benchmarks/2026-10-30-loose-delta-sdk175/artifacts/analysis.json"));assert_eq!(delta_sdk["complete"],true);assert_eq!(delta_sdk["independent_proof_count"],23962);
     let replay=read(root.join("docs/benchmarks/2026-10-30-real-g2-replay175/artifacts/analysis.json"));assert_eq!(replay["complete"],true);assert_eq!(replay["independent_proof_count"],23971);assert_eq!(replay["production_changed"],false);
     let endpoints=read(root.join("docs/benchmarks/2026-10-30-g2-endpoints175/artifacts/analysis.json"));assert_eq!(endpoints["complete"],true);assert_eq!(endpoints["proof_ledger"],23971);assert_eq!(endpoints["production_changed"],false);
+    let cold_tail=read(root.join("docs/benchmarks/2026-10-30-g2-cold-tail175/artifacts/analysis.json"));assert_eq!(cold_tail["complete"],true);assert_eq!(cold_tail["proof_ledger"],23971);assert_eq!(cold_tail["production_changed"],false);assert_eq!(cold_tail["kernel_calls_including_primes_and_profiles"],1059202848u64);
     let dest = std::env::args()
         .nth(1)
         .map(PathBuf::from)
@@ -128,6 +129,7 @@ fn main() {
         "2026-10-30-loose-delta-sdk175",
         "2026-10-30-real-g2-replay175",
         "2026-10-30-g2-endpoints175",
+        "2026-10-30-g2-cold-tail175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -520,6 +522,9 @@ fn main() {
     writeln!(md,"\n## Production G2 operand replay\n\nA new bounded diagnostic captures actual G2 prefix operands across all nine shapes and checks {} batches / {} signed point additions independently with Arkworks, then replays the unchanged native kernels. It retains at most 7,947,520 bytes of raw operands per process locally; no coordinates are published. Compact replay does not preserve original key/bucket locality or proof scheduling, and this stage collects no replay timings. All 36 SDK requests and nine fresh independent Gnark exports pass; ledger 23,971. Accepted source and latency/RSS tables remain unchanged. [Capture, histograms, independent oracles and limits](../2026-10-30-real-g2-replay175/README.md).\n",replay["total_capture_files"],replay["total_captured_pairs"]).unwrap();
     let hot=&endpoints["pairs"]["1x2-dominant-w32"]["statistics"];
     writeln!(md,"\n## G2 prefix endpoint products\n\nA new two-arm real-operand caller experiment removes first-group multiplication by one and the final unused inverse update, preserving interior chain/norm records and field arithmetic. All nine dominant200-pair contexts are tested, with primary16 and owned512 controls; all152 inherited fixtures preflight OFF/ON. Primary32 ON/OFF ratio **{:.9} [{:.9}, {:.9}], {}/31wins**. Declared caller gate **{}**, failures `{}`. This is not a proof-latency result or adoption; a pass requires separate accepted/OFF/ON fullSDK and resource qualification. The trial adds278,889,664kernelcalls,0SDKrequests and0Gnarkexports; ledger23,971. [Full comparison and automatic profiles](../2026-10-30-g2-endpoints175/README.md).\n",hot["median"].as_f64().unwrap(),hot["low"].as_f64().unwrap(),hot["high"].as_f64().unwrap(),hot["wins"],endpoints["caller_gate"],endpoints["failed_checks"]).unwrap();
+    let hot=&cold_tail["pairs"]["1x2-dominant-w32"]["statistics"];
+    let frozen_hot=&cold_tail["frozen_pairs"]["1x2-dominant-w32"]["statistics"];
+    writeln!(md,"\n## G2 scalar fallback extraction\n\nThe exact scalar fallback statements move to private cold, never-inline helpers; field math, scratch and fast-path operations stay unchanged. Thirty-one fixed blocks compare frozen/OFF/ON callers across 22 contexts, including every captured tail fixture. Primary32 ON/OFF **{:.9} [{:.9}, {:.9}], {}/31 wins**; ON/FROZEN **{:.9} [{:.9}, {:.9}], {}/31 wins**. Declared caller gate **{}**; failures `{}`. All calibration intervals and both control comparisons are required. These are compact real-operand batch waves, not proof latency or adoption. Native OFF/ON each pass 127 core and eight prover tests, including the 512 KiB stack test. The experiment adds 1,059,202,848 kernel calls, zero SDK requests and zero Gnark exports; ledger remains 23,971. A caller pass still needs full SDK, portable and resource qualification. [Full results and automatic profiles](../2026-10-30-g2-cold-tail175/README.md).\n",hot["median"].as_f64().unwrap(),hot["low"].as_f64().unwrap(),hot["high"].as_f64().unwrap(),hot["wins"],frozen_hot["median"].as_f64().unwrap(),frozen_hot["low"].as_f64().unwrap(),frozen_hot["high"].as_f64().unwrap(),frozen_hot["wins"],cold_tail["caller_gate"],cold_tail["failed_checks"]).unwrap();
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -664,6 +669,8 @@ fn main() {
     data["latest_real_G2_replay_diagnostic"]=json!({"report":"../2026-10-30-real-g2-replay175/README.md","diagnostic_only":true,"new_latency_qualification":false,"SDK_requests":36,"new_independent_exports":9,"independent_proof_count":23971,"capture_files":replay["total_capture_files"],"captured_pairs":replay["total_captured_pairs"],"capture_bytes":replay["total_capture_bytes"],"production_changed":false,"raw_coordinates_published":false});
     data["source_commit"]=json!("aa19a0f2bd7d90667edf934199f76a8d24b456db");
     data["latest_G2_endpoints_caller"]=json!({"report":"../2026-10-30-g2-endpoints175/README.md","caller_gate":endpoints["caller_gate"],"failed_checks":endpoints["failed_checks"],"cells":endpoints["cells"],"pairs":endpoints["pairs"],"original8_aggregate":endpoints["original8_aggregate"],"kernel_calls":278889664,"SDK_requests":0,"new_independent_exports":0,"proof_ledger":23971,"production_changed":false,"adopted":false});
+    data["source_commit"]=json!("241f02692e2c86d1ae8e019e6fb2c5b3d1a8c5ac");
+    data["latest_G2_cold_tail_caller"]=json!({"report":"../2026-10-30-g2-cold-tail175/README.md","caller_gate":cold_tail["caller_gate"],"failed_checks":cold_tail["failed_checks"],"cells":cold_tail["cells"],"pairs":cold_tail["pairs"],"frozen_pairs":cold_tail["frozen_pairs"],"calibration_checks":cold_tail["calibration_checks"],"original8_aggregate":cold_tail["original8_aggregate"],"frozen_aggregate":cold_tail["frozen_aggregate"],"kernel_calls":1059202848u64,"SDK_requests":0,"new_independent_exports":0,"proof_ledger":23971,"production_changed":false,"adopted":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

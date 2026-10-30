@@ -1,0 +1,36 @@
+{
+  "edits": {
+    "crates/zopro-core/src/lib.rs": {
+      "suffix": "\n#[cfg(all(zopro_g2_replay_bench,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub use msm::g2_replay;\n"
+    },
+    "crates/zopro-core/src/msm.rs": {
+      "suffix": "\n#[cfg(all(zopro_g2_replay_bench,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod g2_replay;\n#[cfg(all(zopro_g2_cold_tail,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod g2_tail;\n"
+    },
+    "crates/zopro-core/src/msm/g2_borrowed.rs": {
+      "after": "#[cfg(zopro_g2_cold_tail)]\n            {super::g2_tail::borrowed::<C>(buckets,batch,s,&chains,full)}\n            #[cfg(not(zopro_g2_cold_tail))]\n            {let mut tail = chains.get();\n            for k in full..batch.len() {\n                let (encoded, b) = batch[k];\n                let index = encoded & 0x7fffffff;\n                let b = if encoded >> 31 != 0 { -*b } else { *b };\n                let a = buckets[index as usize];\n                let denominator = b.x - a.x;\n                let norm = denominator.c0.square() + denominator.c1.square();\n                let numerator = ((b.y - a.y) * denominator.conjugate()).mul_by_fp(&tail[k % LANES]);\n                tail[k % LANES] *= norm;\n                s.tail\n                    .push([a.x, a.y, a.x + b.x, Fq2::new(norm, Fq::ZERO), numerator]);\n            }\n            let mut inverse = invert_lanes(tail, s.vector_inverse);\n            for k in (full..batch.len()).rev() {\n                let [ax, ay, xsum, norm, numerator] = s.tail[k - full];\n                let slope = numerator.mul_by_fp(&inverse[k % LANES]);\n                inverse[k % LANES] *= norm.c0;\n                let x = slope.square() - xsum;\n                let y = slope * (ax - x) - ay;\n                buckets[(batch[k].0 & 0x7fffffff) as usize] = Affine::new(x, y);\n            }\n            FqBatch::new(&inverse)}",
+      "before": "let mut tail = chains.get();\n            for k in full..batch.len() {\n                let (encoded, b) = batch[k];\n                let index = encoded & 0x7fffffff;\n                let b = if encoded >> 31 != 0 { -*b } else { *b };\n                let a = buckets[index as usize];\n                let denominator = b.x - a.x;\n                let norm = denominator.c0.square() + denominator.c1.square();\n                let numerator = ((b.y - a.y) * denominator.conjugate()).mul_by_fp(&tail[k % LANES]);\n                tail[k % LANES] *= norm;\n                s.tail\n                    .push([a.x, a.y, a.x + b.x, Fq2::new(norm, Fq::ZERO), numerator]);\n            }\n            let mut inverse = invert_lanes(tail, s.vector_inverse);\n            for k in (full..batch.len()).rev() {\n                let [ax, ay, xsum, norm, numerator] = s.tail[k - full];\n                let slope = numerator.mul_by_fp(&inverse[k % LANES]);\n                inverse[k % LANES] *= norm.c0;\n                let x = slope.square() - xsum;\n                let y = slope * (ax - x) - ay;\n                buckets[(batch[k].0 & 0x7fffffff) as usize] = Affine::new(x, y);\n            }\n            FqBatch::new(&inverse)"
+    },
+    "crates/zopro-core/src/msm/g2_prefix.rs": {
+      "after": "#[cfg(zopro_g2_cold_tail)]\n            {super::g2_tail::owned::<C>(buckets,batch,s,&chains,full)}\n            #[cfg(not(zopro_g2_cold_tail))]\n            {let mut tail = chains.get();\n        for k in full..batch.len() {\n            let (index, b) = batch[k];\n            let a = buckets[index as usize];\n            let denominator = b.x - a.x;\n            let norm = denominator.c0.square() + denominator.c1.square();\n            let numerator = ((b.y - a.y) * denominator.conjugate()).mul_by_fp(&tail[k % LANES]);\n            tail[k % LANES] *= norm;\n            s.tail\n                .push([a.x, a.y, a.x + b.x, Fq2::new(norm, Fq::ZERO), numerator]);\n        }\n        let mut inverse = invert_lanes(tail, s.vector_inverse);\n        for k in (full..batch.len()).rev() {\n            let [ax, ay, xsum, norm, numerator] = s.tail[k - full];\n            let slope = numerator.mul_by_fp(&inverse[k % LANES]);\n            inverse[k % LANES] *= norm.c0;\n            let x = slope.square() - xsum;\n            let y = slope * (ax - x) - ay;\n            buckets[batch[k].0 as usize] = Affine::new(x, y);\n        }\n        FqBatch::new(&inverse)}",
+      "before": "let mut tail = chains.get();\n        for k in full..batch.len() {\n            let (index, b) = batch[k];\n            let a = buckets[index as usize];\n            let denominator = b.x - a.x;\n            let norm = denominator.c0.square() + denominator.c1.square();\n            let numerator = ((b.y - a.y) * denominator.conjugate()).mul_by_fp(&tail[k % LANES]);\n            tail[k % LANES] *= norm;\n            s.tail\n                .push([a.x, a.y, a.x + b.x, Fq2::new(norm, Fq::ZERO), numerator]);\n        }\n        let mut inverse = invert_lanes(tail, s.vector_inverse);\n        for k in (full..batch.len()).rev() {\n            let [ax, ay, xsum, norm, numerator] = s.tail[k - full];\n            let slope = numerator.mul_by_fp(&inverse[k % LANES]);\n            inverse[k % LANES] *= norm.c0;\n            let x = slope.square() - xsum;\n            let y = slope * (ax - x) - ay;\n            buckets[batch[k].0 as usize] = Affine::new(x, y);\n        }\n        FqBatch::new(&inverse)"
+    }
+  },
+  "endpoint_changes_included": false,
+  "fallback_bodies": {
+    "borrowed": {
+      "helper_body_exact": true,
+      "original_body_sha256": "193c1b32940f9f0de2a59547a05432bb8bbcdec09cdf5e26a5bd7a012e27ef38"
+    },
+    "owned": {
+      "helper_body_exact": true,
+      "original_body_sha256": "ba3a537fd2e74e5ee63aab19e43d9e393c336d522dd0ad9d13a7101c74a80e56"
+    }
+  },
+  "field_files_exact": 17,
+  "files": 177,
+  "new_heap_or_key_state": false,
+  "originals_exact": 171,
+  "production_changed": false,
+  "replay_operational_prefix_exact_prior_OFF": true,
+  "reverse175_exact": true
+}
