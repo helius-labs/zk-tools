@@ -1,0 +1,15 @@
+# Offline publication review
+
+All captures finished before analysis, repairs, interpretation and publication. Original pinned helpers, field sources, timing observations and thresholds remain unchanged.
+
+The initial offline analyzer inherited a PERF_RECORD_FORK assertion from a multi-threaded caller. These captures contain one thread and retain probe COMM exec and executable MMAP records. A separate analyzer replaces only that assertion with an exact probe COMM exec PID/TID match. All four profiles retain every sample, CPU2 checks, sole PID/TID, fixed16-million period, event/mapping/loss checks and unchanged qualification thresholds. Initial failure, original source, replacement source and the repair helper remain in this report. No capture or successful test repeats.
+
+The first preparation attempt tried to find the old postcapture analysis in its precapture pin map. That map correctly contains no such entry. Before any capture, preparation was repaired to compare the old analysis with its committed report copy instead. Existing executable/kernel/model pins remain checked. Initial controller and failure are archived. No old native test or timing is repeated.
+
+The pinned original bounds note establishes a common unreduced bound below4p and describes correction generally. More precisely, R256 uses reduce_fused to subtract2p if needed. R260 returns the normalized value directly: since R260>64p and raw Y<=12p², REDC(Y)<p+12p²/R260<1.1875p<2p. The X bound is smaller. The raw/cancellation implementation and all independent model/native checks already cover both branches; this clarification changes no arithmetic.
+
+The report adds interpretation of the new candidate's4.511% complete-expression regression, its15.691% gain versus the old basis and the passing ordinary calibration. Both failed composite gain checks remain. Standalone multiplication gains and square/norm regressions remain diagnostic; no new acceptance rule is selected after timing.
+
+The native model's initial ambiguous shift type and pre-capture preparation failure are preserved. Probe-only rebuilding added static wrappers and repeated-interval profiling without changing the successfully tested arithmetic; no field test was repeated. The original publisher completed on its first execution. Offline analysis source/receipts and this note were added afterward, before final checksums and summary-source hashes.
+
+Preparation also pinned the then-current summary README/data as inherited documentary inputs. The authorized summary refresh changes those two working files after publication. Their exact original bytes are recovered from capture commit7f33f0ff70, checked against both original SHA256 pins and retained in inherited-summary.json.gz. Every other capture pin matches its current file. This records content preservation rather than claiming the refreshed working files still match their old hashes. All nine accepted local/AWS rows and eight CPU/Metal references agree exactly between the retained and refreshed summaries.

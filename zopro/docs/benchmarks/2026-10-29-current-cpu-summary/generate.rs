@@ -85,6 +85,7 @@ fn main() {
     let delta_sdk=read(root.join("docs/benchmarks/2026-10-30-loose-delta-sdk175/artifacts/analysis.json"));assert_eq!(delta_sdk["complete"],true);assert_eq!(delta_sdk["independent_proof_count"],23962);
     let replay=read(root.join("docs/benchmarks/2026-10-30-real-g2-replay175/artifacts/analysis.json"));assert_eq!(replay["complete"],true);assert_eq!(replay["independent_proof_count"],23971);assert_eq!(replay["production_changed"],false);
     let endpoints=read(root.join("docs/benchmarks/2026-10-30-g2-endpoints175/artifacts/analysis.json"));assert_eq!(endpoints["complete"],true);assert_eq!(endpoints["proof_ledger"],23971);assert_eq!(endpoints["production_changed"],false);
+    let trace_square=read(root.join("docs/benchmarks/2026-10-30-trace-one-square175/artifacts/analysis.json"));assert_eq!(trace_square["complete"],true);assert_eq!(trace_square["proof_ledger"],23971);assert_eq!(trace_square["production_changed"],false);
     let cold_tail=read(root.join("docs/benchmarks/2026-10-30-g2-cold-tail175/artifacts/analysis.json"));assert_eq!(cold_tail["complete"],true);assert_eq!(cold_tail["proof_ledger"],23971);assert_eq!(cold_tail["production_changed"],false);assert_eq!(cold_tail["kernel_calls_including_primes_and_profiles"],1059202848u64);
     let dest = std::env::args()
         .nth(1)
@@ -130,6 +131,7 @@ fn main() {
         "2026-10-30-real-g2-replay175",
         "2026-10-30-g2-endpoints175",
         "2026-10-30-g2-cold-tail175",
+        "2026-10-30-trace-one-square175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -525,6 +527,8 @@ fn main() {
     let hot=&cold_tail["pairs"]["1x2-dominant-w32"]["statistics"];
     let frozen_hot=&cold_tail["frozen_pairs"]["1x2-dominant-w32"]["statistics"];
     writeln!(md,"\n## G2 scalar fallback extraction\n\nThe exact scalar fallback statements move to private cold, never-inline helpers; field math, scratch and fast-path operations stay unchanged. Thirty-one fixed blocks compare frozen/OFF/ON callers across 22 contexts, including every captured tail fixture. Primary32 ON/OFF **{:.9} [{:.9}, {:.9}], {}/31 wins**; ON/FROZEN **{:.9} [{:.9}, {:.9}], {}/31 wins**. Declared caller gate **{}**; failures `{}`. All calibration intervals and both control comparisons are required. These are compact real-operand batch waves, not proof latency or adoption. Native OFF/ON each pass 127 core and eight prover tests, including the 512 KiB stack test. The experiment adds 1,059,202,848 kernel calls, zero SDK requests and zero Gnark exports; ledger remains 23,971. A caller pass still needs full SDK, portable and resource qualification. [Full results and automatic profiles](../2026-10-30-g2-cold-tail175/README.md).\n",hot["median"].as_f64().unwrap(),hot["low"].as_f64().unwrap(),hot["high"].as_f64().unwrap(),hot["wins"],frozen_hot["median"].as_f64().unwrap(),frozen_hot["low"].as_f64().unwrap(),frozen_hot["high"].as_f64().unwrap(),frozen_hot["wins"],cold_tail["caller_gate"],cold_tail["failed_checks"]).unwrap();
+    let t=&trace_square["comparisons"]["norm-affine/SQUARE/OFF"]["statistics"];
+    writeln!(md,"\n## Direct trace-one symmetric square\n\nThe trace-one basis square now computes shared symmetric raw products directly, removing its earlier division by three. The old rejected basis experiment remains unchanged. The new six-context arithmetic screen retains the known norm and conjugation costs; conversion is outside timing. Norm-affine SQUARE/OFF **{:.9} [{:.9}, {:.9}], {}/31 wins**. Composite gate **{}**; failures `{}`. Only the composite versus both ordinary controls and all calibration checks select further valid-curve caller work; isolated rows are diagnostic. No new SDK/Gnark proofs or adoption; ledger remains23,971. [All four variants, correctness and profiles](../2026-10-30-trace-one-square175/README.md).\n",t["median"].as_f64().unwrap(),t["low"].as_f64().unwrap(),t["high"].as_f64().unwrap(),t["wins"],trace_square["gate_passed"],trace_square["failed_checks"]).unwrap();
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -671,6 +675,8 @@ fn main() {
     data["latest_G2_endpoints_caller"]=json!({"report":"../2026-10-30-g2-endpoints175/README.md","caller_gate":endpoints["caller_gate"],"failed_checks":endpoints["failed_checks"],"cells":endpoints["cells"],"pairs":endpoints["pairs"],"original8_aggregate":endpoints["original8_aggregate"],"kernel_calls":278889664,"SDK_requests":0,"new_independent_exports":0,"proof_ledger":23971,"production_changed":false,"adopted":false});
     data["source_commit"]=json!("241f02692e2c86d1ae8e019e6fb2c5b3d1a8c5ac");
     data["latest_G2_cold_tail_caller"]=json!({"report":"../2026-10-30-g2-cold-tail175/README.md","caller_gate":cold_tail["caller_gate"],"failed_checks":cold_tail["failed_checks"],"cells":cold_tail["cells"],"pairs":cold_tail["pairs"],"frozen_pairs":cold_tail["frozen_pairs"],"calibration_checks":cold_tail["calibration_checks"],"original8_aggregate":cold_tail["original8_aggregate"],"frozen_aggregate":cold_tail["frozen_aggregate"],"kernel_calls":1059202848u64,"SDK_requests":0,"new_independent_exports":0,"proof_ledger":23971,"production_changed":false,"adopted":false});
+    data["source_commit"]=json!("7f33f0ff70aa79631f2a92d94c17ffd05799f803");
+    data["latest_trace_one_square_component"]=json!({"report":"../2026-10-30-trace-one-square175/README.md","gate_passed":trace_square["gate_passed"],"failed_checks":trace_square["failed_checks"],"cells":trace_square["cells"],"comparisons":trace_square["comparisons"],"calibration":trace_square["calibration"],"new_native_field_outputs":132096,"conversion_outside_clock":true,"SDK_requests":0,"new_independent_exports":0,"proof_ledger":23971,"production_changed":false,"adopted":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),
