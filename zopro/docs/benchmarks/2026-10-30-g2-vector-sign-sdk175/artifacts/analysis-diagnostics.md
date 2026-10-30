@@ -1,0 +1,7 @@
+# Capture and interpretation
+
+The full SDK uses its original global Rayon pool under whole-process taskset CPU0–15/0–31; workers inherit that allowed set. Unlike the prior standalone query fixture, it does not pin each worker to a fixed numbered CPU. Profile metadata must establish one owner PID mapping the actual SDK binary, and every sampled TID must belong to that PID's recorded forked threads or main thread; sampled CPUs must remain inside the requested set. Three metadata parser tests run before capture. No CPU or thread-ID stability beyond the allowed set is claimed.
+
+The signed helper is inline. The selected borrowed-G2 symbol period records surrounding execution, not its exclusive cost. Both OFF and ON can sample that symbol; only source/flags/coherent libraries and pre-capture pure-source review establish which compiled body is selected. All original calibration, latency, RSS and profile thresholds remain as declared. No absolute-period accounting, exclusive CPI/stall, removable proof-wall-time or CPU-port cause is inferred.
+
+Use the actual canonical prior ledger query-timeline175/proof-sha256-after.json,25,231 identities. Only972 new, distinct, bound, independently verified exports may advance it to26,203. Accepted full-proof comparisons remain unchanged until a fully qualified artifact is adopted. This campaign may pass or fail independently of the passed query gate.
