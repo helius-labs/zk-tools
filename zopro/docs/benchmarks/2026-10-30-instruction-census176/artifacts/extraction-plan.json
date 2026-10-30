@@ -1,0 +1,193 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/instruction-census176/extraction-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "objdump",
+        "-d",
+        "-w",
+        "--insn-width=16",
+        "/home/ubuntu/src/zopro-perf-work/balanced-kh-production/native/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "objdump-prior",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "nm",
+        "-S",
+        "-C",
+        "--defined-only",
+        "/home/ubuntu/src/zopro-perf-work/balanced-kh-production/native/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "nm-prior",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/perf/cycles-1x2-w16-accepted.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "samples-1x2-w16-prior",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/perf/cycles-1x2-w16-accepted.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-1x2-w16-prior",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/perf/cycles-1x2-w32-accepted.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "samples-1x2-w32-prior",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/perf/cycles-1x2-w32-accepted.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-1x2-w32-prior",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "objdump",
+        "-d",
+        "-w",
+        "--insn-width=16",
+        "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/native/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "objdump-current",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "nm",
+        "-S",
+        "-C",
+        "--defined-only",
+        "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/native/candidate-sdk"
+      ],
+      "kind": "command",
+      "name": "nm-current",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/perf/cycles-1x2-w16-ON.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "samples-1x2-w16-current",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/perf/cycles-1x2-w16-ON.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-1x2-w16-current",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/perf/cycles-1x2-w32-ON.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "samples-1x2-w32-current",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/perf/cycles-1x2-w32-ON.data",
+        "-F",
+        "pid,tid,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "metadata-1x2-w32-current",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "perf",
+        "--version"
+      ],
+      "kind": "command",
+      "name": "perf-version",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "objdump",
+        "--version"
+      ],
+      "kind": "command",
+      "name": "objdump-version",
+      "timeout_seconds": 180
+    },
+    {
+      "argv": [
+        "nm",
+        "--version"
+      ],
+      "kind": "command",
+      "name": "nm-version",
+      "timeout_seconds": 180
+    }
+  ],
+  "version": 1
+}

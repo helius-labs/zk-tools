@@ -1,0 +1,13 @@
+# Selection history
+
+No earlier candidate is rerun or selected by this audit.
+
+- Direct linear-wire folding: `2026-10-22-universal-linear-assignment-census` found zero direct syntactic candidates in 18 raw/image plans. Separate `2026-10-25-query-rank-census` found only 1.68% A and 1.24% B column redundancy on primary; neither supports a large independent query-basis reduction.
+- [SRE](https://arxiv.org/abs/2610.27452) searches shared scalar-window patterns before bucket insertion. Its software evaluation uses serial Python with small windows. `sre-bounded-window-opportunity`, `global-window-pair-opportunity` and `2026-10-30-partial-windows175` already record restricted and wider local searches, including small savings or search-time failures. The [Waterloo thesis](https://uwspace.uwaterloo.ca/items/43cc12b9-cb03-42bd-a01c-4b0ed5e12403) was also reviewed previously. This turn rechecks sources; it does not discover these mechanisms anew or reproduce their claimed speedups.
+- `2026-10-25-queue-profiles`: direct queue replacement cut epoch self samples markedly, but total CPU changed by less than 1%, switches/system CPU increased, and full SDK latency regressed. Current epoch samples alone do not reopen it.
+- `2026-10-22-aws-c7a24-parts-pilot`: changing G1 partitions/arenas failed on that C7a configuration. Current source is newer; the old result does not prove all scheduling designs impossible, but an unchanged parameter sweep is not a new mechanism.
+- `2026-10-24-point-io-component`: joint G1 input/output transposition failed its fixed component gate. Do not rerun that joint path or select its favorable subsets. A possible output-only G2 tree store would keep input packing, arithmetic and tree geometry unchanged; it is a distinct hypothesis, not a validated improvement.
+- `2026-10-24-g1-kernel-split` and `2026-10-30-g2-staged175`: kernel splitting/staging did not establish the required caller/SDK gain. Smaller functions alone do not qualify a rewrite.
+- R260 key/bucket experiments already exist. `2026-10-28-scaled-r260-native` is a distinct wider-arithmetic implementation with slower complete callers; `raw260-ordinary-buckets` also failed. No unchanged representation retry is selected here.
+
+Current evidence permits inspecting output-store data flow, not claiming all RSP operands are spills or all move samples are avoidable. Any native prototype must preserve complete-curve handling, canonical outputs, tail safety, bounded memory and actual threaded caller performance. Generic G2 reduction has limited share; this alone is not a route to 2× whole-proof latency improvement.
