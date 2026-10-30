@@ -1,0 +1,21 @@
+{
+  "child": "crates/zopro-core/src/msm_affine/g2_phi/joint_top.rs",
+  "edits": {
+    "crates/zopro-core/src/lib.rs": {
+      "suffix": "\n#[cfg(all(zopro_g2_queue_probe,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub fn g2_queue_probe(bases:&[G2Affine],words:&mut[[u64;4]])->G2Affine{msm_affine::g2_query_exclusive(bases,words).to_affine()}\n"
+    },
+    "crates/zopro-core/src/msm_affine/g2_phi.rs": {
+      "after": "        let top = 126 - w * bits;\n        #[cfg(zopro_joint_top)]\n        if top == 6 && w == 10 && bits == 12 {\n            if let Some(value) = joint_top::try_window(bases, short) { return value; }\n        }\n",
+      "before": "        let top = 126 - w * bits;\n",
+      "suffix": "\n#[cfg(any(zopro_joint_top,test))]\nmod joint_top;\n"
+    }
+  },
+  "field_files_exact": 17,
+  "new_key_table_or_persistent_point_copy": false,
+  "old_forecast_retained": true,
+  "optional_full_new_workspace_charge": true,
+  "originals_exact": 173,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "source_files": 176
+}
