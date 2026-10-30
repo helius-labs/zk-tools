@@ -1,0 +1,26 @@
+{
+  "arithmetic_and_callsite_exact_to_qualified_query": true,
+  "child": "crates/zopro-bn254/src/signed_delta.rs",
+  "edits": {
+    "crates/zopro-bn254/src/ifma8.rs": {
+      "suffix": "\n#[cfg(zopro_g2_vector_sign)]\ninclude!(\"signed_delta.rs\");\n"
+    },
+    "crates/zopro-core/src/msm/g2_borrowed.rs": {
+      "after": "        #[cfg(zopro_g2_vector_sign)]\n        let dy=if FAST{\n            let by=fq2_pack(b.map(|p|p.y));\n            let negative=signs::<true,C>(&batch[k..k+LANES]);\n            core::array::from_fn(|i|by[i].signed_difference_canonical(&ay[i],negative))\n        }else{\n            let by=fq2_pack(core::array::from_fn(|i|if batch[k+i].0>>31!=0{-b[i].y}else{b[i].y}));\n            core::array::from_fn(|i|canonical_sub::<FAST>(&by[i],&ay[i]))\n        };\n        #[cfg(not(zopro_g2_vector_sign))]\n        let dy={\n        let by = fq2_pack(core::array::from_fn(|i| {\n            if batch[k + i].0 >> 31 != 0 {\n                -b[i].y\n            } else {\n                b[i].y\n            }\n        }));\n        let dy = core::array::from_fn(|i| canonical_sub::<FAST>(&by[i], &ay[i]));\n            dy\n        };\n        let denominator=core::array::from_fn(|i|canonical_sub::<FAST>(&bx[i],&ax[i]));\n",
+      "before": "        let by = fq2_pack(core::array::from_fn(|i| {\n            if batch[k + i].0 >> 31 != 0 {\n                -b[i].y\n            } else {\n                b[i].y\n            }\n        }));\n        let denominator = core::array::from_fn(|i| canonical_sub::<FAST>(&bx[i], &ax[i]));\n        let dy = core::array::from_fn(|i| canonical_sub::<FAST>(&by[i], &ay[i]));\n",
+      "suffix": "\n#[cfg(all(test,zopro_g2_vector_sign))]mod vector_sign_tests{\n use super::*;use zopro_bn254::{G2Config,Fr};\n #[test]fn all_masks_tails_reuse_and_small_stack_pools(){\n  let g=Projective::<G2Config>::generator();let weights=(1..=64).map(|i|Fr::from(i+70000)).collect::<Vec<_>>();let initial=Projective::<G2Config>::batch_to_affine(&weights.iter().map(|s|g**s).collect::<Vec<_>>());let incoming=Projective::<G2Config>::batch_to_affine(&(0..64).map(|i|g*Fr::from(i+900001)).collect::<Vec<_>>());let original=incoming.clone();\n  let reference=Projective::<G2Config>::batch_to_affine(&(0..7).flat_map(|step|(0..64).map(move|i|{let initial=Fr::from(i as u64+70001);let delta=Fr::from(i as u64+900001)*Fr::from(if step<=3{step as u64}else{step as u64-3});g*(if step<=3{initial+delta}else{initial-delta})})).collect::<Vec<_>>());\n  for workers in[1,4,16,32]{let pool=rayon::ThreadPoolBuilder::new().num_threads(workers).stack_size(512*1024).build().unwrap();pool.install(||{use rayon::prelude::*;(0..256usize).into_par_iter().for_each(|mask|{for n in[0,1,7,8,9,15,16,31,32,33,63,64]{let mut buckets=initial.clone();let batch=(0..n).map(|i|(i as u32|if mask>>(i%8)&1!=0{1<<31}else{0},&incoming[i])).collect::<Vec<_>>();let mut scratch=Fq2AddScratch{canonical:true,vector_inverse:true,..Default::default()};for pass in 1..=3{apply::<G2Config,true>(&mut buckets,&batch,&mut scratch);for i in 0..64{let step=if i>=n{0}else if mask>>(i%8)&1!=0{pass+3}else{pass};assert_eq!(buckets[i],reference[step*64+i]);}}}});});}\n  assert_eq!(incoming,original);\n }\n}\n"
+    },
+    "crates/zopro-core/src/simd.rs": {
+      "after": "    pub(crate) fn sub_canonical(&self, b: &Self) -> Self {\n        Self(self.0.sub_canonical(&b.0))\n    }\n    #[cfg(zopro_g2_vector_sign)]\n    #[inline(always)]\n    pub(crate) fn signed_difference_canonical(&self, ay:&Self, negative:u8)->Self{Self(self.0.signed_difference_canonical(&ay.0,negative))}",
+      "before": "    pub(crate) fn sub_canonical(&self, b: &Self) -> Self {\n        Self(self.0.sub_canonical(&b.0))\n    }"
+    }
+  },
+  "field_files_exact": 16,
+  "heap_forecast_unchanged": true,
+  "new_key_table_or_point_copy": false,
+  "originals_exact": 172,
+  "private_probe_export_removed": true,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "source_files": 176
+}
