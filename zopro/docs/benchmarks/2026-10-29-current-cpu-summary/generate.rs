@@ -92,6 +92,7 @@ fn main() {
     let g2_balanced_caller=read(root.join("docs/benchmarks/2026-10-30-g2-balanced175/artifacts/analysis.json"));assert_eq!(g2_balanced_caller["complete"],true);assert_eq!(g2_balanced_caller["proof_ledger"],23971);assert_eq!(g2_balanced_caller["complete_queries_including_primes"],9216);
     let g2_balanced_sdk=read(root.join("docs/benchmarks/2026-10-30-g2-balanced-sdk175/artifacts/analysis.json"));assert_eq!(g2_balanced_sdk["complete"],true);assert_eq!(g2_balanced_sdk["independent_proof_count"],24943);assert_eq!(g2_balanced_sdk["production_changed"],false);
     let query_timeline=read(root.join("docs/benchmarks/2026-10-30-query-timeline175/artifacts/analysis.json"));assert_eq!(query_timeline["complete"],true);assert_eq!(query_timeline["independent_proof_count"],25231);assert_eq!(query_timeline["production_changed"],false);
+    let wire_readiness=read(root.join("docs/benchmarks/2026-10-30-wire-readiness175/artifacts/analysis.json"));assert_eq!(wire_readiness["complete"],true);assert_eq!(wire_readiness["distinct_proof_ledger"],25231);assert_eq!(wire_readiness["SDK_requests"],0);assert_eq!(wire_readiness["production_changed"],false);
     let cold_tail=read(root.join("docs/benchmarks/2026-10-30-g2-cold-tail175/artifacts/analysis.json"));assert_eq!(cold_tail["complete"],true);assert_eq!(cold_tail["proof_ledger"],23971);assert_eq!(cold_tail["production_changed"],false);assert_eq!(cold_tail["kernel_calls_including_primes_and_profiles"],1059202848u64);
     let dest = std::env::args()
         .nth(1)
@@ -144,6 +145,7 @@ fn main() {
         "2026-10-30-g2-balanced175",
         "2026-10-30-g2-balanced-sdk175",
         "2026-10-30-query-timeline175",
+        "2026-10-30-wire-readiness175",
     ];
     let mut sources = BTreeMap::new();
     let sdk_audit=root.join("docs/benchmarks/2026-10-30-g2-balanced-sdk175/artifacts/final-source-review.json");
@@ -553,6 +555,7 @@ fn main() {
     writeln!(md,"\n## Complete balanced G2 window caller\n\nVariable-width Phi2 windows now receive complete-query timing against exact API-onlyFROZEN and freshOFF, with the original LIFO queue. All actual outputs match reused independent whole-sum oracles; nativeOFF/ON127core/8prover tests pass. The31-block four-context gate is **{}**, failed checks `{}`; diagnostic qualification **{}**. Primary32 improves3.110% versus FROZEN; the two-shape aggregate improves3.467%, both31/31wins. Primary16latency remains inconclusive. This selects complete SDK qualification; no full-proof timing or adoption follows from this stage. This adds9216complete queries including primes,0newsolves/oracle executions/SDK requests/Gnark exports; ledger23,971. [Full results and profiles](../2026-10-30-g2-balanced175/README.md).\n",g2_balanced_caller["caller_gate"],g2_balanced_caller["failed_checks"],g2_balanced_caller["diagnostic_qualified"]).unwrap();
     writeln!(md,"\n## Balanced G2 windows in complete SDK proofs\n\nThe variable-width G2 candidate completes 31 blocks across all nine circuits at 32 workers and primary at 16, against accepted and fresh OFF. Primary32 measures 8.013709 ms and 133.75 MiB peak RSS, with paired gains of 0.416% versus accepted and 0.729% versus OFF. The full gate is **{}**, failed checks `{}`; diagnostics qualify. The original-eight aggregate versus OFF spans parity, and both physical-16 nonregression upper bounds exceed 1.02. These results do not establish a physical-16 slowdown. The candidate is not adopted. All 55,788 requests verify internally and 972 fresh exports independently pass Gnark, advancing the unique proof ledger to **24,943**. Native OFF/ON each pass 127 core and eight prover tests; portable ON passes 101 core and eight prover tests. Accepted local/AWS rows remain unchanged. [Full results, memory and profiles](../2026-10-30-g2-balanced-sdk175/README.md).\n",g2_balanced_sdk["gate_passed"],g2_balanced_sdk["failed_checks"]).unwrap();
     writeln!(md,"\n## In-process query timeline\n\nLow-frequency stage timestamps qualify against both controls within factor 1.01 at one and 32 workers; physical-16 overhead checks fail and remain instrumented-only observations. At 32 workers, K/H returns last in 45.6% of 4,681 requests, G2 in 35.4% and A in 19.0%; the median last-to-second return gap is 8.335 μs. Median native prefix to product completion is 1.864279 ms and query join 5.237387 ms. These overlapping function intervals include internal waits and do not isolate arithmetic or removable wall time. No single query is established as the sole bottleneck. The fixed trial adds 43,002 internally verified requests and 288 fresh Gnark exports; distinct-proof ledger **25,231**. Production and accepted local/AWS rows remain unchanged. [All stage records, overhead checks and limits](../2026-10-30-query-timeline175/README.md).\n").unwrap();
+    writeln!(md,"\n## Witness/query source-order readiness\n\nA circuit-only census exports the two existing primary/2×2 solver programs through the exact accepted library. Producer-index counts and an online frontier agree at all eleven cuts. Halfway through primary operations, roughly half of A/B operands are defined, but only 14% form a key-order prefix; at 90% the prefix covers only 32–33%. These are serialized op counts, not elapsed or parallel-schedule readiness. The declared no-progress-beyond-inputs rejection condition is false, so no blanket streaming rejection or performance eligibility follows. Index/gather cost, grouping, G2 component order and admission remain unmeasured. Three structural tests and all seven workflow steps pass; no solver, proof, Gnark or timing execution is added. Ledger and all accepted comparisons remain unchanged. [Counts, reader, limits and provenance](../2026-10-30-wire-readiness175/README.md).\n").unwrap();
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -717,6 +720,7 @@ fn main() {
     data["historical_distinct_Gnark_ledger"]=json!(24943);
     data["historical_distinct_Gnark_ledger"]=json!(25231);
     data["source_commit"]=json!("391ddc3c5f2314db253cd1a7589821a07674adaa");
+    data["source_commit"]=json!("8fcf34010d4002a19b3cebd7210ec2f8ef5de904");
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),
@@ -733,7 +737,9 @@ fn main() {
         .arg(root.join("docs/benchmarks/2026-10-30-g2-balanced-sdk175/artifacts/analysis.json"))
         .args(["--slurpfile","d"])
         .arg(root.join("docs/benchmarks/2026-10-30-query-timeline175/artifacts/analysis.json"))
-        .args([".latest_G2_queue_scan_caller = ($a[0] + {report:\"../2026-10-30-g2-queue-scan175/README.md\"}) | .latest_G2_balanced_caller = ($b[0]+{report:\"../2026-10-30-g2-balanced175/README.md\"}) | .latest_G2_balanced_SDK_experiment=($c[0]+{report:\"../2026-10-30-g2-balanced-sdk175/README.md\"}) | .latest_query_timeline_diagnostic=($d[0]+{report:\"../2026-10-30-query-timeline175/README.md\"})"])
+        .args(["--slurpfile","e"])
+        .arg(root.join("docs/benchmarks/2026-10-30-wire-readiness175/artifacts/analysis.json"))
+        .args([".latest_G2_queue_scan_caller = ($a[0] + {report:\"../2026-10-30-g2-queue-scan175/README.md\"}) | .latest_G2_balanced_caller = ($b[0]+{report:\"../2026-10-30-g2-balanced175/README.md\"}) | .latest_G2_balanced_SDK_experiment=($c[0]+{report:\"../2026-10-30-g2-balanced-sdk175/README.md\"}) | .latest_query_timeline_diagnostic=($d[0]+{report:\"../2026-10-30-query-timeline175/README.md\"}) | .latest_wire_readiness_census=($e[0]+{report:\"../2026-10-30-wire-readiness175/README.md\"})"])
         .arg(dest.join("data.json"))
         .output().unwrap();
     assert!(exact_caller.status.success());
