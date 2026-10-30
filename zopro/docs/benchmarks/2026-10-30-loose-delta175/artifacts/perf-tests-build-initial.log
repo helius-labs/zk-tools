@@ -1,0 +1,17 @@
+error[E0433]: cannot find module or crate `serde_json` in this scope
+   --> /home/ubuntu/src/zopro-perf-work/loose-delta175/perf.rs:172:9
+    |
+172 |         serde_json::json!({"user_cpu_ms":ms(self.0.ru_utime)-ms(before.0.ru_utime),
+    |         ^^^^^^^^^^ use of unresolved module or unlinked crate `serde_json`
+
+error[E0433]: cannot find module or crate `serde_json` in this scope
+   --> /home/ubuntu/src/zopro-perf-work/loose-delta175/perf.rs:164:48
+    |
+164 |     pub fn difference(&self, before: &Self) -> serde_json::Value {
+    |                                                ^^^^^^^^^^ use of unresolved module or unlinked crate `serde_json`
+    |
+    = help: you might be missing a crate named `serde_json`
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0433`.

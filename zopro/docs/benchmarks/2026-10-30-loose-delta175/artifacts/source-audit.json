@@ -1,0 +1,30 @@
+{
+  "edits": {
+    "crates/zopro-bn254/src/ifma8.rs": {
+      "suffix": "\n#[cfg(zopro_loose_delta)]\ninclude!(\"loose_delta.rs\");\n"
+    },
+    "crates/zopro-core/src/lib.rs": {
+      "suffix": "\n#[cfg(zopro_gauss_caller_probe)]\npub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n"
+    },
+    "crates/zopro-core/src/msm.rs": {
+      "suffix": "\n#[cfg(zopro_gauss_caller_probe)]\nmod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]\npub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n\n#[inline(always)]\nfn g2_y_product(slope:&[FqBatch;2],anchor:&[FqBatch;2],x:&[FqBatch;2])->[FqBatch;2]{\n #[cfg(all(zopro_loose_delta,target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n {return FqBatch::complex_canonical_delta(&slope[0],&slope[1],&anchor[0],&anchor[1],&x[0],&x[1]);}\n #[cfg(not(all(zopro_loose_delta,target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n {Fq2::lanes_mul(slope,&Fq2::lanes_sub(anchor,x))}\n}\n"
+    },
+    "crates/zopro-core/src/msm/g2_borrowed.rs": {
+      "after": "g2_y_product(&slope, &ax, &x)",
+      "before": "Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x))"
+    },
+    "crates/zopro-core/src/msm/g2_prefix.rs": {
+      "after": "g2_y_product(&slope,&ax,&x)",
+      "before": "Fq2::lanes_mul(&slope,&Fq2::lanes_sub(&ax,&x))"
+    },
+    "crates/zopro-core/src/simd.rs": {
+      "suffix": "\n#[cfg(all(zopro_loose_delta,target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch{\n #[inline(always)]pub(crate)fn complex_canonical_delta(a0:&Self,a1:&Self,c0:&Self,c1:&Self,x0:&Self,x1:&Self)->[Self;2]{zopro_bn254::ifma8::Ifma8::complex_canonical_delta(&a0.0,&a1.0,&c0.0,&c1.0,&x0.0,&x1.0).map(Self)}\n}\n"
+    }
+  },
+  "new_heap_or_key_state": false,
+  "originals": 175,
+  "originals_exact": 169,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "snapshot_files": 177
+}

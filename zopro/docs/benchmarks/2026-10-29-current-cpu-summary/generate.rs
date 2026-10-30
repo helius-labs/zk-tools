@@ -81,6 +81,7 @@ fn main() {
     let control_literals=read(root.join("docs/benchmarks/2026-10-29-control-codegen175/artifacts/literal-review.json"));
     assert_eq!(control_codegen["unique_functions_exact_bytes"],2918);
     assert_eq!(control_literals["grouping_instructions_differ_only_in_eight_RIP_relative_literal_relocations"],true);
+    let loose_delta=read(root.join("docs/benchmarks/2026-10-30-loose-delta175/artifacts/analysis.json"));assert_eq!(loose_delta["complete"],true);assert_eq!(loose_delta["proof_ledger"],22990);
     let dest = std::env::args()
         .nth(1)
         .map(PathBuf::from)
@@ -120,6 +121,7 @@ fn main() {
         "2026-10-29-queue-drain175",
         "2026-10-29-cached-drain175",
         "2026-10-29-control-codegen175",
+        "2026-10-30-loose-delta175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -499,6 +501,10 @@ fn main() {
     for(k,c)in combined["cells"].as_object().unwrap(){writeln!(md,"|{k}|{:.6}|{:.3}|{:.2}|",c["median_ms"].as_f64().unwrap(),c["CPU_ms"].as_f64().unwrap(),c["max_RSS_MiB"].as_f64().unwrap()).unwrap();}
     writeln!(md,"\nDeclared gate **{}**; failures `{}`. No adoption. Primary32 and original-eight aggregate require gain against accepted/OFF, allothercases includingphysical16 require nonregression, andallten calibration/RSSguards are required. The new trial adds27948SDKrequests and492freshGnarkexports, ledger22990. Accepted source175 and all local/AWS/M5 rows remain unchanged.\n",combined["gate_passed"],combined["failed_checks"]).unwrap();
     md+="\n## Static audit of the grouping OFF control\n\nCombined OFF is byte-identical to earlier grouping OFF; standalone queue OFF is byte-identical to accepted. All3,036 demangled function-name size inventories match accepted/OFF. Of2,985 uniquely matched functions,2,918 have byte-identical bodies;51 additional names need alias/multiple-implementation review. The7,624-byte grouping body differs only in eight RIP-relative loads to two identical16-byte constants relocated by16bytes. Both reviewed Fq inversion bodies are byte-identical. Other code/layout differences remain, so this does not establish runtime equivalence or explain8×2/calibration. It gives no evidence for a large OFF arithmetic rewrite. [Static evidence and limitations](../2026-10-29-control-codegen175/README.md).\n\nNo new SDK requests, proofs, timing, adoption or AWS measurements. Ledger22,990 and all accepted/M5 rows remain unchanged. The combined candidate's useful speed/RSS gains and both failed checks remain intact.\n";
+
+    md+="\n## G2 canonical-anchor loose delta\n\nA private normalized delta2p+anchor-X<=3p is consumed immediately by unchanged positive fused complex arithmetic; outputs returnbelow2p. Two modular subtractions become fixed-offset carries, without new scratch/keytable/pointcopy or changes to norms, inversions, tails and other coordinate work. Full actual owned/borrowed G2prefix callers cover18contexts at1/16/32workers. [Complete caller results](../2026-10-30-loose-delta175/README.md).\n\n|Aggregate|Ratio|Bounds|Wins/15|\n|---|---:|---|---:|\n";
+    for(k,v)in loose_delta["aggregates"].as_object().unwrap(){writeln!(md,"|{k}|{:.9}|[{:.9}, {:.9}]|{}|",v["median"].as_f64().unwrap(),v["low"].as_f64().unwrap(),v["high"].as_f64().unwrap(),v["wins"]).unwrap();}
+    writeln!(md,"\nDeclared caller gate **{}**; failures `{}`. No SDK proof or new independent export; ledger22990. Production and allaccepted local/AWS/M5 rows remain unchanged. A caller pass needs separate fullSDK/Gnark/resource/portable qualification.\n",loose_delta["component_gate"],loose_delta["failed_checks"]).unwrap();
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -633,6 +639,9 @@ fn main() {
     data["latest_combined_grouping_drain_experiment"]=json!({"report":"../2026-10-29-cached-drain175/README.md","cells":combined["cells"],"pairs":combined["pairs"],"original8_aggregates":combined["original8_aggregates"],"gate_passed":combined["gate_passed"],"failed_checks":combined["failed_checks"],"SDK_requests":27948,"new_independent_exports":492,"independent_proof_count":22990,"production_changed":false,"adopted":false});
     data["source_commit"]=json!("d93f1cf539b2dd098f001b881e883d765ec9d79d");
     data["latest_control_codegen_diagnostic"]=json!({"report":"../2026-10-29-control-codegen175/README.md","static_only":true,"unique_functions_exact_bytes":control_codegen["unique_functions_exact_bytes"],"exact_address_size_multiset_names":control_codegen["exact_address_size_multiset_names"],"unique_functions_different_bytes":control_codegen["unique_functions_different_bytes"].as_array().unwrap().len(),"ambiguous_names":control_codegen["ambiguous_names"].as_array().unwrap().len(),"grouping_literal_review":control_literals,"SDK_requests":0,"new_independent_exports":0,"independent_proof_count":22990,"production_changed":false,"new_latency_qualification":false});
+
+    data["source_commit"]=json!("fdf8dbe6d2f489eaf9006531134af74eec06ff31");
+    data["latest_loose_delta_caller"]=json!({"report":"../2026-10-30-loose-delta175/README.md","gate_passed":loose_delta["component_gate"],"aggregates":loose_delta["aggregates"],"pairs":loose_delta["pairs"],"failed_checks":loose_delta["failed_checks"],"native_field_tests_ON":35,"native_core_tests":{"OFF":128,"ON":128},"SDK_requests":0,"new_independent_exports":0,"proof_ledger":22990,"production_changed":false,"adopted":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

@@ -448,3 +448,16 @@ Declared gate **false**; failures `["8x2-w32/ON/accepted","1x2-w16/OFF/accepted"
 Combined OFF is byte-identical to earlier grouping OFF; standalone queue OFF is byte-identical to accepted. All3,036 demangled function-name size inventories match accepted/OFF. Of2,985 uniquely matched functions,2,918 have byte-identical bodies;51 additional names need alias/multiple-implementation review. The7,624-byte grouping body differs only in eight RIP-relative loads to two identical16-byte constants relocated by16bytes. Both reviewed Fq inversion bodies are byte-identical. Other code/layout differences remain, so this does not establish runtime equivalence or explain8×2/calibration. It gives no evidence for a large OFF arithmetic rewrite. [Static evidence and limitations](../2026-10-29-control-codegen175/README.md).
 
 No new SDK requests, proofs, timing, adoption or AWS measurements. Ledger22,990 and all accepted/M5 rows remain unchanged. The combined candidate's useful speed/RSS gains and both failed checks remain intact.
+
+## G2 canonical-anchor loose delta
+
+A private normalized delta2p+anchor-X<=3p is consumed immediately by unchanged positive fused complex arithmetic; outputs returnbelow2p. Two modular subtractions become fixed-offset carries, without new scratch/keytable/pointcopy or changes to norms, inversions, tails and other coordinate work. Full actual owned/borrowed G2prefix callers cover18contexts at1/16/32workers. [Complete caller results](../2026-10-30-loose-delta175/README.md).
+
+|Aggregate|Ratio|Bounds|Wins/15|
+|---|---:|---|---:|
+|all18/on/frozen|0.991561425|[0.990400977, 0.993886951]|15|
+|all18/on/off|0.995945397|[0.994375835, 0.996459571]|14|
+|threaded12/on/frozen|0.992392319|[0.991404171, 0.995478723]|14|
+|threaded12/on/off|0.995342207|[0.994461179, 0.998481000]|13|
+
+Declared caller gate **true**; failures `[]`. No SDK proof or new independent export; ledger22990. Production and allaccepted local/AWS/M5 rows remain unchanged. A caller pass needs separate fullSDK/Gnark/resource/portable qualification.

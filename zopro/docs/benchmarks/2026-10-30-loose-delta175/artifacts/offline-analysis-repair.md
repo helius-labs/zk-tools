@@ -1,0 +1,7 @@
+# Worker affinity and profiling coordinator
+
+All 930 capture/offline workflow steps completed on the first attempt. The original final analyzer then stopped before writing analysis.json because it asserted every sampled CPU was below the worker count. In physical16 recordings the unpinned process coordinator appears on CPU27; the worker threads are pinned to CPUs0–15. Their actual TID/CPU pairs are recorded in each harness result. The coordinator has four samples in each physical16 profile.
+
+A separate analysis-fixed.rs, compiled after all captures, checks every worker sample against its recorded TID/CPU pair and requires every other sampled TID to be the process leader. It retains all samples, periods, output/timing data, identities and verification checks. The final JSON records coordinator sample CPU counts explicitly. All six profiles pass worker-affinity, timestamp, executable-MMAP/FORK, one-PID and zero-loss checks; unknown period remains below0.17%. Absolute-period coverage remains unvalidated. This is not a claim of process-wide physical16 affinity.
+
+The repair changes only offline profile validation/accounting. It does not alter the latency statistics, performance checks or included observations. Original capture.rs/capture-helper and their pins remain unchanged, the failed analysis log is retained, and no native test, capture, oracle or profile repeats. Original helpers compiled before capture; the separate repaired offline analyzer did not.
