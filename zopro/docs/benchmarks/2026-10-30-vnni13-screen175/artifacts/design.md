@@ -1,0 +1,11 @@
+# VNNI radix-13 instruction-budget screen
+
+Declared before native semantic/count execution. This is a feasibility screen, not a performance benchmark or field implementation. Accepted source and all performance rows remain unchanged.
+
+Recipe: radix B=2^13, n=20, R=2^260. Form full T=a*b (or a*b+c*d), low q=(T*(-p^-1)) mod R, then q*p coefficients n-2 through 2n-2 using the previously studied known-remainder carry idea. A 512-bit VPDPWSSD instruction has 16 output dwords with two signed16 products each. Grant perfect packing across eight field elements and no cost for carrying, permutation, conversion or normalizing. Count 400/800 raw products, 210 low-q products, 229 upper-q*p products per field. This is one direct-convolution recipe, not a lower bound on every possible VNNI algorithm.
+
+Compare the resulting optimistic whole-vector product-capacity bounds with the accepted cancel-carry CIOS recipe's 100 ordinary or 150 fused IFMAs. Use AMD 58455 revision1.00's published instruction characteristics, with original ZIP/XLSX/XML hashes retained locally. If both VNNI bounds require at least as many equal-throughput multiplication instructions as accepted, reject this recipe before a kernel/proof benchmark. This is an engineering screen, not a proof of slower runtime; instruction overlap and dependencies can change realized cost.
+
+Check runtime AVX512VNNI/F support and actual non-saturating signed dot-product semantics, including overflow and radix13 accumulation, against scalar i64/wrapping oracles. This does not qualify Montgomery arithmetic. No full REDC model, field oracle, kernel, timing, SDK proof, PMU, sampling or AWS execution is authorized by passing the ISA check alone. No multi-GiB key table, copied points or execution plan is proposed.
+
+The XML extractor's initial attempt required literal `<t>` and failed on a text element with attributes before any result; extract-initial.rs is retained. The repaired reader accepts attributed/rich text and consumes explicit cell references/shared-string indices. Its successful extraction is reused. Full AMD source files remain local; publish only the few relevant instruction facts, hashes, helper source, accounting and receipts.
