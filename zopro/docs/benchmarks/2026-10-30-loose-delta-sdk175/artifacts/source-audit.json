@@ -1,0 +1,32 @@
+{
+  "caller_adapters_removed": true,
+  "child": "crates/zopro-bn254/src/loose_delta.rs",
+  "edits": {
+    "crates/zopro-bn254/src/ifma8.rs": {
+      "suffix": "\n#[cfg(zopro_loose_delta)]\ninclude!(\"loose_delta.rs\");\n"
+    },
+    "crates/zopro-core/src/msm.rs": {
+      "suffix": "\n#[inline(always)]\nfn g2_y_product(slope:&[FqBatch;2],anchor:&[FqBatch;2],x:&[FqBatch;2])->[FqBatch;2]{\n #[cfg(all(feature=\"ifma8\",zopro_loose_delta,target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n {return FqBatch::complex_canonical_delta(&slope[0],&slope[1],&anchor[0],&anchor[1],&x[0],&x[1]);}\n #[cfg(not(all(feature=\"ifma8\",zopro_loose_delta,target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n {Fq2::lanes_mul(slope,&Fq2::lanes_sub(anchor,x))}\n}\n"
+    },
+    "crates/zopro-core/src/msm/g2_borrowed.rs": {
+      "after": "g2_y_product(&slope, &ax, &x)",
+      "before": "Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x))"
+    },
+    "crates/zopro-core/src/msm/g2_prefix.rs": {
+      "after": "g2_y_product(&slope,&ax,&x)",
+      "before": "Fq2::lanes_mul(&slope,&Fq2::lanes_sub(&ax,&x))"
+    },
+    "crates/zopro-core/src/simd.rs": {
+      "suffix": "\n#[cfg(all(feature=\"ifma8\",zopro_loose_delta,target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch{\n #[inline(always)]pub(crate)fn complex_canonical_delta(a0:&Self,a1:&Self,c0:&Self,c1:&Self,x0:&Self,x1:&Self)->[Self;2]{zopro_bn254::ifma8::Ifma8::complex_canonical_delta(&a0.0,&a1.0,&c0.0,&c1.0,&x0.0,&x1.0).map(Self)}\n}\n"
+    }
+  },
+  "field17_and_child_exact_qualified_component": true,
+  "inherited_field_tests": 35,
+  "native_feature_guards_fixed": 3,
+  "new_heap_or_key_state": false,
+  "originals_exact": 170,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "source_files": 176,
+  "unused_caller_cfg_absent_from_all_field_files": true
+}

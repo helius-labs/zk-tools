@@ -82,6 +82,7 @@ fn main() {
     assert_eq!(control_codegen["unique_functions_exact_bytes"],2918);
     assert_eq!(control_literals["grouping_instructions_differ_only_in_eight_RIP_relative_literal_relocations"],true);
     let loose_delta=read(root.join("docs/benchmarks/2026-10-30-loose-delta175/artifacts/analysis.json"));assert_eq!(loose_delta["complete"],true);assert_eq!(loose_delta["proof_ledger"],22990);
+    let delta_sdk=read(root.join("docs/benchmarks/2026-10-30-loose-delta-sdk175/artifacts/analysis.json"));assert_eq!(delta_sdk["complete"],true);assert_eq!(delta_sdk["independent_proof_count"],23962);
     let dest = std::env::args()
         .nth(1)
         .map(PathBuf::from)
@@ -122,6 +123,7 @@ fn main() {
         "2026-10-29-cached-drain175",
         "2026-10-29-control-codegen175",
         "2026-10-30-loose-delta175",
+        "2026-10-30-loose-delta-sdk175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -505,6 +507,10 @@ fn main() {
     md+="\n## G2 canonical-anchor loose delta\n\nA private normalized delta2p+anchor-X<=3p is consumed immediately by unchanged positive fused complex arithmetic; outputs returnbelow2p. Two modular subtractions become fixed-offset carries, without new scratch/keytable/pointcopy or changes to norms, inversions, tails and other coordinate work. Full actual owned/borrowed G2prefix callers cover18contexts at1/16/32workers. [Complete caller results](../2026-10-30-loose-delta175/README.md).\n\n|Aggregate|Ratio|Bounds|Wins/15|\n|---|---:|---|---:|\n";
     for(k,v)in loose_delta["aggregates"].as_object().unwrap(){writeln!(md,"|{k}|{:.9}|[{:.9}, {:.9}]|{}|",v["median"].as_f64().unwrap(),v["low"].as_f64().unwrap(),v["high"].as_f64().unwrap(),v["wins"]).unwrap();}
     writeln!(md,"\nDeclared caller gate **{}**; failures `{}`. No SDK proof or new independent export; ledger22990. Production and allaccepted local/AWS/M5 rows remain unchanged. A caller pass needs separate fullSDK/Gnark/resource/portable qualification.\n",loose_delta["component_gate"],loose_delta["failed_checks"]).unwrap();
+
+    md+="\n## Full SDK qualification of bounded G2 delta multiplication\n\nFollowing the passed actual-caller gate, the exact helper is integrated without diagnostic adapters. Native ifma8 guards are explicit; portable fallback retains the original expression. Thirty-one fixed blocks cover all nine32-worker circuits and primary16, accepted/OFF/ON. [Complete requests and source](../2026-10-30-loose-delta-sdk175/README.md).\n\n|Case/variant|Median ms|CPU ms/request|Maximum RSS MiB|\n|---|---:|---:|---:|\n";
+    for(k,c)in delta_sdk["cells"].as_object().unwrap(){writeln!(md,"|{k}|{:.6}|{:.3}|{:.2}|",c["median_ms"].as_f64().unwrap(),c["CPU_ms"].as_f64().unwrap(),c["max_RSS_MiB"].as_f64().unwrap()).unwrap();}
+    writeln!(md,"\nFull-request gate **{}**; failures `{}`. No adoption. The trial adds55788internallyverifiedSDKrequests and972freshindependentGnarkexports,ledger23962. Accepted source175 and all local/AWS/M5 rows remain unchanged.\n",delta_sdk["gate_passed"],delta_sdk["failed_checks"]).unwrap();
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -642,6 +648,9 @@ fn main() {
 
     data["source_commit"]=json!("fdf8dbe6d2f489eaf9006531134af74eec06ff31");
     data["latest_loose_delta_caller"]=json!({"report":"../2026-10-30-loose-delta175/README.md","gate_passed":loose_delta["component_gate"],"aggregates":loose_delta["aggregates"],"pairs":loose_delta["pairs"],"failed_checks":loose_delta["failed_checks"],"native_field_tests_ON":35,"native_core_tests":{"OFF":128,"ON":128},"SDK_requests":0,"new_independent_exports":0,"proof_ledger":22990,"production_changed":false,"adopted":false});
+
+    data["source_commit"]=json!("3d3630f5e4257423187a9d2e55e79a7cf4819aee");data["historical_distinct_Gnark_ledger"]=json!(23962);
+    data["latest_loose_delta_SDK_experiment"]=json!({"report":"../2026-10-30-loose-delta-sdk175/README.md","cells":delta_sdk["cells"],"pairs":delta_sdk["pairs"],"original8_aggregates":delta_sdk["original8_aggregates"],"gate_passed":delta_sdk["gate_passed"],"failed_checks":delta_sdk["failed_checks"],"SDK_requests":55788,"new_independent_exports":972,"independent_proof_count":23962,"production_changed":false,"adopted":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

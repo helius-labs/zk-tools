@@ -1,10 +1,12 @@
 # Current CPU prover benchmarks
 
-29 October 2026
+30 October 2026
 
 The accepted Zopro build measures **8.022 ms locally for 1×2**. On the latest AWS c7a.24xlarge comparison, Zopro measures **11.916 ms versus 7.959 ms for pinned Aeglos Sorted**, using each engine's fastest tested worker count. Zopro has lower best-count latency on six of nine AWS circuits and lower observed peak process RSS on all nine. The supplied M5 CPU 10× target remains **unmet on all eight reference shapes**.
 
 Production remains the accepted 175-file implementation. Recent PGO, G2 scheduling, arithmetic, grouping and GLV K/H experiments have not replaced it.
+
+The latest bounded G2 delta SDK candidate is not adopted: 1×2 is 1.61% slower versus OFF, and the original-eight aggregate is 0.34% slower. [Consolidated report](../2026-10-30-cpu-benchmark-report/README.md).
 
 ## Measurement scope
 
@@ -461,3 +463,43 @@ A private normalized delta2p+anchor-X<=3p is consumed immediately by unchanged p
 |threaded12/on/off|0.995342207|[0.994461179, 0.998481000]|13|
 
 Declared caller gate **true**; failures `[]`. No SDK proof or new independent export; ledger22990. Production and allaccepted local/AWS/M5 rows remain unchanged. A caller pass needs separate fullSDK/Gnark/resource/portable qualification.
+
+
+## Full SDK qualification of bounded G2 delta multiplication
+
+Following the passed actual-caller gate, the exact helper is integrated without diagnostic adapters. Native ifma8 guards are explicit; portable fallback retains the original expression. Thirty-one fixed blocks cover all nine32-worker circuits and primary16, accepted/OFF/ON. [Complete requests and source](../2026-10-30-loose-delta-sdk175/README.md).
+
+|Case/variant|Median ms|CPU ms/request|Maximum RSS MiB|
+|---|---:|---:|---:|
+|12x2-w32/OFF|33.890120|940.412|732.25|
+|12x2-w32/ON|33.948705|937.350|725.75|
+|12x2-w32/accepted|33.805355|936.867|729.50|
+|16x2-w32/OFF|40.088084|1123.436|832.25|
+|16x2-w32/ON|40.171462|1121.515|842.75|
+|16x2-w32/accepted|40.238070|1125.846|831.50|
+|1x2-w16/OFF|10.008021|120.760|92.00|
+|1x2-w16/ON|9.855924|119.258|88.00|
+|1x2-w16/accepted|9.746099|120.226|89.75|
+|1x2-w32/OFF|8.045739|183.053|134.75|
+|1x2-w32/ON|8.168629|182.265|136.50|
+|1x2-w32/accepted|8.044768|182.864|134.75|
+|24x2-w32/OFF|65.739156|1890.352|1307.29|
+|24x2-w32/ON|66.012439|1890.469|1291.35|
+|24x2-w32/accepted|66.208601|1902.109|1313.36|
+|2x2-w32/OFF|11.374222|264.874|274.25|
+|2x2-w32/ON|11.436584|261.552|276.00|
+|2x2-w32/accepted|11.320763|263.192|276.25|
+|4x2-w32/OFF|16.011003|421.639|321.75|
+|4x2-w32/ON|16.168818|419.231|316.00|
+|4x2-w32/accepted|16.044175|420.265|314.75|
+|8x2-w32/OFF|24.189134|667.932|515.00|
+|8x2-w32/ON|24.407347|667.334|510.50|
+|8x2-w32/accepted|24.185235|669.922|511.25|
+|merge-24x1-w32/OFF|65.217525|1812.543|1191.57|
+|merge-24x1-w32/ON|65.263799|1806.288|1182.53|
+|merge-24x1-w32/accepted|65.291607|1809.516|1153.07|
+|merge-54x1-w32/OFF|161.599743|4450.988|1866.85|
+|merge-54x1-w32/ON|161.457567|4434.755|1911.90|
+|merge-54x1-w32/accepted|162.340349|4463.248|1886.72|
+
+Full-request gate **false**; failures `["1x2-w32/ON/accepted","1x2-w32/ON/OFF","1x2-w16/OFF/accepted","1x2-w16/ON/accepted","original8/ON/accepted/gain","original8/ON/OFF/gain"]`. No adoption. The trial adds55788internallyverifiedSDKrequests and972freshindependentGnarkexports,ledger23962. Accepted source175 and all local/AWS/M5 rows remain unchanged.
