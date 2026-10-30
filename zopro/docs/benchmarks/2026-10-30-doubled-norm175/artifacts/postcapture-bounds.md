@@ -1,0 +1,9 @@
+# Arithmetic review after capture
+
+Let B=2^52 and let normalized digits a_i lie in [0,B). Write d_i=(2a_i) mod B and c_i=floor(2a_i/B), the bit51 test. IFMA consumes only the low52 bits of its inputs, so passing the unmasked shifted digit is valid. Its low/high product pair with a_j represents d_i*a_j exactly. Adding c_i*a_j to the high coefficient restores 2a_i*a_j. The same argument applies independently to b.
+
+Each diagonal a_i^2 is included once, each off-diagonal a_i*a_j twice. Before cancellation step i, every term at absolute degree <=i is complete: off-diagonal terms with smaller first index were injected earlier, while terms with first index >i have degree >i. Early injection of higher terms therefore cannot change an earlier Montgomery quotient. The sum is exactly a^2+b^2, with the original cancellation and final packing retained. The whole product polynomial has at most ten ordered products per coefficient across both squares. A conservative bound of64B for coefficients including reduction/correction contributions is below2^58, comfortably within u64; this is a source-level range argument, not a formal machine-code proof.
+
+For input values <=2p, T=a^2+b^2<=8p^2. With q<R selected by cancellation, U=(T+qp)/R<p+8p^2/R. Both primes satisfy4p<2^256. For R256, U<3p; the original fused correction conditionally subtracts2p, leaving a normalized value below2p. For R260 the stronger radix bound already gives U<2p. The native test's inclusive2p corners and exact lazy comparisons cover these cases finitely. Equal field values alone would not establish equal raw representations; the tests compare all five raw digits as well.
+
+This review adds no new test, benchmark or timing rerun. The identity and unchanged-reduction requirement were declared before capture. The fixed new lowering is closed under its failed prefix32 gain gate; these bounds do not override that decision or establish portable, whole-proof or memory-pressure behavior.
