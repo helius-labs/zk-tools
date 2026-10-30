@@ -84,6 +84,7 @@ fn main() {
     let loose_delta=read(root.join("docs/benchmarks/2026-10-30-loose-delta175/artifacts/analysis.json"));assert_eq!(loose_delta["complete"],true);assert_eq!(loose_delta["proof_ledger"],22990);
     let delta_sdk=read(root.join("docs/benchmarks/2026-10-30-loose-delta-sdk175/artifacts/analysis.json"));assert_eq!(delta_sdk["complete"],true);assert_eq!(delta_sdk["independent_proof_count"],23962);
     let replay=read(root.join("docs/benchmarks/2026-10-30-real-g2-replay175/artifacts/analysis.json"));assert_eq!(replay["complete"],true);assert_eq!(replay["independent_proof_count"],23971);assert_eq!(replay["production_changed"],false);
+    let endpoints=read(root.join("docs/benchmarks/2026-10-30-g2-endpoints175/artifacts/analysis.json"));assert_eq!(endpoints["complete"],true);assert_eq!(endpoints["proof_ledger"],23971);assert_eq!(endpoints["production_changed"],false);
     let dest = std::env::args()
         .nth(1)
         .map(PathBuf::from)
@@ -126,6 +127,7 @@ fn main() {
         "2026-10-30-loose-delta175",
         "2026-10-30-loose-delta-sdk175",
         "2026-10-30-real-g2-replay175",
+        "2026-10-30-g2-endpoints175",
     ];
     let mut sources = BTreeMap::new();
     for name in names {
@@ -516,6 +518,8 @@ fn main() {
     md=md.replacen("29 October 2026","30 October 2026",1);
     md=md.replacen("## Measurement scope","The latest bounded G2 delta SDK candidate is not adopted: 1×2 is 1.61% slower versus OFF, and the original-eight aggregate is 0.34% slower. [Consolidated report](../2026-10-30-cpu-benchmark-report/README.md).\n\n## Measurement scope",1);
     writeln!(md,"\n## Production G2 operand replay\n\nA new bounded diagnostic captures actual G2 prefix operands across all nine shapes and checks {} batches / {} signed point additions independently with Arkworks, then replays the unchanged native kernels. It retains at most 7,947,520 bytes of raw operands per process locally; no coordinates are published. Compact replay does not preserve original key/bucket locality or proof scheduling, and this stage collects no replay timings. All 36 SDK requests and nine fresh independent Gnark exports pass; ledger 23,971. Accepted source and latency/RSS tables remain unchanged. [Capture, histograms, independent oracles and limits](../2026-10-30-real-g2-replay175/README.md).\n",replay["total_capture_files"],replay["total_captured_pairs"]).unwrap();
+    let hot=&endpoints["pairs"]["1x2-dominant-w32"]["statistics"];
+    writeln!(md,"\n## G2 prefix endpoint products\n\nA new two-arm real-operand caller experiment removes first-group multiplication by one and the final unused inverse update, preserving interior chain/norm records and field arithmetic. All nine dominant200-pair contexts are tested, with primary16 and owned512 controls; all152 inherited fixtures preflight OFF/ON. Primary32 ON/OFF ratio **{:.9} [{:.9}, {:.9}], {}/31wins**. Declared caller gate **{}**, failures `{}`. This is not a proof-latency result or adoption; a pass requires separate accepted/OFF/ON fullSDK and resource qualification. The trial adds278,889,664kernelcalls,0SDKrequests and0Gnarkexports; ledger23,971. [Full comparison and automatic profiles](../2026-10-30-g2-endpoints175/README.md).\n",hot["median"].as_f64().unwrap(),hot["low"].as_f64().unwrap(),hot["high"].as_f64().unwrap(),hot["wins"],endpoints["caller_gate"],endpoints["failed_checks"]).unwrap();
     fs::write(dest.join("README.md"),format!("{}\n",md.trim_end())).unwrap();
 
 
@@ -658,6 +662,8 @@ fn main() {
     data["latest_loose_delta_SDK_experiment"]=json!({"report":"../2026-10-30-loose-delta-sdk175/README.md","cells":delta_sdk["cells"],"pairs":delta_sdk["pairs"],"original8_aggregates":delta_sdk["original8_aggregates"],"gate_passed":delta_sdk["gate_passed"],"failed_checks":delta_sdk["failed_checks"],"SDK_requests":55788,"new_independent_exports":972,"independent_proof_count":23962,"production_changed":false,"adopted":false});
     data["as_of"]=json!("2026-10-30");data["source_commit"]=json!("6ff9fc483fb475b395ffa6833c1f4951b8e19c2f");data["historical_distinct_Gnark_ledger"]=json!(23971);
     data["latest_real_G2_replay_diagnostic"]=json!({"report":"../2026-10-30-real-g2-replay175/README.md","diagnostic_only":true,"new_latency_qualification":false,"SDK_requests":36,"new_independent_exports":9,"independent_proof_count":23971,"capture_files":replay["total_capture_files"],"captured_pairs":replay["total_captured_pairs"],"capture_bytes":replay["total_capture_bytes"],"production_changed":false,"raw_coordinates_published":false});
+    data["source_commit"]=json!("aa19a0f2bd7d90667edf934199f76a8d24b456db");
+    data["latest_G2_endpoints_caller"]=json!({"report":"../2026-10-30-g2-endpoints175/README.md","caller_gate":endpoints["caller_gate"],"failed_checks":endpoints["failed_checks"],"cells":endpoints["cells"],"pairs":endpoints["pairs"],"original8_aggregate":endpoints["original8_aggregate"],"kernel_calls":278889664,"SDK_requests":0,"new_independent_exports":0,"proof_ledger":23971,"production_changed":false,"adopted":false});
     fs::write(
         dest.join("data.json"),
         serde_json::to_vec_pretty(&data).unwrap(),

@@ -1,0 +1,40 @@
+{
+  "edits": {
+    "crates/zopro-core/src/lib.rs": {
+      "suffix": "\n#[cfg(all(zopro_g2_replay_bench, feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub use msm::g2_replay;\n"
+    },
+    "crates/zopro-core/src/msm.rs": {
+      "suffix": "\n#[cfg(all(zopro_g2_replay_bench, feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod g2_replay;\n"
+    },
+    "crates/zopro-core/src/msm/g2_borrowed.rs": {
+      "changes": [
+        {
+          "after": "if cfg!(zopro_g2_endpoints) && k==0 {chains=norm;} else {chains=chains.mul(&norm);}",
+          "before": "chains = chains.mul(&norm);"
+        },
+        {
+          "after": "        let factor;\n        if cfg!(zopro_g2_endpoints) && j==0 {\n            factor=inverse;\n        } else {\n            factor=s.prefix_records[j][0].mul(&inverse);\n            inverse=inverse.mul(&s.prefix_records[j][1]);\n        }",
+          "before": "        let factor = s.prefix_records[j][0].mul(&inverse);\n        inverse = inverse.mul(&s.prefix_records[j][1]);"
+        }
+      ]
+    },
+    "crates/zopro-core/src/msm/g2_prefix.rs": {
+      "changes": [
+        {
+          "after": "if cfg!(zopro_g2_endpoints) && k==0 {chains=norm;} else {chains=chains.mul(&norm);}",
+          "before": "chains=chains.mul(&norm);"
+        },
+        {
+          "after": "        let factor;\n        if cfg!(zopro_g2_endpoints) && j==0 {\n            factor=inverse;\n        } else {\n            factor=s.prefix_records[j][0].mul(&inverse);\n            inverse=inverse.mul(&s.prefix_records[j][1]);\n        }",
+          "before": "        let factor=s.prefix_records[j][0].mul(&inverse);\n        inverse=inverse.mul(&s.prefix_records[j][1]);"
+        }
+      ]
+    }
+  },
+  "field_files_exact": 17,
+  "files": 176,
+  "no_capture_hooks_or_recorder_in_timed_adapter": true,
+  "originals_exact": 171,
+  "production_changed": false,
+  "reverse175_exact": true
+}

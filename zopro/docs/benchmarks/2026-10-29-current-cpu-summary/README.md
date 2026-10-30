@@ -508,3 +508,8 @@ Full-request gate **false**; failures `["1x2-w32/ON/accepted","1x2-w32/ON/OFF","
 ## Production G2 operand replay
 
 A new bounded diagnostic captures actual G2 prefix operands across all nine shapes and checks 152 batches / 42658 signed point additions independently with Arkworks, then replays the unchanged native kernels. It retains at most 7,947,520 bytes of raw operands per process locally; no coordinates are published. Compact replay does not preserve original key/bucket locality or proof scheduling, and this stage collects no replay timings. All 36 SDK requests and nine fresh independent Gnark exports pass; ledger 23,971. Accepted source and latency/RSS tables remain unchanged. [Capture, histograms, independent oracles and limits](../2026-10-30-real-g2-replay175/README.md).
+
+
+## G2 prefix endpoint products
+
+A new two-arm real-operand caller experiment removes first-group multiplication by one and the final unused inverse update, preserving interior chain/norm records and field arithmetic. All nine dominant200-pair contexts are tested, with primary16 and owned512 controls; all152 inherited fixtures preflight OFF/ON. Primary32 ON/OFF ratio **1.013109710 [1.011559551, 1.016175286], 2/31wins**. Declared caller gate **false**, failures `["12x2-dominant-w32","1x2-dominant-w32","4x2-dominant-w32","merge-24x1-dominant-w32","original8/gain"]`. This is not a proof-latency result or adoption; a pass requires separate accepted/OFF/ON fullSDK and resource qualification. The trial adds278,889,664kernelcalls,0SDKrequests and0Gnarkexports; ledger23,971. [Full comparison and automatic profiles](../2026-10-30-g2-endpoints175/README.md).
