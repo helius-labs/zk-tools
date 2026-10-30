@@ -1,0 +1,5 @@
+# Fixed-period perf header interpretation
+
+The original finisher stopped on a literal uppercase PERIOD sample-type requirement, after all captures and metadata commands succeeded. Linux perf's fixed-period events may omit PERF_SAMPLE_PERIOD and use the event's constant header period. All four original decoded streams carry16000000 for every sample. The actual cycles:u header has sample_period16000000, IP/TID/TIME/CPU and exclude_kernel1, with no frequency-mode flag.
+
+Preserve capture.rs/capture-helper/profile.rs and analysis-initial.log unchanged. Separate capture-fixed/profile-fixed sources replace only that header check with exact fixed-period/header field validation; per-sample16000000, PID/TID/CPU/mapping/worker/unknown/loss/sample-count requirements remain unchanged. Four new header-parser tests accept the actual fixed header and reject frequency mode, wrong period and missing time. Existing five parser tests are inherited unchanged, not rerun. No source arithmetic, caller, timing, sampling or latency threshold changes; no capture/native test/verifier is repeated.

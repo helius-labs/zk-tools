@@ -1,0 +1,29 @@
+{
+  "edits": {
+    "Cargo.lock": {
+      "after": "name = \"zopro-bn254\"\nversion = \"0.1.0\"\ndependencies = [\n \"ark-bn254\",\n \"ark-ec\",\n \"ark-ff\",\n \"ark-std\",\n \"num-bigint\",\n]",
+      "before": "name = \"zopro-bn254\"\nversion = \"0.1.0\"\ndependencies = [\n \"ark-bn254\",\n \"ark-ec\",\n \"ark-ff\",\n \"ark-std\",\n]"
+    },
+    "crates/zopro-bn254/Cargo.toml": {
+      "after": "[dev-dependencies]\nnum-bigint = \"=0.4.8\"\n",
+      "before": "[dev-dependencies]\n"
+    },
+    "crates/zopro-bn254/src/inverse.rs": {
+      "after": "pub(crate) fn inverse<C: FpConfig>(x: &Fp<C>) -> Option<Fp<C>> {\n    #[cfg(zopro_lehmer_inverse)]\n    { lehmer::inverse(x) }\n    #[cfg(not(zopro_lehmer_inverse))]\n    { inverse_original(x) }\n}\n\nfn inverse_original<C: FpConfig>(x: &Fp<C>) -> Option<Fp<C>> {",
+      "before": "pub(crate) fn inverse<C: FpConfig>(x: &Fp<C>) -> Option<Fp<C>> {",
+      "suffix": "\n#[cfg(zopro_lehmer_inverse)]\nmod lehmer;\n"
+    }
+  },
+  "exact_originals": 172,
+  "go_simulation_source": "/usr/lib/go-1.22/src/math/big/int.go",
+  "go_source_sha256": "c4106c04f1ec8f675627bcc1a7c02a2c9ca0ca5492e9da270bb513fe7fb44297",
+  "new_children": 1,
+  "no_runtime_heap_or_table_added": true,
+  "originals": 175,
+  "prior_verified_proof_ledger": 26203,
+  "production_changed": false,
+  "reverse175_exact": true,
+  "runtime_parent_edits": 1,
+  "source_files": 176,
+  "test_only_manifest_edits": 2
+}

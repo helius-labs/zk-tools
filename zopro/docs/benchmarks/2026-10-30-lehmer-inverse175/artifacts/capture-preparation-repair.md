@@ -1,0 +1,3 @@
+# Pre-capture source review repair
+
+The first capture preparation stopped before producing a plan or running a caller because it read every accepted source member as UTF-8 before comparing hashes. The accepted manifest includes binary Poseidon constants. Preserve the original preparer, prefix, executable and failure log. Hash unchanged members as bytes; decode only the three modified text parents for reversal checks. Runtime arithmetic, profiles, output oracles and thresholds are unchanged. Existing five parser tests are inherited by exact parser-source equivalence; no test, native build or performance capture is repeated.
