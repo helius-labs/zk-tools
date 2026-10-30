@@ -1,0 +1,93 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/pins-fixed.json",
+  "steps": [
+    {
+      "additional_sources": [
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/model-fixed.rs",
+        "/home/ubuntu/src/zopro-perf-work/g2-balanced-count175/split.rs"
+      ],
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen-candidate-cargo.jsonl",
+      "driver": "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/probe-fixed.rs",
+      "kind": "link-sdk",
+      "name": "model-tests",
+      "rustc_flags": [
+        "--test",
+        "-O",
+        "-C",
+        "target-cpu=native"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/runs-fixed/model-tests-sdk",
+        "--test-threads=1"
+      ],
+      "kind": "command",
+      "name": "model-tests-run",
+      "required_tests": [
+        "model::tests::digit_reconstruction_full_width_and_boundaries",
+        "model::tests::coalescing_is_bounded_and_charges_only_useful_classes",
+        "model::tests::every_bucket_matches_for_skewed_and_boundary_tiles"
+      ],
+      "timeout_seconds": 600,
+      "unfiltered": true
+    },
+    {
+      "additional_sources": [
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/model-fixed.rs",
+        "/home/ubuntu/src/zopro-perf-work/g2-balanced-count175/split.rs"
+      ],
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen-candidate-cargo.jsonl",
+      "driver": "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/probe-fixed.rs",
+      "kind": "link-sdk",
+      "name": "census",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/runs-fixed/census-sdk",
+        "A",
+        "/home/ubuntu/src/zopro-perf-work/g1-column-count176/1x2-raw-a.words",
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/1x2-A.json"
+      ],
+      "kind": "command",
+      "name": "count-1x2-A",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/runs-fixed/census-sdk",
+        "B",
+        "/home/ubuntu/src/zopro-perf-work/g2-queue-scan175/inputs/1x2.b2q",
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/1x2-B.json"
+      ],
+      "kind": "command",
+      "name": "count-1x2-B",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/runs-fixed/census-sdk",
+        "A",
+        "/home/ubuntu/src/zopro-perf-work/g1-column-count176/2x2-raw-a.words",
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/2x2-A.json"
+      ],
+      "kind": "command",
+      "name": "count-2x2-A",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/runs-fixed/census-sdk",
+        "B",
+        "/home/ubuntu/src/zopro-perf-work/g2-queue-scan175/inputs/2x2.b2q",
+        "/home/ubuntu/src/zopro-perf-work/bounded-coalesce176/2x2-B.json"
+      ],
+      "kind": "command",
+      "name": "count-2x2-B",
+      "timeout_seconds": 600
+    }
+  ],
+  "version": 1
+}
