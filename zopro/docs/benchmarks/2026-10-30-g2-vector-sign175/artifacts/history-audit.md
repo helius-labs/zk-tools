@@ -1,0 +1,5 @@
+# Source/history audit
+
+Current G1 uses signed_difference_scaled, while borrowed G2 materializes scalar-negated Fq2 Y before packing. Reuse its signed-canonical prelude with strict2p repair, without changing G1, batch endpoints, field products, norms or inversion. The 25October endpoint and endpoint-branch SDK studies tested G1 peeling/conditional endpoint dispatch and remain rejected. The 29October signed-G2 caller tested signed raw CIOS differences in complex products, also rejected; that arithmetic is absent here. The 30October packed subtraction changed input word subtraction before radix splitting and failed its component gate; that constructor is absent. Doubled-operand norms and tiled reverse stages likewise remain closed and absent. This is a new caller-specific sign dataflow, not an unchanged rerun of those implementations.
+
+G1 GLV/Horner22October and fused borrowed K/H GLV29October already failed. Across-hash Poseidon, ring representations, PMNS/RNS, truncated reduction and full-key point expansion are not reintroduced. This change targets work visible in the actual current borrowed-G2 source and makes no twofold proof-time prediction.

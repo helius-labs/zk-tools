@@ -1,0 +1,5 @@
+# Candidate include-comment repair
+
+After all remaining OFF steps succeeded, candidate field compilation stopped before running tests because the included child began with an inner doc comment. Only the first `//!` was changed to a regular `//` in the root template and private child. Arithmetic and tests remain exact. Original child, fixed plan/pins and the complete partial workflow remain under initial-candidate. A separate six-step workflow runs candidate work only; the six successful OFF steps are reused and composed with it after receipt checks. No successful test/build or performance capture is repeated.
+
+The first unused-declaration repair's guard matched two declarations (the forward norm pass and the unused reverse declaration) and stopped before changing source. The corrected guard selects only the reverse declaration. Initial repair source/binary/logs and two initialization-only workflow errors are retained. These are harness/source repair receipts, not failed or discarded performance samples. The original setup requires the recorded repairs when reproducing this experiment.
