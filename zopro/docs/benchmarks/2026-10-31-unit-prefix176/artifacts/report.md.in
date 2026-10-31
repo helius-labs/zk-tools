@@ -1,0 +1,47 @@
+# Known-unit prefix boundaries in complete MSM update batches
+
+Caller gate: **{{GATE}}**. No production change or adoption follows from this experiment. It tests the complete G1/G2 borrowed update kernels, including packing, inversion and output scatter, rather than a field-only operation. No new SDK proof or AWS measurement is claimed.
+
+All four solo contexts improve against OFF with 15/15 wins, with paired savings of about 0.37–0.80%. At 32 workers, G1's two-size ON/OFF aggregate is 0.994397 [0.884217, 1.074659], 9/15 wins; G2 is 1.009333 [0.995979, 1.028817], 5/15 wins. Neither establishes an aggregate gain. Six checks fail: one G2 control calibration, one G2 ON/OFF non-regression, and all four curve/control aggregate gains. These results close this exact implementation without an unchanged rerun or favorable-topology promotion.
+
+The first prefix is one. The G1 candidate seeds its first numerator with signed dy and its chain with dx, omitting two unit multiplications. The final reverse group skips the unused inverse update. G2 seeds its norm chain directly, then uses the final inverse directly without multiplying by prefix one or updating the unused inverse. Each eligible batch removes three eight-lane field multiplications; mathematical affine-addition and inversion counts stay unchanged. Explicit first/last peeling can enlarge code, change allocation-check placement and affect the optimizer, so the source count is not a guaranteed cycle saving.
+
+The original G1 stream and G2 borrowed functions remain byte-exact. A private child supplies the changed variants. Existing field, representation, input encoding, batch size, queue, schedule and scratch types are unchanged. The first unscaled differences/norm remain within the accepted normalized lazy bounds. Short batches with fewer than eight points retain the original function. Tests cover ordinary stream-domain batches; exception admission remains outside these kernels. There is no table, key copy, solver plan, new pool, new input-sized allocation or arbitrary RAM cap.
+
+The [history audit](artifacts/history.md) distinguishes this from previous independent-prefix-chain, norm-heap and balanced-denominator-tree designs. Their failed gates remain failed. The preceding weighted-SDK result also remains unadopted. No old positive component estimate or external paper gain is transferred to this experiment.
+
+Ryzen 9950X, 16 physical cores / 32 logical CPUs. Fixed G1/G2 sizes 200/352 run at 1/16/32 workers. Original, candidate-OFF and candidate-ON use 15 rotated/reversed blocks. OFF/ON share one optimized native/fat-LTO/one-codegen-unit executable; original is separately compiled without the new child. Per-worker CPU pinning uses CPU 2 solo or CPUs 0–15/0–31, with 512 KiB stacks. Each process has three checked 128-update primes, then 4,096 updates per worker. Whole-wave wall includes dispatch/join and the slowest worker. Each worker owns different synthetic generator inputs, not a recorded witness stream. All outputs are checked against generator-scalar sums outside the timer, and capacity/zero-timed-allocation checks are enforced. These are batch-wave timings, not proof latency.
+
+Each curve's 32-worker two-size equal-log ON/control aggregate requires upper rank 12/15 < 1 and at least 10 wins against both controls. Every context upper ON/control bound must be at most 1.03, and OFF/original bounds must lie within factor 1.03. Ranks 4–12 have nominal 96.484375% marginal coverage under independent exchangeable blocks, without familywise coverage. There is no minimum-gain floor, excluded result, sample extension, layout sweep or unchanged reroll. Full-proof translation would require its own proof/compatibility/resource qualification.
+
+{{AGGREGATES}}
+
+{{LATENCY}}
+
+Retained failed checks: `{{FAILURES}}`.
+
+{{MEMORY}}
+
+All arms reuse the same record and tail capacities, with zero timed allocation calls. Recorded process RSS counters include setup/primes and are diagnostic; previous page-table audits found counter undercounts on this host. No fresh smaps/pressure or minimum-RAM qualification is inferred. Equal requested scratch does not bound compiler stacks or total prover memory.
+
+All 540 latency processes precede twelve grouped CPU-counter panels and twelve separate user-cycle profiles, covering both sizes and all arms at 32 workers. Counters use 16,384 updates/worker; profiles use 65,536, after excluded primes via FIFO. No owned build/helper/hash/archive/analyzer or other workload overlaps latency/profiles. PMU running, binary mmap/PID/FORK/registered-worker TID and CPU, fixed 16M period and zero-loss evidence are checked. Profiles require at least 400 events and at most 5% unknown; thin or failed diagnostics remain reported. All {{SAMPLES}} sampled events are independently reconstructed. All twelve profiles qualify: at least 3,816 samples, at most 0.1568% unknown, and zero lost records. Flat samples, including inlined work, are not exclusive critical-path time, dynamic spills or validated absolute-period coverage.
+
+{{COUNTERS}}
+
+{{CODEGEN}}
+
+Linked functions contain native IFMA. Static byte sizes show code footprint only; they do not measure dynamic multiplication savings, stack peaks or cycle cost. The separate original functions and candidate OFF can differ in code layout/inlining despite exact source bodies.
+
+The defining G2 boundary function grows from the original's 51,830 bytes to 75,589 bytes. Boundary peeling exposes more code to the optimizer, even though the source executes fewer products. Its higher 32-worker CPU service accompanies the uncertain/slower elapsed result; no exclusive instruction-cache, register, memory or scheduler cause is established. G1 CPU service falls in all six contexts, while its 32-worker elapsed ratios remain variable. Retained solo and 16-worker positive estimates do not change the full gate.
+
+Native qualification passes all 128 core tests: 125 existing plus three new tests covering signed/unsigned complete generator references, sizes 0–512 including tails, repeated OFF/ON transitions, equal retained capacities and 1/4/16/32 workers on 512 KiB stacks. All field source files and 35-test accepted qualification are inherited byte-exact; no field suite is rerun and no new field formula is introduced. Control/candidate snapshots contain 177/178 files, with 174 originals exact in each. Reversing two append-only parents recovers all 352 original copies. Original stream bodies and complete fixture driver bytes are independently checked. No standalone prover suite, portable or deployment qualification is claimed at this boundary.
+
+All 660 workflow commands and 600 complete caller processes retain command/exit/stream receipts. Independent review recomputes all 540 latency-process observations and 36 cells, paired intervals/aggregates/gates, capacity/digest equality, PMU values and every profile bin/ownership check, and rechecks source/binary/protocol pins. No successful test, caller or capture is rerun for analysis. No fresh SDK proof, independent export or solver request occurs; the canonical verified ledger remains 28,847.
+
+Inherited accepted whole-proof results against supplied historical M5 references follow. They are unchanged and are not candidate full-proof timings. The accepted source's original physical16 calibration exception and failed full-performance gate remain recorded.
+
+{{REFERENCES}}
+
+The all-eight verified CPU 10× objective remains active and unmet: 0/8. Primary accepted 7.928660 ms still requires 3.7 ms. Accepted merge54 is 161.883899 ms without a supplied M5 reference. Historical AWS/Aeglos observations predate source176 and are not refreshed here. No AWS resource, phone/ARM/TEE, huge 250/4999, pressure/swap, concurrent-proof or minimum-RAM result follows.
+
+[Protocol](artifacts/design.md), [analysis](artifacts/analysis.json), [independent review](artifacts/review.json), [source audit](artifacts/source-audit.json), [linked code](artifacts/codegen.json), [symbols](artifacts/profile-symbols.json), [publication audit](artifacts/publication.json). Archives: [source snapshots](artifacts/source.tar.gz), [Rust workflow and protocol](artifacts/workflow.tar.gz), [all receipts](artifacts/receipts.tar.gz), [counters](artifacts/counters.tar.gz), [selected disassembly](artifacts/codegen.tar.gz). [Checksums](SHA256SUMS). Keys, private witnesses/inputs, executables, libraries and raw perf.data remain local. Root:`/home/ubuntu/src/zopro-perf-work/unit-prefix176`.
