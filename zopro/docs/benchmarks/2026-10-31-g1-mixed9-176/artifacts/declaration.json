@@ -1,0 +1,41 @@
+{
+  "arms": [
+    "frozen-original",
+    "fresh-OFF",
+    "mixed-ON"
+  ],
+  "blocks": 15,
+  "calibration": "each OFF/frozen interval rank4..12 within [1/1.03,1.03]",
+  "contexts": {
+    "batches": [
+      200,
+      352
+    ],
+    "callers": [
+      "owned",
+      "borrowed"
+    ],
+    "workers": [
+      1,
+      16,
+      32
+    ]
+  },
+  "gain_gate": "all twelve ON/control paired upper rank12/15 ratios below1 and >=10/15 wins for BOTH original controls",
+  "goal_achieved": false,
+  "mechanism": "eight SIMD affine points plus a ninth scalar point with shared inversion; existing Rust field backends",
+  "memory": "max process RSS ON/control <=1.05; timed allocations zero; report scratch capacity independently",
+  "new_proofs": 0,
+  "no_unchanged_reroll": true,
+  "order": "cyclic rotation then reversal by block parity",
+  "prime_passes": 3,
+  "prime_rounds": 128,
+  "production_changed": false,
+  "profile_contexts": [
+    "owned-200-w32",
+    "borrowed-352-w32"
+  ],
+  "profiles_after_latency": true,
+  "rounds_per_worker": 4096,
+  "scope": "complete streaming G1 batch, owned unsigned and borrowed signed"
+}
