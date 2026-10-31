@@ -1,0 +1,5 @@
+# Helper correction before capture
+
+The initial source audit recovered all352 originals and found348 unchanged private originals, then stopped at an incorrect expected field-source count:17 instead of16 files under crates/zopro-bn254/src per snapshot. The crate also has an example and Cargo manifest; these are already covered by complete original-source recovery. audit-v2 changes only the expected count and printed label. It checks32 source-file copies; all18 accepted crate members per snapshot remain byte-exact. The failed audit source, executable and log remain. No native source, test, build or measured workload is repeated for this metadata correction.
+
+Normal and requested-heap executables are linked separately from the same source/libraries; the latter adds only final-driver cfg(zopro_track_heap). Freeze the normal executable before the instrumented link overwrites Cargo's top-level binary. OFF and ON share one candidate executable in each mode. Normal binaries compile allocator counters out; reported zero counter fields in those runs do not mean zero allocations.

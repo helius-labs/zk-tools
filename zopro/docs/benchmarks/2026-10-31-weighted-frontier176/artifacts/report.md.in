@@ -1,0 +1,61 @@
+# Joint completion of weighted-group frontiers
+
+**Rejected at the complete weighted-window gate; not adopted.** The 32-worker aggregate is **31.48% slower for G1** and **37.14% slower for G2** against fresh OFF, with zero winning blocks. Requested-heap peaks also exceed the declared 5% limit in all threaded contexts. Production source176/SDK `6d83…` is unchanged, and no full-proof trial follows.
+
+Solo improves by **10.06–11.66%** against OFF, with all15 blocks won in all four cases. These positives remain in the result. They do not establish a threaded prover gain. Two control-calibration failures are retained; the large regressions also occur in six calibrated threaded contexts.
+
+{{AGGREGATES}}
+
+The candidate preserves the original256-bucket arithmetic groups and their first five complete reduction levels. It copies each group's live weighted-correction segments into a disjoint55-point frontier, then calls the original complete reducer across all groups for the last three levels. It reconstructs each original weighted/total pair and applies the original group-offset combination. Initial and intermediate identities, doubling and opposite points retain the complete original handling; no speculative partial output escapes.
+
+For a dense2048-bucket window, shared inversions decrease from64 to43; for4096, from128 to83. Ordinary point additions remain4016/8032 respectively. Six scalar-tail pairs per group become full SIMD groups in the joint finish. Batch sizes also change which existing G2 prefix-storage branch runs. These are source-geometry counts, not dynamic instruction totals. The new implementation adds a per-window barrier, copies, frontier/frame storage, allocations and a more serial finish. Their complete cost is timed.
+
+This is distinct from the [compact native weighted-group study](../2026-10-31-weighted-tree176/README.md), whose calibration gate remains failed. This trial uses the original host-limb representation and field code throughout. Earlier [flat reductions across whole G1 windows](../2026-10-22-universal-flat-window-reduction-sdk/README.md), [cross-query phases](../2026-10-24-joint-msm-phases/README.md) and [coarser groups](../2026-10-22-universal-coarse-weighted-sdk/README.md) remain separate rejected implementations. No table, key-point copy, transformed key, duplicate solver plan, pool, C/ASM backend or RAM cap is introduced.
+
+Both private snapshots contain177files:174 accepted originals exact, two reversible diagnostic exports and one new child. The audit recovers all176 accepted files twice. All18 accepted field-crate members, including16 source files, remain exact in each snapshot. No field arithmetic changes or fresh field tests are claimed; accepted qualification is inherited. Generator consistency passes.
+
+All **128 native core tests** and **two independent integer-model tests** pass. Three new core tests cover complete weighted outputs across empty/small/group/tail sizes through4096, full-width random points, identities, doubling, opposites, a late-cancellation family, input immutability and repeated1/4/16/32-worker512KiB-stack waves. The integer model imports no field/native implementation and checks every coefficient, group offset and frontier slice bound. No new portable, full-prover or pressure qualification follows.
+
+The separate original diagnostic build and candidate OFF/ON share source and driver bytes. The control omits the new cfg; candidate OFF/ON share one executable with a runtime selector. Explicit noinline baseline wrappers have matching sizes, instruction-site counts, IFMA sites and RSP-operand counts across builds. That is not whole-program machine-code, layout or timing equivalence: the frozen G1 arithmetic is inlined into weighted_sum, while candidate code also retains a separate reduce_layer specialization. All final links use actual optimization3, native CPU, fat LTO and one codegen unit. Normal executables are frozen before separate instrumented final links overwrite Cargo's top-level files.
+
+Ryzen9950X,16physical cores/32logical CPUs, shared host. Twelve contexts cover G1/G2,2048/4096buckets and1/16/32workers. Simultaneous windows are21 for G1/2048,20 for G1/4096 and11 for G2. These are representative multiplicities, not captured proof scheduling. Workers pin individually to CPU2,0–15 or0–31 with512KiB stacks. Each fixture is a prebuilt generator walk with independent full-width random offset and step; input slices alternate between two shifted families. This is a synthetic dense caller distribution, not a fresh witness stream.
+
+Three checked prime passes of two waves precede32timed waves. All weighted-window work, allocation/drop, nested Rayon work and outer dispatch/wait are included. Pool/input construction and independent final checks are excluded. All624caller processes agree with independent generator-weighted oracles and output digests across arms. Every prime and both final input families are checked; intermediate timed outputs are not each independently checked.
+
+{{LATENCY}}
+
+Fifteen rotated/reversed blocks are fixed before capture. Each curve's equal-log two-size32worker aggregate requires upper rank12/15<1 and>=10wins against both controls. Every context ON/control upper must be<=1.03; every OFF/original interval must fit factor1.03. Rank4–12/15 gives nominal96.484375%marginal coverage under independent exchangeable blocks, with no familywise guarantee. There is no gain floor, exclusion, extension, favorable subset, threshold rescue, parameter/layout sweep or unchanged reroll.
+
+The **38 failed checks** comprise two calibrations,16nonregressions,16resource comparisons and four aggregate gains. Failed checks: `{{FAILURES}}`.
+
+{{SERVICE}}
+
+Lower aggregate work does not imply lower single-proof latency. In G2/4096/32, median CPU service decreases from13.654 to12.819ms per wave, while wall time increases from0.458 to0.644ms. The median per-process CPU-ms/wall-ms ratio drops from about29.8 to19.8 logical-thread equivalents. This is average process CPU concurrency including scheduling, not physical-core utilization. A barrier and joint finishing alter the critical path and available parallelism. These observations are consistent with that tradeoff; they do not isolate an exclusive cache, scheduler or stall cause. G1/4096/32 CPU service is nearly unchanged despite its much worse wall time.
+
+After all latency/profiles,36separate resource processes cover all12contexts and three arms with three prime passes plus four observed waves. They use separately linked requested-heap instrumentation compiled out of latency binaries. It tracks requested Rust global-allocator bytes from startup, resets the high-water mark after construction/primes, and reports the absolute peak and increment above that baseline. It excludes allocator metadata/internal realloc overlap, non-Rust/libc allocations, stacks and mapped memory. It is neither RSS nor minimum RAM. Times from these instrumented runs do not enter latency statistics; their allocation counts are perturbed resource diagnostics.
+
+{{MEMORY}}
+
+Threaded ON/OFF absolute requested-heap peaks increase about6.59–13.64%, failing every threaded5%comparison. For G1/4096/32, the absolute counter rises from10,107,314 to11,236,273bytes; incremental workspace rise is1,961,696 to3,090,656bytes. For G2/4096/32 it rises from10,225,762 to11,218,233bytes, with increments2,736,240 to3,728,712bytes. Input and benchmark-output storage are included in those absolute values, so they are not full-prover measurements or standalone algorithm bounds.
+
+All36 resource runs return to their initial requested-live level plus exactly the two retained benchmark output vectors. Those enum point records occupy200bytes each in this driver; this does not describe production point storage. All temporary algorithm work is released. A release check does not make the larger transient peak acceptable. Recorded rusage maximum-RSS counters remain diagnostic because prior page-table audits found undercounts on this host; no fresh page-table, swap or pressure result is claimed.
+
+All540latency processes finish before six grouped four-event counter panels and six separate fixed16M-user-cycle profiles. Counter panels run256waves and profiles1024 after FIFO-excluded prime passes. No owned build/helper/hash/archive/analyzer/second workload overlaps capture. Ownership changes follow recording and preserve hashes. All events run100%.
+
+{{COUNTERS}}
+
+At4096/32, ON retires about8.52%fewer G1 instructions and8.26%fewer G2 instructions than OFF. Cycles decrease about3.99%/13.17% in those separate panels, while latency regresses in the paired series. These are single descriptive counter observations, not paired uncertainty bounds or removable wall-time shares. Generic cache misses increase but do not identify a cache level or prove bandwidth limitation.
+
+The six profiles contain **21,650samples**, zero lost records, at least3370samples per profile and unknown share at most1.900%. Process, registered worker TID, allowed CPU, mmap/FORK and fixed-period evidence is checked. Flat symbols include inlined work; they do not isolate stall cycles or critical-path fractions. Linked-code artifacts cover the two baseline wrappers and named original reducer specializations; joint work is also inlined in Rayon/caller code, so the seven selected disassemblies are not a complete candidate code census. Static sites/RSP operands are not dynamic spill counts.
+
+Independent review passes all654commands/624callers, raw output and command bindings, statistical/resource comparisons, symbol bins and gates. The first source audit stopped after source recovery at an incorrect field-source count; its preserved v2 correction changes only that metadata expectation and printed label. Native source/tests/builds/capture all passed on their first executions. [Planning notes](artifacts/planning-notes.md). No measured workload or successful native test is repeated.
+
+No SDK request, proof export or Gnark verification occurs; the distinct-proof ledger remains **28,349**. Accepted source176 / SDK SHA-256 `6d83f1d6fda6f16576cb351b81789e8d26a6177cc0f26f169a3dc98448c0e661` remains unchanged. The following accepted proof timings and supplied M5 CPU/Metal references are inherited, not measurements of this prototype. The accepted physical16 calibration engineering exception and false original full-performance gate remain documented.
+
+{{REFERENCES}}
+
+The all-eight CPU10× objective remains **active and unmet,0/8**. Primary is7.928660ms against a3.7ms target. Historical merge54 is161.883899ms without a supplied M5 reference. No new AWS/Aeglos, mobile/ARM/TEE, huge250/4999, concurrent-proof, pressure/swap or minimum-RAM result follows; no AWS resource was created.
+
+This implementation is closed. Its solo savings support a reduction in serial work, while the server regression and increased transient heap reject this shared-frontier organization. The preceding compact weighted-group caller result remains a separate promising but unqualified result; this failure changes none of its observations. Another candidate needs to preserve useful parallelism while reducing work and memory, with a complete verified proof measurement before any adoption or new M5 speedup claim.
+
+[Protocol](artifacts/design.md), [full results](artifacts/analysis.json), [source audit](artifacts/source-audit.json), [independent review](artifacts/review.json), [work/resource interpretation](artifacts/interpretation.json), [profile symbols](artifacts/profile-symbols.json), [linked code](artifacts/codegen.json), [plan](artifacts/plan.json), [pins](artifacts/pins.json), [publication audit](artifacts/publication.json). Archives: [source snapshots](artifacts/source.tar.gz), [Rust workflows](artifacts/workflow.tar.gz), [command receipts](artifacts/receipts.tar.gz), [counter panels](artifacts/counters.tar.gz), [disassembly](artifacts/codegen.tar.gz). [Checksums](SHA256SUMS). Executables/libraries/private inputs/raw perf.data remain local with hashes. Root: `/home/ubuntu/src/zopro-perf-work/weighted-frontier176`.
