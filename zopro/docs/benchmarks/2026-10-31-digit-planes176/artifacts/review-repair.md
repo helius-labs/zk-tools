@@ -1,0 +1,3 @@
+# Offline float round-trip comparison
+
+The original pinned review first checked source recovery, pins and all330successful command/stream receipts, then stopped on exact JSON equality of a recomputed paired-ratio array. The difference is one floating-point rounding bit after JSON serialization/parsing (for example0.996163219703864 vs0.9961632197038639). review.rs and review.log remain unchanged. review-v2.rs changes only that array comparison to use the same relative1e-12 float comparator already used for medians/bounds. Array lengths, integer counts, wins, thresholds and failed-check decisions remain exact. No kernel, sample, measurement, verifier, test, gate or original pin changes or reruns.

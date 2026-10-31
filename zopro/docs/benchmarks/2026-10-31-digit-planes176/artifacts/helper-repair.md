@@ -1,0 +1,7 @@
+# Pre-capture analysis helper correction
+
+The first capture-helper compilation stopped because a profile name format string omitted its context argument. analysis-initial.rs preserves that source. The formatter argument is now present. Before any capture, the expected complete-pass count was also recomputed as18*(1+4)+270*(20+4)+12*(200+4)=9018, correcting the initial unused assertion8538. No implementation, test, native build, oracle, proof, measurement or gate changed or was repeated for this helper repair.
+
+Original compiler message: `error: 1 positional argument in format string, but no arguments were given`, analysis.rs line10 at `format!("cycles-{}-{arm}")`. The failed compiler emitted no executable and no capture has run at this point.
+
+The second helper compilation then requested an explicit `BTreeMap<String,Value>` key type; analysis-second.rs preserves it, and that annotation is now present. The first control benchmark package also failed final-driver compilation because its copied perf support needs a direct libc dependency. Both standalone wrapper Cargo manifests now declare libc0.2, already present transitively. Initial manifests and build-control-initial.log/control-build-runner-initial.log remain. Core128 tests and all native arithmetic/source snapshots are unchanged and are not rerun. Cargo resumes its cached successful dependency builds and retries only the unfinished final wrapper link. There has still been no capture, solver or proof request.
