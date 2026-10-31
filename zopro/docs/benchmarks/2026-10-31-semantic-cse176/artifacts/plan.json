@@ -1,0 +1,76 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/semantic-cse176/pins.json",
+  "steps": [
+    {
+      "additional_sources": [
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/model.rs",
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/semantic.rs",
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/semantic-tests.rs"
+      ],
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen-candidate-cargo.jsonl",
+      "driver": "/home/ubuntu/src/zopro-perf-work/semantic-cse176/census.rs",
+      "kind": "link-sdk",
+      "name": "model-tests",
+      "rustc_flags": [
+        "--test",
+        "-O",
+        "-C",
+        "target-cpu=native"
+      ],
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/runs/model-tests-sdk",
+        "--test-threads=1"
+      ],
+      "kind": "command",
+      "name": "model-tests-run",
+      "required_tests": [
+        "model::tests::affine_forms_match_independent_field_evaluation",
+        "model::tests::unknown_divisor_is_not_cancelled_and_zero_branch_is_preserved",
+        "model::tests::parser_propagates_stored_cancellation_and_rejects_corruption",
+        "model::semantic_tests::monic_commutative_products_match_field_valuations",
+        "model::semantic_tests::deterministic_hints_scaled_inverse_involution_and_bit_prefix",
+        "model::semantic_tests::boolean_rules_include_zero_complements_and_scalars",
+        "model::semantic_tests::guarded_division_does_not_cancel_zero_case",
+        "model::semantic_tests::complete_parser_finds_known_aliases_and_rejects_corruption"
+      ],
+      "timeout_seconds": 120,
+      "unfiltered": true
+    },
+    {
+      "additional_sources": [
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/model.rs",
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/semantic.rs",
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/semantic-tests.rs"
+      ],
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen-candidate-cargo.jsonl",
+      "driver": "/home/ubuntu/src/zopro-perf-work/semantic-cse176/census.rs",
+      "kind": "link-sdk",
+      "name": "census",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/runs/census-sdk",
+        "/home/ubuntu/src/zopro-perf-work/wire-readiness175/1x2.solver",
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/1x2.json"
+      ],
+      "kind": "command",
+      "name": "analyze-1x2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/runs/census-sdk",
+        "/home/ubuntu/src/zopro-perf-work/wire-readiness175/2x2.solver",
+        "/home/ubuntu/src/zopro-perf-work/semantic-cse176/2x2.json"
+      ],
+      "kind": "command",
+      "name": "analyze-2x2",
+      "timeout_seconds": 600
+    }
+  ],
+  "version": 1
+}
