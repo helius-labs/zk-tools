@@ -1,0 +1,46 @@
+{
+  "arms": [
+    "frozen",
+    "OFF",
+    "ON"
+  ],
+  "blocks": 15,
+  "calibration": "each OFF/frozen rank4..12 interval within factor1.03",
+  "contexts": {
+    "curves": [
+      "G1",
+      "G2"
+    ],
+    "points": [
+      256,
+      1024
+    ],
+    "workers": [
+      1,
+      16,
+      32
+    ]
+  },
+  "gain": "both32worker-size equal-log aggregate ON/control upper rank12 below1 and>=10/15wins versus BOTH controls, separately for each curve",
+  "goal_achieved": false,
+  "mechanism": "SIMD coordinates retained between complete unweighted binary-tree levels; two bounded ping-pong buffers and prefix/norm scratch; fallback preserves immutable input",
+  "memory": "maximum ON/control processRSS<=1.05; zero timed allocations and stable reported scratch capacities",
+  "new_proofs": 0,
+  "no_gain_floor": true,
+  "no_subset_or_unchanged_reroll": true,
+  "nonregression": "every context ON/control upper<=1.03",
+  "order": "cyclic rotation then reversal on alternate blocks",
+  "prime_rounds": 8,
+  "primes": 3,
+  "production_changed": false,
+  "profiles_after_latency": {
+    "contexts": [
+      "G1-256-w32",
+      "G2-1024-w32"
+    ],
+    "cycle_period": 16000000,
+    "cycles_rounds": 4096,
+    "stat_rounds": 1024
+  },
+  "timed_rounds_per_fixture": 128
+}
