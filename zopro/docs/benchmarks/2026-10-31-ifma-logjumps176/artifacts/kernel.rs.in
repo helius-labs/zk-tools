@@ -1,0 +1,64 @@
+    // Integer inverse-radix folding, preserving the mixed R=2^256 encoding.
+    const fn logjumps_rho(bits: u32) -> [u64;4] {
+        let mut v=[1,0,0,0];let mut i=0;
+        while i<bits {
+            if v[0]&1!=0 {v=crate::portable::add4(v,C::P).0;}
+            v=[(v[0]>>1)|(v[1]<<63),(v[1]>>1)|(v[2]<<63),(v[2]>>1)|(v[3]<<63),v[3]>>1];i+=1;
+        }
+        v
+    }
+    #[inline(always)]
+    fn product_logjumps<const FUSED:bool>(&self,b:&Self,c:&Self,d:&Self)->Self {
+        debug_assert!(MIXED);
+        unsafe {
+            let zero=Self::splat(0);let mask=Self::splat(MASK);let mask48=Self::splat((1u64<<48)-1);
+            let mut t=[zero;10];
+            macro_rules! term {($i:literal,$j:literal,$lo:literal,$hi:literal)=>{{
+                t[$lo]=_mm256_madd52lo_epu64(t[$lo],self.0[$i],b.0[$j]);
+                t[$hi]=_mm256_madd52hi_epu64(t[$hi],self.0[$i],b.0[$j]);
+                if FUSED {
+                    t[$lo]=_mm256_madd52lo_epu64(t[$lo],c.0[$i],d.0[$j]);
+                    t[$hi]=_mm256_madd52hi_epu64(t[$hi],c.0[$i],d.0[$j]);
+                }
+            }};}
+            // PRODUCT_TERMS
+            let c0=_mm256_and_si256(t[0],mask);
+            t[1]=_mm256_add_epi64(t[1],_mm256_srli_epi64::<52>(t[0]));
+            let c1=_mm256_and_si256(t[1],mask);
+            t[2]=_mm256_add_epi64(t[2],_mm256_srli_epi64::<52>(t[1]));
+            let mut u=[t[2],t[3],t[4],t[5],t[6],t[7],t[8],t[9]];
+            macro_rules! fold {($out:ident,$digit:expr,$bits:literal)=>{{
+                let rho=split(const {Self::logjumps_rho($bits)}).map(Self::splat);
+                macro_rules! part {($j:literal,$next:literal)=>{
+                    $out[$j]=_mm256_madd52lo_epu64($out[$j],$digit,rho[$j]);
+                    $out[$next]=_mm256_madd52hi_epu64($out[$next],$digit,rho[$j]);
+                };}
+                part!(0,1);part!(1,2);part!(2,3);part!(3,4);part!(4,5);
+            }};}
+            fold!(u,c0,104);fold!(u,c1,52);
+            let c0=_mm256_and_si256(u[0],mask);
+            u[1]=_mm256_add_epi64(u[1],_mm256_srli_epi64::<52>(u[0]));
+            let c1=_mm256_and_si256(u[1],mask48);
+            // Divide by2^100 without normalizing every high coefficient.
+            let mut v=[zero;7];
+            for j in 0..6 {
+                v[j]=_mm256_add_epi64(_mm256_srli_epi64::<48>(u[j+1]),_mm256_slli_epi64::<4>(_mm256_and_si256(u[j+2],mask48)));
+            }
+            v[6]=_mm256_srli_epi64::<48>(u[7]);
+            fold!(v,c0,100);fold!(v,c1,48);
+            let p=split(C::P).map(Self::splat);
+            let m=_mm256_and_si256(_mm256_madd52lo_epu64(zero,v[0],Self::splat(C::INV&MASK)),mask);
+            // Reuse the accepted canceled-low-digit carry identity.
+            let carry=_mm256_srli_epi64::<52>(_mm256_add_epi64(v[0],mask));
+            v[1]=_mm256_add_epi64(v[1],_mm256_madd52hi_epu64(carry,m,p[0]));
+            macro_rules! cancel {($j:literal,$next:literal)=>{
+                v[$j]=_mm256_madd52lo_epu64(v[$j],m,p[$j]);
+                v[$next]=_mm256_madd52hi_epu64(v[$next],m,p[$j]);
+            };}
+            cancel!(1,2);cancel!(2,3);cancel!(3,4);cancel!(4,5);
+            let mut out=[v[1],v[2],v[3],v[4],v[5]];
+            for j in 0..4 {out[j+1]=_mm256_add_epi64(out[j+1],_mm256_srli_epi64::<52>(out[j]));out[j]=_mm256_and_si256(out[j],mask);}
+            // Both proven lazy bounds are below4p; one2p correction suffices.
+            Self::reduce_fused(out)
+        }
+    }
