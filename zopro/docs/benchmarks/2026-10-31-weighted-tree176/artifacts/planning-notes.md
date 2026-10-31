@@ -1,0 +1,9 @@
+# Pre-capture planning notes
+
+The first fixture draft referred to the test-only Seeded helper from runtime code. This was found by source inspection before preparation/build, and replaced by a local deterministic input generator. One attempted patch failed to match and changed no file. Native tests and builds then passed on their first executions.
+
+The adapted campaign initially inherited a distinct-OFF/ON assertion. This experiment intentionally uses one candidate executable with a runtime selector, as specified by the protocol. Before campaign preparation/capture, that assertion was changed to require identical copies. The first helper compilation and corrected helper compilation logs remain. build-OFF.log and build-ON.log are copies of the single candidate build receipt; they do not represent two builds.
+
+Campaign preparation hashes its root logs. Its own redirected campaign-prepare.log was still empty while hashing, then received the completion line. Before any workflow command, pin-finalize verifies every other pin, preserves the original manifest and updates only this log's hash, adding its own source/executable and this note. The plan, binaries, native source, tests, arithmetic and protocol do not change, and no measurement or successful test is repeated. No publication claims that this preparation log was immutable before it finished writing.
+
+control/candidate source snapshots both contain the same diagnostic child and lane helpers; the control compilation omits cfg(zopro_packed_tree). The candidate OFF and ON share one executable. The control weighted implementation calls the original weighted_sum; no production entry is changed. Helpers adapted from high-borrow176 preserve the statistical protocol but use this study's sizes, prime count, command counts and smaller native-capacity condition.

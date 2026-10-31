@@ -1,0 +1,53 @@
+# Compact native weighted bucket trees
+
+The complete caller gate is **false**, with eight control-calibration failures. The native candidate is **not adopted**. Both 32-worker curve aggregates improve against both controls, and every nonregression and requested-capacity check passes; those positives remain evidence within this component scope. They are not a verified proof-latency gain.
+
+Against fresh OFF, the G1 aggregate improves **4.015%** and G2 **5.296%**, each winning all 15 blocks. Against the original diagnostic build, the estimates are **9.689%** and **2.601%**. However, the controls themselves differ systematically: G2 OFF is about 3.7–6.6% slower in several cells, while G1 OFF is about 5.5–5.7% faster at 32 workers. All six G2 calibrations and both G1 32-worker calibrations fail the original factor-1.03 interval requirement. The gate is not rescued by the favorable candidate estimates.
+
+{{AGGREGATES}}
+
+This targets weighted bucket reductions. The previous [compact indexed-tree SDK experiment](../2026-10-31-compact-sdk176/README.md) targeted unweighted trees and remains unadopted. The earlier [coarser weighted groups](../2026-10-22-universal-coarse-weighted-sdk/README.md) and [window-local weighted schedule](../2026-10-22-universal-window-local-weighted-sdk/README.md) changed task geometry. Here the original 256-bucket group topology and arithmetic identity stay intact; only the private group implementation changes. No production entry dispatches to it.
+
+For adjacent pairs Cj=B2j+B2j+1, preserve W(B)=2W(C)−sum(B2j). At a level with S equal-length segments, copy the first segment's even positions to a tail outside all old inputs, reduce the S old segments using one shared inverse, then place the saved correction segment after their compacted outputs. Coordinates remain in compact native four-word storage while segment length exceeds eight. All inverse factors exist before forward output compaction. The existing complete reducer performs the final three levels, followed by the original doubling/subtraction identity and total output.
+
+Reject an initial identity or a zero norm before that level writes. The input stays immutable, so a late rejection discards native buffers before complete original fallback. The new group uses one coordinate buffer plus prefix/norm records and a small complete tail. It adds no lookup table, transformed/copied key, duplicate solver plan, pool, synthetic RAM ceiling, field multiplication, C or assembly backend. Reused lane movement/zero/compact helpers and their two tests are byte-exact from the preceding native compact-tree study. The IFMA generator passes its consistency check.
+
+Both private snapshots contain 178 files. Five original parents have reversible diagnostic/helper insertions; 171 original files remain exact in each, and source recovery checks all 176 accepted files twice. Arithmetic, original point kernels, weighted_sum, solver, routing and schedules recover byte for byte. The control compilation omits the native cfg and calls original weighted_sum. Candidate OFF and ON are identical executable copies with a runtime selector. Actual final links use optimization level 3, native CPU, fat LTO and one codegen unit. Source identity does not guarantee identical code placement or inlining across control builds; the calibration difference's exclusive cause is unresolved.
+
+Qualification passes **37 native field tests**, **128 native core tests** and **two independent integer-model tests**. The field suite includes the two unchanged lane-helper tests. The core suite adds G1/G2 weighted-and-total checks across every power of two from 1 through 256, identities, doubling, opposites, a late-cancellation family, input immutability and repeated OFF/ON transitions; another test covers reuse on 1/4/16/32-worker pools with 512 KiB stacks. The integer model imports no field/curve code and reproduces every original coefficient and overwrite bound. No new portable, full-prover, phone or pressure qualification follows.
+
+Ryzen 9950X, 16 physical cores / 32 logical CPUs, shared host. Twelve contexts cover G1/G2, 128/256 buckets and 1/16/32 workers. Workers pin individually to CPU 2, CPUs 0–15 or CPUs 0–31 and use 512 KiB stacks; fixtures may move between workers. Each process uses three checked eight-round primes and 4,096 timed complete weighted groups per fixture. Input import, all arithmetic, complete finishing and dispatch/wait are timed; fixture construction, pool creation and reference checks are excluded. Inputs alternate between two preconstructed full-width random generator-multiple families with different worker seeds. They are synthetic dense groups, not a changing witness stream or captured proof distribution.
+
+All 588 caller processes match independent weighted-generator and total references, with identical output digests across arms, zero timed allocations, stable capacities and zero timed fallbacks. Every prime and final state is checked; intermediate timed results are not each independently checked.
+
+{{LATENCY}}
+
+Each curve's equal-log aggregate over both 32-worker sizes requires upper ON/control ratio below one and at least 10/15 wins against both controls. Every context upper ON/control must be at most 1.03; every OFF/original interval must fit factor 1.03. Ordered ranks 4–12/15 have nominal 96.484375% marginal coverage under independent exchangeable blocks, without familywise guarantees. No gain floor, exclusions, extension, favorable subset, threshold change, parameter sweep or unchanged reroll occurs.
+
+Failed checks: `{{FAILURES}}`.
+
+{{MEMORY}}
+
+Requested retained scratch decreases from 29,632 to 23,872 bytes for G1/128, 59,328 to 43,392 for G1/256, 44,032 to 41,728 for G2/128 and 85,312 to 75,328 for G2/256. The separate [work model](artifacts/work-model.json) reproduces every observed context capacity. For 256 buckets both paths perform 502 ordinary additions and eight shared inversions; for 128, 247 additions and seven inversions. This changes data movement and execution cost, not the mathematical addition count.
+
+Those capacities exclude fixture/key arrays, inline fields, compiler stack and allocator overhead. Recorded maximum-RSS counters are diagnostic: earlier page-table audits found undercounts on this host. They are not accurate resident peaks or minimum RAM. No fresh page-table sampler, hard memory envelope, swap or pressure result is claimed.
+
+All 540 latency processes precede six grouped four-event counter panels and six separate fixed-16M-user-cycle profiles. Counter panels run 16,384 groups per worker and profiles 65,536 after three checked primes excluded through FIFO acknowledgements. No owned build, helper, hashing, archive, analyzer or second workload overlaps capture. Perf ownership changes occur only after recording and preserve its hash.
+
+{{COUNTERS}}
+
+At size 256, ON retires about **11.4% fewer instructions for G1** and **10.9% fewer for G2** than OFF. Cycles fall about **3.90%** and **5.76%**. These are descriptive single panels, not paired uncertainty bounds or a measured attribution to one instruction class. Generic cache events do not identify bandwidth or a cache-level cause. All events run 100%.
+
+The six profiles contain **145,764 samples**, zero lost records, at least 15,740 samples per profile and unknown share at most 0.693%. Expected process, registered worker TID, mapping/FORK, allowed CPU and fixed-period evidence is checked. Flat symbol attribution includes inlined work; it is not removable proof wall time. [Linked-code records](artifacts/codegen.json) include all observed weighted diagnostic/reducer specializations, including constructors and checks outside timing. Static sites/RSP operands are not dynamic spills or comparable exclusive function costs when inlining boundaries differ.
+
+The first read-only reviewer stopped because a broad helper text replacement changed its expected period from 16,000,000 to 15,880,000. Capture used the correct fixed period throughout. The initial reviewer/source/log remain; review-v2 changes only that literal and passes all 618 commands, 588 outputs, raw statistics, profile symbol bins, capacity comparisons and gate recomputation. No workload or successful native test is rerun. A separate pre-capture preparation-log pin finalization and draft helper corrections are documented in [planning notes](artifacts/planning-notes.md). Build-OFF/ON logs refer to one candidate build, not two builds.
+
+No SDK request, proof export or Gnark verification is added; the canonical distinct-proof ledger remains **28,349**. Accepted source 176 and SDK SHA-256 `6d83f1d6fda6f16576cb351b81789e8d26a6177cc0f26f169a3dc98448c0e661` stay unchanged. The following CPU/Metal comparisons are inherited accepted full-proof observations and supplied M5 references, not timings of this prototype. The accepted adoption retains its documented physical16 calibration engineering exception and false original full-performance gate.
+
+{{REFERENCES}}
+
+The all-eight CPU 10× objective remains **active and unmet, 0/8**. Accepted primary is 7.928660 ms against a 3.7 ms CPU target. Historical merge54 is 161.883899 ms without a supplied M5 reference. AWS/Aeglos comparisons predate source 176; no new AWS resource or measurement occurs. No mobile/ARM/TEE, huge250/4999, concurrent-throughput or minimum-RAM claim follows.
+
+This component provides a useful direction, with an unpassed calibration gate and no proof-speed claim. A distinct next hypothesis is to preserve the current groups but combine their small final frontiers: sixteen full 256-bucket groups currently invoke 48 late shared inversions; one joint three-level finish could use three and vectorize scalar tails. This is a structural count only, not an implemented algorithm or predicted speedup. It would add frontier ownership, movement, admission and task costs that need complete measurement. The current candidate is not rerun or adopted on the basis of that hypothesis.
+
+[Protocol](artifacts/design.md), [full results](artifacts/analysis.json), [source audit](artifacts/source-audit.json), [independent review](artifacts/review.json), [profile symbols](artifacts/profile-symbols.json), [plan](artifacts/plan.json), [pins](artifacts/pins.json), [publication audit](artifacts/publication.json). Archives: [source snapshots](artifacts/source.tar.gz), [Rust workflows](artifacts/workflow.tar.gz), [command receipts](artifacts/receipts.tar.gz), [counter panels](artifacts/counters.tar.gz), [disassembly](artifacts/codegen.tar.gz). [Checksums](SHA256SUMS). Executables/libraries/raw perf.data and private inputs stay local with hashes. Root: `/home/ubuntu/src/zopro-perf-work/weighted-tree176`.
