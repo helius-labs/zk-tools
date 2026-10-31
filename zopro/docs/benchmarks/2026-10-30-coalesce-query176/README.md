@@ -1,5 +1,7 @@
 # Sparse full-scalar coalescing: native complete-query trial
 
+**Final-driver compiler correction (31 October 2026):** These query drivers used an extern-only `rustc_flags` override, omitting the default optimization/LTO profile while their backend libraries remained native release builds. The [compiler-profile audit and correction](../2026-10-31-sdk-link-flags176/README.md) documents the limitation. Original data and failed gates remain; this correction promotes no candidate and changes no accepted proof timing.
+
 **The query gate fails; no adoption.** The primary equal-log A/B2 aggregate at 32 workers is 1.045199 with interval [1.037001, 1.061052] and 0/15 winning blocks: 4.52% slower by the paired estimate. Single-worker A improves 7.05%, and 16-worker A improves 1.10%; those gains are retained below. Primary B2 slows at every tested worker count. Production source 176, the accepted SDK and proof ledger of 27,353 remain unchanged.
 
 The earlier [operation-count screen](../2026-10-30-bounded-coalesce176/README.md) predicted 3.329%/3.104% fewer primary A/B2 generic fill/top pairs after group formation. This trial implements the proposal and measures its full query cost. Count savings alone did not predict latency at high worker counts. These measurements cover queries, without a new proof or AWS run.

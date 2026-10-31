@@ -75,8 +75,12 @@ native builds; focused builds may use faster code generation without making
 latency claims about that configuration.
 
 `link-sdk` selects the eight required libraries from Cargo JSON output and
-rejects missing or ambiguous artifacts. It defaults to native CPU, fat LTO and
-one codegen unit; override `rustc_flags` explicitly for a portable driver.
+rejects missing or ambiguous artifacts. It defaults to `-O`, native CPU, fat LTO
+and one codegen unit. Use `additional_rustc_flags` for additions such as
+`["--extern", "sha2=/absolute/frozen/libsha2.rlib"]`; these follow the base flags.
+Setting `rustc_flags` replaces the entire base profile, for example when linking
+a portable driver. An extern-only `rustc_flags` list therefore removes all default
+optimization flags. Pin any additional library in the plan's source pins.
 The resulting `NAME-sdk` has an `artifacts.json` receipt with its digest and
 all direct source/library input digests. Resume checks the original source
 pin set, completed command receipts and frozen link inputs before reuse.

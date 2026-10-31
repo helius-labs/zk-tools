@@ -42,6 +42,8 @@ enum Step {
         additional_sources: Vec<PathBuf>,
         #[serde(default = "flags")]
         rustc_flags: Vec<String>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        additional_rustc_flags: Vec<String>,
         #[serde(default = "timeout")]
         timeout_seconds: u64,
     },
@@ -61,6 +63,12 @@ fn flags() -> Vec<String> {
     ]
     .map(String::from)
     .to_vec()
+}
+fn sdk_compiler_prefix(base: &[String], additional: &[String]) -> Vec<String> {
+    let mut argv = vec!["rustc".into(), "--edition=2021".into()];
+    argv.extend_from_slice(base);
+    argv.extend_from_slice(additional);
+    argv
 }
 impl Step {
     fn name(&self) -> &str {
@@ -259,6 +267,7 @@ pub fn evaluate(plan: Plan, output: &Path, resume: bool) -> Result<serde_json::V
                     driver,
                     additional_sources,
                     rustc_flags,
+                    additional_rustc_flags,
                     timeout_seconds,
                     ..
                 } => {
@@ -291,8 +300,7 @@ pub fn evaluate(plan: Plan, output: &Path, resume: bool) -> Result<serde_json::V
                     let dependencies = Path::new(selected.values().next().unwrap())
                         .parent()
                         .ok_or("rlib without parent")?;
-                    let mut argv = vec!["rustc".into(), "--edition=2021".into()];
-                    argv.extend(rustc_flags.clone());
+                    let mut argv = sdk_compiler_prefix(rustc_flags, additional_rustc_flags);
                     argv.extend([
                         "-L".into(),
                         format!("dependency={}", dependencies.display()),
@@ -336,6 +344,51 @@ pub fn evaluate(plan: Plan, output: &Path, resume: bool) -> Result<serde_json::V
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn additional_link_flags_keep_release_defaults() {
+        let step: Step = serde_json::from_value(serde_json::json!({
+            "kind": "link-sdk", "name": "probe", "artifacts": "artifacts.jsonl",
+            "driver": "probe.rs", "additional_rustc_flags": ["--extern", "sha2=frozen.rlib"]
+        }))
+        .unwrap();
+        let Step::LinkSdk { rustc_flags, additional_rustc_flags, .. } = step else {
+            panic!("expected SDK link");
+        };
+        assert_eq!(
+            sdk_compiler_prefix(&rustc_flags, &additional_rustc_flags),
+            ["rustc", "--edition=2021", "-O", "-C", "target-cpu=native", "-C",
+             "lto=fat", "-C", "codegen-units=1", "--extern", "sha2=frozen.rlib"]
+        );
+    }
+
+    #[test]
+    fn explicit_link_profile_stays_an_override() {
+        let step: Step = serde_json::from_value(serde_json::json!({
+            "kind": "link-sdk", "name": "portable", "artifacts": "artifacts.jsonl",
+            "driver": "probe.rs", "rustc_flags": ["-O", "-C", "target-cpu=generic"],
+            "additional_rustc_flags": ["--cfg", "no_ifma"]
+        }))
+        .unwrap();
+        let Step::LinkSdk { rustc_flags, additional_rustc_flags, .. } = step else {
+            panic!("expected SDK link");
+        };
+        assert_eq!(
+            sdk_compiler_prefix(&rustc_flags, &additional_rustc_flags),
+            ["rustc", "--edition=2021", "-O", "-C", "target-cpu=generic", "--cfg", "no_ifma"]
+        );
+    }
+
+    #[test]
+    fn empty_additional_flags_preserve_existing_link_protocols() {
+        let old = serde_json::json!({
+            "kind": "link-sdk", "name": "probe", "artifacts": "artifacts.jsonl",
+            "driver": "probe.rs", "additional_sources": [],
+            "rustc_flags": ["-O"], "timeout_seconds": 600
+        });
+        let step: Step = serde_json::from_value(old.clone()).unwrap();
+        assert_eq!(serde_json::to_value(step).unwrap(), old);
+    }
+
     #[test]
     fn required_tests_are_named_not_inferred_from_a_fixed_count() {
         let names=successful_tests("test grouping::one ... ok\ntest grouping::two ... ignored\ntest result: ok. 1 passed\n");

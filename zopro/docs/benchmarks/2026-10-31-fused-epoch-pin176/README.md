@@ -1,5 +1,7 @@
 # Fused epoch pinning in complete MSM queries
 
+**Final-driver compiler correction (31 October 2026):** These query drivers used an extern-only `rustc_flags` override, omitting the default optimization/LTO profile while their backend libraries remained native release builds. The [compiler-profile audit and correction](../2026-10-31-sdk-link-flags176/README.md) documents the limitation. Original data and failed gates remain; this correction promotes no candidate and changes no accepted proof timing.
+
 **The query gate fails; no adoption.** The primary A/B2 aggregate at 32 workers improves 1.18% against fresh OFF: ratio 0.988185 [0.981163, 0.998546], 12/15 wins. Against the previously frozen original caller it is 1.013214 [0.988838, 1.021032], 6/15 wins. Five OFF/frozen calibration bounds fail, and one candidate/frozen nonregression bound fails. The positive OFF comparison is retained; it does not establish a gain against the original implementation.
 
 Production source 176, accepted SDK, proof latency and verified-export ledger 27,353 remain unchanged. All eight CPU 10× targets remain unmet. This experiment measures complete A/B2 queries, without producing a new proof or AWS result.
