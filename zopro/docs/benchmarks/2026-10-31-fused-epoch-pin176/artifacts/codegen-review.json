@@ -1,0 +1,51 @@
+{
+  "passed": true,
+  "scope": "manual linked steady-state path audit, not a latency result",
+  "binary_identities": {
+    "candidate": "0ccec6b741d678e2df5b50c19b6d35e163c0f8cd297654eefcb9c36d78a7d8e1",
+    "control": "95f47935d33da12c05fc503f7f557ebebb89bf41b0755a2807ca38f3c94f92a7",
+    "frozen": "d3d1872f4ace88c99af26fdd807c0114fc63960f50708a65a01bb781ea55c8be"
+  },
+  "single_steal": {
+    "candidate": {
+      "address": 1938784,
+      "bytes": 726,
+      "instructions": 159,
+      "disassembly": "candidate-3.asm",
+      "disassembly_sha256": "3bfe2221f410b4040dc75584c5506e4939bcfe89315c3ecfad59d58260dc6784"
+    },
+    "control": {
+      "address": 1938304,
+      "bytes": 328,
+      "instructions": 80,
+      "disassembly": "control-5.asm",
+      "disassembly_sha256": "460088dec117e15807ea6f80f8804e40de93b062ce6f927a2735069a8b44a5a0"
+    },
+    "frozen": {
+      "address": 1938624,
+      "bytes": 328,
+      "instructions": 80,
+      "disassembly": "frozen-5.asm",
+      "disassembly_sha256": "f343d3a59664a8ce64d1ba7036376e4269637e976f86dc0aa4ac0df298b78b70"
+    }
+  },
+  "steady_TLS_lookups": {
+    "frozen": 2,
+    "control": 2,
+    "candidate": 1
+  },
+  "steady_HANDLE_state_checks": {
+    "frozen": 2,
+    "control": 2,
+    "candidate": 1
+  },
+  "candidate_pin_body_inlined_into_steal": true,
+  "reentrant_SeqCst_fence_present": true,
+  "unpinned_SeqCst_local_epoch_CAS_present": true,
+  "release_unpin_store_present": true,
+  "source_orders_and_pin_lifetime_preserved": true,
+  "steal_body_grows_because_pin_is_inlined": true,
+  "static_counts_not_executed_work_or_speedup": true,
+  "selected_for_complete_query_timing": true,
+  "no_proof_or_query_executed_yet": true
+}
