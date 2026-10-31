@@ -1,0 +1,183 @@
+//! Optional in-place inverse reuse; construction scratch is not retained.
+use super::*;
+use core::mem::size_of;
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+static ALIASES: AtomicUsize = AtomicUsize::new(0);
+static PEAK: AtomicUsize = AtomicUsize::new(0);
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct KeyTerm { wire: u32, coefficient: [u32; 8] }
+struct Entry { start: usize, end: usize, op: usize, factor: Fr, inverse: Fr }
+
+fn words(value: Fr) -> [u32; 8] {
+    core::array::from_fn(|i| (value.0[i / 2] >> (32 * (i % 2))) as u32)
+}
+pub(super) fn field(words: [u32; 8]) -> Fr {
+    Fr::from_montgomery(core::array::from_fn(|i| u64::from(words[2*i]) | (u64::from(words[2*i+1]) << 32)))
+}
+pub(crate) fn snapshot() -> [usize; 4] {
+    [size_of::<Op>(), size_of::<Hint>(), ALIASES.load(Ordering::Relaxed), PEAK.load(Ordering::Relaxed)]
+}
+
+impl Plan {
+    pub(super) fn prepare_inverse_aliases(&mut self) {
+        if std::env::var("ZOPRO_CPU_INVERSE_ALIASES").as_deref() == Ok("1") {
+            if let Some((aliases, peak)) = self.inverse_aliases_with_limit(usize::MAX) {
+                ALIASES.fetch_add(aliases, Ordering::Relaxed);
+                PEAK.fetch_max(peak, Ordering::Relaxed);
+            }
+        }
+    }
+
+    fn inverse_aliases_with_limit(&mut self, ceiling: usize) -> Option<(usize, usize)> {
+        // In particular, never expand the operation array to store a factor.
+        if size_of::<Op>() != 76 || core::mem::align_of::<Op>() != 4 { return None; }
+        let mut hints=0usize; let mut terms=0usize;
+        for op in &self.ops {
+            if let Op::Hint(h) = op {
+                if matches!(h.kind, HintKind::InvZero) {
+                    hints=hints.checked_add(1)?; terms=terms.checked_add(h.input().len())?;
+                }
+            }
+        }
+        if hints < 2 { return Some((0,0)); }
+        let peak=terms.checked_mul(size_of::<KeyTerm>())?
+            .checked_add(hints.checked_mul(size_of::<Entry>())?)?.checked_add(128)?;
+        if peak > ceiling { return None; }
+        let _reservation=crate::preparation::Reservation::analysis(Some(peak))?;
+        // Each wire has exactly one initialized producer. Otherwise an input
+        // signature might refer to a different value when a hint executes.
+        if !*self.definite.get_or_init(||self.definitely_writes_all()) { return None; }
+        // Rewriting after a cached schedule would leave its dependencies stale.
+        if self.schedule.get().is_some() { return None; }
+        let mut keys=Vec::<KeyTerm>::new(); let mut entries=Vec::<Entry>::new();
+        keys.try_reserve_exact(terms).ok()?; entries.try_reserve_exact(hints).ok()?;
+        let actual=keys.capacity().checked_mul(size_of::<KeyTerm>())?
+            .checked_add(entries.capacity().checked_mul(size_of::<Entry>())?)?.checked_add(128)?;
+        if actual > peak { return None; }
+        for (op, operation) in self.ops.iter().enumerate() {
+            let Op::Hint(h)=operation else {continue};
+            if !matches!(h.kind,HintKind::InvZero) {continue;}
+            let start=keys.len();
+            for term in &self.terms[h.input()] {
+                keys.push(KeyTerm{wire:term.wire,coefficient:words(self.coefficients[term.coefficient()])});
+            }
+            keys[start..].sort_unstable_by_key(|t|t.wire);
+            let mut at=start;let mut end=start;
+            while at<keys.len() {
+                let wire=keys[at].wire;let mut coefficient=Fr::ZERO;
+                while at<keys.len() && keys[at].wire==wire {
+                    coefficient+=field(keys[at].coefficient);at+=1;
+                }
+                if coefficient!=Fr::ZERO {keys[end]=KeyTerm{wire,coefficient:words(coefficient)};end+=1;}
+            }
+            keys.truncate(end);
+            if start==end {continue;}
+            let factor=field(keys[start].coefficient);
+            let inverse=factor.inverse()?;
+            for t in &mut keys[start..end] {t.coefficient=words(field(t.coefficient)*inverse);}
+            entries.push(Entry{start,end,op,factor,inverse});
+        }
+        entries.sort_unstable_by(|a,b|keys[a.start..a.end].cmp(&keys[b.start..b.end]).then(a.op.cmp(&b.op)));
+        let mut start=0;let mut aliases=0;
+        while start<entries.len() {
+            let source=&entries[start];
+            let Op::Hint(first)=&self.ops[source.op] else {unreachable!()};
+            let wire=first.outputs.0;
+            let mut end=start+1;
+            while end<entries.len() && keys[source.start..source.end]==keys[entries[end].start..entries[end].end] {
+                let target=&entries[end];
+                let Op::Hint(h)=&mut self.ops[target.op] else {unreachable!()};
+                h.kind=HintKind::InverseAlias{source:wire,factor:words(source.factor*target.inverse)};
+                aliases+=1;end+=1;
+            }
+            start=end;
+        }
+        Some((aliases,peak))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn plan(copies:usize)->Plan {
+        // Use the existing fully validated hint/constraint fixture, then add
+        // independent output wires. Test-only construction retains all rows.
+        let mut p=Plan::new(&super::super::tests::encode_words(&super::super::tests::with_hints()),&super::super::tests::small().1).unwrap();
+        let pos=p.ops.iter().position(|op|matches!(op,Op::Constraint(_))).unwrap();
+        let mut added=Vec::new();
+        for i in 0..copies {
+            let start=p.terms.len();
+            // Reordered duplicate-wire terms cancel before normalization.
+            p.terms.extend([Term::new(if i%2==0 {1}else{2},1),Term::new(1,2),Term::new(3,2)]);
+            let wire=p.n_wires as u32;p.n_wires+=1;
+            added.push(Op::Hint(Hint{kind:HintKind::InvZero,input:(start as u32,p.terms.len() as u32),outputs:(wire,wire+1)}));
+        }
+        p.ops.splice(pos..pos,added);p.definite=std::sync::OnceLock::new();p
+    }
+    fn reference(p:&Plan)->Plan {Plan::from_image(&p.image()).unwrap()}
+    fn hints(p:&Plan,x:Fr)->Vec<Fr>{
+        let mut w=vec![Fr::ZERO;p.n_wires+p.n_slots];w[0]=Fr::ONE;w[1]=x;
+        let view=View{w:w.as_mut_ptr(),a:core::ptr::null_mut(),b:core::ptr::null_mut(),c:core::ptr::null_mut()};
+        for op in &p.ops {if matches!(op,Op::Hint(_)){unsafe {p.run(op,view).unwrap()}}}
+        w
+    }
+    #[test]
+    fn inline_layout_zero_scaling_cancellation_and_images(){
+        assert_eq!((size_of::<Op>(),core::mem::align_of::<Op>()),(76,4));
+        assert!(size_of::<Hint>()<=size_of::<Step>());
+        let mut p=plan(9);let image=p.image();let control=reference(&p);
+        assert_eq!(p.inverse_aliases_with_limit(usize::MAX).unwrap().0,9);
+        assert_eq!(p.image(),image);
+        for x in [Fr::ZERO,Fr::ONE,-Fr::ONE,Fr::from(2u64),Fr::from(u64::MAX)] {
+            assert_eq!(hints(&p,x),hints(&control,x));
+        }
+        let loaded=Plan::from_image(&image).unwrap();assert_eq!(loaded.image(),image);
+    }
+    #[test]
+    fn budget_invalid_and_cached_schedule_keep_original_ops(){
+        let mut p=plan(3);let bytes=p.image();
+        assert!(p.inverse_aliases_with_limit(0).is_none());assert_eq!(p.image(),bytes);
+        assert!(p.ops.iter().all(|o|!matches!(o,Op::Hint(Hint{kind:HintKind::InverseAlias{..},..}))));
+        p.schedule.set(Schedule{epochs:Vec::new(),refined:FxMap::default(),_reservation:None}).ok().unwrap();
+        assert!(p.inverse_aliases_with_limit(usize::MAX).is_none());
+        let mut invalid=plan(3);invalid.n_wires+=1;
+        assert!(invalid.inverse_aliases_with_limit(usize::MAX).is_none());
+    }
+    fn check_dependencies(p:&Plan,s:&Schedule){
+        let mut seen=vec![false;p.ops.len()];let mut ready=vec![false;p.n_wires+p.n_slots];ready[..p.n_inputs].fill(true);
+        let mut reads=Vec::new();
+        for epoch in &s.epochs {
+            for task in epoch {
+                let mut local=ready.clone();
+                for &i in task {
+                    assert!(!seen[i as usize]);seen[i as usize]=true;
+                    p.reads(&p.ops[i as usize],&mut reads);assert!(reads.iter().all(|&w|local[w]));
+                    for w in p.writes(&p.ops[i as usize]) {assert!(!local[w]);local[w]=true;}
+                }
+            }
+            for task in epoch {for &i in task {for w in p.writes(&p.ops[i as usize]){assert!(!ready[w]);ready[w]=true;}}}
+        }
+        assert!(seen.iter().all(|v|*v));assert!(ready.iter().all(|v|*v));
+    }
+    #[test]
+    fn scheduled_caller_preserves_rows_and_source_readiness(){
+        let mut p=plan(4100);let control=reference(&p);
+        assert_eq!(p.inverse_aliases_with_limit(usize::MAX).unwrap().0,4100);
+        assert!(p.definitely_writes_all());
+        for epochs in [1,4,16] {
+            let s=p.build_schedule_with_refinement(epochs,0,4096,128);check_dependencies(&p,&s);
+            #[cfg(all(zopro_bounded_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+            {if let Some(s)=bounded::build(&p,epochs,0,4096){check_dependencies(&p,&s);}}
+        }
+        for workers in [1,4,16,32] {
+            let pool=rayon::ThreadPoolBuilder::new().num_threads(workers).stack_size(512*1024).build().unwrap();
+            for x in [1u64,2,3] {
+                let (a,b)=pool.install(||(p.solve(&[Fr::from(x)]).unwrap(),control.solve(&[Fr::from(x)]).unwrap()));
+                assert_eq!(a.w,b.w);assert_eq!(a.a,b.a);assert_eq!(a.b,b.b);assert_eq!(a.c,b.c);
+            }
+            assert_eq!(pool.install(||p.solve(&[Fr::ZERO])).err(),pool.install(||control.solve(&[Fr::ZERO])).err());
+        }
+    }
+}
