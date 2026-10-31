@@ -1,0 +1,97 @@
+{
+  "static_counts_are_not_dynamic_spills_or_frame_bounds": true,
+  "variants": {
+    "OFF": {
+      "binary_sha256": "bd325857d4d462f61a27ca8c1fccc0c4cf0eaa12d495644371697ccdcbe940d0",
+      "functions": [
+        {
+          "IFMA_sites": 800,
+          "RSP_operand_lines": 574,
+          "assembly": "linked-code/OFF-G1-borrowed.txt",
+          "assembly_sha256": "41e4f29b11c9c555bd55383128a9487782f05ab24cbfd82f1a599e66ac4c1b70",
+          "bytes": 26198,
+          "instruction_sites": 4425,
+          "kind": "G1-borrowed",
+          "literal_stack_subtraction_sum": 4288,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "IFMA_sites": 1450,
+          "RSP_operand_lines": 1450,
+          "assembly": "linked-code/OFF-G2-borrowed.txt",
+          "assembly_sha256": "83c7c204f407197282a745140e65491d89496f99235059e1da6737b9fa22e54e",
+          "bytes": 51830,
+          "instruction_sites": 8590,
+          "kind": "G2-borrowed",
+          "literal_stack_subtraction_sum": 5952,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        }
+      ]
+    },
+    "ON": {
+      "binary_sha256": "afe89489118767b4a3dc1c8bd8ce7f096a5c71fedeb3f7801fce5f1c2d7e2c69",
+      "functions": [
+        {
+          "IFMA_sites": 800,
+          "RSP_operand_lines": 576,
+          "assembly": "linked-code/ON-G1-owned.txt",
+          "assembly_sha256": "46694afd6b67cf311497c7edc61245f39fef2157cfe3178a341c62eac4772e65",
+          "bytes": 25803,
+          "instruction_sites": 4323,
+          "kind": "G1-owned",
+          "literal_stack_subtraction_sum": 4096,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, false, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "IFMA_sites": 800,
+          "RSP_operand_lines": 596,
+          "assembly": "linked-code/ON-G1-borrowed.txt",
+          "assembly_sha256": "c86b196611449a99c7ddd5523ff1b840d4d1d2957d78f8d21d07f60ed0d1736b",
+          "bytes": 26739,
+          "instruction_sites": 4511,
+          "kind": "G1-borrowed",
+          "literal_stack_subtraction_sum": 4160,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "IFMA_sites": 1450,
+          "RSP_operand_lines": 1527,
+          "assembly": "linked-code/ON-G2-borrowed.txt",
+          "assembly_sha256": "1f5c56f8ad7913bfa245649d859098c2f6677fa75200c8d9fdf43ee9b5e2d900",
+          "bytes": 53040,
+          "instruction_sites": 8782,
+          "kind": "G2-borrowed",
+          "literal_stack_subtraction_sum": 6016,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        }
+      ]
+    },
+    "frozen": {
+      "binary_sha256": "389307b91908fe4822d9b4a788ff507944257f064bd0f11cde317ebd2cf6782b",
+      "functions": [
+        {
+          "IFMA_sites": 800,
+          "RSP_operand_lines": 574,
+          "assembly": "linked-code/frozen-G1-borrowed.txt",
+          "assembly_sha256": "09a222854f85cdfe878ab9e06e8421326dfdaaf78125809883f7c4766a5fda4e",
+          "bytes": 26198,
+          "instruction_sites": 4425,
+          "kind": "G1-borrowed",
+          "literal_stack_subtraction_sum": 4288,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "IFMA_sites": 1450,
+          "RSP_operand_lines": 1450,
+          "assembly": "linked-code/frozen-G2-borrowed.txt",
+          "assembly_sha256": "c3d3035934d0fc7f965069d613b7ff1a980ae0822d7e4901c99fdc91793affe8",
+          "bytes": 51830,
+          "instruction_sites": 8590,
+          "kind": "G2-borrowed",
+          "literal_stack_subtraction_sum": 5952,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        }
+      ]
+    }
+  }
+}

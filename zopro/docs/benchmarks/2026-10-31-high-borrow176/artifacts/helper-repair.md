@@ -1,0 +1,7 @@
+# Review-generator repair before capture
+
+The first direct rustc invocation for prepare-review-source.rs failed because a raw string used one hash delimiter and contained a quoted Rust attribute. Its initial source is retained in prepare-review-source-initial.rs. The tool output contains the compiler diagnostics; a complete initial compiler log was not saved to disk. Dependent launch/link attempts then failed because the generator/review outputs did not exist. No benchmark or native arithmetic test ran in those failed helper steps.
+
+Changing only the raw-string delimiters to three hashes repaired the generator. The corrected generator and review helper compile successfully; native field37/core127 results and all measured source files remain unchanged. No successful native test, build or measurement was repeated for this repair. The corrected build logs and failed generator launch log remain local and are included in workflow receipts where available.
+
+The initial code-generation observer assumed two matching point-kernel symbols in each binary. ON retains an additional unsigned G1 specialization, so its assertion stopped before recording ON. The corrected read-only observer records the actual two/two/three symbol sets with distinct role labels. The unsigned G1 symbol is dormant in this borrowed-caller benchmark. The initial helper/log and four already emitted original/OFF disassemblies are retained separately. No executable, arithmetic test or timing was rerun.
