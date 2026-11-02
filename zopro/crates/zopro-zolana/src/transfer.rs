@@ -174,14 +174,23 @@ pub(crate) fn assign_tree_slots(assignment: &mut Assignment, prefix: &str, slots
 /// `inputFlags` packs the dummy policy in bit 0 and each input's tree slot
 /// in its own 3 bits above it.
 fn check_input_flags(flags: &Fr, slots: &[Fr]) -> Result<(), Error> {
-    let mut want = small(flags).ok_or(Error::Request)? & 1;
+    // Keep the packed value in canonical limbs: 22 or more inputs exceed u64.
+    // 253 bits fit below the scalar modulus without reduction.
+    if slots.len() > 252 / TREE_INDEX_BITS as usize {
+        return Err(Error::Request);
+    }
+    let actual = flags.to_canonical();
+    let mut want = [actual[0] & 1, 0, 0, 0];
     for (i, slot) in slots.iter().enumerate() {
         let slot = small(slot)
             .filter(|s| *s < 1 << TREE_INDEX_BITS)
             .ok_or(Error::Request)?;
-        want |= slot << (1 + TREE_INDEX_BITS as usize * i);
+        for bit in 0..TREE_INDEX_BITS as usize {
+            let position = 1 + TREE_INDEX_BITS as usize * i + bit;
+            want[position / 64] |= ((slot >> bit) & 1) << (position % 64);
+        }
     }
-    if small(flags) != Some(want) {
+    if actual != want {
         return Err(Error::Request);
     }
     Ok(())
@@ -456,4 +465,46 @@ fn assign_utxo(a: &mut Assignment, prefix: &str, utxo: &Utxo) {
     a.set(format!("{prefix}_DataHash"), utxo.data_hash);
     a.set(format!("{prefix}_RingDataHash"), utxo.ring_data_hash);
     a.set(format!("{prefix}_RingProgramID"), utxo.ring_program_id);
+}
+
+#[cfg(test)]
+mod input_flags_tests {
+    use super::*;
+
+    #[test]
+    fn accepts_full_width_flags_and_rejects_changes() {
+        for count in [2, 21, 22, 24, 32, 40, 48, 49] {
+            for policy in [0u64, 1] {
+                let slots: Vec<_> = (0..count).map(|i| Fr::from_u64((i % 5) as u64)).collect();
+                // Independent field arithmetic reference, without machine-word shifts.
+                let mut expected = Fr::from_u64(policy);
+                let mut factor = Fr::from_u64(2);
+                for slot in &slots {
+                    expected += *slot * factor;
+                    factor *= Fr::from_u64(8);
+                }
+                assert_eq!(check_input_flags(&expected, &slots), Ok(()));
+                assert_eq!(
+                    check_input_flags(&(expected + factor), &slots),
+                    Err(Error::Request)
+                );
+                let mut changed = slots.clone();
+                changed[count - 1] += Fr::from_u64(1);
+                assert_eq!(check_input_flags(&expected, &changed), Err(Error::Request));
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_slots_and_excess_width() {
+        let zero = Fr::from_u64(0);
+        assert_eq!(
+            check_input_flags(&zero, &[Fr::from_u64(8)]),
+            Err(Error::Request)
+        );
+        let large = Fr::from_canonical([0, 1, 0, 0]).unwrap();
+        assert_eq!(check_input_flags(&zero, &[large]), Err(Error::Request));
+        assert_eq!(check_input_flags(&zero, &[zero; 85]), Err(Error::Request));
+        assert_eq!(check_input_flags(&large, &[zero; 49]), Err(Error::Request));
+    }
 }
