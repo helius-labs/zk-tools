@@ -8,18 +8,28 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    working-directory: zopro
+
 jobs:
-  go:
+  cpu:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-go@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
         with:
-          go-version: 1.27.1
-          cache-dependency-path: |
-            go.sum
-            cgo/go.sum
-      - run: go vet ./... && go test ./...
-      - run: GOOS=js GOARCH=wasm CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /tmp/zolana-prover.wasm ./prover-wasm
-      - run: cd cgo && go vet ./... && go test ./...
-      - run: cd cgo && CGO_ENABLED=1 go build -buildmode=c-archive -o /tmp/libgnark.a .
+          workspaces: zopro
+      - run: cargo test --workspace --release
+  metal:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zopro
+      # GPU tests skip without a GPU; the kernels still compile.
+      - run: cargo test --workspace --release
+      - run: cargo test --release -p zopro-core --features metal

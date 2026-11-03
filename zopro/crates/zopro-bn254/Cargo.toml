@@ -1,0 +1,18 @@
+[package]
+name = "zopro-bn254"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "BN254 fields, curves and pairing for zopro"
+
+[dependencies]
+
+[dev-dependencies]
+# The reference the tests check every operation against.
+ark-ref = { package = "ark-bn254", version = "0.5" }
+ark-ec = "0.5"
+ark-ff = "0.5"
+ark-std = "0.5"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(no_asm)"] }

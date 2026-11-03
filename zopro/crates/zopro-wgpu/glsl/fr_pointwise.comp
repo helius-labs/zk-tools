@@ -1,0 +1,14 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// quotient.wgsl's fr_pointwise: a, b, c each n long, consecutive in abc:
+// a = a b - c. One contiguous set (abc, then the uniform).
+#include "field.glsl"
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) buffer Abc { fr values[]; } abc;
+layout(std140, set = 0, binding = 1) uniform Stage { uint n; uint level; uint gap_log; uint pad; } stage;
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if (i < stage.n)
+    abc.values[i] = fr_sub(fr_mul(abc.values[i], abc.values[stage.n + i]), abc.values[2u * stage.n + i]);
+}

@@ -1,0 +1,28 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// The G2 window reduction in halves: each thread takes `leaf` buckets after
+// `first` of its window and writes V = sum (m - first) B_m and S = sum B_m;
+// the host adds first * S and the threads' shares. reduce_blocks_g2's
+// double-and-add and workgroup tree put a dozen inlined G2 additions in one
+// kernel, which Adreno's compiler lost the device on (or took 108 s over
+// unoptimized); this one has two.
+#include "field.glsl"
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Buckets { xyzz2 values[]; } buckets;
+layout(std430, set = 0, binding = 1) buffer Pairs { xyzz2 values[]; } pairs;
+layout(std140, set = 0, binding = 2) uniform Reduce { uint half_range; uint leaf; uint per_window; uint pad; } reduce;
+
+void main() {
+  const uint gid = gl_GlobalInvocationID.x;
+  const uint window = gid / reduce.per_window;
+  const uint first = (gid % reduce.per_window) * reduce.leaf;
+  const uint base = window * reduce.half_range + first;
+  xyzz2 s = xyzz2_infinity();
+  xyzz2 v = xyzz2_infinity();
+  for (uint j = reduce.leaf; j > 0u; j--) {
+    s = xyzz2_add(s, buckets.values[base + j - 1u]);
+    v = xyzz2_add(v, s);
+  }
+  pairs.values[2u * gid] = v;
+  pairs.values[2u * gid + 1u] = s;
+}

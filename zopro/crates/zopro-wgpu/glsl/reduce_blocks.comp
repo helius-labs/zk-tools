@@ -1,0 +1,37 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// buckets.wgsl's reduce_blocks: each thread takes `leaf` buckets after
+// `first` of its window: running sums give V = sum (m - first) B_m and
+// S = sum B_m, its share is V + first * S; a workgroup adds its shares in
+// shared memory and the host adds the workgroups' partial sums.
+#include "field.glsl"
+#include "points.glsl"
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Buckets { xyzz values[]; } buckets;
+layout(std430, set = 0, binding = 1) buffer Partials { xyzz values[]; } partials;
+layout(std140, set = 0, binding = 2) uniform Reduce { uint half_range; uint leaf; uint per_window; uint pad; } reduce;
+shared xyzz shares[64];
+
+void main() {
+  const uint gid = gl_GlobalInvocationID.x;
+  const uint local_index = gl_LocalInvocationIndex;
+  const uint window = gid / reduce.per_window;
+  const uint first = (gid % reduce.per_window) * reduce.leaf;
+  const uint base = window * reduce.half_range;
+  xyzz s = xyzz_infinity();
+  xyzz v = xyzz_infinity();
+  for (uint j = reduce.leaf; j > 0u; j--) {
+    if (first + j <= reduce.half_range)
+      s = xyzz_add(s, buckets.values[base + first + j - 1u]);
+    v = xyzz_add(v, s);
+  }
+  shares[local_index] = xyzz_add(v, xyzz_mul_small(s, first));
+  barrier();
+  for (uint width = 32u; width > 0u; width >>= 1u) {
+    if (local_index < width)
+      shares[local_index] = xyzz_add(shares[local_index], shares[local_index + width]);
+    barrier();
+  }
+  if (local_index == 0u)
+    partials.values[gl_WorkGroupID.x] = shares[0];
+}

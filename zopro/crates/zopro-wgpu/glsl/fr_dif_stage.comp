@@ -1,0 +1,22 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// quotient.wgsl's fr_dif_stage: one radix-2 decimation-in-frequency stage.
+#include "field.glsl"
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) buffer Values { fr values[]; } values;
+layout(std430, set = 0, binding = 1) readonly buffer Roots { fr values[]; } roots;
+layout(std140, set = 0, binding = 2) uniform Stage { uint n; uint level; uint gap_log; uint pad; } stage;
+
+void main() {
+  const uint p = gl_GlobalInvocationID.x;
+  if (p >= stage.n / 2u)
+    return;
+  const uint gap = 1u << stage.gap_log;
+  const uint j = p & (gap - 1u);
+  const uint i0 = ((p >> stage.gap_log) << (stage.gap_log + 1u)) | j;
+  const uint i1 = i0 | gap;
+  const fr u = values.values[i0];
+  const fr v = values.values[i1];
+  values.values[i0] = fr_add(u, v);
+  values.values[i1] = fr_mul(fr_sub(u, v), roots.values[j << stage.level]);
+}

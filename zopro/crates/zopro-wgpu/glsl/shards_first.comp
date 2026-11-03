@@ -1,0 +1,39 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// buckets.wgsl's shards_first: shard s sums the signed base points of
+// sorted[start[s] .. start[s] + count[s]) into out[dst[s]].
+#include "field.glsl"
+#include "points.glsl"
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Bases { affine values[]; } bases;
+layout(std430, set = 0, binding = 1) readonly buffer Sorted { uint values[]; } sorted;
+layout(std430, set = 0, binding = 2) readonly buffer Start { uint values[]; } start;
+layout(std430, set = 0, binding = 3) readonly buffer Count { uint values[]; } count;
+layout(std430, set = 0, binding = 4) readonly buffer Dst { uint values[]; } dst;
+layout(std430, set = 0, binding = 5) buffer Out { xyzz values[]; } outputs;
+layout(std140, set = 0, binding = 6) uniform Shards { uint count; uint pad0; uint pad1; uint pad2; } shards;
+const uint SIGN = 0x80000000u;
+
+affine signed_base(uint encoded) {
+  affine p = bases.values[encoded & ~SIGN];
+  if ((encoded & SIGN) != 0u)
+    p.y = fp_neg(p.y);
+  return p;
+}
+
+void main() {
+  const uint s = gl_GlobalInvocationID.x;
+  if (s >= shards.count)
+    return;
+  const uint begin = start.values[s];
+  const uint end = begin + count.values[s];
+  xyzz acc = xyzz_from_affine(signed_base(sorted.values[begin]));
+  uint i = begin + 1u;
+  if (i < end) {
+    acc = xyzz_add_affine_pair(acc, signed_base(sorted.values[i]));
+    i++;
+  }
+  for (; i < end; i++)
+    acc = xyzz_add_mixed(acc, signed_base(sorted.values[i]));
+  outputs.values[dst.values[s]] = acc;
+}

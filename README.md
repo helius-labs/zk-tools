@@ -1,25 +1,21 @@
 # zk-tools
 
-The Zolana local provers: the Go bridges that `zolana-web-sdk` and `zolana-mobile-sdk` build their in-browser and on-device Groth16 proving from.
+[zopro](zopro/): a Groth16 BN254 prover in Rust for gnark circuits, the
+kernel the Zolana web and mobile SDKs prove with. One kernel for browsers
+(WebAssembly, SIMD lanes, WebGPU), phones and laptops (native, AArch64
+assembly, Metal or wgpu); gnark stays offline: a zopro key is built once
+from a gnark constraint system and its keys (`zopro/tools/gnark`), and
+gnark's verifier accepts zopro's proofs. See `zopro/README.md` for the
+layout, the tests and the benchmarks.
 
-## Layout
+**Experimental.** New and unaudited: do not rely on it where a wrong or
+leaked proof would cost anything.
 
-- `prover-wasm/` (module `github.com/helius-labs/zk-tools`): the js/wasm bridge with its Arkworks kernel adapter, built by the web SDK. `testdata/transfer-2x2.json` is the demo request.
-- `cgo/` (module `github.com/zkmopro/rust-gnark`): the c-archive bridge the mobile SDK's `rust-gnark` crate compiles.
+The SDKs pin a commit of this repository: `zolana-web-sdk`'s
+`runtime.lock.json` (repository, path `zopro`, revision) builds the browser
+runtime from it, and `zolana-mobile-sdk`'s native crate takes `zopro-zolana`
+as a git dependency of it.
 
-Both require `github.com/helius-labs/zolana/prover/server`, the upstream prover, at a commit pinned in their `go.mod`; `go.sum` checks it. They currently pin helius-labs/zolana#420, which gives that module a fetchable path, and move to `main` once it merges.
-
-## Notes
-
-- Repeat upstream's `replace github.com/reilabs/gnark-lean-extractor/v3 => github.com/Lightprotocol/gnark-lean-extractor/v3 v3.0.0-20250920122823-aa0219463107`: Go applies only the main module's replacements.
-- `go mod tidy` cannot complete: upstream's `prover/backend` has a file behind the `aeglos` build tag that imports the private `github.com/helius-labs/aeglos`. Builds and tests are unaffected; edit `go.mod` with `go get <module>@<commit>` instead.
-
-## Validation
-
-```sh
-go vet ./... && go test ./...
-GOOS=js GOARCH=wasm CGO_ENABLED=0 go build -o /tmp/zolana-prover.wasm ./prover-wasm
-(cd cgo && go test ./... && go build -buildmode=c-archive -o /tmp/libgnark.a .)
-```
-
-`prover-wasm`'s proof test needs the staged 2x2 key from the web SDK layout and skips otherwise; the web and mobile SDKs run the proving gates against their staged keys.
+The Go bridges this repository first held (`cgo/`, `prover-wasm/`, gnark's
+prover for the SDKs' earlier native and wasm paths) are in the history
+before zopro arrived; nothing builds them any more.
