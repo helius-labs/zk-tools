@@ -298,13 +298,15 @@ impl Groth16Keys {
         use sha2::{Digest, Sha256};
 
         self.check_setup_kind(export.setup)?;
-        let checksum: [u8; 32] = Sha256::digest(self.to_bytes()?).into();
         let mut source = parse_vk_json_to_rust_string(
             &circom_vk_json(&self.proving_key.vk).to_string(),
             export.setup.verifier_kind(),
-            &checksum,
         )
         .map_err(ProverErrorKind::VerifyingKeyExport)?;
+        let checksum: [u8; 32] = Sha256::digest(self.to_bytes()?).into();
+        source.push_str(&format!(
+            "\n/// SHA-256 of the proving key file for client-side checks.\n#[rustfmt::skip]\npub const VERIFYINGKEY_PROVING_KEY_SHA256: [u8; 32] = {checksum:?};\n"
+        ));
         source.push_str(&format!(
             "\npub const ZOLANA_SETUP_KIND: &str = \"{}\";\n",
             export.setup.label()
@@ -751,7 +753,6 @@ mod tests {
         let source = parse_vk_json_to_rust_string(
             &circom_vk_json(&vk).to_string(),
             SetupKind::InsecureTest.verifier_kind(),
-            &[0; 32],
         )
         .expect("verifying key source");
         let array = |bytes: &[u8]| {

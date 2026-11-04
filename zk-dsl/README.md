@@ -88,5 +88,10 @@ Imported ceremony keys are preserved and must be explicitly replaced when the
 circuit changes; `--test` does not overwrite them.
 
 A crate using `--test` declares `insecure-test-setup = []` in its Cargo features.
+
+Generated verifiers embed a V2 setup marker and `VERIFYINGKEY_VK_SHA256`, the
+canonical verifying-key hash. Imported-key reuse compares this hash, so a
+proving-key re-encoding does not change the deployed marker. The exporter
+separately appends `VERIFYINGKEY_PROVING_KEY_SHA256` for client file checks.
 The build enables it for circuit export, wasm and SBF so the generated test-key
 compile guard is acknowledged only by explicit test builds.

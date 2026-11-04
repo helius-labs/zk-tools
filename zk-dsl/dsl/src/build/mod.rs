@@ -554,7 +554,7 @@ fn is_production_key(module: &Path) -> bool {
 fn check_imported_checksum(module: &Path, keys: &Groth16Keys) -> Result<()> {
     let source = std::fs::read_to_string(module).map_err(BuildError::file("reading", module))?;
     let checksum = source
-        .split_once("VERIFYINGKEY_PROVING_KEY_SHA256: [u8; 32] = [")
+        .split_once("VERIFYINGKEY_VK_SHA256: [u8; 32] = [")
         .and_then(|(_, rest)| rest.split_once(']'))
         .map(|(bytes, _)| {
             bytes
@@ -563,10 +563,9 @@ fn check_imported_checksum(module: &Path, keys: &Groth16Keys) -> Result<()> {
                 .map(|v| v.trim().trim_end_matches("u8").parse::<u8>())
                 .collect::<core::result::Result<Vec<_>, _>>()
         });
-    let bytes = keys
-        .to_bytes()
-        .map_err(BuildError::prover("serializing", module))?;
-    let current: [u8; 32] = Sha256::digest(bytes).into();
+    let current = groth16_solana::vk::setup::vk_sha256(
+        &groth16_solana::groth16::Groth16Verifyingkey::from(keys.verifying_key()),
+    );
     if !matches!(checksum, Some(Ok(checksum)) if checksum == current) {
         return Err(BuildError::ImportedKeyChecksumMismatch(
             module.to_path_buf(),
@@ -1435,6 +1434,28 @@ mod tests {
             ),
             (true, true, true)
         );
+    }
+
+    #[test]
+    fn imported_key_checks_use_the_vk_independently_of_file_hash_metadata() {
+        let fixture = KeyFixture::new("vk-hash-import");
+        let keys = fixture.imported();
+        export_module(
+            &keys,
+            &fixture.pk(),
+            &fixture.circuits.verifier_dir,
+            SetupKind::Production,
+        )
+        .unwrap();
+        let module = fixture.circuits.verifier_dir.join("sample.vk.rs");
+        let source = std::fs::read_to_string(&module).unwrap();
+        let source = source
+            .lines()
+            .filter(|line| !line.starts_with("pub const VERIFYINGKEY_PROVING_KEY_SHA256:"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        std::fs::write(&module, source).unwrap();
+        assert!(check_imported_checksum(&module, &keys).is_ok());
     }
 
     #[test]
