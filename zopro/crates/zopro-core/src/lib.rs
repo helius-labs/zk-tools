@@ -34,6 +34,8 @@ mod solver;
 #[cfg(test)]
 mod testing;
 pub mod verify;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod xark;
 
 // Stage times as ZOPRO_TRACE log lines (`--features trace`): the native
 // bench prints them, a phone's bench puts them in the device log.

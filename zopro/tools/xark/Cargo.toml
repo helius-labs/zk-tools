@@ -1,0 +1,39 @@
+[package]
+name = "zopro-xark"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+description = "Xark's side of zopro keys: a circuit's rows for `zopro-bench pack-xark`, and its witness solved by Xark for zopro to prove"
+
+# Xark and arkworks stay out of zopro's workspace: only this tool uses them.
+[workspace]
+
+[dependencies]
+xark-groth16 = { git = "https://github.com/ananas-block/xark", rev = "38c0de6fec56cff52f5a4e0cf2d86721ea29e583" }
+xark-ir = { git = "https://github.com/ananas-block/xark", rev = "38c0de6fec56cff52f5a4e0cf2d86721ea29e583" }
+xark-prover = { git = "https://github.com/ananas-block/xark", rev = "38c0de6fec56cff52f5a4e0cf2d86721ea29e583" }
+ark-bn254 = { version = "0.6", default-features = false, features = ["curve"] }
+# Xark's MSMs and FFTs on the thread pool, as its native clients build them:
+# the benchmark compares zopro with Xark at its fastest.
+ark-ec = { version = "0.6", default-features = false, features = ["std", "parallel"] }
+ark-ff = { version = "0.6", default-features = false, features = ["std", "parallel"] }
+ark-poly = { version = "0.6", default-features = false, features = ["std", "parallel"] }
+ark-serialize = { version = "0.6", default-features = false, features = ["std"] }
+num-bigint = "0.4"
+rand = "0.8"
+rayon = "1"
+serde_json = "1"
+zopro-bn254 = { path = "../../crates/zopro-bn254" }
+zopro-prover = { path = "../../crates/zopro-prover" }
+
+[dev-dependencies]
+zopro-core = { path = "../../crates/zopro-core" }
+# The tests' referee: arkworks' verifier, independent of zopro's and Xark's.
+ark-groth16 = { version = "0.6", default-features = false, features = ["std"] }
+rand_chacha = "0.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

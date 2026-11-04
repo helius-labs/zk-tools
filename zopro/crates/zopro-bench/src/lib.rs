@@ -59,6 +59,10 @@ pub fn run() {
         let args: Vec<String> = env::args().collect();
         return pack_dump(Path::new(&args[2]), &args[3], Path::new(&args[4]));
     }
+    if dir == "pack-xark" {
+        let args: Vec<String> = env::args().collect();
+        return pack_xark(&args[2..]);
+    }
     if dir == "cpu-msm" {
         return cpu_msm(Path::new(&env::args().nth(2).expect("the dump directory")));
     }
@@ -955,6 +959,36 @@ fn pack_dump(dir: &Path, name: &str, out: &Path) {
         "ZOPRO pack {name} bytes={} points={} ms={}",
         bytes.len(),
         dump.vectors[..4].iter().map(Vec::len).sum::<usize>() / 64 + dump.vectors[4].len() / 128,
+        started.elapsed().as_millis()
+    );
+}
+
+/// `pack-xark <pk.bin> <vk.bin> <r1cs.stream> <key name> <out file>
+/// [<metadata file>]`: the zopro key file of an Xark key (see
+/// `zopro_core::xark`; `tools/xark` writes the rows of a circuit's key).
+fn pack_xark(args: &[String]) {
+    let [pk, vk, rows, name, out, metadata @ ..] = args else {
+        panic!("pack-xark <pk.bin> <vk.bin> <r1cs.stream> <key name> <out file> [<metadata file>]");
+    };
+    let metadata = metadata
+        .first()
+        .map(|path| fs::read(path).expect("the metadata"))
+        .unwrap_or_default();
+    let (pk, vk, rows) = (
+        fs::read(pk).expect("pk.bin"),
+        fs::read(vk).expect("vk.bin"),
+        fs::read(rows).expect("the rows"),
+    );
+    let started = Instant::now();
+    let dump = zopro_core::xark::convert(&pk, &vk, &rows, &metadata).expect("an Xark key zopro proves");
+    let bytes = zopro_core::artifact::pack(&dump.parts(name)).expect("pack");
+    fs::write(out, &bytes).expect("write the key");
+    let [a, b, k, z, b2] = &dump.vectors;
+    println!(
+        "ZOPRO pack-xark {name} bytes={} points={} domain={} ms={}",
+        bytes.len(),
+        (a.len() + b.len() + k.len() + z.len()) / 64 + b2.len() / 128,
+        z.len() / 64 + 1,
         started.elapsed().as_millis()
     );
 }
