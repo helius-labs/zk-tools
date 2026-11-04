@@ -35,11 +35,6 @@ wgpu = ["dep:zopro-wgpu"]
 # bundler (wasm-bindgen --target web as is); without it, the helpers a bundler emits.
 no-bundler = ["wasm-bindgen-rayon/no-bundler"]
 
-[profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
-
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = false
 

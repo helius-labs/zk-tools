@@ -111,7 +111,9 @@ impl Quotient {
                 } else {
                     &[Write, Read, Uniform]
                 };
-                return gpu.kernel(entry, || spirv_pipeline(device, gpu.cache(), entry, kernel, slots));
+                return gpu.kernel(entry, || {
+                    spirv_pipeline(device, gpu.cache(), entry, kernel, slots)
+                });
             }
             gpu.wgsl_kernel(LABEL, FR_SHADER, entry)
         };

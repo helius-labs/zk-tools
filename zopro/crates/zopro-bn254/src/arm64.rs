@@ -199,14 +199,7 @@ pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
 /// multiplies through sums of two products: this is an Fq2 product's
 /// component.
 #[inline(always)]
-pub fn sum2(
-    a: [u64; 4],
-    b: [u64; 4],
-    c: [u64; 4],
-    d: [u64; 4],
-    p: [u64; 4],
-    inv: u64,
-) -> [u64; 4] {
+pub fn sum2(a: [u64; 4], b: [u64; 4], c: [u64; 4], d: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     let (r0, r1, r2, r3): (u64, u64, u64, u64);
     // SAFETY: reads the four limbs of `b` and of `d` through their pointers,
     // which live for the call; every other operand is a register.

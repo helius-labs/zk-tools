@@ -24,6 +24,10 @@ to build, not to prove.
 tools/gnark/pack.sh circuit.r1cs circuit.pk circuit.vk my_circuit my_circuit.zopro
 ```
 
+Xark circuits convert too (`tools/xark`): Xark solves the witness, and zopro
+proves with a key packed from Xark's `pk.bin`, `vk.bin` and the circuit's
+rows; the proofs verify with Xark's `vk.bin`.
+
 ```rust
 let mut prover = zopro_prover::Prover::load(&std::fs::read("my_circuit.zopro")?)?;
 let mut inputs = zopro_prover::Assignment::default();
@@ -42,7 +46,9 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
   every operation against arkworks, which is only a dev-dependency.
 - `crates/zopro-core`: the signed-window MSM, the FFT plan, the witness
   solver and its image, the `Key` a host builds from gnark's proving key,
-  and the proof assembly (`groth16`). `--features metal` or `--features
+  the proof assembly (`groth16`), and `xark`, which reads Xark's proving
+  key, verifying key and row file (arkworks' encodings, without arkworks)
+  into a zopro key's parts. `--features metal` or `--features
   wgpu` moves the MSMs and the quotient to the GPU; the G2 MSM is split
   between the GPU and the CPU, which run at once (`ZOPRO_G2_GPU_SHARE`;
   defaults: none on a Mac, a quarter on an A19 phone, none on older ones,
@@ -83,6 +89,10 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
 - `tools/gnark`: gnark's side, offline, with gnark alone: `zopro-dump`
   writes a constraint system's and its keys' parts (`zoprognark.Dump` for
   Go callers), and `pack.sh` makes the zopro key.
+- `tools/xark`: Xark's side, with Xark: the rows a circuit's proving key
+  was made for, which `zopro-bench pack-xark` packs with the keys
+  (`pack.sh`), the witness Xark solves for zopro to prove, and a bench of
+  Xark's prover against zopro on the same key.
 - `tools/zolana`: Zolana's keys: the dump of a Zolana gnark key with its
   metadata, the zopro keys of a whole key set with their lockfile
   (`build-keys.sh`; `zopro-keys.lock` pins the key set the bench uses),

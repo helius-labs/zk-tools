@@ -2,9 +2,9 @@
 // mont29_simd.s (scripts/mont29_simd.py) runs zopro-bn254's mont29
 // multiplication on four lanes, and this module adds, subtracts and
 // shuffles in the same lane form; elsewhere the lanes run one by one.
-use zopro_bn254::{Fq, FpConfig, FqConfig, Fr, FrConfig};
 #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
 use core::marker::PhantomData;
+use zopro_bn254::{FpConfig, Fq, FqConfig, Fr, FrConfig};
 
 /// A BN254 field the generated multiplication covers.
 #[cfg_attr(
@@ -56,7 +56,10 @@ impl Mont29 for Fr {
 /// splits and joins its operands once rather than at every product; values
 /// stay reduced. Elsewhere it holds the four elements.
 #[derive(Clone, Copy)]
-#[cfg_attr(not(all(target_arch = "wasm32", target_feature = "simd128")), repr(transparent))]
+#[cfg_attr(
+    not(all(target_arch = "wasm32", target_feature = "simd128")),
+    repr(transparent)
+)]
 pub(crate) struct Lanes<F: Mont29>(
     #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))] [core::arch::wasm32::v128; 9],
     #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))] [F; 4],

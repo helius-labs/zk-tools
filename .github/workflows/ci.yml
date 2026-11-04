@@ -22,6 +22,16 @@ jobs:
         with:
           workspaces: zopro
       - run: cargo test --workspace --release
+  xark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zopro/tools/xark
+      # Xark's keys converted and proved, checked by arkworks' verifier.
+      - run: cargo test --release --manifest-path tools/xark/Cargo.toml
   metal:
     runs-on: macos-latest
     steps:

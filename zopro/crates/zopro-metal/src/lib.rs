@@ -13,13 +13,13 @@
 #![cfg(any(target_os = "macos", target_os = "ios"))]
 use std::{ffi::c_void, time::Instant};
 
-use zopro_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 #[cfg(not(metallib))]
 use metal::CompileOptions;
 use metal::{Buffer, CommandQueue, ComputePipelineState, Device, MTLResourceOptions, MTLSize};
 use objc::rc::autoreleasepool;
 use objc::{msg_send, sel, sel_impl};
 use rayon::prelude::*;
+use zopro_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 
 pub mod quotient;
 pub use quotient::{Quotient, Weights};
@@ -173,8 +173,7 @@ fn compile(device: &Device, g2: bool, smaller: bool) -> Result<metal::Library, S
         for name in ["field", "curve", "buckets", "quotient"] {
             let file = dir.join(format!("{name}.metal"));
             source.push_str(
-                &std::fs::read_to_string(&file)
-                    .map_err(|e| format!("{}: {e}", file.display()))?,
+                &std::fs::read_to_string(&file).map_err(|e| format!("{}: {e}", file.display()))?,
             );
             source.push('\n');
         }
@@ -529,8 +528,8 @@ impl<C: Curve> Msm<C> {
         // Pro, the threadgroup one 70 MB on an iPad Pro's A12Z), and the host
         // reduced 16 -> 2 on that iPad as fast (on the M5 Pro, 3-6 % slower).
         // ZOPRO_METAL_HOST_REDUCE=1 or 0 says where anywhere.
-        let host = std::env::var("ZOPRO_METAL_HOST_REDUCE")
-            .map_or(cfg!(target_os = "ios"), |v| v == "1");
+        let host =
+            std::env::var("ZOPRO_METAL_HOST_REDUCE").map_or(cfg!(target_os = "ios"), |v| v == "1");
         // SIMD-group shuffles need an A13's GPU or later
         // (ZOPRO_METAL_TG_REDUCE=1 takes the fallback anywhere).
         let forced = std::env::var("ZOPRO_METAL_TG_REDUCE").is_ok_and(|v| v == "1");

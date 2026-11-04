@@ -5,10 +5,10 @@
 // arkworks field arithmetic. The arithmetic follows constraint/bn254/solver.go's
 // solveR1C and solveHintGeneric semantics.
 
-use zopro_bn254::Fr;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hasher};
 use std::ops::Range;
+use zopro_bn254::Fr;
 
 // Interning a wide circuit's prefixes hashes millions of small keys; the
 // standard map's SipHash is most of that time. Keys here are not chosen by
@@ -148,7 +148,9 @@ struct Deflated<'a> {
 impl<'a> Deflated<'a> {
     fn new(input: &'a [u8]) -> Self {
         Self {
-            state: miniz_oxide::inflate::stream::InflateState::new_boxed(miniz_oxide::DataFormat::Raw),
+            state: miniz_oxide::inflate::stream::InflateState::new_boxed(
+                miniz_oxide::DataFormat::Raw,
+            ),
             input,
             buffer: vec![0; 1 << 16],
             start: 0,
@@ -253,7 +255,11 @@ fn assign_slots(n_wires: usize, sums: &mut [Sum], ops: &mut [Op]) -> usize {
             Some(previous) if slot_of[previous] == u32::MAX => CHAIN,
             Some(previous) => slot_of[previous],
         };
-        let stored = if slot_of[index] == u32::MAX { 0 } else { STORED };
+        let stored = if slot_of[index] == u32::MAX {
+            0
+        } else {
+            STORED
+        };
         sum.previous = previous | stored;
     }
     for op in ops.iter_mut() {
@@ -450,7 +456,11 @@ impl Plan {
         if !program.len().is_multiple_of(4) {
             return Err("invalid solver encoding");
         }
-        let words = program.as_chunks::<4>().0.iter().map(|v| u32::from_le_bytes(*v));
+        let words = program
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|v| u32::from_le_bytes(*v));
         Self::build(program.len(), words, coefficients)
     }
 
@@ -521,7 +531,11 @@ impl Plan {
             let mut out = Vec::with_capacity(n);
             for _ in 0..n {
                 let index = read()?;
-                if index >= n_wires || out.last().is_some_and(|previous| *previous as usize >= index) {
+                if index >= n_wires
+                    || out
+                        .last()
+                        .is_some_and(|previous| *previous as usize >= index)
+                {
                     return Err("invalid solver wire index");
                 }
                 out.push(index as u32);
@@ -774,7 +788,13 @@ impl Plan {
                 }
                 Op::Constraint(step) => {
                     let sums = step.sums();
-                    for v in [0, step.constraint(), sums.start, sums.end, step.first_slot()] {
+                    for v in [
+                        0,
+                        step.constraint(),
+                        sums.start,
+                        sums.end,
+                        step.first_slot(),
+                    ] {
                         word(&mut out, v);
                     }
                     for expression in &step.expressions {
@@ -792,7 +812,12 @@ impl Plan {
                     match &step.assignment {
                         None => word(&mut out, 0),
                         Some(assignment) => {
-                            for v in [1, assignment.side(), assignment.wire(), assignment.coefficient()] {
+                            for v in [
+                                1,
+                                assignment.side(),
+                                assignment.wire(),
+                                assignment.coefficient(),
+                            ] {
                                 word(&mut out, v);
                             }
                             field(&mut out, &assignment.inverse);
@@ -835,7 +860,11 @@ impl Plan {
             let mut out = Vec::with_capacity(n);
             for _ in 0..n {
                 let index = r.word()?;
-                if index >= n_wires || out.last().is_some_and(|previous| *previous as usize >= index) {
+                if index >= n_wires
+                    || out
+                        .last()
+                        .is_some_and(|previous| *previous as usize >= index)
+                {
                     return Err(DAMAGED_IMAGE);
                 }
                 out.push(index as u32);
@@ -918,7 +947,10 @@ impl Plan {
                 return Err(DAMAGED_IMAGE);
             }
             let step_sums = range(sums_start, sums_end, n_sums)?;
-            let step_stored = sums[step_sums.clone()].iter().filter(|s| s.stored()).count();
+            let step_stored = sums[step_sums.clone()]
+                .iter()
+                .filter(|s| s.stored())
+                .count();
             if first_slot + step_stored > n_slots {
                 return Err(DAMAGED_IMAGE);
             }
@@ -1062,9 +1094,8 @@ impl Plan {
             self.reads(op, &mut reads);
             depth[i] = reads
                 .iter()
-                .filter_map(|&wire| {
-                    (producer[wire] != u32::MAX).then(|| depth[producer[wire] as usize] + 1)
-                })
+                .filter(|&&wire| producer[wire] != u32::MAX)
+                .map(|&wire| depth[producer[wire] as usize] + 1)
                 .max()
                 .unwrap_or(0);
             for wire in self.writes(op) {
@@ -1131,7 +1162,9 @@ impl Plan {
                         Expression::Wire(wire) => out.push(*wire as usize),
                         Expression::Term(term) => out.push(self.terms[*term as usize].wire()),
                         Expression::Sum(start, end) => out.extend(
-                            self.terms[range_of((*start, *end))].iter().map(|t| t.wire()),
+                            self.terms[range_of((*start, *end))]
+                                .iter()
+                                .map(|t| t.wire()),
                         ),
                         Expression::Zero | Expression::Constant(_) => {}
                     }
@@ -1142,7 +1175,10 @@ impl Plan {
 
     /// How many of a step's sums are stored.
     fn stored(&self, step: &Step) -> usize {
-        self.sums[step.sums()].iter().filter(|sum| sum.stored()).count()
+        self.sums[step.sums()]
+            .iter()
+            .filter(|sum| sum.stored())
+            .count()
     }
 
     /// The wires and sums an op writes.
@@ -1153,7 +1189,10 @@ impl Plan {
                 .assignment
                 .iter()
                 .map(|assignment| assignment.wire())
-                .chain(self.n_wires + step.first_slot()..self.n_wires + step.first_slot() + self.stored(step))
+                .chain(
+                    self.n_wires + step.first_slot()
+                        ..self.n_wires + step.first_slot() + self.stored(step),
+                )
                 .collect(),
         }
     }
@@ -1191,7 +1230,14 @@ impl Plan {
                     HintKind::Bits => {
                         let bits = value.to_canonical();
                         for (i, wire) in hint.outputs().enumerate() {
-                            set(wire, if (bits[i / 64] >> (i % 64)) & 1 == 1 { Fr::ONE } else { Fr::ZERO });
+                            set(
+                                wire,
+                                if (bits[i / 64] >> (i % 64)) & 1 == 1 {
+                                    Fr::ONE
+                                } else {
+                                    Fr::ZERO
+                                },
+                            );
                         }
                     }
                 }
@@ -1274,18 +1320,6 @@ impl Plan {
             *v.c.add(step.constraint()) = values[2];
         }
         Ok(())
-    }
-
-    fn evaluate_term(&self, term: &Term, w: &[Fr]) -> Fr {
-        if term.wire() == 0 {
-            return self.coefficients[term.coefficient()];
-        }
-        match term.coefficient() {
-            1 => w[term.wire()],
-            2 => w[term.wire()].double(),
-            3 => -w[term.wire()],
-            _ => self.coefficients[term.coefficient()] * w[term.wire()],
-        }
     }
 }
 
@@ -1722,7 +1756,10 @@ mod tests {
             damaged[at..at + 4].copy_from_slice(&value.to_le_bytes());
             Plan::from_image(&damaged).err()
         };
-        assert_eq!(word(4, IMAGE_VERSION as u32 + 1), Some("unsupported solver image"));
+        assert_eq!(
+            word(4, IMAGE_VERSION as u32 + 1),
+            Some("unsupported solver image")
+        );
         // The wire count, the first A index, and both words of the first
         // term, past the lists they index.
         assert_eq!(word(8, 0), Some(DAMAGED_IMAGE));
@@ -1749,11 +1786,20 @@ mod tests {
         let program = encode_words(&program);
         let whole = Plan::new(&program, &coefficients).unwrap().image();
         let deflated = miniz_oxide::deflate::compress_to_vec(&program, 6);
-        assert_eq!(Plan::from_deflated(&deflated, &coefficients).unwrap().image(), whole);
+        assert_eq!(
+            Plan::from_deflated(&deflated, &coefficients)
+                .unwrap()
+                .image(),
+            whole
+        );
         // Longer than a block.
         let mut long = program.clone();
         long.extend(std::iter::repeat_n(0u8, 1 << 17));
-        assert!(Plan::from_deflated(&miniz_oxide::deflate::compress_to_vec(&long, 6), &coefficients).is_err());
+        assert!(Plan::from_deflated(
+            &miniz_oxide::deflate::compress_to_vec(&long, 6),
+            &coefficients
+        )
+        .is_err());
         assert!(Plan::from_deflated(&deflated[..deflated.len() / 2], &coefficients).is_err());
         assert!(Plan::from_deflated(&[0xff; 64], &coefficients).is_err());
     }

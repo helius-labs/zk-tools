@@ -42,7 +42,6 @@ pub fn kernel_points(compressed: &[u8], g2: bool) -> Result<Vec<u8>, JsError> {
     artifact::kernel_points(compressed, g2).map_err(JsError::new)
 }
 
-
 #[wasm_bindgen]
 pub struct WebProver {
     prover: Prover,

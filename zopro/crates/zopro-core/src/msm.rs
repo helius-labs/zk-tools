@@ -1,13 +1,10 @@
 use crate::simd::{fq_mul4, FqLanes, FqLimbs};
-use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fq2, Fr, Projective};
 use rayon::prelude::*;
+use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fq2, Fr, Projective};
 // Signed-window Pippenger. Reduce each bucket as an affine addition tree,
 // sharing one inversion across all buckets at each level. Keep bucket storage
 // contiguous: thousands of small allocations contend on the WASM allocator.
-pub(super) fn msm<C: CurveConfig>(
-    bases: &[Affine<C>],
-    scalars: &[Fr],
-) -> Projective<C>
+pub(super) fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projective<C>
 where
     C::Base: BatchInverse,
 {
@@ -247,10 +244,7 @@ where
     if point.is_infinity() {
         Affine::IDENTITY
     } else {
-        Affine::new(
-            C::Base::from_limbs(point.x),
-            C::Base::from_limbs(point.y),
-        )
+        Affine::new(C::Base::from_limbs(point.x), C::Base::from_limbs(point.y))
     }
 }
 
@@ -763,4 +757,3 @@ mod tests {
         check::<zopro_bn254::G2Config>();
     }
 }
-

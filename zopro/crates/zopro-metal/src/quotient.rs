@@ -6,11 +6,11 @@
 //! and the bit-reversed coset weights in two small tables each (Weights).
 use std::{ffi::c_void, time::Instant};
 
-use zopro_bn254::Fr;
 use metal::{
     Buffer, CommandQueue, ComputeCommandEncoderRef, ComputePipelineState, Device,
     MTLResourceOptions, MTLSize,
 };
+use zopro_bn254::Fr;
 
 /// One direction's bit-reversed coset weights, as the CPU plan keeps them:
 /// element i's is chunks[i >> low_bits] * lows[i & (2^low_bits - 1)], so the
@@ -283,7 +283,10 @@ fn plan_passes(log_n: u32, limit: u64) -> Vec<Pass> {
             .unwrap_or(default)
     };
     let fit = (2 * limit.max(2)).ilog2();
-    let tile_log = env("ZOPRO_METAL_NTT_TILE", 9).clamp(1, 10).min(fit).min(log_n);
+    let tile_log = env("ZOPRO_METAL_NTT_TILE", 9)
+        .clamp(1, 10)
+        .min(fit)
+        .min(log_n);
     let cols = env("ZOPRO_METAL_NTT_COLS", 3);
     let mut passes = Vec::new();
     let mut covered = 0;

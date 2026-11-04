@@ -1,7 +1,7 @@
 //! Fq2 = Fq[u] / (u^2 + 1).
 use core::ops::{Add, Mul, Neg, Sub};
 
-use crate::{Field, Fq, FqConfig, FpConfig};
+use crate::{Field, FpConfig, Fq, FqConfig};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug)]
 #[repr(C)]
@@ -66,7 +66,8 @@ impl Fq2 {
 
     pub fn inverse(&self) -> Option<Self> {
         let norm = self.c0.square() + self.c1.square();
-        norm.inverse().map(|t| Self::new(self.c0 * t, -(self.c1 * t)))
+        norm.inverse()
+            .map(|t| Self::new(self.c0 * t, -(self.c1 * t)))
     }
 
     /// The square root, `None` for a non-residue: Algorithm 9 of Adj and
@@ -102,7 +103,7 @@ impl Fq2 {
             for bit in (0..64).rev() {
                 result = result.square();
                 if (limb >> bit) & 1 == 1 {
-                    result = result * *self;
+                    result *= *self;
                 }
             }
         }

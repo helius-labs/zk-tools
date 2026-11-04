@@ -84,11 +84,18 @@ fn base_field() {
         assert_eq!(fq(*a).square(), fq(a.square()));
         assert_eq!(fq(*a).double(), fq(a.double()));
         assert_eq!(fq(*a).inverse(), a.inverse().map(fq));
-        assert_eq!(fq(*a).sqrt(), a.sqrt().map(|r| {
-            // Either root: arkworks may return the other.
-            let ours = fq(*a).sqrt().unwrap();
-            if ours == fq(r) { fq(r) } else { fq(-r) }
-        }));
+        assert_eq!(
+            fq(*a).sqrt(),
+            a.sqrt().map(|r| {
+                // Either root: arkworks may return the other.
+                let ours = fq(*a).sqrt().unwrap();
+                if ours == fq(r) {
+                    fq(r)
+                } else {
+                    fq(-r)
+                }
+            })
+        );
         assert_eq!(fq(*a).to_canonical(), a.into_bigint().0);
         assert_eq!(Fq::from_canonical(a.into_bigint().0), Some(fq(*a)));
         assert_eq!(fq(*a).num_bits(), a.into_bigint().num_bits_u32());
@@ -201,22 +208,46 @@ fn tower() {
 fn curves() {
     let mut rng = ark_std::test_rng();
     for _ in 0..50 {
-        let (a, b) = (ark::G1Projective::rand(&mut rng), ark::G1Projective::rand(&mut rng));
+        let (a, b) = (
+            ark::G1Projective::rand(&mut rng),
+            ark::G1Projective::rand(&mut rng),
+        );
         let (pa, pb) = (g1(a.into_affine()), g1(b.into_affine()));
         assert!(pa.is_on_curve());
-        assert_eq!((pa.to_projective() + pb.to_projective()).to_affine(), g1((a + b).into_affine()));
-        assert_eq!((pa.to_projective() + pb).to_affine(), g1((a + b).into_affine()));
-        assert_eq!(pa.to_projective().double().to_affine(), g1(a.double().into_affine()));
-        assert_eq!((pa.to_projective() + pa).to_affine(), g1(a.double().into_affine()));
+        assert_eq!(
+            (pa.to_projective() + pb.to_projective()).to_affine(),
+            g1((a + b).into_affine())
+        );
+        assert_eq!(
+            (pa.to_projective() + pb).to_affine(),
+            g1((a + b).into_affine())
+        );
+        assert_eq!(
+            pa.to_projective().double().to_affine(),
+            g1(a.double().into_affine())
+        );
+        assert_eq!(
+            (pa.to_projective() + pa).to_affine(),
+            g1(a.double().into_affine())
+        );
         assert!((pa.to_projective() + (-pa)).is_identity());
         let s = ark::Fr::rand(&mut rng);
         assert_eq!(pa.mul(&fr(s)).to_affine(), g1((a * s).into_affine()));
 
-        let (c, d) = (ark::G2Projective::rand(&mut rng), ark::G2Projective::rand(&mut rng));
+        let (c, d) = (
+            ark::G2Projective::rand(&mut rng),
+            ark::G2Projective::rand(&mut rng),
+        );
         let (qc, qd) = (g2(c.into_affine()), g2(d.into_affine()));
         assert!(qc.is_on_curve() && qc.is_in_subgroup());
-        assert_eq!((qc.to_projective() + qd).to_affine(), g2((c + d).into_affine()));
-        assert_eq!(qc.to_projective().double().to_affine(), g2(c.double().into_affine()));
+        assert_eq!(
+            (qc.to_projective() + qd).to_affine(),
+            g2((c + d).into_affine())
+        );
+        assert_eq!(
+            qc.to_projective().double().to_affine(),
+            g2(c.double().into_affine())
+        );
         assert_eq!(qc.mul(&fr(s)).to_affine(), g2((c * s).into_affine()));
     }
     let points: Vec<G1Projective> = (0..20)
@@ -234,7 +265,9 @@ fn curves() {
     }
     assert!(G1Affine::IDENTITY.is_on_curve());
     assert_eq!(G1Projective::IDENTITY.to_affine(), G1Affine::IDENTITY);
-    let g2s: Vec<G2Projective> = (1..5).map(|i| G2Projective::generator().mul(&Fr::from_u64(i))).collect();
+    let g2s: Vec<G2Projective> = (1..5)
+        .map(|i| G2Projective::generator().mul(&Fr::from_u64(i)))
+        .collect();
     let a2 = G2Projective::batch_to_affine(&g2s);
     assert_eq!(a2[3], g2s[3].to_affine());
 }
@@ -250,7 +283,10 @@ fn g2_subgroup() {
         if let Some(p) = ark::G2Affine::get_point_from_x_unchecked(x, false) {
             let ours = g2(p);
             assert!(ours.is_on_curve());
-            assert_eq!(ours.is_in_subgroup(), p.is_in_correct_subgroup_assuming_on_curve());
+            assert_eq!(
+                ours.is_in_subgroup(),
+                p.is_in_correct_subgroup_assuming_on_curve()
+            );
             outside += !ours.is_in_subgroup() as usize;
         }
     }
@@ -274,7 +310,13 @@ fn pairings() {
     let right = pairing::G2Prepared::new(&g2((q * b).into_affine()));
     let third = g1((-(p * (a * b))).into_affine());
     let gen = pairing::G2Prepared::new(&g2(q.into_affine()));
-    assert!(pairing::pairing_product_is_one(&[(left, &right), (third, &gen)]));
-    assert!(!pairing::pairing_product_is_one(&[(left, &right), (left, &gen)]));
+    assert!(pairing::pairing_product_is_one(&[
+        (left, &right),
+        (third, &gen)
+    ]));
+    assert!(!pairing::pairing_product_is_one(&[
+        (left, &right),
+        (left, &gen)
+    ]));
     let _ = ark_fq;
 }

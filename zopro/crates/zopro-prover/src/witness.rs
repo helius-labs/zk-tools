@@ -69,7 +69,7 @@ pub fn parse_value(text: &str) -> Option<Fr> {
         return None;
     }
     // Big endian bytes, times the base plus the digit for each digit.
-    let mut bytes = vec![0u8; 34];
+    let mut bytes = [0u8; 34];
     for c in digits.chars() {
         let mut carry = c.to_digit(base)?;
         for byte in bytes.iter_mut().rev() {

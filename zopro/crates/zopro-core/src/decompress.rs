@@ -9,9 +9,9 @@
 //! the larger, `01` for the point at infinity (the rest zero). A G2 point
 //! stores x as `A1 | A0`. The raw encoding is x then y, each coordinate in the
 //! same order, and the point at infinity is all zero.
-use zopro_bn254::{CurveConfig, Fq, Fq2, G1Affine, G1Config, G2Affine, G2Config};
 use rayon::prelude::*;
 use wasm_bindgen::prelude::*;
+use zopro_bn254::{CurveConfig, Fq, Fq2, G1Affine, G1Config, G2Affine, G2Config};
 
 const MASK: u8 = 0b11 << 6;
 const SMALLEST: u8 = 0b10 << 6;

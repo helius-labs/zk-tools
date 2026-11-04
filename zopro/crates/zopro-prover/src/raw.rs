@@ -9,7 +9,7 @@
 //! raw form only beside the format that wrote it.
 use std::io::{self, Write};
 
-use zopro_core::{artifact::Artifact, Image, Points};
+use zopro_core::{Image, Points, artifact::Artifact};
 
 use crate::Prover;
 
@@ -56,7 +56,10 @@ impl Prover {
     /// b2, each `artifact::kernel_points` of the vector's points), with the
     /// source of its raw form: `load_cacheable` for a host that splits the
     /// decompression across workers.
-    pub fn load_decompressed(bytes: &[u8], vectors: [Vec<u8>; 5]) -> Result<(Self, Source), String> {
+    pub fn load_decompressed(
+        bytes: &[u8],
+        vectors: [Vec<u8>; 5],
+    ) -> Result<(Self, Source), String> {
         let (_, at) = Artifact::head(bytes)?;
         let artifact = Artifact::parse(bytes)?;
         let sizes = [64, 64, 64, 64, 128];
@@ -131,9 +134,13 @@ fn padding(at: usize) -> usize {
     at.next_multiple_of(ALIGN) - at
 }
 
+/// A raw form's parts: the key head, its vectors' byte ranges and its solver
+/// image.
+type RawParts<'a> = (Artifact<'a>, [(usize, usize); 5], &'a [u8]);
+
 /// The raw form's key head, its vectors' byte ranges and its solver image,
 /// when it is whole.
-fn parse(raw: &[u8]) -> Option<(Artifact<'_>, [(usize, usize); 5], &[u8])> {
+fn parse(raw: &[u8]) -> Option<RawParts<'_>> {
     let mut reader = Reader { raw, at: 16 };
     let head_len = reader.length()?;
     let head = reader.take(head_len)?;

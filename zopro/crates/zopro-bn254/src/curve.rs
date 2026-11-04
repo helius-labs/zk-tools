@@ -54,7 +54,11 @@ impl<C: CurveConfig> Affine<C> {
 
     #[inline(always)]
     pub const fn new(x: C::Base, y: C::Base) -> Self {
-        Self { x, y, _curve: PhantomData }
+        Self {
+            x,
+            y,
+            _curve: PhantomData,
+        }
     }
 
     #[inline(always)]
@@ -98,7 +102,12 @@ impl<C: CurveConfig> Projective<C> {
 
     #[inline(always)]
     pub const fn new(x: C::Base, y: C::Base, z: C::Base) -> Self {
-        Self { x, y, z, _curve: PhantomData }
+        Self {
+            x,
+            y,
+            z,
+            _curve: PhantomData,
+        }
     }
 
     pub fn generator() -> Self {
@@ -142,7 +151,11 @@ impl<C: CurveConfig> Projective<C> {
         let s1 = self.y * other.z * z2z2;
         let s2 = other.y * self.z * z1z1;
         if u1 == u2 {
-            return if s1 == s2 { self.double() } else { Self::IDENTITY };
+            return if s1 == s2 {
+                self.double()
+            } else {
+                Self::IDENTITY
+            };
         }
         let h = u2 - u1;
         let i = h.double().square();
@@ -167,7 +180,11 @@ impl<C: CurveConfig> Projective<C> {
         let u2 = other.x * z1z1;
         let s2 = other.y * self.z * z1z1;
         if self.x == u2 {
-            return if self.y == s2 { self.double() } else { Self::IDENTITY };
+            return if self.y == s2 {
+                self.double()
+            } else {
+                Self::IDENTITY
+            };
         }
         let h = u2 - self.x;
         let hh = h.square();

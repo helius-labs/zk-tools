@@ -14,8 +14,8 @@ pub(crate) mod time {
     pub use web_time::Instant;
 }
 
-use zopro_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 use rayon::prelude::*;
+use zopro_bn254::{Fq, Fq2, Fr, G1Affine, G1Projective, G2Affine, G2Projective};
 
 pub mod quotient;
 pub use quotient::Quotient;
@@ -571,10 +571,11 @@ impl Gpu {
             .unwrap()
             .entry(label)
             .or_insert_with(|| {
-                self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                    label: Some(label),
-                    source: wgpu::ShaderSource::Wgsl(source.into()),
-                })
+                self.device
+                    .create_shader_module(wgpu::ShaderModuleDescriptor {
+                        label: Some(label),
+                        source: wgpu::ShaderSource::Wgsl(source.into()),
+                    })
             })
             .clone()
     }
@@ -722,14 +723,9 @@ impl<C: Curve> Drop for Msm<C> {
         ];
         let levels = self.levels.iter().flatten().flatten();
         let sort = self.gpu_sort.iter().flat_map(|s| {
-            [
-                &s.scalars,
-                &s.counts,
-                &s.counts_staging,
-                &s.cursors,
-            ]
-            .into_iter()
-            .chain(s.slices.iter())
+            [&s.scalars, &s.counts, &s.counts_staging, &s.cursors]
+                .into_iter()
+                .chain(s.slices.iter())
         });
         for buffer in fixed.into_iter().chain(levels).chain(sort) {
             buffer.destroy();
@@ -1101,7 +1097,13 @@ impl<C: Curve> Msm<C> {
             let (count, scatter) = if spirv.is_some() {
                 (
                     gpu.kernel(count_entry, || {
-                        spirv_pipeline(device, gpu.cache(), count_entry, count, &[Read, Write, Uniform])
+                        spirv_pipeline(
+                            device,
+                            gpu.cache(),
+                            count_entry,
+                            count,
+                            &[Read, Write, Uniform],
+                        )
                     }),
                     gpu.kernel(scatter_entry, || {
                         spirv_pipeline(
@@ -1861,7 +1863,9 @@ pub(crate) mod test_rng {
         }
 
         pub(crate) fn point<C: CurveConfig>(&mut self) -> Affine<C> {
-            Projective::<C>::generator().mul(&Fr::sample(self)).to_affine()
+            Projective::<C>::generator()
+                .mul(&Fr::sample(self))
+                .to_affine()
         }
     }
 
@@ -2091,7 +2095,10 @@ mod field_tests {
             eprintln!("no GPU: skipped");
             return;
         };
-        let source = <Projective<C> as Curve>::SHADER.split("@group").next().unwrap();
+        let source = <Projective<C> as Curve>::SHADER
+            .split("@group")
+            .next()
+            .unwrap();
         let kernel = format!(
             "{source}\n@group(0) @binding(0) var<storage, read> input: array<{affine}>;\n\
              @group(0) @binding(1) var<storage, read_write> output: array<{ty}>;\n\
@@ -2165,7 +2172,9 @@ mod field_tests {
         pollster::block_on(mapped(&gpu, &staging, None)).expect("map");
         let out = staging.slice(..).get_mapped_range().unwrap().to_vec();
         let bytes = <Projective<C> as Curve>::XYZZ_BYTES;
-        let at = |k: usize| <Projective<C> as Curve>::xyzz_to_projective(&out[k * bytes..(k + 1) * bytes]);
+        let at = |k: usize| {
+            <Projective<C> as Curve>::xyzz_to_projective(&out[k * bytes..(k + 1) * bytes])
+        };
         let names = [
             "add",
             "add_mixed",
@@ -2175,7 +2184,10 @@ mod field_tests {
         ];
         let mut wrong = Vec::new();
         for i in 0..n {
-            let (p, q) = (points[2 * i].to_projective(), points[2 * i + 1].to_projective());
+            let (p, q) = (
+                points[2 * i].to_projective(),
+                points[2 * i + 1].to_projective(),
+            );
             for (k, expected) in [p + q, p + q, p + q, p.double(), p.double()]
                 .into_iter()
                 .enumerate()
