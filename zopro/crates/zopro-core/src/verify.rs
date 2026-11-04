@@ -72,7 +72,11 @@ pub fn compress_g2(point: &G2Affine) -> [u8; 64] {
     } else {
         out[..32].copy_from_slice(&point.x.c1.to_be_bytes());
         out[32..].copy_from_slice(&point.x.c0.to_be_bytes());
-        out[0] |= if largest2(&point.y) { LARGEST } else { SMALLEST };
+        out[0] |= if largest2(&point.y) {
+            LARGEST
+        } else {
+            SMALLEST
+        };
     }
     out
 }

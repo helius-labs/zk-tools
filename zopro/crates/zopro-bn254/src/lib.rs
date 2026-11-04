@@ -86,7 +86,10 @@ pub(crate) mod backend {
     pub use crate::arm64::{add, multiply, neg, sub, sum2};
     #[cfg(not(all(target_arch = "aarch64", not(no_asm))))]
     pub use crate::portable::{add, neg, sub};
-    #[cfg(all(not(target_arch = "wasm32"), not(all(target_arch = "aarch64", not(no_asm)))))]
+    #[cfg(all(
+        not(target_arch = "wasm32"),
+        not(all(target_arch = "aarch64", not(no_asm)))
+    ))]
     pub use crate::portable::{multiply, sum2};
 
     #[cfg(target_arch = "wasm32")]

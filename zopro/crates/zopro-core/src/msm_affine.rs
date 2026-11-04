@@ -287,7 +287,7 @@ impl<C: CurveConfig> Window<C> {
         for j in (0..self.batch.len()).rev() {
             let (bucket, point) = self.batch[j];
             let lambda_denominator = inverse * self.prefixes[j];
-            inverse = inverse * self.denominators[j];
+            inverse *= self.denominators[j];
             let current = &mut self.affine[bucket as usize];
             let lambda = (point.y - current.y) * lambda_denominator;
             let x = lambda.square() - current.x - point.x;
@@ -361,7 +361,11 @@ mod tests {
                 for w in (0..windows).rev() {
                     rebuilt = rebuilt * radix + {
                         let d = digit(words, w, width) as i64;
-                        if d < 0 { -Fr::from(d.unsigned_abs()) } else { Fr::from(d as u64) }
+                        if d < 0 {
+                            -Fr::from(d.unsigned_abs())
+                        } else {
+                            Fr::from(d as u64)
+                        }
                     };
                 }
                 for w in 0..windows {
@@ -374,7 +378,11 @@ mod tests {
                     let value = (value & ((1 << width) - 1)) + carry;
                     carry = (value + half) >> width;
                     let expected = (value as i64 - (carry << width) as i64) as i16;
-                    assert_eq!(digit(words, w, width), expected, "width {width}, window {w}");
+                    assert_eq!(
+                        digit(words, w, width),
+                        expected,
+                        "width {width}, window {w}"
+                    );
                 }
                 assert_eq!(rebuilt.to_canonical(), *words, "width {width}");
             }

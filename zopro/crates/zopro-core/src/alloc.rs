@@ -110,7 +110,12 @@ mod tests {
     #[test]
     fn keeps_contents_across_the_threshold() {
         let a = Allocator;
-        for (from, to) in [(1000, 2 << 20), (2 << 20, 1000), (3 << 20, 5 << 20), (100, 200)] {
+        for (from, to) in [
+            (1000, 2 << 20),
+            (2 << 20, 1000),
+            (3 << 20, 5 << 20),
+            (100, 200),
+        ] {
             unsafe {
                 let layout = Layout::from_size_align(from, 8).unwrap();
                 let p = a.alloc(layout);

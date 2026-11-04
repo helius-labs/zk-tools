@@ -32,7 +32,11 @@ impl log::Log for Stderr {
     fn log(&self, record: &log::Record) {
         // With sample_peak running, the stage's peak.
         let peak = PEAK.swap(footprint_mb(), std::sync::atomic::Ordering::Relaxed);
-        let peak = if peak > 0 { format!(" stage peak {peak} MB") } else { String::new() };
+        let peak = if peak > 0 {
+            format!(" stage peak {peak} MB")
+        } else {
+            String::new()
+        };
         eprintln!(
             "{}{peak}",
             record.args().to_string().replace("ZOPRO_TRACE", "TRACE")
@@ -266,7 +270,9 @@ fn zolana(path: &Path, request: &Path, rounds: usize) {
         witness.push(proved.witness_ms);
         prove.push(proved.prove_ms);
     }
-    let peak = PEAK.load(std::sync::atomic::Ordering::Relaxed).max(footprint_mb());
+    let peak = PEAK
+        .load(std::sync::atomic::Ordering::Relaxed)
+        .max(footprint_mb());
     witness.sort();
     prove.sort();
     let (write_ms, write_peak) = written.map_or(("-".into(), "-".into()), |(ms, peak)| {
@@ -423,11 +429,7 @@ fn gpu_one<C: zopro_metal::Curve>(
         }
         let (t, total) = best.unwrap();
         println!("ZOPRO gpu-profile \"{name}\" {}", msm.profile(scalars));
-        assert_eq!(
-            result,
-            cpu,
-            "{name}: the GPU MSM differs from the CPU"
-        );
+        assert_eq!(result, cpu, "{name}: the GPU MSM differs from the CPU");
         println!(
             "ZOPRO gpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} device_ms={:.0} combine_ms={:.1}",
             bases.len(),
@@ -497,11 +499,7 @@ fn wgpu_one<C: zopro_wgpu::Curve>(
         }
     }
     let (t, total, point) = best.unwrap();
-    assert_eq!(
-        point,
-        cpu,
-        "{name}: the wgpu MSM differs from the CPU"
-    );
+    assert_eq!(point, cpu, "{name}: the wgpu MSM differs from the CPU");
     println!(
         "ZOPRO wgpu \"{name}\" points={} device=\"{}\" compile_ms={compile_ms:.0} upload_ms={upload_ms:.0} cpu_ms={cpu_ms:.0} gpu_ms={total:.0} sort_ms={:.0} device_ms={:.0} combine_ms={:.1}",
         bases.len(),
@@ -533,9 +531,14 @@ fn metal_quotient(dir: &Path) {
             low_bits: w.low_bits,
         }
     }
-    let (mut quotient, _) =
-        zopro_metal::Quotient::new(n, &roots, &inverse_roots, weights(&forward), weights(&reverse))
-            .expect("quotient");
+    let (mut quotient, _) = zopro_metal::Quotient::new(
+        n,
+        &roots,
+        &inverse_roots,
+        weights(&forward),
+        weights(&reverse),
+    )
+    .expect("quotient");
     let m = n - n / 16;
     let (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>) = (
         (0..m).map(|_| Fr::random()).collect(),
@@ -633,12 +636,11 @@ impl Dump {
     }
 
     fn key(&self) -> Key {
-        let mut key =
-            Key::build(
-                Points::Kernel([&self.a, &self.b, &self.k, &self.z, &self.b2]),
-                &self.domain,
-            )
-            .expect("key");
+        let mut key = Key::build(
+            Points::Kernel([&self.a, &self.b, &self.k, &self.z, &self.b2]),
+            &self.domain,
+        )
+        .expect("key");
         assert!(
             key.set_solver(&self.program, &self.coefficients),
             "solver plan"
@@ -685,7 +687,12 @@ fn proc_status_kb(field: &str) -> u64 {
         .ok()
         .and_then(|status| {
             let line = status.lines().find(|l| l.starts_with(field))?;
-            line[field.len()..].trim().trim_end_matches("kB").trim().parse().ok()
+            line[field.len()..]
+                .trim()
+                .trim_end_matches("kB")
+                .trim()
+                .parse()
+                .ok()
         })
         .unwrap_or(0)
 }
@@ -980,7 +987,8 @@ fn pack_xark(args: &[String]) {
         fs::read(rows).expect("the rows"),
     );
     let started = Instant::now();
-    let dump = zopro_core::xark::convert(&pk, &vk, &rows, &metadata).expect("an Xark key zopro proves");
+    let dump =
+        zopro_core::xark::convert(&pk, &vk, &rows, &metadata).expect("an Xark key zopro proves");
     let bytes = zopro_core::artifact::pack(&dump.parts(name)).expect("pack");
     fs::write(out, &bytes).expect("write the key");
     let [a, b, k, z, b2] = &dump.vectors;

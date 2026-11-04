@@ -41,7 +41,10 @@ impl<C: FpConfig> Fp<C> {
         if !portable::less(limbs, C::P) {
             return None;
         }
-        Some(Self(portable::multiply(limbs, C::R2, C::P, C::INV), PhantomData))
+        Some(Self(
+            portable::multiply(limbs, C::R2, C::P, C::INV),
+            PhantomData,
+        ))
     }
 
     /// The element of a decimal literal below p (for constants).
@@ -54,7 +57,10 @@ impl<C: FpConfig> Fp<C> {
 
     #[inline]
     pub const fn from_u64(x: u64) -> Self {
-        Self(portable::multiply([x, 0, 0, 0], C::R2, C::P, C::INV), PhantomData)
+        Self(
+            portable::multiply([x, 0, 0, 0], C::R2, C::P, C::INV),
+            PhantomData,
+        )
     }
 
     /// The value, below p.
@@ -239,7 +245,10 @@ impl<C: FpConfig> Mul for Fp<C> {
     #[cfg_attr(target_arch = "wasm32", inline)]
     #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     fn mul(self, other: Self) -> Self {
-        Self(backend::multiply(self.0, other.0, C::P, C::INV), PhantomData)
+        Self(
+            backend::multiply(self.0, other.0, C::P, C::INV),
+            PhantomData,
+        )
     }
 }
 impl<C: FpConfig> Neg for Fp<C> {

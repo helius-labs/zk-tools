@@ -1,5 +1,5 @@
-use zopro_bn254::Fr;
 use rayon::prelude::*;
+use zopro_bn254::Fr;
 
 use crate::simd::FrLanes;
 
@@ -535,7 +535,9 @@ impl Direct {
     /// The coefficients of the polynomial with these evaluations over the
     /// subgroup.
     pub(crate) fn coefficients(&self, values: &[Fr]) -> Vec<Fr> {
-        let n_inv = Fr::from(values.len() as u64).inverse().expect("a nonzero size");
+        let n_inv = Fr::from(values.len() as u64)
+            .inverse()
+            .expect("a nonzero size");
         let inverse = self.generator.inverse().expect("a nonzero generator");
         Self::evaluate(values, inverse, Fr::ONE)
             .into_iter()

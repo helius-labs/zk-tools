@@ -275,8 +275,12 @@ impl<'a> Artifact<'a> {
     /// decompression across workers gives each a run of whole points
     /// (`kernel_points`) and the joined results to the prover.
     pub fn vector_ranges(&self, bytes: &[u8]) -> [(usize, usize); 5] {
-        [self.a, self.b, self.k, self.z, self.b2]
-            .map(|vector| (vector.as_ptr() as usize - bytes.as_ptr() as usize, vector.len()))
+        [self.a, self.b, self.k, self.z, self.b2].map(|vector| {
+            (
+                vector.as_ptr() as usize - bytes.as_ptr() as usize,
+                vector.len(),
+            )
+        })
     }
 
     /// Writes the points decompressed into the kernel's encoding, a, b, k,
@@ -287,16 +291,23 @@ impl<'a> Artifact<'a> {
         fn bytes<T>(points: &[T]) -> &[u8] {
             // SAFETY: plain points, read as their bytes.
             unsafe {
-                std::slice::from_raw_parts(points.as_ptr().cast::<u8>(), std::mem::size_of_val(points))
+                std::slice::from_raw_parts(
+                    points.as_ptr().cast::<u8>(),
+                    std::mem::size_of_val(points),
+                )
             }
         }
         if !cfg!(target_endian = "little") {
             return Err(std::io::Error::other("a key image on a big-endian device"));
         }
         for vector in [self.a, self.b, self.k, self.z] {
-            out.write_all(bytes(&decompress::g1_affine(vector).map_err(std::io::Error::other)?))?;
+            out.write_all(bytes(
+                &decompress::g1_affine(vector).map_err(std::io::Error::other)?,
+            ))?;
         }
-        out.write_all(bytes(&decompress::g2_affine(self.b2).map_err(std::io::Error::other)?))
+        out.write_all(bytes(
+            &decompress::g2_affine(self.b2).map_err(std::io::Error::other)?,
+        ))
     }
 
     /// The kernel's solver image of the key's program (`Key::solver_image`),
