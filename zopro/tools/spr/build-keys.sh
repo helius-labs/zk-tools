@@ -6,7 +6,7 @@
 # them with `zopro-bench pack`, and deletes the key and the parts (one key
 # at a time, for the disk). Keys already in <out> are kept.
 #
-#   tools/zolana/build-keys.sh <gnark proving-keys.lock> <out> [<CDN base>]
+#   tools/spr/build-keys.sh <gnark proving-keys.lock> <out> [<CDN base>]
 #
 # The CDN base defaults to the Zolana key CDN; the lockfile's prefix names
 # the folder. Needs ./fetch-zolana.sh first.

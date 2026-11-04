@@ -252,7 +252,7 @@ fn zolana(path: &Path, request: &Path, rounds: usize) {
     sample_peak();
     stage("start", Instant::now());
     let (prover, written, (load_ms, _)) = load_mapped(path);
-    let mut prover = zopro_zolana::Prover::new(prover).expect("a Zolana key");
+    let mut prover = zopro_spr::Prover::new(prover).expect("a Zolana key");
     let held = footprint_mb();
     PEAK.store(held, std::sync::atomic::Ordering::Relaxed);
     let request = fs::read_to_string(request).expect("the request");

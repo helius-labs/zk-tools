@@ -1,7 +1,7 @@
 //! The prover server's proof JSON against the mobile SDK's response
 //! fixture and the 2 -> 2 key's verifying key (gnark's raw encoding).
 use zopro_bn254::Fr;
-use zopro_zolana::{proof_json, zopro_core::verify::VerifyingKey};
+use zopro_spr::{proof_json, zopro_core::verify::VerifyingKey};
 
 const VK: &[u8] = include_bytes!("fixtures/transfer-2x2.vk");
 const RESPONSE: &str = include_str!("fixtures/transfer-2x2.response.json");
@@ -24,17 +24,15 @@ fn verifies_the_sdks_response() {
 
 #[test]
 fn reads_the_keys_metadata() {
-    let metadata = zopro_zolana::Metadata {
+    let metadata = zopro_spr::Metadata {
         inputs: 2,
         outputs: 2,
         key_sha256: "ab".repeat(32),
     };
     assert_eq!(
-        zopro_zolana::Metadata::parse(metadata.to_json().as_bytes()),
+        zopro_spr::Metadata::parse(metadata.to_json().as_bytes()),
         Ok(metadata)
     );
-    assert!(
-        zopro_zolana::Metadata::parse(br#"{"inputs":2,"outputs":2,"keySha256":"00"}"#).is_err()
-    );
-    assert!(zopro_zolana::Metadata::parse(b"").is_err());
+    assert!(zopro_spr::Metadata::parse(br#"{"inputs":2,"outputs":2,"keySha256":"00"}"#).is_err());
+    assert!(zopro_spr::Metadata::parse(b"").is_err());
 }

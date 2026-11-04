@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Checks out zolana's prover at the release the keys come from into
-# tools/zolana/zolana (gitignored), which go.mod builds against in place of
+# tools/spr/zolana (gitignored), which go.mod builds against in place of
 # its Go module, github.com/helius-labs/zolana/prover/server.
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

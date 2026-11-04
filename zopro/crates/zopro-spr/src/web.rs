@@ -1,4 +1,4 @@
-//! Zolana's prover in a browser: `ZolanaProver` takes the SDKs' `/prove`
+//! Zolana's prover in a browser: `SprProver` takes the SDKs' `/prove`
 //! request and gives the prover server's proof JSON, beside the generic
 //! `WebProver`, `raw_format`, the kernel's thread pool and WebGPU.
 use js_sys::{Object, Promise, Uint8Array};
@@ -11,16 +11,16 @@ use zopro_prover::{
 use crate::{Prover, proof_json};
 
 #[wasm_bindgen]
-pub struct ZolanaProver {
+pub struct SprProver {
     prover: Prover,
     source: Option<raw::Source>,
 }
 
 #[wasm_bindgen]
-impl ZolanaProver {
+impl SprProver {
     /// Loads a zopro key file, or the raw form an earlier load exported.
     #[wasm_bindgen(constructor)]
-    pub fn new(key: &[u8]) -> Result<ZolanaProver, JsError> {
+    pub fn new(key: &[u8]) -> Result<SprProver, JsError> {
         let (prover, source) =
             zopro_prover::Prover::load_cacheable(key).map_err(|e| JsError::new(&e))?;
         let prover = Prover::new(prover).map_err(|e| JsError::new(&e))?;
@@ -36,7 +36,7 @@ impl ZolanaProver {
         k: Vec<u8>,
         z: Vec<u8>,
         b2: Vec<u8>,
-    ) -> Result<ZolanaProver, JsError> {
+    ) -> Result<SprProver, JsError> {
         let (prover, source) = zopro_prover::Prover::load_decompressed(key, [a, b, k, z, b2])
             .map_err(|e| JsError::new(&e))?;
         let prover = Prover::new(prover).map_err(|e| JsError::new(&e))?;

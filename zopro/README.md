@@ -68,11 +68,11 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
   of the key file (vectors decompressed, the solver's image). In a browser,
   `WebProver` takes the inputs as an object of decimal or hex strings and
   returns gnark's compressed proof and public witness.
-- `crates/zopro-zolana`: Zolana's proof requests on the prover: the SDKs'
+- `crates/zopro-spr`: Zolana's proof requests on the prover: the SDKs'
   `/prove` JSON onto the transfer and merge circuits' inputs, the prover
   server's proof JSON, and the key metadata (shape, the gnark key's sha256
   that proofs report). Its cdylib is the Zolana browser runtime
-  (`ZolanaProver` beside `WebProver`).
+  (`SprProver` beside `WebProver`).
 - `crates/zopro-bench`: proves a dumped shape natively and times it
   (`RAYON_NUM_THREADS=4 zopro-bench <dump dir>`), proves a Zolana request
   with its key as the mobile SDK does and reports times and memory
@@ -83,7 +83,7 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
 - `tools/gnark`: gnark's side, offline, with gnark alone: `zopro-dump`
   writes a constraint system's and its keys' parts (`zoprognark.Dump` for
   Go callers), and `pack.sh` makes the zopro key.
-- `tools/zolana`: Zolana's keys: the dump of a Zolana gnark key with its
+- `tools/spr`: Zolana's keys: the dump of a Zolana gnark key with its
   metadata, the zopro keys of a whole key set with their lockfile
   (`build-keys.sh`; `zopro-keys.lock` pins the key set the bench uses),
   request fixtures per shape (`fixtures/`), and gnark's verifier as the
@@ -121,11 +121,11 @@ verify, differ in A, B and C, and are not the unblinded proof (r = s = 0).
 zopro-core's `tests/fallback.rs` and `tests/cubic.rs` prove on the GPU,
 let it go and prove on the CPU, from the key's image and from its file's
 bytes.
-With `ZOPRO_DUMP` (dumps from `tools/zolana`), the
+With `ZOPRO_DUMP` (dumps from `tools/spr`), the
 Zolana tests prove the 2 → 2 transfer and the 24-note merge, check the
 witness against gnark's byte for byte, and leave raw proofs that
-`tools/zolana`'s test verifies with gnark. With `ZOPRO_KEYS_DIR` (the key
-set's zopro keys, as `tools/bench.sh` downloads them), zopro-zolana proves
+`tools/spr`'s test verifies with gnark. With `ZOPRO_KEYS_DIR` (the key
+set's zopro keys, as `tools/bench.sh` downloads them), zopro-spr proves
 the 2 → 2 request twice with its key: both proofs verify and differ; and
 from the key's image on the GPU, then on the CPU once the GPU is let go.
 
@@ -154,7 +154,7 @@ S25, and 43 to 76 % on iPhones 12, 15 and 17 Pro with Metal.
 
 Native: `cargo build --release`. Browser: `CARGO_PROFILE_RELEASE_LTO=false
 cargo rustc --release --target wasm32-unknown-unknown --crate-type cdylib
---features wgpu` in `crates/zopro-prover` (or `crates/zopro-zolana` for
+--features wgpu` in `crates/zopro-prover` (or `crates/zopro-spr` for
 Zolana's runtime) with `nightly-2025-11-15`, then
 `wasm-bindgen --target web` (0.2.128). Without LTO: zopro-core's SIMD
 assembly does not assemble with `simd128` in an rlib built for LTO. The

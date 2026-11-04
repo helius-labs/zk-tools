@@ -6,10 +6,10 @@
 #   tools/bench.sh [shapes] [rounds]
 #
 # Shapes are NxM transfers and merge-Nx1 merges with a request in
-# tools/zolana/fixtures (default 1x2,2x2,4x2,8x2,12x2,16x2,24x2); rounds,
+# tools/spr/fixtures (default 1x2,2x2,4x2,8x2,12x2,16x2,24x2); rounds,
 # proofs per shape (default 5). The keys download once into
 # $ZOPRO_KEYS_DIR (default ~/.cache/zopro-keys) from $ZOPRO_KEYS_URL (the
-# key set's CDN) and are checked against tools/zolana/zopro-keys.lock. On
+# key set's CDN) and are checked against tools/spr/zopro-keys.lock. On
 # macOS the MSMs and the quotient run on Metal. KEEP_IMAGES=1 keeps the
 # images of an earlier run, so no shape measures a first load.
 set -euo pipefail
@@ -17,8 +17,8 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(dirname "$here")"
 shapes="${1:-1x2,2x2,4x2,8x2,12x2,16x2,24x2}"
 rounds="${2:-5}"
-lock="$here/zolana/zopro-keys.lock"
-fixtures="$here/zolana/fixtures"
+lock="$here/spr/zopro-keys.lock"
+fixtures="$here/spr/fixtures"
 keys="${ZOPRO_KEYS_DIR:-$HOME/.cache/zopro-keys}"
 cdn="${ZOPRO_KEYS_URL:-https://d3gbdb0egjwcw9.cloudfront.net}"
 

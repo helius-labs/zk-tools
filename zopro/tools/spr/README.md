@@ -10,8 +10,8 @@ builds against; its aeglos GPU files need a module this does not fetch, so
   (`ZOPRO_DUMP=<dir> ZOPRO_KEYS=<gnark keys> ZOPRO_SHAPES=2x2,merge-24x1 go
   test -run TestZoproDump .`), with `ZOPRO_REQUESTS=<requests>` the
   request's witness too (also by input name, `witness.json`, which
-  `zopro-zolana`'s tests hold their assignments against), and gnark's
-  verdict on a raw proof zopro left in a shape's dump (`zopro-zolana`'s
+  `zopro-spr`'s tests hold their assignments against), and gnark's
+  verdict on a raw proof zopro left in a shape's dump (`zopro-spr`'s
   `tests/prove.rs` leaves one).
 - `build-keys.sh <gnark proving-keys.lock> <out>` builds the zopro key of
   every confidential transfer and merge key of a key set and the

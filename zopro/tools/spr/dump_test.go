@@ -161,7 +161,7 @@ func TestZoproDump(t *testing.T) {
 	}
 }
 
-// The witness by gnark's input names, in decimal: zopro-zolana's tests hold
+// The witness by gnark's input names, in decimal: zopro-spr's tests hold
 // their assignments against it.
 func namedWitness(r1cs *cs.R1CS, values fr.Vector) ([]byte, error) {
 	names := append(append([]string{}, r1cs.Public[1:]...), r1cs.Secret...)

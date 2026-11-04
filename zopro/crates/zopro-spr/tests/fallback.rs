@@ -5,7 +5,7 @@
 //! without it, and without a GPU.
 use std::path::Path;
 
-use zopro_zolana::{Prover, proof_json, zopro_prover};
+use zopro_spr::{Prover, proof_json, zopro_prover};
 
 #[test]
 fn transfer_2x2_proves_on_the_cpu_after_the_gpu() {

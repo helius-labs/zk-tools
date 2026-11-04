@@ -1,12 +1,12 @@
 //! Proofs of the dump requests through a zopro key packed from a dump
 //! (`ZOPRO_DUMP=<dir>` with the `2x2` and `merge-24x1` shapes, as
-//! `tools/zolana` writes them from the same requests): the witness vector is
+//! `tools/spr` writes them from the same requests): the witness vector is
 //! the dump's byte for byte, the proof verifies and reports the gnark key's
 //! sha256, and a raw proof is left in the dump for gnark's own verifier to
 //! referee. Skipped without a dump.
 use std::path::Path;
 
-use zopro_zolana::{
+use zopro_spr::{
     Metadata, Prover, proof_json,
     zopro_core::{artifact::pack, dump::Dump},
     zopro_prover::witness,

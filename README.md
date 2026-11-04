@@ -13,7 +13,7 @@ leaked proof would cost anything.
 
 The SDKs pin a commit of this repository: `zolana-web-sdk`'s
 `runtime.lock.json` (repository, path `zopro`, revision) builds the browser
-runtime from it, and `zolana-mobile-sdk`'s native crate takes `zopro-zolana`
+runtime from it, and `zolana-mobile-sdk`'s native crate takes `zopro-spr`
 as a git dependency of it.
 
 The Go bridges this repository first held (`cgo/`, `prover-wasm/`, gnark's
