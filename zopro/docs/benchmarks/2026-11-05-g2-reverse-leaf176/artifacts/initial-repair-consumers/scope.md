@@ -1,0 +1,5 @@
+# Initial repair-helper compile
+
+The first direct compile failed before this helper executed: a one-hash raw Rust string contained a quoted `#[inline(never)]` token and terminated early. The tool returned a truncated compiler excerpt, not a complete filesystem stderr receipt. The following attempted launch returned127 because no executable existed. This directory retains the exact initial source and that launch stderr. No native source/test or performance capture changed. The correction adds a second raw-string delimiter hash. The corrected direct compile logs are retained separately. Old consumer helpers were recompiled while unchanged during this failed preparation; no tests, links or captures repeated.
+
+The next helper execution saved all four original consumer sources, then stopped before writing any because its link-loop replacement matched both validation and link loops. The retained runtime source/log show the failed exact-count assertion. The corrected replacement includes the validation-only next line; it reuses the saved originals only after asserting all current bytes are still identical. No successful consumer mutation or native work repeats.

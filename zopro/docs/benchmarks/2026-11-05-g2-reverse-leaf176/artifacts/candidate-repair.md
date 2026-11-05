@@ -1,0 +1,7 @@
+# Correct candidate compile flag
+
+The original setup inherited the late-Y ON environment while the new freezer correctly required zopro_g2_reverse_leaf. Original core-off, libraries-off and freeze-off succeeded and remain valid. Original core-on and libraries-on also succeeded, but used zopro_g2_late_y, which is unused by this snapshot; those are additional OFF executions, not candidate qualification. The ON freeze rejected the mismatch before copying libraries or creating artifacts-on.json. No benchmark or final caller link had run.
+
+Preserve the original setup/controller/helper, build plan/pins, both control-mode test/build receipts and failed freeze. A separate three-step candidate workflow sets the intended flag and uses target-candidate. Its freezer reads that new workflow's library log and fingerprint directory. Original source, formulas, loop movement, OFF artifacts, gates and timing protocol stay unchanged. Successful OFF tests/build/freeze are not repeated. This is the first build/test of the actual candidate, not a rerun of a successful candidate or a failed timing experiment.
+
+Before any links or capture, consumer/reviewer bookkeeping must read the valid original OFF and the new candidate qualification, retain the original five successful commands and failed freeze, and independently check actual environments. Report the initial ON-labelled tests as OFF. The test-only child counter must execute under the real ON flag.

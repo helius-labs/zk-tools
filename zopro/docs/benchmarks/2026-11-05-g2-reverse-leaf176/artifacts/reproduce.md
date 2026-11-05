@@ -1,0 +1,11 @@
+# Reproduction scope
+
+Private root /home/ubuntu/src/zopro-perf-work/g2-reverse-leaf176, explicit Rust1.98.1. Reconstruct accepted176 source bytes from its production manifest, apply the three edits/parent suffixes in edits.json, add the byte-exact caller adapter and reverse_leaf.rs at their recorded module paths, and compare all178 hashes in snapshot-hashes.json. Generated arithmetic and binary fixtures retain original bytes.
+
+Original build-plan.json and native receipts preserve the stale lateY ON flag and rejected ON freeze. That ON-labelled test/build is OFF and is not candidate qualification. The valid original OFF artifacts remain bound to their exact successful tests/libraries/freeze. Use candidate-plan.json/candidate-pins.json and candidate-native.rs for the actual reverse-leaf flag and separate target-candidate. This candidate has its own passing unfiltered130core tests and coherent frozen libraries. Existing mathematical cases are requalified; no new field test is claimed. Do not repeat successful old stages in the populated root.
+
+links.rs prepares the two direct optimized consumers; seal-links inspects actual argv and hashes. campaign.rs prepares the fixed317-command capture. seal-forward-caller.rs supplements the initial family-name-only census with the actual inlined forward caller before the first recording. The original pre-capture metadata is retained. capture-pins.json and capture/protocol.json describe the final executed protocol. Raw latency, PMU, profiles and ownership/loss decode receipts are exact; raw perf.data and binaries stay private.
+
+After terminal capture success, campaign finish and the independent review execute once. review imports no campaign/parser code, retains the original failed freeze, checks327successful commands, reconstructs all270raw integer latency observations/gates/capacities, and separately checks counter/profile attribution. Direct repair-helper source/failure scope records are preserved outside that workflow count. The initial direct compiler stderr is only a truncated tool observation, not a full filesystem receipt.
+
+No witness input is needed for the synthetic complete-generator caller fixture. This is not a full-query/SDK/portable/resource benchmark. Production/ledger30708remain unchanged. Executable/library and raw perf files are excluded from publication.
