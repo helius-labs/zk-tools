@@ -1,0 +1,26 @@
+    /// Canonical operands only. Return the unsigned integer |a-b|, below p.
+    /// This is useful when the next operation discards the difference's sign.
+    #[inline(always)]
+    pub fn abs_diff_canonical(&self, b: &Self) -> Self {
+        unsafe {
+            let mut negative=_mm512_cmplt_epu64_mask(self.0[4],b.0[4]);
+            let mut equal=_mm512_cmpeq_epi64_mask(self.0[4],b.0[4]);
+            if equal!=0 {
+                core::hint::cold_path();
+                for j in (0..4).rev() {
+                    negative|=equal&_mm512_cmplt_epu64_mask(self.0[j],b.0[j]);
+                    equal&=_mm512_cmpeq_epi64_mask(self.0[j],b.0[j]);
+                }
+            }
+            let mask=splat(MASK);let zero=splat(0);let mut carry=zero;
+            let mut result=[zero;5];
+            for j in 0..5 {
+                let difference=_mm512_sub_epi64(self.0[j],b.0[j]);
+                let magnitude=_mm512_mask_sub_epi64(difference,negative,zero,difference);
+                let v=_mm512_add_epi64(magnitude,carry);
+                carry=_mm512_srai_epi64::<52>(v);
+                result[j]=_mm512_and_si512(v,mask);
+            }
+            Self(result,PhantomData)
+        }
+    }

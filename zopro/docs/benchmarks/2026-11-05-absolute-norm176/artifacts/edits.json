@@ -1,0 +1,11 @@
+{
+  "absolute_norm": "        let absolute: [FqBatch;2] = core::array::from_fn(|i|bx[i].abs_diff_canonical(&ax[i]));\n        let norm=absolute[0].norm_canonical(&absolute[1]);",
+  "dispatcher": "    #[cfg(zopro_absolute_norm)]if FAST{return super::absolute_norm::apply::<C,FAST>(buckets,batch,s);}\n",
+  "old_norm": "        let denominator = core::array::from_fn(|i| canonical_sub::<FAST>(&bx[i], &ax[i]));\n        let norm = Fq2::lanes_norm(&denominator);",
+  "parents": {
+    "crates/zopro-bn254/src/lib.rs": "\n#[cfg(all(any(test,zopro_absolute_norm),target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]mod absolute_norm;\n",
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(zopro_gauss_caller_probe)]pub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(zopro_gauss_caller_probe)]mod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]pub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n#[cfg(all(zopro_absolute_norm,all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]mod absolute_norm;\n",
+    "crates/zopro-core/src/simd.rs": "\n#[cfg(all(zopro_absolute_norm,all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]impl FqBatch{#[inline(always)]pub(crate)fn abs_diff_canonical(&self,b:&Self)->Self{Self(self.0.abs_diff_canonical(&b.0))}#[inline(always)]pub(crate)fn norm_canonical(&self,b:&Self)->Self{Self(self.0.norm_canonical(&b.0))}}\n"
+  }
+}

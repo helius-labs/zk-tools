@@ -1,0 +1,32 @@
+#[cfg(test)]mod absolute_norm_tests {
+ use super::*;use crate::{portable,FqConfig,FrConfig,Fp};
+ fn check<C:FpConfig,A:ark_ff::PrimeField>() {
+  let p=C::P;let pm1=portable::sub4(p,[1,0,0,0]).0;
+  let boundaries=[[0;4],[1,0,0,0],pm1,portable::sub4(pm1,[1,0,0,0]).0,[u64::MAX,0,0,0],[0,u64::MAX,0,0],[0,0,u64::MAX,0]];
+  let mut seed=0xc851_6a21_90f1_0a37u64;let mut rng=||{seed^=seed<<13;seed^=seed>>7;seed^=seed<<17;seed};
+  let mut cases=0;let mut tied_masks=std::collections::BTreeSet::new();
+  for iteration in 0..2048usize {
+   let mut a:[Fp<C>;8]=core::array::from_fn(|lane|{let mut words=if iteration<boundaries.len(){boundaries[(iteration+lane)%boundaries.len()]}else{core::array::from_fn(|_|rng())};words[3]&=(1<<62)-1;if !portable::less(words,p){words=portable::sub4(words,p).0;}Fp::from_montgomery(words)});
+   let mut b:[Fp<C>;8]=core::array::from_fn(|lane|{let mut words=if iteration<boundaries.len(){boundaries[(iteration+3+lane)%boundaries.len()]}else{core::array::from_fn(|_|rng())};words[3]&=(1<<62)-1;if !portable::less(words,p){words=portable::sub4(words,p).0;}Fp::from_montgomery(words)});
+   // Every mask of equal leading radix52 digits, with lower digits differing
+   // across all positions. Values remain canonical after this construction.
+   if iteration<256 {for lane in 0..8{let same=iteration>>lane&1!=0;let high=0x12345u64+(lane as u64)*7;a[lane].0[3]=(high<<16)|(a[lane].0[3]&65535);b[lane].0[3]=((high+if same{0}else{1})<<16)|(b[lane].0[3]&65535);}}
+   if iteration==256{a=[Fp::from_montgomery(pm1);8];b=[Fp::ZERO;8];}
+   if iteration==257{b=[Fp::from_montgomery(pm1);8];a=[Fp::ZERO;8];}
+   let av=Ifma8::<C,true>::new(&a);let bv=Ifma8::<C,true>::new(&b);
+   let mut tie=0u8;for lane in 0..8{if a[lane].0[3]>>16==b[lane].0[3]>>16{tie|=1<<lane;}}if iteration<256{assert_eq!(tie,iteration as u8);tied_masks.insert(tie);}
+   let ab=av.abs_diff_canonical(&bv);let ba=bv.abs_diff_canonical(&av);let expected=a.map(|_|Fp::ZERO);let mut expected=expected;
+   for lane in 0..8 {assert!(portable::less(a[lane].0,p));assert!(portable::less(b[lane].0,p));let words=if portable::less(a[lane].0,b[lane].0){portable::sub4(b[lane].0,a[lane].0).0}else{portable::sub4(a[lane].0,b[lane].0).0};expected[lane]=Fp::from_montgomery(words);assert!(portable::less(words,p));}
+   for limb in 0..5{let x:[u64;8]=unsafe{core::mem::transmute(ab.0[limb])};let y:[u64;8]=unsafe{core::mem::transmute(ba.0[limb])};assert_eq!(x,y);for lane in 0..8{assert!(x[lane]<(1<<52));let w=expected[lane].0;let bit=limb*52;let word=bit/64;let shift=bit%64;let mut raw=w[word]>>shift;if shift!=0&&word+1<4{raw|=w[word+1]<<(64-shift);}assert_eq!(x[lane],raw&MASK);}}
+   assert_eq!(ab.get(),expected);
+   let value=ab.norm_canonical(&av);let original=ab.sum2(&ab,&av,&av);for limb in 0..5{let x:[u64;8]=unsafe{core::mem::transmute(value.0[limb])};let y:[u64;8]=unsafe{core::mem::transmute(original.0[limb])};assert_eq!(x,y);}
+   let bytes=|v:Fp<C>|{let canonical=v.to_canonical();A::from_le_bytes_mod_order(&canonical.into_iter().flat_map(u64::to_le_bytes).collect::<Vec<_>>())};let got=value.get();for lane in 0..8{let x=bytes(expected[lane]);let y=bytes(a[lane]);assert_eq!(bytes(got[lane]),x*x+y*y);}
+   // The norm of independent component differences is sign-insensitive.
+   let n=ab.norm_canonical(&ba).get();let ordinary=av.sub_canonical(&bv);let old=ordinary.sum2(&ordinary,&ordinary,&ordinary).get();assert_eq!(n,old);
+   cases+=8;
+  }
+  assert_eq!(tied_masks.len(),256);println!("ABS_NORM_LANES={cases}");
+ }
+ #[test]fn canonical_absolute_norm_fq(){check::<FqConfig,ark_ref::Fq>();}
+ #[test]fn canonical_absolute_norm_fr(){check::<FrConfig,ark_ref::Fr>();}
+}
