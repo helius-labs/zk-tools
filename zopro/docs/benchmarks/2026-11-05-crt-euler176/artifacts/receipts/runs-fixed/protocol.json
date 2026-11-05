@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/crt-euler176/pins-fixed.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "algebra-tests",
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/crt-euler176/Cargo.toml",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/crt-euler176/target",
+        "RUSTC": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "RUSTDOC": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustdoc",
+        "RUSTFLAGS": "-C target-cpu=native",
+        "RUSTUP_TOOLCHAIN": "1.98.1"
+      },
+      "required_tests": [],
+      "unfiltered": true,
+      "timeout_seconds": 900
+    },
+    {
+      "kind": "command",
+      "name": "build-full-domain",
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/crt-euler176/Cargo.toml",
+        "--bin",
+        "zopro-crt-euler-study"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/crt-euler176/target",
+        "RUSTC": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "RUSTDOC": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustdoc",
+        "RUSTFLAGS": "-C target-cpu=native",
+        "RUSTUP_TOOLCHAIN": "1.98.1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 900
+    },
+    {
+      "kind": "command",
+      "name": "full-domain-algebra",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/crt-euler176/target/release/zopro-crt-euler-study"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/crt-euler176/target",
+        "RUSTC": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "RUSTDOC": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustdoc",
+        "RUSTFLAGS": "-C target-cpu=native",
+        "RUSTUP_TOOLCHAIN": "1.98.1"
+      },
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 900
+    }
+  ]
+}

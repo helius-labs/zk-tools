@@ -1,0 +1,11 @@
+# Next reconstruction idea — not a timed/native candidate
+
+BigUint Garner reconstruction is a correctness reference. A possible faster method reconstructs only modulo r, without materializing the 527-bit coefficient.
+
+Let M be the product of the 17 primes, M_i=M/q_i and t_i=(residue_i * M_i^(-1)) mod q_i. Then T=sum(t_i*M_i) is congruent to the exact signed integer coefficient c modulo M, and T/M=sum(t_i/q_i). If |c|<=C and M>16C, rounding this sum to its nearest integer gives k with c=T-k*M. Thus c mod r is a fixed modular dot product sum(t_i*(M_i mod r))-k*(M mod r). This is not a per-field RNS representation.
+
+The float sum only selects that small integer. With 17 positive terms below1, rounded reciprocal/product/summation errors are far below 1/16 under ordinary IEEE binary64 operations; |c/M|<1/16 leaves at least7/16 of margin to a half-integer. An implementation must prove a conservative error bound, use explicit operations/rounding assumptions and independently check modular recovery. Do not use sampled success as a substitute for this bound. The reviewer will check M>16C and compare the direct formula on fixed signed coefficient edges and deterministic bounded values against exact BigInt coefficients; no performance or production qualification follows.
+
+An additional unimplemented import shortcut is to lift twisted input Montgomery words directly instead of converting each input to canonical Fr. Since the stored kernel is lifted canonically, this introduces exactly one factor R into the integer convolution. Dividing the Fr output restore factor by R compensates it. This must receive independent tests before any implementation is claimed.
+
+Further possible native work is a fixed-coefficient small-factor modular dot product and vectorized 256-bit-to-q projection, with rigorous overflow/rounding/lazy-range bounds. None of those native helpers exists in this stage. Complete operator timing must include those operations, all surrounding transforms and output combination, and compare the exact accepted native FFT. Root/kernel/context bytes, transient work and pressure fallback need full accounting. Avoid a speculative NTT-only speedup claim or a promise of a twofold full-proof gain.
