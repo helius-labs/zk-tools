@@ -1,0 +1,7 @@
+# Counter scope correction
+
+The successful count helper retained both full-radix and ordinary-only models, but its final `eager_generic_addition_model_selects_native` compared all candidate positions to ordinary radix windows only. That comparison omits the accepted indexed top and is insufficient for a complete-work claim. Preserve the original source, all counts, command receipt and boolean; do not rescan or rerun successful validation.
+
+The offline reviewer instead compares the two complete dense counterfactual recipes already counted: all eleven balanced radix positions and all 127 bitwise NAF positions. Their generic-addition model totals are634405 and701734. The complete dense NAF recipe is10.61%higher in that unweighted model. Both comparisons decline native selection, so the decision does not change. The source is not patched after the successful count to erase the mismatch.
+
+Neither dense-radix model establishes the accepted implementation's optimized indexed-top cost. Queue fallback, equal-x/doubling/cancellation, vector tails, inversions, packing, allocation and scheduling are unpriced. The odd-weight fold also requires a doubling and final combination per active position; that omitted cost favors the candidate in this comparison. No lower bound on all NAF recipes or speed ratio is claimed. Conventional bitwise NAF is distinct from fixed-block odd-digit/skew recoding used in libsecp256k1.
