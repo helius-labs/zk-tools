@@ -1,0 +1,10 @@
+{
+  "all176recover": true,
+  "bridge_suffix": "\n#[cfg(zopro_codec_root)]pub fn codec_root(bases:&[zopro_bn254::G2Affine],words:&[[u64;4]])->(Vec<zopro_bn254::G2Affine>,Vec<[u64;4]>,bool){msm_affine::codec_root(bases,words)}\n",
+  "diagnostic_only": true,
+  "field_arithmetic_generated_files_core_original_functions_exact": true,
+  "msm_affine_append": "// Appended inside msm_affine. Diagnostic preparation only; original functions stay exact.\n#[cfg(zopro_codec_root)]\npub(super) fn codec_root(bases:&[zopro_bn254::G2Affine],words:&[[u64;4]]) -> (Vec<zopro_bn254::G2Affine>,Vec<[u64;4]>,bool) {\n    assert_eq!(bases.len(),words.len());\n    let groups=crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\").then(||scalar_groups(words)).flatten();\n    match groups {\n        Some(g)=>{\n            assert!((1024..65536).contains(&bases.len())&&(1024..65536).contains(&g.values.len()));\n            let points=crate::msm::group_affine(bases,&g.order,&g.starts,&g.counts);\n            (points,g.values,true)\n        }\n        None=>(bases.to_vec(),words.to_vec(),false),\n    }\n}\n",
+  "originals_exact": 173,
+  "qualified_field_child_exact": true,
+  "snapshot": 177
+}
