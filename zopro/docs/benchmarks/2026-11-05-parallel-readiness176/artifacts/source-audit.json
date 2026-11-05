@@ -1,0 +1,14 @@
+{
+  "all_original_bytes_recover": true,
+  "arithmetic_and_scheduler_original_bodies_exact": true,
+  "new_runtime_schedule": false,
+  "original_files": 176,
+  "originals_exact": 173,
+  "parents": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(zopro_parallel_readiness)]impl Key{pub fn parallel_readiness_census(&self)->Result<Vec<u64>,String>{let p=self.solver.as_ref().ok_or(\"active solver missing\")?;solver::parallel_readiness::census(p,self.domain,self.proof_workspace)}}\n",
+    "crates/zopro-core/src/solver.rs": "\n#[cfg(zopro_parallel_readiness)]pub(crate)mod parallel_readiness;\n",
+    "crates/zopro-prover/src/lib.rs": "\n#[cfg(zopro_parallel_readiness)]impl Prover{pub fn parallel_readiness_census(&self)->Result<Vec<u64>,String>{self.key.parallel_readiness_census()}}\n"
+  },
+  "production_changed": false,
+  "snapshot_files": 177
+}
