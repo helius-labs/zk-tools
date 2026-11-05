@@ -1,0 +1,44 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/bundle-proof-pgo176/performance/link-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+        "--extern",
+        "libc=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/liblibc-1c05b85983496aa8e78e217245b072feeb2e1076038b370fcb7eca849c9e4cab.rlib",
+        "--extern",
+        "memmap2=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libmemmap2-a6fffdd0b3b6ca6f3ab261ba25faecae2dba3a145e2178046874854cf77d405f.rlib",
+        "--extern",
+        "rayon=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/librayon-bf7ab8bf274c84025bc411d349fd1a65105f41c57b184396781dc43ee353a282.rlib",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libserde_json-792a1ccfa9d7a509acedb3e992a9c8158d940f10c0b04abe034fe51f74e5811f.rlib",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+        "--extern",
+        "zopro_core=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_core-9dc62928d2988dd5d9b59a18502c8c462ce13a670f6b58a5eae26e88fc8bdc7c.rlib",
+        "--extern",
+        "zopro_prover=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_prover-b48c416ca2b7aa1969a7a754b6fbfba9c83ef7e77d8ee37a3fa794f16a9c518b.rlib",
+        "--extern",
+        "zopro_zolana=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_zolana-be06ce9c070089310fb554f0fbf4956c2ff2fca46679a5f942a7f713aafd8636.rlib",
+        "/home/ubuntu/src/zopro-perf-work/bundle-proof-pgo176/performance/cpu-sdk.rs",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/bundle-proof-pgo176/performance/fresh-original-sdk"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "link-original-control",
+      "timeout_seconds": 1800
+    }
+  ],
+  "version": 1
+}

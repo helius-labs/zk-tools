@@ -1,0 +1,3 @@
+# Driver pin metadata correction
+
+The first performance bootstrap stopped before copying a driver, preparing a link protocol or executing a link. It incorrectly looked for SDK-driver pins among the 176 prover-source files. The actual accepted SDK link artifact separately pins the driver and perf support. Their current bytes match that accepted artifact exactly. Preserve initial source/helper/output, bind the artifact to the accepted SDK hash, and use its input pins for the two driver files. Reuse the empty support directory. No source, compiler option, measurement case/gate, successful link/test/profile/proof or timing observation changes or repeats.
