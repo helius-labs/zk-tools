@@ -1,6 +1,6 @@
 use ark_r1cs_std::boolean::Boolean;
 
-use zolana_zk_dsl::{
+use spr_zk_dsl::{
     circuit::{builtins::field::var::system_of, labels::Scope, zero, Bool, CircuitVar},
     CircuitError,
 };

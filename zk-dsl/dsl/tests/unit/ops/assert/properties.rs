@@ -1,7 +1,7 @@
 use ark_bn254::Fr;
 use ark_ff::One;
 use proptest::prelude::*;
-use zolana_program::{
+use spr_program::{
     circuit::{value, Bool, CircuitVar, Field},
     CircuitError,
 };

@@ -3,7 +3,7 @@
 use ark_bn254::Fr;
 use ark_ff::One;
 use serde_json::json;
-use zolana_program::{circuit::Field, ZkCircuit};
+use spr_program::{circuit::Field, ZkCircuit};
 
 use super::{
     fixtures::{honest, Inverse, CLAIMED_WIRE, INVERSE_WIRE},

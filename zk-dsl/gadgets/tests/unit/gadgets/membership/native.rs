@@ -1,5 +1,5 @@
-use zolana_program::circuit::{constant, value, CircuitVar, Field};
-use zolana_zk_gadgets::is_in;
+use spr_program::circuit::{constant, value, CircuitVar, Field};
+use spr_zk_gadgets::is_in;
 
 use super::{
     fixtures::{is_in_fixture, AssertIn, InConstants, FLAG_BROKEN, MEMBER_BROKEN},

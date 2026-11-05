@@ -1,9 +1,9 @@
-use zolana_program::{
+use spr_program::{
     circuit::{constant, value, Assert, Circuit, CircuitVar, Field},
     conversion::ProofInput,
     CircuitError,
 };
-use zolana_zk_gadgets::{assert_in, is_in};
+use spr_zk_gadgets::{assert_in, is_in};
 
 use crate::harness::fixture::{outcome, rule_broken, Fixture, Refusal};
 

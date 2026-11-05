@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// The r1cs export hook of a `private` + `public` circuit: a `#[test]` named
-/// `__zk_r1cs_<snake_case name>` (the `zolana_zk_dsl::r1cs_hook` contract),
+/// `__zk_r1cs_<snake_case name>` (the `spr_zk_dsl::r1cs_hook` contract),
 /// emitted only when `gate` (a feature-gated `macro_rules!`) is enabled.
 /// `writer` takes the circuit name and the public type's layout.
 pub fn generate(

@@ -1,6 +1,6 @@
 use super::fixtures::*;
 use crate::{bytes::support::fields, harness::fixture::native};
-use zolana_program::{
+use spr_program::{
     circuit::{self, value, Assert},
     Bytes,
 };

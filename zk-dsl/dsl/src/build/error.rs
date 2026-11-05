@@ -35,7 +35,7 @@ pub enum BuildError {
     #[error("{} is not a package manifest; pass -p <package> or --manifest-path", .0.display())]
     NotAPackage(PathBuf),
     #[error(
-        "{} depends on neither zolana-zk-dsl nor zolana-program, so it has no wasm runtime to build",
+        "{} depends on neither spr-zk-dsl nor spr-program, so it has no wasm runtime to build",
         .0.display()
     )]
     NoCircuitLibrary(PathBuf),

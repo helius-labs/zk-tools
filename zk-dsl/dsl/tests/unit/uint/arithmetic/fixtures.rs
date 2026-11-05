@@ -6,7 +6,7 @@
 
 use ark_bn254::Fr;
 use ark_ff::One;
-use zolana_program::{
+use spr_program::{
     circuit::{Assert, Circuit, CircuitVar, Field, Uint},
     conversion::ProofInput,
     CircuitError,

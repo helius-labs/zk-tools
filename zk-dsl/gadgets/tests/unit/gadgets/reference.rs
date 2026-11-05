@@ -1,11 +1,11 @@
-//! The native reference the gadgets are checked against: `zolana_hasher`'s
+//! The native reference the gadgets are checked against: `spr_hasher`'s
 //! Poseidon.
 
 use ark_bn254::Fr;
 use ark_ff::PrimeField;
 use proptest::prelude::*;
-use zolana_hasher::{Hasher, HasherError, Poseidon};
-use zolana_program::circuit::Field;
+use spr_hasher::{Hasher, HasherError, Poseidon};
+use spr_program::circuit::Field;
 
 use crate::harness::field::{be_bytes, decimal, random};
 

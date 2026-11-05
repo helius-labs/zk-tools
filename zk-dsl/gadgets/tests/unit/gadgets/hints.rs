@@ -2,7 +2,7 @@
 //! fixes when the two sides are equal (`0 * hint = 0`): the free-variable
 //! report tolerates it as a multiplier.
 
-use zolana_program::{
+use spr_program::{
     circuit::{CircuitLabel, LabelKind, VariableRole},
     testing::{FreeVariable, PrivateVariableReport},
 };

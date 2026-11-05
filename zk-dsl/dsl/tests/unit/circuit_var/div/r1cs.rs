@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use ark_ff::One;
-use zolana_program::{circuit::Field, ZkCircuit};
+use spr_program::{circuit::Field, ZkCircuit};
 
 use super::{
     fixtures::{

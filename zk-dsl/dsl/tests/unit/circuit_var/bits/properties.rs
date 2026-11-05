@@ -1,7 +1,7 @@
 use ark_bn254::Fr;
 use ark_ff::{BigInteger, PrimeField};
 use proptest::prelude::*;
-use zolana_program::circuit::{constant, from_bits_le, value, Field};
+use spr_program::circuit::{constant, from_bits_le, value, Field};
 
 use super::fixtures::{
     low_bits, CheckBits, CheckIsBool, FromBits, ToBits, BOOL_RULE, NOT_ZERO_OR_ONE, VALUE_TOO_LARGE,

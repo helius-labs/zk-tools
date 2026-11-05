@@ -18,10 +18,10 @@ pub(crate) fn generate(input: &DeriveInput, shape: &Shape) -> TokenStream {
     let serde_fields = fields.iter().map(|field| {
         let (field_ident, field_ty) = (field.ident, field.ty);
         let with = match Representation::of(field_ty) {
-            Representation::Bytes => quote!(#[serde(with = "::zolana_program::__private::bytes")]),
-            Representation::Array => quote!(#[serde(with = "::zolana_program::__private::array")]),
+            Representation::Bytes => quote!(#[serde(with = "::spr_program::__private::bytes")]),
+            Representation::Array => quote!(#[serde(with = "::spr_program::__private::array")]),
             Representation::Address => {
-                quote!(#[serde(with = "::zolana_program::__private::address")])
+                quote!(#[serde(with = "::spr_program::__private::address")])
             }
             Representation::ByteNewtype | Representation::Serde => TokenStream::new(),
         };
@@ -47,7 +47,7 @@ pub(crate) fn generate(input: &DeriveInput, shape: &Shape) -> TokenStream {
     };
 
     quote! {
-        ::zolana_program::__proof_input_serde! {
+        ::spr_program::__proof_input_serde! {
             #[doc(hidden)]
             #[allow(non_snake_case, unused_imports, clippy::all)]
             mod #serde_module {
@@ -55,7 +55,7 @@ pub(crate) fn generate(input: &DeriveInput, shape: &Shape) -> TokenStream {
 
                 #[derive(#private::serde::Serialize, #private::serde::Deserialize)]
                 #[serde(
-                    crate = "::zolana_program::__private::serde",
+                    crate = "::spr_program::__private::serde",
                     remote = #remote,
                     rename_all = "camelCase",
                     deny_unknown_fields
@@ -81,7 +81,7 @@ pub(crate) fn generate(input: &DeriveInput, shape: &Shape) -> TokenStream {
             }
         }
 
-        ::zolana_program::__proof_input_tsify! {
+        ::spr_program::__proof_input_tsify! {
             #[doc(hidden)]
             #[allow(non_snake_case, unused_imports, clippy::all)]
             mod #tsify_module {

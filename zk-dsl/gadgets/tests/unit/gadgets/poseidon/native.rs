@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
 use ark_bn254::Fr;
-use zolana_program::circuit::{constant, value, CircuitVar, Field};
-use zolana_zk_gadgets::poseidon;
+use spr_program::circuit::{constant, value, CircuitVar, Field};
+use spr_zk_gadgets::poseidon;
 
 use super::{
     fixtures::{claim, Hashed, RULE_BROKEN},
@@ -72,7 +72,7 @@ fn every_wrong_claim_breaks_exactly_the_fixture_rule_natively() {
 }
 
 #[test]
-fn the_native_hash_is_the_pinned_hash_and_zolana_hashers_at_every_arity() {
+fn the_native_hash_is_the_pinned_hash_and_spr_hashers_at_every_arity() {
     assert_eq!(
         per_vector(&VALID, |vector| (
             claim(&NativeHash, &vector.inputs(), Field::from(0u64)),
@@ -96,7 +96,7 @@ fn a_hash_of_constants_is_a_constant() {
 }
 
 #[test]
-fn every_arity_outside_one_to_twelve_is_refused_like_zolana_hashers() {
+fn every_arity_outside_one_to_twelve_is_refused_like_spr_hashers() {
     let refused = |inputs: usize| {
         let refusal = poseidon(&vec![constant(1u64); inputs])
             .map(|_| ())

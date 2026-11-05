@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use zolana_program::circuit::CircuitVar;
+use spr_program::circuit::CircuitVar;
 
 use super::{
     fixtures::{
@@ -29,7 +29,7 @@ fn per_form<T>(visitor: &impl Visit<CircuitVar, Output = T>) -> Visited<T> {
     every_form(visitor, VALID[0].fields())
 }
 
-fn promoted<F: zolana_program::ZkCircuit>(variable: usize) -> Vec<u8> {
+fn promoted<F: spr_program::ZkCircuit>(variable: usize) -> Vec<u8> {
     let r1cs = picus_export::<F>();
     promote(&r1cs, picus_wire(&r1cs, variable))
 }

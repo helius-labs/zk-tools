@@ -3,7 +3,7 @@
 //! encoding into the proof's public inputs, and `verify` over the zk DSL's
 //! on-chain verifier.
 
-use zolana_hasher::primitives::pack_be_chunks;
+use spr_hasher::primitives::pack_be_chunks;
 
 use crate::PublicFieldKind;
 
@@ -16,7 +16,7 @@ pub fn render_verifier(name: &str, layout: &[(&str, PublicFieldKind)]) -> String
     }
     let imports = encoding.imports();
     let mut text = format!(
-        "use zolana_program::{{verifier::{{{imports}groth16_solana, verify_groth16, VerifyError}}, CompressedProof}};\n"
+        "use spr_program::{{verifier::{{{imports}groth16_solana, verify_groth16, VerifyError}}, CompressedProof}};\n"
     );
     text.push_str(&format!("\ninclude!(\"{name}.vk.rs\");\n\n"));
     if layout.is_empty() {

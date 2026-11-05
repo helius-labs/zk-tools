@@ -1,4 +1,4 @@
-use zolana_zk_dsl::{
+use spr_zk_dsl::{
     circuit::{constant, zero, Assert, Bool, CircuitVar},
     CircuitError,
 };

@@ -1,7 +1,7 @@
 use ark_bn254::Fr;
 use light_poseidon::{parameters::bn254_x5::get_poseidon_parameters, PoseidonParameters};
 
-use zolana_zk_dsl::{
+use spr_zk_dsl::{
     circuit::{builtins::field::var::system_of, labels::Scope, zero, CircuitVar},
     CircuitError, CircuitErrorKind,
 };

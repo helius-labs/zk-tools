@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use proptest::prelude::*;
-use zolana_program::circuit::{constant, value, CircuitVar, Field, Uint};
+use spr_program::circuit::{constant, value, CircuitVar, Field, Uint};
 
 use super::fixtures::{
     CheckedAdd, CheckedMul, CheckedSub, ADD_RULE, CLAIMED_WIRE, FILE, MUL_RULE, RULE, SUB_RULE,

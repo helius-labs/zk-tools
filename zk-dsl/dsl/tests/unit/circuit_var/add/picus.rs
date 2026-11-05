@@ -1,6 +1,6 @@
 #![cfg(feature = "external-tools")]
 
-use zolana_program::circuit::CircuitVar;
+use spr_program::circuit::CircuitVar;
 
 use super::{
     fixtures::{

@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use ark_bn254::Fr;
 use ark_ff::{AdditiveGroup, BigInteger, Field as _, One, PrimeField, Zero};
 use num_bigint::BigUint;
-use zolana_program::{
+use spr_program::{
     circuit::{Circuit, Field},
     conversion::Allocator,
     CircuitError, ZkCircuit,

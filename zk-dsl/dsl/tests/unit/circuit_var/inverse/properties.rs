@@ -1,7 +1,7 @@
 use ark_bn254::Fr;
 use ark_ff::{Field as _, One};
 use proptest::prelude::*;
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 use super::fixtures::{honest, Inverse, CLAIMED_WIRE, DIVISION_BY_ZERO, RULE, RULE_BROKEN};
 use crate::harness::{

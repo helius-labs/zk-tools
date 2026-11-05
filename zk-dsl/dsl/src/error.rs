@@ -2,7 +2,7 @@ use core::{fmt, panic::Location};
 use std::path::PathBuf;
 
 use ark_relations::gr1cs::SynthesisError;
-use zolana_hasher::HasherError;
+use spr_hasher::HasherError;
 
 use crate::circuit::{CircuitLabel, CircuitSize, FailedConstraint, LabelKind};
 
@@ -104,7 +104,7 @@ impl fmt::Display for SourceLocation {
     }
 }
 
-#[derive(Debug, thiserror::Error, zolana_zk_macros::ErrorName)]
+#[derive(Debug, thiserror::Error, spr_zk_macros::ErrorName)]
 #[non_exhaustive]
 pub enum CircuitErrorKind {
     #[error("{0}")]
@@ -257,7 +257,7 @@ impl fmt::Debug for CircuitError {
     }
 }
 
-#[derive(Debug, thiserror::Error, zolana_zk_macros::ErrorName)]
+#[derive(Debug, thiserror::Error, spr_zk_macros::ErrorName)]
 #[non_exhaustive]
 pub enum ProverErrorKind {
     #[error(transparent)]

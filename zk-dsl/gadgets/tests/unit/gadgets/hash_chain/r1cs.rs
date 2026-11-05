@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use ark_ff::{One, Zero};
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 use super::{
     fixtures::{chain, reference_chain, Chain, Chained, ConstantValues, RULE},

@@ -16,7 +16,7 @@ repository = "https://github.com/helius-labs/zk-tools"
 [workspace.dependencies]
 borsh = { version = "1.5", default-features = false, features = ["derive"] }
 console_error_panic_hook = "0.1.7"
-groth16-solana = { git = "https://github.com/Lightprotocol/groth16-solana", rev = "70a93803e5f55b8425301d506c625169ef557c9d", features = ["bsb22"] }
+groth16-solana = { version = "0.3.1", features = ["bsb22"] }
 hex = "0.4"
 js-sys = "0.3"
 num-bigint = "0.4.6"
@@ -37,11 +37,11 @@ thiserror = { version = "2.0", default-features = false }
 tsify = { version = "0.5.8", default-features = false, features = ["js"] }
 wasm-bindgen = "0.2.104"
 wincode = { version = "0.5", default-features = false, features = ["derive", "alloc"] }
-zolana-hasher = { git = "https://github.com/helius-labs/zolana", rev = "26482c9a2ef1c82382bbc28bab4fc8cf2f194018", default-features = false }
-zolana-zk-dsl = { path = "zk-dsl/dsl", version = "0.1.0" }
-zolana-zk-gadgets = { path = "zk-dsl/gadgets", version = "0.1.0" }
-zolana-zk-macros = { path = "zk-dsl/macros", version = "0.1.0" }
-zolana-zk-macros-core = { path = "zk-dsl/macros-core", version = "0.1.0" }
+spr-hasher = { version = "0.1.1", git = "https://github.com/helius-labs/zolana", rev = "8bde440d9a55d8e036eb9cfd8753458dd7b11b95", default-features = false }
+spr-zk-dsl = { path = "zk-dsl/dsl", version = "0.1.0" }
+spr-zk-gadgets = { path = "zk-dsl/gadgets", version = "0.1.0" }
+spr-zk-macros = { path = "zk-dsl/macros", version = "0.1.0" }
+spr-zk-macros-core = { path = "zk-dsl/macros-core", version = "0.1.0" }
 
 [profile.dev]
 opt-level = 0

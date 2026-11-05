@@ -1,5 +1,5 @@
 use ark_bn254::Fr;
-use zolana_program::{
+use spr_program::{
     circuit::{constant, value, zero, CircuitVar, Field},
     conversion::{self, Allocator, ProofInput},
     CircuitError,

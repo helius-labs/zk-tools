@@ -1,8 +1,8 @@
 #![cfg(feature = "client")]
 
 use solana_address::Address;
-use zolana_hasher::primitives::{hash_bytes, pack_be};
-use zolana_zk_dsl::{
+use spr_hasher::primitives::{hash_bytes, pack_be};
+use spr_zk_dsl::{
     circuit::{
         Assert, Bool, Circuit, CircuitType, CircuitVar, ConstraintSystem, Public, PublicValue,
         Select, SolanaAddress,
@@ -10,7 +10,7 @@ use zolana_zk_dsl::{
     conversion::{to_bytes, Allocator, FromCircuit, Placeholder, ProofInput},
     CircuitError, ZkCircuit,
 };
-use zolana_zk_gadgets::HashBytes;
+use spr_zk_gadgets::HashBytes;
 
 #[test]
 fn addresses_preserve_spp_bytes_packing_and_hashing() {
@@ -111,7 +111,7 @@ fn address_hashes_are_shared_by_clones_and_selection_uses_a_fresh_cache() {
             .instantiate(&allocator)
             .unwrap();
         let left_hash = left.hash_bytes().unwrap();
-        right.hash_bytes().unwrap();
+        let _ = right.hash_bytes().unwrap();
         let cloned = left.clone();
         let before = cs.num_constraints();
         let clone_hash = cloned.hash_bytes().unwrap();
@@ -119,7 +119,7 @@ fn address_hashes_are_shared_by_clones_and_selection_uses_a_fresh_cache() {
         let selected = SolanaAddress::select(&flag.instantiate(&allocator).unwrap(), &left, &right);
         let selected_hash = selected.hash_bytes().unwrap();
         let before = cs.num_constraints();
-        selected.hash_bytes().unwrap();
+        let _ = selected.hash_bytes().unwrap();
         let selected_adds_no_rows = cs.num_constraints() == before;
         let expected_hash = hash_bytes(&[if flag { 1 } else { 2 }; 32])
             .unwrap()
@@ -182,8 +182,8 @@ fn the_address_wrapper_preserves_the_existing_r1cs_and_assignment() {
                 .unwrap(),
         ),
         (
-            AddressHash::<zolana_zk_dsl::Bytes<32>>::export_r1cs().unwrap(),
-            AddressHash(zolana_zk_dsl::Bytes(bytes))
+            AddressHash::<spr_zk_dsl::Bytes<32>>::export_r1cs().unwrap(),
+            AddressHash(spr_zk_dsl::Bytes(bytes))
                 .export_assignment()
                 .unwrap(),
         ),

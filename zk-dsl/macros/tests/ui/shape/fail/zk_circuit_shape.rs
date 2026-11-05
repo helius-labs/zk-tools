@@ -1,6 +1,6 @@
-extern crate zolana_zk_dsl as zolana_program;
+extern crate spr_zk_dsl as spr_program;
 
-use zolana_program::ZkCircuit;
+use spr_program::ZkCircuit;
 
 #[derive(Clone, ZkCircuit)]
 struct MissingPublic {

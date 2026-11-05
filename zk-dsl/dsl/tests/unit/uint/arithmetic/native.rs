@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use num_bigint::BigUint;
-use zolana_program::circuit::{constant, value, CircuitVar, Field, Uint};
+use spr_program::circuit::{constant, value, CircuitVar, Field, Uint};
 
 use super::{
     fixtures::{

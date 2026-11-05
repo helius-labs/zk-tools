@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
+use spr_zk_macros_core::{circuit_type, error_name, proof_input, public_inputs, zk_circuit};
 use syn::{parse_macro_input, DeriveInput};
-use zolana_zk_macros_core::{circuit_type, error_name, proof_input, public_inputs, zk_circuit};
 
 #[doc(hidden)]
 #[proc_macro_derive(ErrorName, attributes(error_name))]

@@ -4,8 +4,8 @@
 //! Solana program that verifies the proofs. Also imports ceremony keys and
 //! exports their verifying keys.
 //!
-//! A circuit crate depends on `zolana-zk-dsl` (circuits deriving `ZkCircuit`)
-//! or on `zolana-program` (ZK programs deriving `ZkProgramCircuit`); the build reads
+//! A circuit crate depends on `spr-zk-dsl` (circuits deriving `ZkCircuit`)
+//! or on `spr-program` (ZK programs deriving `ZkProgramCircuit`); the build reads
 //! which from cargo metadata and enables that crate's wasm features.
 
 mod error;
@@ -42,7 +42,7 @@ const CIRCUIT_DIGEST: &str = "pub const ZOLANA_CIRCUIT_SHA256: &str =";
 /// The packages whose code synthesizes the constraints, built optimized for the
 /// r1cs export so it does not take minutes in debug.
 const OPTIMIZED_PACKAGES: [&str; 9] = [
-    "zolana-zk-dsl",
+    "spr-zk-dsl",
     "ark-ff",
     "ark-ec",
     "ark-bn254",
@@ -52,9 +52,9 @@ const OPTIMIZED_PACKAGES: [&str; 9] = [
     "ark-std",
     "light-poseidon",
 ];
-const GADGETS: &str = "zolana-zk-gadgets";
-const DSL: &str = "zolana-zk-dsl";
-const PROGRAM: &str = "zolana-program";
+const GADGETS: &str = "spr-zk-gadgets";
+const DSL: &str = "spr-zk-dsl";
+const PROGRAM: &str = "spr-program";
 
 const THREADS_LINK_ARGS: [&str; 7] = [
     "--shared-memory",
@@ -292,8 +292,8 @@ impl CircuitCrate {
             .find(|dependency| dependency.package == package)
     }
 
-    /// The crate whose wasm features build the wasm runtime: `zolana-program`
-    /// for a ZK program, `zolana-zk-dsl` for a standalone circuit.
+    /// The crate whose wasm features build the wasm runtime: `spr-program`
+    /// for a ZK program, `spr-zk-dsl` for a standalone circuit.
     fn circuit_library(&self) -> Result<&Dependency> {
         self.dependency(PROGRAM)
             .or_else(|| self.dependency(DSL))
@@ -1538,9 +1538,9 @@ mod tests {
     }
 
     #[test]
-    fn a_zk_program_builds_the_wasm_runtime_through_zolana_program() {
+    fn a_zk_program_builds_the_wasm_runtime_through_spr_program() {
         let program = crate_with(json!([
-            { "name": "zolana-program", "rename": null, "kind": null },
+            { "name": "spr-program", "rename": null, "kind": null },
             { "name": "serde", "rename": null, "kind": null },
         ]));
         assert_eq!(
@@ -1552,15 +1552,15 @@ mod tests {
                 program.optimized_packages().contains(&PROGRAM),
                 program.optimized_packages().contains(&GADGETS),
             ),
-            (Some("zolana-program"), true, true)
+            (Some("spr-program"), true, true)
         );
     }
 
     #[test]
     fn a_standalone_circuit_builds_it_through_the_renamed_dsl() {
         let standalone = crate_with(json!([
-            { "name": "zolana-zk-dsl", "rename": "zk", "kind": null },
-            { "name": "zolana-program", "rename": null, "kind": "dev" },
+            { "name": "spr-zk-dsl", "rename": "zk", "kind": null },
+            { "name": "spr-program", "rename": null, "kind": "dev" },
         ]));
         assert_eq!(
             (

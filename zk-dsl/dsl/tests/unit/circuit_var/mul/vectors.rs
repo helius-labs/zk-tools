@@ -1,4 +1,4 @@
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 use crate::harness::{
     field::{field, HALF_ABOVE, MODULUS, MODULUS_MINUS_1, TWO_POW_64},

@@ -4,7 +4,7 @@
 
 #![cfg(feature = "external-tools")]
 
-use zolana_program::ZkCircuit;
+use spr_program::ZkCircuit;
 
 use crate::harness::{
     circom::Compiled,

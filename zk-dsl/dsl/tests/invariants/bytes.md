@@ -642,7 +642,7 @@ native reference's documented contract.
 
 - [x] **INV-HASH-BYTES-01: Native chunk-boundary hashes**
   - Kind: native equivalence
-  - Statement: Every hardcoded hash vector at widths 0,1,31,32,62,63 returns exactly the native zolana_hasher::primitives::hash_bytes result through Bytes<N>::hash_bytes, both for constants and for checked proof inputs.
+  - Statement: Every hardcoded hash vector at widths 0,1,31,32,62,63 returns exactly the native spr_hasher::primitives::hash_bytes result through Bytes<N>::hash_bytes, both for constants and for checked proof inputs.
   - Location: `zk-dsl/gadgets/src/hash_bytes.rs:12-25` (`hash_bytes`).
   - Severity: High
   - Suggested test: positive/negative; `tests/unit/bytes/hash/native.rs`.

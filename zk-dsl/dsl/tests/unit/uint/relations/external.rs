@@ -12,7 +12,7 @@ use crate::harness::{
 };
 use ark_bn254::Fr;
 use ark_ff::One;
-use zolana_program::ZkCircuit;
+use spr_program::ZkCircuit;
 
 pub fn compiled(name: &str) -> Compiled {
     circomlib::compile(&format!("uint/relations/{name}.circom"))

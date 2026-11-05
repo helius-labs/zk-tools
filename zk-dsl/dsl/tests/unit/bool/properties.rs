@@ -1,7 +1,7 @@
 use ark_bn254::Fr;
 use ark_ff::{One, Zero};
 use proptest::prelude::*;
-use zolana_program::circuit::{CircuitVar, Field};
+use spr_program::circuit::{CircuitVar, Field};
 
 use super::{
     fixtures::{

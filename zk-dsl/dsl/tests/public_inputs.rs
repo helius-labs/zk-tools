@@ -1,9 +1,9 @@
 #![cfg(all(feature = "client", feature = "setup"))]
 
-extern crate zolana_zk_dsl as zolana_program;
+extern crate spr_zk_dsl as spr_program;
 
-use zolana_hasher::primitives::pack_be;
-use zolana_program::{
+use spr_hasher::primitives::pack_be;
+use spr_program::{
     circuit::{Assert, Circuit, Public, PublicInputs, PublicValue},
     conversion::ProofInput,
     Bytes, CircuitError, Groth16Prover, PublicFieldKind, PublicInputLayout, ZkCircuit,
@@ -126,7 +126,7 @@ fn a_proof_verifies_only_under_its_own_public_inputs() {
 #[cfg(feature = "verifier")]
 #[test]
 fn the_on_chain_verifier_accepts_the_proof_with_its_public_inputs() {
-    use zolana_program::verifier::{
+    use spr_program::verifier::{
         boolean, groth16_solana::groth16::Groth16Verifyingkey, integer, pack_be, verify_groth16,
         VerifyError,
     };
@@ -209,7 +209,7 @@ fn rustfmt(source: &str) -> String {
 /// The verifier module encodes every kind in the order the circuit binds it.
 #[test]
 fn the_verifier_module_encodes_every_field_kind() {
-    use zolana_program::__private::render_verifier;
+    use spr_program::__private::render_verifier;
 
     assert_eq!(
         rustfmt(&render_verifier("claim", &Statement::layout())),

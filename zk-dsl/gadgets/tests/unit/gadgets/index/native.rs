@@ -3,8 +3,8 @@ use super::{
     vectors::{invalid_indices, items},
 };
 use crate::harness::{field::field, fixture::native};
-use zolana_program::circuit::{constant, value, CircuitVar, Field};
-use zolana_zk_gadgets::{one_hot, select_index};
+use spr_program::circuit::{constant, value, CircuitVar, Field};
+use spr_zk_gadgets::{one_hot, select_index};
 
 #[test]
 fn every_valid_index_decodes_and_selects_exactly_its_item() {

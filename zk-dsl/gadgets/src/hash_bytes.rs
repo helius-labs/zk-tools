@@ -1,4 +1,4 @@
-use zolana_zk_dsl::{
+use spr_zk_dsl::{
     circuit::{
         builtins::{field::var::system_of, types::bytes::packed},
         labels::Scope,

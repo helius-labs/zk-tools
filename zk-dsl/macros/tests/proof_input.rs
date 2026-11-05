@@ -1,6 +1,6 @@
-extern crate zolana_zk_dsl as zolana_program;
+extern crate spr_zk_dsl as spr_program;
 
-use zolana_program::{
+use spr_program::{
     circuit::{value, CircuitType, ConstraintSystem, Field},
     conversion::{to_bytes, Allocator, Placeholder, ProofInput},
 };

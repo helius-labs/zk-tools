@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use zolana_program::circuit::{CircuitVar, Field};
+use spr_program::circuit::{CircuitVar, Field};
 
 use super::{
     external::{compile, GATE_REFERENCES},

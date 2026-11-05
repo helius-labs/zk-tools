@@ -14,7 +14,7 @@ use crate::{
 };
 use ark_bn254::Fr;
 use ark_ff::One;
-use zolana_program::{circuit::Field, Bytes};
+use spr_program::{circuit::Field, Bytes};
 
 #[test]
 fn empty_and_single_chunk_hashes_have_exact_byte_and_packing_rows() {

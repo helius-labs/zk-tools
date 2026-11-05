@@ -1,6 +1,6 @@
-extern crate zolana_zk_dsl as zolana_program;
+extern crate spr_zk_dsl as spr_program;
 
-use zolana_program::{
+use spr_program::{
     circuit::{constant, Assert, Circuit},
     conversion::ProofInput,
     CircuitError, Groth16Keys, Groth16Prover, ZkCircuit,
@@ -56,7 +56,7 @@ fn a_key_without_a_circuit_digest_is_rejected() {
 
 #[test]
 fn random_single_party_keys_survive_serialization_and_verify_honest_proofs() {
-    use zolana_program::{R1cs, SetupKind};
+    use spr_program::{R1cs, SetupKind};
 
     let r1cs = R1cs::from_bytes(&Old::export_r1cs().unwrap()).unwrap();
     let keys = Groth16Keys::new_with_random_setup(&r1cs).unwrap();

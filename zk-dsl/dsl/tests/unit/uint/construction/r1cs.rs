@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use ark_ff::One;
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 use super::{
     fixtures::{
@@ -253,7 +253,7 @@ fn the_proving_rows_name_the_width_rule_for_a_tampered_value_or_digit() {
 struct Free;
 
 impl Widths for Free {
-    type Output = Vec<(&'static str, zolana_program::testing::PrivateVariableReport)>;
+    type Output = Vec<(&'static str, spr_program::testing::PrivateVariableReport)>;
 
     fn at<const BITS: usize>(&self) -> Self::Output {
         valid(BITS)

@@ -1,5 +1,5 @@
 use proptest::{collection::vec, prelude::*};
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 use super::{
     fixtures::{claim, Hashed, RULE, RULE_BROKEN},
@@ -40,7 +40,7 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(32))]
 
     #[test]
-    fn the_native_hash_is_zolana_hashers_at_every_arity(
+    fn the_native_hash_is_spr_hashers_at_every_arity(
         inputs in vec(arbitrary_field(), 1..=12),
     ) {
         prop_assert_eq!(

@@ -1,5 +1,5 @@
 use ark_bn254::Fr;
-use zolana_program::circuit::{constant, value, Bool, CircuitVar, Field, Uint};
+use spr_program::circuit::{constant, value, Bool, CircuitVar, Field, Uint};
 
 use super::{
     fixtures::{Borrowed, Owned, FILE},

@@ -1,4 +1,4 @@
-use zolana_program::circuit::Field;
+use spr_program::circuit::Field;
 
 use super::fixtures::{is_in_fixture, AssertIn, IsIn};
 use crate::harness::{

@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
 use ark_ff::Field as _;
-use zolana_program::circuit::{constant, value, zero, CircuitVar, Field};
+use spr_program::circuit::{constant, value, zero, CircuitVar, Field};
 
 use super::{
     fixtures::{Pow, Pow5, RULE_BROKEN},

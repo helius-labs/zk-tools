@@ -11,7 +11,7 @@ use crate::{
 };
 use ark_bn254::Fr;
 use ark_ff::One;
-use zolana_program::{circuit::Field, Bytes, ZkCircuit};
+use spr_program::{circuit::Field, Bytes, ZkCircuit};
 
 fn complete<F: ZkCircuit>(fixture: &F) {
     let r1cs = exported::<F>();

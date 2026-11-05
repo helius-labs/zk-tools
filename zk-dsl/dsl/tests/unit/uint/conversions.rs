@@ -9,7 +9,7 @@ use crate::{
         rows::{field, max, power_of_two},
     },
 };
-use zolana_program::{
+use spr_program::{
     circuit::{Assert, Circuit, CircuitVar, Field, Uint},
     conversion::ProofInput,
     CircuitError,
@@ -125,7 +125,7 @@ mod external {
         fixture::export,
         snarkjs, WorkDir,
     };
-    use zolana_program::ZkCircuit;
+    use spr_program::ZkCircuit;
     #[test]
     fn narrowing_matches_num2bits_and_roundtrips_through_snarkjs() {
         let compiled = circomlib::compile("uint/conversion_64_8.circom");

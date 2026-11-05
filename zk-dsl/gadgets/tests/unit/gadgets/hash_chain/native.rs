@@ -1,6 +1,6 @@
 use ark_bn254::Fr;
-use zolana_program::circuit::{constant, value, CircuitVar, Field};
-use zolana_zk_gadgets::nonzero_hash_chain;
+use spr_program::circuit::{constant, value, CircuitVar, Field};
+use spr_zk_gadgets::nonzero_hash_chain;
 
 use super::{
     fixtures::{chain, reference_chain, Chained, RULE_BROKEN},
