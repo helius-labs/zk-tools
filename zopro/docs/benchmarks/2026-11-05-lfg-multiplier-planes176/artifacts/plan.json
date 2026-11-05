@@ -1,0 +1,62 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/lfg-multiplier-planes176/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "/home/ubuntu/src/zopro-perf-work/lfg-multiplier-planes176/study.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--test",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/lfg-multiplier-planes176/study-tests"
+      ],
+      "kind": "command",
+      "name": "compile-tests",
+      "timeout_seconds": 300,
+      "unfiltered": false
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/lfg-multiplier-planes176/study-tests",
+        "--test-threads=1"
+      ],
+      "kind": "command",
+      "name": "plane-tests",
+      "timeout_seconds": 300,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "/home/ubuntu/src/zopro-perf-work/lfg-multiplier-planes176/study.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/lfg-multiplier-planes176/study"
+      ],
+      "kind": "command",
+      "name": "compile-study",
+      "timeout_seconds": 300,
+      "unfiltered": false
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/lfg-multiplier-planes176/study"
+      ],
+      "kind": "command",
+      "name": "real-counts",
+      "timeout_seconds": 300,
+      "unfiltered": false
+    }
+  ],
+  "version": 1
+}
