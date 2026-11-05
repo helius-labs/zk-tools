@@ -1,0 +1,42 @@
+{
+  "adapter_capacity_type": "G2PrefixRecord",
+  "adapter_original": "/home/ubuntu/src/zopro-perf-work/paired-fq2-pack176/caller_probe.rs",
+  "original_OFF_expressions_verbatim": true,
+  "parents": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(zopro_gauss_caller_probe)]pub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(zopro_gauss_caller_probe)]mod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]pub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n\n#[cfg(zopro_g2_cached_denominator)]type G2PrefixRecord=[FqBatch;4];\n#[cfg(not(zopro_g2_cached_denominator))]type G2PrefixRecord=[FqBatch;2];\n",
+    "crates/zopro-core/src/msm/g2_borrowed.rs": "#[cfg(test)] mod denominator_record_tests {\n    use super::*;\n    use zopro_bn254::{Fr,G2Config};\n    #[test]\n    fn exact_denominators_signed_reuse_and_original_workspace_allowance() {\n        let g=Projective::<G2Config>::generator();\n        let nmax=512;\n        let initial=Projective::<G2Config>::batch_to_affine(&(0..nmax).map(|i|g*Fr::from(i as u64+12345)).collect::<Vec<_>>());\n        let incoming=Projective::<G2Config>::batch_to_affine(&(0..nmax).map(|i|g*Fr::from(i as u64+900001)).collect::<Vec<_>>());\n        let original=incoming.clone();\n        for sign in 0..3 {\n            let mut s=Fq2AddScratch { canonical:true,vector_inverse:true,..Default::default() };\n            let mut largest=0;\n            for n in [200usize,9,352,1,511,8,0,512,7] {\n                largest=largest.max(n/LANES);\n                let mut buckets=initial.clone();\n                let batch=(0..n).map(|i|(i as u32|if sign==1||sign==2&&i%3==0{1<<31}else{0},&incoming[i])).collect::<Vec<_>>();\n                for pass in 1..=3 {\n                    #[cfg(zopro_g2_cached_denominator)]\n                    let expected=(0..n/LANES*LANES).map(|i|incoming[i].x-buckets[i].x).collect::<Vec<_>>();\n                    apply::<G2Config,true>(&mut buckets,&batch,&mut s);\n                    #[cfg(zopro_g2_cached_denominator)]\n                    for (j,record) in s.prefix_records.iter().enumerate() {\n                        let a=record[2].get();let b=record[3].get();\n                        for lane in 0..LANES { assert_eq!(Fq2::new(a[lane],b[lane]),expected[j*LANES+lane]); }\n                    }\n                    assert_eq!(s.prefix_records.len(),n/LANES);\n                    let payload=s.prefix_records.capacity()*std::mem::size_of::<G2PrefixRecord>();\n                    assert!(payload<=largest*9*std::mem::size_of::<FqBatch>());\n                    assert!(s.groups.is_empty());\n                    for i in 0..nmax {\n                        let a=Fr::from(i as u64+12345);\n                        let delta=Fr::from(i as u64+900001)*Fr::from(if i<n {pass} else {0});\n                        let negative=sign==1||sign==2&&i%3==0;\n                        assert_eq!(buckets[i],(g*if negative {a-delta}else{a+delta}).to_affine());\n                    }\n                }\n            }\n        }\n        assert_eq!(incoming,original);\n        assert_eq!(std::mem::size_of::<G2PrefixRecord>(),std::mem::size_of::<FqBatch>()*if cfg!(zopro_g2_cached_denominator){4}else{2});\n    }\n}\n"
+  },
+  "replacements": [
+    {
+      "new": "prefix_records:Vec<G2PrefixRecord>",
+      "old": "prefix_records:Vec<[FqBatch;2]>",
+      "path": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "new": "        #[cfg(zopro_g2_cached_denominator)]s.prefix_records.push([chains,norm,denominator[0],denominator[1]]);\n        #[cfg(not(zopro_g2_cached_denominator))]\n        s.prefix_records.push([chains, norm]);",
+      "old": "        s.prefix_records.push([chains, norm]);",
+      "path": "crates/zopro-core/src/msm/g2_borrowed.rs"
+    },
+    {
+      "new": "        let ay = fq2_pack(a.map(|p| p.y));\n        #[cfg(zopro_g2_cached_denominator)]let bx=if FAST{[FqBatch::zero();2]}else{fq2_pack(b.map(|p|p.x))};\n        #[cfg(not(zopro_g2_cached_denominator))]\n        let bx = fq2_pack(b.map(|p| p.x));",
+      "old": "        let ay = fq2_pack(a.map(|p| p.y));\n        let bx = fq2_pack(b.map(|p| p.x));",
+      "path": "crates/zopro-core/src/msm/g2_borrowed.rs"
+    },
+    {
+      "new": "        #[cfg(zopro_g2_cached_denominator)]let denominator=if FAST{[s.prefix_records[j][2],s.prefix_records[j][3]]}else{core::array::from_fn(|i|canonical_sub::<FAST>(&bx[i],&ax[i]))};\n        #[cfg(not(zopro_g2_cached_denominator))]\n        let denominator=core::array::from_fn(|i|canonical_sub::<FAST>(&bx[i],&ax[i]));",
+      "old": "        let denominator=core::array::from_fn(|i|canonical_sub::<FAST>(&bx[i],&ax[i]));",
+      "path": "crates/zopro-core/src/msm/g2_borrowed.rs"
+    },
+    {
+      "new": "        #[cfg(zopro_g2_cached_denominator)]let x={let sum=if FAST{Fq2::lanes_add(&Fq2::lanes_add(&ax,&ax),&denominator)}else{Fq2::lanes_add(&ax,&bx)};Fq2::lanes_sub(&Fq2::lanes_square(&slope),&sum)};\n        #[cfg(not(zopro_g2_cached_denominator))]\n        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));",
+      "old": "        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));",
+      "path": "crates/zopro-core/src/msm/g2_borrowed.rs"
+    },
+    {
+      "new": "        #[cfg(zopro_g2_cached_denominator)]s.prefix_records.push([chains,norm,FqBatch::zero(),FqBatch::zero()]);\n        #[cfg(not(zopro_g2_cached_denominator))]s.prefix_records.push([chains,norm]);\n        chains=chains.mul(&norm);",
+      "old": "        s.prefix_records.push([chains,norm]);chains=chains.mul(&norm);",
+      "path": "crates/zopro-core/src/msm/g2_prefix.rs"
+    }
+  ]
+}

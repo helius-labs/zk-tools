@@ -1,0 +1,43 @@
+#[cfg(test)] mod denominator_record_tests {
+    use super::*;
+    use zopro_bn254::{Fr,G2Config};
+    #[test]
+    fn exact_denominators_signed_reuse_and_original_workspace_allowance() {
+        let g=Projective::<G2Config>::generator();
+        let nmax=512;
+        let initial=Projective::<G2Config>::batch_to_affine(&(0..nmax).map(|i|g*Fr::from(i as u64+12345)).collect::<Vec<_>>());
+        let incoming=Projective::<G2Config>::batch_to_affine(&(0..nmax).map(|i|g*Fr::from(i as u64+900001)).collect::<Vec<_>>());
+        let original=incoming.clone();
+        for sign in 0..3 {
+            let mut s=Fq2AddScratch { canonical:true,vector_inverse:true,..Default::default() };
+            let mut largest=0;
+            for n in [200usize,9,352,1,511,8,0,512,7] {
+                largest=largest.max(n/LANES);
+                let mut buckets=initial.clone();
+                let batch=(0..n).map(|i|(i as u32|if sign==1||sign==2&&i%3==0{1<<31}else{0},&incoming[i])).collect::<Vec<_>>();
+                for pass in 1..=3 {
+                    #[cfg(zopro_g2_cached_denominator)]
+                    let expected=(0..n/LANES*LANES).map(|i|incoming[i].x-buckets[i].x).collect::<Vec<_>>();
+                    apply::<G2Config,true>(&mut buckets,&batch,&mut s);
+                    #[cfg(zopro_g2_cached_denominator)]
+                    for (j,record) in s.prefix_records.iter().enumerate() {
+                        let a=record[2].get();let b=record[3].get();
+                        for lane in 0..LANES { assert_eq!(Fq2::new(a[lane],b[lane]),expected[j*LANES+lane]); }
+                    }
+                    assert_eq!(s.prefix_records.len(),n/LANES);
+                    let payload=s.prefix_records.capacity()*std::mem::size_of::<G2PrefixRecord>();
+                    assert!(payload<=largest*9*std::mem::size_of::<FqBatch>());
+                    assert!(s.groups.is_empty());
+                    for i in 0..nmax {
+                        let a=Fr::from(i as u64+12345);
+                        let delta=Fr::from(i as u64+900001)*Fr::from(if i<n {pass} else {0});
+                        let negative=sign==1||sign==2&&i%3==0;
+                        assert_eq!(buckets[i],(g*if negative {a-delta}else{a+delta}).to_affine());
+                    }
+                }
+            }
+        }
+        assert_eq!(incoming,original);
+        assert_eq!(std::mem::size_of::<G2PrefixRecord>(),std::mem::size_of::<FqBatch>()*if cfg!(zopro_g2_cached_denominator){4}else{2});
+    }
+}

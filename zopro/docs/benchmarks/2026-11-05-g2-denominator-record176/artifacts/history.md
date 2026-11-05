@@ -1,0 +1,9 @@
+# Prior evidence and discarded leads
+
+The previous loose-complex-caller176/3fb261c9 is closed: all four aggregate gains fail, all calibration/nonregression pass, no SDK/adoption. Its arithmetic child is NOT part of this candidate. The earlier signed-square caller978 retains its positive all6 estimate and failed logical32 gate. Neither is rerun.
+
+Read cached-X175 before selecting this hypothesis: its six-vector prefix record stores Ax0/Ax1/Bx0/Bx1 and removes both second X packs; all18 aggregate1.01724 versus OFF, threaded12 also slower, no adoption. The present four-vector record stores D0/D1 and changes the reverse algebra to2Ax+D. It still repacks Ax, saves only Bx packing/subtraction, and pays one additional field addition and640bytes/group beyond the original. This is a different representation/arithmetic trade, not a claim that reducing the old cache size alone ensures a gain.
+
+Rank-census primary A/B redundancy1.68%/1.24%, adjacent local-difference bases, retained column/tile storage, GLS4, shared-complex products, CIOS/lookahead, and previous output-store studies remain closed. Current source and reports were read; none of their percentages transfers here.
+
+Zero-tail FFT shortcut was screened from actual source dataflow without another timing campaign: all supplied constraint lengths exceed half their power-of-two domain. The first inverse DIF stage therefore has at least one potentially nonzero input in every pair; the needed-prefix final DIT stage still needs the twiddle product for every low output. Omitting only known-zero-input or unused-high-output linear work in those outer stages does not eliminate their general products. This does not rule out arbitrary truncated FFT algorithms, but supplies no large-work-removal case for that proposed shortcut. No native sparse-FFT implementation or speed claim is made.
