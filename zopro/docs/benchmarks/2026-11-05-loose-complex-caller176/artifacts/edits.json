@@ -1,0 +1,10 @@
+{
+  "original_x_expression": "        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));",
+  "parents": {
+    "crates/zopro-bn254/src/lib.rs": "\n#[cfg(all(target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]mod loose_square;\n",
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(zopro_gauss_caller_probe)]pub use msm::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(zopro_gauss_caller_probe)]mod caller_probe;\n#[cfg(zopro_gauss_caller_probe)]pub use caller_probe::{Caller,CallerG1,CallerG2,BorrowedG1,BorrowedG2};\n",
+    "crates/zopro-core/src/simd.rs": "\n#[cfg(all(zopro_loose_complex_square,all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]impl FqBatch{#[inline(always)]pub(crate)fn loose_complex_square_real(&self,b:&Self)->Self{Self(self.0.loose_complex_square_real(&b.0))}}\n"
+  },
+  "replacement": "        #[cfg(all(zopro_loose_complex_square,all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let x=if FAST{let product=slope[0].mul(&slope[1]);let square=[slope[0].loose_complex_square_real(&slope[1]),product.add(&product)];Fq2::lanes_sub(&square,&Fq2::lanes_add(&ax,&bx))}else{Fq2::lanes_sub(&Fq2::lanes_square(&slope),&Fq2::lanes_add(&ax,&bx))};\n        #[cfg(not(all(zopro_loose_complex_square,all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))))]\n        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));"
+}
