@@ -1,0 +1,144 @@
+[
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "    packed: BatchAdd<G2Config>,\n    census:census::Row,\n",
+    "old": "    packed: BatchAdd<G2Config>,\n"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "            packed,\n            census:census::Row::new(half,size),\n",
+    "old": "            packed,\n"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "        self.census.event(9,1);\n        let i = self.projective_indices[b];",
+    "old": "        let i = self.projective_indices[b];"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "        if i == u32::MAX {\n            self.census.event(10,1);",
+    "old": "        if i == u32::MAX {"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "            self.census.event(11,1);\n            self.projective[i as usize] += p;",
+    "old": "            self.projective[i as usize] += p;"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "        if a.is_identity() {\n            self.census.event(1,1);",
+    "old": "        if a.is_identity() {"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "            if a.y == signed.y {\n                self.census.event(12,1);",
+    "old": "            if a.y == signed.y {"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "                self.census.event(13,1);\n                *a = G2Affine::IDENTITY",
+    "old": "                *a = G2Affine::IDENTITY"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "        self.batch.push((encoded, p));\n        self.census.maximum(18,self.batch.len());",
+    "old": "        self.batch.push((encoded, p));"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "        let len=self.batch.len();self.census.event(2,len);self.census.event(3,1);self.census.event(4,usize::from(len==self.census.size));self.census.event(14,len%8);self.census.event(15,len/8*8);self.census.histogram[self.census.phase][len]+=1;\n        self.packed\n            .apply_signed_borrowed_g2",
+    "old": "        self.packed\n            .apply_signed_borrowed_g2"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "        while let Some(&(encoded, p)) = self.queue.last() {\n            self.census.event(16,1);",
+    "old": "        while let Some(&(encoded, p)) = self.queue.last() {"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "            self.queue.pop();\n            self.census.event(6,1);",
+    "old": "            self.queue.pop();"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "        self.census.event(7,self.queue.len());self.census.event(8,usize::from(!self.queue.is_empty()));\n        for i in 0..self.queue.len() {",
+    "old": "        for i in 0..self.queue.len() {"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "        self.census.feed(w,0,usize::from(!high),bases.len());\n        for (p, s) in bases.iter().zip(short) {",
+    "old": "        for (p, s) in bases.iter().zip(short) {"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "            self.census.event(0,1);\n            let b = d.unsigned_abs() as usize - 1;",
+    "old": "            let b = d.unsigned_abs() as usize - 1;"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "                self.queue.push((encoded, p));\n                self.census.event(5,1);self.census.maximum(19,self.queue.len());",
+    "old": "                self.queue.push((encoded, p));"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "                if self.queue.len() == size - 1 {\n                    self.census.event(17,1);",
+    "old": "                if self.queue.len() == size - 1 {"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "    fn finish(mut self) -> Vec<G2Affine> {\n        self.census.normalized=self.projective.len();",
+    "old": "    fn finish(mut self) -> Vec<G2Affine> {"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "new": "        census::emit(self.census);\n        self.affine\n    }",
+    "old": "        self.affine\n    }"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed.rs",
+    "suffix": "\n#[cfg(zopro_operation_census)]pub(crate)mod census;\n"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed/late_m3.rs",
+    "new": "        self.census.feed(col,if m3{3}else{1},comp,bases.len());\n        for (p,s) in bases.iter().zip(codes) {",
+    "old": "        for (p,s) in bases.iter().zip(codes) {"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed/late_m3.rs",
+    "new": "            self.census.event(0,1);\n            let b=(code&MAG)as usize-1;",
+    "old": "            let b=(code&MAG)as usize-1;"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed/late_m3.rs",
+    "new": "                self.queue.push((encoded,p));\n                self.census.event(5,1);self.census.maximum(19,self.queue.len());",
+    "old": "                self.queue.push((encoded,p));"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine/g2_borrowed/late_m3.rs",
+    "new": "                if self.queue.len()==size-1 {self.census.event(17,1);self.flush_queue();}",
+    "old": "                if self.queue.len()==size-1 {self.flush_queue();}"
+  },
+  {
+    "file": "crates/zopro-core/src/msm_affine.rs",
+    "suffix": "\n#[cfg(zopro_operation_census)]pub(crate)use g2_borrowed::census;\n"
+  },
+  {
+    "file": "crates/zopro-core/src/lib.rs",
+    "suffix": "\n#[cfg(zopro_operation_census)]pub mod g2_operation_census{pub use crate::msm_affine::census::{begin,finish,Row,LABELS,GLOBAL_LABELS};}\n"
+  },
+  {
+    "file": "crates/zopro-core/src/msm.rs",
+    "new": "    if core::mem::size_of::<C::Base>()==64 {crate::msm_affine::census::indexed(order.len(),starts.len()-1);}\n    let tile = 2048 / (core::mem::size_of::<C::Base>() / 32);",
+    "old": "    let tile = 2048 / (core::mem::size_of::<C::Base>() / 32);"
+  },
+  {
+    "file": "crates/zopro-core/src/msm.rs",
+    "new": "    if core::mem::size_of::<C::Base>()==64 {crate::msm_affine::census::weighted(buckets.len(),buckets.iter().filter(|p|!p.is_identity()).count());}\n    const GROUP: usize = 256;\n    let partials: Vec<_> = buckets",
+    "old": "    const GROUP: usize = 256;\n    let partials: Vec<_> = buckets"
+  },
+  {
+    "file": "crates/zopro-core/src/msm.rs",
+    "new": "    let m = s.pairs.len();\n    if core::mem::size_of::<C::Base>()==64 {crate::msm_affine::census::layer(m,counts.iter().map(|n|n/2).sum());}",
+    "old": "    let m = s.pairs.len();"
+  }
+]
