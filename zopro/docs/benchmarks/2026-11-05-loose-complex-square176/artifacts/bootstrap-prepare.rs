@@ -1,0 +1,2 @@
+use std::fs;
+fn main(){let old="/home/ubuntu/src/zopro-perf-work/signed-complex-square176";let new="/home/ubuntu/src/zopro-perf-work/loose-complex-square176";let source=fs::read_to_string(format!("{old}/prepare.rs")).unwrap().replace(old,new).replace("format!(\"{R}/prepare.rs\"),rustc.into()","format!(\"{R}/prepare.rs\"),format!(\"{R}/model-initial.rs\"),format!(\"{R}/pre-build-repairs.md\"),rustc.into()");assert!(source.contains("model-initial.rs"));fs::write(format!("{new}/prepare.rs"),source).unwrap();}

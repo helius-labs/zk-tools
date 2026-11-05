@@ -1,0 +1,41 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/loose-complex-square176/model-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "/home/ubuntu/src/zopro-perf-work/loose-complex-square176/model.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/crt-euler176/target/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "num_bigint=/home/ubuntu/src/zopro-perf-work/crt-euler176/target/release/deps/libnum_bigint-be646e83c0c62d72.rlib",
+        "--extern",
+        "num_traits=/home/ubuntu/src/zopro-perf-work/crt-euler176/target/release/deps/libnum_traits-c2e07c77c90d1316.rlib",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/loose-complex-square176/model"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "compile-model",
+      "timeout_seconds": 600,
+      "unfiltered": false
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/loose-complex-square176/model"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "exact-integer-model",
+      "timeout_seconds": 600,
+      "unfiltered": false
+    }
+  ],
+  "version": 1
+}

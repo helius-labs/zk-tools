@@ -1,0 +1,15 @@
+    /// Ordinary complex-square real part. Private S,D intermediates may be4p;
+    /// their correlated product is <=9p². Neither escapes before correction.
+    #[inline(always)]
+    pub fn loose_complex_square_real(&self,b:&Self)->Self{
+        const{assert!(C::P[3]<(1u64<<62));}
+        unsafe{
+            let zero=splat(0);let mask=splat(MASK);let two=split(crate::portable::add4(C::P,C::P).0).map(splat);
+            let mut sum=std::array::from_fn(|j|_mm512_add_epi64(self.0[j],b.0[j]));
+            for j in 0..4{sum[j+1]=_mm512_add_epi64(sum[j+1],_mm512_srli_epi64::<52>(sum[j]));sum[j]=_mm512_and_si512(sum[j],mask);}
+            let mut difference=[zero;5];let mut carry=zero;
+            for j in 0..5{let v=_mm512_add_epi64(_mm512_sub_epi64(_mm512_add_epi64(two[j],self.0[j]),b.0[j]),carry);carry=_mm512_srai_epi64::<52>(v);difference[j]=_mm512_and_si512(v,mask);}
+            debug_assert_eq!(_mm512_cmpneq_epi64_mask(carry,zero),0);
+            Self(sum,PhantomData).loose_square_product(&Self(difference,PhantomData))
+        }
+    }
