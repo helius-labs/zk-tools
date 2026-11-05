@@ -1,0 +1,3 @@
+# Setup metadata correction
+
+The first setup execution stopped at its parent-review assertion, before creating the source snapshot, native protocol, build, training or timing. The parent review names its success field `passed`; the initial setup incorrectly requested `review_passed` and received null. Initial setup source, helper binary and failure output are preserved here. Correct only that field lookup, rebuild the setup/freezer helper, and execute the previously unfinished setup. No successful stage is repeated, and no source arithmetic, flags, training population or performance gate changes.

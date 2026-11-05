@@ -1,0 +1,2 @@
+use serde_json::{json,Value};use std::collections::BTreeMap;include!("counts.rs");
+fn main(){let c=counts(&std::fs::read_to_string("profile-counts.log").unwrap());for(k,v)in c.iter().filter(|(_,v)|{let s=v["demangled"].as_str().unwrap();s.contains("glv_blinding")||s.contains("flush_queue")||s.contains("g2_borrowed::apply")}){println!("{}",json!({"raw":k,"name":v["demangled"],"counts":v["counts"],"max":v["max_block_count"]}));}}
