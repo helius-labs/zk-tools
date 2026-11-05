@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/crt-euler-direct176/pins-rest.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "compile-full-domain",
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "/home/ubuntu/src/zopro-perf-work/crt-euler-direct176/driver-fixed.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/crt-euler176/target/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/finalize-drain-bundle176/frozen/candidate/libzopro_bn254-9d1a3c72c557c8816b4532053cddad31ed02058854f8eec236b60ecf0bc31869.rlib",
+        "--extern",
+        "tfhe_ntt=/home/ubuntu/src/zopro-perf-work/crt-euler176/target/release/deps/libtfhe_ntt-3e39e5acca52175c.rlib",
+        "--extern",
+        "num_bigint=/home/ubuntu/src/zopro-perf-work/crt-euler176/target/release/deps/libnum_bigint-be646e83c0c62d72.rlib",
+        "--extern",
+        "num_traits=/home/ubuntu/src/zopro-perf-work/crt-euler176/target/release/deps/libnum_traits-c2e07c77c90d1316.rlib",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/crt-euler176/target/release/deps/libserde_json-69404ada7ece16f4.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/crt-euler-direct176/direct-full-domain"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "full-domain-direct",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/crt-euler-direct176/direct-full-domain"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 600
+    }
+  ]
+}

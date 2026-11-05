@@ -1,0 +1,6 @@
+{
+  "encoding": "UTF-8 JSON string",
+  "original_member": "stderr.log",
+  "sha256": "89e568af8ec4f1982ae2eab0115ee9dd100d9dc558d559ee9712ef4de52f02d7",
+  "text": "error[E0277]: the trait bound `BigInt: From<&num_bigint::BigUint>` is not satisfied\n  --> /home/ubuntu/src/zopro-perf-work/crt-euler-direct176/direct.rs:60:44\n   |\n60 |             assert_eq!(BigInt::from(total)-BigInt::from(&m)*BigInt::from(correction),v);\n   |                                            ^^^^^^ the trait `From<&num_bigint::BigUint>` is not implemented for `BigInt`\n   |\n   = help: `BigInt` implements trait `From<T>`:\n             From<bool>\n             From<i128>\n             From<i16>\n             From<i32>\n             From<i64>\n             From<i8>\n             From<isize>\n             From<num_bigint::BigUint>\n           and 6 others\n\nerror: aborting due to 1 previous error\n\nFor more information about this error, try `rustc --explain E0277`.\n"
+}
