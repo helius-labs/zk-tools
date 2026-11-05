@@ -1,0 +1,4 @@
+use std::{fs,sync::Arc,path::Path};
+#[global_allocator]
+static ALLOCATOR:zopro_prover::zopro_core::alloc::Allocator=zopro_prover::zopro_core::alloc::Allocator;
+fn main()->Result<(),Box<dyn std::error::Error>>{let args=std::env::args().collect::<Vec<_>>();assert_eq!(args.len(),4);let file=fs::File::open(&args[1])?;let image=unsafe{memmap2::Mmap::map(&file)?};drop(file);let prover=zopro_prover::Prover::load_image(Arc::new(image))?;let mut sdk=zopro_zolana::Prover::new(prover)?;let request=fs::read_to_string(&args[2])?;let proof=sdk.prove(&request)?;let dir=Path::new(&args[3]);fs::create_dir_all(dir)?;fs::write(dir.join("0.proof"),&proof.proof)?;fs::write(dir.join("0.public"),&proof.public_inputs)?;println!("COMPLETE one internally verified SDK proof;workers={};proof_bytes={};public_bytes={};no timing sample",rayon::current_num_threads(),proof.proof.len(),proof.public_inputs.len());Ok(())}

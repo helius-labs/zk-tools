@@ -1,0 +1,9 @@
+# First capture coverage correction
+
+First native workflow40749 completed successfully (128fullcore tests, libraries, freeze, link). First capture61243 completed successfully (8SDKprocesses,8Gnark verifiers). Every proof was valid, but only1x2/2x2 emitted observer records. `canonical_wires` eligibility at lib.rs1497 requires maximum query length below65536; larger queries use the generic extraction path. Initial design assumed all8used the small canonical-wire entry.
+
+First finisher87920 failed assertion `left:0 right:2` while demanding two query rows from a larger shape. No successful proof/native/verifier process was repeated. `finish-campaign.rs` and empty analysis.log remain exact. `repair-coverage.rs` creates `finish-partial.rs`, which explicitly accepts zero records only for the6larger shapes and retains all8verified exports/four observed query populations; ledger29455.
+
+`prepare-missing.rs` creates a second isolated source revision with a read-only observer at generic extraction. It converts temporary canonical copies without altering actual Montgomery slices. Four focused tests cover original3models plus conversion/input preservation; previous128fullcore and arithmetic/prover qualification are inherited. Second capture observes only the6previouslymissing larger shapes, not1x2/2x2. Its6fresh proofs must pass Gnark and combinedledger29461. This is coverage repair, not timing reroll or a favorable subset selection. Report combines all16query populations and all14exports, with this failure retained.
+
+Before the first capture, historical verifying-key bindings were corrected to checked prior Gnark receipts because the accepted175proof-inventory contains no vk_sha256 field. `bind-vk.rs` records those hashes and receipts. No proof execution was needed for that metadata binding.

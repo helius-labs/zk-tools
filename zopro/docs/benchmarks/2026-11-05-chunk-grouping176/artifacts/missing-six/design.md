@@ -1,0 +1,3 @@
+# Complete missing larger-query coverage
+
+Initial capture produced8verifiedproofs but observer records only1x2/2x2 because canonical_wires is restricted below65536. First finisher assertion correctly failed. Preserve original protocols/source/capture and its4censuses; do not rerun successful small-shape observations. Add read-only temporary Montgomery-to-canonical observation at the generic extraction path. Reuse exact census algorithm. Four focused observer/conversion tests precede coherent native freeze/link; initial128fullcore and arithmetic/prover qualification inherited. Capture one proof each ONLYthe6previouslyunobservedlarger shapes. No timing claims. All6freshGnark/expectedledger29461 (parent29455). Complete report combines4original+12newquerycensuses.

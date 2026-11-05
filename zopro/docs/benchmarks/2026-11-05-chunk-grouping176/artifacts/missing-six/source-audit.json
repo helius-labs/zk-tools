@@ -1,0 +1,12 @@
+{
+  "arithmetic_solver_and_msm_exact": true,
+  "generic_anchor": "        trace(\"extract-scalars\", started);\n        let (public, private) = w.split_at_mut(plan.n_public);",
+  "generic_call": "        #[cfg(zopro_chunk_census)]{msm_affine::chunk_census::observe_montgomery(\"A\",&sa);msm_affine::chunk_census::observe_montgomery(\"B\",&sb);}\n",
+  "lib_anchor": "        let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);",
+  "lib_call": "        #[cfg(zopro_chunk_census)]{msm_affine::chunk_census::observe(\"A\",&sa_vec);msm_affine::chunk_census::observe(\"B\",&sb_vec);}\n",
+  "msm_suffix": "\n#[cfg(zopro_chunk_census)]pub(crate) mod chunk_census;\n",
+  "originals": 176,
+  "originals_exact": 174,
+  "production_changed": false,
+  "snapshot_files": 177
+}
