@@ -1,0 +1,70 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/component-alias-count176/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "/home/ubuntu/src/zopro-perf-work/component-alias-count176/study.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/finalize-drain-bundle176/frozen/candidate/libzopro_bn254-9d1a3c72c557c8816b4532053cddad31ed02058854f8eec236b60ecf0bc31869.rlib",
+        "--test",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/component-alias-count176/study-tests"
+      ],
+      "kind": "command",
+      "name": "compile-tests",
+      "timeout_seconds": 300,
+      "unfiltered": false
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/component-alias-count176/study-tests",
+        "--test-threads=1"
+      ],
+      "kind": "command",
+      "name": "alias-tests",
+      "timeout_seconds": 300,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "/home/ubuntu/src/zopro-perf-work/component-alias-count176/study.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/finalize-drain-bundle176/frozen/candidate/libzopro_bn254-9d1a3c72c557c8816b4532053cddad31ed02058854f8eec236b60ecf0bc31869.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/component-alias-count176/study"
+      ],
+      "kind": "command",
+      "name": "compile-study",
+      "timeout_seconds": 300,
+      "unfiltered": false
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/component-alias-count176/study"
+      ],
+      "kind": "command",
+      "name": "real-alias-counts",
+      "timeout_seconds": 300,
+      "unfiltered": false
+    }
+  ],
+  "version": 1
+}
