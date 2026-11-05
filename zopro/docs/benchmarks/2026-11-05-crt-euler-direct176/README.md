@@ -2,7 +2,7 @@
 
 **Exact integer projection, direct CRT correction and Montgomery import compensation pass the new algebra checks.** A separate 32,768-point operator call matches every independent reference output. There is no new performance result or production adoption. The SIMD boundary helpers and complete comparison against the accepted native FFT remain to be implemented.
 
-This follows the [qualified convolution prototype](../2026-11-05-crt-euler176/README.md). It retains the same Euler kernel, Fr twist,17 auxiliary primes and NTT library, while replacing BigUint input projection and Garner output reconstruction with scalar references for different integer formulas. The three successful parent tests are filtered out; three new tests run. The complete caller explicitly links the exact accepted field library, with native CPU, optimization, fat LTO and one codegen unit checked in its command receipt.
+This follows the [qualified convolution prototype](../2026-11-05-crt-euler176/README.md). It retains the same Euler kernel, Fr twist,17 auxiliary primes and NTT library, while replacing BigUint input projection and Garner output reconstruction with scalar references for different integer formulas. The three successful parent tests are filtered out; three new tests run. The complete caller explicitly links the fresh library built from the accepted field source, with native CPU, optimization, fat LTO and one codegen unit checked in its command receipt.
 
 For CRT product M and M_i=M/q_i, set `t_i=(residue_i*inverse(M_i mod q_i)) mod q_i`. The signed coefficient satisfies
 
@@ -46,3 +46,5 @@ Unchanged accepted local32-worker observations versus supplied historical M5 ref
 |merge24x1|65.060937|507|7.793×|175|2.690×|50.7|
 
 Accepted merge54x1 remains161.883899ms without a supplied M5 reference. The verified all-eight CPU10× goal remains active and unmet,0/8. Continue to native boundary arithmetic and complete caller qualification; do not substitute an isolated NTT benchmark or these algebra passes for a proof-latency result.
+
+Provenance correction: the prior wording called field rlib `9d1a3c72…` the exact accepted library. It is a fresh build from the accepted source in the finalization/drain experiment. The original accepted SDK links field rlib `1200e635…`; its matching core is `9dc62928…`. The earlier scalar qualification used the recorded fresh library, and its math, raw hashes, tests and outcomes remain unchanged. No performance result relied on this wording. Raw reviewer labels and preparation receipts retain their original text; this correction supersedes their binary-provenance implication. [Identity correction](artifacts/provenance-correction.json).
