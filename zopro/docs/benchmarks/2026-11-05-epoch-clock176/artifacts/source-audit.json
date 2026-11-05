@@ -1,0 +1,28 @@
+{
+  "all_original_bytes_recover": true,
+  "arithmetic_and_scheduling_order_unchanged": true,
+  "edits": [
+    [
+      "            } else if schedule.refined.is_empty() {\n                for epoch in &schedule.epochs {",
+      "            } else if schedule.refined.is_empty() {\n                #[cfg(zopro_epoch_clock)]let mut clock=crate::epoch_clock::Clock::begin(self.ops.len(),schedule.epochs.len(),0);\n                for epoch in &schedule.epochs {"
+    ],
+    [
+      "                    })?;\n                }\n            } else {\n                // SAFETY: both levels",
+      "                    })?;\n                    #[cfg(zopro_epoch_clock)]clock.mark();\n                }\n                #[cfg(zopro_epoch_clock)]clock.finish();\n            } else {\n                // SAFETY: both levels"
+    ],
+    [
+      "        for epoch in &schedule.epochs {\n            epoch.par_iter().try_for_each(|task| {",
+      "        #[cfg(zopro_epoch_clock)]let mut clock=crate::epoch_clock::Clock::begin(self.ops.len(),schedule.epochs.len(),1);\n        for epoch in &schedule.epochs {\n            epoch.par_iter().try_for_each(|task| {"
+    ],
+    [
+      "            })?;\n        }\n        Ok(())\n    }\n\n    /// The wires and sums an op reads.",
+      "            })?;\n            #[cfg(zopro_epoch_clock)]clock.mark();\n        }\n        #[cfg(zopro_epoch_clock)]clock.finish();\n        Ok(())\n    }\n\n    /// The wires and sums an op reads."
+    ]
+  ],
+  "field_generator_exact": true,
+  "lib_suffix": "\n#[cfg(zopro_epoch_clock_api)]pub mod epoch_clock;\n",
+  "original_files": 176,
+  "originals_exact": 174,
+  "production_changed": false,
+  "snapshot_files": 177
+}
