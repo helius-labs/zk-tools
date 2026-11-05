@@ -1,0 +1,15 @@
+# Storage, bounds, and representation
+
+This is a source-level argument plus native tests, not a formal machine-code proof or a performance claim.
+
+For n points, storage contains exactly16n u64 words. A block b starts at point8b and word128b, and has k=min(8,n−8b) points. Word plane w, lane l is at128b+wk+l. For0≤w<16 and0≤l<k, its maximum is128b+16k−1≤16n−1. The partial final block therefore needs no padding. The decoder uses the inverse coordinate map.
+
+In-place encoding validates all four field values of every source point before writing. A fixed8×16word tile copies the current block. Its scatter visits every(w,l) exactly once, a bijection on16k cells. No source value is overwritten before entering the tile. The function does not allocate, reserve, resize, or move the caller's storage; the returned immutable view borrows that same mutable input. Tests check both pointer and capacity for owned vectors. The tile is1024logical bytes; compiler frames, process peaks, and minimum RAM are not established.
+
+The readonly constructor requires checked16n word length and validates every reconstructed field value below Fq::MODULUS. Both constructors establish canonical mixed-R256 coordinate words. No curve-membership property is asserted or needed for the codec itself. Bad source input is rejected before encoding changes any word; bad ordinal input panics before any intrinsic load.
+
+Every pack ordinal i is checked below n before deriving b=i/8 and l=i%8. Thus l<k. Single-block permutation indices select valid lanes in the loaded plane. Two-block indices select l or8+l in the corresponding first/second plane. Partial loads use mask(1<<k)−1, so inactive lanes do not access the following plane or beyond the allocation; their zero values are never selected as valid input ordinals. General gathers compute128b+wk+l independently for each requested source, using the correct per-lane k. All offsets lie within the validated slice, and scaled byte offsets fit the signed addressing domain of the actual Rust allocation. Native AVX512 feature guards precede module compilation.
+
+Four little-endian words split at bit positions0,52,104,156,208,256. The first four outputs mask to52bits; the last shifts by16 and fits48bits. The OR terms occupy disjoint bit ranges, reconstructing the original256bits exactly. Canonical inputs below p remain below p in the existing mixed-R256 field representation. This is the same bit mapping as original Ifma8::raw and PackedIfma8::expand; no Montgomery scaling or field multiplication changes. The API is restricted to Fq/MIXED=true.
+
+The two focused tests compare all packed native limbs and scalar field words to the original constructor, check strict normalization bounds, and exercise all1..8source-block counts, consecutive/reversed/repeated indices, partial-block mixtures, empty/boundary sizes, mutation rejection and8192random groups. Existing field/core/prover qualification is inherited. Complete curve/MSM, typed key ownership, loader format compatibility, portable/device behavior, timed source lookup, and resource-pressure qualification are still required before adoption.
