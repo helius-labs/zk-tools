@@ -1,4 +1,4 @@
-module zopro/tools/zolana
+module zopro/tools/spr
 
 go 1.27.1
 

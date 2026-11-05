@@ -1,10 +1,10 @@
 //! The transfer and merge assignments against the Go prover's flattened
 //! witness of the same request (gnark's names, decimal values), as
-//! `tools/zolana`'s `TestZoproDump` writes it (`witness.json`).
+//! `tools/spr`'s `TestZoproDump` writes it (`witness.json`).
 use std::collections::BTreeMap;
 
 use serde_json::Value;
-use zopro_zolana::{
+use zopro_spr::{
     Circuit, request,
     zopro_prover::{Assignment, witness},
 };
@@ -39,7 +39,7 @@ fn transfer_2x2_matches_the_go_witness() {
     // from them).
     let (_, names) = golden(WITNESS);
     let assignment =
-        zopro_zolana::test_support::transfer(&json, Circuit::TransferConfidential, 2, 2, &names)
+        zopro_spr::test_support::transfer(&json, Circuit::TransferConfidential, 2, 2, &names)
             .unwrap();
     assert_matches(&assignment, WITNESS);
 }
@@ -47,7 +47,7 @@ fn transfer_2x2_matches_the_go_witness() {
 #[test]
 fn merge_24x1_matches_the_go_witness() {
     let json = request::parse(MERGE_REQUEST).unwrap();
-    let assignment = zopro_zolana::test_support::merge(&json, Circuit::Merge, 24).unwrap();
+    let assignment = zopro_spr::test_support::merge(&json, Circuit::Merge, 24).unwrap();
     assert_matches(&assignment, MERGE_WITNESS);
 }
 
@@ -56,8 +56,7 @@ fn rejects_what_the_go_prover_rejected() {
     let json = request::parse(REQUEST).unwrap();
     let (_, names) = golden(WITNESS);
     let ok = |json: &Value| {
-        zopro_zolana::test_support::transfer(json, Circuit::TransferConfidential, 2, 2, &names)
-            .is_ok()
+        zopro_spr::test_support::transfer(json, Circuit::TransferConfidential, 2, 2, &names).is_ok()
     };
     assert!(ok(&json));
     let mut zero_seed = json.clone();
@@ -84,7 +83,7 @@ fn rejects_what_the_go_prover_rejected() {
 #[test]
 fn rejects_what_the_go_prover_rejected_of_a_merge() {
     let json = request::parse(MERGE_REQUEST).unwrap();
-    let ok = |json: &Value, circuit| zopro_zolana::test_support::merge(json, circuit, 24).is_ok();
+    let ok = |json: &Value, circuit| zopro_spr::test_support::merge(json, circuit, 24).is_ok();
     assert!(ok(&json, Circuit::Merge));
     // The default merge requires the ciphertext's salt.
     let mut no_salt = json.clone();
@@ -114,7 +113,7 @@ fn rejects_what_the_go_prover_rejected_of_a_merge() {
     // A ring merge has no ciphertext: no salt, its ring values instead.
     let mut ring = no_salt.clone();
     ring["circuitType"] = "merge-ring".into();
-    let assignment = zopro_zolana::test_support::merge(&ring, Circuit::MergeRing, 24).unwrap();
+    let assignment = zopro_spr::test_support::merge(&ring, Circuit::MergeRing, 24).unwrap();
     assert!(assignment.get("OutputCiphertextSalt").is_none());
     assert!(assignment.get("UserSigningPkHash").is_none());
     assert!(assignment.get("RingProgramID").is_some());

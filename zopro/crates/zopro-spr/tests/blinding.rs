@@ -2,10 +2,10 @@
 //! and differ in each of Ar, Bs and Krs, every proof blinded afresh. The
 //! key is the key set's 2 → 2 transfer key (`ZOPRO_KEYS_DIR=<dir>` holding
 //! `transfer_confidential_2_2.zopro`, as `tools/bench.sh` downloads it and
-//! `tools/zolana/zopro-keys.lock` pins it). Skipped without it.
+//! `tools/spr/zopro-keys.lock` pins it). Skipped without it.
 use std::path::Path;
 
-use zopro_zolana::{Prover, proof_json};
+use zopro_spr::{Prover, proof_json};
 
 #[test]
 fn transfer_2x2_proofs_differ() {
