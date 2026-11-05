@@ -1,0 +1,3 @@
+// Bookkeeping before either consumer runs: original128 + adapter1 + neworacle1.
+use std::fs;
+fn main(){let r="/home/ubuntu/src/zopro-perf-work/g2-late-y176";for n in["links.rs","review.rs","state.rs"]{let p=format!("{r}/{n}");let s=fs::read_to_string(&p).unwrap();assert!(s.contains("129"));fs::write(p,s.replace("129","130")).unwrap();}let p=format!("{r}/prepare-review.rs");let s=fs::read_to_string(&p).unwrap();assert_eq!(s.matches(".replace(\"130\",\"129\")").count(),1);fs::write(p,s.replace(".replace(\"130\",\"129\")","")).unwrap();println!("Aligned metadata to130native tests:128production+1inheritedadapter+1neworacle;no test/source/gate/capture rerun");}
