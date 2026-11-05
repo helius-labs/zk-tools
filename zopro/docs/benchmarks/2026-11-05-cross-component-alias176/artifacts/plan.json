@@ -1,0 +1,78 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/cross-component-alias176/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "/home/ubuntu/src/zopro-perf-work/cross-component-alias176/study.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+        "--test",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/cross-component-alias176/study-tests"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "compile-tests",
+      "timeout_seconds": 300,
+      "unfiltered": false
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/cross-component-alias176/study-tests",
+        "--test-threads=1"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "cross-alias-tests",
+      "timeout_seconds": 300,
+      "unfiltered": true
+    },
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "/home/ubuntu/src/zopro-perf-work/cross-component-alias176/study.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/cross-component-alias176/study"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "compile-study",
+      "timeout_seconds": 300,
+      "unfiltered": false
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/cross-component-alias176/study"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "real-cross-alias-counts",
+      "timeout_seconds": 300,
+      "unfiltered": false
+    }
+  ],
+  "version": 1
+}
