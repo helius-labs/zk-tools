@@ -1,0 +1,21 @@
+{
+  "child": "crates/zopro-core/src/pack_locality.rs",
+  "lib_suffix": "\n#[cfg(zopro_pack_locality)]pub mod pack_locality;\n",
+  "replacements": [
+    {
+      "new": "                    #[cfg(zopro_pack_locality)]\n                    return crate::pack_locality::with_range(bases,w,start,end,||hb_window(&bases[start..end],&short[start..end],w,bits));\n                    #[cfg(not(zopro_pack_locality))]\n                    hb_window(&bases[start..end], &short[start..end], w, bits)",
+      "old": "                    hb_window(&bases[start..end], &short[start..end], w, bits)",
+      "path": "crates/zopro-core/src/msm_affine/g2_phi.rs"
+    },
+    {
+      "new": "        #[cfg(zopro_pack_locality)]crate::pack_locality::phase(usize::from(!high));\n        for (p, s) in bases.iter().zip(short) {",
+      "old": "        for (p, s) in bases.iter().zip(short) {",
+      "path": "crates/zopro-core/src/msm_affine/g2_borrowed.rs"
+    },
+    {
+      "new": "    #[cfg(zopro_pack_locality)]crate::pack_locality::observe(batch);\n    let full = batch.len() / LANES * LANES;",
+      "old": "    let full = batch.len() / LANES * LANES;",
+      "path": "crates/zopro-core/src/msm/g2_borrowed.rs"
+    }
+  ]
+}

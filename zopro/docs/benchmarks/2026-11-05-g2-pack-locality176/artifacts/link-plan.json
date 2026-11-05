@@ -1,0 +1,46 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/link-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/frozen/candidate",
+        "--extern",
+        "libc=/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/frozen/candidate/liblibc-6c5a95a5c0ae5ffb1813f9d61a6e886d7bdd0650d9c8af6f70d93c8fb1247484.rlib",
+        "--extern",
+        "memmap2=/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/frozen/candidate/libmemmap2-c48a9ecf6a55e14dd00fd31b68cace98c33b0095581abe87a98c08359c1464d1.rlib",
+        "--extern",
+        "rayon=/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/frozen/candidate/librayon-cf2540f60bdb080d62b899825ab0eea26ca69a8b62e4c1d2174babc03316342e.rlib",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/frozen/candidate/libserde_json-a1a97ebcbc676a189563de9f34a347524d6387104f89e1af0c5d3bb6656514f0.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/frozen/candidate/libsha2-b526b131971a41918b7545988c2b26f4c50248ba1918f962e1e8d8b36dbfc360.rlib",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/frozen/candidate/libzopro_bn254-2089769202fed521f06c55089c13662229ddc7ecc67e99e79b0bb3699172782c.rlib",
+        "--extern",
+        "zopro_core=/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/frozen/candidate/libzopro_core-9a977550ffe14349a78602f38eb1400a85a94e4e0084e3e4dafe568f6621c5b2.rlib",
+        "--extern",
+        "zopro_prover=/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/frozen/candidate/libzopro_prover-a0ceac93c3153fdcdcdcda391f12631ae378acac9ff2ee1300b89fb82a0969b1.rlib",
+        "--extern",
+        "zopro_zolana=/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/frozen/candidate/libzopro_zolana-063076657cd5955fd757786ddd7546beda36918164d518d2699f8836b53e93d0.rlib",
+        "/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/driver.rs",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/g2-pack-locality176/driver"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "link-driver",
+      "timeout_seconds": 600
+    }
+  ],
+  "version": 1
+}
