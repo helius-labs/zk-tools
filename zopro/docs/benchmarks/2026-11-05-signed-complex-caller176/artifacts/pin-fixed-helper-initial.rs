@@ -1,0 +1,2 @@
+use serde_json::{Value,json};use sha2::{Digest,Sha256};use std::fs;
+fn main(){let r="/home/ubuntu/src/zopro-perf-work/signed-complex-caller176";let mut p:Value=serde_json::from_slice(&fs::read(format!("{r}/build-fixed-pins-pre-helper.json")).unwrap()).unwrap();for name in["native-fixed-helper","pin-fixed-helper.rs"]{let path=format!("{r}/{name}");p[&path]=json!(format!("{:x}",Sha256::digest(fs::read(path).unwrap())));}fs::write(format!("{r}/build-fixed-pins.json"),serde_json::to_vec_pretty(&p).unwrap()).unwrap();}
