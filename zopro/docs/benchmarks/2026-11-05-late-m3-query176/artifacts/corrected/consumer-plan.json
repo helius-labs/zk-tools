@@ -1,0 +1,34 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/late-m3-query176/corrected/consumer-pins.json",
+  "steps": [
+    {
+      "additional_rustc_flags": [
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/coalesce-query176/frozen/control/libsha2-9a5292a789cbeb613c7844cc59ec381c838f4f2d816cc6439b49eed97acf075f.rlib"
+      ],
+      "additional_sources": [
+        "/home/ubuntu/src/zopro-perf-work/late-m3-query176/corrected/perf_support.rs"
+      ],
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/coalesce-query176/frozen-control-cargo.jsonl",
+      "driver": "/home/ubuntu/src/zopro-perf-work/late-m3-query176/corrected/driver.rs",
+      "kind": "link-sdk",
+      "name": "reference",
+      "timeout_seconds": 600
+    },
+    {
+      "additional_rustc_flags": [
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/late-m3-query176/frozen/candidate/libsha2-7add089eb16071cd7abc70e3e91925fa88f8405e3d1aa8e1ac3ce6774a6a2fca.rlib"
+      ],
+      "additional_sources": [
+        "/home/ubuntu/src/zopro-perf-work/late-m3-query176/corrected/perf_support.rs"
+      ],
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/late-m3-query176/frozen-candidate-cargo.jsonl",
+      "driver": "/home/ubuntu/src/zopro-perf-work/late-m3-query176/corrected/driver.rs",
+      "kind": "link-sdk",
+      "name": "fresh",
+      "timeout_seconds": 600
+    }
+  ],
+  "version": 1
+}
