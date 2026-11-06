@@ -1,0 +1,21 @@
+error[E0277]: can't compare `Value` with `i128`
+  --> /home/ubuntu/src/zopro-perf-work/g2-joint-ring-screen176/review.rs:31:75
+   |
+31 | ...}/analysis.json"));assert_eq!(a["maximum_representative_norm"],maxnorm);assert_eq!(a["representatives"],2731);
+   |                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no implementation for `Value == i128`
+   |
+   = help: the trait `PartialEq<i128>` is not implemented for `Value`
+   = help: the following other types implement trait `PartialEq<Rhs>`:
+             `&Value` implements `PartialEq<bool>`
+             `&Value` implements `PartialEq<f32>`
+             `&Value` implements `PartialEq<f64>`
+             `&Value` implements `PartialEq<i16>`
+             `&Value` implements `PartialEq<i32>`
+             `&Value` implements `PartialEq<i64>`
+             `&Value` implements `PartialEq<i8>`
+             `&Value` implements `PartialEq<isize>`
+           and 35 others
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0277`.
