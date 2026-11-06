@@ -1,0 +1,69 @@
+{
+  "accepted_source_proxy": {
+    "fused_ifma": 150,
+    "ordinary_ifma": 100
+  },
+  "cost_scope": "fixed literal SIMD recipe proxy, not optimized instructions or latency; common reducer ALU/constants/moves/spills/code size excluded; no lower bound for all Toom algorithms",
+  "decision": "close this fixed widened-point interpolation recipe before native: complete source work exceeds accepted ordinary IFMA count and adds many wide multiplies/ALU operations; no native performance theorem",
+  "field_convolutions_and_Montgomery_references": 240048,
+  "field_results": [
+    {
+      "convolution_and_Montgomery_reference_checks": 60012,
+      "field": "Fq",
+      "radix": 256
+    },
+    {
+      "convolution_and_Montgomery_reference_checks": 60012,
+      "field": "Fq",
+      "radix": 260
+    },
+    {
+      "convolution_and_Montgomery_reference_checks": 60012,
+      "field": "Fr",
+      "radix": 256
+    },
+    {
+      "convolution_and_Montgomery_reference_checks": 60012,
+      "field": "Fr",
+      "radix": 260
+    }
+  ],
+  "fixture_sha256": "ca568b418efb5e7d5a90bb78aa6d7a112b2ef6bc22d695bcc6522e6dfd141690",
+  "full_limb_convolutions": 6144,
+  "fused_convolution_cost": {
+    "ifma": 92,
+    "other_vector_or_mask_ops": 968,
+    "vector_mul64": 56
+  },
+  "max_abs_lane": 3066951346239075214,
+  "max_abs_normalized_wide_decimal": "4539223551706845476729618374773140025",
+  "negative_point_operands": 1131315,
+  "ordinary_convolution_cost": {
+    "ifma": 74,
+    "other_vector_or_mask_ops": 712,
+    "vector_mul64": 35
+  },
+  "output_digest": "e1cde862fff7ad2d7782335260879427cc998d8eb8e00c332a2fd91119ac2eb3",
+  "primitive_division_cost": {
+    "ifma": 41220,
+    "other_vector_or_mask_ops": 41220,
+    "vector_mul64": 10305
+  },
+  "primitive_exact_divisions": 10305,
+  "scope": "exact wide-lane/evaluation/interpolation/convolution and Montgomery-reference screen; no native field/kernel execution, timing or proof",
+  "status": "pass",
+  "symbolic_sha256": "2214812b07653dcd26ebded4453166eb327711c50f15d606d49eff45d4333f6e",
+  "total_odd_divisions": 2226033,
+  "with_common_50_IFMA_reduction": {
+    "fused": {
+      "ifma": 142,
+      "other_ops_before_common_reducer": 968,
+      "vector_mul64": 56
+    },
+    "ordinary": {
+      "ifma": 124,
+      "other_ops_before_common_reducer": 712,
+      "vector_mul64": 35
+    }
+  }
+}
