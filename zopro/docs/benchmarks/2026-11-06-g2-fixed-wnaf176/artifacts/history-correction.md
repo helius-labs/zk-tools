@@ -1,0 +1,9 @@
+# Earlier fixed-window screen found after the count run
+
+The earlier report `2026-11-05-g2-fixed-odd-screen176` already implements fixed width12 odd recoding and unit skew correction on the primary population, and closes it with a4.37%generic-addition increase. Its primary reference is pinned to bitcoin-core/secp256k1 commit cc0e03ffd4ddfce3663dc807a10cc4e3d0132d79. The initial continuation notes incorrectly treated only the bitwise NAF screen as relevant. That was a history-search mistake; fixed odd recoding was not an untested optimization family.
+
+The current work adds exact production Booth extraction, source-shaped weighted/leading indexed counts, integrated Horner doubling accounting, an exact low/skew cancellation, grouped2x2 and a different independent recoder/block-graph reviewer. It agrees with the earlier negative decision. It does not justify reopening the earlier native selection or claiming novelty. No native/query/performance trial or proof was launched.
+
+The frozen algebra, model, protocol and first notes remain unchanged as historical evidence. Report wording is corrected before commit/push. No data, test, thresholds or successful command is changed or rerun. The new report is a follow-up audit. Source 176/accepted SDK6d83/ledger30846/all-eight unmet goal remain unchanged.
+
+Additional closed history found in the same audit: Oct26 g2-index-gather already tests index-only ordinary-tree input, compact alternating buffers and current norm/prefix arithmetic. It is slower than streaming in its calibrated primary32 context; its larger global gate fails. Ordinary indexed trees must not be proposed as new based only on lower modeled inversion counts. Oct27 g2-tree-records preserves genuine large-shape gains but fails global qualification; do not erase either observation or repeat it unchanged.
