@@ -1,0 +1,126 @@
+{
+  "BN254_port_or_exception_correctness_established": false,
+  "R256_FMA_trial_already_closed": true,
+  "accepted_primary_omits_B1": true,
+  "accepted_production_files_verified": 176,
+  "bytes_per_coordinate_array": "HT_NWORDS * sizeof(uint64_t); definition outside audited files",
+  "complete_live_memory_bound_established": false,
+  "decision": "No distinct runtime candidate; no unchanged paired/projective/FMA reroll",
+  "formulas": [
+    {
+      "Fq2_multiply_sites": 5,
+      "Fq2_square_sites": 2,
+      "active_calls": {
+        "gfp2_mul_8x1w": 5,
+        "gfp2_sqr_8x1w": 2,
+        "gfp2_sub_8x1w": 7
+      },
+      "coefficient_specific_sites": 0,
+      "file": "padd.c",
+      "function": "PADD_G2_projc_8x1w_z1eqz2",
+      "line_end": 433,
+      "line_start": 333
+    },
+    {
+      "Fq2_multiply_sites": 9,
+      "Fq2_square_sites": 2,
+      "active_calls": {
+        "gfp2_mul_8x1w": 9,
+        "gfp2_sqr_8x1w": 2,
+        "gfp2_sub_8x1w": 7
+      },
+      "coefficient_specific_sites": 0,
+      "file": "padd.c",
+      "function": "PADD_G2_projc_8x1w_mix",
+      "line_end": 515,
+      "line_start": 434
+    },
+    {
+      "Fq2_multiply_sites": 12,
+      "Fq2_square_sites": 0,
+      "active_calls": {
+        "gfp2_add_8x1w": 15,
+        "gfp2_dbl_8x1w": 7,
+        "gfp2_mul_8x1w": 12,
+        "gfp2_mul_dig_8x1w": 2,
+        "gfp2_sub_8x1w": 5
+      },
+      "coefficient_specific_sites": 2,
+      "file": "padd.c",
+      "function": "PADD_G2_projc_8x1w_z1neqz2",
+      "line_end": 569,
+      "line_start": 516
+    }
+  ],
+  "goal_status": "active/unmet0/8",
+  "native_Fq2_product_uses_two_fused_operations": true,
+  "new_AWS_resources": 0,
+  "new_benchmarks": 0,
+  "new_native_tests": 0,
+  "new_proofs": 0,
+  "new_runtime_candidate": false,
+  "paired_affine_coordinate_arrays": 6,
+  "paired_projective_coordinate_arrays": 9,
+  "paired_routes": [
+    {
+      "function": "avx1_pair_withIFMA",
+      "line_end": 785,
+      "line_start": 731,
+      "separate_G1_call": "simdPADDaff_G1",
+      "separate_G2_call": "simdPADDaff_G2"
+    },
+    {
+      "function": "avx2_pair_withIFMA",
+      "line_end": 681,
+      "line_start": 657,
+      "separate_G1_call": "simdPADDprj_G1",
+      "separate_G2_call": "simdPADDprj_G2"
+    }
+  ],
+  "pins_verified": 196,
+  "scope": "Read-only structural audit; source call sites are not timing, correctness proof or dynamic costs",
+  "shared_scalar_digit": true,
+  "upstream_commit": "5e28e01f84f3c56e63952fd2099dabddc5b55809",
+  "wrappers": [
+    {
+      "file": "pair_ifma.c",
+      "formula_call": "PADD_projc_8x1w_z1eqz2(&c, &a, &b)",
+      "function": "simdPADDaff_G1",
+      "inverse_or_norm_text_in_wrapper": false,
+      "line_end": 352,
+      "line_start": 300
+    },
+    {
+      "file": "pair_ifma.c",
+      "formula_call": "PADD_G2_projc_8x1w_z1eqz2(&c, &a, &b)",
+      "function": "simdPADDaff_G2",
+      "inverse_or_norm_text_in_wrapper": false,
+      "line_end": 441,
+      "line_start": 354
+    },
+    {
+      "file": "pair_ifma.c",
+      "formula_call": "PADD_projc_8x1w_mix(&c, &a, &b)",
+      "function": "simdPADDmix_G1",
+      "inverse_or_norm_text_in_wrapper": false,
+      "line_end": 615,
+      "line_start": 581
+    },
+    {
+      "file": "pair_ifma.c",
+      "formula_call": "PADD_G2_projc_8x1w_mix(&c, &a, &b)",
+      "function": "simdPADDmix_G2",
+      "inverse_or_norm_text_in_wrapper": false,
+      "line_end": 653,
+      "line_start": 617
+    },
+    {
+      "file": "pip_ifma.c",
+      "formula_call": "PADD_projc_8x1w_z1eqz2(&c, &a, &b)",
+      "function": "simdPADDaff",
+      "inverse_or_norm_text_in_wrapper": false,
+      "line_end": 55,
+      "line_start": 3
+    }
+  ]
+}

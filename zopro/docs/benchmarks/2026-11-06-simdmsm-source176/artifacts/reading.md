@@ -1,0 +1,15 @@
+# Pinned source audit scope
+
+Upstream JR-account/SimdMSM commit 5e28e01f84f3c56e63952fd2099dabddc5b55809. Four private files are pinned in source-pins.sha256; none is built or imported into Zopro. The implementation directory is AVX-MSM/demo/381. This revisits previously reviewed work. The README's TCHES article12061 link was blocked by its anti-bot page; no full-paper reading is claimed.
+
+Read: types.h in full; function inventory of all four files; padd.c1–115,163–197,333–588; pair_ifma.c300–813,885–end; pip_ifma.c1–287,341–388. Pair_ifma.c1–299 scalar helpers, allocator/context headers and the complete call graph were not audited. HT_NWORDS is left symbolic because its definition is outside these files. There is no complete live-allocation, exceptional-input correctness, subgroup or BN254-port proof.
+
+pair_st contains one G1 and one G2 point. Both consume the same scalar digit in pippenger_pair_ifma. avx1 and avx2 issue separate G1 and G2 kernel calls under shared pending IDs/queues. Affine-input wrappers convert Relic Montgomery values, set Z=one and return projective x/y/z. They do not normalize each result or perform batched affine inversion. The mixed drain calls separate G1/G2 kernels; weighted sums and window finishing remain group-specific.
+
+Active G2 equal-Z formula: five Fq2 multiplications and two squares. Mixed: nine multiplications and two squares. Generic projective: twelve multiplications plus two coefficient-specific calls. Commented alternatives must be excluded. These are source call sites, not cycles, dynamic work or a prediction for BN254. Generic coefficient handling is tied to the BLS12-381 implementation; BN254 cannot inherit its cost without derivation.
+
+Accepted Zopro already omits B1. Its native G2 complex product uses two fused two-product operations; three-product Karatsuba is the portable fallback. Existing ordinary fills amortize inversion across a batch. Projective methods replace that inversion with other products, coordinates and conversion. Paired projective coordinate payload is nine field arrays, versus six for paired affine coordinates; upstream arrays contain HT_NWORDS u64s. Context capacities, queue ownership, key ownership and allocator overhead are additional and unaudited.
+
+History checked: G1 projective reduction SDK, hybrid reduction component, G1 kernel split, PMNS component, operation model, Aeglos MSM audit, exact-FMA/RNE component and closed two-chain/descriptor trials. Exact-FMA/RNE already preserves R=2^256 and loses its declared native screens; that representation is not new. The pushed G1 control code audit supplies no causal alignment claim. Previous shared-phase, native-bucket, index-gather and four/two-chain trials stay closed.
+
+Decision: no distinct runtime candidate selected. No C/ASM port, duplicate keys, large tables, new pool, unchanged projective/FMA reroll, native build/test/timing, proof or AWS resource follows. This rejects an unsupported transfer claim, not all projective algorithms. Goal active/unmet0/8; source176/SDK6d83/local1x2 7.928660ms/merge54 161.883899ms/inherited132.75MiB RSS/ledger30846 unchanged.
