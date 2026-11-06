@@ -1,0 +1,9 @@
+# Frozen caller identity
+
+The frozen complete-caller control is the accepted-source reference binary with SHA256389307b91908fe4822d9b4a788ff507944257f064bd0f11cde317ebd2cf6782b, identified by word-export176/caller-reference.json. It is not the production SDK executable6d83 or the exact original SDK field1200 artifact. Earlier private design/checkpoint shorthand saying field1200 for this caller should be read as accepted arithmetic/source, not binary identity. The already completed build/pins are retained unchanged; this note supersedes that shorthand.
+
+Its recorded Cargo link command names high-borrow176/target-control/release/deps/libzopro_bn254-cc6caf9cf6e53c00.rlib. Current bytes at that recorded input path hash tob991c821121372aeb0ce07dfd9f7d3b5c839579384dbbcff1a96ea9d00d73d04. The core Cargo fingerprint records the corresponding zopro_bn254 dependency, and this is the only BN254rlib in that target. The parent reference audit establishes original176source recovery and identical arithmetic/adapter bodies. The audit's new_field_library entry describes the separate word-export candidate, not this frozen reference; do not attribute itscd9library to binary389307.
+
+The new OFF and ON cores explicitly link their respective already qualified joint-pair52-native176 fieldOFF and fieldON artifacts. Their final drivers explicitly link those fresh cores. No old core is attached to a changed field. The frozen binary is reused unchanged, not relinked or requalified here. Actual final-machine-code inspection and prospective paired calibration remain required; accepted-source equivalence is not a claim of identical machine code or timing.
+
+The primitive field qualification's accepted control directly linked originalfield1200, as its command receipts record; that is a different binary/control role and is unchanged. No measurement, model, field test or recording was rerun for this provenance clarification.
