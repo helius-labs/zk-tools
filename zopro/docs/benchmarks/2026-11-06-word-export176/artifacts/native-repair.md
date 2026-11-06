@@ -1,0 +1,7 @@
+# Native preparation repairs
+
+Initial dependency-plan helper stopped before builds because two frozen getrandom versions exist. The original source/binary/failure are retained under initial-caller-preparation. make-caller-repair's initial compilation had a raw-string delimiter error; its original source is retained there. Correcting only that delimiter produced a failed-stage-only plan repair. It binds exact getrandom0.2.17 from the saved accepted Cargo artifact stream and its content hash, reusing the already written source/reference audit. No test or successful compilation was repeated.
+
+Initial caller-native handle35288 stopped at its first command, core-OFF, because wasm-bindgen procedural macros require Cargo package environment even for direct rustc on a native target. All13 compile errors follow missing CARGO_PKG_NAME/CARGO_MANIFEST_DIR and removed macro expansion. This failed compile and original plan/pins remain intact under caller-native. No library, test or final caller succeeded there.
+
+repair-native adds CARGO_PKG_NAME=zopro-core, CARGO_PKG_VERSION=0.1.0 and the exact caller-source crate manifest directory, matching the macro requirements inspected in wasm-bindgen-macro-support0.2.128. Native source, flags, selected libraries and tests are unchanged. Separate repaired plan/output caller-native-repair; freeze helper changes only receipt paths. Successful field92683 and codegen3550 are not repeated. This is a preparation repair, not a benchmark rerun.

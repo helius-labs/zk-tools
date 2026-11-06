@@ -1,0 +1,17 @@
+{
+  "all176_recover": true,
+  "core_suffixes": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)]pub use msm::word_export_caller::{G1Caller,G2Caller};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod word_export_caller;\n"
+  },
+  "core_tests_reapplied_not_new_populations": 2,
+  "field_include": "\ninclude!(\"word_export.rs\");\n",
+  "old_fixture_files_byte_exact": true,
+  "originals_exact": 172,
+  "production_changed": false,
+  "simd_edit": [
+    "    pub(crate) fn get(&self) -> [Fq; 8] {\n        self.0.get()\n    }",
+    "    pub(crate) fn get(&self) -> [Fq; 8] {\n        #[cfg(zopro_word_export)]\n        { self.0.get_word_canonical() }\n        #[cfg(not(zopro_word_export))]\n        { self.0.get() }\n    }"
+  ],
+  "source_files": 178
+}
