@@ -1,0 +1,20 @@
+{
+  "OFF_direct_wrapper_avoids_TLS_versus_frozen_context_only": true,
+  "edits": [
+    [
+      "[\"A\",\"B\"].contains",
+      "[\"A\",\"B\",\"M\"].contains"
+    ],
+    [
+      "zopro_core::coalesce_query_probe::b(std::hint::black_box(&g2),std::hint::black_box(&mut words))",
+      "if query==\"M\"{zopro_core::coalesce_query_probe::b_contained(std::hint::black_box(&g2),std::hint::black_box(&mut words))}else{zopro_core::coalesce_query_probe::b_reference(std::hint::black_box(&g2),std::hint::black_box(&mut words))}"
+    ],
+    [
+      "\"B_word_reset_inside_timer\":query==\"B\"",
+      "\"B_word_reset_inside_timer\":query!=\"A\""
+    ]
+  ],
+  "inverse_recovery_exact": true,
+  "original_driver": "/home/ubuntu/src/zopro-perf-work/sdk-link-flags176/driver.rs",
+  "same_candidate_executable_OFF_ON": true
+}
