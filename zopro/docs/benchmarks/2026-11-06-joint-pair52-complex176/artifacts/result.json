@@ -1,0 +1,156 @@
+{
+  "decision": "select one fixed native feasibility implementation and independent SIMD/codegen qualification; no adoption/performance claim; ordinary field/FrFFT retained",
+  "field_results": [
+    {
+      "boundary_tuples": 14884,
+      "chain_tuples": 1024,
+      "endpoint_tuples": 256,
+      "field": "Fq",
+      "normal_and_conjugate": true,
+      "radix": 256,
+      "random_tuples": 4096,
+      "result": {
+        "digest": "800d65c4938a8199a54b04af90cf8e8a942251ba9483dfb5b1a9d4abdfa93e76",
+        "exact_cancellation_rows": 405200,
+        "input_alu_mask_proxy": 11993920,
+        "input_ifma_proxy": 3646800,
+        "joint_complex_or_polynomial_calls": 40520,
+        "linear_sum_difference_operations": 121560,
+        "max_abs_by_phase": [
+          61123086666955252,
+          77025548642099147,
+          1057441125439869741,
+          779628703104891729
+        ],
+        "negative_REDC_representatives": 3468,
+        "negative_pair_high_corrections": 551430,
+        "reduced_outputs": 81040,
+        "reduction_ifma_proxy": 4052000,
+        "subtract2p_corrections": 6,
+        "two_p_input_occurrences": 744
+      }
+    },
+    {
+      "boundary_tuples": 14884,
+      "chain_tuples": 1024,
+      "endpoint_tuples": 256,
+      "field": "Fq",
+      "normal_and_conjugate": true,
+      "radix": 260,
+      "random_tuples": 4096,
+      "result": {
+        "digest": "ed97a130262e7c73335142c4b0d03883fb0226f4d3505131fa88870a7e386a19",
+        "exact_cancellation_rows": 405200,
+        "input_alu_mask_proxy": 11993920,
+        "input_ifma_proxy": 3646800,
+        "joint_complex_or_polynomial_calls": 40520,
+        "linear_sum_difference_operations": 121560,
+        "max_abs_by_phase": [
+          63243877074814299,
+          81247673292758987,
+          0,
+          50251603023408327
+        ],
+        "negative_REDC_representatives": 226,
+        "negative_pair_high_corrections": 551574,
+        "reduced_outputs": 81040,
+        "reduction_ifma_proxy": 4052000,
+        "subtract2p_corrections": 0,
+        "two_p_input_occurrences": 744
+      }
+    },
+    {
+      "boundary_tuples": 14884,
+      "chain_tuples": 1024,
+      "endpoint_tuples": 256,
+      "field": "Fr",
+      "normal_and_conjugate": true,
+      "radix": 256,
+      "random_tuples": 4096,
+      "result": {
+        "digest": "5609f6da0c6e914fb8792eb8f50ae1f8948c952122e47d64385e3d2bd107d404",
+        "exact_cancellation_rows": 405200,
+        "input_alu_mask_proxy": 11993920,
+        "input_ifma_proxy": 3646800,
+        "joint_complex_or_polynomial_calls": 40520,
+        "linear_sum_difference_operations": 121560,
+        "max_abs_by_phase": [
+          61366259669659767,
+          76305977755047384,
+          1051335717423301750,
+          768628502547001972
+        ],
+        "negative_REDC_representatives": 3621,
+        "negative_pair_high_corrections": 546388,
+        "reduced_outputs": 81040,
+        "reduction_ifma_proxy": 4052000,
+        "subtract2p_corrections": 10,
+        "two_p_input_occurrences": 744
+      }
+    },
+    {
+      "boundary_tuples": 14884,
+      "chain_tuples": 1024,
+      "endpoint_tuples": 256,
+      "field": "Fr",
+      "normal_and_conjugate": true,
+      "radix": 260,
+      "random_tuples": 4096,
+      "result": {
+        "digest": "2be94191ada6d3e0a9456588a40131d40be37f88296e49a3e7ddfab1c6f55c33",
+        "exact_cancellation_rows": 405200,
+        "input_alu_mask_proxy": 11993920,
+        "input_ifma_proxy": 3646800,
+        "joint_complex_or_polynomial_calls": 40520,
+        "linear_sum_difference_operations": 121560,
+        "max_abs_by_phase": [
+          61366259669659767,
+          80528102405707224,
+          0,
+          48506829810279932
+        ],
+        "negative_REDC_representatives": 222,
+        "negative_pair_high_corrections": 546584,
+        "reduced_outputs": 81040,
+        "reduction_ifma_proxy": 4052000,
+        "subtract2p_corrections": 0,
+        "two_p_input_occurrences": 744
+      }
+    }
+  ],
+  "fixture_sha256": "ca568b418efb5e7d5a90bb78aa6d7a112b2ef6bc22d695bcc6522e6dfd141690",
+  "full52_joint_calls": 6144,
+  "full52_output_polynomials": 12288,
+  "full52_result": {
+    "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "exact_cancellation_rows": 0,
+    "input_alu_mask_proxy": 1818624,
+    "input_ifma_proxy": 552960,
+    "joint_complex_or_polynomial_calls": 6144,
+    "linear_sum_difference_operations": 0,
+    "max_abs_by_phase": [
+      59867165374660333,
+      0,
+      0,
+      0
+    ],
+    "negative_REDC_representatives": 0,
+    "negative_pair_high_corrections": 76708,
+    "reduced_outputs": 0,
+    "reduction_ifma_proxy": 0,
+    "subtract2p_corrections": 0,
+    "two_p_input_occurrences": 0
+  },
+  "kind": "joint exact coefficient and SIGNED Montgomery reduction model, not native SIMD or proof timing",
+  "proxy": {
+    "accepted_complex_ifma": 300,
+    "excluded": "three field-linear operations, reduction/carry/correction ALU, masks/moves/loads, code size, register allocation and spills; no latency bound",
+    "input_alu_mask": 296,
+    "input_ifma": 90,
+    "total_ifma": 190,
+    "two_REDC_ifma": 100
+  },
+  "status": "pass",
+  "total_exact_rows": 1620800,
+  "total_field_outputs": 324160
+}
