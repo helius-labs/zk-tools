@@ -1,0 +1,56 @@
+{
+  "algorithm": "signed differences plus shared diagonal convolution, unchanged radix52 and Montgomery R256/R260",
+  "checks": [
+    "signed64 accumulator ranges at each modeled operation",
+    "full polynomial equals independent product",
+    "exact quotient and divisibility each cancellation row",
+    "independent extended Euclid Montgomery quotient",
+    "independent modular-power field semantics",
+    "ordinary REDC<2p/fused<3p",
+    "one subtract2p restores lazy closure",
+    "canonical normalization final carry zero",
+    "exact IFMA recipe totals"
+  ],
+  "decision": "a pass permits one fixed native implementation and primitive correctness/codegen assessment; any speed claim requires separately frozen matched caller and full-proof trials",
+  "full_limb_convolutions": 4546,
+  "modes": [
+    "ordinary",
+    "sum2",
+    "difference2 via positive 2p complement"
+  ],
+  "no_clock": true,
+  "no_rerun_successful_stages": true,
+  "no_sweeps": true,
+  "populations": [
+    {
+      "boundary_tuples": 14884,
+      "boundary_values": 122,
+      "chain_tuples": 1024,
+      "field": "Fq",
+      "per_radix_reductions": 60012,
+      "random_tuples": 4096
+    },
+    {
+      "boundary_tuples": 14884,
+      "boundary_values": 122,
+      "chain_tuples": 1024,
+      "field": "Fr",
+      "per_radix_reductions": 60012,
+      "random_tuples": 4096
+    }
+  ],
+  "radices": [
+    256,
+    260
+  ],
+  "scope": "mathematical model only; no native ISA, ABI, test-suite, full caller, proof, memory peak or performance qualification",
+  "stage_bounds_strict_B_units": [
+    32,
+    64,
+    1026,
+    1026
+  ],
+  "total_cancellation_rows": 1200240,
+  "total_reductions": 240048,
+  "version": 1
+}
