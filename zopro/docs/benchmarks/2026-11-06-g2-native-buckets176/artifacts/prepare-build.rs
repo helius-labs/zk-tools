@@ -1,0 +1,14 @@
+use serde_json::{json,Value};use sha2::{Digest,Sha256};use std::{fs,path::{Path,PathBuf},collections::BTreeMap};
+const R:&str="/home/ubuntu/src/zopro-perf-work/g2-native-buckets176";fn r(p:&str)->PathBuf{Path::new(R).join(p)}fn walk(p:&Path,m:&mut BTreeMap<String,String>){for e in fs::read_dir(p).unwrap(){let p=e.unwrap().path();if p.is_dir(){walk(&p,m)}else{m.insert(p.display().to_string(),format!("{:x}",Sha256::digest(fs::read(p).unwrap())));}}}
+fn main(){assert!(!r("build-plan.json").exists());let env:Value=serde_json::from_slice(&fs::read(r("environment.json")).unwrap()).unwrap();let mut off=env.clone();off["RUSTFLAGS"]=json!(env["RUSTFLAGS"].as_str().unwrap().strip_suffix(" --cfg zopro_native_buckets").unwrap());let cargo="/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/cargo";let source=r("source/Cargo.toml").display().to_string();let driver=r("driver/Cargo.toml").display().to_string();let mut steps=vec![];
+for(name,args,environment)in[
+("core-tests",vec!["test","--locked","--offline","--release","--manifest-path",&source,"-p","zopro-core","--features","ifma8","--lib","--","--test-threads=1"],env.clone()),
+("store-tests",vec!["test","--locked","--offline","--release","--manifest-path",&source,"-p","zopro-bn254","--lib","native_bucket_store::tests::","--","--test-threads=1"],env.clone()),
+("driver-lock",vec!["generate-lockfile","--offline","--manifest-path",&driver],env.clone()),
+("control-build",vec!["build","--locked","--offline","--release","-vv","--manifest-path",&driver],off),
+]{let argv=std::iter::once(cargo).chain(args).collect::<Vec<_>>();steps.push(json!({"kind":"command","name":name,"argv":argv,"environment":environment,"timeout_seconds":1200}));}
+let binary=r("target/release/zopro-native-buckets");steps.push(json!({"kind":"command","name":"freeze-control","argv":["cp",binary,r("control-bin")],"timeout_seconds":30}));
+steps.push(json!({"kind":"command","name":"candidate-build","argv":[cargo,"build","--locked","--offline","--release","-vv","--manifest-path",driver],"environment":env,"timeout_seconds":1200}));
+steps.push(json!({"kind":"command","name":"freeze-candidate","argv":["cp",binary,r("candidate-bin")],"timeout_seconds":30}));
+let mut pins=BTreeMap::new();for d in ["source","driver"]{walk(&r(d),&mut pins);}for f in ["setup.rs","setup-initial.rs","setup-initial-failure.json","prepare-build.rs","native-state.rs","native-apply.rs","g1-caller.rs","g2-caller.rs","tests.rs","store.rs","design.md","source-audit.json","environment.json"]{let p=r(f);pins.insert(p.display().to_string(),format!("{:x}",Sha256::digest(fs::read(p).unwrap())));}
+fs::write(r("build-pins.json"),serde_json::to_vec_pretty(&pins).unwrap()).unwrap();fs::write(r("build-plan.json"),serde_json::to_vec_pretty(&json!({"version":1,"source_pins":r("build-pins.json"),"steps":steps})).unwrap()).unwrap();println!("Prepared7steps,{}pins; no native work executed.",pins.len());}

@@ -1,0 +1,85 @@
+{
+  "accepted_originals": 176,
+  "apply_clone": {
+    "candidate": "fn apply_native<C: CurveConfig<Base = Fq2>, const FAST: bool>(\n    buckets: &mut NativeBuckets<C>,\n    batch: &[(u32, &Affine<C>)],\n    s: &mut Fq2AddScratch,\n) {\n    let full = batch.len() / LANES * LANES;\n    let mut chains = FqBatch::one();\n    s.prefix_records.clear();\n    s.prefix_records.reserve(full / LANES);\n    for k in (0..full).step_by(LANES) {\n        let forward_ids=core::array::from_fn(|i|batch[k+i].0&0x7fffffff);\n        let ax=buckets.x(forward_ids);\n        let bx = fq2_pack(core::array::from_fn(|i| batch[k + i].1.x));\n        let denominator = core::array::from_fn(|i| canonical_sub::<FAST>(&bx[i], &ax[i]));\n        let norm = Fq2::lanes_norm(&denominator);\n        s.prefix_records.push([chains, norm]);\n        chains = chains.mul(&norm);\n    }\n    s.tail.clear();\n    let mut inverse =\n        if let Some(value) = direct_chain_inverse(&chains, full == batch.len(), s.vector_inverse) {\n            value\n        } else {\n            let mut tail = chains.get();\n            for k in full..batch.len() {\n                let (encoded, b) = batch[k];\n                let index = encoded & 0x7fffffff;\n                let b = if encoded >> 31 != 0 { -*b } else { *b };\n                let a = buckets.point(index as usize);\n                let denominator = b.x - a.x;\n                let norm = denominator.c0.square() + denominator.c1.square();\n                let numerator = ((b.y - a.y) * denominator.conjugate()).mul_by_fp(&tail[k % LANES]);\n                tail[k % LANES] *= norm;\n                s.tail\n                    .push([a.x, a.y, a.x + b.x, Fq2::new(norm, Fq::ZERO), numerator]);\n            }\n            let mut inverse = invert_lanes(tail, s.vector_inverse);\n            for k in (full..batch.len()).rev() {\n                let [ax, ay, xsum, norm, numerator] = s.tail[k - full];\n                let slope = numerator.mul_by_fp(&inverse[k % LANES]);\n                inverse[k % LANES] *= norm.c0;\n                let x = slope.square() - xsum;\n                let y = slope * (ax - x) - ay;\n                buckets.set((batch[k].0 & 0x7fffffff) as usize, Affine::new(x,y));\n            }\n            FqBatch::new(&inverse)\n        };\n    for j in (0..full / LANES).rev() {\n        let k = j * LANES;\n        let ids=core::array::from_fn(|i|batch[k+i].0&0x7fffffff);\n        let b: [&Affine<C>; LANES] = core::array::from_fn(|i| batch[k + i].1);\n        let ax=buckets.x(ids);\n        let ay=buckets.y(ids);\n        let bx = fq2_pack(b.map(|p| p.x));\n        let dy=if FAST{\n            let by=fq2_pack(b.map(|p|p.y));\n            let negative=signs::<true,C>(&batch[k..k+LANES]);\n            core::array::from_fn(|i|by[i].signed_difference_canonical(&ay[i],negative))\n        }else{\n            let by=fq2_pack(core::array::from_fn(|i|if batch[k+i].0>>31!=0{-b[i].y}else{b[i].y}));\n            core::array::from_fn(|i|canonical_sub::<FAST>(&by[i],&ay[i]))\n        };\n        let denominator=core::array::from_fn(|i|canonical_sub::<FAST>(&bx[i],&ax[i]));\n        let factor = s.prefix_records[j][0].mul(&inverse);\n        inverse = inverse.mul(&s.prefix_records[j][1]);\n        let slope = Fq2::lanes_scaled_numerator(&dy, &denominator, &factor);\n        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);\n        buckets.put(ids,x,y);\n    }\n}\n",
+    "edits": [
+      [
+        "pub(super) fn apply<",
+        "fn apply_native<"
+      ],
+      [
+        "buckets: &mut [Affine<C>]",
+        "buckets: &mut NativeBuckets<C>"
+      ],
+      [
+        "        let ax = fq2_pack(core::array::from_fn(|i| {\n            buckets[(batch[k + i].0 & 0x7fffffff) as usize].x\n        }));",
+        "        let forward_ids=core::array::from_fn(|i|batch[k+i].0&0x7fffffff);\n        let ax=buckets.x(forward_ids);"
+      ],
+      [
+        "                let a = buckets[index as usize];",
+        "                let a = buckets.point(index as usize);"
+      ],
+      [
+        "                buckets[(batch[k].0 & 0x7fffffff) as usize] = Affine::new(x, y);",
+        "                buckets.set((batch[k].0 & 0x7fffffff) as usize, Affine::new(x,y));"
+      ],
+      [
+        "        let a: [Affine<C>; LANES] =\n            core::array::from_fn(|i| buckets[(batch[k + i].0 & 0x7fffffff) as usize]);",
+        "        let ids=core::array::from_fn(|i|batch[k+i].0&0x7fffffff);"
+      ],
+      [
+        "        let ax = fq2_pack(a.map(|p| p.x));\n        let ay = fq2_pack(a.map(|p| p.y));",
+        "        let ax=buckets.x(ids);\n        let ay=buckets.y(ids);"
+      ],
+      [
+        "        let (x, y) = (fq2_unpack(x), fq2_unpack(y));\n        for i in 0..LANES {\n            buckets[(batch[k + i].0 & 0x7fffffff) as usize] = Affine::new(x[i], y[i]);\n        }",
+        "        buckets.put(ids,x,y);"
+      ]
+    ],
+    "inverse_recovered": true,
+    "original": "pub(super) fn apply<C: CurveConfig<Base = Fq2>, const FAST: bool>(\n    buckets: &mut [Affine<C>],\n    batch: &[(u32, &Affine<C>)],\n    s: &mut Fq2AddScratch,\n) {\n    let full = batch.len() / LANES * LANES;\n    let mut chains = FqBatch::one();\n    s.prefix_records.clear();\n    s.prefix_records.reserve(full / LANES);\n    for k in (0..full).step_by(LANES) {\n        let ax = fq2_pack(core::array::from_fn(|i| {\n            buckets[(batch[k + i].0 & 0x7fffffff) as usize].x\n        }));\n        let bx = fq2_pack(core::array::from_fn(|i| batch[k + i].1.x));\n        let denominator = core::array::from_fn(|i| canonical_sub::<FAST>(&bx[i], &ax[i]));\n        let norm = Fq2::lanes_norm(&denominator);\n        s.prefix_records.push([chains, norm]);\n        chains = chains.mul(&norm);\n    }\n    s.tail.clear();\n    let mut inverse =\n        if let Some(value) = direct_chain_inverse(&chains, full == batch.len(), s.vector_inverse) {\n            value\n        } else {\n            let mut tail = chains.get();\n            for k in full..batch.len() {\n                let (encoded, b) = batch[k];\n                let index = encoded & 0x7fffffff;\n                let b = if encoded >> 31 != 0 { -*b } else { *b };\n                let a = buckets[index as usize];\n                let denominator = b.x - a.x;\n                let norm = denominator.c0.square() + denominator.c1.square();\n                let numerator = ((b.y - a.y) * denominator.conjugate()).mul_by_fp(&tail[k % LANES]);\n                tail[k % LANES] *= norm;\n                s.tail\n                    .push([a.x, a.y, a.x + b.x, Fq2::new(norm, Fq::ZERO), numerator]);\n            }\n            let mut inverse = invert_lanes(tail, s.vector_inverse);\n            for k in (full..batch.len()).rev() {\n                let [ax, ay, xsum, norm, numerator] = s.tail[k - full];\n                let slope = numerator.mul_by_fp(&inverse[k % LANES]);\n                inverse[k % LANES] *= norm.c0;\n                let x = slope.square() - xsum;\n                let y = slope * (ax - x) - ay;\n                buckets[(batch[k].0 & 0x7fffffff) as usize] = Affine::new(x, y);\n            }\n            FqBatch::new(&inverse)\n        };\n    for j in (0..full / LANES).rev() {\n        let k = j * LANES;\n        let a: [Affine<C>; LANES] =\n            core::array::from_fn(|i| buckets[(batch[k + i].0 & 0x7fffffff) as usize]);\n        let b: [&Affine<C>; LANES] = core::array::from_fn(|i| batch[k + i].1);\n        let ax = fq2_pack(a.map(|p| p.x));\n        let ay = fq2_pack(a.map(|p| p.y));\n        let bx = fq2_pack(b.map(|p| p.x));\n        let dy=if FAST{\n            let by=fq2_pack(b.map(|p|p.y));\n            let negative=signs::<true,C>(&batch[k..k+LANES]);\n            core::array::from_fn(|i|by[i].signed_difference_canonical(&ay[i],negative))\n        }else{\n            let by=fq2_pack(core::array::from_fn(|i|if batch[k+i].0>>31!=0{-b[i].y}else{b[i].y}));\n            core::array::from_fn(|i|canonical_sub::<FAST>(&by[i],&ay[i]))\n        };\n        let denominator=core::array::from_fn(|i|canonical_sub::<FAST>(&bx[i],&ax[i]));\n        let factor = s.prefix_records[j][0].mul(&inverse);\n        inverse = inverse.mul(&s.prefix_records[j][1]);\n        let slope = Fq2::lanes_scaled_numerator(&dy, &denominator, &factor);\n        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);\n        let (x, y) = (fq2_unpack(x), fq2_unpack(y));\n        for i in 0..LANES {\n            buckets[(batch[k + i].0 & 0x7fffffff) as usize] = Affine::new(x[i], y[i]);\n        }\n    }\n}\n"
+  },
+  "caller_edits": [
+    [
+      "    source:Vec<G2Affine>, buckets:Vec<G2Affine>, incoming:Vec<G2Affine>,",
+      "    source:Vec<G2Affine>, buckets:Vec<G2Affine>, native:NativeBuckets<G2Config>, incoming:Vec<G2Affine>, active_native:bool,"
+    ],
+    [
+      "        let size=n.max(1).next_power_of_two();",
+      "        let size=2048;"
+    ],
+    [
+      "        Self{buckets:source.clone(),source,incoming,owned,unsigned,size,seed,scratch:",
+      "        Self{native:NativeBuckets::new(&source),active_native:false,buckets:source.clone(),source,incoming,owned,unsigned,size,seed,scratch:"
+    ],
+    [
+      "    pub fn reset(&mut self){self.buckets.copy_from_slice(&self.source);}",
+      "    pub fn reset(&mut self){self.buckets.copy_from_slice(&self.source);for (i,&p)in self.source.iter().enumerate(){self.native.set(i,p);}}"
+    ],
+    [
+      "        if borrowed {",
+      "        self.active_native=cfg!(zopro_native_buckets)&&tree;\n        if borrowed {"
+    ],
+    [
+      "                #[cfg(zopro_denominator_tree)] if tree {apply::<G2Config,true>(&mut self.buckets,refs,&mut self.scratch);continue;}",
+      "                #[cfg(zopro_native_buckets)] if tree {apply_native::<G2Config,true>(&mut self.native,refs,&mut self.scratch);continue;}"
+    ],
+    [
+      "assert_eq!(self.buckets,expected);",
+      "assert_eq!(if self.active_native{self.native.points()}else{self.buckets.clone()},expected);"
+    ],
+    [
+      "for p in &self.buckets{",
+      "let points=if self.active_native{self.native.points()}else{self.buckets.clone()};for p in &points{"
+    ]
+  ],
+  "field_arithmetic_unchanged": true,
+  "store_original": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-10-22-universal-native-bucket52/source/crates/zopro-bn254/src/bucket52.rs",
+  "store_sha256": "4f11affddafe40a5889f9f9bf0cc0b030e4c102b3280e7f521d4ebc2cae6c828",
+  "suffixes": {
+    "crates/zopro-bn254/src/lib.rs": "\n#[cfg(all(target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)]pub mod native_bucket_store;\n",
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)]pub use msm::native_buckets::{G1Caller,G2Caller};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod native_buckets;\n",
+    "crates/zopro-core/src/simd.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch{#[inline(always)]pub(crate) fn native_gather(s:&zopro_bn254::native_bucket_store::Store,ids:[u32;8])->Self{Self(s.gather(ids))}#[inline(always)]pub(crate) fn native_scatter(&self,s:&mut zopro_bn254::native_bucket_store::Store,ids:[u32;8]){s.scatter(ids,&self.0,255);}}\n"
+  }
+}
