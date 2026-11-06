@@ -1,0 +1,7 @@
+# G1 control code comparison
+
+The typed-descriptor G2 experiment is closed/not adopted, pushed ad26d7823cbc4545e4528812db64e7758118e48d. All G2 control calibrations pass; unchanged-source G1 OFF/FROZEN shifts about4.36%/4.13%/3.19% at1/16/32workers. Before proposing another code-shape change, compare linked G1 stream functions in the exact original reference, previous two-chain same-binary control and new descriptor-group control. Their G1 source/caller/fixture was independently checked exact. This does not rerun performance, rescue the closed gate or establish a causal slowdown from static code.
+
+Read-only nm/objdump extraction from existing pinned binaries. Preserve command output/status/hash, exact selected symbol and address/size, instruction/IFMA/stack-operand/branch site counts. First determine whether the new control contains different G1 code despite unchanged G1 source. If it does, inspect concrete differences and compiler consumer identities before attributing changes to clocks/cache/OS. Static counts cannot quantify dynamic execution, spills, CPU utilization, minimum RAM or a critical path. No new runtime candidate, code alignment sweep or attribute rescue is selected.
+
+Goal remains full verified all-eight CPU10x, active/unmet0/8. Accepted176/SDK6d83/local1x2 7.928660ms/merge54 161.883899ms/inherited132.75MiB RSS and ledger30846 unchanged. No jobs/AWS/proofs/timing added by this audit. Do not repeat successful native tests/capture or previous failed candidates unchanged.
