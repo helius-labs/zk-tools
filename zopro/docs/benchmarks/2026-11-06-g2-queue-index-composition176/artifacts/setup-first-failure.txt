@@ -1,0 +1,8 @@
+Initial setup helper compiled successfully on its first execution, then setup exited101 at setup.rs:39 before any native build/test/capture.
+
+thread 'main' (1622949) panicked at /home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/setup.rs:39:54:
+called `Result::unwrap()` on an `Err` value: Error { kind: InvalidData, message: "stream did not contain valid UTF-8" }
+
+The snapshot includes non-UTF8 original fixture files. The initial audit incorrectly attempted to decode every original file as text. Source copying/queue edits had completed before the audit failed; the driver, build plan and tests had not started.
+
+finish-setup.rs resumes from the existing180-file snapshot without recopying or changing it. It reconstructs and checks the completed edits, compares unmodified binary files as bytes, and reverses only changed Rust source as UTF8. The initial helper and this failure remain preserved. No successful native test, build or capture is repeated.
