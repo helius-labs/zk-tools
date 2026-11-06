@@ -1,0 +1,139 @@
+{
+  "CPU_name": "znver5",
+  "actual_prover_rustc": "1.98.1, LLVM22.1.8 per rustc -vV; custom Rust LLVM patchset not audited",
+  "decision": "Do not use this inherited Zen4 model as calibrated Zen5/prover prediction; no full-consumer simulation or new arithmetic candidate selected",
+  "instruction_coverage": [
+    {
+      "assembly": "vpmadd52luq\tzmm0, zmm1, zmm2",
+      "model": {
+        "Instruction": 0,
+        "Latency": 4,
+        "NumMicroOpcodes": 1,
+        "RThroughput": 2,
+        "hasUnmodeledSideEffects": false,
+        "mayLoad": false,
+        "mayStore": false
+      }
+    },
+    {
+      "assembly": "vpmadd52huq\tzmm3, zmm1, zmm2",
+      "model": {
+        "Instruction": 1,
+        "Latency": 4,
+        "NumMicroOpcodes": 1,
+        "RThroughput": 2,
+        "hasUnmodeledSideEffects": false,
+        "mayLoad": false,
+        "mayStore": false
+      }
+    },
+    {
+      "assembly": "vpmadd52luq\tzmm4, zmm5, zmmword ptr [rsp + 64]",
+      "model": {
+        "Instruction": 2,
+        "Latency": 10,
+        "NumMicroOpcodes": 1,
+        "RThroughput": 1,
+        "hasUnmodeledSideEffects": false,
+        "mayLoad": true,
+        "mayStore": false
+      }
+    },
+    {
+      "assembly": "vpmadd52huq\tzmm6, zmm7, zmmword ptr [rsp + 128]",
+      "model": {
+        "Instruction": 3,
+        "Latency": 10,
+        "NumMicroOpcodes": 1,
+        "RThroughput": 1,
+        "hasUnmodeledSideEffects": false,
+        "mayLoad": true,
+        "mayStore": false
+      }
+    },
+    {
+      "assembly": "vpaddq\tzmm8, zmm0, zmm3",
+      "model": {
+        "Instruction": 4,
+        "Latency": 1,
+        "NumMicroOpcodes": 1,
+        "RThroughput": 0.5,
+        "hasUnmodeledSideEffects": false,
+        "mayLoad": false,
+        "mayStore": false
+      }
+    },
+    {
+      "assembly": "vpsrlq\tzmm9, zmm8, 52",
+      "model": {
+        "Instruction": 5,
+        "Latency": 1,
+        "NumMicroOpcodes": 1,
+        "RThroughput": 0.5,
+        "hasUnmodeledSideEffects": false,
+        "mayLoad": false,
+        "mayStore": false
+      }
+    },
+    {
+      "assembly": "vpsraq\tzmm10, zmm8, 52",
+      "model": {
+        "Instruction": 6,
+        "Latency": 1,
+        "NumMicroOpcodes": 1,
+        "RThroughput": 0.5,
+        "hasUnmodeledSideEffects": false,
+        "mayLoad": false,
+        "mayStore": false
+      }
+    },
+    {
+      "assembly": "vmovdqa64\tzmmword ptr [rsp + 192], zmm9",
+      "model": {
+        "Instruction": 7,
+        "Latency": 1,
+        "NumMicroOpcodes": 1,
+        "RThroughput": 1,
+        "hasUnmodeledSideEffects": false,
+        "mayLoad": false,
+        "mayStore": true
+      }
+    }
+  ],
+  "limits": [
+    "Instruction coverage is a parser/schedule check, not hardware validation.",
+    "Folded-memory IFMA model throughput1 vs register2 is uncalibrated; no hardware faster-memory conclusion.",
+    "Upstream22.1.8 source is version-matched, not proof of exact Rust LLVM fork contents.",
+    "LLVM MCA does not model instruction fetch/decode, branch prediction, caches or store-to-load forwarding.",
+    "No throughput/latency comparison with AWS, Aeglos or M5 follows."
+  ],
+  "new_decodes": 0,
+  "new_native_execution": false,
+  "new_performance_recordings": 0,
+  "new_proofs": 0,
+  "production_changed": false,
+  "proof_ledger": 30846,
+  "resources_are_Zn4": true,
+  "status": "pass",
+  "tool_version": "Ubuntu LLVM version 20.1.2\n  Optimized build.\n  Default target: x86_64-pc-linux-gnu\n  Host CPU: znver5\n\n  Registered Targets:\n    aarch64     - AArch64 (little endian)\n    aarch64_32  - AArch64 (little endian ILP32)\n    aarch64_be  - AArch64 (big endian)\n    amdgcn      - AMD GCN GPUs\n    arm         - ARM\n    arm64       - ARM64 (little endian)\n    arm64_32    - ARM64 (little endian ILP32)\n    armeb       - ARM (big endian)\n    avr         - Atmel AVR Microcontroller\n    bpf         - BPF (host endian)\n    bpfeb       - BPF (big endian)\n    bpfel       - BPF (little endian)\n    hexagon     - Hexagon\n    lanai       - Lanai\n    loongarch32 - 32-bit LoongArch\n    loongarch64 - 64-bit LoongArch\n    m68k        - Motorola 68000 family\n    mips        - MIPS (32-bit big endian)\n    mips64      - MIPS (64-bit big endian)\n    mips64el    - MIPS (64-bit little endian)\n    mipsel      - MIPS (32-bit little endian)\n    msp430      - MSP430 [experimental]\n    nvptx       - NVIDIA PTX 32-bit\n    nvptx64     - NVIDIA PTX 64-bit\n    ppc32       - PowerPC 32\n    ppc32le     - PowerPC 32 LE\n    ppc64       - PowerPC 64\n    ppc64le     - PowerPC 64 LE\n    r600        - AMD GPUs HD2XXX-HD6XXX\n    riscv32     - 32-bit RISC-V\n    riscv64     - 64-bit RISC-V\n    sparc       - Sparc\n    sparcel     - Sparc LE\n    sparcv9     - Sparc V9\n    spirv       - SPIR-V Logical\n    spirv32     - SPIR-V 32-bit\n    spirv64     - SPIR-V 64-bit\n    systemz     - SystemZ\n    thumb       - Thumb\n    thumbeb     - Thumb (big endian)\n    ve          - VE\n    wasm32      - WebAssembly 32-bit\n    wasm64      - WebAssembly 64-bit\n    x86         - 32-bit X86: Pentium-Pro and above\n    x86-64      - 64-bit X86: EM64T and AMD64\n    xcore       - XCore\n    xtensa      - Xtensa 32\n",
+  "upstream_aliases": [
+    {
+      "line": 1961,
+      "tag": "llvmorg-20.1.2",
+      "text": "def : ProcModel<\"znver5\", Znver4Model, ProcessorFeatures.ZN5Features,",
+      "url": "https://github.com/llvm/llvm-project/blob/llvmorg-20.1.2/llvm/lib/Target/X86/X86.td"
+    },
+    {
+      "line": 1994,
+      "tag": "llvmorg-22.1.2",
+      "text": "def : ProcModel<\"znver5\", Znver4Model, ProcessorFeatures.ZN5Features,",
+      "url": "https://github.com/llvm/llvm-project/blob/llvmorg-22.1.2/llvm/lib/Target/X86/X86.td"
+    },
+    {
+      "line": 1994,
+      "tag": "llvmorg-22.1.8",
+      "text": "def : ProcModel<\"znver5\", Znver4Model, ProcessorFeatures.ZN5Features,",
+      "url": "https://github.com/llvm/llvm-project/blob/llvmorg-22.1.8/llvm/lib/Target/X86/X86.td"
+    }
+  ]
+}

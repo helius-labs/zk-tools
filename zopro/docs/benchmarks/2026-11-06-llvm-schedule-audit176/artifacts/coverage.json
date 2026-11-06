@@ -1,0 +1,365 @@
+{
+  "CodeRegions": [
+    {
+      "InstructionInfoView": {
+        "InstructionList": [
+          {
+            "Instruction": 0,
+            "Latency": 4,
+            "NumMicroOpcodes": 1,
+            "RThroughput": 2,
+            "hasUnmodeledSideEffects": false,
+            "mayLoad": false,
+            "mayStore": false
+          },
+          {
+            "Instruction": 1,
+            "Latency": 4,
+            "NumMicroOpcodes": 1,
+            "RThroughput": 2,
+            "hasUnmodeledSideEffects": false,
+            "mayLoad": false,
+            "mayStore": false
+          },
+          {
+            "Instruction": 2,
+            "Latency": 10,
+            "NumMicroOpcodes": 1,
+            "RThroughput": 1,
+            "hasUnmodeledSideEffects": false,
+            "mayLoad": true,
+            "mayStore": false
+          },
+          {
+            "Instruction": 3,
+            "Latency": 10,
+            "NumMicroOpcodes": 1,
+            "RThroughput": 1,
+            "hasUnmodeledSideEffects": false,
+            "mayLoad": true,
+            "mayStore": false
+          },
+          {
+            "Instruction": 4,
+            "Latency": 1,
+            "NumMicroOpcodes": 1,
+            "RThroughput": 0.5,
+            "hasUnmodeledSideEffects": false,
+            "mayLoad": false,
+            "mayStore": false
+          },
+          {
+            "Instruction": 5,
+            "Latency": 1,
+            "NumMicroOpcodes": 1,
+            "RThroughput": 0.5,
+            "hasUnmodeledSideEffects": false,
+            "mayLoad": false,
+            "mayStore": false
+          },
+          {
+            "Instruction": 6,
+            "Latency": 1,
+            "NumMicroOpcodes": 1,
+            "RThroughput": 0.5,
+            "hasUnmodeledSideEffects": false,
+            "mayLoad": false,
+            "mayStore": false
+          },
+          {
+            "Instruction": 7,
+            "Latency": 1,
+            "NumMicroOpcodes": 1,
+            "RThroughput": 1,
+            "hasUnmodeledSideEffects": false,
+            "mayLoad": false,
+            "mayStore": true
+          }
+        ]
+      },
+      "Instructions": [
+        "vpmadd52luq\tzmm0, zmm1, zmm2",
+        "vpmadd52huq\tzmm3, zmm1, zmm2",
+        "vpmadd52luq\tzmm4, zmm5, zmmword ptr [rsp + 64]",
+        "vpmadd52huq\tzmm6, zmm7, zmmword ptr [rsp + 128]",
+        "vpaddq\tzmm8, zmm0, zmm3",
+        "vpsrlq\tzmm9, zmm8, 52",
+        "vpsraq\tzmm10, zmm8, 52",
+        "vmovdqa64\tzmmword ptr [rsp + 192], zmm9"
+      ],
+      "Name": "",
+      "ResourcePressureView": {
+        "ResourcePressureInfo": [
+          {
+            "InstructionIndex": 0,
+            "ResourceIndex": 9,
+            "ResourceUsage": 4
+          },
+          {
+            "InstructionIndex": 1,
+            "ResourceIndex": 8,
+            "ResourceUsage": 4
+          },
+          {
+            "InstructionIndex": 2,
+            "ResourceIndex": 11,
+            "ResourceUsage": 2
+          },
+          {
+            "InstructionIndex": 2,
+            "ResourceIndex": 13,
+            "ResourceUsage": 1
+          },
+          {
+            "InstructionIndex": 2,
+            "ResourceIndex": 15,
+            "ResourceUsage": 0.41999999999999998
+          },
+          {
+            "InstructionIndex": 2,
+            "ResourceIndex": 16,
+            "ResourceUsage": 0.41999999999999998
+          },
+          {
+            "InstructionIndex": 2,
+            "ResourceIndex": 17,
+            "ResourceUsage": 0.16
+          },
+          {
+            "InstructionIndex": 2,
+            "ResourceIndex": 18,
+            "ResourceUsage": 0.33000000000000002
+          },
+          {
+            "InstructionIndex": 2,
+            "ResourceIndex": 19,
+            "ResourceUsage": 0.33000000000000002
+          },
+          {
+            "InstructionIndex": 2,
+            "ResourceIndex": 20,
+            "ResourceUsage": 0.34000000000000002
+          },
+          {
+            "InstructionIndex": 3,
+            "ResourceIndex": 11,
+            "ResourceUsage": 2
+          },
+          {
+            "InstructionIndex": 3,
+            "ResourceIndex": 12,
+            "ResourceUsage": 1
+          },
+          {
+            "InstructionIndex": 3,
+            "ResourceIndex": 15,
+            "ResourceUsage": 0.40999999999999998
+          },
+          {
+            "InstructionIndex": 3,
+            "ResourceIndex": 16,
+            "ResourceUsage": 0.17000000000000001
+          },
+          {
+            "InstructionIndex": 3,
+            "ResourceIndex": 17,
+            "ResourceUsage": 0.41999999999999998
+          },
+          {
+            "InstructionIndex": 3,
+            "ResourceIndex": 18,
+            "ResourceUsage": 0.33000000000000002
+          },
+          {
+            "InstructionIndex": 3,
+            "ResourceIndex": 19,
+            "ResourceUsage": 0.34000000000000002
+          },
+          {
+            "InstructionIndex": 3,
+            "ResourceIndex": 20,
+            "ResourceUsage": 0.33000000000000002
+          },
+          {
+            "InstructionIndex": 4,
+            "ResourceIndex": 10,
+            "ResourceUsage": 1.8999999999999999
+          },
+          {
+            "InstructionIndex": 4,
+            "ResourceIndex": 11,
+            "ResourceUsage": 0.10000000000000001
+          },
+          {
+            "InstructionIndex": 5,
+            "ResourceIndex": 9,
+            "ResourceUsage": 1
+          },
+          {
+            "InstructionIndex": 6,
+            "ResourceIndex": 8,
+            "ResourceUsage": 1
+          },
+          {
+            "InstructionIndex": 7,
+            "ResourceIndex": 12,
+            "ResourceUsage": 0.5
+          },
+          {
+            "InstructionIndex": 7,
+            "ResourceIndex": 13,
+            "ResourceUsage": 0.5
+          },
+          {
+            "InstructionIndex": 7,
+            "ResourceIndex": 14,
+            "ResourceUsage": 1
+          },
+          {
+            "InstructionIndex": 7,
+            "ResourceIndex": 15,
+            "ResourceUsage": 0.17000000000000001
+          },
+          {
+            "InstructionIndex": 7,
+            "ResourceIndex": 16,
+            "ResourceUsage": 0.40999999999999998
+          },
+          {
+            "InstructionIndex": 7,
+            "ResourceIndex": 17,
+            "ResourceUsage": 0.41999999999999998
+          },
+          {
+            "InstructionIndex": 7,
+            "ResourceIndex": 21,
+            "ResourceUsage": 0.5
+          },
+          {
+            "InstructionIndex": 7,
+            "ResourceIndex": 22,
+            "ResourceUsage": 0.5
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 8,
+            "ResourceUsage": 5
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 9,
+            "ResourceUsage": 5
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 10,
+            "ResourceUsage": 1.8999999999999999
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 11,
+            "ResourceUsage": 4.0999999999999996
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 12,
+            "ResourceUsage": 1.5
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 13,
+            "ResourceUsage": 1.5
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 14,
+            "ResourceUsage": 1
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 15,
+            "ResourceUsage": 1
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 16,
+            "ResourceUsage": 1
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 17,
+            "ResourceUsage": 1
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 18,
+            "ResourceUsage": 0.66000000000000003
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 19,
+            "ResourceUsage": 0.67000000000000004
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 20,
+            "ResourceUsage": 0.67000000000000004
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 21,
+            "ResourceUsage": 0.5
+          },
+          {
+            "InstructionIndex": 8,
+            "ResourceIndex": 22,
+            "ResourceUsage": 0.5
+          }
+        ]
+      },
+      "SummaryView": {
+        "BlockRThroughput": 5,
+        "DispatchWidth": 6,
+        "IPC": 1.5873015873015872,
+        "Instructions": 800,
+        "Iterations": 100,
+        "TotalCycles": 504,
+        "TotaluOps": 800,
+        "uOpsPerCycle": 1.5873015873015872
+      }
+    }
+  ],
+  "SimulationParameters": {
+    "-march": "x86_64",
+    "-mcpu": "znver5",
+    "-mtriple": "x86_64"
+  },
+  "TargetInfo": {
+    "CPUName": "znver5",
+    "Resources": [
+      "Zn4AGU0",
+      "Zn4AGU1",
+      "Zn4AGU2",
+      "Zn4ALU0",
+      "Zn4ALU1",
+      "Zn4ALU2",
+      "Zn4ALU3",
+      "Zn4BRU1",
+      "Zn4FP0",
+      "Zn4FP1",
+      "Zn4FP2",
+      "Zn4FP3",
+      "Zn4FP45.\u0000",
+      "Zn4FP45.\u0001",
+      "Zn4FPSt",
+      "Zn4LSU.\u0000",
+      "Zn4LSU.\u0001",
+      "Zn4LSU.\u0002",
+      "Zn4Load.\u0000",
+      "Zn4Load.\u0001",
+      "Zn4Load.\u0002",
+      "Zn4Store.\u0000",
+      "Zn4Store.\u0001"
+    ]
+  }
+}
