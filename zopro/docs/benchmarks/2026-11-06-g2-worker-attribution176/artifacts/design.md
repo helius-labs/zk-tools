@@ -1,0 +1,9 @@
+# Attribution of saved G2 query samples
+
+Question: in the four already qualified primary32 profiles, do epoch-pin samples belong mainly to the external calling thread or registered workers, and how is ordinary borrowed-apply sampled work distributed across those workers?
+
+Read only the saved queue/index-composition profiles and caller bindings. Do not record another profile, rerun a query or modify cryptographic/runtime code. The previous composition's failed gate remains failed. Count every qualified sample by PID/TID/recordedCPU and by a fixed symbol classification: borrowed apply, epoch pin, other epoch, reduce-layer, field inverse, ordinary feed, and other. Reconcile every per-thread count with the existing qualified total and flat symbol bins. Include workers with zero samples. Process selectors, binary identity and exact raw/decode/caller/summary hashes must be bound before analysis.
+
+The aggregation covers1024queries per profile. It cannot identify a particular proof's critical path, task readiness, exclusive stall/idle time, utilization, removable wall time or causal load imbalance. A high or uneven epoch share is not sufficient to select another scheduler patch. Empty-victim prechecks, empty-queue collection intervals, bounded victim scanners and fused TLS pinning were already tested and rejected; those recipes are not rerun. The audit can rule out a caller-thread explanation or identify a concrete source question. Otherwise record that it is insufficient to select a new implementation and move to a different algorithmic question.
+
+All source176/acceptedSDK6d83/proof timings and resource qualification remain unchanged; no new proof, native suite, oracle, AWS, minimum-RAM or pressure result follows. Goal remains active/unmet0/8. The previous goal turn was PROGRESS: a four-arm implementation/correctness/measurement/review/report/commit/push completed, without adoption.

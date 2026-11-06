@@ -1,0 +1,36 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/analyze.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "--extern",
+        "rustc_demangle=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/librustc_demangle-3e2a96f78b3a16e4.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/attribution"
+      ],
+      "kind": "command",
+      "name": "compile-attribution",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/attribution",
+        "analyze"
+      ],
+      "kind": "command",
+      "name": "saved-sample-attribution",
+      "timeout_seconds": 120
+    }
+  ],
+  "version": 1
+}

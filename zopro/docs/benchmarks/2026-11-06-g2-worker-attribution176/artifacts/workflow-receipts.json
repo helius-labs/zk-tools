@@ -1,0 +1,82 @@
+{
+  "attempt-0.json": {
+    "length": 115,
+    "sha256": "f9deb218d07c96a468c413b2df215723646cdfa244d3e85c92799cf583dd610d",
+    "utf8": "{\n  \"orchestrator_sha256\": \"401cbbf8641a56dbc050dc676f8d8b9496d27f8833c76c064b98f8e5b3fc4b8a\",\n  \"resume\": false\n}\n"
+  },
+  "compile-attribution/command.json": {
+    "length": 829,
+    "sha256": "25b78b424921d9a08e2cbed2e6006a15b13abc186acdd0c3ae97b2fb8e0b1601",
+    "utf8": "{\n  \"argv\": [\n    \"timeout\",\n    \"-k\",\n    \"5s\",\n    \"120s\",\n    \"/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc\",\n    \"--edition=2021\",\n    \"-O\",\n    \"/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/analyze.rs\",\n    \"-L\",\n    \"dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps\",\n    \"--extern\",\n    \"serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib\",\n    \"--extern\",\n    \"sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib\",\n    \"--extern\",\n    \"rustc_demangle=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/librustc_demangle-3e2a96f78b3a16e4.rlib\",\n    \"-o\",\n    \"/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/attribution\"\n  ],\n  \"environment\": {}\n}\n"
+  },
+  "compile-attribution/exit.json": {
+    "length": 243,
+    "sha256": "56102d34e3c413d42ef1c8c20dc5066e99e5abab95cabd3cd3188df70f18da78",
+    "utf8": "{\n  \"elapsed_ms\": 522.396917,\n  \"returncode\": 0,\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"stdout_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"success\": true\n}\n"
+  },
+  "compile-attribution/stderr.log": {
+    "length": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "utf8": ""
+  },
+  "compile-attribution/stdout.log": {
+    "length": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "utf8": ""
+  },
+  "compile-attribution/tests.json": {
+    "length": 72,
+    "sha256": "bccfcc8c2079b4bc2ae30e0114a9e03fb36c4232d0946ac6a8fe40bd19fe38da",
+    "utf8": "{\n  \"passed_tests\": [],\n  \"required_tests\": [],\n  \"unfiltered\": false\n}\n"
+  },
+  "completed.json": {
+    "length": 58,
+    "sha256": "7391a6376664bb97c0ce97222a779cc462dda43ffd8565cd0e027d99f5193f2b",
+    "utf8": "[\n  \"compile-attribution\",\n  \"saved-sample-attribution\"\n]\n"
+  },
+  "progress.json": {
+    "length": 77,
+    "sha256": "18a79c0ed0a990d2f356c0cc7bd4f8ce77a14aed9df1fc45b32067cf6c7a9423",
+    "utf8": "{\n  \"completed\": 1,\n  \"pid\": 1637967,\n  \"step\": \"saved-sample-attribution\"\n}\n"
+  },
+  "protocol.json": {
+    "length": 1464,
+    "sha256": "ef8c278f305185d55ac4d10692b6a56ef5c9b669209dd91a367d70ad42e071a6",
+    "utf8": "{\n  \"version\": 1,\n  \"source_pins\": \"/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/pins.json\",\n  \"environment\": {},\n  \"steps\": [\n    {\n      \"kind\": \"command\",\n      \"name\": \"compile-attribution\",\n      \"argv\": [\n        \"/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc\",\n        \"--edition=2021\",\n        \"-O\",\n        \"/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/analyze.rs\",\n        \"-L\",\n        \"dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps\",\n        \"--extern\",\n        \"serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib\",\n        \"--extern\",\n        \"sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib\",\n        \"--extern\",\n        \"rustc_demangle=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/librustc_demangle-3e2a96f78b3a16e4.rlib\",\n        \"-o\",\n        \"/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/attribution\"\n      ],\n      \"environment\": {},\n      \"required_tests\": [],\n      \"unfiltered\": false,\n      \"timeout_seconds\": 120\n    },\n    {\n      \"kind\": \"command\",\n      \"name\": \"saved-sample-attribution\",\n      \"argv\": [\n        \"/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/attribution\",\n        \"analyze\"\n      ],\n      \"environment\": {},\n      \"required_tests\": [],\n      \"unfiltered\": false,\n      \"timeout_seconds\": 120\n    }\n  ]\n}\n"
+  },
+  "result.json": {
+    "length": 125,
+    "sha256": "a4e9a0c796a4dfc900aae505a2b386eb17c10563d7fa1ab75c9616e5fde8e074",
+    "utf8": "{\n  \"source_files\": 19,\n  \"status\": \"complete\",\n  \"steps\": [\n    \"compile-attribution\",\n    \"saved-sample-attribution\"\n  ]\n}\n"
+  },
+  "saved-sample-attribution/command.json": {
+    "length": 179,
+    "sha256": "51c75af52699d129c6200f16210965e4304952fb8c149d9f7bcdb770a97323d1",
+    "utf8": "{\n  \"argv\": [\n    \"timeout\",\n    \"-k\",\n    \"5s\",\n    \"120s\",\n    \"/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/attribution\",\n    \"analyze\"\n  ],\n  \"environment\": {}\n}\n"
+  },
+  "saved-sample-attribution/exit.json": {
+    "length": 242,
+    "sha256": "c57324415172df85645096e576f79efa75d2b046bc64b2daedee8a353077bf3f",
+    "utf8": "{\n  \"elapsed_ms\": 87.117385,\n  \"returncode\": 0,\n  \"stderr_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\n  \"stdout_sha256\": \"b4e2eca4138b8af50b3319b1b25e9eed032d2c29c135133c27481b86acab01f8\",\n  \"success\": true\n}\n"
+  },
+  "saved-sample-attribution/stderr.log": {
+    "length": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "utf8": ""
+  },
+  "saved-sample-attribution/stdout.log": {
+    "length": 1422,
+    "sha256": "b4e2eca4138b8af50b3319b1b25e9eed032d2c29c135133c27481b86acab01f8",
+    "utf8": "{\"arm\":\"ORIGINAL\",\"borrowed_apply_distribution\":{\"coefficient_of_variation\":0.11143199482298993,\"maximum\":403,\"mean\":259.78125,\"minimum\":231,\"workers_with_samples\":32},\"roles\":{\"caller\":{\"other\":19},\"worker\":{\"borrowed_apply\":8313,\"epoch_pin\":1989,\"field_inverse\":1595,\"ordinary_feed\":1335,\"other\":4080,\"other_epoch\":284,\"reduce_layer\":2887}},\"samples\":20502}\n{\"arm\":\"DRAIN\",\"borrowed_apply_distribution\":{\"coefficient_of_variation\":0.10927651067170895,\"maximum\":389,\"mean\":259.375,\"minimum\":206,\"workers_with_samples\":32},\"roles\":{\"caller\":{\"other\":19},\"worker\":{\"borrowed_apply\":8300,\"epoch_pin\":1963,\"field_inverse\":1575,\"ordinary_feed\":1355,\"other\":4056,\"other_epoch\":271,\"reduce_layer\":2854}},\"samples\":20393}\n{\"arm\":\"PACK\",\"borrowed_apply_distribution\":{\"coefficient_of_variation\":0.097630058256186,\"maximum\":361,\"mean\":252.9375,\"minimum\":218,\"workers_with_samples\":32},\"roles\":{\"caller\":{\"other\":20},\"worker\":{\"borrowed_apply\":8094,\"epoch_pin\":2101,\"field_inverse\":793,\"ordinary_feed\":1279,\"other\":3860,\"other_epoch\":278,\"reduce_layer\":2068}},\"samples\":18493}\n{\"arm\":\"BOTH\",\"borrowed_apply_distribution\":{\"coefficient_of_variation\":0.10292031050675642,\"maximum\":377,\"mean\":254.71875,\"minimum\":219,\"workers_with_samples\":32},\"roles\":{\"caller\":{\"other\":18},\"worker\":{\"borrowed_apply\":8151,\"epoch_pin\":2048,\"field_inverse\":852,\"ordinary_feed\":1309,\"other\":3764,\"other_epoch\":277,\"reduce_layer\":2000}},\"samples\":18419}\n"
+  },
+  "saved-sample-attribution/tests.json": {
+    "length": 72,
+    "sha256": "bccfcc8c2079b4bc2ae30e0114a9e03fb36c4232d0946ac6a8fe40bd19fe38da",
+    "utf8": "{\n  \"passed_tests\": [],\n  \"required_tests\": [],\n  \"unfiltered\": false\n}\n"
+  },
+  "source-pins.json": {
+    "length": 3165,
+    "sha256": "a5cac47a0766cd12b108b416a35a1e694d1adb27689821ebf1a1d24df704d3b7",
+    "utf8": "{\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/analysis.json\": \"32afaeb6d50df9002244d256478ec6235d4057e7006fde928b8170932761188b\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/callers.json\": \"10e337359a8bf34b255c85bca8c331522a7220f374a700ee6f185c880611aba3\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/identities.json\": \"178df567e368aadd36cabb41bd168a1e1c1221f13958e2001fdb9fbc30b2e7e4\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/perf/cycles-1x2-B-w32-BOTH.data\": \"64f8273df79aa6bb1f8b561b04821c4ad74e41be08141dc1c49842f3a2956cd7\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/perf/cycles-1x2-B-w32-DRAIN.data\": \"b1c6f01e62951a10b0f80a5d783701a5d1716697f7c197a5b09daf7f208c1789\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/perf/cycles-1x2-B-w32-ORIGINAL.data\": \"4b857541991e08ff63f14d4ea3f534c27ffe17814c149aa7d0210b476a351d61\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/perf/cycles-1x2-B-w32-PACK.data\": \"acbcb89e48fa7d75938cdab8961050a576e222075cf06a27e66385f24cc7db67\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/review.json\": \"e8a0a24d959ab7b2d9f11616e1821e2291826f1512ae71bcdc9c502213c3fa3d\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/runs/decode-cycles-1x2-B-w32-BOTH/exit.json\": \"5a236b22f9a6065f32f84a4f410388cf1ca0fd9238d9fefbd928a4008b7a2c5c\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/runs/decode-cycles-1x2-B-w32-BOTH/stdout.log\": \"1697a84379b0b14c77c99683291f0ccecfb53012ea883d6e234e86577def5218\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/runs/decode-cycles-1x2-B-w32-DRAIN/exit.json\": \"7ca2f99659426a5964c9c44578832bb3a6a197d4fb6a0488e7f89ec63f28d4a9\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/runs/decode-cycles-1x2-B-w32-DRAIN/stdout.log\": \"010b7fc74b350d928bd44d5048fb3ab6e47c8b6f759a992b4f3a526328863db0\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/runs/decode-cycles-1x2-B-w32-ORIGINAL/exit.json\": \"7f244a092d5daf128429097cb364d7eae32c5acabaa7b248e4e72a4bc8add044\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/runs/decode-cycles-1x2-B-w32-ORIGINAL/stdout.log\": \"2109aebd6e80a5621451200199646b07beb32c68493120aecb71530ed3ecbfed\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/runs/decode-cycles-1x2-B-w32-PACK/exit.json\": \"f873e064c394833a3434cf81cd85230e94e6387189a07ad5843597ffc74a3c3e\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/runs/decode-cycles-1x2-B-w32-PACK/stdout.log\": \"c02e508b7118d78d761f8d117d3716e9c5d9832039fd26c0866416f673a3ac75\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-queue-index-composition176/symbols.json\": \"6b31698d97361381f51fe4db2a3919627d1c452a1cc4af9f9bf33de38399c959\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/analyze.rs\": \"593d0a9e6bb98ec307f1011fe70061cb38611e7b9114d3207251d53963cbac41\",\n  \"/home/ubuntu/src/zopro-perf-work/g2-worker-attribution176/design.md\": \"95454bccd31f7d0297cf893c95e1b70aaf2a83ba3185d3f65169cdab10013a4c\"\n}\n"
+  }
+}
