@@ -1,0 +1,1535 @@
+{
+  "absolute_sampled_period_coverage_validated": false,
+  "accepted_source_files": 176,
+  "accepted_stream_g1_body_exact_in_candidate": true,
+  "adopted": false,
+  "complete": true,
+  "component_failed_checks": [
+    "tile257-w32/OFF/frozen/calibration",
+    "tile257-w32/ON/OFF/nonregression",
+    "tile257-w32/ON/frozen/nonregression",
+    "tile384-w32/OFF/frozen/calibration",
+    "tile384-w32/ON/OFF/nonregression",
+    "tile384-w32/ON/frozen/nonregression",
+    "tile511-w32/OFF/frozen/calibration",
+    "weighted128-w32/OFF/frozen/calibration",
+    "weighted256-w32/OFF/frozen/calibration",
+    "weighted256-w32/ON/frozen/nonregression"
+  ],
+  "component_gate_passed": false,
+  "goal_status": "active/unmet0/8",
+  "ledger": 30846,
+  "mode": "read-only source and existing profile audit",
+  "new_proofs": 0,
+  "new_timing_observations": 0,
+  "no_claim_of_wall_critical_path_or_removable_fraction": true,
+  "observer_diagnostic_gate_passed": false,
+  "observer_failed_checks": [
+    "1x2-w16 OFF/accepted calibration",
+    "1x2-w16 ON/OFF observer overhead"
+  ],
+  "production_changed": false,
+  "profile_ownership_validation": "inherited from saved coarse-phase review; no capture/decoder rerun",
+  "profiles": {
+    "cycles-1x2-w16-accepted": {
+      "all_symbol_bins": [
+        {
+          "samples": 2160,
+          "share": 0.25113358911754446,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "samples": 1569,
+          "share": 0.1824206487617719,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 747,
+          "share": 0.08685036623648414,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+        },
+        {
+          "samples": 560,
+          "share": 0.06510870828973375,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 424,
+          "share": 0.04929659341936984,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 422,
+          "share": 0.04906406231833508,
+          "symbol": "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 278,
+          "share": 0.03232182304383211,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+        },
+        {
+          "samples": 232,
+          "share": 0.026973607720032555,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+        },
+        {
+          "samples": 203,
+          "share": 0.023601906755028487,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+        },
+        {
+          "samples": 161,
+          "share": 0.018718753633298453,
+          "symbol": "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 125,
+          "share": 0.014533193814672713,
+          "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+        },
+        {
+          "samples": 116,
+          "share": 0.013486803860016276,
+          "symbol": "[unknown]"
+        },
+        {
+          "samples": 102,
+          "share": 0.011859086152772933,
+          "symbol": "<zopro_core::solver::Plan>::run"
+        },
+        {
+          "samples": 82,
+          "share": 0.0095337751424253,
+          "symbol": "zopro_core::fft::pair::leaf::dit_serial"
+        },
+        {
+          "samples": 79,
+          "share": 0.009184978490873156,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine"
+        },
+        {
+          "samples": 76,
+          "share": 0.008836181839321009,
+          "symbol": "<rayon_core::registry::WorkerThread>::take_local_job.565"
+        },
+        {
+          "samples": 74,
+          "share": 0.008603650738286246,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine"
+        },
+        {
+          "samples": 73,
+          "share": 0.008487385187768865,
+          "symbol": "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 72,
+          "share": 0.008371119637251482,
+          "symbol": "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>"
+        },
+        {
+          "samples": 72,
+          "share": 0.008371119637251482,
+          "symbol": "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 66,
+          "share": 0.007673526334147192,
+          "symbol": "zopro_core::msm_affine::grouping::scalar_groups"
+        },
+        {
+          "samples": 55,
+          "share": 0.006394605278455994,
+          "symbol": "zopro_core::fft::pair::leaf::dif_serial"
+        },
+        {
+          "samples": 51,
+          "share": 0.005929543076386466,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>"
+        },
+        {
+          "samples": 51,
+          "share": 0.005929543076386466,
+          "symbol": "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>"
+        },
+        {
+          "samples": 46,
+          "share": 0.005348215323799558,
+          "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+        },
+        {
+          "samples": 46,
+          "share": 0.005348215323799558,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+        },
+        {
+          "samples": 46,
+          "share": 0.005348215323799558,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>"
+        },
+        {
+          "samples": 44,
+          "share": 0.005115684222764795,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double"
+        },
+        {
+          "samples": 26,
+          "share": 0.003022904313451924,
+          "symbol": "<zopro_core::solver::Plan>::emit_poseidon"
+        },
+        {
+          "samples": 26,
+          "share": 0.003022904313451924,
+          "symbol": "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>"
+        },
+        {
+          "samples": 23,
+          "share": 0.002674107661899779,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>"
+        },
+        {
+          "samples": 22,
+          "share": 0.0025578421113823975,
+          "symbol": "<rayon_core::registry::WorkerThread>::wait_until_cold"
+        },
+        {
+          "samples": 22,
+          "share": 0.0025578421113823975,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double"
+        },
+        {
+          "samples": 20,
+          "share": 0.002325311010347634,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+        },
+        {
+          "samples": 19,
+          "share": 0.002209045459830252,
+          "symbol": "zopro_core::msm_affine::g2_phi::hb_top_component"
+        },
+        {
+          "samples": 18,
+          "share": 0.0020927799093128706,
+          "symbol": "<zopro_bn254::fq6::Fq6 as core::ops::arith::Mul>::mul"
+        },
+        {
+          "samples": 18,
+          "share": 0.0020927799093128706,
+          "symbol": "<zopro_core::solver::Plan>::run_poseidon_task"
+        },
+        {
+          "samples": 17,
+          "share": 0.001976514358795489,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_projective"
+        },
+        {
+          "samples": 15,
+          "share": 0.0017439832577607257,
+          "symbol": "<rayon_core::sleep::Sleep>::wake_specific_thread"
+        },
+        {
+          "samples": 14,
+          "share": 0.0016277177072433438,
+          "symbol": "<&zopro_core::fft::pair::stored_product<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 14,
+          "share": 0.0016277177072433438,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>"
+        },
+        {
+          "samples": 14,
+          "share": 0.0016277177072433438,
+          "symbol": "realloc"
+        },
+        {
+          "samples": 14,
+          "share": 0.0016277177072433438,
+          "symbol": "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>"
+        },
+        {
+          "samples": 12,
+          "share": 0.0013951866062085804,
+          "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::take_from_queue"
+        },
+        {
+          "samples": 12,
+          "share": 0.0013951866062085804,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::collect::consumer::CollectResult<[u64; 4]>>::{closure#0}"
+        },
+        {
+          "samples": 12,
+          "share": 0.0013951866062085804,
+          "symbol": "std::sys::env::unix::getenv::{closure#0}"
+        },
+        {
+          "samples": 11,
+          "share": 0.0012789210556911988,
+          "symbol": "<std::sys::sync::mutex::futex::Mutex>::lock_contended"
+        },
+        {
+          "samples": 11,
+          "share": 0.0012789210556911988,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::execute"
+        },
+        {
+          "samples": 11,
+          "share": 0.0012789210556911988,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_product_study::{closure#2}>>"
+        },
+        {
+          "samples": 11,
+          "share": 0.0012789210556911988,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::merge_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>"
+        },
+        {
+          "samples": 11,
+          "share": 0.0012789210556911988,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 11,
+          "share": 0.0012789210556911988,
+          "symbol": "zopro_core::msm::weighted_sum::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 10,
+          "share": 0.001162655505173817,
+          "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::finish"
+        },
+        {
+          "samples": 10,
+          "share": 0.001162655505173817,
+          "symbol": "malloc"
+        },
+        {
+          "samples": 10,
+          "share": 0.001162655505173817,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>::{closure#0}"
+        },
+        {
+          "samples": 9,
+          "share": 0.0010463899546564353,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_projective"
+        },
+        {
+          "samples": 9,
+          "share": 0.0010463899546564353,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::collect::consumer::CollectResult<[u64; 4]>>::{closure#0}"
+        },
+        {
+          "samples": 8,
+          "share": 0.0009301244041390535,
+          "symbol": "zopro_core::msm_affine::top_window::<zopro_bn254::curve::G1Config, true>"
+        },
+        {
+          "samples": 7,
+          "share": 0.0008138588536216719,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>"
+        },
+        {
+          "samples": 7,
+          "share": 0.0008138588536216719,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}::{closure#0}>>"
+        },
+        {
+          "samples": 6,
+          "share": 0.0006975933031042902,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::batch_to_affine"
+        },
+        {
+          "samples": 6,
+          "share": 0.0006975933031042902,
+          "symbol": "<zopro_bn254::fq12::Fq12>::cyclotomic_square::fp4_square"
+        },
+        {
+          "samples": 6,
+          "share": 0.0006975933031042902,
+          "symbol": "<zopro_bn254::fq6::Fq6>::mul_by_01"
+        },
+        {
+          "samples": 5,
+          "share": 0.0005813277525869085,
+          "symbol": "<rayon_core::sleep::Sleep>::sleep::<<rayon_core::registry::WorkerThread>::wait_until_cold::{closure#0}>"
+        },
+        {
+          "samples": 5,
+          "share": 0.0005813277525869085,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::projective"
+        },
+        {
+          "samples": 5,
+          "share": 0.0005813277525869085,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>"
+        },
+        {
+          "samples": 5,
+          "share": 0.0005813277525869085,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G1Config>::{closure#0}>>"
+        },
+        {
+          "samples": 4,
+          "share": 0.0004650622020695268,
+          "symbol": "<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>> as rayon::iter::plumbing::Producer>::split_at"
+        },
+        {
+          "samples": 4,
+          "share": 0.0004650622020695268,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FrConfig>"
+        },
+        {
+          "samples": 4,
+          "share": 0.0004650622020695268,
+          "symbol": "zopro_core::msm::invert_lanes"
+        },
+        {
+          "samples": 3,
+          "share": 0.0003487966515521451,
+          "symbol": "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal"
+        },
+        {
+          "samples": 3,
+          "share": 0.0003487966515521451,
+          "symbol": "<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>> as rayon::iter::plumbing::Producer>::into_iter"
+        },
+        {
+          "samples": 3,
+          "share": 0.0003487966515521451,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 3,
+          "share": 0.0003487966515521451,
+          "symbol": "<rayon_core::registry::WorkerThread>::take_local_job"
+        },
+        {
+          "samples": 3,
+          "share": 0.0003487966515521451,
+          "symbol": "<zopro_core::solver::Plan>::run::{closure#2}"
+        },
+        {
+          "samples": 3,
+          "share": 0.0003487966515521451,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::stored_columns<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>::{closure#0}>>"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::zero_frs::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "<zopro_bn254::fq12::Fq12>::cyclotomic_square"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "<zopro_bn254::pairing::G2Prepared>::new"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "<zopro_bn254::pairing::Homogeneous>::add"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "<zopro_core::solver::Plan>::run_poseidon::dense"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::stored_columns<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>::{closure#0}>>"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>"
+        },
+        {
+          "samples": 2,
+          "share": 0.0002325311010347634,
+          "symbol": "rayon_core::join::join_context::call_b::<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, rayon_core::join::join::call<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, <zopro_core::Key>::solve_canonical_wires::{closure#2}::{closure#1}>::{closure#0}>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<alloc::raw_vec::RawVecInner>::finish_grow"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<alloc::vec::Vec<&str> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<&str, core::str::iter::SplitWhitespace>>::from_iter"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<memmap2::Mmap as core::convert::AsRef<[u8]>>::as_ref"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>> as rayon::iter::plumbing::Producer>::into_iter"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::stored_columns<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_product_study::{closure#2}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<std::path::Components as core::iter::traits::iterator::Iterator>::next"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>::is_in_subgroup"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<zopro_bn254::fq6::Fq6>::mul_by_nonresidue"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "<zopro_core::alloc::linux::Allocator as core::alloc::global::GlobalAlloc>::realloc"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "getenv"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::zero_frs::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::zero_frs::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "rayon_core::join::join_context::<rayon_core::join::join::call<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), <zopro_core::groth16::PreparedFixedPoints>::windowed_outputs::{closure#0}>::{closure#0}, rayon_core::join::join::call<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, <zopro_core::groth16::PreparedFixedPoints>::windowed_outputs::{closure#1}>::{closure#0}, (zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>), zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "zopro_bn254::pairing::final_exponentiation"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "zopro_bn254::pairing::multi_miller_loop"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "zopro_core::groth16::blinding_digits::<5>"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "zopro_core::msm::weighted_affine::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "zopro_core::msm::weighted_sum::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "zopro_core::msm_affine::g2_query_exclusive"
+        },
+        {
+          "samples": 1,
+          "share": 0.0001162655505173817,
+          "symbol": "zopro_core::verify::raw_g2"
+        }
+      ],
+      "categories": {
+        "Crossbeam with_handle": {
+          "samples": 232,
+          "share": 0.026973607720032555
+        },
+        "G1 streamed add": {
+          "samples": 2160,
+          "share": 0.25113358911754446
+        },
+        "G1 tree reduce_layer": {
+          "samples": 424,
+          "share": 0.049296593419369844
+        },
+        "G2 streamed add": {
+          "samples": 1569,
+          "share": 0.1824206487617719
+        },
+        "G2 tree reduce_layer": {
+          "samples": 560,
+          "share": 0.06510870828973375
+        },
+        "other": {
+          "samples": 2793,
+          "share": 0.3247296825950471
+        },
+        "shared scalar Fq inverse": {
+          "samples": 747,
+          "share": 0.08685036623648414
+        },
+        "unknown": {
+          "samples": 116,
+          "share": 0.013486803860016277
+        }
+      },
+      "metadata": {
+        "absolute_period_coverage_not_validated": true,
+        "actual_pid": 1547790,
+        "categories": {
+          "FFT": 373,
+          "MSM_curve": 6503,
+          "allocator": 25,
+          "crossbeam_epoch": 252,
+          "grouping": 66,
+          "inverse": 751,
+          "other": 163,
+          "runtime_or_inlined_payload": 161,
+          "solver": 151,
+          "unknown": 116,
+          "verification_field_extensions": 40
+        },
+        "period16M": true,
+        "qualified": true,
+        "samples": 8601,
+        "tids": [
+          1547790,
+          1547792,
+          1547793,
+          1547794,
+          1547795,
+          1547796,
+          1547797,
+          1547798,
+          1547799,
+          1547800,
+          1547801,
+          1547802,
+          1547803,
+          1547804,
+          1547805,
+          1547806,
+          1547807
+        ],
+        "unknown_share": 0.013486803860016276,
+        "zero_lost": true
+      },
+      "samples": 8601,
+      "workers": 16
+    },
+    "cycles-1x2-w32-accepted": {
+      "all_symbol_bins": [
+        {
+          "samples": 2472,
+          "share": 0.2020268061457993,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "samples": 1913,
+          "share": 0.15634194181104935,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 1013,
+          "share": 0.08278849297155934,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+        },
+        {
+          "samples": 936,
+          "share": 0.07649558679306963,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+        },
+        {
+          "samples": 713,
+          "share": 0.05827067669172932,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 658,
+          "share": 0.05377574370709382,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 567,
+          "share": 0.04633867276887872,
+          "symbol": "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 358,
+          "share": 0.02925792742726381,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+        },
+        {
+          "samples": 325,
+          "share": 0.02656096763648251,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+        },
+        {
+          "samples": 230,
+          "share": 0.018796992481203006,
+          "symbol": "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 212,
+          "share": 0.017325923504413206,
+          "symbol": "[unknown]"
+        },
+        {
+          "samples": 165,
+          "share": 0.013484798953906503,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+        },
+        {
+          "samples": 164,
+          "share": 0.013403072899640406,
+          "symbol": "<rayon_core::registry::WorkerThread>::take_local_job.565"
+        },
+        {
+          "samples": 146,
+          "share": 0.011932003922850603,
+          "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+        },
+        {
+          "samples": 139,
+          "share": 0.011359921542987903,
+          "symbol": "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 134,
+          "share": 0.010951291271657403,
+          "symbol": "<zopro_core::solver::Plan>::run"
+        },
+        {
+          "samples": 118,
+          "share": 0.009643674403399805,
+          "symbol": "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>"
+        },
+        {
+          "samples": 117,
+          "share": 0.009561948349133704,
+          "symbol": "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>"
+        },
+        {
+          "samples": 98,
+          "share": 0.008009153318077803,
+          "symbol": "zopro_core::fft::pair::leaf::dit_serial"
+        },
+        {
+          "samples": 83,
+          "share": 0.006783262504086303,
+          "symbol": "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 82,
+          "share": 0.006701536449820203,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine"
+        },
+        {
+          "samples": 80,
+          "share": 0.006538084341288003,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine"
+        },
+        {
+          "samples": 80,
+          "share": 0.006538084341288003,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>"
+        },
+        {
+          "samples": 77,
+          "share": 0.006292906178489702,
+          "symbol": "zopro_core::msm_affine::grouping::scalar_groups"
+        },
+        {
+          "samples": 75,
+          "share": 0.006129454069957503,
+          "symbol": "zopro_core::fft::pair::leaf::dif_serial"
+        },
+        {
+          "samples": 73,
+          "share": 0.0059660019614253025,
+          "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+        },
+        {
+          "samples": 67,
+          "share": 0.0054756456358287025,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double"
+        },
+        {
+          "samples": 62,
+          "share": 0.005067015364498202,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+        },
+        {
+          "samples": 60,
+          "share": 0.0049035632559660015,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>::{closure#0}"
+        },
+        {
+          "samples": 54,
+          "share": 0.0044132069303694016,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>"
+        },
+        {
+          "samples": 48,
+          "share": 0.003922850604772802,
+          "symbol": "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>"
+        },
+        {
+          "samples": 44,
+          "share": 0.0035959463877084014,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::collect::consumer::CollectResult<[u64; 4]>>::{closure#0}"
+        },
+        {
+          "samples": 40,
+          "share": 0.0032690421706440013,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 39,
+          "share": 0.003187316116377901,
+          "symbol": "<std::sys::sync::mutex::futex::Mutex>::lock_contended"
+        },
+        {
+          "samples": 37,
+          "share": 0.0030238640078457013,
+          "symbol": "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal"
+        },
+        {
+          "samples": 35,
+          "share": 0.002860411899313501,
+          "symbol": "<rayon_core::registry::WorkerThread>::wait_until_cold"
+        },
+        {
+          "samples": 32,
+          "share": 0.002615233736515201,
+          "symbol": "<rayon_core::sleep::Sleep>::wake_specific_thread"
+        },
+        {
+          "samples": 30,
+          "share": 0.0024517816279830008,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double"
+        },
+        {
+          "samples": 30,
+          "share": 0.0024517816279830008,
+          "symbol": "<zopro_core::solver::Plan>::emit_poseidon"
+        },
+        {
+          "samples": 30,
+          "share": 0.0024517816279830008,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::collect::consumer::CollectResult<[u64; 4]>>::{closure#0}"
+        },
+        {
+          "samples": 29,
+          "share": 0.002370055573716901,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_product_study::{closure#2}>>"
+        },
+        {
+          "samples": 28,
+          "share": 0.002288329519450801,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_projective"
+        },
+        {
+          "samples": 27,
+          "share": 0.0022066034651847008,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>"
+        },
+        {
+          "samples": 25,
+          "share": 0.002043151356652501,
+          "symbol": "zopro_core::msm_affine::g2_phi::hb_top_component"
+        },
+        {
+          "samples": 23,
+          "share": 0.0018796992481203009,
+          "symbol": "<zopro_core::solver::Plan>::run_poseidon_task"
+        },
+        {
+          "samples": 23,
+          "share": 0.0018796992481203009,
+          "symbol": "realloc"
+        },
+        {
+          "samples": 22,
+          "share": 0.0017979731938542007,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>"
+        },
+        {
+          "samples": 21,
+          "share": 0.0017162471395881006,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::execute"
+        },
+        {
+          "samples": 20,
+          "share": 0.0016345210853220009,
+          "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::take_from_queue"
+        },
+        {
+          "samples": 20,
+          "share": 0.0016345210853220009,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>"
+        },
+        {
+          "samples": 19,
+          "share": 0.0015527950310559003,
+          "symbol": "std::sys::env::unix::getenv::{closure#0}"
+        },
+        {
+          "samples": 19,
+          "share": 0.0015527950310559003,
+          "symbol": "zopro_core::fft::pair::leaf::dif_bounded"
+        },
+        {
+          "samples": 18,
+          "share": 0.0014710689767898006,
+          "symbol": "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>"
+        },
+        {
+          "samples": 17,
+          "share": 0.0013893429225237005,
+          "symbol": "<zopro_bn254::fq6::Fq6 as core::ops::arith::Mul>::mul"
+        },
+        {
+          "samples": 17,
+          "share": 0.0013893429225237005,
+          "symbol": "zopro_core::msm::weighted_sum::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 16,
+          "share": 0.0013076168682576003,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::merge_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>"
+        },
+        {
+          "samples": 14,
+          "share": 0.0011441647597254005,
+          "symbol": "zopro_core::fft::pair::leaf::dit_bounded"
+        },
+        {
+          "samples": 12,
+          "share": 0.0009807126511932004,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_projective"
+        },
+        {
+          "samples": 12,
+          "share": 0.0009807126511932004,
+          "symbol": "malloc"
+        },
+        {
+          "samples": 12,
+          "share": 0.0009807126511932004,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>"
+        },
+        {
+          "samples": 11,
+          "share": 0.0008989865969271004,
+          "symbol": "<&zopro_core::fft::pair::stored_product<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 9,
+          "share": 0.0007355344883949003,
+          "symbol": "<rayon_core::sleep::Sleep>::sleep::<<rayon_core::registry::WorkerThread>::wait_until_cold::{closure#0}>"
+        },
+        {
+          "samples": 8,
+          "share": 0.0006538084341288003,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::batch_to_affine"
+        },
+        {
+          "samples": 8,
+          "share": 0.0006538084341288003,
+          "symbol": "zopro_core::msm_affine::top_window::<zopro_bn254::curve::G1Config, true>"
+        },
+        {
+          "samples": 7,
+          "share": 0.0005720823798627002,
+          "symbol": "<zopro_bn254::fq6::Fq6>::mul_by_01"
+        },
+        {
+          "samples": 6,
+          "share": 0.0004903563255966002,
+          "symbol": "<zopro_core::solver::Plan>::run_poseidon::dense"
+        },
+        {
+          "samples": 6,
+          "share": 0.0004903563255966002,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}::{closure#0}>>"
+        },
+        {
+          "samples": 6,
+          "share": 0.0004903563255966002,
+          "symbol": "zopro_core::msm::invert_lanes"
+        },
+        {
+          "samples": 5,
+          "share": 0.00040863027133050016,
+          "symbol": "<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>> as rayon::iter::plumbing::Producer>::into_iter"
+        },
+        {
+          "samples": 5,
+          "share": 0.00040863027133050016,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::stored_columns<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 5,
+          "share": 0.00040863027133050016,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::stored_columns<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 5,
+          "share": 0.00040863027133050016,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 5,
+          "share": 0.00040863027133050016,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::stored_columns<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>::{closure#0}>>"
+        },
+        {
+          "samples": 5,
+          "share": 0.00040863027133050016,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FrConfig>"
+        },
+        {
+          "samples": 4,
+          "share": 0.00032690421706440013,
+          "symbol": "<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>> as rayon::iter::plumbing::Producer>::into_iter"
+        },
+        {
+          "samples": 4,
+          "share": 0.00032690421706440013,
+          "symbol": "<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>> as rayon::iter::plumbing::Producer>::split_at"
+        },
+        {
+          "samples": 4,
+          "share": 0.00032690421706440013,
+          "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::finish"
+        },
+        {
+          "samples": 4,
+          "share": 0.00032690421706440013,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G1Config>::{closure#0}>>"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "<memmap2::Mmap as core::convert::AsRef<[u8]>>::as_ref"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::zero_frs::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "<zopro_bn254::fq12::Fq12>::cyclotomic_square::fp4_square"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "<zopro_bn254::pairing::G2Prepared>::new"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::projective"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "<zopro_core::solver::Plan>::run::{closure#2}"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "getenv"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<alloc::vec::Vec<u32>>, rayon::iter::map::MapConsumer<rayon::iter::try_reduce::TryReduceConsumer<rayon::iter::ParallelIterator::try_for_each::ok<core::result::Result<(), alloc::string::String>>, <() as core::default::Default>::default>, <zopro_core::solver::Plan>::solve_in_with_slots::{closure#5}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<alloc::vec::Vec<u32>>, rayon::iter::map::MapConsumer<rayon::iter::try_reduce::TryReduceConsumer<rayon::iter::ParallelIterator::try_for_each::ok<core::result::Result<(), alloc::string::String>>, <() as core::default::Default>::default>, <zopro_core::solver::Plan>::solve_in_with_slots::{closure#5}>>::{closure#1}, core::result::Result<(), alloc::string::String>, core::result::Result<(), alloc::string::String>>::{closure#0}"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "zopro_bn254::pairing::ell"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "zopro_core::msm::weighted_affine::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 3,
+          "share": 0.0002451781627983001,
+          "symbol": "zopro_core::msm::weighted_sum::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<core::str::pattern::CharSearcher as core::str::pattern::Searcher>::next_match.567"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<core::result::Result<(), alloc::string::String>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<alloc::vec::Vec<u32>>, rayon::iter::map::MapConsumer<rayon::iter::try_reduce::TryReduceConsumer<rayon::iter::ParallelIterator::try_for_each::ok<core::result::Result<(), alloc::string::String>>, <() as core::default::Default>::default>, <zopro_core::solver::Plan>::solve_in_with_slots::{closure#5}>>::{closure#1}>::{closure#0}, core::result::Result<(), alloc::string::String>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<rayon_core::registry::WorkerThread>::take_local_job"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<std::path::Components>::parse_next_component_back"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<std::sys::sync::rwlock::futex::RwLock>::read_contended"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<zopro_bn254::fq12::Fq12>::cyclotomic_square"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<zopro_bn254::fq6::Fq6>::mul_by_nonresidue"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<zopro_bn254::pairing::Homogeneous>::add"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "<zopro_core::alloc::linux::Allocator as core::alloc::global::GlobalAlloc>::realloc"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::zip::ZipProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::stored_columns<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>::{closure#0}>>"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "std::sys::env::unix::getenv"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "zopro_bn254::pairing::final_exponentiation"
+        },
+        {
+          "samples": 2,
+          "share": 0.0001634521085322001,
+          "symbol": "zopro_bn254::pairing::multi_miller_loop"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<alloc::raw_vec::RawVec<usize>>::grow_one"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<alloc::raw_vec::RawVecInner>::finish_grow"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<alloc::string::String as core::fmt::Write>::write_str"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<alloc::vec::Vec<&str> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<&str, core::str::iter::SplitWhitespace>>::from_iter"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<core::iter::adapters::filter::Filter<core::slice::iter::Iter<alloc::string::String>, zopro_zolana::transfer::assign::{closure#5}> as core::iter::traits::iterator::Iterator>::count"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<core::str::iter::Split<core::str::IsWhitespace> as core::iter::traits::iterator::Iterator>::try_fold::<(), core::iter::traits::iterator::Iterator::find::check<&str, &mut core::str::IsNotEmpty>::{closure#0}, core::ops::control_flow::ControlFlow<&str>>"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_product_study::{closure#2}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::vec::DrainProducer<&mut [zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>]>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::stored_transform_inner<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>::{closure#1}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>, zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<serde_json::value::Value as serde_core::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<zopro_bn254::fq6::Fq6 as core::ops::arith::Add>::add"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "<zopro_bn254::fq6::Fq6>::mul_by_fp2"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "__lll_lock_wait_private"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "core::ptr::drop_glue::<zopro_core::msm::BatchAdd<zopro_bn254::curve::G2Config>>"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::merge_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::merge_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::zero_frs::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::zero_frs::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, rayon::iter::collect::consumer::CollectResult<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::vec::DrainProducer<&mut [zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>]>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::stored_transform_inner<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::vec::DrainProducer<&mut [zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>]>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::stored_transform_inner<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "rayon_core::join::join_context::<rayon_core::join::join::call<(), zopro_core::fft::pair::leaf::dit_bounded::{closure#0}>::{closure#0}, rayon_core::join::join::call<(), zopro_core::fft::pair::leaf::dit_bounded::{closure#1}>::{closure#0}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "rayon_core::join::join_context::call_b::<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, rayon_core::join::join::call<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, <zopro_core::groth16::PreparedFixedPoints>::windowed_outputs::{closure#1}>::{closure#0}>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "strncmp@plt"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "zopro_core::groth16::blinding_digits::<5>"
+        },
+        {
+          "samples": 1,
+          "share": 0.00008172605426610003,
+          "symbol": "zopro_core::output_fq"
+        }
+      ],
+      "categories": {
+        "Crossbeam with_handle": {
+          "samples": 1013,
+          "share": 0.08278849297155934
+        },
+        "G1 streamed add": {
+          "samples": 2472,
+          "share": 0.2020268061457993
+        },
+        "G1 tree reduce_layer": {
+          "samples": 658,
+          "share": 0.05377574370709382
+        },
+        "G2 streamed add": {
+          "samples": 1913,
+          "share": 0.15634194181104935
+        },
+        "G2 tree reduce_layer": {
+          "samples": 713,
+          "share": 0.05827067669172932
+        },
+        "other": {
+          "samples": 4319,
+          "share": 0.35297482837528604
+        },
+        "shared scalar Fq inverse": {
+          "samples": 936,
+          "share": 0.07649558679306963
+        },
+        "unknown": {
+          "samples": 212,
+          "share": 0.017325923504413206
+        }
+      },
+      "metadata": {
+        "absolute_period_coverage_not_validated": true,
+        "actual_pid": 1547873,
+        "categories": {
+          "FFT": 714,
+          "MSM_curve": 8217,
+          "allocator": 37,
+          "crossbeam_epoch": 1178,
+          "grouping": 77,
+          "inverse": 941,
+          "other": 211,
+          "runtime_or_inlined_payload": 403,
+          "solver": 201,
+          "unknown": 212,
+          "verification_field_extensions": 45
+        },
+        "period16M": true,
+        "qualified": true,
+        "samples": 12236,
+        "tids": [
+          1547873,
+          1547875,
+          1547876,
+          1547877,
+          1547878,
+          1547879,
+          1547880,
+          1547881,
+          1547882,
+          1547883,
+          1547884,
+          1547885,
+          1547886,
+          1547887,
+          1547888,
+          1547889,
+          1547890,
+          1547891,
+          1547892,
+          1547893,
+          1547894,
+          1547895,
+          1547896,
+          1547897,
+          1547898,
+          1547899,
+          1547900,
+          1547901,
+          1547902,
+          1547903,
+          1547904,
+          1547905,
+          1547906
+        ],
+        "unknown_share": 0.017325923504413206,
+        "zero_lost": true
+      },
+      "samples": 12236,
+      "workers": 32
+    }
+  },
+  "source_anchors": [
+    {
+      "file_sha256": "eda14cf185c08d1dff40f4b8a2da0b30cb53da59ca694af6089aa6133ef21631",
+      "line": 2189,
+      "meaning": "native canonical solver and conditional A / fused K+H / G2 query fork",
+      "path": "crates/zopro-core/src/lib.rs",
+      "token": "fn solve_canonical_wires"
+    },
+    {
+      "file_sha256": "0f45b7f0952003aba41933a6b2d0671386178edd86570f9eeba6a1f7dc35cbe7",
+      "line": 152,
+      "meaning": "equal-scalar base sums call group_affine before msm_raw",
+      "path": "crates/zopro-core/src/msm_affine.rs",
+      "token": "pub(super) fn msm_grouped<"
+    },
+    {
+      "file_sha256": "0f45b7f0952003aba41933a6b2d0671386178edd86570f9eeba6a1f7dc35cbe7",
+      "line": 1681,
+      "meaning": "exclusive B2 scalars choose separate G2 decomposition/grouping",
+      "path": "crates/zopro-core/src/msm_affine.rs",
+      "token": "pub(super) fn g2_query_exclusive("
+    },
+    {
+      "file_sha256": "0f45b7f0952003aba41933a6b2d0671386178edd86570f9eeba6a1f7dc35cbe7",
+      "line": 670,
+      "meaning": "narrow top digits collect order and call indexed tree plus weighted reduction",
+      "path": "crates/zopro-core/src/msm_affine.rs",
+      "token": "fn top_window<"
+    },
+    {
+      "file_sha256": "0f45b7f0952003aba41933a6b2d0671386178edd86570f9eeba6a1f7dc35cbe7",
+      "line": 469,
+      "meaning": "ordinary bucket filling and final weighted reduction are different functions",
+      "path": "crates/zopro-core/src/msm_affine.rs",
+      "token": "fn window<C:"
+    },
+    {
+      "file_sha256": "d616eb2e6542b358447099edea4a1c7923d6544c1e5840fa568df0d4f09caed9",
+      "line": 219,
+      "meaning": "equal-scalar groups copy host-limb points into worker scratch then reduce layers",
+      "path": "crates/zopro-core/src/msm.rs",
+      "token": "fn group_affine_impl<"
+    },
+    {
+      "file_sha256": "d616eb2e6542b358447099edea4a1c7923d6544c1e5840fa568df0d4f09caed9",
+      "line": 273,
+      "meaning": "G1 indexed leaf tiles use 2048 points, then grouped partial sums",
+      "path": "crates/zopro-core/src/msm.rs",
+      "token": "pub(super) fn reduce_indexed_buckets<"
+    },
+    {
+      "file_sha256": "d616eb2e6542b358447099edea4a1c7923d6544c1e5840fa568df0d4f09caed9",
+      "line": 313,
+      "meaning": "256-bucket parallel chunks allocate 2*n-1 host-limb tree slots and call weighted_sum",
+      "path": "crates/zopro-core/src/msm.rs",
+      "token": "pub(super) fn weighted_affine<"
+    },
+    {
+      "file_sha256": "d616eb2e6542b358447099edea4a1c7923d6544c1e5840fa568df0d4f09caed9",
+      "line": 1082,
+      "meaning": "each weighted level copies even points into corrections before reduce_layer",
+      "path": "crates/zopro-core/src/msm.rs",
+      "token": "fn weighted_sum<"
+    },
+    {
+      "file_sha256": "d616eb2e6542b358447099edea4a1c7923d6544c1e5840fa568df0d4f09caed9",
+      "line": 843,
+      "meaning": "separate streamed addition kernel; byte-exact between accepted and candidate",
+      "path": "crates/zopro-core/src/msm.rs",
+      "token": "fn stream_g1_impl<"
+    },
+    {
+      "file_sha256": "c61be1b7e294b9672b1f751613f596e514cebfd0575c2408f706e398358b0248",
+      "line": 17,
+      "meaning": "fused K/H selects borrowed pending path on supported native inputs",
+      "path": "crates/zopro-core/src/msm_affine/fused_kh.rs",
+      "token": "pub(crate)fn fused("
+    },
+    {
+      "file_sha256": "7fcc50692879a45774322565c2b7435905d5f0e3341d83252d5d95d69182e530",
+      "line": 64,
+      "meaning": "balanced K/H has20 windows then256-bucket weighted groups; no narrow-top special branch",
+      "path": "crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs",
+      "token": "pub(super) fn fused<"
+    }
+  ],
+  "stream_g1_body_sha256": "9a750af6da629accac099c9bdaa0568326bb1eababcbb871cd85211dbf71a464"
+}
