@@ -1,0 +1,24 @@
+{
+  "all_original_bytes_recovered": true,
+  "field_source_unchanged": true,
+  "gather_edits": [
+    {
+      "count": 2,
+      "new": "let a: [&Affine<C>; LANES] = core::array::from_fn(|i| &buckets[batch_index::<SIGNED>(batch[k + i].0)]);",
+      "old": "let a: [Affine<C>; LANES] = core::array::from_fn(|i| buckets[batch_index::<SIGNED>(batch[k + i].0)]);"
+    },
+    {
+      "count": 2,
+      "new": "let b: [&Affine<C>; LANES] = core::array::from_fn(|i| batch[k + i].1.borrow());",
+      "old": "let b: [Affine<C>; LANES] = core::array::from_fn(|i| *batch[k + i].1.borrow());"
+    }
+  ],
+  "lib_suffix": "\n#[doc(hidden)]pub use msm::gather_caller::{G1Caller,G2Caller};\n",
+  "msm_suffix": "\npub mod gather_caller;\nmod reference_gather;\n",
+  "new_tests": 3,
+  "original_kernel_body_exact": true,
+  "originals": 176,
+  "originals_exact": 174,
+  "production_changed": false,
+  "snapshot_files": 178
+}
