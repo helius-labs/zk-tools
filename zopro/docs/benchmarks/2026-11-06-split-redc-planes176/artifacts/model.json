@@ -1,0 +1,181 @@
+{
+  "coefficient_bound": "strictly below 64B = 2^58 = 288230376151711744",
+  "contexts": [
+    {
+      "field": "Fq",
+      "operation": "ordinary",
+      "outputs": 5169,
+      "radix_bits": 256
+    },
+    {
+      "field": "Fq",
+      "operation": "sum2",
+      "outputs": 7521,
+      "radix_bits": 256
+    },
+    {
+      "field": "Fq",
+      "operation": "difference2_original_complement",
+      "outputs": 7521,
+      "radix_bits": 256
+    },
+    {
+      "field": "Fq",
+      "operation": "ordinary",
+      "outputs": 5169,
+      "radix_bits": 260
+    },
+    {
+      "field": "Fq",
+      "operation": "sum2",
+      "outputs": 7521,
+      "radix_bits": 260
+    },
+    {
+      "field": "Fq",
+      "operation": "difference2_original_complement",
+      "outputs": 7521,
+      "radix_bits": 260
+    },
+    {
+      "field": "Fr",
+      "operation": "ordinary",
+      "outputs": 5169,
+      "radix_bits": 256
+    },
+    {
+      "field": "Fr",
+      "operation": "sum2",
+      "outputs": 7521,
+      "radix_bits": 256
+    },
+    {
+      "field": "Fr",
+      "operation": "difference2_original_complement",
+      "outputs": 7521,
+      "radix_bits": 256
+    },
+    {
+      "field": "Fr",
+      "operation": "ordinary",
+      "outputs": 5169,
+      "radix_bits": 260
+    },
+    {
+      "field": "Fr",
+      "operation": "sum2",
+      "outputs": 7521,
+      "radix_bits": 260
+    },
+    {
+      "field": "Fr",
+      "operation": "difference2_original_complement",
+      "outputs": 7521,
+      "radix_bits": 260
+    }
+  ],
+  "dependency_dag": [
+    {
+      "first_four_rows_ifma": 80,
+      "fused": false,
+      "max_merged_depth": 62,
+      "merged_coefficient_depths": [
+        62,
+        62,
+        62,
+        62,
+        58
+      ],
+      "next_row_frontier_ready_depth": 62,
+      "quotient_depths": [
+        8,
+        22,
+        38,
+        54
+      ],
+      "split_planes": false,
+      "weights": "IFMA4,add2,right52shift2; zero inputs/constant-folded sums excluded. Final common row/normalization not scored; no spills/allocation model"
+    },
+    {
+      "first_four_rows_ifma": 80,
+      "fused": false,
+      "max_merged_depth": 54,
+      "merged_coefficient_depths": [
+        52,
+        54,
+        54,
+        54,
+        50
+      ],
+      "next_row_frontier_ready_depth": 52,
+      "quotient_depths": [
+        8,
+        20,
+        32,
+        44
+      ],
+      "split_planes": true,
+      "weights": "IFMA4,add2,right52shift2; zero inputs/constant-folded sums excluded. Final common row/normalization not scored; no spills/allocation model"
+    },
+    {
+      "first_four_rows_ifma": 120,
+      "fused": true,
+      "max_merged_depth": 94,
+      "merged_coefficient_depths": [
+        94,
+        90,
+        90,
+        90,
+        86
+      ],
+      "next_row_frontier_ready_depth": 94,
+      "quotient_depths": [
+        12,
+        34,
+        58,
+        82
+      ],
+      "split_planes": false,
+      "weights": "IFMA4,add2,right52shift2; zero inputs/constant-folded sums excluded. Final common row/normalization not scored; no spills/allocation model"
+    },
+    {
+      "first_four_rows_ifma": 120,
+      "fused": true,
+      "max_merged_depth": 72,
+      "merged_coefficient_depths": [
+        70,
+        72,
+        72,
+        72,
+        68
+      ],
+      "next_row_frontier_ready_depth": 70,
+      "quotient_depths": [
+        12,
+        30,
+        46,
+        62
+      ],
+      "split_planes": true,
+      "weights": "IFMA4,add2,right52shift2; zero inputs/constant-folded sums excluded. Final common row/normalization not scored; no spills/allocation model"
+    }
+  ],
+  "digest": "1022f297e7a9bfa716946f239a66d222e34c0ee230308f27460352346cea7f76",
+  "endpoint_inputs": 22468,
+  "exact_reduced_outputs": 80844,
+  "exact_row_states": 404220,
+  "limits": "Exact finite-model/range/work evidence; no native instruction count, register allocation, spill, caller/proof latency or resource qualification. No formal proof or complete hardware schedule model.",
+  "mathematical_screen": "pass",
+  "max_finish": "66715953240459721",
+  "max_frontier": "52820302010188733",
+  "max_plane": "66715953240459721",
+  "max_sum": "58883576507504228",
+  "mixed_fused_subtract2p": 289,
+  "native_qualification_started": false,
+  "necessary_dependency_work_screen_passed": true,
+  "new_proofs": 0,
+  "production_changed": false,
+  "proof_ledger": 30846,
+  "reduced_radix_cancellation_checks": 2796192,
+  "status": "pass"
+}
