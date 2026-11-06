@@ -1,0 +1,5 @@
+# Preparation record
+
+All14new build/oracle/harness commands completed once successfully. The external harness binary also includes two unchanged perf_support tests, so its unfiltered run is3passed (one new broadcast harness test plus two inherited FIFO tests), not1passed. The first derived build-review helper expected only1 and stopped after checking source recovery and receipts. Originalhelper/stdout/stderr are retained ininitial-build-review/. Correct only this reader's expected population and require the named new harness test; no core/driver/test command is rerun. No timing/preflight/performance capture has started at this correction.
+
+Qualified native/portable core and field suites are inherited by exact source recovery. Newly built cores differ only through the required private weighted wrapper/export (plus the already-qualified candidate kernel or original control), so these are dependent new builds, not unchanged qualification rebuilds. Independent weighted-wrapper tests cover88cases perarm. The new harness test covers16non-timed contexts. Source field arithmetic/production weighted and unweighted algorithms are not changed during preparation.

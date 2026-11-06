@@ -1,0 +1,7 @@
+# Pre-capture allocation-counter correction
+
+Before any preflight or timing, source review found that the inherited globally shared AtomicUsize counted every allocation with a contended RFO. Fresh/weighted threaded cases could measure extra counter contention. This is instrumentation work, not a measured candidate result or a new kernel variant.
+
+Retain driver.rs and all original14successful commands/binaries as immutable preparation history. New driver-tls.rs replaces only allocation counting with a const-initialized thread-local Cell per worker. Each worker records its delta across the same start/work/finish boundary; main sums the deltas after release. There is no shared atomic increment in allocation hooks. Counts explicitly cover workers, not main/coordinator allocations; measured wall/CPU/fault windows and weighted/unweighted code remain unchanged. Weighted128/256 each has one production chunk inside the broadcast worker's pool; no unrelated helper work runs during the clock.
+
+Only changed consumers and harness binary are rebuilt in5newcommands. No core library, weighted-wrapper oracle, native/portable field/core suite or successful unchanged capture is repeated. The new no-clock harness tests require allocation counts positive for fresh cases and zero for reused tails, with the same16contexts/1,4,16,32workers/512KiB checks. Finalconsumer identities/codegen must bind the TLS binaries before freezing the performance protocol. Allsource/binaries/failedreader history is preserved. No candidate timing has occurred.
