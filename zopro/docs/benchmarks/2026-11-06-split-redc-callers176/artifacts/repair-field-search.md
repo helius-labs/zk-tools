@@ -1,0 +1,5 @@
+# Driver field dependency search repair
+
+Original workflow53211 is terminal1. Its core-OFF build, immediate freeze, test build and complete signed-tail/reuse test succeeded once. The subsequent driver-OFF compilation failed E0463 resolving zopro_core because its new transitive field library was absent from the inherited driver's dependency search paths. The core had already linked the correct frozen field; no field/core arithmetic or source changed.
+
+Preserve the original plan/protocol, four success directories and failed driver directory unchanged. A new repair-plan.json uses only the eight failed/unexecuted stages, adding the matching native frozen field directory to -L dependency and explicitly naming its field --extern for both driver builds. All other remaining stage arguments stay identical. The repair's input pins include prior successful core outputs and failed command receipts. Run into build-repair-field-search; do not resume/repeat the successful core-OFF or its tests, any native field stage, model, profile or decoder. No numerical gate, cfg, code-layout choice, measurement or compiler optimization flag changes.

@@ -1,0 +1,16 @@
+{
+  "core_runtime_arithmetic_original": true,
+  "driver_only_cfg_edit": true,
+  "field_qualification": "/home/ubuntu/src/zopro-perf-work/split-redc-native176/qualification.json",
+  "native_ancestor_files": 177,
+  "native_ancestor_unchanged": 175,
+  "new_adapter": "8d9e017190d2fd6cfe147b2f2b062cea5f765c127742fdd9f8526c7670ea0342",
+  "new_field_global_private_cfg": "zopro_split_redc_planes",
+  "no_rejected_core_kernel_inherited": true,
+  "original176_inverse_recovery": "native field three inverse edits plus strip two core diagnostic suffixes",
+  "snapshot_files": 178,
+  "two_core_append_suffixes": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)]pub use msm::validated_caller::{G1Caller,G2Caller};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod validated_caller;\n"
+  }
+}
