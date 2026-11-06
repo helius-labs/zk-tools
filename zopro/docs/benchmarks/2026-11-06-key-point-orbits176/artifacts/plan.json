@@ -1,0 +1,78 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/key-point-orbits176/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "/home/ubuntu/src/zopro-perf-work/key-point-orbits176/census.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libserde_json-792a1ccfa9d7a509acedb3e992a9c8158d940f10c0b04abe034fe51f74e5811f.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libsha2-1c93ccb1b17fec6ca7a76b00c9b7b3dcd3eab11efd897da6dc9ea59c955d7b30.rlib",
+        "--test",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/key-point-orbits176/census-tests"
+      ],
+      "kind": "command",
+      "name": "compile-tests",
+      "timeout_seconds": 1200
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/key-point-orbits176/census-tests",
+        "--test-threads=1"
+      ],
+      "kind": "command",
+      "name": "orbit-and-group-tests",
+      "timeout_seconds": 1200
+    },
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "/home/ubuntu/src/zopro-perf-work/key-point-orbits176/census.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libserde_json-792a1ccfa9d7a509acedb3e992a9c8158d940f10c0b04abe034fe51f74e5811f.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libsha2-1c93ccb1b17fec6ca7a76b00c9b7b3dcd3eab11efd897da6dc9ea59c955d7b30.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/key-point-orbits176/census"
+      ],
+      "kind": "command",
+      "name": "compile-census",
+      "timeout_seconds": 1200
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/key-point-orbits176/census"
+      ],
+      "kind": "command",
+      "name": "census",
+      "timeout_seconds": 1200
+    }
+  ],
+  "version": 1
+}
