@@ -1,0 +1,7 @@
+# Receipt schema repair
+
+qualify prepare failed before emitting an identity, case, plan or proof. It wrongly expected Cargo manifest/package variables in command.json. The actual xtask process::run records only managed runtime variables; workflow supplies the additional Cargo build variables from the pinned plan via envs. qualify2 checks exactly that receipt scope and preserves the full planned Cargo environment as invocation provenance. It does not claim independent receipt coverage of omitted variables.
+
+The first source/binary/build logs/failed prepare logs remain in failed-prepare1. The repair changes only helper names and receipt-schema handling. All ten native commands and eight tests are reused; no SDK has executed. Pin the runner source documenting this scope. Successful native stages are not repeated.
+
+The second helper successfully completes native receipt/test/driver/link review and emits identities.json, then fails because the historical case file has ten rows (nine32-worker shapes plus primary16), rather than the assumed nine. failed-prepare2 preserves source, helper, logs and the emitted identities. qualify3 resumes after that completed native review, binds its preserved output, selects exactly the nine32-worker rows and adds the two declared primary contexts. It does not repeat native review or native commands. The all11-context protocol is unchanged; no SDK proof or timing has occurred. Current runner source is pinned as an explanation of receipt scope, not independent proof of how the existing runner binary was built.
