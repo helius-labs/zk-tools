@@ -1,0 +1,15 @@
+# Mixed complete-caller result and next endpoint
+
+The fixed component gate fails28/76 checks:4control calibrations,23nonregressions,1aggregate gain. No component gate is changed or relabeled as passed. Production remains unchanged. All observations, positive estimates, calibrated regressions and original stop rule remain preserved.
+
+ALL24 ON/OFF is0.978825537 [0.975109177,0.984296994],15/15wins; ON/frozen0.978487233 [0.970725799,0.981001900],15/15. LOGICAL32 ON/OFF0.989557702 [0.979423685,1.004739496],11/15 crosses parity; ON/frozen0.982370151 [0.962408159,0.992414609],13/15. This capture is not globally calibrated. Calibrated G1 solo/physical16 improves about6–7% at all four sizes against both controls. Calibrated G2 solo regresses about1.4–1.9%,losingall15blocks;physical16 also regresses0.6–1.6%. Preserve the narrower positive SMT estimates without claiming a qualified universal gain.
+
+New work observations: selected G1 retired instructions fall6.3–6.8%; selected G2 instructions fall2.5–2.6%, but its solo cycles rise about2%. No port/cache/frequency/alignment causal mechanism is established. G1's actual emitted boundary includes its inlined caller; measured kernel/caller improvements are not proof latency or a validated whole-proof forecast. All18profiles qualify118886samples/zeroLOST.1164new complete callers plus24exact-boundreusedpreflights pass math/output/capacity/zeroalloc checks. No SDK proof executes in this capture.
+
+## Disclosed decision exception
+
+The pre-capture protocol said only a qualified component pass would select SDK work. We make an explicit engineering exception to that STOP decision, while keeping its failed statistical gate unchanged. The actual objective is verified full-proof latency. Stable opposite curve effects and a positive all-context estimate against both controls justify a FIRST whole-proof study of the unchanged combined candidate. An isolated nonregression filter is a stricter surrogate than that objective; it cannot establish the net pipeline effect.
+
+This exception does not adopt the candidate, select G1-only or16-only, alter widths/layout/attributes, repeat the same caller campaign, remove G2 losses, relax old intervals or imply that the aggregate predicts proof speed. The next study must be prospectively frozen before any SDK timing, cover ALL eight supplied shapes plusmerge54 with both controls, include low-thread primary behavior, and independently verify fresh proofs. Actual producer checks, solver/FFT/query/blinding/serialization/verification work remain included. No previously successful native/caller/profile stage is rerun for bookkeeping. No production change follows without full correctness, portable/resource and end-to-end evidence.
+
+This is a first test at a different endpoint with all unseen end-to-end data, not a reclassification or replacement of the component observations. A negative full-proof result must remain negative. The all-eight verifiedCPU10x goal staysACTIVE/UNMET0/8, accepted source176/SDK6d83/local1x2 7.928660ms unchanged. No question or additional authorization is needed for this reversible local study within the existing goal.
