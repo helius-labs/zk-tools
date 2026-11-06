@@ -1,0 +1,7 @@
+# Next research boundary
+
+The exact split-REDC-planes global candidate is closed. Its genuine1/16-worker gains and32-worker losses remain useful evidence, but do not implement a post-result topology subset or retry its row layout, width, annotations or unchanged arithmetic. Reducing partial register-chain scores while adding dynamic instructions did not establish the required high-thread gain. No full-proof speed estimate follows from the source DAG.
+
+Choose a distinct useful-work removal with a concrete whole-proof impact argument. Reuse current saved profiles and counter evidence; do not repeat field/model/caller builds, captures or decodes for bookkeeping, and do not start another generic profiling sweep. If examining existing solver/Poseidon code, audit the already closed dense-only sum3 experiment and the cold dense share before implementation; dense-only/RNS/whole-hash ideas are not new. A different hot consumer boundary still needs source/history proof and a prospective protocol. No next candidate is selected by this note.
+
+All original requirements remain: universal bounded memory, no multi-GiB tables/key copies/duplicate plans/new production pools or C/assembly rewrite, Rust/xtask, no questions/subagents, report every completed result politely and commit/push, keep the all-eight CPU10× goal with CPU/Metal comparisons active. Positive future actual-caller evidence still requires SDK all-eight+merge54, independent Gnark, resource and portable qualification before adoption.

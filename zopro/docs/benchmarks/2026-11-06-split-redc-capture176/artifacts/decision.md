@@ -1,0 +1,11 @@
+# Decision
+
+Close this global split-REDC-planes implementation without source adoption or an SDK trial. The fixed gate fails21/76 checks: four control calibrations,15 nonregression checks and both LOGICAL32 aggregate gain checks. Every context and observation remains in the result. No additional blocks, favorable subset, topology-only dispatch, layout/width/attribute retry or changed threshold rescues this experiment.
+
+Preserve the positive evidence. The ALL-context aggregate is0.9789119750991949 [0.9729841227539755,0.9831266029975776] versus fresh OFF (14/15 wins) and0.98665227490611 [0.9813358776880462,0.989753695463322] versus frozen (15/15). Every1/16-worker context improves against both controls with its interval below parity. These are complete-caller component gains, not full-proof gains, and the four32-worker calibration failures prevent a globally calibrated claim.
+
+The required both-curve LOGICAL32 aggregate is1.0117006288151282 [0.9906329073643714,1.0256303772168107],5/15 wins versus OFF, and1.036956242081473 [1.0187592553063256,1.0461909908424367],2/15 versus frozen. G2-352/353-w32 controls calibrate; candidate loses all15 blocks against both controls at each size. ON/OFF paired medians there are1.0464118233029758 and1.0369378450118065. Do not attribute those clear regressions solely to unrelated control failures elsewhere.
+
+All1279 workflow commands and1188 caller-output/capacity/zero-allocation checks succeed once. Finish and independent Rust review succeed once. All18 profiles qualify with119477 samples, zero loss and worker/ownership/period checks. Dynamic instructions rise about5.4–5.8% for G1 and6.3–6.5% for G2 in the declared PMU panels. Solo cycle gains coexist with G2-w32 cycle regressions of3.42%/4.00%. Static added work/stack operands and topology-sensitive timing are evidence of a tradeoff, not proof of a specific port/cache/store-forwarding bottleneck.
+
+Candidate caller max process RSS18.75MiB, unchanged scratch capacities and zero timed heap allocations do not establish full-proof memory or minimum RAM. No new proof, Gnark export, AWS/Aeglos, portability, huge-circuit or memory-pressure result. Accepted176/SDK6d83/local1x2 7.928660ms/merge54 161.883899ms remain unchanged; proof ledger30,846 and all-eight CPU10× goal stay active/unmet0/8.
