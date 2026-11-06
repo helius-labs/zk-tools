@@ -1,0 +1,8 @@
+#[cfg(test)]mod two_chain_tests{
+use super::*;
+#[test]fn saved_prefixes_match_independent_scalar_subset_products(){
+ for n in[0,1,7,8,9,16,24,32,40,64,199,200,201,351,352,511]{let mut fixture=G2Caller::new(n,19);fixture.run(1,true,true);fixture.check(1);let m=n/LANES;assert_eq!(fixture.scratch.prefix_records.len(),m);for j in 0..m{let expected: [Fq;LANES]=core::array::from_fn(|lane|{(0..j).filter(|h|h%2==j%2).map(|h|{let k=h*LANES+lane;let index=(fixture.owned[k].0&0x7fffffff)as usize;let d=fixture.incoming[k].x-fixture.source[index].x;d.c0.square()+d.c1.square()}).fold(Fq::ONE,|a,b|a*b)});assert_eq!(fixture.scratch.prefix_records[j][0].get(),expected);let norm:[Fq;LANES]=core::array::from_fn(|lane|{let k=j*LANES+lane;let index=(fixture.owned[k].0&0x7fffffff)as usize;let d=fixture.incoming[k].x-fixture.source[index].x;d.c0.square()+d.c1.square()});assert_eq!(fixture.scratch.prefix_records[j][1].get(),norm);}}
+}
+#[test]fn complete_changing_generator_tails_and_reuse(){for n in[0,1,7,8,9,15,16,17,31,32,33,63,64,65,199,200,201,351,352,353,511,512]{for seed in[0,19]{let mut f=G2Caller::new(n,seed);for path in[false,true]{for rounds in[1,3,17]{f.reset();f.run(rounds,path,true);f.check(rounds);}}}}}
+#[test]fn small_stack_threads_and_equal_capacity(){use rayon::prelude::*;for workers in[1,4,16,32]{let pool=rayon::ThreadPoolBuilder::new().num_threads(workers).stack_size(512*1024).build().unwrap();pool.install(||(0..workers).into_par_iter().for_each(|i|{for n in[200,352]{let mut f=G2Caller::new(n,i as u64+1);f.run(7,false,true);f.check(7);let capacity=f.capacities();f.reset();f.run(7,true,true);f.check(7);assert_eq!(f.capacities(),capacity);}}));}}
+}
