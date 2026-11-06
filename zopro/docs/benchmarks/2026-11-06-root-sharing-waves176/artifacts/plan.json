@@ -1,0 +1,2960 @@
+{
+  "environment": {
+    "MALLOC_ARENA_MAX": "32",
+    "MALLOC_MMAP_THRESHOLD_": "1073741824",
+    "MALLOC_TRIM_THRESHOLD_": "-1"
+  },
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "64",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "preflight-w1-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "64",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "preflight-w1-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "64",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "preflight-w1-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "64",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "preflight-w16-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "64",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "preflight-w16-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "64",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "preflight-w16-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "64",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "preflight-w32-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "64",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "preflight-w32-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "64",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "preflight-w32-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "preflight"
+      ],
+      "kind": "command",
+      "name": "preflight-check",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b00-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b00-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b00-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b00-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b00-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b00-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b00-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b00-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b00-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b01-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b01-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b01-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b01-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b01-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b01-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b01-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b01-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b01-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b02-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b02-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b02-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b02-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b02-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b02-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b02-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b02-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b02-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b03-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b03-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b03-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b03-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b03-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b03-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b03-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b03-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b03-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b04-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b04-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b04-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b04-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b04-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b04-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b04-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b04-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b04-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b05-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b05-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b05-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b05-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b05-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b05-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b05-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b05-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b05-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b06-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b06-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b06-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b06-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b06-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b06-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b06-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b06-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b06-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b07-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b07-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b07-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b07-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b07-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b07-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b07-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b07-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b07-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b08-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b08-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b08-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b08-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b08-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b08-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b08-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b08-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b08-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b09-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b09-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b09-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b09-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b09-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b09-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b09-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b09-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b09-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b10-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b10-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b10-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b10-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b10-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b10-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b10-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b10-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b10-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b11-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b11-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b11-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b11-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b11-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b11-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b11-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b11-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b11-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b12-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b12-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b12-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b12-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b12-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b12-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b12-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b12-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b12-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b13-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b13-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b13-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b13-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b13-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b13-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b13-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b13-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b13-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b14-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b14-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w32-b14-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b14-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b14-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "1",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w1-b14-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-b"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b14-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "shared"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b14-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "262144",
+        "control-a"
+      ],
+      "kind": "command",
+      "name": "latency-w16-b14-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "{cycles:u,instructions:u,cache-misses:u,branch-misses:u}",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/stat/stat-w16-control-a.csv",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "524288",
+        "control-a"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "stat-w16-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "{cycles:u,instructions:u,cache-misses:u,branch-misses:u}",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/stat/stat-w16-control-b.csv",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "524288",
+        "control-b"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "stat-w16-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "{cycles:u,instructions:u,cache-misses:u,branch-misses:u}",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/stat/stat-w16-shared.csv",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "4194304",
+        "shared"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "stat-w16-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "{cycles:u,instructions:u,cache-misses:u,branch-misses:u}",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/stat/stat-w32-control-a.csv",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "524288",
+        "control-a"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "stat-w32-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "{cycles:u,instructions:u,cache-misses:u,branch-misses:u}",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/stat/stat-w32-control-b.csv",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "524288",
+        "control-b"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "stat-w32-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "stat",
+        "--no-big-num",
+        "-x",
+        ";",
+        "-e",
+        "{cycles:u,instructions:u,cache-misses:u,branch-misses:u}",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/stat/stat-w32-shared.csv",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "4194304",
+        "shared"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "stat-w32-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "--sample-cpu",
+        "--timestamp",
+        "-P",
+        "-e",
+        "cycles:u",
+        "-c",
+        "16000000",
+        "-m",
+        "512",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-a.data",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "2097152",
+        "control-a"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "cycles-w16-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "--sample-cpu",
+        "--timestamp",
+        "-P",
+        "-e",
+        "cycles:u",
+        "-c",
+        "16000000",
+        "-m",
+        "512",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-b.data",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "2097152",
+        "control-b"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "cycles-w16-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "--sample-cpu",
+        "--timestamp",
+        "-P",
+        "-e",
+        "cycles:u",
+        "-c",
+        "16000000",
+        "-m",
+        "512",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-shared.data",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-15",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "16",
+        "16777216",
+        "shared"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "cycles-w16-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "--sample-cpu",
+        "--timestamp",
+        "-P",
+        "-e",
+        "cycles:u",
+        "-c",
+        "16000000",
+        "-m",
+        "512",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-a.data",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "2097152",
+        "control-a"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "cycles-w32-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "--sample-cpu",
+        "--timestamp",
+        "-P",
+        "-e",
+        "cycles:u",
+        "-c",
+        "16000000",
+        "-m",
+        "512",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-b.data",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "2097152",
+        "control-b"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "cycles-w32-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "env",
+        "MALLOC_ARENA_MAX=32",
+        "MALLOC_MMAP_THRESHOLD_=1073741824",
+        "MALLOC_TRIM_THRESHOLD_=-1",
+        "ZOPRO_BENCH_PERF_ACK=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL=/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl",
+        "perf",
+        "record",
+        "--no-buildid-cache",
+        "--sample-cpu",
+        "--timestamp",
+        "-P",
+        "-e",
+        "cycles:u",
+        "-c",
+        "16000000",
+        "-m",
+        "512",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-shared.data",
+        "--delay=-1",
+        "--control=fifo:/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl,/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "--",
+        "taskset",
+        "-c",
+        "0-31",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-feasibility176/driver",
+        "32",
+        "16777216",
+        "shared"
+      ],
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_PERF_ACK": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ack",
+        "ZOPRO_BENCH_PERF_CTL": "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/ctl"
+      },
+      "kind": "command",
+      "name": "cycles-w32-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "own",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-a.data"
+      ],
+      "kind": "command",
+      "name": "own-cycles-w16-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-a.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-w16-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-a.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--show-lost-events"
+      ],
+      "kind": "command",
+      "name": "metadata-cycles-w16-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-a.data"
+      ],
+      "kind": "command",
+      "name": "events-cycles-w16-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-a.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-w16-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "own",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-b.data"
+      ],
+      "kind": "command",
+      "name": "own-cycles-w16-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-b.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-w16-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-b.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--show-lost-events"
+      ],
+      "kind": "command",
+      "name": "metadata-cycles-w16-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-b.data"
+      ],
+      "kind": "command",
+      "name": "events-cycles-w16-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-control-b.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-w16-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "own",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-shared.data"
+      ],
+      "kind": "command",
+      "name": "own-cycles-w16-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-shared.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-w16-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-shared.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--show-lost-events"
+      ],
+      "kind": "command",
+      "name": "metadata-cycles-w16-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-shared.data"
+      ],
+      "kind": "command",
+      "name": "events-cycles-w16-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w16-shared.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-w16-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "own",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-a.data"
+      ],
+      "kind": "command",
+      "name": "own-cycles-w32-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-a.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-w32-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-a.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--show-lost-events"
+      ],
+      "kind": "command",
+      "name": "metadata-cycles-w32-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-a.data"
+      ],
+      "kind": "command",
+      "name": "events-cycles-w32-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-a.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-w32-control-a",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "own",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-b.data"
+      ],
+      "kind": "command",
+      "name": "own-cycles-w32-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-b.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-w32-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-b.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--show-lost-events"
+      ],
+      "kind": "command",
+      "name": "metadata-cycles-w32-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-b.data"
+      ],
+      "kind": "command",
+      "name": "events-cycles-w32-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-control-b.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-w32-control-b",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "own",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-shared.data"
+      ],
+      "kind": "command",
+      "name": "own-cycles-w32-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-shared.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym"
+      ],
+      "kind": "command",
+      "name": "decode-cycles-w32-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--header",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-shared.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--show-lost-events"
+      ],
+      "kind": "command",
+      "name": "metadata-cycles-w32-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-shared.data"
+      ],
+      "kind": "command",
+      "name": "events-cycles-w32-shared",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/campaign",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/root-sharing-waves176/perf/cycles-w32-shared.data"
+      ],
+      "kind": "command",
+      "name": "loss-cycles-w32-shared",
+      "timeout_seconds": 600
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,131 @@
+{
+  "CPU_and_unpaired_wall_diagnostics": [
+    {
+      "shared_control_a_CPU_time_ratio": 0.9978212448872149,
+      "shared_control_a_wave_ns_ratio_of_unpaired_medians": 0.9978498816791415,
+      "workers": 1
+    },
+    {
+      "shared_control_a_CPU_time_ratio": 0.08180655355328993,
+      "shared_control_a_wave_ns_ratio_of_unpaired_medians": 1.2658624981276632,
+      "workers": 16
+    },
+    {
+      "shared_control_a_CPU_time_ratio": 0.03225783989917395,
+      "shared_control_a_wave_ns_ratio_of_unpaired_medians": 0.9725886736303316,
+      "workers": 32
+    }
+  ],
+  "PMU_ratios": {
+    "16": {
+      "branch-misses:u": {
+        "shared_control_a": 0.0793630520677733,
+        "shared_control_b": 0.09459693386771996
+      },
+      "cache-misses:u": {
+        "shared_control_a": 1.4093479307025987,
+        "shared_control_b": 1.6541231290595877
+      },
+      "cycles:u": {
+        "shared_control_a": 0.08616831763691349,
+        "shared_control_b": 0.08644771737122647
+      },
+      "instructions:u": {
+        "shared_control_a": 0.07719559968228458,
+        "shared_control_b": 0.07719561292629874
+      }
+    },
+    "32": {
+      "branch-misses:u": {
+        "shared_control_a": 0.011007398718561661,
+        "shared_control_b": 0.009273420732395381
+      },
+      "cache-misses:u": {
+        "shared_control_a": 0.1437039339312672,
+        "shared_control_b": 0.09128215252707582
+      },
+      "cycles:u": {
+        "shared_control_a": 0.034788452407165764,
+        "shared_control_b": 0.03439292035501897
+      },
+      "instructions:u": {
+        "shared_control_a": 0.04336775730558362,
+        "shared_control_b": 0.04336775614595337
+      }
+    }
+  },
+  "adopted": false,
+  "analysis_sha256": "5fa5d9a52ddb92b9d6dfd663edfbc494cfd714c0cd0b694dcc6e5e57fe704fea",
+  "broker_implemented": false,
+  "classes": {
+    "check": 1,
+    "cycles": 6,
+    "decode": 6,
+    "events": 6,
+    "latency": 135,
+    "loss": 6,
+    "metadata": 6,
+    "own": 6,
+    "preflight": 9,
+    "stat": 6
+  },
+  "commands_checked": 187,
+  "drivers_checked": 156,
+  "equal_round_hashes_compared": true,
+  "failed_timing_checks": [
+    "threaded/shared/control-a/gain",
+    "threaded/shared/control-b/gain",
+    "w16/shared/control-a/gain",
+    "w16/shared/control-a/nonregression",
+    "w16/shared/control-b/gain",
+    "w16/shared/control-b/nonregression"
+  ],
+  "gate_passed": false,
+  "new_proofs": 0,
+  "pins_checked": 329,
+  "profile_samples": 49708,
+  "profiles_checked": {
+    "cycles-w16-control-a": {
+      "active_worker_samples": 5424,
+      "qualified": true,
+      "samples": 5424,
+      "unknown_samples": 2
+    },
+    "cycles-w16-control-b": {
+      "active_worker_samples": 5409,
+      "qualified": true,
+      "samples": 5409,
+      "unknown_samples": 1
+    },
+    "cycles-w16-shared": {
+      "active_worker_samples": 3741,
+      "qualified": true,
+      "samples": 3741,
+      "unknown_samples": 2
+    },
+    "cycles-w32-control-a": {
+      "active_worker_samples": 15361,
+      "qualified": true,
+      "samples": 15361,
+      "unknown_samples": 8
+    },
+    "cycles-w32-control-b": {
+      "active_worker_samples": 15509,
+      "qualified": true,
+      "samples": 15509,
+      "unknown_samples": 12
+    },
+    "cycles-w32-shared": {
+      "active_worker_samples": 4264,
+      "qualified": true,
+      "samples": 4264,
+      "unknown_samples": 2
+    }
+  },
+  "proof_ledger": 30846,
+  "review_passed": true,
+  "reviewer_binary_sha256": "f604b857b70000b1c060f03601b12f7a34a49af7d8418fb5e64b95af34e0f129",
+  "reviewer_source_sha256": "4211bc58384ab02f21b32e6f8e5147e7d3bc85491d406fe66094ed761d61c0df",
+  "timing_checks": 15,
+  "unequal_duration_diagnostic_sums_checked_by_pinned_driver": true
+}
