@@ -1,0 +1,179 @@
+{
+  "all176_originals_recovered": true,
+  "clones": {
+    "borrowed_feed": {
+      "candidate": "fn feed<'a>(\n        state: &mut Window<'a>,\n        bases: &'a [G2Affine],\n        short: &[[u64; 4]],\n        high: bool,\n        span: Span,\n        size: usize,\n    ) {\n        for (p, s) in bases.iter().zip(short) {\n            let d = component(s, high, span);\n            if d == 0 || p.is_identity() {\n                continue;\n            }\n            let b = d.unsigned_abs() as usize - 1;\n            let encoded = b as u32 | if d < 0 { 1 << 31 } else { 0 };\n            if state.busy(b) {\n                state.queue.push((encoded, p));\n                if state.queue.len() == size - 1 {\n                    state.flush_queue();\n                }\n                continue;\n            }\n            state.add(encoded, p);\n            if state.batch.len() == size {\n                state.execute();\n                state.take_from_queue();\n            }\n        }\n        state.execute();\n        state.flush_queue();\n    }",
+      "edits": [
+        [
+          "    fn feed(",
+          "fn feed("
+        ],
+        [
+          "        &mut self,",
+          "        state: &mut Window<'_>,"
+        ],
+        [
+          "        w: usize,\n        bits: usize,",
+          "        span: Span,"
+        ],
+        [
+          "component(s, high, w, bits)",
+          "component(s, high, span)"
+        ],
+        [
+          "fn feed(\n        state: &mut Window<'_>,\n        bases: &'a [G2Affine],\n        short: &[[u64; 4]],\n        high: bool,\n        span: Span,\n        size: usize,\n    ) {\n        for (p, s) in bases.iter().zip(short) {\n            let d = component(s, high, span);\n            if d == 0 || p.is_identity() {\n                continue;\n            }\n            let b = d.unsigned_abs() as usize - 1;\n            let encoded = b as u32 | if d < 0 { 1 << 31 } else { 0 };\n            if self.busy(b) {\n                self.queue.push((encoded, p));\n                if self.queue.len() == size - 1 {\n                    self.flush_queue();\n                }\n                continue;\n            }\n            self.add(encoded, p);\n            if self.batch.len() == size {\n                self.execute();\n                self.take_from_queue();\n            }\n        }\n        self.execute();\n        self.flush_queue();\n    }",
+          "fn feed(\n        state: &mut Window<'_>,\n        bases: &'a [G2Affine],\n        short: &[[u64; 4]],\n        high: bool,\n        span: Span,\n        size: usize,\n    ) {\n        for (p, s) in bases.iter().zip(short) {\n            let d = component(s, high, span);\n            if d == 0 || p.is_identity() {\n                continue;\n            }\n            let b = d.unsigned_abs() as usize - 1;\n            let encoded = b as u32 | if d < 0 { 1 << 31 } else { 0 };\n            if state.busy(b) {\n                state.queue.push((encoded, p));\n                if state.queue.len() == size - 1 {\n                    state.flush_queue();\n                }\n                continue;\n            }\n            state.add(encoded, p);\n            if state.batch.len() == size {\n                state.execute();\n                state.take_from_queue();\n            }\n        }\n        state.execute();\n        state.flush_queue();\n    }"
+        ],
+        [
+          "fn feed(\n        state: &mut Window<'_>,\n        bases: &'a [G2Affine],\n        short: &[[u64; 4]],\n        high: bool,\n        span: Span,\n        size: usize,\n    ) {\n        for (p, s) in bases.iter().zip(short) {\n            let d = component(s, high, span);\n            if d == 0 || p.is_identity() {\n                continue;\n            }\n            let b = d.unsigned_abs() as usize - 1;\n            let encoded = b as u32 | if d < 0 { 1 << 31 } else { 0 };\n            if state.busy(b) {\n                state.queue.push((encoded, p));\n                if state.queue.len() == size - 1 {\n                    state.flush_queue();\n                }\n                continue;\n            }\n            state.add(encoded, p);\n            if state.batch.len() == size {\n                state.execute();\n                state.take_from_queue();\n            }\n        }\n        state.execute();\n        state.flush_queue();\n    }",
+          "fn feed<'a>(\n        state: &mut Window<'a>,\n        bases: &'a [G2Affine],\n        short: &[[u64; 4]],\n        high: bool,\n        span: Span,\n        size: usize,\n    ) {\n        for (p, s) in bases.iter().zip(short) {\n            let d = component(s, high, span);\n            if d == 0 || p.is_identity() {\n                continue;\n            }\n            let b = d.unsigned_abs() as usize - 1;\n            let encoded = b as u32 | if d < 0 { 1 << 31 } else { 0 };\n            if state.busy(b) {\n                state.queue.push((encoded, p));\n                if state.queue.len() == size - 1 {\n                    state.flush_queue();\n                }\n                continue;\n            }\n            state.add(encoded, p);\n            if state.batch.len() == size {\n                state.execute();\n                state.take_from_queue();\n            }\n        }\n        state.execute();\n        state.flush_queue();\n    }"
+        ]
+      ],
+      "original": "    fn feed(\n        &mut self,\n        bases: &'a [G2Affine],\n        short: &[[u64; 4]],\n        high: bool,\n        w: usize,\n        bits: usize,\n        size: usize,\n    ) {\n        for (p, s) in bases.iter().zip(short) {\n            let d = component(s, high, w, bits);\n            if d == 0 || p.is_identity() {\n                continue;\n            }\n            let b = d.unsigned_abs() as usize - 1;\n            let encoded = b as u32 | if d < 0 { 1 << 31 } else { 0 };\n            if self.busy(b) {\n                self.queue.push((encoded, p));\n                if self.queue.len() == size - 1 {\n                    self.flush_queue();\n                }\n                continue;\n            }\n            self.add(encoded, p);\n            if self.batch.len() == size {\n                self.execute();\n                self.take_from_queue();\n            }\n        }\n        self.execute();\n        self.flush_queue();\n    }",
+      "self_receiver_substitutions": 10
+    },
+    "borrowed_window": {
+      "candidate": "pub(in crate::msm_affine) fn try_span(\n    bases: &[G2Affine],\n    short: &[[u64; 4]],\n    span: Span,\n) -> Option<Vec<G2Affine>> {\n    let packed = BatchAdd::default();\n    if !packed.borrowed_g2_enabled() {\n        return None;\n    }\n    let bits = span.width;\n    let size = batch_size(bits).max(32);\n    let mut s = Window::new(1 << (bits - 1), size, packed);\n    feed(&mut s, bases, short, true, span, size);\n    debug_assert!(s.batch.is_empty() && s.queue.is_empty());\n    for p in &mut s.affine {\n        if !p.is_identity() {\n            p.x = p.x.mul_by_fp(&BETA);\n        }\n    }\n    for p in &mut s.projective {\n        p.x = p.x.mul_by_fp(&BETA);\n    }\n    feed(&mut s, bases, short, false, span, size);\n    Some(s.finish())\n}",
+      "edits": [
+        [
+          "pub(super) fn try_window(",
+          "pub(in crate::msm_affine) fn try_span("
+        ],
+        [
+          "    w: usize,\n    bits: usize,",
+          "    span: Span,"
+        ],
+        [
+          "    let size = batch_size(bits).max(32);",
+          "    let bits = span.width;\n    let size = batch_size(bits).max(32);"
+        ],
+        [
+          "s.feed(bases, short, true, w, bits, size);",
+          "feed(&mut s, bases, short, true, span, size);"
+        ],
+        [
+          "s.feed(bases, short, false, w, bits, size);",
+          "feed(&mut s, bases, short, false, span, size);"
+        ]
+      ],
+      "original": "pub(super) fn try_window(\n    bases: &[G2Affine],\n    short: &[[u64; 4]],\n    w: usize,\n    bits: usize,\n) -> Option<Vec<G2Affine>> {\n    let packed = BatchAdd::default();\n    if !packed.borrowed_g2_enabled() {\n        return None;\n    }\n    let size = batch_size(bits).max(32);\n    let mut s = Window::new(1 << (bits - 1), size, packed);\n    s.feed(bases, short, true, w, bits, size);\n    debug_assert!(s.batch.is_empty() && s.queue.is_empty());\n    for p in &mut s.affine {\n        if !p.is_identity() {\n            p.x = p.x.mul_by_fp(&BETA);\n        }\n    }\n    for p in &mut s.projective {\n        p.x = p.x.mul_by_fp(&BETA);\n    }\n    s.feed(bases, short, false, w, bits, size);\n    Some(s.finish())\n}"
+    },
+    "phi_raw": {
+      "candidate": "pub(in crate::msm_affine) fn raw_exclusive(bases: &[G2Affine], short: &mut [[u64; 4]]) -> (G2Projective, bool) {\n    if !(1024..65536).contains(&bases.len()) || !super::super::workspace::indexed_mixed_fits(bases.len()).unwrap_or(false) {\n        return (super::raw_exclusive(bases, short), false);\n    }\n    let parts = 2;\n    assert_eq!(bases.len(), short.len());\n    short.par_iter_mut().for_each(|s| *s = phi_split(*s));\n    let chunk = bases.len().div_ceil(parts);\n    let cover = spans();\n    let windows = cover.len();\n    let sums: Vec<_> = (0..windows)\n        .into_par_iter()\n        .map(|w| {\n            let mut buckets: Vec<_> = (0..parts)\n                .into_par_iter()\n                .map(|part| {\n                    let start = (part * chunk).min(bases.len());\n                    let end = (start + chunk).min(bases.len());\n                    hb_window(&bases[start..end], &short[start..end], cover[w])\n                })\n                .collect();\n            let mut combined = buckets.swap_remove(0);\n            for b in buckets {\n                merge_buckets(&mut combined, &b);\n            }\n            crate::msm::weighted_affine(&combined)\n        })\n        .collect();\n    let mut result = G2Projective::IDENTITY;\n    for (i, sum) in sums.iter().enumerate().rev() {\n        let shifts = if i == windows - 1 { 0 } else { cover[i].width };\n        for _ in 0..shifts {\n            result = result.double();\n        }\n        result += sum;\n    }\n    (result, true)\n}",
+      "edits": [
+        [
+          "fn hb_raw(bases: &[G2Affine], short: &mut [[u64; 4]], bits: usize, parts: usize) -> G2Projective {",
+          "pub(in crate::msm_affine) fn raw_exclusive(bases: &[G2Affine], short: &mut [[u64; 4]]) -> (G2Projective, bool) {\n    if !(1024..65536).contains(&bases.len()) || !super::super::workspace::indexed_mixed_fits(bases.len()).unwrap_or(false) {\n        return (super::raw_exclusive(bases, short), false);\n    }\n    let parts = 2;"
+        ],
+        [
+          "    let windows = 127usize.div_ceil(bits);",
+          "    let cover = spans();\n    let windows = cover.len();"
+        ],
+        [
+          "hb_window(&bases[start..end], &short[start..end], w, bits)",
+          "hb_window(&bases[start..end], &short[start..end], cover[w])"
+        ],
+        [
+          "    for sum in sums.iter().rev() {\n        for _ in 0..bits {",
+          "    for (i, sum) in sums.iter().enumerate().rev() {\n        let shifts = if i == windows - 1 { 0 } else { cover[i].width };\n        for _ in 0..shifts {"
+        ],
+        [
+          "    result\n}",
+          "    (result, true)\n}"
+        ]
+      ],
+      "original": "fn hb_raw(bases: &[G2Affine], short: &mut [[u64; 4]], bits: usize, parts: usize) -> G2Projective {\n    assert_eq!(bases.len(), short.len());\n    short.par_iter_mut().for_each(|s| *s = phi_split(*s));\n    let chunk = bases.len().div_ceil(parts);\n    let windows = 127usize.div_ceil(bits);\n    let sums: Vec<_> = (0..windows)\n        .into_par_iter()\n        .map(|w| {\n            let mut buckets: Vec<_> = (0..parts)\n                .into_par_iter()\n                .map(|part| {\n                    let start = (part * chunk).min(bases.len());\n                    let end = (start + chunk).min(bases.len());\n                    hb_window(&bases[start..end], &short[start..end], w, bits)\n                })\n                .collect();\n            let mut combined = buckets.swap_remove(0);\n            for b in buckets {\n                merge_buckets(&mut combined, &b);\n            }\n            crate::msm::weighted_affine(&combined)\n        })\n        .collect();\n    let mut result = G2Projective::IDENTITY;\n    for sum in sums.iter().rev() {\n        for _ in 0..bits {\n            result = result.double();\n        }\n        result += sum;\n    }\n    result\n}"
+    },
+    "phi_window": {
+      "candidate": "fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], span: Span) -> Vec<G2Affine> {\n    let bits = span.width;\n    if span.start == 118 {\n        let top = 8;\n        // Each component's temporary index/tree workspace is released before the next.\n        let mut high = hb_top_component(bases, short, true, span, top);\n        for p in &mut high {\n            if !p.is_identity() {\n                p.x = p.x.mul_by_fp(&BETA);\n            }\n        }\n        let low = hb_top_component(bases, short, false, span, top);\n        merge_buckets(&mut high, &low);\n        return high;\n    }\n    #[cfg(all(zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    if let Some(value) = super::super::g2_borrowed::indexed_mixed::try_span(bases, short, span) {\n        return value;\n    }\n    let size = batch_size(bits).max(32);\n    let mut state = fill_window_impl::<G2Config, false, false>(\n        bases,\n        short.iter().map(|s| component(s, true, span)),\n        bits,\n        size,\n    );\n    assert!(state.batch.is_empty() && state.queue.is_empty());\n    for p in &mut state.affine {\n        if !p.is_identity() {\n            p.x = p.x.mul_by_fp(&BETA);\n        }\n    }\n    for p in &mut state.projective {\n        p.x = p.x.mul_by_fp(&BETA);\n    }\n    for (base, d) in bases\n        .iter()\n        .zip(short.iter().map(|s| component(s, false, span)))\n    {\n        if d == 0 || base.is_identity() {\n            continue;\n        }\n        let bucket = d.unsigned_abs() as usize - 1;\n        let point = if d < 0 { -*base } else { *base };\n        if state.busy(bucket) {\n            state.queue.push((bucket as u32, point));\n            if state.queue.len() == size - 1 {\n                state.flush_queue();\n            }\n            continue;\n        }\n        state.add(bucket, point);\n        if state.batch.len() == size {\n            state.execute();\n            state.take_from_queue();\n        }\n    }\n    state.execute();\n    state.flush_queue();\n    affine_buckets(state)\n}",
+      "edits": [
+        [
+          "w: usize, bits: usize)",
+          "span: Span)"
+        ],
+        [
+          "    if w + 1 == 127usize.div_ceil(bits) && 126 - w * bits <= 8 {\n        let top = 126 - w * bits;",
+          "    let bits = span.width;\n    if span.start == 118 {\n        let top = 8;"
+        ],
+        [
+          "hb_top_component(bases, short, true, w, bits, top)",
+          "hb_top_component(bases, short, true, span, top)"
+        ],
+        [
+          "hb_top_component(bases, short, false, w, bits, top)",
+          "hb_top_component(bases, short, false, span, top)"
+        ],
+        [
+          "super::g2_borrowed::try_window(bases, short, w, bits)",
+          "super::super::g2_borrowed::indexed_mixed::try_span(bases, short, span)"
+        ],
+        [
+          "hb_digit(s, true, w, bits)",
+          "component(s, true, span)"
+        ],
+        [
+          "hb_digit(s, false, w, bits)",
+          "component(s, false, span)"
+        ]
+      ],
+      "original": "fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> Vec<G2Affine> {\n    if w + 1 == 127usize.div_ceil(bits) && 126 - w * bits <= 8 {\n        let top = 126 - w * bits;\n        // Each component's temporary index/tree workspace is released before the next.\n        let mut high = hb_top_component(bases, short, true, w, bits, top);\n        for p in &mut high {\n            if !p.is_identity() {\n                p.x = p.x.mul_by_fp(&BETA);\n            }\n        }\n        let low = hb_top_component(bases, short, false, w, bits, top);\n        merge_buckets(&mut high, &low);\n        return high;\n    }\n    #[cfg(all(zopro_g2_horner_buckets,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    if let Some(value) = super::g2_borrowed::try_window(bases, short, w, bits) {\n        return value;\n    }\n    let size = batch_size(bits).max(32);\n    let mut state = fill_window_impl::<G2Config, false, false>(\n        bases,\n        short.iter().map(|s| hb_digit(s, true, w, bits)),\n        bits,\n        size,\n    );\n    assert!(state.batch.is_empty() && state.queue.is_empty());\n    for p in &mut state.affine {\n        if !p.is_identity() {\n            p.x = p.x.mul_by_fp(&BETA);\n        }\n    }\n    for p in &mut state.projective {\n        p.x = p.x.mul_by_fp(&BETA);\n    }\n    for (base, d) in bases\n        .iter()\n        .zip(short.iter().map(|s| hb_digit(s, false, w, bits)))\n    {\n        if d == 0 || base.is_identity() {\n            continue;\n        }\n        let bucket = d.unsigned_abs() as usize - 1;\n        let point = if d < 0 { -*base } else { *base };\n        if state.busy(bucket) {\n            state.queue.push((bucket as u32, point));\n            if state.queue.len() == size - 1 {\n                state.flush_queue();\n            }\n            continue;\n        }\n        state.add(bucket, point);\n        if state.batch.len() == size {\n            state.execute();\n            state.take_from_queue();\n        }\n    }\n    state.execute();\n    state.flush_queue();\n    affine_buckets(state)\n}"
+    },
+    "query": {
+      "candidate": "pub(super) fn g2_query_indexed_mixed(\n    bases: &[zopro_bn254::G2Affine],\n    words: &mut [[u64; 4]],\n) -> (zopro_bn254::G2Projective, bool) {\n    assert_eq!(bases.len(), words.len());\n    let groups = crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n        .then(|| scalar_groups(words))\n        .flatten();\n    #[cfg(all(\n        zopro_g2_horner_buckets,\n        target_arch = \"x86_64\",\n        target_feature = \"avx512ifma\",\n        target_feature = \"avx512vl\",\n        target_feature = \"avx512dq\",\n        feature = \"ifma8\",\n        not(no_ifma)\n    ))]\n    if (1024..65536).contains(&bases.len()) {\n        if let Some(mut g) = groups {\n            if !(1024..65536).contains(&g.values.len()) {\n                return (crate::msm_grouped_b2(bases, &g), false);\n            }\n            let points = crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts);\n            return g2_phi::indexed_mixed::raw_exclusive(&points, &mut g.values);\n        }\n        return g2_phi::indexed_mixed::raw_exclusive(bases, words);\n    }\n    (match groups {\n        Some(g) => crate::msm_grouped_b2(bases, &g),\n        None => crate::msm_raw_b2(bases, words),\n    }, false)\n}",
+      "edits": [
+        [
+          "pub(super) fn g2_query_exclusive(",
+          "pub(super) fn g2_query_indexed_mixed("
+        ],
+        [
+          ") -> zopro_bn254::G2Projective {",
+          ") -> (zopro_bn254::G2Projective, bool) {"
+        ],
+        [
+          "return crate::msm_grouped_b2(bases, &g);",
+          "return (crate::msm_grouped_b2(bases, &g), false);"
+        ],
+        [
+          "g2_phi::raw_exclusive(&points, &mut g.values)",
+          "g2_phi::indexed_mixed::raw_exclusive(&points, &mut g.values)"
+        ],
+        [
+          "g2_phi::raw_exclusive(bases, words)",
+          "g2_phi::indexed_mixed::raw_exclusive(bases, words)"
+        ],
+        [
+          "    match groups {\n        Some(g) => crate::msm_grouped_b2(bases, &g),\n        None => crate::msm_raw_b2(bases, words),\n    }",
+          "    (match groups {\n        Some(g) => crate::msm_grouped_b2(bases, &g),\n        None => crate::msm_raw_b2(bases, words),\n    }, false)"
+        ]
+      ],
+      "original": "pub(super) fn g2_query_exclusive(\n    bases: &[zopro_bn254::G2Affine],\n    words: &mut [[u64; 4]],\n) -> zopro_bn254::G2Projective {\n    assert_eq!(bases.len(), words.len());\n    let groups = crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n        .then(|| scalar_groups(words))\n        .flatten();\n    #[cfg(all(\n        zopro_g2_horner_buckets,\n        target_arch = \"x86_64\",\n        target_feature = \"avx512ifma\",\n        target_feature = \"avx512vl\",\n        target_feature = \"avx512dq\",\n        feature = \"ifma8\",\n        not(no_ifma)\n    ))]\n    if (1024..65536).contains(&bases.len()) {\n        if let Some(mut g) = groups {\n            if !(1024..65536).contains(&g.values.len()) {\n                return crate::msm_grouped_b2(bases, &g);\n            }\n            let points = crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts);\n            return g2_phi::raw_exclusive(&points, &mut g.values);\n        }\n        return g2_phi::raw_exclusive(bases, words);\n    }\n    match groups {\n        Some(g) => crate::msm_grouped_b2(bases, &g),\n        None => crate::msm_raw_b2(bases, words),\n    }\n}"
+    },
+    "top": {
+      "candidate": "fn hb_top_component(\n    bases: &[G2Affine],\n    short: &[[u64; 4]],\n    high: bool,\n    span: Span,\n    top: usize,\n) -> Vec<G2Affine> {\n    let n = 1usize << top;\n    let bucket = |d: i16| d.unsigned_abs() as usize - 1 + if d < 0 { n } else { 0 };\n    let mut counts = vec![0usize; 2 * n];\n    for (base, s) in bases.iter().zip(short) {\n        let d = component(s, high, span);\n        assert!(d.unsigned_abs() as usize <= n);\n        if d != 0 && !base.is_identity() {\n            counts[bucket(d)] += 1;\n        }\n    }\n    let mut starts = Vec::with_capacity(2 * n + 1);\n    starts.push(0);\n    for count in counts {\n        starts.push(starts.last().unwrap() + count);\n    }\n    let len = *starts.last().unwrap();\n    if len == 0 {\n        return vec![G2Affine::IDENTITY; n];\n    }\n    let mut positions = starts[..2 * n].to_vec();\n    let mut order = vec![0u32; len];\n    for (i, (base, s)) in bases.iter().zip(short).enumerate() {\n        let d = component(s, high, span);\n        if d != 0 && !base.is_identity() {\n            let b = bucket(d);\n            order[positions[b]] = i as u32;\n            positions[b] += 1;\n        }\n    }\n    let mut reduced = crate::msm::reduce_indexed_buckets(bases, &order, &starts);\n    let mut negative = reduced.split_off(n);\n    for p in &mut negative {\n        p.y = -p.y;\n    }\n    merge_buckets(&mut reduced, &negative);\n    reduced\n}",
+      "edits": [
+        [
+          "    w: usize,\n    bits: usize,",
+          "    span: Span,"
+        ],
+        [
+          "fn hb_top_component(\n    bases: &[G2Affine],\n    short: &[[u64; 4]],\n    high: bool,\n    span: Span,\n    top: usize,\n) -> Vec<G2Affine> {\n    let n = 1usize << top;\n    let bucket = |d: i16| d.unsigned_abs() as usize - 1 + if d < 0 { n } else { 0 };\n    let mut counts = vec![0usize; 2 * n];\n    for (base, s) in bases.iter().zip(short) {\n        let d = hb_digit(s, high, w, bits);\n        assert!(d.unsigned_abs() as usize <= n);\n        if d != 0 && !base.is_identity() {\n            counts[bucket(d)] += 1;\n        }\n    }\n    let mut starts = Vec::with_capacity(2 * n + 1);\n    starts.push(0);\n    for count in counts {\n        starts.push(starts.last().unwrap() + count);\n    }\n    let len = *starts.last().unwrap();\n    if len == 0 {\n        return vec![G2Affine::IDENTITY; n];\n    }\n    let mut positions = starts[..2 * n].to_vec();\n    let mut order = vec![0u32; len];\n    for (i, (base, s)) in bases.iter().zip(short).enumerate() {\n        let d = hb_digit(s, high, w, bits);\n        if d != 0 && !base.is_identity() {\n            let b = bucket(d);\n            order[positions[b]] = i as u32;\n            positions[b] += 1;\n        }\n    }\n    let mut reduced = crate::msm::reduce_indexed_buckets(bases, &order, &starts);\n    let mut negative = reduced.split_off(n);\n    for p in &mut negative {\n        p.y = -p.y;\n    }\n    merge_buckets(&mut reduced, &negative);\n    reduced\n}",
+          "fn hb_top_component(\n    bases: &[G2Affine],\n    short: &[[u64; 4]],\n    high: bool,\n    span: Span,\n    top: usize,\n) -> Vec<G2Affine> {\n    let n = 1usize << top;\n    let bucket = |d: i16| d.unsigned_abs() as usize - 1 + if d < 0 { n } else { 0 };\n    let mut counts = vec![0usize; 2 * n];\n    for (base, s) in bases.iter().zip(short) {\n        let d = component(s, high, span);\n        assert!(d.unsigned_abs() as usize <= n);\n        if d != 0 && !base.is_identity() {\n            counts[bucket(d)] += 1;\n        }\n    }\n    let mut starts = Vec::with_capacity(2 * n + 1);\n    starts.push(0);\n    for count in counts {\n        starts.push(starts.last().unwrap() + count);\n    }\n    let len = *starts.last().unwrap();\n    if len == 0 {\n        return vec![G2Affine::IDENTITY; n];\n    }\n    let mut positions = starts[..2 * n].to_vec();\n    let mut order = vec![0u32; len];\n    for (i, (base, s)) in bases.iter().zip(short).enumerate() {\n        let d = component(s, high, span);\n        if d != 0 && !base.is_identity() {\n            let b = bucket(d);\n            order[positions[b]] = i as u32;\n            positions[b] += 1;\n        }\n    }\n    let mut reduced = crate::msm::reduce_indexed_buckets(bases, &order, &starts);\n    let mut negative = reduced.split_off(n);\n    for p in &mut negative {\n        p.y = -p.y;\n    }\n    merge_buckets(&mut reduced, &negative);\n    reduced\n}"
+        ]
+      ],
+      "original": "fn hb_top_component(\n    bases: &[G2Affine],\n    short: &[[u64; 4]],\n    high: bool,\n    w: usize,\n    bits: usize,\n    top: usize,\n) -> Vec<G2Affine> {\n    let n = 1usize << top;\n    let bucket = |d: i16| d.unsigned_abs() as usize - 1 + if d < 0 { n } else { 0 };\n    let mut counts = vec![0usize; 2 * n];\n    for (base, s) in bases.iter().zip(short) {\n        let d = hb_digit(s, high, w, bits);\n        assert!(d.unsigned_abs() as usize <= n);\n        if d != 0 && !base.is_identity() {\n            counts[bucket(d)] += 1;\n        }\n    }\n    let mut starts = Vec::with_capacity(2 * n + 1);\n    starts.push(0);\n    for count in counts {\n        starts.push(starts.last().unwrap() + count);\n    }\n    let len = *starts.last().unwrap();\n    if len == 0 {\n        return vec![G2Affine::IDENTITY; n];\n    }\n    let mut positions = starts[..2 * n].to_vec();\n    let mut order = vec![0u32; len];\n    for (i, (base, s)) in bases.iter().zip(short).enumerate() {\n        let d = hb_digit(s, high, w, bits);\n        if d != 0 && !base.is_identity() {\n            let b = bucket(d);\n            order[positions[b]] = i as u32;\n            positions[b] += 1;\n        }\n    }\n    let mut reduced = crate::msm::reduce_indexed_buckets(bases, &order, &starts);\n    let mut negative = reduced.split_off(n);\n    for p in &mut negative {\n        p.y = -p.y;\n    }\n    merge_buckets(&mut reduced, &negative);\n    reduced\n}"
+    }
+  },
+  "new_native_tests": 3,
+  "original_functions_exact": true,
+  "originals_exact": 171,
+  "prior_algebra_tests_inherited_not_rerun": 4,
+  "production_changed": false,
+  "snapshot_files": 178,
+  "suffixes": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(zopro_coalesce_probe,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod coalesce_query_probe {\n use zopro_bn254::{G1Affine,G2Affine,G1Projective,G2Projective};\n #[derive(Clone,Copy,Debug,Default,PartialEq,Eq)]pub struct Metadata{pub route:u32,pub classes:usize,pub skips:usize,pub payload:usize}\n std::thread_local!{static META:std::cell::Cell<Metadata>=std::cell::Cell::new(Metadata::default());}\n pub(crate)fn record(payload:usize){META.with(|m|m.set(Metadata{route:314,payload,..Metadata::default()}));}\n pub fn a(bases:&[G1Affine],words:&[[u64;4]])->(G1Projective,Metadata){(crate::msm_affine::msm_canonical(bases,words),Metadata::default())}\n pub fn b(bases:&[G2Affine],words:&mut[[u64;4]])->(G2Projective,Metadata){META.with(|m|m.set(Metadata::default()));let p=crate::msm_affine::g2_query_exclusive(bases,words);(p,META.with(|m|m.get()))}\n\n pub fn b_direct(bases:&[G2Affine],words:&mut[[u64;4]])->(G2Projective,Metadata){(crate::msm_affine::g2_query_exclusive(bases,words),Metadata::default())}\n\n pub fn b_mixed(bases:&[G2Affine],words:&mut[[u64;4]])->(G2Projective,Metadata){let(p,used)=crate::msm_affine::g2_query_indexed_mixed(bases,words);(p,Metadata{route:if used{328}else{0},..Metadata::default()})}\n}\n",
+    "crates/zopro-core/src/msm_affine.rs": "\n#[cfg(all(zopro_indexed_mixed_top, zopro_g2_horner_buckets, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\npub(super) fn g2_query_indexed_mixed(\n    bases: &[zopro_bn254::G2Affine],\n    words: &mut [[u64; 4]],\n) -> (zopro_bn254::G2Projective, bool) {\n    assert_eq!(bases.len(), words.len());\n    let groups = crate::simd::cpu_option(\"ZOPRO_CPU_DEDUP\")\n        .then(|| scalar_groups(words))\n        .flatten();\n    #[cfg(all(\n        zopro_g2_horner_buckets,\n        target_arch = \"x86_64\",\n        target_feature = \"avx512ifma\",\n        target_feature = \"avx512vl\",\n        target_feature = \"avx512dq\",\n        feature = \"ifma8\",\n        not(no_ifma)\n    ))]\n    if (1024..65536).contains(&bases.len()) {\n        if let Some(mut g) = groups {\n            if !(1024..65536).contains(&g.values.len()) {\n                return (crate::msm_grouped_b2(bases, &g), false);\n            }\n            let points = crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts);\n            return g2_phi::indexed_mixed::raw_exclusive(&points, &mut g.values);\n        }\n        return g2_phi::indexed_mixed::raw_exclusive(bases, words);\n    }\n    (match groups {\n        Some(g) => crate::msm_grouped_b2(bases, &g),\n        None => crate::msm_raw_b2(bases, words),\n    }, false)\n}\n",
+    "crates/zopro-core/src/msm_affine/g2_borrowed.rs": "\n#[cfg(all(zopro_indexed_mixed_top, zopro_g2_horner_buckets, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\npub(super) mod indexed_mixed;\n",
+    "crates/zopro-core/src/msm_affine/g2_phi.rs": "\n#[cfg(all(zopro_indexed_mixed_top, zopro_g2_horner_buckets, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\npub(super) mod indexed_mixed;\n",
+    "crates/zopro-core/src/msm_affine/workspace.rs": "\n#[cfg(all(zopro_indexed_mixed_top, zopro_g2_horner_buckets, feature=\"ifma8\", target_arch=\"x86_64\", target_feature=\"avx512ifma\", target_feature=\"avx512vl\", target_feature=\"avx512dq\", not(no_ifma)))]\n\npub(crate) fn indexed_mixed_fits(n: usize) -> Option<bool> {\n    use zopro_bn254::G2Config;\n    if !(1024..65536).contains(&n) { return Some(false); }\n    let ordinary12 = shape::<G2Config>(2048, 8, 2, batch_size(12).max(32))?;\n    let ordinary11 = shape::<G2Config>(1024, 2, 2, batch_size(11).max(32))?;\n    // Conservative generic parent/leaf for the final indexed output as well.\n    let leading = shape::<G2Config>(256, 1, 2, batch_size(12).max(32))?;\n    let sign_top = top::<G2Config>(n.div_ceil(2), 9)?;\n    let extra = mul(vector::<zopro_bn254::G2Affine>(256, false)?, 3)?;\n    let held = add(add(add(ordinary12.held, ordinary11.held)?, leading.held)?,\n        add(mul(add(sign_top.held, extra)?, 2)?, vector::<[u64;4]>(n, false)?)?)?;\n    let leaf = ordinary12.leaf.max(ordinary11.leaf).max(leading.leaf).max(sign_top.leaf);\n    let original = hb::<G2Config>(n)?;\n    Some(held <= original.held && leaf <= original.leaf)\n}\n\n"
+  }
+}
