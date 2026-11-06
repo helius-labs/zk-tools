@@ -1,0 +1,7 @@
+# Trimmed product input repair
+
+Initial workflow64315 completes diagnostic-core-build, witness-helper-build, model-helper-build and accepted-witness once. Its final model command fails at an incorrect diagnostic assertion that product_values length equals the full product-query domain. The observed actual length is30922 versus32768. Production solve_canonical_wires already takes queries.product[..product.len()]; no production bug or arithmetic change is involved.
+
+The failed process completed one existing solve and one product FFT before that assertion and exported no cache/results. Its snapshot, libraries, executable, receipts and original pins remain untouched. repair.rs creates source-fixed177 with only the diagnostic child corrected to use the production prefix, plus model-fixed.rs with dynamic used-H length/cache accounting. Both original source177 and fixed177 recover all176originals. No original field or successful unchanged core build/test/witness/capture is rerun. The changed diagnostic library and its dependent model executable must be rebuilt because their source/linked semantics changed.
+
+Only the failed model command is retried with the corrected diagnostic. It necessarily computes a second solve/product FFT because the failed process retained no values. Report total2solves/2FFTs, one aborted and one completed, zero proofs/MSM/timing. Reuse the successful accepted-library witness bytes/binary/hash. Do not rerun original plan or initial model binary.
