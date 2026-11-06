@@ -1,0 +1,43 @@
+{
+  "all_original_bytes_recovered": true,
+  "new_focused_tests": 5,
+  "original_solver_and_msm_unchanged": true,
+  "originals": 176,
+  "originals_exact": 171,
+  "production_changed": false,
+  "snapshot_files": 179,
+  "solver_clone_edits": [
+    [
+      "pub(crate) fn solve_in_with_slots(&self, witness: &[Fr], domain: usize, slots: &[usize], materialize_c: bool) -> Result<Solution, String> ",
+      "fn solve_with_a_feed<F>(&self, witness: &[Fr], domain: usize, slots: &[usize], materialize_c: bool, delivery: &mut Delivery<'_, '_, F>) -> Result<Solution, String>\n    where F: FnMut(Arc<Chunk>) -> Result<(), String> "
+    ],
+    [
+      "        if witness.len() != self.n_inputs - 1 {",
+      "        if !std::ptr::eq(self, delivery.ready.plan) { return Err(\"mismatched A readiness plan\".into()); }\n        if witness.len() != self.n_inputs - 1 {"
+    ],
+    [
+      "        let epochs = solve_epochs();",
+      "        // SAFETY: Ready's epoch zero contains only initialized input wires.\n        unsafe { delivery.publish(0, false, view)?; }\n        let epochs = solve_epochs();"
+    ],
+    [
+      "                for epoch in &schedule.epochs {",
+      "                for (epoch_number, epoch) in schedule.epochs.iter().enumerate() {"
+    ],
+    [
+      "                    })?;\n                }\n            } else {",
+      "                    })?;\n                    // SAFETY: the full epoch joined and Ready proves unique\n                    // persistent writers; consumers own copies, never w.\n                    unsafe { delivery.publish(epoch_number + 1, false, view)?; }\n                }\n            } else {"
+    ],
+    [
+      "        if uninitialized {\n            // SAFETY: the cached",
+      "        // SAFETY: every solver branch succeeded and joined all operations.\n        // Covers serial/refined runtime fallbacks before slot compaction.\n        unsafe { delivery.publish(0, true, view)?; }\n        if uninitialized {\n            // SAFETY: the cached"
+    ]
+  ],
+  "solver_clone_exact_after_hook_recovery": true,
+  "suffixes": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(zopro_early_a, target_arch = \"x86_64\", target_os = \"linux\", target_feature = \"avx512ifma\", target_feature = \"avx512vl\", target_feature = \"avx512dq\", feature = \"ifma8\", not(no_ifma)))]\npub mod early_a_trial;\n#[cfg(all(zopro_early_a, target_arch = \"x86_64\", target_os = \"linux\", target_feature = \"avx512ifma\", target_feature = \"avx512vl\", target_feature = \"avx512dq\", feature = \"ifma8\", not(no_ifma)))]\nimpl Key { pub fn prepare_early_a(&self) -> Option<early_a_trial::Prepared<'_>> { early_a_trial::Prepared::new(self) } }\n",
+    "crates/zopro-core/src/msm_affine/borrowed_pending.rs": "\n#[cfg(all(zopro_early_a, target_arch = \"x86_64\", target_os = \"linux\", target_feature = \"avx512ifma\", target_feature = \"avx512vl\", target_feature = \"avx512dq\", feature = \"ifma8\", not(no_ifma)))]\npub(crate) mod early_stream;\n",
+    "crates/zopro-core/src/msm_affine/workspace.rs": "\n#[cfg(all(zopro_early_a, target_arch = \"x86_64\", target_os = \"linux\", target_feature = \"avx512ifma\", target_feature = \"avx512vl\", target_feature = \"avx512dq\", feature = \"ifma8\", not(no_ifma)))]\npub(crate) fn early_window_forecast(half: usize, batch: usize) -> Option<usize> { window::<zopro_bn254::G1Config>(half, batch) }\n",
+    "crates/zopro-core/src/solver.rs": "\n#[cfg(all(zopro_early_a, target_arch = \"x86_64\", target_os = \"linux\", target_feature = \"avx512ifma\", target_feature = \"avx512vl\", target_feature = \"avx512dq\", feature = \"ifma8\", not(no_ifma)))]\npub(crate) mod early_feed;\n",
+    "crates/zopro-prover/src/lib.rs": "\n#[cfg(all(zopro_early_a, target_arch = \"x86_64\", target_os = \"linux\", target_feature = \"avx512ifma\", target_feature = \"avx512vl\", target_feature = \"avx512dq\", not(no_ifma)))]\nimpl Prover { pub fn prepare_early_a(&self) -> Option<zopro_core::early_a_trial::Prepared<'_>> { self.key.prepare_early_a() } }\n"
+  }
+}

@@ -1,0 +1,7 @@
+# Solver→A necessary component screen
+
+Frozen before any candidate timing:15 fixed process blocks at16/32 workers,31 interleaved OFF/ON pairs per process, alternating pair order by block and iteration. Rotate worker-context order each block. Same executable/key, original byte-exact solver and A path for OFF. Six primes and two checked postcalls per process. No frozen accepted solver→A binary exists; this is not an accepted full-SDK calibration. Fresh proof-local solver/query buffers on every call; input witness construction and readiness preparation outside clock. Includes admission system calls, copies, repeated canonicalization, grouping cancellation, actor scheduling and whole solver→A completion. Excludes quotient FFT, K/H/G2 and proof assembly/verification.
+
+Use median31 raw calls per arm in each block. Pair block ON/OFF ratios; sorted ranks4–12/15 give nominal96.484375% marginal median intervals conditional on exchangeable blocks, not simultaneous/familywise coverage. Advance only if primary32 upper bound<1 with>=10/15 wins, and16 upper bound<=1.02. No minimum gain floor. Keep every block; no exclusions/extensions/rerolls. Passing is necessary, never sufficient for adoption; full SDK/all-eight/merge54/resources required later.
+
+All30latency processes finish before four4096-call warm PMU and four4096-call16M-user-cycle profiles, one per16/32×OFF/ON. Profiles/counters are explanatory, not proof critical-path fractions or independent latency estimates. No owned compiler/helper/hash/archive/second workload overlaps recording.
