@@ -1,0 +1,11 @@
+# Natural-output prefix pruning in the Euler forward transform
+
+Declared before compilation/execution. Inspect the existing natural-output radix2 DIT dependency graph for returning only the first C derivative values, where the padded domain is N. Reuse all nine existing domain/constraint-count receipts from the derivative-component study; do not reload keys or rerun solver, FFT, native or proof work.
+
+The accepted fft/pair.rs euler_product_study computes a complete forward transform, then combines only a.len().max(b.len()) values. Hypothesis: discarded outputs may allow substantial twiddle-product removal. This is graph pruning on the existing transform, not a replacement transform, new evaluation basis, approximate transform, arithmetic change or native benchmark. Count live butterflies, nonunit twiddle products and add/sub output nodes separately. Unit twiddles are excluded consistently in both full and pruned graphs; actual compiled kernels may not omit them.
+
+Walk backwards from the requested natural-order output prefix, propagating liveness through each radix2 butterfly. Check all prefixes on small domains, including 0, 1, N/2, N/2+1 and N. Independently evaluate a pruned forward DIT over F65537 and compare every requested result with the direct polynomial DFT. Check roots have the required order. The finite-field oracle qualifies the graph rewrite, not a BN254 implementation.
+
+Opportunity check: all correctness/source/receipt checks pass and nonunit twiddle products decrease on at least one actual supplied geometry. There is no gain floor. If products do not decrease, retain all add/sub savings but do not build a new partial-output kernel solely on a claim of proportional multiplication savings. This does not rule out other transform factorizations, value-specific pruning, different output sets or memory/dispatch improvements.
+
+Freeze model/executable/source/geometry hashes, execute once through Rust xtask, publish aggregate counts and source/receipts without original fixture data, commit and push. All-eight CPU10x goal remains active/unmet0/8; accepted SDK6d83, production176 and ledger31387 remain unchanged. No new timings/proofs/profiles/memory-pressure/device/AWS results.
