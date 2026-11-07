@@ -1,0 +1,8 @@
+Initial optimized qualification compile used the accepted field1200 library and serde_json/sha2 from tool-target/release/deps, with native target, fat LTO and one codegen unit.
+Exec session63441 completed with exit1 before any qualification command or fixture generation:
+
+warning: constant `X` is never used (copied preparation module)
+error: failed to get bitcode from object file for LTO (Can't find section .llvmbc)
+error: aborting due to 1 previous error; 1 warning emitted
+
+Repair only dependency selection: use serde_json792a1c and sha21c93cc from the same frozen candidate directory as field1200. No arithmetic source, field library or compiler options change. No successful test/build/capture/oracle stage is repeated.
