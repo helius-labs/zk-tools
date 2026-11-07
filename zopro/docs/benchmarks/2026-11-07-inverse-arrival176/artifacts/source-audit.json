@@ -1,0 +1,17 @@
+{
+  "accepted_source_files": 176,
+  "after": "        #[cfg(all(zopro_inverse_arrival,target_os=\"linux\"))]\n        let inverse = crate::inverse_arrival::invert(products[0] * products[4]);\n        #[cfg(not(all(zopro_inverse_arrival,target_os=\"linux\")))]\n        let inverse = (products[0] * products[4]).inverse().unwrap();",
+  "all176_recover": true,
+  "before": "        let inverse = (products[0] * products[4]).inverse().unwrap();",
+  "diagnostic_storage_only": true,
+  "field_arithmetic_unchanged": true,
+  "no_production_broker_or_pool": true,
+  "observer_child_exact": true,
+  "originals_exact": 174,
+  "parent": "crates/zopro-core/src/lib.rs",
+  "scope": "Only scalar Fq root of FqBatch::inverse_nonzero. Other scalar Fq inversions are not observed.",
+  "simd": "crates/zopro-core/src/simd.rs",
+  "snapshot_files": 177,
+  "suffix": "\n#[cfg(all(zopro_inverse_arrival,target_os=\"linux\"))]\n#[doc(hidden)] pub mod inverse_arrival;\n",
+  "zero_field_values_recorded": true
+}
