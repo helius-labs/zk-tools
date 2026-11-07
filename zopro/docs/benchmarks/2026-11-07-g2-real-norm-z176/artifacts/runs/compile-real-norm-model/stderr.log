@@ -1,0 +1,73 @@
+error[E0283]: type annotations needed
+    --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:252:9
+     |
+ 252 |     let n = counts.iter().sum();
+     |         ^                 --- type must be known at this point
+     |
+     = note: the type must implement `Sum<&usize>`
+     = help: the following types implement trait `Sum<A>`:
+               `Duration` implements `Sum<&'a Duration>`
+               `Duration` implements `Sum`
+               `Option<T>` implements `Sum<Option<U>>`
+               `Projective<C>` implements `Sum<&'a Projective<C>>`
+               `Projective<C>` implements `Sum`
+               `Result<T, E>` implements `Sum<Result<U, E>>`
+               `Saturating<u128>` implements `Sum<&'a Saturating<u128>>`
+               `Saturating<u128>` implements `Sum`
+             and 90 others
+note: required by a bound in `std::iter::Iterator::sum`
+    --> /home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/iter/traits/iterator.rs:3672:12
+     |
+3669 |     fn sum<S>(self) -> S
+     |        --- required by a bound in this associated function
+...
+3672 |         S: [const] Sum<Self::Item>,
+     |            ^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Iterator::sum`
+help: consider giving `n` an explicit type
+     |
+ 252 |     let n: /* Type */ = counts.iter().sum();
+     |          ++++++++++++
+
+error[E0283]: type annotations needed
+   --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:252:9
+    |
+252 |     let n = counts.iter().sum();
+    |         ^
+...
+260 |             Some((0..n / 2).rev().map(move |j| begin + 2 * j))
+    |                                                      - type must be known at this point
+    |
+    = note: multiple `impl`s satisfying `_: Add<usize>` found in the following crates: `alloc`, `core`, `typenum`:
+            - impl Add for usize;
+            - impl Add<usize> for &usize;
+            - impl Add<usize> for vec_deque::index::WrappedIndex;
+            - impl<T> Add<T> for sha2::digest::typenum::array::_::Null;
+help: consider giving `n` an explicit type
+    |
+252 |     let n: /* Type */ = counts.iter().sum();
+    |          ++++++++++++
+
+warning: unused import: `Field`
+ --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:9:19
+  |
+9 | use zopro_bn254::{Field, Fq, Fq2, Fr, G2Affine, G2Projective};
+  |                   ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0502]: cannot borrow `c` as mutable because it is also borrowed as immutable
+   --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:412:18
+    |
+349 |         let mut iter = pairs(&c);
+    |                              -- immutable borrow occurs here
+...
+412 |         for n in &mut c {
+    |                  ^^^^^^ mutable borrow occurs here
+...
+438 |     }
+    |     - immutable borrow might be used here, when `iter` is dropped and runs the destructor for type `impl Iterator<Item = usize> + '_`
+
+error: aborting due to 3 previous errors; 1 warning emitted
+
+Some errors have detailed explanations: E0283, E0502.
+For more information about an error, try `rustc --explain E0283`.

@@ -1,0 +1,147 @@
+warning: unused import: `Field`
+ --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:9:19
+  |
+9 | use zopro_bn254::{Field, Fq, Fq2, Fr, G2Affine, G2Projective};
+  |                   ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `Z` is never used
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:11:7
+   |
+11 | const Z: &str = "/home/ubuntu/src/zk-tools/zopro";
+   |       ^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `LENGTHS` is never used
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:12:7
+   |
+12 | const LENGTHS: &[usize] = &[
+   |       ^^^^^^^
+
+warning: function `read` is never used
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:27:4
+   |
+27 | fn read(p: impl AsRef<Path>) -> Value {
+   |    ^^^^
+
+warning: function `save` is never used
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:33:4
+   |
+33 | fn save(p: impl AsRef<Path>, v: &Value) {
+   |    ^^^^
+
+warning: method `add` is never used
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:50:8
+   |
+46 | impl Cost {
+   | --------- method in this implementation
+...
+50 |     fn add(&mut self, b: Self) {
+   |        ^^^
+
+warning: associated function `zero` is never used
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:94:8
+   |
+90 | impl Q {
+   | ------ associated function in this implementation
+...
+94 |     fn zero() -> Self {
+   |        ^^^^
+
+warning: fields `cost`, `levels`, and `payload` are never read
+   --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:311:5
+    |
+309 | struct Tree {
+    |        ---- fields in this struct
+310 |     points: Vec<Point>,
+311 |     cost: Cost,
+    |     ^^^^
+312 |     levels: Vec<Value>,
+    |     ^^^^^^
+313 |     payload: usize,
+    |     ^^^^^^^
+
+warning: function `reference` is never used
+   --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:459:4
+    |
+459 | fn reference(input: &[Point], counts: &[usize]) -> Vec<Point> {
+    |    ^^^^^^^^^
+
+warning: function `counted_shape` is never used
+   --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:477:4
+    |
+477 | fn counted_shape(counts: &[usize]) -> (Cost, Cost, Cost, Value) {
+    |    ^^^^^^^^^^^^^
+
+warning: function `make_walk` is never used
+   --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:547:4
+    |
+547 | fn make_walk(n: usize, seed: u64) -> Vec<Point> {
+    |    ^^^^^^^^^
+
+warning: function `qualify` is never used
+   --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:565:4
+    |
+565 | fn qualify() -> Value {
+    |    ^^^^^^^
+
+warning: struct `E` is never constructed
+ --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/small_prime.rs:4:8
+  |
+4 | struct E(u64, u64);
+  |        ^
+
+warning: multiple methods are never used
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/small_prime.rs:6:8
+   |
+ 5 | impl E {
+   | ------ methods in this implementation
+ 6 |     fn add(self, b: Self) -> Self {
+   |        ^^^
+...
+ 9 |     fn sub(self, b: Self) -> Self {
+   |        ^^^
+...
+12 |     fn mul(self, b: Self) -> Self {
+   |        ^^^
+...
+18 |     fn scale(self, b: u64) -> Self {
+   |        ^^^^^
+...
+21 |     fn conj(self) -> Self {
+   |        ^^^^
+...
+24 |     fn norm(self) -> u64 {
+   |        ^^^^
+...
+27 |     fn inv(self) -> Self {
+   |        ^^^
+
+warning: function `affine_pair` is never used
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/small_prime.rs:34:4
+   |
+34 | fn affine_pair(a: (E, E), b: (E, E)) -> Option<(E, E)> {
+   |    ^^^^^^^^^^^
+
+warning: function `small_prime` is never used
+  --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/small_prime.rs:43:4
+   |
+43 | fn small_prime() -> Value {
+   |    ^^^^^^^^^^^
+
+warning: function `run` is never used
+   --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:644:4
+    |
+644 | fn run() {
+    |    ^^^
+
+warning: function `main` is never used
+   --> /home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs:695:4
+    |
+695 | fn main() {
+    |    ^^^^
+
+warning: 18 warnings emitted
+

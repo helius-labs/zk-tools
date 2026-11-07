@@ -1,0 +1,111 @@
+{
+  "command_receipts": [
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "target-cpu=native",
+          "-C",
+          "lto=fat",
+          "-C",
+          "codegen-units=1",
+          "-L",
+          "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+          "--extern",
+          "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+          "--extern",
+          "serde_json=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libserde_json-792a1ccfa9d7a509acedb3e992a9c8158d940f10c0b04abe034fe51f74e5811f.rlib",
+          "--extern",
+          "sha2=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libsha2-1c93ccb1b17fec6ca7a76b00c9b7b3dcd3eab11efd897da6dc9ea59c955d7b30.rlib",
+          "-o",
+          "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 114.787239,
+        "returncode": 1,
+        "stderr_sha256": "c110001e4e611f92510392d17cf6fdc327a9541aefc5c64c255c3623271856e3",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "success": false
+      },
+      "path": "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/runs/compile-real-norm-model"
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model.rs",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "target-cpu=native",
+          "-C",
+          "lto=fat",
+          "-C",
+          "codegen-units=1",
+          "-L",
+          "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+          "--extern",
+          "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+          "--extern",
+          "serde_json=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libserde_json-792a1ccfa9d7a509acedb3e992a9c8158d940f10c0b04abe034fe51f74e5811f.rlib",
+          "--extern",
+          "sha2=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libsha2-1c93ccb1b17fec6ca7a76b00c9b7b3dcd3eab11efd897da6dc9ea59c955d7b30.rlib",
+          "-o",
+          "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 3558.988334,
+        "returncode": 0,
+        "stderr_sha256": "26e178276170a41519a30af26f624329c94534d327ece1b98eace366e1666537",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "success": true
+      },
+      "path": "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/continuation-runs/compile-real-norm-model"
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/model",
+          "run"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 61.190666,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "53b614731f542f9cf13a4b4f665f42db8cdefa38dc5ea1998e652e1c5bf5d928",
+        "success": true
+      },
+      "path": "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/continuation-runs/qualify-and-count-real-norm"
+    }
+  ],
+  "count_and_payload_rows_reconstructed": 22,
+  "passed": true,
+  "pins_verified": 189,
+  "receipt_count": 3,
+  "scope": "independent closed level geometry/count/payload and receipt/source checks; existing native-field and finite-prime arithmetic not rerun",
+  "source_branch_fragments_verified": true
+}

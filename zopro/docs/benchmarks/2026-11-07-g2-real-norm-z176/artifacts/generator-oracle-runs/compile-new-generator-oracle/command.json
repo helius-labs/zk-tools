@@ -1,0 +1,30 @@
+{
+  "argv": [
+    "timeout",
+    "-k",
+    "5s",
+    "300s",
+    "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+    "--edition=2021",
+    "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/generator-oracle.rs",
+    "-C",
+    "opt-level=3",
+    "-C",
+    "target-cpu=native",
+    "-C",
+    "lto=fat",
+    "-C",
+    "codegen-units=1",
+    "-L",
+    "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+    "--extern",
+    "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+    "--extern",
+    "serde_json=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libserde_json-792a1ccfa9d7a509acedb3e992a9c8158d940f10c0b04abe034fe51f74e5811f.rlib",
+    "--extern",
+    "sha2=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libsha2-1c93ccb1b17fec6ca7a76b00c9b7b3dcd3eab11efd897da6dc9ea59c955d7b30.rlib",
+    "-o",
+    "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/generator-oracle"
+  ],
+  "environment": {}
+}

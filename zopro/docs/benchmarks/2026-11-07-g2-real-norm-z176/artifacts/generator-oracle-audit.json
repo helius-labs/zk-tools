@@ -1,0 +1,69 @@
+{
+  "commands": [
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/generator-oracle.rs",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "target-cpu=native",
+          "-C",
+          "lto=fat",
+          "-C",
+          "codegen-units=1",
+          "-L",
+          "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+          "--extern",
+          "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+          "--extern",
+          "serde_json=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libserde_json-792a1ccfa9d7a509acedb3e992a9c8158d940f10c0b04abe034fe51f74e5811f.rlib",
+          "--extern",
+          "sha2=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libsha2-1c93ccb1b17fec6ca7a76b00c9b7b3dcd3eab11efd897da6dc9ea59c955d7b30.rlib",
+          "-o",
+          "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/generator-oracle"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 2889.285745,
+        "returncode": 0,
+        "stderr_sha256": "2fde6deb01188abe6392e8b75978a08a5a55ba8eb4794e52f5c59f1aa9259a9a",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "success": true
+      }
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/src/zopro-perf-work/g2-real-norm-z176/generator-oracle"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 70.58284400000001,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "a57639240908dd150fa4107facbe0d2b86d534b3a702ccc8cc51437f6082e184",
+        "success": true
+      }
+    }
+  ],
+  "new_closed_form_generator_arguments": 80,
+  "new_reductions": 160,
+  "old_580_cases_replayed": false,
+  "old_analysis_and_review_replayed": false,
+  "passed": true,
+  "scope": "new argument generator oracle and command/source integrity; accepted field shared, no independent field or old arithmetic rerun",
+  "source_and_pins_match": true
+}
