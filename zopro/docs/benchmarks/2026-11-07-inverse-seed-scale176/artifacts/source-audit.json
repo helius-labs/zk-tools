@@ -1,0 +1,31 @@
+{
+  "candidate_sha256": "c8e1f8e5bd4a0cffa16cf34bcbb3512391f108f1e111cc82aaee799b6e631f3c",
+  "changes": [
+    [
+      "    let (mut u, mut v) = (C::R2, [0; 4]);",
+      "    let (mut u, mut v) = (const { portable::power_of_two(576, C::P) }, [0; 4]);"
+    ],
+    [
+      "        return None;",
+      "        #[cfg(zopro_inverse_seed_observe)] crate::observe::hit(0);\n        return None;"
+    ],
+    [
+      "    let result = Fp::from_montgomery(v);",
+      "    #[cfg(zopro_inverse_seed_observe)] crate::observe::hit(3);\n    let result = Fp::from_montgomery(v) * Fp::from_montgomery(const { portable::power_of_two(192, C::P) });"
+    ],
+    [
+      "        return Fp::from_montgomery(v);",
+      "        #[cfg(zopro_inverse_seed_observe)] crate::observe::hit(2);\n        return Fp::from_montgomery(v) * Fp::from_montgomery(const { portable::power_of_two(192, C::P) });"
+    ],
+    [
+      "    let scale = Fp::<C>::from_montgomery(const { portable::power_of_two(320, C::P) });\n    Fp::from_montgomery(result) * scale",
+      "    #[cfg(zopro_inverse_seed_observe)] crate::observe::hit(1);\n    Fp::from_montgomery(result)"
+    ]
+  ],
+  "inverse_recovered_exact": true,
+  "no_new_production_allocation": true,
+  "original_inverse_sha256": "c827f87e38c4bf6417a424059d6312fe719ae2f8a278a59c7ca0f1f026ef15ff",
+  "probe_suffix": "\npub(crate) fn probe_finish<C:FpConfig>(a:u64,b:u64,u:[u64;4],v:[u64;4])->Fp<C>{finish::<C>(a,b,u,v)}\n",
+  "production_sources_checked": 176,
+  "production_unchanged": true
+}
