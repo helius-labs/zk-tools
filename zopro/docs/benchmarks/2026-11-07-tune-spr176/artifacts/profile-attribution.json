@@ -1,0 +1,1231 @@
+{
+  "limits": "Flat user-cycle symbol categories include inlining and sampling effects. Counts and categories are not exclusive wall time, causal stall attribution or a critical path. No new recordings or decoder replay.",
+  "profiles": {
+    "cycles-1x2-w16-accepted": {
+      "FFT_column_samples": 134,
+      "categories": {
+        "FFT": 357,
+        "MSM": 6044,
+        "curve": 471,
+        "field_inverse": 752,
+        "other": 242,
+        "scheduler": 367,
+        "solver": 160,
+        "unknown": 101
+      },
+      "samples": 8494,
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2161
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1601
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          751
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          532
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          409
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          404
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          266
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          235
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          214
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          157
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          146
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          112
+        ],
+        [
+          "[unknown]",
+          101
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          73
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          70
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          70
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          70
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          66
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          65
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          64
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          63
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          55
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          55
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          52
+        ],
+        [
+          "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new",
+          47
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          38
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+          36
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>",
+          32
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>",
+          28
+        ],
+        [
+          "<zopro_core::solver::Plan>::emit_poseidon",
+          23
+        ]
+      ]
+    },
+    "cycles-1x2-w16-candidate": {
+      "FFT_column_samples": 101,
+      "categories": {
+        "FFT": 323,
+        "MSM": 7478,
+        "curve": 533,
+        "field_inverse": 740,
+        "other": 235,
+        "scheduler": 487,
+        "solver": 190,
+        "unknown": 129
+      },
+      "samples": 10115,
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          3048
+        ],
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2166
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          737
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          556
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          418
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          411
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          290
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          282
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          228
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          166
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          130
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          129
+        ],
+        [
+          "[unknown]",
+          129
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          98
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          79
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          74
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          72
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          69
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          62
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          61
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          54
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          51
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          47
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+          43
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          39
+        ],
+        [
+          "<zopro_core::solver::Plan>::emit_poseidon",
+          31
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>",
+          25
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          24
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          21
+        ],
+        [
+          "<zopro_core::solver::Plan>::run_poseidon_task",
+          21
+        ]
+      ]
+    },
+    "cycles-1x2-w16-control": {
+      "FFT_column_samples": 116,
+      "categories": {
+        "FFT": 354,
+        "MSM": 6069,
+        "curve": 478,
+        "field_inverse": 740,
+        "other": 298,
+        "scheduler": 486,
+        "solver": 175,
+        "unknown": 126
+      },
+      "samples": 8726,
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2215
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1541
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          735
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          569
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          408
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          406
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          297
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          241
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          225
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          171
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          155
+        ],
+        [
+          "[unknown]",
+          126
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          118
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          115
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          76
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          74
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          69
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          68
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          65
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          64
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          61
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          60
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          55
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          47
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>",
+          42
+        ],
+        [
+          "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new",
+          41
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+          40
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          33
+        ],
+        [
+          "<zopro_core::solver::Plan>::emit_poseidon",
+          24
+        ],
+        [
+          "zopro_core::msm_affine::g2_phi::hb_top_component",
+          22
+        ]
+      ]
+    },
+    "cycles-1x2-w32-accepted": {
+      "FFT_column_samples": 227,
+      "categories": {
+        "FFT": 683,
+        "MSM": 7764,
+        "curve": 664,
+        "field_inverse": 860,
+        "other": 328,
+        "scheduler": 1643,
+        "solver": 186,
+        "unknown": 191
+      },
+      "samples": 12319,
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2544
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1976
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          1053
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          852
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          749
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          619
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          579
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          365
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          364
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          238
+        ],
+        [
+          "[unknown]",
+          191
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          183
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          174
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          168
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          126
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          119
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          118
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          109
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          88
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          80
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          79
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          79
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          78
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          75
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          68
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>::{closure#0}",
+          61
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+          59
+        ],
+        [
+          "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          56
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::collect::consumer::CollectResult<[u64; 4]>>::{closure#0}",
+          52
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          51
+        ]
+      ]
+    },
+    "cycles-1x2-w32-candidate": {
+      "FFT_column_samples": 237,
+      "categories": {
+        "FFT": 680,
+        "MSM": 8928,
+        "curve": 674,
+        "field_inverse": 870,
+        "other": 319,
+        "scheduler": 1669,
+        "solver": 183,
+        "unknown": 219
+      },
+      "samples": 13542,
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          3306
+        ],
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2525
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          1103
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          861
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          688
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          601
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          595
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          369
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          317
+        ],
+        [
+          "[unknown]",
+          219
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          216
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          178
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          168
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          159
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          149
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          125
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          113
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          112
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          105
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          90
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          86
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          81
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          76
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>::{closure#0}",
+          74
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          70
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+          64
+        ],
+        [
+          "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new",
+          59
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          55
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::collect::consumer::CollectResult<[u64; 4]>>::{closure#0}",
+          49
+        ],
+        [
+          "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          46
+        ]
+      ]
+    },
+    "cycles-1x2-w32-control": {
+      "FFT_column_samples": 226,
+      "categories": {
+        "FFT": 673,
+        "MSM": 7693,
+        "curve": 668,
+        "field_inverse": 926,
+        "other": 279,
+        "scheduler": 1624,
+        "solver": 174,
+        "unknown": 206
+      },
+      "samples": 12243,
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2472
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1941
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          1045
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          919
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          687
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          622
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          593
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          367
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          339
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          231
+        ],
+        [
+          "[unknown]",
+          206
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          172
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          163
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          152
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          143
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          120
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          119
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          118
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          108
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          104
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          90
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          81
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          72
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          71
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          67
+        ],
+        [
+          "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          63
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>::{closure#0}",
+          61
+        ],
+        [
+          "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new",
+          57
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>",
+          55
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          55
+        ]
+      ]
+    },
+    "cycles-24x2-w32-accepted": {
+      "FFT_column_samples": 1766,
+      "categories": {
+        "FFT": 3394,
+        "MSM": 3788,
+        "curve": 27,
+        "field_inverse": 216,
+        "other": 84,
+        "scheduler": 750,
+        "solver": 653,
+        "unknown": 63
+      },
+      "samples": 8975,
+      "top_symbols_demangled": [
+        [
+          "<zopro_core::msm::BatchAdd<zopro_bn254::curve::G1Config>>::apply",
+          1473
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          965
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          801
+        ],
+        [
+          "<&zopro_core::msm_affine::msm_unsigned_raw<zopro_bn254::curve::G1Config>::{closure#1} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          568
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          430
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          391
+        ],
+        [
+          "<&zopro_core::fft::pair::stored_product<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          373
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>",
+          293
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          285
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          265
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          217
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          214
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          211
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          204
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_product_study::{closure#2}>>",
+          180
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>",
+          165
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          135
+        ],
+        [
+          "<zopro_core::solver::Plan>::emit_poseidon",
+          132
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          131
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, <zopro_core::Key>::solve_inner::{closure#8}::{closure#0}>>",
+          115
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::filter_map::FilterMapConsumer<rayon::iter::extend::ListVecConsumer, zopro_core::msm_affine::msm_unsigned_raw<zopro_bn254::curve::G2Config>::{closure#1}::{closure#1}>>",
+          110
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>",
+          108
+        ],
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          104
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#1}>>",
+          100
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::filter_map::FilterMapConsumer<rayon::iter::extend::ListVecConsumer, zopro_core::msm_affine::msm_unsigned_raw<zopro_bn254::curve::G1Config>::{closure#1}::{closure#1}>>",
+          90
+        ],
+        [
+          "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          87
+        ],
+        [
+          "<zopro_core::solver::Plan>::run_poseidon_task",
+          76
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, <zopro_core::Key>::solve_inner::{closure#7}::{closure#0}>>",
+          68
+        ],
+        [
+          "[unknown]",
+          63
+        ],
+        [
+          "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          60
+        ]
+      ]
+    },
+    "cycles-24x2-w32-candidate": {
+      "FFT_column_samples": 1859,
+      "categories": {
+        "FFT": 3491,
+        "MSM": 3746,
+        "curve": 38,
+        "field_inverse": 231,
+        "other": 79,
+        "scheduler": 717,
+        "solver": 684,
+        "unknown": 65
+      },
+      "samples": 9051,
+      "top_symbols_demangled": [
+        [
+          "<zopro_core::msm::BatchAdd<zopro_bn254::curve::G1Config>>::apply",
+          1477
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          1022
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          837
+        ],
+        [
+          "<&zopro_core::msm_affine::msm_unsigned_raw<zopro_bn254::curve::G1Config>::{closure#1} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          588
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          439
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          382
+        ],
+        [
+          "<&zopro_core::fft::pair::stored_product<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          367
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>",
+          296
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          266
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          253
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          245
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          225
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          223
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          200
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_product_study::{closure#2}>>",
+          160
+        ],
+        [
+          "<zopro_core::solver::Plan>::emit_poseidon",
+          158
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          152
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>",
+          131
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          126
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#1}>>",
+          114
+        ],
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          102
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, <zopro_core::Key>::solve_inner::{closure#7}::{closure#0}>>",
+          100
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>",
+          99
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, <zopro_core::Key>::solve_inner::{closure#8}::{closure#0}>>",
+          83
+        ],
+        [
+          "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          81
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::filter_map::FilterMapConsumer<rayon::iter::extend::ListVecConsumer, zopro_core::msm_affine::msm_unsigned_raw<zopro_bn254::curve::G2Config>::{closure#1}::{closure#1}>>",
+          76
+        ],
+        [
+          "<zopro_core::solver::Plan>::run_poseidon_task",
+          66
+        ],
+        [
+          "[unknown]",
+          65
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>::{closure#0}",
+          65
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::filter_map::FilterMapConsumer<rayon::iter::extend::ListVecConsumer, zopro_core::msm_affine::msm_unsigned_raw<zopro_bn254::curve::G1Config>::{closure#1}::{closure#1}>>",
+          53
+        ]
+      ]
+    },
+    "cycles-24x2-w32-control": {
+      "FFT_column_samples": 1745,
+      "categories": {
+        "FFT": 3348,
+        "MSM": 3711,
+        "curve": 39,
+        "field_inverse": 242,
+        "other": 83,
+        "scheduler": 713,
+        "solver": 622,
+        "unknown": 62
+      },
+      "samples": 8820,
+      "top_symbols_demangled": [
+        [
+          "<zopro_core::msm::BatchAdd<zopro_bn254::curve::G1Config>>::apply",
+          1461
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          926
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          819
+        ],
+        [
+          "<&zopro_core::msm_affine::msm_unsigned_raw<zopro_bn254::curve::G1Config>::{closure#1} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          562
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          398
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          369
+        ],
+        [
+          "<&zopro_core::fft::pair::stored_product<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          362
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>",
+          294
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          290
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          262
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          235
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          214
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          202
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          196
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_product_study::{closure#2}>>",
+          188
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          163
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>",
+          144
+        ],
+        [
+          "<zopro_core::solver::Plan>::emit_poseidon",
+          142
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>",
+          128
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          126
+        ],
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          107
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#1}>>",
+          99
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::filter_map::FilterMapConsumer<rayon::iter::extend::ListVecConsumer, zopro_core::msm_affine::msm_unsigned_raw<zopro_bn254::curve::G2Config>::{closure#1}::{closure#1}>>",
+          93
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, <zopro_core::Key>::solve_inner::{closure#7}::{closure#0}>>",
+          86
+        ],
+        [
+          "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          77
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, <zopro_core::Key>::solve_inner::{closure#8}::{closure#0}>>",
+          72
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::filter_map::FilterMapConsumer<rayon::iter::extend::ListVecConsumer, zopro_core::msm_affine::msm_unsigned_raw<zopro_bn254::curve::G1Config>::{closure#1}::{closure#1}>>",
+          68
+        ],
+        [
+          "[unknown]",
+          62
+        ],
+        [
+          "<zopro_core::solver::Plan>::run_poseidon_task",
+          59
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          49
+        ]
+      ]
+    }
+  },
+  "samples": 92285,
+  "saved_decodes_only": true
+}
