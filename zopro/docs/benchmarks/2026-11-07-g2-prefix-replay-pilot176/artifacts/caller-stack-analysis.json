@@ -1,0 +1,98 @@
+{
+  "limits": "Selected two emitted callers only. RSP subtraction excludes pushed registers, alignment loss, nested callee frames and concurrent workers; not a complete stack/live-memory bound. Static instruction/IFMA counts are not dynamic counts.",
+  "review_passed": true,
+  "rows": [
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/g2-prefix-replay176/sdk-build/OFF-sdk",
+      "binary_sha256": "484386df9d97b42fc4285e40b73570bcf4e2e2370a07c316123eb00f9ac54cb0",
+      "decoded_instructions": 4428,
+      "decoded_stream_sha256": "cf6e7ec8153f1e184e95285cf915eeed929bcbbc9b8ce6a19868310f3329d2f6",
+      "name": "decode-caller-0-OFF",
+      "prologue": [
+        "push   rbp",
+        "mov    rbp,rsp",
+        "push   r15",
+        "push   r14",
+        "push   r13",
+        "push   r12",
+        "push   rbx",
+        "and    rsp,0xffffffffffffffc0",
+        "sub    rsp,0xfc0",
+        "mov    QWORD PTR [rsp],0x0",
+        "sub    rsp,0x100"
+      ],
+      "prologue_rsp_subtraction_bytes": 4288,
+      "pushed_registers": 6,
+      "static_IFMA_sites": 800
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/g2-prefix-replay176/sdk-build/ON-sdk",
+      "binary_sha256": "49b741cec1fdb434d7e756ac863c0603acf044464424a0adc0d2a431311ab30f",
+      "decoded_instructions": 4428,
+      "decoded_stream_sha256": "0a8336a8a43a333d1439ab914917139eec970eb54ec5fada0097be8d898af043",
+      "name": "decode-caller-0-ON",
+      "prologue": [
+        "push   rbp",
+        "mov    rbp,rsp",
+        "push   r15",
+        "push   r14",
+        "push   r13",
+        "push   r12",
+        "push   rbx",
+        "and    rsp,0xffffffffffffffc0",
+        "sub    rsp,0xfc0",
+        "mov    QWORD PTR [rsp],0x0",
+        "sub    rsp,0x100"
+      ],
+      "prologue_rsp_subtraction_bytes": 4288,
+      "pushed_registers": 6,
+      "static_IFMA_sites": 800
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/g2-prefix-replay176/sdk-build/OFF-sdk",
+      "binary_sha256": "484386df9d97b42fc4285e40b73570bcf4e2e2370a07c316123eb00f9ac54cb0",
+      "decoded_instructions": 8591,
+      "decoded_stream_sha256": "349749efb3e378fbf5ccfdb0f204adbe91af6c9f1174af8b71af4af44c52e509",
+      "name": "decode-caller-1-OFF",
+      "prologue": [
+        "push   rbp",
+        "mov    rbp,rsp",
+        "push   r15",
+        "push   r14",
+        "push   r13",
+        "push   r12",
+        "push   rbx",
+        "and    rsp,0xffffffffffffffc0",
+        "sub    rsp,0xfc0",
+        "mov    QWORD PTR [rsp],0x0",
+        "sub    rsp,0x780"
+      ],
+      "prologue_rsp_subtraction_bytes": 5952,
+      "pushed_registers": 6,
+      "static_IFMA_sites": 1450
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/g2-prefix-replay176/sdk-build/ON-sdk",
+      "binary_sha256": "49b741cec1fdb434d7e756ac863c0603acf044464424a0adc0d2a431311ab30f",
+      "decoded_instructions": 8820,
+      "decoded_stream_sha256": "d15cb0758d21679c83fe39a4f7e3a5bd9fa8a396567e0007533bbcc5b4392136",
+      "name": "decode-caller-1-ON",
+      "prologue": [
+        "push   rbp",
+        "mov    rbp,rsp",
+        "push   r15",
+        "push   r14",
+        "push   r13",
+        "push   r12",
+        "push   rbx",
+        "and    rsp,0xffffffffffffffc0",
+        "sub    rsp,0xfc0",
+        "mov    QWORD PTR [rsp],0x0",
+        "sub    rsp,0x7c0"
+      ],
+      "prologue_rsp_subtraction_bytes": 6016,
+      "pushed_registers": 6,
+      "static_IFMA_sites": 1600
+    }
+  ]
+}
