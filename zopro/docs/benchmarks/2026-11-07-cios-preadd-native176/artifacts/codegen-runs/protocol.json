@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/cios-preadd-native176/codegen-pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "compile-codegen-reader",
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "/home/ubuntu/src/zopro-perf-work/cios-preadd-native176/codegen.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/cios-preadd-native176/codegen"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "codegen-reader",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/cios-preadd-native176/codegen"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 120
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+
+/home/ubuntu/src/zopro-perf-work/cios-preadd-native176/probe-OFF:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+00000000000139d0 <probe_fq4_mul>:
+   139d0:	vmovdqa ymm12,YMMWORD PTR [rdx+0x60]
+   139d5:	vmovdqa64 ymm18,YMMWORD PTR [rsi]
+   139db:	vmovdqa ymm11,YMMWORD PTR [rdx+0x40]
+   139e0:	vmovdqa64 ymm17,YMMWORD PTR [rsi+0x20]
+   139e7:	vpxor  xmm6,xmm6,xmm6
+   139eb:	vmovdqa ymm9,YMMWORD PTR [rdx+0x20]
+   139f0:	vmovdqa64 ymm16,YMMWORD PTR [rsi+0x40]
+   139f7:	vmovdqa ymm7,YMMWORD PTR [rdx]
+   139fb:	vmovdqa ymm13,YMMWORD PTR [rsi+0x60]
+   13a00:	vmovdqa64 ymm19,YMMWORD PTR [rdx+0x80]
+   13a07:	vpxor  xmm8,xmm8,xmm8
+   13a0c:	vpxor  xmm10,xmm10,xmm10
+   13a11:	vpxor  xmm5,xmm5,xmm5
+   13a15:	vpxor  xmm15,xmm15,xmm15
+   13a1a:	vpxor  xmm14,xmm14,xmm14
+   13a1f:	vmovaps ymm0,YMMWORD PTR [rip+0xfffffffffffef919]        # 3340 <__abi_tag+0x3044>
+   13a27:	movabs rcx,0x30644e72e131
+   13a31:	vpxor  xmm4,xmm4,xmm4
+   13a35:	mov    rax,rdi
+   13a38:	vpmadd52huq ymm6,ymm18,ymm12
+   13a3e:	vpmadd52huq ymm8,ymm18,ymm11
+   13a44:	vpmadd52huq ymm10,ymm18,ymm9
+   13a4a:	vpmadd52huq ymm5,ymm18,ymm19
+   13a50:	vpmadd52huq ymm15,ymm18,ymm7
+   13a56:	vpmadd52luq ymm14,ymm18,ymm7
+   13a5c:	vmovups YMMWORD PTR [rsp-0x28],ymm0
+   13a62:	mov    QWORD PTR [rsp-0x8],rcx
+   13a67:	vpbroadcastq xmm2,QWORD PTR [rsp-0x18]
+   13a6e:	vpbroadcastq ymm3,QWORD PTR [rsp-0x20]
+   13a75:	vpbroadcastq ymm1,QWORD PTR [rsp-0x10]
+   13a7c:	vpbroadcastq ymm0,QWORD PTR [rsp-0x8]
+   13a83:	vpmadd52huq ymm6,ymm17,ymm11
+   13a89:	vpmadd52huq ymm8,ymm17,ymm9
+   13a8f:	vpmadd52huq ymm10,ymm17,ymm7
+   13a95:	vpmadd52huq ymm5,ymm17,ymm12
+   13a9b:	vpmadd52luq ymm15,ymm18,ymm9
+   13aa1:	vpmadd52huq ymm6,ymm16,ymm9
+   13aa7:	vpmadd52huq ymm8,ymm16,ymm7
+   13aad:	vpmadd52luq ymm10,ymm18,ymm11
+   13ab3:	vpmadd52huq ymm5,ymm16,ymm11
+   13ab9:	vpmadd52luq ymm15,ymm17,ymm7
+   13abf:	vpbroadcastq ymm2,xmm2
+   13ac4:	vpmadd52huq ymm6,ymm13,ymm7
+   13aca:	vpmadd52luq ymm8,ymm18,ymm12
+   13ad0:	vpmadd52huq ymm5,ymm13,ymm9
+   13ad6:	vpmadd52luq ymm10,ymm17,ymm9
+   13adc:	vpmadd52luq ymm6,ymm18,ymm19
+   13ae2:	vmovdqa64 ymm18,YMMWORD PTR [rsi+0x80]
+   13ae9:	vpmadd52luq ymm8,ymm17,ymm11
+   13aef:	vpmadd52luq ymm10,ymm16,ymm7
+   13af5:	vpmadd52luq ymm6,ymm17,ymm12
+   13afb:	vpmadd52luq ymm8,ymm16,ymm9
+   13b01:	vpmadd52luq ymm6,ymm16,ymm11
+   13b07:	vpmadd52huq ymm5,ymm18,ymm7
+   13b0d:	vpmadd52luq ymm8,ymm13,ymm7
+   13b13:	vpmadd52luq ymm6,ymm13,ymm9
+   13b19:	vpmadd52luq ymm5,ymm17,ymm19
+   13b1f:	vpmadd52luq ymm6,ymm18,ymm7
+   13b25:	vpxor  xmm7,xmm7,xmm7
+   13b29:	vpmadd52huq ymm7,ymm17,ymm19
+   13b2f:	vpmadd52luq ymm5,ymm16,ymm12
+   13b35:	vpbroadcastq ymm17,QWORD PTR [rip+0xfffffffffffef581]        # 30c0 <__abi_tag+0x2dc4>
+   13b3f:	vpmadd52huq ymm7,ymm16,ymm12
+   13b45:	vpmadd52luq ymm5,ymm13,ymm11
+   13b4b:	vpmadd52huq ymm7,ymm13,ymm11
+   13b51:	vpmadd52luq ymm5,ymm18,ymm9
+   13b57:	vpmadd52huq ymm7,ymm18,ymm9
+   13b5d:	vpxor  xmm9,xmm9,xmm9
+   13b62:	vpmadd52huq ymm9,ymm16,ymm19
+   13b68:	vpmadd52luq ymm7,ymm16,ymm19
+   13b6e:	vpmadd52huq ymm9,ymm13,ymm12
+   13b74:	vpbroadcastq ymm16,QWORD PTR [rip+0xfffffffffffef4aa]        # 3028 <__abi_tag+0x2d2c>
+   13b7e:	vpmadd52luq ymm7,ymm13,ymm12
+   13b84:	vpmadd52huq ymm9,ymm18,ymm11
+   13b8a:	vpmadd52luq ymm9,ymm13,ymm19
+   13b90:	vpmadd52luq ymm7,ymm18,ymm11
+   13b96:	vpxor  xmm11,xmm11,xmm11
+   13b9b:	vpmadd52huq ymm11,ymm13,ymm19
+   13ba1:	vpxor  xmm13,xmm13,xmm13
+   13ba6:	vpmadd52luq ymm13,ymm14,ymm17
+   13bac:	vpmadd52huq ymm15,ymm13,ymm16
+   13bb2:	vpmadd52huq ymm10,ymm13,ymm3
+   13bb8:	vpmadd52huq ymm8,ymm13,ymm2
+   13bbe:	vpmadd52huq ymm6,ymm13,ymm1
+   13bc4:	vpmadd52luq ymm14,ymm13,ymm16
+   13bca:	vpmadd52huq ymm5,ymm13,ymm0
+   13bd0:	vpmadd52luq ymm9,ymm18,ymm12
+   13bd6:	vpmadd52huq ymm11,ymm18,ymm12
+   13bdc:	vpxor  xmm12,xmm12,xmm12
+   13be1:	vpmadd52huq ymm12,ymm18,ymm19
+   13be7:	vpmadd52luq ymm15,ymm13,ymm3
+   13bed:	vpmadd52luq ymm10,ymm13,ymm2
+   13bf3:	vpmadd52luq ymm8,ymm13,ymm1
+   13bf9:	vpmadd52luq ymm6,ymm13,ymm0
+   13bff:	vpsrlq ymm13,ymm14,0x34
+   13c05:	vpxor  xmm14,xmm14,xmm14
+   13c0a:	vpmadd52luq ymm11,ymm18,ymm19
+   13c10:	vpbroadcastq ymm18,QWORD PTR [rip+0xfffffffffffef3e6]        # 3000 <__abi_tag+0x2d04>
+   13c1a:	vpaddq ymm13,ymm15,ymm13
+   13c1f:	vpmadd52luq ymm14,ymm13,ymm17
+   13c25:	vpmadd52huq ymm10,ymm14,ymm16
+   13c2b:	vpmadd52luq ymm13,ymm14,ymm16
+   13c31:	vpmadd52huq ymm8,ymm14,ymm3
+   13c37:	vpmadd52huq ymm6,ymm14,ymm2
+   13c3d:	vpmadd52huq ymm5,ymm14,ymm1
+   13c43:	vpmadd52huq ymm7,ymm14,ymm0
+   13c49:	vpmadd52luq ymm10,ymm14,ymm3
+   13c4f:	vpsrlq ymm13,ymm13,0x34
+   13c55:	vpmadd52luq ymm8,ymm14,ymm2
+   13c5b:	vpmadd52luq ymm6,ymm14,ymm1
+   13c61:	vpmadd52luq ymm5,ymm14,ymm0
+   13c67:	vpaddq ymm10,ymm10,ymm13
+   13c6c:	vpxor  xmm13,xmm13,xmm13
+   13c71:	vpmadd52luq ymm13,ymm10,ymm17
+   13c77:	vpmadd52huq ymm8,ymm13,ymm16
+   13c7d:	vpmadd52luq ymm10,ymm13,ymm16
+   13c83:	vpmadd52huq ymm6,ymm13,ymm3
+   13c89:	vpmadd52huq ymm5,ymm13,ymm2
+   13c8f:	vpmadd52huq ymm7,ymm13,ymm1
+   13c95:	vpmadd52huq ymm9,ymm13,ymm0
+   13c9b:	vpmadd52luq ymm8,ymm13,ymm3
+   13ca1:	vpsrlq ymm10,ymm10,0x34
+   13ca7:	vpmadd52luq ymm6,ymm13,ymm2
+   13cad:	vpmadd52luq ymm5,ymm13,ymm1
+   13cb3:	vpmadd52luq ymm7,ymm13,ymm0
+   13cb9:	vpaddq ymm8,ymm8,ymm10
+   13cbe:	vpxor  xmm10,xmm10,xmm10
+   13cc3:	vpmadd52luq ymm10,ymm8,ymm17
+   13cc9:	vpmadd52huq ymm6,ymm10,ymm16
+   13ccf:	vpmadd52luq ymm8,ymm10,ymm16
+   13cd5:	vpmadd52huq ymm5,ymm10,ymm3
+   13cdb:	vpmadd52huq ymm7,ymm10,ymm2
+   13ce1:	vpmadd52huq ymm9,ymm10,ymm1
+   13ce7:	vpmadd52huq ymm11,ymm10,ymm0
+   13ced:	vpmadd52luq ymm6,ymm10,ymm3
+   13cf3:	vpsrlq ymm8,ymm8,0x34
+   13cf9:	vpmadd52luq ymm5,ymm10,ymm2
+   13cff:	vpmadd52luq ymm7,ymm10,ymm1
+   13d05:	vpmadd52luq ymm9,ymm10,ymm0
+   13d0b:	vpbroadcastq ymm10,QWORD PTR [rip+0xfffffffffffef364]        # 3078 <__abi_tag+0x2d7c>
+   13d14:	vpaddq ymm6,ymm8,ymm6
+   13d18:	vpxor  xmm8,xmm8,xmm8
+   13d1d:	vpmadd52luq ymm8,ymm6,ymm17
+   13d23:	vpblendw ymm4,ymm8,ymm4,0x88
+   13d29:	vpmadd52huq ymm5,ymm4,ymm16
+   13d2f:	vpmadd52huq ymm7,ymm4,ymm3
+   13d35:	vpmadd52huq ymm11,ymm4,ymm1
+   13d3b:	vpmadd52luq ymm6,ymm4,ymm16
+   13d41:	vpmadd52huq ymm9,ymm4,ymm2
+   13d47:	vpmadd52huq ymm12,ymm4,ymm0
+   13d4d:	vpmadd52luq ymm5,ymm4,ymm3
+   13d53:	vpmadd52luq ymm7,ymm4,ymm2
+   13d59:	vpmadd52luq ymm11,ymm4,ymm0
+   13d5f:	vpsrlq ymm0,ymm6,0x34
+   13d64:	vpmadd52luq ymm9,ymm4,ymm1
+   13d6a:	vpsrlq ymm6,ymm6,0x30
+   13d6f:	vpaddq ymm0,ymm0,ymm5
+   13d73:	vpsrlq ymm1,ymm0,0x34
+   13d78:	vpandq ymm2,ymm0,ymm18
+   13d7e:	vpsllq ymm0,ymm0,0x4
+   13d83:	vpaddq ymm1,ymm1,ymm7
+   13d87:	vpand  ymm0,ymm10,ymm0
+   13d8b:	vpternlogq ymm0,ymm6,QWORD BCST [rip+0xfffffffffffef272],0xf8        # 3008 <__abi_tag+0x2d0c>
+   13d96:	vpsrlq ymm2,ymm2,0x30
+   13d9b:	vpsrlq ymm3,ymm1,0x34
+   13da0:	vpandq ymm4,ymm1,ymm18
+   13da6:	vpsllq ymm1,ymm1,0x4
+   13dab:	vpaddq ymm3,ymm9,ymm3
+   13daf:	vpternlogq ymm1,ymm2,ymm10,0xec
+   13db6:	vpsrlq ymm2,ymm4,0x30
+   13dbb:	vpsrlq ymm5,ymm3,0x34
+   13dc0:	vpandq ymm7,ymm3,ymm18
+   13dc6:	vpsllq ymm3,ymm3,0x4
+   13dcb:	vpaddq ymm5,ymm11,ymm5
+   13dcf:	vpternlogq ymm3,ymm2,ymm10,0xec
+   13dd6:	vpsrlq ymm2,ymm7,0x30
+   13ddb:	vpsrlq ymm8,ymm5,0x34
+   13de0:	vpsllq ymm4,ymm5,0x4
+   13de5:	vpandq ymm9,ymm5,ymm18
+   13deb:	vpaddq ymm8,ymm8,ymm12
+   13df0:	vpternlogq ymm4,ymm2,ymm10,0xec
+   13df7:	vpsrlq ymm2,ymm9,0x30
+   13dfd:	vpsllq ymm5,ymm8,0x4
+   13e03:	vpternlogq ymm5,ymm2,ymm10,0xec
+   13e0a:	vmovdqa YMMWORD PTR [rdi],ymm0
+   13e0e:	vmovdqa YMMWORD PTR [rdi+0x20],ymm1
+   13e13:	vmovdqa YMMWORD PTR [rdi+0x40],ymm3
+   13e18:	vmovdqa YMMWORD PTR [rdi+0x60],ymm4
+   13e1d:	vmovdqa YMMWORD PTR [rdi+0x80],ymm5
+   13e25:	vzeroupper
+   13e28:	ret
+
+Disassembly of section .init:
+
+Disassembly of section .fini:
+
+Disassembly of section .plt:

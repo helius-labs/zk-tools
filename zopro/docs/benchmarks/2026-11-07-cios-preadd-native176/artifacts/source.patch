@@ -1,0 +1,359 @@
+--- a/crates/zopro-bn254/src/ifma.rs
++++ b/crates/zopro-bn254/src/ifma.rs
+@@ -416,8 +416,42 @@
+             let p = split(C::P).map(Self::splat);
+             let inv = Self::splat(C::INV & MASK);
+             let mut t = [zero; 6];
++            macro_rules! preadd_row {
++                ($i:literal) => {{
++                    t[0] = _mm256_madd52lo_epu64(t[0], self.0[0], b.0[$i]);
++                    if FUSED { t[0] = _mm256_madd52lo_epu64(t[0], c.0[0], d.0[$i]); }
++                    let m = _mm256_and_si256(_mm256_madd52lo_epu64(zero, t[0], inv), mask);
++                    let carry = _mm256_srli_epi64::<52>(_mm256_add_epi64(t[0], mask));
++                    let low = _mm256_madd52hi_epu64(carry, m, p[0]);
++                    macro_rules! coefficient {
++                        ($j:literal,$previous:literal,$first:literal) => {{
++                            let contribution = _mm256_madd52lo_epu64(zero, self.0[$j], b.0[$i]);
++                            let mut contribution = _mm256_madd52hi_epu64(contribution, self.0[$previous], b.0[$i]);
++                            if FUSED {
++                                contribution = _mm256_madd52lo_epu64(contribution, c.0[$j], d.0[$i]);
++                                contribution = _mm256_madd52hi_epu64(contribution, c.0[$previous], d.0[$i]);
++                            }
++                            t[$j] = _mm256_add_epi64(t[$j], contribution);
++                            t[$j] = _mm256_madd52lo_epu64(t[$j], m, p[$j]);
++                            if $first { t[$j] = _mm256_add_epi64(t[$j], low); }
++                            else { t[$j] = _mm256_madd52hi_epu64(t[$j], m, p[$previous]); }
++                        }};
++                    }
++                    coefficient!(1,0,true);
++                    coefficient!(2,1,false);
++                    coefficient!(3,2,false);
++                    coefficient!(4,3,false);
++                    t[5] = _mm256_madd52hi_epu64(t[5], self.0[4], b.0[$i]);
++                    if FUSED { t[5] = _mm256_madd52hi_epu64(t[5], c.0[4], d.0[$i]); }
++                    t[5] = _mm256_madd52hi_epu64(t[5], m, p[4]);
++                }};
++            }
+             macro_rules! row {
+                 ($i:literal) => {{
++                    if cfg!(zopro_cios_preadd_local) && cfg!(zopro_cios_cancel_carry)
++                        && LANES == 8 && MIXED && C::P == crate::FqConfig::P {
++                        preadd_row!($i);
++                    } else {
+                     macro_rules! product {
+                         ($j:literal,$k:literal) => {
+                             t[$j] = _mm256_madd52lo_epu64(t[$j], self.0[$j], b.0[$i]);
+@@ -467,6 +501,7 @@
+                         reduction!(4, 5);
+                         t[1] = _mm256_add_epi64(t[1], _mm256_srli_epi64::<52>(t[0]));
+                     }
++                    }
+                     t = [t[1], t[2], t[3], t[4], t[5], zero];
+                 }};
+             }
+@@ -822,6 +857,50 @@
+     }
+ 
+     #[test]
++    fn preadd_native_chain_matches_arkworks() {
++        use ark_ff::{Field, PrimeField};
++        type A = ark_ref::Fq;
++        let p = crate::FqConfig::P;
++        let twice = crate::portable::add4(p, p).0;
++        let limit = split(twice);
++        let inverse_r = A::from(2u64).pow([256]).inverse().unwrap();
++        let numeric = |words: [u64;4]| A::from_le_bytes_mod_order(&words.into_iter().flat_map(u64::to_le_bytes).collect::<Vec<_>>());
++        let edges = [[0;4], [1,0,0,0], p, crate::portable::sub4(p,[1,0,0,0]).0, twice, crate::portable::sub4(twice,[1,0,0,0]).0];
++        let initial = core::array::from_fn(|i|edges[i%edges.len()]);
++        let mut state = Ifma::<crate::FqConfig,true>::raw(&initial);
++        let mut expected: [A;LANES] = initial.map(|v|numeric(v)*inverse_r);
++        let mut seed = 0xc81e4a590d7263bfu64;
++        for step in 0..12289 {
++            if step%97==0 {
++                let words=core::array::from_fn(|i|edges[(step/97+i)%edges.len()]);
++                state=Ifma::<crate::FqConfig,true>::raw(&words);
++                expected=words.map(|v|numeric(v)*inverse_r);
++            }
++            let words: [[[u64;4];LANES];3] = core::array::from_fn(|_|core::array::from_fn(|_|{
++                let mut bytes=[0u8;64];
++                for b in bytes.chunks_mut(8) {seed^=seed<<13;seed^=seed>>7;seed^=seed<<17;b.copy_from_slice(&seed.to_le_bytes());}
++                let value=Fp::<crate::FqConfig>::from_random_bytes(&bytes).0;
++                if seed&1==0 {value} else {crate::portable::add4(value,p).0}
++            }));
++            let input=words.map(|w|Ifma::<crate::FqConfig,true>::raw(&w));
++            let reference=words.map(|w|w.map(|v|numeric(v)*inverse_r));
++            state=match step%3 {0=>state.mul(&input[0]),1=>state.sum2(&input[0],&input[1],&input[2]),_=>state.difference2(&input[0],&input[1],&input[2])};
++            for i in 0..LANES {
++                expected[i]=match step%3 {0=>expected[i]*reference[0][i],1=>expected[i]*reference[0][i]+reference[1][i]*reference[2][i],_=>expected[i]*reference[0][i]-reference[1][i]*reference[2][i]};
++            }
++            let raw:[[u64;LANES];5]=state.0.map(|v|unsafe{core::mem::transmute(v)});
++            let host=state.get();
++            for i in 0..LANES {
++                assert_eq!(numeric(host[i].0)*inverse_r,expected[i],"step={step}, lane={i}");
++                assert!(crate::portable::less(host[i].0,p));
++                for row in &raw {assert!(row[i]<1u64<<52);}
++                assert!((0..5).rev().map(|j|raw[j][i]).cmp((0..5).rev().map(|j|limit[j])).is_lt());
++            }
++        }
++        eprintln!("PRE_ADD_NATIVE_LANES={} WIDTH={LANES}",12289*LANES);
++    }
++
++    #[test]
+     fn compact_storage_roundtrip() {
+         fn check<C: FpConfig, const MIXED: bool>() {
+             assert_eq!(core::mem::size_of::<PackedIfma<C, MIXED>>(), 4 * LANES * 8);
+--- a/crates/zopro-bn254/src/ifma8.rs
++++ b/crates/zopro-bn254/src/ifma8.rs
+@@ -473,56 +473,105 @@
+             let p = split(C::P).map(Self::splat);
+             let inv = Self::splat(C::INV & MASK);
+             let mut t = [zero; 6];
+-            macro_rules! row {
++            macro_rules! preadd_row {
+                 ($i:literal) => {{
+-                    macro_rules! product {
+-                        ($j:literal,$k:literal) => {
+-                            t[$j] = _mm512_madd52lo_epu64(t[$j], self.0[$j], b.0[$i]);
+-                            t[$k] = _mm512_madd52hi_epu64(t[$k], self.0[$j], b.0[$i]);
+-                        };
+-                    }
+-                    product!(0, 1);
+-                    product!(1, 2);
+-                    product!(2, 3);
+-                    product!(3, 4);
+-                    product!(4, 5);
++                    t[0] = _mm512_madd52lo_epu64(t[0], self.0[0], b.0[$i]);
+                     if FUSED {
+-                        macro_rules! second {
+-                            ($j:literal,$k:literal) => {
+-                                t[$j] = _mm512_madd52lo_epu64(t[$j], c.0[$j], d.0[$i]);
+-                                t[$k] = _mm512_madd52hi_epu64(t[$k], c.0[$j], d.0[$i]);
+-                            };
+-                        }
+-                        second!(0, 1);
+-                        second!(1, 2);
+-                        second!(2, 3);
+-                        second!(3, 4);
+-                        second!(4, 5);
++                        t[0] = _mm512_madd52lo_epu64(t[0], c.0[0], d.0[$i]);
+                     }
+                     let m = _mm512_and_si512(_mm512_madd52lo_epu64(zero, t[0], inv), mask);
+-                    macro_rules! reduction {
+-                        ($j:literal,$k:literal) => {
++                    let carry = _mm512_srli_epi64::<52>(_mm512_add_epi64(t[0], mask));
++                    let low = _mm512_madd52hi_epu64(carry, m, p[0]);
++                    macro_rules! coefficient {
++                        ($j:literal,$previous:literal,$first:literal) => {{
++                            let contribution = _mm512_madd52lo_epu64(zero, self.0[$j], b.0[$i]);
++                            let mut contribution =
++                                _mm512_madd52hi_epu64(contribution, self.0[$previous], b.0[$i]);
++                            if FUSED {
++                                contribution =
++                                    _mm512_madd52lo_epu64(contribution, c.0[$j], d.0[$i]);
++                                contribution =
++                                    _mm512_madd52hi_epu64(contribution, c.0[$previous], d.0[$i]);
++                            }
++                            t[$j] = _mm512_add_epi64(t[$j], contribution);
+                             t[$j] = _mm512_madd52lo_epu64(t[$j], m, p[$j]);
+-                            t[$k] = _mm512_madd52hi_epu64(t[$k], m, p[$j]);
+-                        };
++                            if $first {
++                                t[$j] = _mm512_add_epi64(t[$j], low);
++                            } else {
++                                t[$j] = _mm512_madd52hi_epu64(t[$j], m, p[$previous]);
++                            }
++                        }};
++                    }
++                    coefficient!(1, 0, true);
++                    coefficient!(2, 1, false);
++                    coefficient!(3, 2, false);
++                    coefficient!(4, 3, false);
++                    t[5] = _mm512_madd52hi_epu64(t[5], self.0[4], b.0[$i]);
++                    if FUSED {
++                        t[5] = _mm512_madd52hi_epu64(t[5], c.0[4], d.0[$i]);
+                     }
+-                    if cfg!(zopro_cios_cancel_carry) {
+-                        // The cancelled low digit contributes ceil(t0/B).
+-                        // Compute it without waiting for m*p0's low half.
+-                        let carry = _mm512_srli_epi64::<52>(_mm512_add_epi64(t[0], mask));
+-                        let low = _mm512_madd52hi_epu64(carry, m, p[0]);
+-                        reduction!(1, 2);
+-                        reduction!(2, 3);
+-                        reduction!(3, 4);
+-                        reduction!(4, 5);
+-                        t[1] = _mm512_add_epi64(t[1], low);
++                    t[5] = _mm512_madd52hi_epu64(t[5], m, p[4]);
++                }};
++            }
++            macro_rules! row {
++                ($i:literal) => {{
++                    if cfg!(zopro_cios_preadd_local)
++                        && cfg!(zopro_cios_cancel_carry)
++                        && LANES == 8
++                        && MIXED
++                        && C::P == crate::FqConfig::P
++                    {
++                        preadd_row!($i);
+                     } else {
+-                        reduction!(0, 1);
+-                        reduction!(1, 2);
+-                        reduction!(2, 3);
+-                        reduction!(3, 4);
+-                        reduction!(4, 5);
+-                        t[1] = _mm512_add_epi64(t[1], _mm512_srli_epi64::<52>(t[0]));
++                        macro_rules! product {
++                            ($j:literal,$k:literal) => {
++                                t[$j] = _mm512_madd52lo_epu64(t[$j], self.0[$j], b.0[$i]);
++                                t[$k] = _mm512_madd52hi_epu64(t[$k], self.0[$j], b.0[$i]);
++                            };
++                        }
++                        product!(0, 1);
++                        product!(1, 2);
++                        product!(2, 3);
++                        product!(3, 4);
++                        product!(4, 5);
++                        if FUSED {
++                            macro_rules! second {
++                                ($j:literal,$k:literal) => {
++                                    t[$j] = _mm512_madd52lo_epu64(t[$j], c.0[$j], d.0[$i]);
++                                    t[$k] = _mm512_madd52hi_epu64(t[$k], c.0[$j], d.0[$i]);
++                                };
++                            }
++                            second!(0, 1);
++                            second!(1, 2);
++                            second!(2, 3);
++                            second!(3, 4);
++                            second!(4, 5);
++                        }
++                        let m = _mm512_and_si512(_mm512_madd52lo_epu64(zero, t[0], inv), mask);
++                        macro_rules! reduction {
++                            ($j:literal,$k:literal) => {
++                                t[$j] = _mm512_madd52lo_epu64(t[$j], m, p[$j]);
++                                t[$k] = _mm512_madd52hi_epu64(t[$k], m, p[$j]);
++                            };
++                        }
++                        if cfg!(zopro_cios_cancel_carry) {
++                            // The cancelled low digit contributes ceil(t0/B).
++                            // Compute it without waiting for m*p0's low half.
++                            let carry = _mm512_srli_epi64::<52>(_mm512_add_epi64(t[0], mask));
++                            let low = _mm512_madd52hi_epu64(carry, m, p[0]);
++                            reduction!(1, 2);
++                            reduction!(2, 3);
++                            reduction!(3, 4);
++                            reduction!(4, 5);
++                            t[1] = _mm512_add_epi64(t[1], low);
++                        } else {
++                            reduction!(0, 1);
++                            reduction!(1, 2);
++                            reduction!(2, 3);
++                            reduction!(3, 4);
++                            reduction!(4, 5);
++                            t[1] = _mm512_add_epi64(t[1], _mm512_srli_epi64::<52>(t[0]));
++                        }
+                     }
+                     t = [t[1], t[2], t[3], t[4], t[5], zero];
+                 }};
+@@ -1255,6 +1304,92 @@
+         check::<crate::FrConfig, ark_ref::Fr, false>();
+         check::<crate::FrConfig, ark_ref::Fr, true>();
+     }
++    #[test]
++    fn preadd_native_chain_matches_arkworks() {
++        use ark_ff::{Field, PrimeField};
++        type A = ark_ref::Fq;
++        let p = crate::FqConfig::P;
++        let twice = crate::portable::add4(p, p).0;
++        let limit = split(twice);
++        let inverse_r = A::from(2u64).pow([256]).inverse().unwrap();
++        let numeric = |words: [u64; 4]| {
++            A::from_le_bytes_mod_order(
++                &words
++                    .into_iter()
++                    .flat_map(u64::to_le_bytes)
++                    .collect::<Vec<_>>(),
++            )
++        };
++        let edges = [
++            [0; 4],
++            [1, 0, 0, 0],
++            p,
++            crate::portable::sub4(p, [1, 0, 0, 0]).0,
++            twice,
++            crate::portable::sub4(twice, [1, 0, 0, 0]).0,
++        ];
++        let initial = core::array::from_fn(|i| edges[i % edges.len()]);
++        let mut state = Ifma8::<crate::FqConfig, true>::raw(&initial);
++        let mut expected: [A; LANES] = initial.map(|v| numeric(v) * inverse_r);
++        let mut seed = 0xc81e4a590d7263bfu64;
++        for step in 0..12289 {
++            if step % 97 == 0 {
++                let words = core::array::from_fn(|i| edges[(step / 97 + i) % edges.len()]);
++                state = Ifma8::<crate::FqConfig, true>::raw(&words);
++                expected = words.map(|v| numeric(v) * inverse_r);
++            }
++            let words: [[[u64; 4]; LANES]; 3] = core::array::from_fn(|_| {
++                core::array::from_fn(|_| {
++                    let mut bytes = [0u8; 64];
++                    for b in bytes.chunks_mut(8) {
++                        seed ^= seed << 13;
++                        seed ^= seed >> 7;
++                        seed ^= seed << 17;
++                        b.copy_from_slice(&seed.to_le_bytes());
++                    }
++                    let value = Fp::<crate::FqConfig>::from_random_bytes(&bytes).0;
++                    if seed & 1 == 0 {
++                        value
++                    } else {
++                        crate::portable::add4(value, p).0
++                    }
++                })
++            });
++            let input = words.map(|w| Ifma8::<crate::FqConfig, true>::raw(&w));
++            let reference = words.map(|w| w.map(|v| numeric(v) * inverse_r));
++            state = match step % 3 {
++                0 => state.mul(&input[0]),
++                1 => state.sum2(&input[0], &input[1], &input[2]),
++                _ => state.difference2(&input[0], &input[1], &input[2]),
++            };
++            for i in 0..LANES {
++                expected[i] = match step % 3 {
++                    0 => expected[i] * reference[0][i],
++                    1 => expected[i] * reference[0][i] + reference[1][i] * reference[2][i],
++                    _ => expected[i] * reference[0][i] - reference[1][i] * reference[2][i],
++                };
++            }
++            let raw: [[u64; LANES]; 5] = state.0.map(|v| unsafe { core::mem::transmute(v) });
++            let host = state.get();
++            for i in 0..LANES {
++                assert_eq!(
++                    numeric(host[i].0) * inverse_r,
++                    expected[i],
++                    "step={step}, lane={i}"
++                );
++                assert!(crate::portable::less(host[i].0, p));
++                for row in &raw {
++                    assert!(row[i] < 1u64 << 52);
++                }
++                assert!((0..5)
++                    .rev()
++                    .map(|j| raw[j][i])
++                    .cmp((0..5).rev().map(|j| limit[j]))
++                    .is_lt());
++            }
++        }
++        eprintln!("PRE_ADD_NATIVE_LANES={} WIDTH={LANES}", 12289 * LANES);
++    }
+     fn check<C: FpConfig, const MIXED: bool>() {
+         let mut seed = 0xfedcba987654321u64;
+         let mut random = || {
+--- a/scripts/ifma8.py
++++ b/scripts/ifma8.py
+@@ -273,7 +273,7 @@
+ '''
+ # Share the exact raw-storage reference test with the four-lane kernel.
+ complete = path.read_text()
+-for name in ["compact_storage_roundtrip", "signed_difference_scaled_matches_arkworks", "small_integer_multiply_matches_arkworks", "cios_carry_matches_arkworks"]:
++for name in ["compact_storage_roundtrip", "signed_difference_scaled_matches_arkworks", "small_integer_multiply_matches_arkworks", "cios_carry_matches_arkworks", "preadd_native_chain_matches_arkworks"]:
+     start = complete.index("    #[test]\n    fn " + name + "()")
+     body = complete.index("{", start)
+     depth, end = 1, body + 1

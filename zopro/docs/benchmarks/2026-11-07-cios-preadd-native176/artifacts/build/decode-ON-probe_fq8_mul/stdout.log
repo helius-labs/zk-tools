@@ -1,0 +1,228 @@
+
+/home/ubuntu/src/zopro-perf-work/cios-preadd-native176/probe-ON:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000013e30 <probe_fq8_mul>:
+   13e30:	vmovaps ymm0,YMMWORD PTR [rip+0xfffffffffffef508]        # 3340 <__abi_tag+0x3044>
+   13e38:	vmovdqa64 zmm11,ZMMWORD PTR [rsi]
+   13e3e:	vmovdqa64 zmm10,ZMMWORD PTR [rsi+0x40]
+   13e45:	vmovdqa64 zmm16,ZMMWORD PTR [rdx]
+   13e4b:	vpbroadcastq zmm7,QWORD PTR [rip+0xfffffffffffef26b]        # 30c0 <__abi_tag+0x2dc4>
+   13e55:	vmovdqa64 zmm9,ZMMWORD PTR [rsi+0x80]
+   13e5c:	vmovdqa64 zmm6,ZMMWORD PTR [rsi+0xc0]
+   13e63:	vmovdqa64 zmm23,ZMMWORD PTR [rsi+0x100]
+   13e6a:	movabs rcx,0x30644e72e131
+   13e74:	vpbroadcastq zmm25,QWORD PTR [rip+0xfffffffffffef182]        # 3000 <__abi_tag+0x2d04>
+   13e7e:	vpxor  xmm8,xmm8,xmm8
+   13e83:	vpxord xmm18,xmm18,xmm18
+   13e89:	vpbroadcastq zmm24,QWORD PTR [rip+0xfffffffffffef195]        # 3028 <__abi_tag+0x2d2c>
+   13e93:	vpxord xmm17,xmm17,xmm17
+   13e99:	vpxord xmm19,xmm19,xmm19
+   13e9f:	vpxord xmm20,xmm20,xmm20
+   13ea5:	vpxord xmm21,xmm21,xmm21
+   13eab:	vmovdqa64 zmm15,ZMMWORD PTR [rdx+0x40]
+   13eb2:	vpxord xmm22,xmm22,xmm22
+   13eb8:	vmovdqa64 zmm14,ZMMWORD PTR [rdx+0x80]
+   13ebf:	vmovdqa64 zmm12,ZMMWORD PTR [rdx+0xc0]
+   13ec6:	vpxor  xmm5,xmm5,xmm5
+   13eca:	mov    rax,rdi
+   13ecd:	vmovups YMMWORD PTR [rsp-0x28],ymm0
+   13ed3:	mov    QWORD PTR [rsp-0x8],rcx
+   13ed8:	vpmadd52luq zmm18,zmm10,zmm16
+   13ede:	vpmadd52luq zmm8,zmm11,zmm16
+   13ee4:	vpmadd52luq zmm19,zmm9,zmm16
+   13eea:	vpmadd52luq zmm20,zmm6,zmm16
+   13ef0:	vpmadd52luq zmm21,zmm23,zmm16
+   13ef6:	vpmadd52huq zmm22,zmm23,zmm16
+   13efc:	vpbroadcastq zmm4,QWORD PTR [rsp-0x20]
+   13f04:	vpbroadcastq zmm3,QWORD PTR [rsp-0x18]
+   13f0c:	vpbroadcastq zmm2,QWORD PTR [rsp-0x10]
+   13f14:	vpbroadcastq zmm1,QWORD PTR [rsp-0x8]
+   13f1c:	vpmadd52luq zmm17,zmm8,zmm7
+   13f22:	vpmadd52huq zmm18,zmm11,zmm16
+   13f28:	vpaddq zmm8,zmm8,zmm25
+   13f2e:	vpmadd52huq zmm19,zmm10,zmm16
+   13f34:	vpmadd52huq zmm20,zmm9,zmm16
+   13f3a:	vpmadd52huq zmm21,zmm6,zmm16
+   13f40:	vpxord xmm16,xmm16,xmm16
+   13f46:	vpsrlq zmm13,zmm8,0x34
+   13f4d:	vpmadd52huq zmm13,zmm17,zmm24
+   13f53:	vpmadd52luq zmm18,zmm17,zmm4
+   13f59:	vpmadd52luq zmm19,zmm17,zmm3
+   13f5f:	vpmadd52luq zmm20,zmm17,zmm2
+   13f65:	vpmadd52luq zmm21,zmm17,zmm1
+   13f6b:	vpmadd52huq zmm22,zmm17,zmm1
+   13f71:	vpaddq zmm18,zmm18,zmm13
+   13f77:	vpmadd52huq zmm19,zmm17,zmm4
+   13f7d:	vpmadd52huq zmm20,zmm17,zmm3
+   13f83:	vpmadd52huq zmm21,zmm17,zmm2
+   13f89:	vpmadd52luq zmm18,zmm11,zmm15
+   13f8f:	vpaddq zmm17,zmm18,zmm25
+   13f95:	vpmadd52luq zmm16,zmm18,zmm7
+   13f9b:	vpxord xmm18,xmm18,xmm18
+   13fa1:	vpmadd52luq zmm18,zmm10,zmm15
+   13fa7:	vpsrlq zmm17,zmm17,0x34
+   13fae:	vpmadd52huq zmm18,zmm11,zmm15
+   13fb4:	vpmadd52huq zmm17,zmm16,zmm24
+   13fba:	vpaddq zmm18,zmm18,zmm19
+   13fc0:	vpxord xmm19,xmm19,xmm19
+   13fc6:	vpmadd52luq zmm19,zmm6,zmm15
+   13fcc:	vpmadd52luq zmm18,zmm16,zmm4
+   13fd2:	vpmadd52huq zmm19,zmm9,zmm15
+   13fd8:	vpaddq zmm17,zmm18,zmm17
+   13fde:	vpxord xmm18,xmm18,xmm18
+   13fe4:	vpmadd52luq zmm18,zmm9,zmm15
+   13fea:	vpmadd52luq zmm17,zmm11,zmm14
+   13ff0:	vpaddq zmm19,zmm19,zmm21
+   13ff6:	vpxord xmm21,xmm21,xmm21
+   13ffc:	vpmadd52huq zmm21,zmm23,zmm15
+   14002:	vpmadd52huq zmm18,zmm10,zmm15
+   14008:	vpmadd52luq zmm19,zmm16,zmm2
+   1400e:	vpmadd52huq zmm21,zmm16,zmm1
+   14014:	vpaddq zmm18,zmm18,zmm20
+   1401a:	vpxord xmm20,xmm20,xmm20
+   14020:	vpmadd52luq zmm20,zmm23,zmm15
+   14026:	vpmadd52huq zmm19,zmm16,zmm3
+   1402c:	vpmadd52luq zmm18,zmm16,zmm3
+   14032:	vpmadd52huq zmm20,zmm6,zmm15
+   14038:	vpxor  xmm15,xmm15,xmm15
+   1403d:	vpmadd52luq zmm15,zmm17,zmm7
+   14043:	vpmadd52huq zmm18,zmm16,zmm4
+   14049:	vpaddq zmm20,zmm20,zmm22
+   1404f:	vpmadd52luq zmm20,zmm16,zmm1
+   14055:	vpmadd52huq zmm20,zmm16,zmm2
+   1405b:	vpaddq zmm16,zmm17,zmm25
+   14061:	vpxord xmm17,xmm17,xmm17
+   14067:	vpmadd52luq zmm17,zmm10,zmm14
+   1406d:	vpsrlq zmm16,zmm16,0x34
+   14074:	vpmadd52huq zmm16,zmm15,zmm24
+   1407a:	vpmadd52huq zmm17,zmm11,zmm14
+   14080:	vpaddq zmm17,zmm17,zmm18
+   14086:	vpxord xmm18,xmm18,xmm18
+   1408c:	vpmadd52luq zmm18,zmm6,zmm14
+   14092:	vpmadd52luq zmm17,zmm15,zmm4
+   14098:	vpmadd52huq zmm18,zmm9,zmm14
+   1409e:	vpaddq zmm16,zmm17,zmm16
+   140a4:	vpxord xmm17,xmm17,xmm17
+   140aa:	vpmadd52luq zmm17,zmm9,zmm14
+   140b0:	vpmadd52luq zmm16,zmm11,zmm12
+   140b6:	vpaddq zmm18,zmm18,zmm20
+   140bc:	vpxord xmm20,xmm20,xmm20
+   140c2:	vpmadd52huq zmm20,zmm23,zmm14
+   140c8:	vpmadd52huq zmm17,zmm10,zmm14
+   140ce:	vpmadd52luq zmm18,zmm15,zmm2
+   140d4:	vpmadd52huq zmm20,zmm15,zmm1
+   140da:	vpaddq zmm17,zmm17,zmm19
+   140e0:	vpxord xmm19,xmm19,xmm19
+   140e6:	vpmadd52luq zmm19,zmm23,zmm14
+   140ec:	vpmadd52huq zmm18,zmm15,zmm3
+   140f2:	vpmadd52luq zmm17,zmm15,zmm3
+   140f8:	vpmadd52huq zmm19,zmm6,zmm14
+   140fe:	vpaddq zmm14,zmm16,zmm25
+   14104:	vpmadd52huq zmm17,zmm15,zmm4
+   1410a:	vpsrlq zmm14,zmm14,0x34
+   14111:	vpaddq zmm19,zmm19,zmm21
+   14117:	vpxord xmm21,xmm21,xmm21
+   1411d:	vpmadd52luq zmm21,zmm16,zmm7
+   14123:	vpxord xmm16,xmm16,xmm16
+   14129:	vpmadd52luq zmm16,zmm23,zmm12
+   1412f:	vpmadd52luq zmm19,zmm15,zmm1
+   14135:	vpmadd52huq zmm14,zmm21,zmm24
+   1413b:	vpmadd52huq zmm16,zmm6,zmm12
+   14141:	vpmadd52huq zmm19,zmm15,zmm2
+   14147:	vpxor  xmm15,xmm15,xmm15
+   1414c:	vpmadd52luq zmm15,zmm10,zmm12
+   14152:	vpaddq zmm16,zmm16,zmm20
+   14158:	vpmadd52huq zmm15,zmm11,zmm12
+   1415e:	vpmadd52luq zmm16,zmm21,zmm1
+   14164:	vpaddq zmm15,zmm15,zmm17
+   1416a:	vpmadd52huq zmm16,zmm21,zmm2
+   14170:	vpmadd52luq zmm15,zmm21,zmm4
+   14176:	vpaddq zmm17,zmm15,zmm14
+   1417c:	vpxor  xmm15,xmm15,xmm15
+   14181:	vpmadd52luq zmm15,zmm6,zmm12
+   14187:	vpxor  xmm14,xmm14,xmm14
+   1418c:	vpmadd52luq zmm14,zmm9,zmm12
+   14192:	vpmadd52huq zmm15,zmm9,zmm12
+   14198:	vpmadd52huq zmm14,zmm10,zmm12
+   1419e:	vpaddq zmm15,zmm15,zmm19
+   141a4:	vmovdqa64 zmm19,ZMMWORD PTR [rdx+0x100]
+   141ab:	vpaddq zmm14,zmm14,zmm18
+   141b1:	vpxord xmm18,xmm18,xmm18
+   141b7:	vpmadd52huq zmm18,zmm23,zmm12
+   141bd:	vpmadd52luq zmm15,zmm21,zmm2
+   141c3:	vpmadd52luq zmm14,zmm21,zmm3
+   141c9:	vpmadd52huq zmm18,zmm21,zmm1
+   141cf:	vpmadd52huq zmm15,zmm21,zmm3
+   141d5:	vpmadd52huq zmm14,zmm21,zmm4
+   141db:	vpmadd52luq zmm17,zmm11,zmm19
+   141e1:	vpmadd52huq zmm18,zmm6,zmm19
+   141e7:	vpmadd52huq zmm16,zmm9,zmm19
+   141ed:	vpmadd52huq zmm15,zmm10,zmm19
+   141f3:	vpmadd52huq zmm14,zmm11,zmm19
+   141f9:	vpbroadcastq zmm11,QWORD PTR [rip+0xfffffffffffeee75]        # 3078 <__abi_tag+0x2d7c>
+   14203:	vpmadd52luq zmm5,zmm17,zmm7
+   14209:	vpandq zmm7,zmm5,QWORD BCST [rip+0xfffffffffffeedfd]        # 3010 <__abi_tag+0x2d14>
+   14213:	vpmadd52luq zmm18,zmm23,zmm19
+   14219:	vpmadd52luq zmm16,zmm6,zmm19
+   1421f:	vpxor  xmm6,xmm6,xmm6
+   14223:	vpmadd52huq zmm6,zmm23,zmm19
+   14229:	vpmadd52luq zmm15,zmm9,zmm19
+   1422f:	vpaddq zmm9,zmm17,QWORD BCST [rip+0xfffffffffffeedd7]        # 3010 <__abi_tag+0x2d14>
+   14239:	vpmadd52luq zmm14,zmm10,zmm19
+   1423f:	vpsllq zmm5,zmm5,0x4
+   14246:	vpmadd52huq zmm18,zmm7,zmm2
+   1424c:	vpmadd52huq zmm15,zmm7,zmm4
+   14252:	vpmadd52huq zmm16,zmm7,zmm3
+   14258:	vpmadd52luq zmm14,zmm7,zmm4
+   1425e:	vpmadd52huq zmm6,zmm7,zmm1
+   14264:	vpsrlq zmm9,zmm9,0x30
+   1426b:	vpmadd52huq zmm9,zmm5,zmm24
+   14271:	vpmadd52luq zmm18,zmm7,zmm1
+   14277:	vpmadd52luq zmm15,zmm7,zmm3
+   1427d:	vpmadd52luq zmm16,zmm7,zmm2
+   14283:	vpsllq zmm1,zmm14,0x4
+   1428a:	vpsrlq zmm3,zmm14,0x30
+   14291:	vpsllq zmm6,zmm6,0x4
+   14298:	vpandq zmm1,zmm1,zmm11
+   1429e:	vpaddq zmm1,zmm1,zmm9
+   142a4:	vpsllq zmm8,zmm18,0x4
+   142ab:	vpsllq zmm4,zmm15,0x4
+   142b2:	vpsllq zmm7,zmm16,0x4
+   142b9:	vpsrlq zmm5,zmm15,0x30
+   142c0:	vpsrlq zmm10,zmm16,0x30
+   142c7:	vpsrlq zmm9,zmm18,0x30
+   142ce:	vpandq zmm2,zmm8,zmm11
+   142d4:	vpsrlq zmm8,zmm1,0x34
+   142db:	vpandq zmm4,zmm4,zmm11
+   142e1:	vpandq zmm7,zmm7,zmm11
+   142e7:	vpaddq zmm6,zmm6,zmm9
+   142ed:	vpandq zmm1,zmm1,zmm25
+   142f3:	vpaddq zmm3,zmm8,zmm3
+   142f9:	vpaddq zmm5,zmm7,zmm5
+   142ff:	vpaddq zmm2,zmm2,zmm10
+   14305:	vmovdqa64 ZMMWORD PTR [rdi],zmm1
+   1430b:	vpaddq zmm3,zmm3,zmm4
+   14311:	vpsrlq zmm4,zmm3,0x34
+   14318:	vpandq zmm3,zmm3,zmm25
+   1431e:	vpaddq zmm4,zmm4,zmm5
+   14324:	vmovdqa64 ZMMWORD PTR [rdi+0x40],zmm3
+   1432b:	vpsrlq zmm5,zmm4,0x34
+   14332:	vpandq zmm4,zmm4,zmm25
+   14338:	vpaddq zmm2,zmm5,zmm2
+   1433e:	vmovdqa64 ZMMWORD PTR [rdi+0x80],zmm4
+   14345:	vpsrlq zmm5,zmm2,0x34
+   1434c:	vpandq zmm0,zmm2,zmm25
+   14352:	vpaddq zmm5,zmm5,zmm6
+   14358:	vmovdqa64 ZMMWORD PTR [rdi+0xc0],zmm0
+   1435f:	vmovdqa64 ZMMWORD PTR [rdi+0x100],zmm5
+   14366:	vzeroupper
+   14369:	ret
+
+Disassembly of section .init:
+
+Disassembly of section .fini:
+
+Disassembly of section .plt:
