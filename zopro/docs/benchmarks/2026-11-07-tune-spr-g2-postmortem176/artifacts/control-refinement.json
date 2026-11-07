@@ -1,0 +1,757 @@
+{
+  "EVEX_RIP_compare_with_immediate": 11,
+  "all9_exact_G2_instruction_samples": 13413,
+  "control_exact_instruction_samples": 3482,
+  "exact_instructions": 8385,
+  "guard_mutation_checks": 22,
+  "initial_analysis_retained_unchanged": true,
+  "limits": "New conservative encoding recognizer only for the11 previously unclassified EVEX RIP compare forms, with unchanged trailing immediate and exact opcode/ModRM prefix. No original analysis, native run, decoder, profile or verifier replay. Not a field-semantic equivalence proof.",
+  "passed": true,
+  "profiles": [
+    {
+      "G2_classes": {
+        "IFMA_memory": 3,
+        "IFMA_register": 621,
+        "control": 43,
+        "scalar_or_other": 34,
+        "scalar_other_memory": 12,
+        "scalar_stack": 17,
+        "vector_other_memory": 104,
+        "vector_register": 571,
+        "vector_stack": 136
+      },
+      "G2_function_samples": 1541,
+      "limits": "Operand text is the accepted template; RIP and branch target values are not rebased to control. Exact opcode/address-mode compatibility validates classes and instruction boundaries only.",
+      "name": "cycles-1x2-w16-control",
+      "top_instructions": [
+        {
+          "class": "vector_stack",
+          "mnemonic": "vmovdqa64",
+          "offset": 30956,
+          "operand_template": "%zmm28,0xf00(%rsp)",
+          "samples": 16
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "kortestb",
+          "offset": 45640,
+          "operand_template": "%k0,%k0",
+          "samples": 11
+        },
+        {
+          "class": "vector_other_memory",
+          "mnemonic": "vmovdqu64",
+          "offset": 47920,
+          "operand_template": "%ymm18,0x20(%r8,%rcx,1)",
+          "samples": 11
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52huq",
+          "offset": 34845,
+          "operand_template": "%zmm11,%zmm10,%zmm27",
+          "samples": 9
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vpsraq",
+          "offset": 42082,
+          "operand_template": "$0x34,%zmm4,%zmm4",
+          "samples": 9
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52huq",
+          "offset": 3842,
+          "operand_template": "%zmm2,%zmm20,%zmm4",
+          "samples": 8
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "kortestb",
+          "offset": 33764,
+          "operand_template": "%k0,%k0",
+          "samples": 8
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vpaddq",
+          "offset": 37694,
+          "operand_template": "%zmm8,%zmm6,%zmm7",
+          "samples": 8
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vpaddq",
+          "offset": 42422,
+          "operand_template": "%zmm5,%zmm7,%zmm7",
+          "samples": 8
+        },
+        {
+          "class": "vector_stack",
+          "mnemonic": "vpsubq",
+          "offset": 42811,
+          "operand_template": "0x400(%rsp),%zmm8,%zmm7",
+          "samples": 8
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52luq",
+          "offset": 45372,
+          "operand_template": "%zmm12,%zmm19,%zmm3",
+          "samples": 8
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vpandq",
+          "offset": 1754,
+          "operand_template": "%zmm12,%zmm1,%zmm26",
+          "samples": 7
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vmovdqa64",
+          "offset": 42192,
+          "operand_template": "%zmm8,%zmm3{%k1}",
+          "samples": 7
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vextracti64x4",
+          "offset": 47973,
+          "operand_template": "$0x1,%zmm5,%ymm17",
+          "samples": 7
+        },
+        {
+          "class": "vector_stack",
+          "mnemonic": "vmovdqa64",
+          "offset": 33774,
+          "operand_template": "%zmm9,0xc40(%rsp)",
+          "samples": 6
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52luq",
+          "offset": 35124,
+          "operand_template": "%zmm25,%zmm13,%zmm8",
+          "samples": 6
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52huq",
+          "offset": 39357,
+          "operand_template": "%zmm23,%zmm19,%zmm20",
+          "samples": 6
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52luq",
+          "offset": 43741,
+          "operand_template": "%zmm22,%zmm5,%zmm10",
+          "samples": 6
+        },
+        {
+          "class": "control",
+          "mnemonic": "jne",
+          "offset": 44187,
+          "operand_template": "479331 <_RINvNtNtCsHW5vo2gROj_10zopro_core3msm11g2_borrowed5applyNtNtCsgHCcee0nhgM_11zopro_bn2545curve8G2ConfigKb1_EB6_+0xc541>",
+          "samples": 6
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52luq",
+          "offset": 44994,
+          "operand_template": "%zmm6,%zmm16,%zmm3",
+          "samples": 6
+        }
+      ]
+    },
+    {
+      "G2_classes": {
+        "IFMA_memory": 7,
+        "IFMA_register": 796,
+        "control": 29,
+        "scalar_or_other": 23,
+        "scalar_other_memory": 13,
+        "scalar_stack": 18,
+        "vector_other_memory": 136,
+        "vector_register": 739,
+        "vector_stack": 180
+      },
+      "G2_function_samples": 1941,
+      "limits": "Operand text is the accepted template; RIP and branch target values are not rebased to control. Exact opcode/address-mode compatibility validates classes and instruction boundaries only.",
+      "name": "cycles-1x2-w32-control",
+      "top_instructions": [
+        {
+          "class": "vector_register",
+          "mnemonic": "vpandq",
+          "offset": 1700,
+          "operand_template": "%zmm12,%zmm1,%zmm28",
+          "samples": 7
+        },
+        {
+          "class": "vector_stack",
+          "mnemonic": "vmovdqa64",
+          "offset": 30792,
+          "operand_template": "%zmm13,0x1640(%rsp)",
+          "samples": 7
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52huq",
+          "offset": 34616,
+          "operand_template": "%zmm31,%zmm13,%zmm3",
+          "samples": 7
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "kortestb",
+          "offset": 44183,
+          "operand_template": "%k0,%k0",
+          "samples": 7
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52huq",
+          "offset": 1491,
+          "operand_template": "%zmm2,%zmm11,%zmm7",
+          "samples": 6
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "kortestb",
+          "offset": 4562,
+          "operand_template": "%k0,%k0",
+          "samples": 6
+        },
+        {
+          "class": "vector_stack",
+          "mnemonic": "vmovdqa64",
+          "offset": 30723,
+          "operand_template": "%zmm3,0x700(%rsp)",
+          "samples": 6
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "kortestb",
+          "offset": 33764,
+          "operand_template": "%k0,%k0",
+          "samples": 6
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52luq",
+          "offset": 39814,
+          "operand_template": "%zmm28,%zmm18,%zmm29",
+          "samples": 6
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vpaddq",
+          "offset": 42422,
+          "operand_template": "%zmm5,%zmm7,%zmm7",
+          "samples": 6
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vpandq",
+          "offset": 28366,
+          "operand_template": "%zmm2,%zmm3,%zmm21",
+          "samples": 5
+        },
+        {
+          "class": "vector_stack",
+          "mnemonic": "vmovdqa64",
+          "offset": 28917,
+          "operand_template": "%zmm11,0x7c0(%rsp)",
+          "samples": 5
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vpshldq",
+          "offset": 30435,
+          "operand_template": "$0xc,%zmm16,%zmm15,%zmm11",
+          "samples": 5
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vpsrlq",
+          "offset": 30449,
+          "operand_template": "$0x10,%zmm8,%zmm17",
+          "samples": 5
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vpandq",
+          "offset": 35500,
+          "operand_template": "%zmm2,%zmm3,%zmm5",
+          "samples": 5
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52huq",
+          "offset": 36079,
+          "operand_template": "%zmm24,%zmm16,%zmm9",
+          "samples": 5
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vpsrlq",
+          "offset": 39192,
+          "operand_template": "$0x34,%zmm24,%zmm26",
+          "samples": 5
+        },
+        {
+          "class": "vector_register",
+          "mnemonic": "vmovdqa64",
+          "offset": 42192,
+          "operand_template": "%zmm8,%zmm3{%k1}",
+          "samples": 5
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52luq",
+          "offset": 43041,
+          "operand_template": "%zmm29,%zmm23,%zmm16",
+          "samples": 5
+        },
+        {
+          "class": "IFMA_register",
+          "mnemonic": "vpmadd52luq",
+          "offset": 43452,
+          "operand_template": "%zmm29,%zmm18,%zmm30",
+          "samples": 5
+        }
+      ]
+    },
+    {
+      "G2_classes": {},
+      "G2_function_samples": 0,
+      "limits": "Operand text is the accepted template; RIP and branch target values are not rebased to control. Exact opcode/address-mode compatibility validates classes and instruction boundaries only.",
+      "name": "cycles-24x2-w32-control",
+      "top_instructions": []
+    }
+  ],
+  "relative_tail_only": 195,
+  "special_form_checks": [
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        229,
+        88,
+        30,
+        13,
+        209,
+        225,
+        185,
+        255,
+        1
+      ],
+      "control_bytes": [
+        98,
+        243,
+        229,
+        88,
+        30,
+        13,
+        17,
+        219,
+        185,
+        255,
+        1
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpltuq",
+      "offset": 460,
+      "unchanged_immediate": 1
+    },
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        141,
+        88,
+        30,
+        5,
+        6,
+        211,
+        185,
+        255,
+        6
+      ],
+      "control_bytes": [
+        98,
+        243,
+        141,
+        88,
+        30,
+        5,
+        70,
+        204,
+        185,
+        255,
+        6
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpnleuq",
+      "offset": 4551,
+      "unchanged_immediate": 6
+    },
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        229,
+        88,
+        30,
+        13,
+        181,
+        207,
+        185,
+        255,
+        1
+      ],
+      "control_bytes": [
+        98,
+        243,
+        229,
+        88,
+        30,
+        13,
+        245,
+        200,
+        185,
+        255,
+        1
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpltuq",
+      "offset": 5096,
+      "unchanged_immediate": 1
+    },
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        237,
+        80,
+        30,
+        5,
+        244,
+        96,
+        185,
+        255,
+        6
+      ],
+      "control_bytes": [
+        98,
+        243,
+        237,
+        80,
+        30,
+        5,
+        52,
+        90,
+        185,
+        255,
+        6
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpnleuq",
+      "offset": 33753,
+      "unchanged_immediate": 6
+    },
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        245,
+        88,
+        30,
+        5,
+        44,
+        90,
+        185,
+        255,
+        6
+      ],
+      "control_bytes": [
+        98,
+        243,
+        245,
+        88,
+        30,
+        5,
+        108,
+        83,
+        185,
+        255,
+        6
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpnleuq",
+      "offset": 35489,
+      "unchanged_immediate": 6
+    },
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        213,
+        88,
+        30,
+        5,
+        144,
+        50,
+        185,
+        255,
+        6
+      ],
+      "control_bytes": [
+        98,
+        243,
+        213,
+        88,
+        30,
+        5,
+        208,
+        43,
+        185,
+        255,
+        6
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpnleuq",
+      "offset": 45629,
+      "unchanged_immediate": 6
+    },
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        149,
+        88,
+        30,
+        13,
+        55,
+        33,
+        185,
+        255,
+        1
+      ],
+      "control_bytes": [
+        98,
+        243,
+        149,
+        88,
+        30,
+        13,
+        119,
+        26,
+        185,
+        255,
+        1
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpltuq",
+      "offset": 49766,
+      "unchanged_immediate": 1
+    },
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        213,
+        88,
+        30,
+        13,
+        56,
+        32,
+        185,
+        255,
+        1
+      ],
+      "control_bytes": [
+        98,
+        243,
+        213,
+        88,
+        30,
+        13,
+        120,
+        25,
+        185,
+        255,
+        1
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpltuq",
+      "offset": 50021,
+      "unchanged_immediate": 1
+    },
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        221,
+        88,
+        30,
+        13,
+        71,
+        31,
+        185,
+        255,
+        1
+      ],
+      "control_bytes": [
+        98,
+        243,
+        221,
+        88,
+        30,
+        13,
+        135,
+        24,
+        185,
+        255,
+        1
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpltuq",
+      "offset": 50262,
+      "unchanged_immediate": 1
+    },
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        149,
+        88,
+        30,
+        13,
+        138,
+        30,
+        185,
+        255,
+        1
+      ],
+      "control_bytes": [
+        98,
+        243,
+        149,
+        88,
+        30,
+        13,
+        202,
+        23,
+        185,
+        255,
+        1
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpltuq",
+      "offset": 50451,
+      "unchanged_immediate": 1
+    },
+    {
+      "accepted_bytes": [
+        98,
+        243,
+        205,
+        88,
+        30,
+        13,
+        229,
+        29,
+        185,
+        255,
+        1
+      ],
+      "control_bytes": [
+        98,
+        243,
+        205,
+        88,
+        30,
+        13,
+        37,
+        23,
+        185,
+        255,
+        1
+      ],
+      "exact_prefix_bytes": 6,
+      "masked_displacement_byte_positions": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "mnemonic": "vpcmpltuq",
+      "offset": 50616,
+      "unchanged_immediate": 1
+    }
+  ],
+  "whole_function_compatible": true
+}
