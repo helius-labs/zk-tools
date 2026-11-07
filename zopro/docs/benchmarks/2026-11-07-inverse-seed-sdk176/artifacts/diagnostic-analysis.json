@@ -1,0 +1,1656 @@
+{
+  "SDK_requests": 1728,
+  "canonical_after": 32857,
+  "canonical_before": 32845,
+  "counter_candidate_over_accepted": {
+    "w16-candidate-over-accepted": {
+      "branch-misses:u": 1.0068547387306774,
+      "cache-misses:u": 1.0181767735832727,
+      "cycles:u": 1.00736942579745,
+      "instructions:u": 0.9978673815580912
+    },
+    "w16-candidate-over-control": {
+      "branch-misses:u": 1.0077521633842519,
+      "cache-misses:u": 1.0897609814724436,
+      "cycles:u": 1.0001069108071623,
+      "instructions:u": 0.997510538161016
+    },
+    "w32-candidate-over-accepted": {
+      "branch-misses:u": 1.0187213071433696,
+      "cache-misses:u": 1.0805361950106145,
+      "cycles:u": 0.9962634442171293,
+      "instructions:u": 0.9963197240242553
+    },
+    "w32-candidate-over-control": {
+      "branch-misses:u": 1.0238791240030252,
+      "cache-misses:u": 1.0825149962112273,
+      "cycles:u": 1.0071474757167818,
+      "instructions:u": 0.9991351497265539
+    }
+  },
+  "fresh_exports": 12,
+  "limits": "One stat and one user-cycle profile per arm/topology on 1x2 only. No repeated-panel uncertainty, exclusive wall time, precise IP/ELF attribution, larger-shape explanation or isolated constant-change causality. Existing qualified LOST decoder reused once per new profile; no capture, verifier or decoder rerun.",
+  "passed_data_validation": true,
+  "profiles": {
+    "w16-accepted": {
+      "FIFO_gate_states_checked": true,
+      "cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "data_sha256": "e0a0ee27e02f140c392bba7aef110af7a691437b70bc9e6964123ec062313099",
+      "first_sample_time": 698059.518131277,
+      "last_sample_time": 698061.890787304,
+      "owned_binary_MMAP_present": true,
+      "period": 16000000,
+      "period_total": 140304000000,
+      "pids": [
+        2320287
+      ],
+      "quality_passed": true,
+      "real_G1_MSM_sampled": true,
+      "real_G2_MSM_sampled": true,
+      "samples": 8769,
+      "shared_inverse_samples": 723,
+      "tids": [
+        2320287,
+        2320289,
+        2320290,
+        2320291,
+        2320292,
+        2320293,
+        2320294,
+        2320295,
+        2320296,
+        2320297,
+        2320298,
+        2320299,
+        2320300,
+        2320301,
+        2320302,
+        2320303,
+        2320304
+      ],
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2166
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1582
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          719
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          567
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          428
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          421
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          309
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          297
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          226
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          164
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          148
+        ],
+        [
+          "[unknown]",
+          128
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          117
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          84
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          76
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          69
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          68
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          66
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          65
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          61
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          60
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          53
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          49
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+          48
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          47
+        ]
+      ],
+      "unknown_percent": 1.4596875356369028,
+      "unknown_samples": 128,
+      "zero_LOST": true
+    },
+    "w16-candidate": {
+      "FIFO_gate_states_checked": true,
+      "cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "data_sha256": "3da4727c28deb1639d1b89420ff8c991ac326a4ccc9ea1766a1956bccb6fe2a5",
+      "first_sample_time": 698065.829383991,
+      "last_sample_time": 698068.20039755,
+      "owned_binary_MMAP_present": true,
+      "period": 16000000,
+      "period_total": 140768000000,
+      "pids": [
+        2320340
+      ],
+      "quality_passed": true,
+      "real_G1_MSM_sampled": true,
+      "real_G2_MSM_sampled": true,
+      "samples": 8798,
+      "shared_inverse_samples": 755,
+      "tids": [
+        2320340,
+        2320342,
+        2320343,
+        2320344,
+        2320345,
+        2320346,
+        2320347,
+        2320348,
+        2320349,
+        2320350,
+        2320351,
+        2320352,
+        2320353,
+        2320354,
+        2320355,
+        2320356,
+        2320357
+      ],
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2133
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1519
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          753
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          554
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          488
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          449
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          332
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          260
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          235
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          163
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          136
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          125
+        ],
+        [
+          "[unknown]",
+          119
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          112
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          88
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          85
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          78
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          78
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          70
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          63
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          61
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          56
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>",
+          47
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          46
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          46
+        ]
+      ],
+      "unknown_percent": 1.3525801318481474,
+      "unknown_samples": 119,
+      "zero_LOST": true
+    },
+    "w16-control": {
+      "FIFO_gate_states_checked": true,
+      "cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "data_sha256": "2307c7ec9f3078b547c6832a2c2a1a4ef424425e105daedbf95d3b4e2c55e841",
+      "first_sample_time": 698062.672862547,
+      "last_sample_time": 698065.006744553,
+      "owned_binary_MMAP_present": true,
+      "period": 16000000,
+      "period_total": 140224000000,
+      "pids": [
+        2320315
+      ],
+      "quality_passed": true,
+      "real_G1_MSM_sampled": true,
+      "real_G2_MSM_sampled": true,
+      "samples": 8764,
+      "shared_inverse_samples": 790,
+      "tids": [
+        2320315,
+        2320317,
+        2320318,
+        2320319,
+        2320320,
+        2320321,
+        2320322,
+        2320323,
+        2320324,
+        2320325,
+        2320326,
+        2320327,
+        2320328,
+        2320329,
+        2320330,
+        2320331,
+        2320332
+      ],
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2172
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1512
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          786
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          590
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          433
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          421
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          326
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          266
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          217
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          169
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          155
+        ],
+        [
+          "[unknown]",
+          110
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          104
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          103
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          87
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          82
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          70
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          62
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          60
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          57
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          56
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          55
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          48
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          47
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          43
+        ]
+      ],
+      "unknown_percent": 1.2551346417161113,
+      "unknown_samples": 110,
+      "zero_LOST": true
+    },
+    "w32-accepted": {
+      "FIFO_gate_states_checked": true,
+      "cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "data_sha256": "2470df881ac388d07251a89cc71e5788cce84bbe69c22bf3f7e9c7112910be47",
+      "first_sample_time": 698050.054441614,
+      "last_sample_time": 698052.052121313,
+      "owned_binary_MMAP_present": true,
+      "period": 16000000,
+      "period_total": 197504000000,
+      "pids": [
+        2320159
+      ],
+      "quality_passed": true,
+      "real_G1_MSM_sampled": true,
+      "real_G2_MSM_sampled": true,
+      "samples": 12344,
+      "shared_inverse_samples": 958,
+      "tids": [
+        2320159,
+        2320161,
+        2320162,
+        2320163,
+        2320164,
+        2320165,
+        2320166,
+        2320167,
+        2320168,
+        2320169,
+        2320170,
+        2320171,
+        2320172,
+        2320173,
+        2320174,
+        2320175,
+        2320176,
+        2320177,
+        2320178,
+        2320179,
+        2320180,
+        2320181,
+        2320182,
+        2320183,
+        2320184,
+        2320185,
+        2320186,
+        2320187,
+        2320188,
+        2320189,
+        2320190,
+        2320191,
+        2320192
+      ],
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2481
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          2014
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          1068
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          953
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          673
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          606
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          576
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          378
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          351
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          233
+        ],
+        [
+          "[unknown]",
+          196
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          179
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          160
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          154
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          149
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          124
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          116
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          113
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          112
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          96
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          83
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          83
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          81
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          77
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+          72
+        ]
+      ],
+      "unknown_percent": 1.5878159429682437,
+      "unknown_samples": 196,
+      "zero_LOST": true
+    },
+    "w32-candidate": {
+      "FIFO_gate_states_checked": true,
+      "cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "data_sha256": "debaac0fc3d4be5596d6597171d1df39479d890f5e1739802a600a7780147b21",
+      "first_sample_time": 698056.358802142,
+      "last_sample_time": 698058.374295853,
+      "owned_binary_MMAP_present": true,
+      "period": 16000000,
+      "period_total": 197280000000,
+      "pids": [
+        2320245
+      ],
+      "quality_passed": true,
+      "real_G1_MSM_sampled": true,
+      "real_G2_MSM_sampled": true,
+      "samples": 12330,
+      "shared_inverse_samples": 859,
+      "tids": [
+        2320245,
+        2320247,
+        2320248,
+        2320249,
+        2320250,
+        2320251,
+        2320252,
+        2320253,
+        2320254,
+        2320255,
+        2320256,
+        2320257,
+        2320258,
+        2320259,
+        2320260,
+        2320261,
+        2320262,
+        2320263,
+        2320264,
+        2320265,
+        2320266,
+        2320267,
+        2320268,
+        2320269,
+        2320270,
+        2320271,
+        2320272,
+        2320273,
+        2320274,
+        2320275,
+        2320276,
+        2320277,
+        2320278
+      ],
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2480
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          2001
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          1013
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          857
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          697
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          630
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          574
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          387
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          372
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          239
+        ],
+        [
+          "[unknown]",
+          175
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          170
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          164
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          161
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          150
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          141
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          115
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          113
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          110
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          107
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          103
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          102
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          83
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          72
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::canonical::{closure#0}>>",
+          65
+        ]
+      ],
+      "unknown_percent": 1.419302514193025,
+      "unknown_samples": 175,
+      "zero_LOST": true
+    },
+    "w32-control": {
+      "FIFO_gate_states_checked": true,
+      "cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "data_sha256": "fa5aeb61cdf2d6c6593ca1e51e6b1d59fb3090277a83ddb98a56133145f7e06c",
+      "first_sample_time": 698053.204769091,
+      "last_sample_time": 698055.199562882,
+      "owned_binary_MMAP_present": true,
+      "period": 16000000,
+      "period_total": 196976000000,
+      "pids": [
+        2320203
+      ],
+      "quality_passed": true,
+      "real_G1_MSM_sampled": true,
+      "real_G2_MSM_sampled": true,
+      "samples": 12311,
+      "shared_inverse_samples": 939,
+      "tids": [
+        2320203,
+        2320205,
+        2320206,
+        2320207,
+        2320208,
+        2320209,
+        2320210,
+        2320211,
+        2320212,
+        2320213,
+        2320214,
+        2320215,
+        2320216,
+        2320217,
+        2320218,
+        2320219,
+        2320220,
+        2320221,
+        2320222,
+        2320223,
+        2320224,
+        2320225,
+        2320226,
+        2320227,
+        2320228,
+        2320229,
+        2320230,
+        2320231,
+        2320232,
+        2320233,
+        2320234,
+        2320235,
+        2320236
+      ],
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2454
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1918
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          1076
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          936
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          694
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          630
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          628
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          392
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          336
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          231
+        ],
+        [
+          "[unknown]",
+          199
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          172
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          161
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          147
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          140
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          133
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+          123
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          102
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          101
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          87
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          84
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dit_serial",
+          84
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::batch_to_affine",
+          82
+        ],
+        [
+          "zopro_core::fft::pair::leaf::dif_serial",
+          77
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>::{closure#0}",
+          66
+        ]
+      ],
+      "unknown_percent": 1.6164405815936966,
+      "unknown_samples": 199,
+      "zero_LOST": true
+    }
+  },
+  "quality_passed": true,
+  "rows": [
+    {
+      "job": {
+        "arm": "accepted",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "stat-w32-accepted",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w32-accepted/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w32-accepted/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 31,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 32
+      },
+      "mean_ms": 8.081038774193548,
+      "proof_sha256": "9649ab93d5b78492fc355733a5b347748b106386048c688eea4494fedcd0e03a",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 8167,
+        "loop_wall_ms": 250.561897,
+        "minor_faults": 11747,
+        "priming": 3,
+        "rounds": 31,
+        "system_cpu_ms": 225.306,
+        "user_cpu_ms": 5367.271,
+        "voluntary_switches": 12392,
+        "whole_process_maxrss_kib": 105216,
+        "workers": 32
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "control",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "stat-w32-control",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w32-control/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w32-control/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 31,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 32
+      },
+      "mean_ms": 7.902534387096774,
+      "proof_sha256": "078a6957b288a34afa251ddf7564edb3ed6bbe3ec8ba07f43b7acbc4ca99d777",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 5466,
+        "loop_wall_ms": 245.022302,
+        "minor_faults": 13357,
+        "priming": 3,
+        "rounds": 31,
+        "system_cpu_ms": 189.699,
+        "user_cpu_ms": 5346.071,
+        "voluntary_switches": 11897,
+        "whole_process_maxrss_kib": 110592,
+        "workers": 32
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "candidate",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "stat-w32-candidate",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w32-candidate/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w32-candidate/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 31,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 32
+      },
+      "mean_ms": 8.09901435483871,
+      "proof_sha256": "7d9da219b2ef317893467aa9a1e508f33b7623d3c64782f4dafbcba4fadc8128",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 6330,
+        "loop_wall_ms": 251.1205,
+        "minor_faults": 12532,
+        "priming": 3,
+        "rounds": 31,
+        "system_cpu_ms": 188.457,
+        "user_cpu_ms": 5404.418,
+        "voluntary_switches": 12208,
+        "whole_process_maxrss_kib": 103424,
+        "workers": 32
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "accepted",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "stat-w16-accepted",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w16-accepted/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w16-accepted/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 31,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 16
+      },
+      "mean_ms": 9.833888258064517,
+      "proof_sha256": "53bfcec4f750110fe2d9a466a6b907f991d1c46d50bc0916fa3cb8ddcc1ef36f",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 16085,
+        "loop_wall_ms": 304.884167,
+        "minor_faults": 7326,
+        "priming": 3,
+        "rounds": 31,
+        "system_cpu_ms": 98.189,
+        "user_cpu_ms": 3473.431,
+        "voluntary_switches": 7925,
+        "whole_process_maxrss_kib": 82688,
+        "workers": 16
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "control",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "stat-w16-control",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w16-control/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w16-control/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 31,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 16
+      },
+      "mean_ms": 9.404656258064518,
+      "proof_sha256": "129dbbd14b66be9c12c0d7a4113c6fe2a359676aaca08c8f771a701d88b4b97f",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 6164,
+        "loop_wall_ms": 291.579272,
+        "minor_faults": 6223,
+        "priming": 3,
+        "rounds": 31,
+        "system_cpu_ms": 77.42,
+        "user_cpu_ms": 3525.5870000000004,
+        "voluntary_switches": 8140,
+        "whole_process_maxrss_kib": 79104,
+        "workers": 16
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "candidate",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "stat-w16-candidate",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w16-candidate/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/stat-w16-candidate/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 31,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 16
+      },
+      "mean_ms": 10.081478290322583,
+      "proof_sha256": "76b4330be064a540ae42b202b9e000ad462f2b27b01ada169bf63676387f31ce",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 15157,
+        "loop_wall_ms": 312.562834,
+        "minor_faults": 6860,
+        "priming": 3,
+        "rounds": 31,
+        "system_cpu_ms": 107.725,
+        "user_cpu_ms": 3495.6659999999997,
+        "voluntary_switches": 8270,
+        "whole_process_maxrss_kib": 80640,
+        "workers": 16
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "accepted",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "cycles-w32-accepted",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w32-accepted/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w32-accepted/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 251,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 32
+      },
+      "mean_ms": 7.977038167330675,
+      "proof_sha256": "9acb689294f8272b34d4efa2ffe266aa682914c037204aae987503fe82d1c6f6",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 60103,
+        "loop_wall_ms": 2002.654368,
+        "minor_faults": 20473,
+        "priming": 3,
+        "rounds": 251,
+        "system_cpu_ms": 1395.589,
+        "user_cpu_ms": 43448.448,
+        "voluntary_switches": 99142,
+        "whole_process_maxrss_kib": 139776,
+        "workers": 32
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "control",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "cycles-w32-control",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w32-control/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w32-control/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 251,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 32
+      },
+      "mean_ms": 7.9626139721115505,
+      "proof_sha256": "807dc4a77ef97b97923c62a55884bd21d2b07844e448e87c1695f5c3017e8446",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 52450,
+        "loop_wall_ms": 1999.009945,
+        "minor_faults": 19663,
+        "priming": 3,
+        "rounds": 251,
+        "system_cpu_ms": 1369.724,
+        "user_cpu_ms": 43423.452000000005,
+        "voluntary_switches": 95792,
+        "whole_process_maxrss_kib": 133632,
+        "workers": 32
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "candidate",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "cycles-w32-candidate",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w32-candidate/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w32-candidate/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 251,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 32
+      },
+      "mean_ms": 8.044228848605574,
+      "proof_sha256": "0d48607e0f8af1a22d99f6f45d0b384987c8af2f7538bcfe83b8e46ee767b1e2",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 59495,
+        "loop_wall_ms": 2019.516717,
+        "minor_faults": 21050,
+        "priming": 3,
+        "rounds": 251,
+        "system_cpu_ms": 1470.624,
+        "user_cpu_ms": 43399.801,
+        "voluntary_switches": 95781,
+        "whole_process_maxrss_kib": 140288,
+        "workers": 32
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "accepted",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "cycles-w16-accepted",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w16-accepted/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w16-accepted/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 251,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 16
+      },
+      "mean_ms": 9.467733760956172,
+      "proof_sha256": "d31c1309f413d676bc5165c7be398293cb43361c80f312e8b4c84d9c5794c58a",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 62915,
+        "loop_wall_ms": 2376.666955,
+        "minor_faults": 9909,
+        "priming": 3,
+        "rounds": 251,
+        "system_cpu_ms": 633.9739999999999,
+        "user_cpu_ms": 28538.302,
+        "voluntary_switches": 65739,
+        "whole_process_maxrss_kib": 94464,
+        "workers": 16
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "control",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "cycles-w16-control",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w16-control/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w16-control/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 251,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 16
+      },
+      "mean_ms": 9.313301713147412,
+      "proof_sha256": "8a0e7b397c5e9831c405ab22e53721d69a41ad395eb00433f09b8c5257db9c9d",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 43593,
+        "loop_wall_ms": 2337.956376,
+        "minor_faults": 9276,
+        "priming": 3,
+        "rounds": 251,
+        "system_cpu_ms": 626.242,
+        "user_cpu_ms": 28565.635,
+        "voluntary_switches": 66796,
+        "whole_process_maxrss_kib": 90112,
+        "workers": 16
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    },
+    {
+      "job": {
+        "arm": "candidate",
+        "expected_vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49",
+        "image": "/home/ubuntu/src/zopro-perf-work/sdk-control-copies/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "name": "cycles-w16-candidate",
+        "original_name": "preflight-1x2-w32-accepted",
+        "proof": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w16-candidate/0.proof",
+        "public": "/home/ubuntu/src/zopro-perf-work/inverse-seed-sdk176/pilot/proofs/cycles-w16-candidate/0.public",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "request": "/home/ubuntu/src/zk-tools/zopro/tools/zolana/fixtures/transfer-1x2.json",
+        "rounds": 251,
+        "shape": "1x2",
+        "stage": "diagnostic",
+        "workers": 16
+      },
+      "mean_ms": 9.462441091633469,
+      "proof_sha256": "9400009ff5f19aed4a3d0dcccc05b10a67e261f1ece3749f3a5e52dcdc0b098d",
+      "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+      "summary": {
+        "involuntary_switches": 49541,
+        "loop_wall_ms": 2375.385294,
+        "minor_faults": 9279,
+        "priming": 3,
+        "rounds": 251,
+        "system_cpu_ms": 567.4689999999999,
+        "user_cpu_ms": 28712.91,
+        "voluntary_switches": 66034,
+        "whole_process_maxrss_kib": 90880,
+        "workers": 16
+      },
+      "vk_sha256": "460f3b440efde6850c2b18354f8618152be94dc078c4b70cc84bbb929fe04f49"
+    }
+  ],
+  "stats": {
+    "w16-accepted": {
+      "branch-misses:u": {
+        "per_request": 792830.3870967742,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 24577742
+      },
+      "cache-misses:u": {
+        "per_request": 2074632.7096774194,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 64313614
+      },
+      "cycles:u": {
+        "per_request": 564133780.0967742,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 17488147183
+      },
+      "instructions:u": {
+        "per_request": 1347919492.419355,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 41785504265
+      }
+    },
+    "w16-candidate": {
+      "branch-misses:u": {
+        "per_request": 798265.0322580645,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 24746216
+      },
+      "cache-misses:u": {
+        "per_request": 2112342.8387096776,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 65482628
+      },
+      "cycles:u": {
+        "per_request": 568291122.1290323,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 17617024786
+      },
+      "instructions:u": {
+        "per_request": 1345044894.451613,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 41696391728
+      }
+    },
+    "w16-control": {
+      "branch-misses:u": {
+        "per_request": 792124.3548387097,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 24555855
+      },
+      "cache-misses:u": {
+        "per_request": 1938354.2580645161,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 60088982
+      },
+      "cycles:u": {
+        "per_request": 568230372.1612903,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 17615141537
+      },
+      "instructions:u": {
+        "per_request": 1348401689.0,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 41800452359
+      }
+    },
+    "w32-accepted": {
+      "branch-misses:u": {
+        "per_request": 900647.0645161291,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 27920059
+      },
+      "cache-misses:u": {
+        "per_request": 2729209.2580645164,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 84605487
+      },
+      "cycles:u": {
+        "per_request": 822223412.0645162,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 25488925774
+      },
+      "instructions:u": {
+        "per_request": 1390918963.387097,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 43118487865
+      }
+    },
+    "w32-candidate": {
+      "branch-misses:u": {
+        "per_request": 917508.3548387097,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 28442759
+      },
+      "cache-misses:u": {
+        "per_request": 2949009.3870967743,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 91419291
+      },
+      "cycles:u": {
+        "per_request": 819151128.4193548,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 25393684981
+      },
+      "instructions:u": {
+        "per_request": 1385799997.7419355,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 42959799930
+      }
+    },
+    "w32-control": {
+      "branch-misses:u": {
+        "per_request": 896110.0322580645,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 27779411
+      },
+      "cache-misses:u": {
+        "per_request": 2724220.35483871,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 84450831
+      },
+      "cycles:u": {
+        "per_request": 813337816.1290323,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 25213472300
+      },
+      "instructions:u": {
+        "per_request": 1386999544.6774194,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 42996985885
+      }
+    }
+  },
+  "workflow_receipts": 54
+}
