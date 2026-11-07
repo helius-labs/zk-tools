@@ -1,0 +1,7 @@
+# Prospective statistic and accounting details
+
+Added before any new query preflight/timing,without editing the already-pinned native build protocol. Each latency process contributes median(samples_ns) over31requests. Displayed cell latency is the median of15process medians;paired ratios use matched process medians within each block. The driver's elapsed_ns/rounds mean remains descriptive and is not substituted. All samples are retained. These definitions precede data and do not change the42declared gate thresholds or case scopes.
+
+600newqueryprocesses comprise36preflights,540latency,12PMU,12profiles. Each executes3checkedprimes,its timed rounds and1checkedpost. Totals:22,110timedquerypasses including36incidentalpreflightpasses,1,800primes,600postchecks=24,510completequerypasses. None is anSDKrequest orGnarkproof. The ledger remains31,387. Four reviewed independent fixture/oraclebindings are reusedacrosscontexts/arms;no newmathoracleexecution is counted.
+
+The independent reviewer reconstructsall42timingchecks,completecaller/oracle/dispatch/workerrowsandreceiptstreamidentities. PMU/profileanalysisusesoneparser implementation and is explicitlynotindependentlyreparsed. All12profilesneed>=1000samples,<=5%unknown,zeroLOST,exact16Mperiod/expectedbinaryPID/MMAP/FORK/registeredpinnedworkerCPU;coordinatorPIDmayexecuteonanyallowedCPU. No kernel-onlynative attributiongate orabsoluteperiodcoverageclaim. Reference is a freshaccepted-SOURCEdiagnostic consumer,notretainedSDK6d83. Frozenfield1200andfourcachedfixturesare reusedunchanged.
