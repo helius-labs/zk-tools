@@ -1,0 +1,353 @@
+{
+  "G1_G2_symbols_alias_in_each_arm": true,
+  "change": "Replace shifted-bit AND/horizontal OR/extract sequence with vector sign mask extraction",
+  "distinct_bodies": 2,
+  "measured_latency_change": null,
+  "scalar_already_vectorizes_masked_loads": true,
+  "wrappers": {
+    "scalar_g1": {
+      "address": 73488,
+      "all_instruction_sites": 23,
+      "bytes": 110,
+      "instructions": [
+        {
+          "address": 73488,
+          "assembly": "cmp    rsi,0x8"
+        },
+        {
+          "address": 73492,
+          "assembly": "jb     11f6e <scalar_g1+0x5e>"
+        },
+        {
+          "address": 73494,
+          "assembly": "mov    ax,0x1111"
+        },
+        {
+          "address": 73498,
+          "assembly": "vmovdqa ymm2,YMMWORD PTR [rip+0xffffffffffff141e]        # 3340 <__abi_tag+0x3044>"
+        },
+        {
+          "address": 73506,
+          "assembly": "kmovd  k1,eax"
+        },
+        {
+          "address": 73510,
+          "assembly": "vmovdqu32 zmm0{k1}{z},ZMMWORD PTR [rdi+0x40]"
+        },
+        {
+          "address": 73517,
+          "assembly": "vmovdqu32 zmm1{k1}{z},ZMMWORD PTR [rdi]"
+        },
+        {
+          "address": 73523,
+          "assembly": "vpermi2d zmm2,zmm1,zmm0"
+        },
+        {
+          "address": 73529,
+          "assembly": "vpsrlvd ymm0,ymm2,YMMWORD PTR [rip+0xffffffffffff133e]        # 3280 <__abi_tag+0x2f84>"
+        },
+        {
+          "address": 73538,
+          "assembly": "vpand  ymm0,ymm0,YMMWORD PTR [rip+0xffffffffffff1316]        # 3260 <__abi_tag+0x2f64>"
+        },
+        {
+          "address": 73546,
+          "assembly": "vextracti128 xmm1,ymm0,0x1"
+        },
+        {
+          "address": 73552,
+          "assembly": "vpor   xmm0,xmm0,xmm1"
+        },
+        {
+          "address": 73556,
+          "assembly": "vpshufd xmm1,xmm0,0xee"
+        },
+        {
+          "address": 73561,
+          "assembly": "vpor   xmm0,xmm0,xmm1"
+        },
+        {
+          "address": 73565,
+          "assembly": "vpshufd xmm1,xmm0,0x55"
+        },
+        {
+          "address": 73570,
+          "assembly": "vpor   xmm0,xmm0,xmm1"
+        },
+        {
+          "address": 73574,
+          "assembly": "vmovd  eax,xmm0"
+        },
+        {
+          "address": 73578,
+          "assembly": "vzeroupper"
+        },
+        {
+          "address": 73581,
+          "assembly": "ret"
+        },
+        {
+          "address": 73582,
+          "assembly": "push   rax"
+        },
+        {
+          "address": 73583,
+          "assembly": "lea    rdx,[rip+0x3cc3a]        # 4ebb0 <__frame_dummy_init_array_entry+0x20>"
+        },
+        {
+          "address": 73590,
+          "assembly": "mov    rdi,rsi"
+        },
+        {
+          "address": 73593,
+          "assembly": "call   13eb4 <_RNvNtCsgxBkk5gSRhY_4core9panicking18panic_bounds_check>"
+        }
+      ],
+      "valid_length_fallthrough_sites_including_ret": 19
+    },
+    "scalar_g2": {
+      "address": 73488,
+      "all_instruction_sites": 23,
+      "bytes": 110,
+      "instructions": [
+        {
+          "address": 73488,
+          "assembly": "cmp    rsi,0x8"
+        },
+        {
+          "address": 73492,
+          "assembly": "jb     11f6e <scalar_g1+0x5e>"
+        },
+        {
+          "address": 73494,
+          "assembly": "mov    ax,0x1111"
+        },
+        {
+          "address": 73498,
+          "assembly": "vmovdqa ymm2,YMMWORD PTR [rip+0xffffffffffff141e]        # 3340 <__abi_tag+0x3044>"
+        },
+        {
+          "address": 73506,
+          "assembly": "kmovd  k1,eax"
+        },
+        {
+          "address": 73510,
+          "assembly": "vmovdqu32 zmm0{k1}{z},ZMMWORD PTR [rdi+0x40]"
+        },
+        {
+          "address": 73517,
+          "assembly": "vmovdqu32 zmm1{k1}{z},ZMMWORD PTR [rdi]"
+        },
+        {
+          "address": 73523,
+          "assembly": "vpermi2d zmm2,zmm1,zmm0"
+        },
+        {
+          "address": 73529,
+          "assembly": "vpsrlvd ymm0,ymm2,YMMWORD PTR [rip+0xffffffffffff133e]        # 3280 <__abi_tag+0x2f84>"
+        },
+        {
+          "address": 73538,
+          "assembly": "vpand  ymm0,ymm0,YMMWORD PTR [rip+0xffffffffffff1316]        # 3260 <__abi_tag+0x2f64>"
+        },
+        {
+          "address": 73546,
+          "assembly": "vextracti128 xmm1,ymm0,0x1"
+        },
+        {
+          "address": 73552,
+          "assembly": "vpor   xmm0,xmm0,xmm1"
+        },
+        {
+          "address": 73556,
+          "assembly": "vpshufd xmm1,xmm0,0xee"
+        },
+        {
+          "address": 73561,
+          "assembly": "vpor   xmm0,xmm0,xmm1"
+        },
+        {
+          "address": 73565,
+          "assembly": "vpshufd xmm1,xmm0,0x55"
+        },
+        {
+          "address": 73570,
+          "assembly": "vpor   xmm0,xmm0,xmm1"
+        },
+        {
+          "address": 73574,
+          "assembly": "vmovd  eax,xmm0"
+        },
+        {
+          "address": 73578,
+          "assembly": "vzeroupper"
+        },
+        {
+          "address": 73581,
+          "assembly": "ret"
+        },
+        {
+          "address": 73582,
+          "assembly": "push   rax"
+        },
+        {
+          "address": 73583,
+          "assembly": "lea    rdx,[rip+0x3cc3a]        # 4ebb0 <__frame_dummy_init_array_entry+0x20>"
+        },
+        {
+          "address": 73590,
+          "assembly": "mov    rdi,rsi"
+        },
+        {
+          "address": 73593,
+          "assembly": "call   13eb4 <_RNvNtCsgxBkk5gSRhY_4core9panicking18panic_bounds_check>"
+        }
+      ],
+      "valid_length_fallthrough_sites_including_ret": 19
+    },
+    "vector_g1": {
+      "address": 73600,
+      "all_instruction_sites": 16,
+      "bytes": 74,
+      "instructions": [
+        {
+          "address": 73600,
+          "assembly": "cmp    rsi,0x7"
+        },
+        {
+          "address": 73604,
+          "assembly": "jbe    11fb1 <vector_g1+0x31>"
+        },
+        {
+          "address": 73606,
+          "assembly": "mov    ax,0x1111"
+        },
+        {
+          "address": 73610,
+          "assembly": "vmovdqa ymm2,YMMWORD PTR [rip+0xffffffffffff13ae]        # 3340 <__abi_tag+0x3044>"
+        },
+        {
+          "address": 73618,
+          "assembly": "kmovd  k1,eax"
+        },
+        {
+          "address": 73622,
+          "assembly": "vmovdqu32 zmm0{k1}{z},ZMMWORD PTR [rdi]"
+        },
+        {
+          "address": 73628,
+          "assembly": "vmovdqu32 zmm1{k1}{z},ZMMWORD PTR [rdi+0x40]"
+        },
+        {
+          "address": 73635,
+          "assembly": "vpermi2d zmm2,zmm0,zmm1"
+        },
+        {
+          "address": 73641,
+          "assembly": "vmovmskps eax,ymm2"
+        },
+        {
+          "address": 73645,
+          "assembly": "vzeroupper"
+        },
+        {
+          "address": 73648,
+          "assembly": "ret"
+        },
+        {
+          "address": 73649,
+          "assembly": "push   rax"
+        },
+        {
+          "address": 73650,
+          "assembly": "lea    rdi,[rip+0xffffffffffff3353]        # 530c <__abi_tag+0x5010>"
+        },
+        {
+          "address": 73657,
+          "assembly": "lea    rdx,[rip+0x3cbd8]        # 4eb98 <__frame_dummy_init_array_entry+0x8>"
+        },
+        {
+          "address": 73664,
+          "assembly": "mov    esi,0x22"
+        },
+        {
+          "address": 73669,
+          "assembly": "call   14c60 <_RNvNtCsgxBkk5gSRhY_4core9panicking5panic>"
+        }
+      ],
+      "valid_length_fallthrough_sites_including_ret": 11
+    },
+    "vector_g2": {
+      "address": 73600,
+      "all_instruction_sites": 16,
+      "bytes": 74,
+      "instructions": [
+        {
+          "address": 73600,
+          "assembly": "cmp    rsi,0x7"
+        },
+        {
+          "address": 73604,
+          "assembly": "jbe    11fb1 <vector_g1+0x31>"
+        },
+        {
+          "address": 73606,
+          "assembly": "mov    ax,0x1111"
+        },
+        {
+          "address": 73610,
+          "assembly": "vmovdqa ymm2,YMMWORD PTR [rip+0xffffffffffff13ae]        # 3340 <__abi_tag+0x3044>"
+        },
+        {
+          "address": 73618,
+          "assembly": "kmovd  k1,eax"
+        },
+        {
+          "address": 73622,
+          "assembly": "vmovdqu32 zmm0{k1}{z},ZMMWORD PTR [rdi]"
+        },
+        {
+          "address": 73628,
+          "assembly": "vmovdqu32 zmm1{k1}{z},ZMMWORD PTR [rdi+0x40]"
+        },
+        {
+          "address": 73635,
+          "assembly": "vpermi2d zmm2,zmm0,zmm1"
+        },
+        {
+          "address": 73641,
+          "assembly": "vmovmskps eax,ymm2"
+        },
+        {
+          "address": 73645,
+          "assembly": "vzeroupper"
+        },
+        {
+          "address": 73648,
+          "assembly": "ret"
+        },
+        {
+          "address": 73649,
+          "assembly": "push   rax"
+        },
+        {
+          "address": 73650,
+          "assembly": "lea    rdi,[rip+0xffffffffffff3353]        # 530c <__abi_tag+0x5010>"
+        },
+        {
+          "address": 73657,
+          "assembly": "lea    rdx,[rip+0x3cbd8]        # 4eb98 <__frame_dummy_init_array_entry+0x8>"
+        },
+        {
+          "address": 73664,
+          "assembly": "mov    esi,0x22"
+        },
+        {
+          "address": 73669,
+          "assembly": "call   14c60 <_RNvNtCsgxBkk5gSRhY_4core9panicking5panic>"
+        }
+      ],
+      "valid_length_fallthrough_sites_including_ret": 11
+    }
+  }
+}

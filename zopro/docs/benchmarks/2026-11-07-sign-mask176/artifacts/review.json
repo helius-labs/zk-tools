@@ -1,0 +1,227 @@
+{
+  "accepted_sources_unchanged": 176,
+  "descriptor_configurations": 5120,
+  "fullcaller_performance_pending": true,
+  "goal_active": true,
+  "guard_page_limit": "Actual tuple index offset is0, so neither nominal128-byte load span crosses the protected page; boundary pass is not evidence of masked-off out-of-bounds fault suppression or a proof of padding safety",
+  "harness_repairs_only": true,
+  "new_core_builds": 0,
+  "new_field_builds": 0,
+  "new_proofs": 0,
+  "new_timings": 0,
+  "old_and_new_masked_defined_field_loads": true,
+  "original_function_extraction_exact": true,
+  "padding_safety": "Source mask0x1111 reads only initialized index dwords at16-byte strides; two emitted masked32-bit loads verified. No unmasked padding loads in wrapper fast paths.",
+  "passed": true,
+  "pins": 193,
+  "receipts": [
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "180s",
+          "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "/home/ubuntu/src/zopro-perf-work/sign-mask176/qualify.rs",
+          "-o",
+          "/home/ubuntu/src/zopro-perf-work/sign-mask176/qualify",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "lto=fat",
+          "-C",
+          "codegen-units=1",
+          "--extern",
+          "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+          "--extern",
+          "libc=/home/ubuntu/src/zopro-perf-work/g2-lazy-y-callers176/target/release/deps/liblibc-8021f56a58e93231.rlib",
+          "-C",
+          "target-cpu=native",
+          "--cfg",
+          "zopro_horizontal_limb_sum",
+          "--cfg",
+          "zopro_g2_horner_buckets",
+          "--cfg",
+          "zopro_booth_digits",
+          "--cfg",
+          "zopro_live_preparation_charge",
+          "--cfg",
+          "zopro_folded_query_reclaim",
+          "--cfg",
+          "zopro_bounded_schedule",
+          "--cfg",
+          "zopro_resource_schedule",
+          "--cfg",
+          "zopro_real_kh",
+          "--cfg",
+          "zopro_euler_leading_weights",
+          "--cfg",
+          "zopro_cios_cancel_carry",
+          "--cfg",
+          "zopro_euler_pointwise8",
+          "--cfg",
+          "zopro_direct_chain_inverse",
+          "--cfg",
+          "zopro_gcd_balanced_runs",
+          "--cfg",
+          "zopro_canonical_task_grain",
+          "--cfg",
+          "zopro_small_core_entry",
+          "--cfg",
+          "zopro_g2_prefix_records"
+        ],
+        "environment": {}
+      },
+      "directory": "/home/ubuntu/src/zopro-perf-work/sign-mask176/runs/build-new-sign-mask-consumer",
+      "exit": {
+        "elapsed_ms": 43.445056,
+        "returncode": 1,
+        "stderr_sha256": "7b80ac460e8596bec05a2431e439eb87406bcbc48596af61f4dddf9721e2f728",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "success": false
+      }
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "180s",
+          "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "/home/ubuntu/src/zopro-perf-work/sign-mask176/qualify2.rs",
+          "-o",
+          "/home/ubuntu/src/zopro-perf-work/sign-mask176/qualify",
+          "-C",
+          "opt-level=3",
+          "-C",
+          "lto=fat",
+          "-C",
+          "codegen-units=1",
+          "--extern",
+          "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+          "--extern",
+          "libc=/home/ubuntu/src/zopro-perf-work/g2-lazy-y-callers176/target/release/deps/liblibc-8021f56a58e93231.rlib",
+          "-C",
+          "target-cpu=native",
+          "--cfg",
+          "zopro_horizontal_limb_sum",
+          "--cfg",
+          "zopro_g2_horner_buckets",
+          "--cfg",
+          "zopro_booth_digits",
+          "--cfg",
+          "zopro_live_preparation_charge",
+          "--cfg",
+          "zopro_folded_query_reclaim",
+          "--cfg",
+          "zopro_bounded_schedule",
+          "--cfg",
+          "zopro_resource_schedule",
+          "--cfg",
+          "zopro_real_kh",
+          "--cfg",
+          "zopro_euler_leading_weights",
+          "--cfg",
+          "zopro_cios_cancel_carry",
+          "--cfg",
+          "zopro_euler_pointwise8",
+          "--cfg",
+          "zopro_direct_chain_inverse",
+          "--cfg",
+          "zopro_gcd_balanced_runs",
+          "--cfg",
+          "zopro_canonical_task_grain",
+          "--cfg",
+          "zopro_small_core_entry",
+          "--cfg",
+          "zopro_g2_prefix_records"
+        ],
+        "environment": {}
+      },
+      "directory": "/home/ubuntu/src/zopro-perf-work/sign-mask176/runs2/build-corrected-sign-mask-consumer",
+      "exit": {
+        "elapsed_ms": 1565.000141,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "success": true
+      }
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "180s",
+          "/home/ubuntu/src/zopro-perf-work/sign-mask176/qualify"
+        ],
+        "environment": {}
+      },
+      "directory": "/home/ubuntu/src/zopro-perf-work/sign-mask176/runs2/qualify-defined-fields-and-boundaries",
+      "exit": {
+        "elapsed_ms": 1.083903,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "b15318b4ec20239208fd452a45ab356368b22382ad7ee7fa4d0e0f7e03219d6e",
+        "success": true
+      }
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "60s",
+          "nm",
+          "-S",
+          "--defined-only",
+          "/home/ubuntu/src/zopro-perf-work/sign-mask176/qualify"
+        ],
+        "environment": {}
+      },
+      "directory": "/home/ubuntu/src/zopro-perf-work/sign-mask176/runs2/inventory-new-mask-wrappers",
+      "exit": {
+        "elapsed_ms": 9.092511,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "727642591bf118c36f5d2449815ce6af61c26b903b99e7c1bc08de5be07305d6",
+        "success": true
+      }
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "60s",
+          "objdump",
+          "-d",
+          "--no-show-raw-insn",
+          "-M",
+          "intel",
+          "/home/ubuntu/src/zopro-perf-work/sign-mask176/qualify"
+        ],
+        "environment": {}
+      },
+      "directory": "/home/ubuntu/src/zopro-perf-work/sign-mask176/runs2/decode-new-mask-consumer",
+      "exit": {
+        "elapsed_ms": 25.903194,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "0676e2046c36863a825122eb18882bc96b9cec36f97bf54866c7887f02cba76b",
+        "success": true
+      }
+    }
+  ],
+  "retained_failed_compile": 1,
+  "successful_workflow_commands": 4,
+  "targets_achieved": 0,
+  "wrapper_comparisons": 1024
+}
