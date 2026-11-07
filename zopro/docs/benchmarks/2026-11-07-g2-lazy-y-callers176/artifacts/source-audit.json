@@ -1,0 +1,130 @@
+{
+  "accepted_sources": 176,
+  "candidate_original_exact": 170,
+  "candidate_parent_suffixes": {
+    "crates/zopro-bn254/src/ifma8.rs": "\n#[cfg(zopro_lazy_y)]\ninclude!(\"lazy_y.rs\");\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(all(zopro_lazy_y,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(crate) mod lazy_y;\n",
+    "crates/zopro-core/src/simd.rs": "\n#[cfg(all(zopro_lazy_y,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch {\n #[inline(always)]pub(crate)fn from_lazy_y(values:&[zopro_bn254::ifma8::LazyFq;8])->Self{Self(zopro_bn254::ifma8::LazyY8::new(values).batch())}\n #[inline(always)]pub(crate)fn to_lazy_y(self)->[zopro_bn254::ifma8::LazyFq;8]{zopro_bn254::ifma8::LazyY8::from_batch(self.0).get()}\n #[inline(always)]pub(crate)fn lazy_y_numerator(by:&[[Fq;8];2],ay:&[Self;2],dx:&[Self;2],negative:u8)->[Self;2]{zopro_bn254::ifma8::lazy_y_numerator(by,&ay.map(|v|zopro_bn254::ifma8::LazyY8::from_batch(v.0)),&dx.map(|v|v.0),negative).map(Self)}\n}\n"
+  },
+  "kernel_inverse_edits": [
+    {
+      "count": 1,
+      "new": "fn apply(\n    buckets: &mut [LazyYBucket],\n    batch: &[(u32, &G2Affine)],",
+      "old": "pub(super) fn apply<C: CurveConfig<Base = Fq2>, const FAST: bool>(\n    buckets: &mut [Affine<C>],\n    batch: &[(u32, &Affine<C>)],"
+    },
+    {
+      "count": 3,
+      "new": "canonical_sub::<true>",
+      "old": "canonical_sub::<FAST>"
+    },
+    {
+      "count": 1,
+      "new": "let a = buckets[index as usize].canonical();",
+      "old": "let a = buckets[index as usize];"
+    },
+    {
+      "count": 1,
+      "new": "buckets[(batch[k].0 & 0x7fffffff) as usize] = LazyYBucket::from_affine(G2Affine::new(x, y));",
+      "old": "buckets[(batch[k].0 & 0x7fffffff) as usize] = Affine::new(x, y);"
+    },
+    {
+      "count": 1,
+      "new": "let a: [LazyYBucket; LANES]",
+      "old": "let a: [Affine<C>; LANES]"
+    },
+    {
+      "count": 1,
+      "new": "let b: [&G2Affine; LANES]",
+      "old": "let b: [&Affine<C>; LANES]"
+    },
+    {
+      "count": 1,
+      "new": "let ay = core::array::from_fn(|j| FqBatch::from_lazy_y(&a.map(|p|p.y[j])));",
+      "old": "let ay = fq2_pack(a.map(|p| p.y));"
+    },
+    {
+      "count": 1,
+      "new": "        let by=core::array::from_fn(|j|b.map(|p|if j==0{p.y.c0}else{p.y.c1}));\n        let negative=signs::<true,G2Config>(&batch[k..k+LANES]);\n",
+      "old": "        let dy=if FAST{\n            let by=fq2_pack(b.map(|p|p.y));\n            let negative=signs::<true,C>(&batch[k..k+LANES]);\n            core::array::from_fn(|i|by[i].signed_difference_canonical(&ay[i],negative))\n        }else{\n            let by=fq2_pack(core::array::from_fn(|i|if batch[k+i].0>>31!=0{-b[i].y}else{b[i].y}));\n            core::array::from_fn(|i|canonical_sub::<true>(&by[i],&ay[i]))\n        };\n"
+    },
+    {
+      "count": 1,
+      "new": "let slope = Fq2::lanes_scale(&FqBatch::lazy_y_numerator(&by,&ay,&denominator,negative), &factor);",
+      "old": "let slope = Fq2::lanes_scaled_numerator(&dy, &denominator, &factor);"
+    },
+    {
+      "count": 1,
+      "new": "let x = fq2_unpack(x);\n        let y = y.map(FqBatch::to_lazy_y);",
+      "old": "let (x, y) = (fq2_unpack(x), fq2_unpack(y));"
+    },
+    {
+      "count": 1,
+      "new": "buckets[(batch[k + i].0 & 0x7fffffff) as usize] = LazyYBucket{x:x[i],y:[y[0][i],y[1][i]]};",
+      "old": "buckets[(batch[k + i].0 & 0x7fffffff) as usize] = Affine::new(x[i], y[i]);"
+    }
+  ],
+  "new_bucket_bytes": 128,
+  "no_new_persistent_key_copy": true,
+  "original_control_exact": 173,
+  "original_recovery_both_snapshots": true,
+  "production_changed": false,
+  "qualified_field_child_exact": true,
+  "query_selection_changed": false,
+  "shared_parent_suffixes": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(zopro_window_trial,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub use msm_affine::lazy_y_window_trial;\n",
+    "crates/zopro-core/src/msm_affine.rs": "\n#[cfg(all(zopro_lazy_y,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod g2_lazy_y_window;\n#[cfg(all(zopro_window_trial,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[inline(never)]\npub fn lazy_y_window_trial(bases:&[zopro_bn254::G2Affine],short:&[[u64;4]],w:usize,bits:usize,size:usize,candidate:bool)->Vec<zopro_bn254::G2Affine>{\n if candidate {\n  #[cfg(zopro_lazy_y)] {return if size==0{g2_lazy_y_window::try_window(bases,short,w,bits).expect(\"native guard\")}else{g2_lazy_y_window::trial_custom(bases,short,w,bits,size)};}\n  #[cfg(not(zopro_lazy_y))] {panic!(\"candidate requested from original control\");}\n }\n if size==0{g2_borrowed::try_window(bases,short,w,bits).expect(\"native guard\")}else{g2_borrowed::trial_custom(bases,short,w,bits,size)}\n}\n#[cfg(all(test,zopro_lazy_y,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod lazy_y_window_tests;\n",
+    "crates/zopro-core/src/msm_affine/g2_borrowed.rs": "\n// Diagnostic helper shared byte-for-byte by original and lazy Windows.\n#[cfg(zopro_window_trial)]\npub(super) fn trial_custom(bases:&[G2Affine],short:&[[u64;4]],w:usize,bits:usize,size:usize)->Vec<G2Affine>{\n let packed=BatchAdd::default();assert!(packed.borrowed_g2_enabled());\n let mut s=Window::new(1<<(bits-1),size,packed);\n s.feed(bases,short,true,w,bits,size);\n assert!(s.batch.is_empty()&&s.queue.is_empty());\n for p in &mut s.affine{if !p.is_identity(){p.x=p.x.mul_by_fp(&BETA);}}\n for p in &mut s.projective{p.x=p.x.mul_by_fp(&BETA);}\n s.feed(bases,short,false,w,bits,size);s.finish()\n}\n"
+  },
+  "window_inverse_edits": [
+    {
+      "count": 1,
+      "new": "use crate::msm::{BatchAdd,lazy_y::LazyYBucket};",
+      "old": "use crate::msm::BatchAdd;"
+    },
+    {
+      "count": 1,
+      "new": "affine: Vec<LazyYBucket>",
+      "old": "affine: Vec<G2Affine>"
+    },
+    {
+      "count": 1,
+      "new": "affine: vec![LazyYBucket::identity(); half]",
+      "old": "affine: vec![G2Affine::IDENTITY; half]"
+    },
+    {
+      "count": 1,
+      "new": "*a = LazyYBucket::from_affine(if neg { -*p } else { *p });",
+      "old": "*a = if neg { -*p } else { *p };"
+    },
+    {
+      "count": 1,
+      "new": "if a.canonical_y() == signed.y",
+      "old": "if a.y == signed.y"
+    },
+    {
+      "count": 1,
+      "new": "*a = LazyYBucket::identity()",
+      "old": "*a = G2Affine::IDENTITY"
+    },
+    {
+      "count": 1,
+      "new": ".apply_lazy_y_g2(",
+      "old": ".apply_signed_borrowed_g2("
+    },
+    {
+      "count": 1,
+      "new": ".map(|(p, &i)| *p + self.affine[i].canonical())",
+      "old": ".map(|(p, &i)| *p + self.affine[i])"
+    },
+    {
+      "count": 1,
+      "new": "self.affine[i] = LazyYBucket::from_affine(p);",
+      "old": "self.affine[i] = p;"
+    },
+    {
+      "count": 1,
+      "new": "        self.affine.into_iter().map(LazyYBucket::canonical).collect()\n    }",
+      "old": "        self.affine\n    }"
+    }
+  ]
+}
