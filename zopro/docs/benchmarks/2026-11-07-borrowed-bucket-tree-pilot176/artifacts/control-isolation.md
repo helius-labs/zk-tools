@@ -1,0 +1,7 @@
+# OFF text isolation before capture
+
+Corrected source-fixed qualifies130OFF/130ON core tests and2+6ON prover integration tests. Both optimized SDK links finish. First codegen selection fails because13 tree text symbols remain in OFF: a shared runtime boolean closure kept the tree branch/code despite OFF admission always returning None. No decode workflow commands, proofs or timing captures have executed. Preserve those source/library/SDK/nm/helper identities and failed selection.
+
+The source-isolated snapshot adds compile-time guards to the child module, tree dispatch and query reservation. OFF explicitly captures false and excludes the tree branch and module in non-test code. Test builds retain the module for direct qualification. Removing only these new cfg attributes and the not-enabled false binding reproduces the already qualified source-fixed parent byte-for-byte for ON; all177 other files are exact. No ON algorithm, layout, admission, field operation or arithmetic source changes. This is control isolation before any timing, not a result-selected optimization.
+
+Run a new OFF130 suite because its production dispatch changed; inherit the130ON core and8ON prover tests after verifying the exact ON preprocessing equivalence. Rebuild coherent OFF/ON library consumers from the final snapshot and inspect their actual flags/code. Successful models, field tests, old ON suites and old nm capture are not replayed for bookkeeping. New binaries get their own symbol inspection. Final full-SDK proof preflight and latency remain pending.
