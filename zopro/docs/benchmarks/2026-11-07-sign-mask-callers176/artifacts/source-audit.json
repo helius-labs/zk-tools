@@ -1,0 +1,22 @@
+{
+  "accepted_sources": 176,
+  "adapter_runtime_exact": true,
+  "all176_recovered": true,
+  "dispatch_after": "    #[cfg(all(zopro_packed_sign_mask,all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n    if SIGNED {return sign_mask::packed_signs::<SIGNED,C,_>(batch);}\n    if !SIGNED {return 0;}let mut bits=0u8;for i in 0..LANES {bits|=((batch[i].0>>31)as u8)<<i;}bits",
+  "dispatch_before": "    if !SIGNED {return 0;}let mut bits=0u8;for i in 0..LANES {bits|=((batch[i].0>>31)as u8)<<i;}bits",
+  "field_sources_all_exact": true,
+  "frozen_control_original_recovery": true,
+  "frozen_control_parent_suffixes": {
+    "crates/zopro-core/src/lib.rs": "\n#[doc(hidden)]pub use msm::high_borrow_caller::{G1Caller,G2Caller};\n",
+    "crates/zopro-core/src/msm.rs": "\npub mod high_borrow_caller;\n"
+  },
+  "old_tests_filtered_not_replayed": true,
+  "originals_exact": 174,
+  "parent_suffixes": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)]pub use msm::sign_mask_caller::{G1Caller,G2Caller};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod sign_mask_caller;\n#[cfg(all(zopro_packed_sign_mask,all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\nmod sign_mask;\n#[cfg(all(test,zopro_packed_sign_mask,all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\nmod sign_mask_integration_tests;\n"
+  },
+  "production_changed": false,
+  "qualified_helper_context_only": "use super imports; original exact; packed_signs visibility pub(super); remove unused Copy bound to preserve parent Borrow-only interface (helper never copies payload)",
+  "snapshot_files": 179
+}
