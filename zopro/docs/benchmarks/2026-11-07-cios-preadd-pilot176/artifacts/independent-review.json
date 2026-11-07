@@ -1,0 +1,238 @@
+{
+  "SDK_requests": 7794,
+  "calibration_passed": true,
+  "canonical_ledger_count": 31465,
+  "capture_receipts": 117,
+  "counter_ON_over_OFF": {
+    "branch-misses:u": 0.9825600045304734,
+    "cache-misses:u": 1.0481559263329152,
+    "cycles:u": 1.0001921215474106,
+    "instructions:u": 1.040319613656708
+  },
+  "fresh_exports": 51,
+  "latency_gate_independently_reconstructed": true,
+  "limitations": "Independent offline arithmetic/parser review, not a second cryptographic verifier, instruction decoder, perf LOST decoder or exact IP-to-ELF analysis. Nominal marginal intervals assume independent exchangeable blocks. No capture, proof, verifier or successful model replayed.",
+  "paired_checks": {
+    "OFF_over_accepted": {
+      "lower": 0.9959187363386419,
+      "median": 1.008429913621066,
+      "upper": 1.0140639961418394,
+      "wins": 4
+    },
+    "ON_over_OFF": {
+      "lower": 0.9945661257047004,
+      "median": 1.002347855986578,
+      "upper": 1.0085045098653753,
+      "wins": 6
+    },
+    "ON_over_accepted": {
+      "lower": 1.0005266103004986,
+      "median": 1.0045608757837916,
+      "upper": 1.010936651974458,
+      "wins": 3
+    }
+  },
+  "pilot_gate_passed": false,
+  "profile_summaries": {
+    "OFF": {
+      "samples": 12203,
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2468
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1945
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          978
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          902
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          682
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          618
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          607
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          382
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          339
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          236
+        ],
+        [
+          "[unknown]",
+          235
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          193
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          160
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          159
+        ],
+        [
+          "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+          126
+        ]
+      ],
+      "unknown": 235
+    },
+    "ON": {
+      "samples": 12281,
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2446
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1943
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          1047
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          915
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          668
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          665
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          610
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          385
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          344
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          241
+        ],
+        [
+          "[unknown]",
+          212
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          161
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          152
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          147
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          136
+        ]
+      ],
+      "unknown": 212
+    },
+    "accepted": {
+      "samples": 12333,
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+          2443
+        ],
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1955
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          1045
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          890
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          709
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+          632
+        ],
+        [
+          "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+          611
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+          387
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          372
+        ],
+        [
+          "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          240
+        ],
+        [
+          "[unknown]",
+          196
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.565",
+          164
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          147
+        ],
+        [
+          "<zopro_core::solver::Plan>::run",
+          144
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          142
+        ]
+      ],
+      "unknown": 196
+    }
+  },
+  "review_passed": true,
+  "source_pin_checks": 257
+}

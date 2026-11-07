@@ -1,0 +1,98 @@
+{
+  "limits": "Selected two emitted callers only. RSP subtraction excludes pushed registers, alignment loss, nested callee frames and concurrent workers; not a complete stack/live-memory bound. Static instruction/IFMA counts are not dynamic counts.",
+  "review_passed": true,
+  "rows": [
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/cios-preadd-sdk176/sdk-build/OFF-sdk",
+      "binary_sha256": "e8e50d3724624f48f1ada8808efda681771d951b4d8b1c9265407f027c116124",
+      "decoded_instructions": 4428,
+      "decoded_stream_sha256": "87e3690cb1876d7c417d430f799a62612ffdb438ecc2ee9468e3179e32566935",
+      "name": "decode-caller-0-OFF",
+      "prologue": [
+        "push   rbp",
+        "mov    rbp,rsp",
+        "push   r15",
+        "push   r14",
+        "push   r13",
+        "push   r12",
+        "push   rbx",
+        "and    rsp,0xffffffffffffffc0",
+        "sub    rsp,0xfc0",
+        "mov    QWORD PTR [rsp],0x0",
+        "sub    rsp,0x100"
+      ],
+      "prologue_rsp_subtraction_bytes": 4288,
+      "pushed_registers": 6,
+      "static_IFMA_sites": 800
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/cios-preadd-sdk176/sdk-build/ON-sdk",
+      "binary_sha256": "358673f246a3341e517615f8bea532fb60ff943b5911b9f18f96e95838a72e9c",
+      "decoded_instructions": 4627,
+      "decoded_stream_sha256": "6efb896d5d0f089fdda7eed901d2b7bfd67f375d60df0317542d62265b9666bd",
+      "name": "decode-caller-0-ON",
+      "prologue": [
+        "push   rbp",
+        "mov    rbp,rsp",
+        "push   r15",
+        "push   r14",
+        "push   r13",
+        "push   r12",
+        "push   rbx",
+        "and    rsp,0xffffffffffffffc0",
+        "sub    rsp,0xfc0",
+        "mov    QWORD PTR [rsp],0x0",
+        "sub    rsp,0x100"
+      ],
+      "prologue_rsp_subtraction_bytes": 4288,
+      "pushed_registers": 6,
+      "static_IFMA_sites": 797
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/cios-preadd-sdk176/sdk-build/OFF-sdk",
+      "binary_sha256": "e8e50d3724624f48f1ada8808efda681771d951b4d8b1c9265407f027c116124",
+      "decoded_instructions": 8591,
+      "decoded_stream_sha256": "dba2f9e8c2d77d61e1a4464a51a880617e60438e21639088d8f8b884dc336b27",
+      "name": "decode-caller-1-OFF",
+      "prologue": [
+        "push   rbp",
+        "mov    rbp,rsp",
+        "push   r15",
+        "push   r14",
+        "push   r13",
+        "push   r12",
+        "push   rbx",
+        "and    rsp,0xffffffffffffffc0",
+        "sub    rsp,0xfc0",
+        "mov    QWORD PTR [rsp],0x0",
+        "sub    rsp,0x780"
+      ],
+      "prologue_rsp_subtraction_bytes": 5952,
+      "pushed_registers": 6,
+      "static_IFMA_sites": 1450
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/cios-preadd-sdk176/sdk-build/ON-sdk",
+      "binary_sha256": "358673f246a3341e517615f8bea532fb60ff943b5911b9f18f96e95838a72e9c",
+      "decoded_instructions": 8905,
+      "decoded_stream_sha256": "f989fc1233d9b2d3244dc7bdbb97013a77c36f44e3d6c415f498eadf179cbac2",
+      "name": "decode-caller-1-ON",
+      "prologue": [
+        "push   rbp",
+        "mov    rbp,rsp",
+        "push   r15",
+        "push   r14",
+        "push   r13",
+        "push   r12",
+        "push   rbx",
+        "and    rsp,0xffffffffffffffc0",
+        "sub    rsp,0xfc0",
+        "mov    QWORD PTR [rsp],0x0",
+        "sub    rsp,0x800"
+      ],
+      "prologue_rsp_subtraction_bytes": 6080,
+      "pushed_registers": 6,
+      "static_IFMA_sites": 1447
+    }
+  ]
+}
