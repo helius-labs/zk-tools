@@ -1,0 +1,6 @@
+use std::{fs,path::Path};
+fn main(){
+ let old=Path::new("/home/ubuntu/src/zopro-perf-work/three-lane-miller176");let root=Path::new("/home/ubuntu/src/zopro-perf-work/three-lane-final-exp176");let original=fs::read_to_string(old.join("bench.rs")).unwrap();let mut changed=original.clone();
+ for(from,to)in[("mod prepared;mod packed;","mod prepared;mod packed;\n#[path=\"/home/ubuntu/src/zopro-perf-work/three-lane-miller176/packed.rs\"]\nmod old_packed;"),(" let value=match arm{"," if arm==\"fully\"{assert!(full);return packed::fully_packed(&new).unwrap();}\n let value=match arm{"),("\"packed\"=>packed::miller(&new)","\"packed\"=>old_packed::miller(&new)"),("for i in 0..3{let f=&fixtures","for i in 0..7{let f=&fixtures"),("\"primes\":3","\"primes\":7")]{assert_eq!(changed.matches(from).count(),1);changed=changed.replace(from,to);}
+ assert!(!root.join("bench.rs").exists());fs::write(root.join("bench.rs"),changed).unwrap();fs::write(root.join("bench-copy-review.txt"),"Driver copied exactly from previous complete-consumer source except old packed-module binding, one fully-packed arm, and prospectively declared seven primes. Original cache path/perf support/output-oracle logic/pool pinning/timer stay exact. No prior source was modified.\n").unwrap();println!("New four-arm complete consumer prepared; prior packed implementation linked read-only");
+}
