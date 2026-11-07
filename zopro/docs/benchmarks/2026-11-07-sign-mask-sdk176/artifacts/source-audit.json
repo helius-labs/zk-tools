@@ -1,0 +1,28 @@
+{
+  "accepted_sources": 176,
+  "all176_recover": true,
+  "benchmark_adapters_removed": true,
+  "caller_gate_failure_retained": true,
+  "candidate_both_curves_unchanged": true,
+  "changed_parent": "crates/zopro-core/src/msm.rs",
+  "dispatch_after": "    #[cfg(all(zopro_packed_sign_mask,all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n    if SIGNED {return sign_mask::packed_signs::<SIGNED,C,_>(batch);}\n    if !SIGNED {return 0;}let mut bits=0u8;for i in 0..LANES {bits|=((batch[i].0>>31)as u8)<<i;}bits",
+  "dispatch_before": "    if !SIGNED {return 0;}let mut bits=0u8;for i in 0..LANES {bits|=((batch[i].0>>31)as u8)<<i;}bits",
+  "field_math_exact": true,
+  "module_suffix": "\n#[cfg(all(zopro_packed_sign_mask,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod sign_mask;\n",
+  "native_child_exact_from_caller": true,
+  "originals_exact": 175,
+  "source_files": 177,
+  "whole_SDK_selected_as_explicit_exception": {
+    "adopted": false,
+    "caller_gate_passed": false,
+    "caller_stage_complete": true,
+    "goal_active": true,
+    "next_candidate": "Exact same descriptor mask helper and dispatch for BOTH curves; remove diagnostic adapters only",
+    "not_permitted": "No caller reroll, sample extension, G1-only subset promotion, layout/compiler/mask-placement tuning or adoption from component evidence",
+    "preserve_failed_seven_checks": true,
+    "reason": "Four independently calibrated G1 contexts improve 2.1–2.4% with 15/15 wins against both controls; G1 counters also decrease. G2 has no clear gain but passes nonregression. Wide G1/32 control intervals do not resolve full-proof behavior.",
+    "required_next": "Prospective separate complete SDK all-nine correctness/fresh Gnark/resource/fallback and matched primary proof latency with fresh-control calibration before adoption",
+    "separate_full_SDK_selected_as_engineering_exception": true,
+    "targets_achieved": 0
+  }
+}
