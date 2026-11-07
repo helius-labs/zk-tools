@@ -1,0 +1,26 @@
+{
+  "all176_recover": true,
+  "changed_parent": "crates/zopro-bn254/src/inverse.rs",
+  "changes": [
+    [
+      "    let (mut u, mut v) = (C::R2, [0; 4]);",
+      "    let (mut u, mut v) = (const { portable::power_of_two(576, C::P) }, [0; 4]);"
+    ],
+    [
+      "    let result = Fp::from_montgomery(v);",
+      "    let result = Fp::from_montgomery(v) * Fp::from_montgomery(const { portable::power_of_two(192, C::P) });"
+    ],
+    [
+      "        return Fp::from_montgomery(v);",
+      "        return Fp::from_montgomery(v) * Fp::from_montgomery(const { portable::power_of_two(192, C::P) });"
+    ],
+    [
+      "    let scale = Fp::<C>::from_montgomery(const { portable::power_of_two(320, C::P) });\n    Fp::from_montgomery(result) * scale",
+      "    Fp::from_montgomery(result)"
+    ]
+  ],
+  "exact_originals": 175,
+  "observation_and_probe_removed_only": true,
+  "parent_qualified_arithmetic": "/home/ubuntu/src/zopro-perf-work/inverse-seed-scale176/candidate.rs",
+  "production_originals": 176
+}
