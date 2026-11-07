@@ -1,0 +1,7 @@
+# Final SDK consumer audit before clocks
+
+Use final coherent OFF/ON SDKs, not a component probe. Decode each arm's actual native signed G1 stream and FAST G2 borrowed apply symbols, selected by demangled identity from saved nm output. Keep every successful nm/decode; no duplicate decoding for bookkeeping. G1 is unchanged source control. Bind binary and actual O3/native/fatLTO/CGU1 commands.
+
+Necessary structure: G2 has fewer static instructions and fewer mixed-packing left4/right48 shifts, unchanged static IFMA sites, and no calls to the new scaled wrappers/helpers. This is an emitted-code opportunity gate, not a latency estimate. Inventory total calls and static vector stack operands as well as actual prologue stack reservation. Report frame/register tradeoffs; do not impose an arbitrary RAM cap or infer dynamic spill traffic from static operands. No new heap/key-dependent storage is permitted by source. Larger frames require resource consideration before adoption, rather than a hidden favorable subset.
+
+The original point formula has seven ordinary and five fused vector operations per group. Three fused calls select the uniform-R260 terminal reduction, with their scale canceled by the norm/numerator invariant. No extra product or runtime inverse16 multiply should appear. Only passing native correctness and this audit select the existing fixed primary full-SDK protocol after all9shape preflight/Gnark. All-eight plus merge54 and resource/portable qualification remain required before adoption; the goal remains active/unmet0/8.

@@ -1,0 +1,28 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/scaled-norm-numerator176/native/codegen-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/usr/bin/nm",
+        "-S",
+        "--defined-only",
+        "/home/ubuntu/src/zopro-perf-work/scaled-norm-numerator176/native/sdk-build/OFF-sdk"
+      ],
+      "kind": "command",
+      "name": "nm-OFF",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/usr/bin/nm",
+        "-S",
+        "--defined-only",
+        "/home/ubuntu/src/zopro-perf-work/scaled-norm-numerator176/native/sdk-build/ON-sdk"
+      ],
+      "kind": "command",
+      "name": "nm-ON",
+      "timeout_seconds": 120
+    }
+  ],
+  "version": 1
+}

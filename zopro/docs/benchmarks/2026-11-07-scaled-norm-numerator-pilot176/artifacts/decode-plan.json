@@ -1,0 +1,62 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/scaled-norm-numerator176/native/codegen-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/usr/bin/objdump",
+        "-d",
+        "-M",
+        "intel",
+        "--no-show-raw-insn",
+        "--disassemble=_RINvNtCsHW5vo2gROj_10zopro_core3msm14stream_g1_implNtNtCsgHCcee0nhgM_11zopro_bn2545curve8G1ConfigKb1_KB1y_RINtBP_6AffineBN_EEB4_",
+        "/home/ubuntu/src/zopro-perf-work/scaled-norm-numerator176/native/sdk-build/OFF-sdk"
+      ],
+      "kind": "command",
+      "name": "decode-G1-OFF",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/usr/bin/objdump",
+        "-d",
+        "-M",
+        "intel",
+        "--no-show-raw-insn",
+        "--disassemble=_RINvNtNtCsHW5vo2gROj_10zopro_core3msm11g2_borrowed5applyNtNtCsgHCcee0nhgM_11zopro_bn2545curve8G2ConfigKb1_EB6_",
+        "/home/ubuntu/src/zopro-perf-work/scaled-norm-numerator176/native/sdk-build/OFF-sdk"
+      ],
+      "kind": "command",
+      "name": "decode-G2-OFF",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/usr/bin/objdump",
+        "-d",
+        "-M",
+        "intel",
+        "--no-show-raw-insn",
+        "--disassemble=_RINvNtCsHW5vo2gROj_10zopro_core3msm14stream_g1_implNtNtCsgHCcee0nhgM_11zopro_bn2545curve8G1ConfigKb1_KB1y_RINtBP_6AffineBN_EEB4_",
+        "/home/ubuntu/src/zopro-perf-work/scaled-norm-numerator176/native/sdk-build/ON-sdk"
+      ],
+      "kind": "command",
+      "name": "decode-G1-ON",
+      "timeout_seconds": 120
+    },
+    {
+      "argv": [
+        "/usr/bin/objdump",
+        "-d",
+        "-M",
+        "intel",
+        "--no-show-raw-insn",
+        "--disassemble=_RINvNtNtCsHW5vo2gROj_10zopro_core3msm11g2_borrowed5applyNtNtCsgHCcee0nhgM_11zopro_bn2545curve8G2ConfigKb1_EB6_",
+        "/home/ubuntu/src/zopro-perf-work/scaled-norm-numerator176/native/sdk-build/ON-sdk"
+      ],
+      "kind": "command",
+      "name": "decode-G2-ON",
+      "timeout_seconds": 120
+    }
+  ],
+  "version": 1
+}
