@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/borrowed-bucket-tree176/preparation-pins.json",
+  "steps": [
+    {
+      "kind": "command",
+      "name": "compile-model",
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "/home/ubuntu/src/zopro-perf-work/borrowed-bucket-tree176/model.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/borrowed-bucket-tree176/model"
+      ],
+      "timeout_seconds": 120
+    },
+    {
+      "kind": "command",
+      "name": "prepare",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/borrowed-bucket-tree176/model",
+        "prepare"
+      ],
+      "timeout_seconds": 120
+    }
+  ]
+}
