@@ -1,0 +1,28 @@
+{
+  "accepted_sources": 176,
+  "all176_recover": true,
+  "both_directions_and_layouts": true,
+  "column_insert": "        #[cfg(zopro_fft_factor)]\n        if stage==4 {\n            let root=if CACHED {broadcast(&roots.columns[level][31*column+30])}else{broadcast(&roots.layers[level+4][column])};\n            let factor=root.prepare_fft_factor();\n            for low in (0..32).step_by(2){let high=low+1;let(a,b)=(local[low],local[high]);if FORWARD{let product=b.mul_fft_factor(&factor);local[low]=a.add(&product);local[high]=a.sub(&product);}else{local[low]=a.add(&b);local[high]=a.sub(&b).mul_fft_factor(&factor);}}\n            continue;\n        }\n",
+  "column_parent": "crates/zopro-core/src/fft/pair.rs",
+  "diagnostic_exports_removed": true,
+  "direct_native_Pair_alias": true,
+  "failed_caller_gate_preserved": true,
+  "field_parent": "crates/zopro-bn254/src/ifma8.rs",
+  "field_suffix": "\n#[cfg(zopro_fft_factor)]\nmod fft_factor;\n#[cfg(zopro_fft_factor)]\npub use fft_factor::FftFactor8;\n",
+  "new_table_buffer_cache_pool": false,
+  "only_gap1_changed": true,
+  "originals_exact": 174,
+  "qualified_constructor_and_product_exact": true,
+  "separate_SDK_engineering_exception": {
+    "engineering_exception": true,
+    "exact_next_implementation": "Same on-demand gap-one factor preparation in BOTH directions and BOTH root layouts; no forward-only selection, gap/worker sweep, compiler/layout reroll, table or cache.",
+    "full_goal_active_unmet": true,
+    "next_requirements": "Actual wrapper/SDK integration, native/generic/no_ifma guards, fresh all-nine correctness and independent Gnark, fixed matched complete proof and automatic diagnostic/resource qualification; all-eight CPU/Metal comparison before adoption.",
+    "next_stage_selected": true,
+    "original_latency_selection_passed": false,
+    "original_profile_quality_passed": false,
+    "production_adopted": false,
+    "reason": "The predeclared intended eight-context threaded aggregate is 9.31% faster vs fresh original, CI strictly below parity and 15/15 block wins. Preserve four failed latency checks and all failed profile symbol-quality flags. A separate full-SDK test is warranted, not an adoption or a rescued component gate."
+  },
+  "snapshot_files": 177
+}
