@@ -1,0 +1,5 @@
+The first probe consumer failed at compile time on four calls to a nonexistent Fp::to_le_bytes method. No consumer or field arithmetic executed. The first two field builds had succeeded and were retained unchanged.
+
+The separate probe-fixed.rs uses the public to_be_bytes method and explicitly sets MIXED=true on all four probe types. The original probe's omitted const argument would have selected the default R260 specialization; that scope mistake was corrected before any successful consumer build or decode. The fixed source does not alter the new field recipe or the declared mixed-R256 target. The continuation starts at consumer compilation and never rebuilds the successful fields. Original source, pins, plan and failure receipts remain immutable.
+
+The new arithmetic is not qualified: the static structural screen fails, and no native arithmetic, test or timing process follows. Initial handoff research also missed the already-completed November6 instruction calibration; that was corrected before selecting this experiment, with no duplicate calibration capture or norm/triple experiment.

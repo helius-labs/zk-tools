@@ -1,0 +1,51 @@
+error[E0599]: no method named `to_le_bytes` found for struct `Fp<C>` in the current scope
+  --> /home/ubuntu/src/zopro-perf-work/cios-outer-loop176/probe.rs:52:18
+   |
+52 |             a[0].to_le_bytes(),
+   |                  ^^^^^^^^^^^
+   |
+help: there is a method `to_be_bytes` with a similar name
+   |
+52 -             a[0].to_le_bytes(),
+52 +             a[0].to_be_bytes(),
+   |
+
+error[E0599]: no method named `to_le_bytes` found for struct `Fp<C>` in the current scope
+  --> /home/ubuntu/src/zopro-perf-work/cios-outer-loop176/probe.rs:53:18
+   |
+53 |             b[0].to_le_bytes(),
+   |                  ^^^^^^^^^^^
+   |
+help: there is a method `to_be_bytes` with a similar name
+   |
+53 -             b[0].to_le_bytes(),
+53 +             b[0].to_be_bytes(),
+   |
+
+error[E0599]: no method named `to_le_bytes` found for struct `Fp<C>` in the current scope
+  --> /home/ubuntu/src/zopro-perf-work/cios-outer-loop176/probe.rs:54:18
+   |
+54 |             c[0].to_le_bytes(),
+   |                  ^^^^^^^^^^^
+   |
+help: there is a method `to_be_bytes` with a similar name
+   |
+54 -             c[0].to_le_bytes(),
+54 +             c[0].to_be_bytes(),
+   |
+
+error[E0599]: no method named `to_le_bytes` found for struct `Fp<C>` in the current scope
+  --> /home/ubuntu/src/zopro-perf-work/cios-outer-loop176/probe.rs:55:18
+   |
+55 |             d[0].to_le_bytes()
+   |                  ^^^^^^^^^^^
+   |
+help: there is a method `to_be_bytes` with a similar name
+   |
+55 -             d[0].to_le_bytes()
+55 +             d[0].to_be_bytes()
+   |
+
+error: aborting due to 4 previous errors
+
+For more information about this error, try `rustc --explain E0599`.

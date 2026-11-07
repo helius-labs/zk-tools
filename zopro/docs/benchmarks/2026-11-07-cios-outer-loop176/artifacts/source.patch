@@ -1,0 +1,68 @@
+--- a/crates/zopro-bn254/src/ifma.rs
++++ b/crates/zopro-bn254/src/ifma.rs
+@@ -417,7 +417,7 @@
+             let inv = Self::splat(C::INV & MASK);
+             let mut t = [zero; 6];
+             macro_rules! row {
+-                ($i:literal) => {{
++                ($i:expr) => {{
+                     macro_rules! product {
+                         ($j:literal,$k:literal) => {
+                             t[$j] = _mm256_madd52lo_epu64(t[$j], self.0[$j], b.0[$i]);
+@@ -470,10 +470,20 @@
+                     t = [t[1], t[2], t[3], t[4], t[5], zero];
+                 }};
+             }
+-            row!(0);
+-            row!(1);
+-            row!(2);
+-            row!(3);
++            if cfg!(zopro_cios_outer_loop)
++                && LANES == 8
++                && MIXED
++                && C::P == crate::FqConfig::P
++            {
++                for i in 0..4 {
++                    row!(i);
++                }
++            } else {
++                row!(0);
++                row!(1);
++                row!(2);
++                row!(3);
++            }
+             if MIXED {
+                 // Four radix-52 cancellation steps followed by radix-48:
+                 // R=2^(4*52+48)=2^256, exactly the key/host representation.
+--- a/crates/zopro-bn254/src/ifma8.rs
++++ b/crates/zopro-bn254/src/ifma8.rs
+@@ -474,7 +474,7 @@
+             let inv = Self::splat(C::INV & MASK);
+             let mut t = [zero; 6];
+             macro_rules! row {
+-                ($i:literal) => {{
++                ($i:expr) => {{
+                     macro_rules! product {
+                         ($j:literal,$k:literal) => {
+                             t[$j] = _mm512_madd52lo_epu64(t[$j], self.0[$j], b.0[$i]);
+@@ -527,10 +527,16 @@
+                     t = [t[1], t[2], t[3], t[4], t[5], zero];
+                 }};
+             }
+-            row!(0);
+-            row!(1);
+-            row!(2);
+-            row!(3);
++            if cfg!(zopro_cios_outer_loop) && LANES == 8 && MIXED && C::P == crate::FqConfig::P {
++                for i in 0..4 {
++                    row!(i);
++                }
++            } else {
++                row!(0);
++                row!(1);
++                row!(2);
++                row!(3);
++            }
+             if MIXED {
+                 // Four radix-52 cancellation steps followed by radix-48:
+                 // R=2^(4*52+48)=2^256, exactly the key/host representation.

@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "scope": "Independent readelf symbol-size comparison for all 12 selected functions; byte-hash control equality uses main analyzer output, not a second code decoder.",
+  "rows": [
+    {
+      "mode": "accepted",
+      "command": "set -o pipefail\n/usr/bin/readelf --wide --symbols /home/ubuntu/src/zopro-perf-work/cios-outer-loop176/probe-accepted | rg ' probe_(fq8_mul|fq8_sum2|fr8_mul|fq4_mul)$'",
+      "exit_code": 0,
+      "stdout": "   580: 0000000000013e30  1193 FUNC    GLOBAL DEFAULT   16 probe_fq8_mul\n   581: 00000000000142e0  1751 FUNC    GLOBAL DEFAULT   16 probe_fq8_sum2\n   582: 00000000000149c0  1193 FUNC    GLOBAL DEFAULT   16 probe_fr8_mul\n   583: 00000000000139d0  1113 FUNC    GLOBAL DEFAULT   16 probe_fq4_mul\n",
+      "matched_symbols": 4
+    },
+    {
+      "mode": "OFF",
+      "command": "set -o pipefail\n/usr/bin/readelf --wide --symbols /home/ubuntu/src/zopro-perf-work/cios-outer-loop176/probe-OFF | rg ' probe_(fq8_mul|fq8_sum2|fr8_mul|fq4_mul)$'",
+      "exit_code": 0,
+      "stdout": "   580: 0000000000013e30  1193 FUNC    GLOBAL DEFAULT   16 probe_fq8_mul\n   581: 00000000000142e0  1751 FUNC    GLOBAL DEFAULT   16 probe_fq8_sum2\n   582: 00000000000149c0  1193 FUNC    GLOBAL DEFAULT   16 probe_fr8_mul\n   583: 00000000000139d0  1113 FUNC    GLOBAL DEFAULT   16 probe_fq4_mul\n",
+      "matched_symbols": 4
+    },
+    {
+      "mode": "ON",
+      "command": "set -o pipefail\n/usr/bin/readelf --wide --symbols /home/ubuntu/src/zopro-perf-work/cios-outer-loop176/probe-ON | rg ' probe_(fq8_mul|fq8_sum2|fr8_mul|fq4_mul)$'",
+      "exit_code": 0,
+      "stdout": "   580: 0000000000013e30  1194 FUNC    GLOBAL DEFAULT   16 probe_fq8_mul\n   581: 00000000000142e0  1752 FUNC    GLOBAL DEFAULT   16 probe_fq8_sum2\n   582: 00000000000149c0  1193 FUNC    GLOBAL DEFAULT   16 probe_fr8_mul\n   583: 00000000000139d0  1113 FUNC    GLOBAL DEFAULT   16 probe_fq4_mul\n",
+      "matched_symbols": 4
+    }
+  ],
+  "controls": [
+    {
+      "name": "probe_fq4_mul",
+      "bytes_identical": true
+    },
+    {
+      "name": "probe_fr8_mul",
+      "bytes_identical": true
+    }
+  ],
+  "new_native_arithmetic_executions": 0,
+  "new_proofs": 0
+}
