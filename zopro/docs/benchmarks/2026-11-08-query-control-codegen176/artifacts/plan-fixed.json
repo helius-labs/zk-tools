@@ -1,0 +1,35 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/query-control-codegen176/pins-fixed.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "/home/ubuntu/src/zopro-perf-work/query-control-codegen176/audit-fixed.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "--extern",
+        "rustc_demangle=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/librustc_demangle-3e2a96f78b3a16e4.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/query-control-codegen176/audit-fixed"
+      ],
+      "kind": "command",
+      "name": "compile-selected-symbol-audit-fix",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/query-control-codegen176/audit-fixed"
+      ],
+      "kind": "command",
+      "name": "new-four-function-comparison-reuse-nm",
+      "timeout_seconds": 600
+    }
+  ],
+  "version": 1
+}
