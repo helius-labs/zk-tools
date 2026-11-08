@@ -1,0 +1,55 @@
+{
+  "all176_recover": true,
+  "canonical_unchanged": 35050,
+  "changed_parent": "crates/zopro-core/src/msm.rs",
+  "field_math_and_generated_sources_exact": true,
+  "new_children": 3,
+  "new_proofs": 0,
+  "no_new_field_test_or_arithmetic": true,
+  "old_caller_gate_still_failed": true,
+  "old_common_z_runtime_exact_except_local_include": true,
+  "old_diagnostic_probe_removed_from_parent": true,
+  "originals": 176,
+  "parent_kernel_exact": true,
+  "passed": true,
+  "private_exact_originals": 175,
+  "private_source_files": 179,
+  "production_edits": [
+    {
+      "after": "    #[cfg(zopro_common_z_finish)]\n    common_z: bool,\n    // The first point of each pair the affine formula adds, in bucket order.\n",
+      "before": "    // The first point of each pair the affine formula adds, in bucket order.\n",
+      "path": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "after": "            #[cfg(zopro_common_z_finish)]\n            common_z: C::Base::common_z_enabled(),\n            vector_inverse: crate::simd::cpu_option(\"ZOPRO_CPU_TREE_VECTOR_INVERSE\"),",
+      "before": "            vector_inverse: crate::simd::cpu_option(\"ZOPRO_CPU_TREE_VECTOR_INVERSE\"),",
+      "path": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "after": "pub(super) trait BatchInverse: Field {\n    #[cfg(zopro_common_z_finish)]\n    fn common_z_enabled()->bool {false}\n    #[cfg(zopro_common_z_finish)]\n    fn finish_common_z<C:CurveConfig<Base=Self>>(_p:&mut[LimbPoint<Self>],_s:&[usize],_n:&mut[usize])->bool {false}\n",
+      "before": "pub(super) trait BatchInverse: Field {\n",
+      "path": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "after": "impl BatchInverse for Fq {\n    #[cfg(all(zopro_common_z_finish,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    fn common_z_enabled()->bool {crate::simd::cpu_option(\"ZOPRO_CPU_COMMON_Z_FINISH\")}\n    #[cfg(all(zopro_common_z_finish,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    fn finish_common_z<C:CurveConfig<Base=Self>>(p:&mut[LimbPoint<Self>],s:&[usize],n:&mut[usize])->bool {common_z_finish::finish::<C>(p,s,n)}\n",
+      "before": "impl BatchInverse for Fq {\n",
+      "path": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "after": "                while local_counts.iter().any(|&count| count > 1) {\n                    #[cfg(zopro_common_z_finish)]\n                    if scratch.common_z && C::Base::finish_common_z::<C>(points,local_starts,local_counts) {break;}\n                    reduce_layer(points, local_starts, local_counts, scratch);\n",
+      "before": "                while local_counts.iter().any(|&count| count > 1) {\n                    reduce_layer(points, local_starts, local_counts, scratch);\n",
+      "path": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "after": "            while count[0] > 1 {\n                #[cfg(zopro_common_z_finish)]\n                if scratch.common_z && C::Base::finish_common_z::<C>(&mut points,&[0],&mut count) {break;}\n                reduce_layer(&mut points, &[0], &mut count, &mut scratch);\n",
+      "before": "            while count[0] > 1 {\n                reduce_layer(&mut points, &[0], &mut count, &mut scratch);\n",
+      "path": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "append": "\n#[cfg(all(zopro_common_z_finish,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod common_z_finish;\n",
+      "before": "",
+      "path": "crates/zopro-core/src/msm.rs"
+    }
+  ],
+  "prospective_first_SDK_engineering_exception": "design.md"
+}
