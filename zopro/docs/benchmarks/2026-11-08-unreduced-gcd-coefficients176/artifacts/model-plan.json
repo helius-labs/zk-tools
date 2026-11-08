@@ -1,0 +1,41 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/unreduced-gcd-coefficients176/model-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "overflow-checks=yes",
+        "/home/ubuntu/src/zopro-perf-work/unreduced-gcd-coefficients176/model.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/packed-miller-sdk176/target-candidate/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+        "--extern",
+        "num_bigint=/home/ubuntu/src/zopro-perf-work/packed-miller-sdk176/target-candidate/release/deps/libnum_bigint-83f387c52754efc1.rlib",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/unreduced-gcd-coefficients176/model"
+      ],
+      "kind": "command",
+      "name": "build-unit-coefficient-model",
+      "timeout_seconds": 900
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/unreduced-gcd-coefficients176/model"
+      ],
+      "kind": "command",
+      "name": "exact-unit-coefficient-screen",
+      "timeout_seconds": 900
+    }
+  ],
+  "version": 1
+}
