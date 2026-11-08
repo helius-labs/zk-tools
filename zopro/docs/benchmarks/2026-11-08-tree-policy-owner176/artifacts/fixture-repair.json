@@ -1,0 +1,15 @@
+{
+  "all_declared_tile_lengths_checked_before_build": true,
+  "all_non_test_runtime_code_byte_exact": true,
+  "failed_focused_case_exit": 101,
+  "grouped_inputs_unchanged": true,
+  "internal_weighted_contract": "each tile length <=256 is a power of two",
+  "new_read_label": "if observe{check_reads(\"weighted\",weighted_len,read0,true0,expected_option);}",
+  "new_weighted_call": "        // The internal weighted reducer requires each <=256-point tile to be a power of two.\n        let tail=n%256;let weighted_len=if tail==0{n}else{n-tail+tail.next_power_of_two()};\n        let mut weighted_points=points.to_vec();weighted_points.resize(weighted_len,Affine::<C>::IDENTITY);\n        let weighted=weighted_affine(&weighted_points);",
+  "old_read_label": "if observe{check_reads(\"weighted\",n,read0,true0,expected_option);}",
+  "old_weighted_call": "        let weighted=weighted_affine(points);",
+  "original_successful_commands_not_replayed": true,
+  "parallel_2048_and_small_stack_257_inputs_unchanged": true,
+  "test_only": true,
+  "zero_identity_padding_preserves_weighted_sum": true
+}

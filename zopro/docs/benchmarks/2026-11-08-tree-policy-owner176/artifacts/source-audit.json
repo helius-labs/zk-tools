@@ -1,0 +1,43 @@
+{
+  "Gnark_exports": 0,
+  "SDK_requests": 0,
+  "accepted_originals": 176,
+  "between_operations_option_reads_preserved": true,
+  "during_parallel_operation_policy_snapshot": true,
+  "edits": [
+    {
+      "new": "    #[cfg(zopro_tree_policy_owner)]\n    let policy=TreePolicy::read(!counts.is_empty());\n    const GROUP: usize = 256;\n    let n = counts.len();\n    let mut result: Vec<Affine<C>> = Vec::with_capacity(n);",
+      "old": "    const GROUP: usize = 256;\n    let n = counts.len();\n    let mut result: Vec<Affine<C>> = Vec::with_capacity(n);"
+    },
+    {
+      "new": "    #[cfg(zopro_tree_policy_owner)]\n    let policy=TreePolicy::read(!buckets.is_empty());\n    const GROUP: usize = 256;\n    let partials: Vec<_> = buckets\n        .par_chunks(GROUP)",
+      "old": "    const GROUP: usize = 256;\n    let partials: Vec<_> = buckets\n        .par_chunks(GROUP)"
+    },
+    {
+      "new": "            || (Vec::<LimbPoint<C::Base>>::new(), {\n                #[cfg(zopro_tree_policy_owner)] { Scratch::<C>::from_tree_policy(policy) }\n                #[cfg(not(zopro_tree_policy_owner))] { Scratch::<C>::default() }\n            }),",
+      "occurrences": 2,
+      "old": "            || (Vec::<LimbPoint<C::Base>>::new(), Scratch::<C>::default()),"
+    },
+    {
+      "new": "            #[cfg(not(test))]\n            vector_inverse: crate::simd::cpu_option(\"ZOPRO_CPU_TREE_VECTOR_INVERSE\"),\n            #[cfg(test)]\n            vector_inverse: tree_policy_owner::read_test_option(),",
+      "old": "            vector_inverse: crate::simd::cpu_option(\"ZOPRO_CPU_TREE_VECTOR_INVERSE\"),",
+      "test_only_observer": true
+    }
+  ],
+  "exact_originals": 175,
+  "field_unchanged": true,
+  "global_cache": false,
+  "lookup_observer_test_only": true,
+  "original_native_field_sha256": "1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713",
+  "original_parent_recovered": true,
+  "parent": "crates/zopro-core/src/msm.rs",
+  "parent_sha256": "d616eb2e6542b358447099edea4a1c7923d6544c1e5840fa568df0d4f09caed9",
+  "passed": true,
+  "private_source_files": 177,
+  "runtime_heap_or_record_growth": false,
+  "runtime_owners": [
+    "group_affine_impl",
+    "weighted_affine"
+  ],
+  "suffix": "\nmod tree_policy_owner;\n#[cfg(zopro_tree_policy_owner)]\nuse tree_policy_owner::TreePolicy;\n"
+}
