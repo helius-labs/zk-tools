@@ -1,0 +1,5 @@
+# Audit assertion was too strong
+
+The first compiled obstruction audit returned101 before emitting a result: it incorrectly asserted that every fixture must have a bucket clique larger than200. A bounded greedy-coloring refusal does not imply that mathematical lower bound, and the original parent panic did not identify which fixture refused. Preserve both original failure receipts and all pinned sources.
+
+The final audit removes only the two per-case assertions `violated>0` and nonnull first necessary violation. It still computes exactly the same fixed full-fixture census and writes zero violations/null when appropriate. No partition/tile/color choice or scheduler changes, and the original colored model/tests are not rerun. This is an audit-output correction after an invalid expectation, not positive performance evidence or a new optimization. The final reader verifies the maximum-clique certificate for every fixture and verifies a necessary cap violation only where present. Empty bounds cannot prove feasibility; a lower bound below200 does not prove a valid200-color schedule exists.
