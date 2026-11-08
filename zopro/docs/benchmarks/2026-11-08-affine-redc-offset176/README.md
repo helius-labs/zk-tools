@@ -4,7 +4,7 @@ The new field primitives pass exact arithmetic and native SIMD qualification. Ma
 
 The mechanism folds canonical coordinate subtractions into the product's existing final carry normalization. The accepted R256 CIOS kernel exposes five unnormalized result coefficients after radix conversion. The candidate adds a fixed p or 2p bias and subtracts coordinate limbs there, then propagates signed carries once and corrects the range. It does not change the multiplication/cancellation prefix, input coordinates, keys or runtime buffers.
 
-This differs from the [older multiply-subtract trial](../2026-10-22-universal-mul-sub-sdk/README.md), which normalized 2p−c and shifted it into the accumulator before final cancellation. It also differs from [typed uncarried X-sum subtraction](../2026-11-08-linear-carry-fusion176/README.md): this operation acts before product-output normalization. Those earlier results remain unchanged and are not retimed.
+This differs from the 22 October multiply-subtract trial, which normalized 2p−c and shifted it into the accumulator before final cancellation. It also differs from [typed uncarried X-sum subtraction](../2026-11-08-linear-carry-fusion176/README.md): this operation acts before product-output normalization. Those earlier results remain unchanged and are not retimed.
 
 ## Arithmetic and native qualification
 
