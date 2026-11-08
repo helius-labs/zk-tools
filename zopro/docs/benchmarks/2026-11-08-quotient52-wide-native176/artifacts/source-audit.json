@@ -1,0 +1,24 @@
+{
+  "accepted_recovery_exact": true,
+  "after": "let m = {\n                        // All normal-row consumers truncate this operand to 52 bits.\n                        #[cfg(zopro_quotient_wide)]\n                        { _mm512_mullo_epi64(t[0], inv) }\n                        #[cfg(not(zopro_quotient_wide))]\n                        { _mm512_and_si512({ #[cfg(zopro_quotient_mullo)] { _mm512_mullo_epi64(t[0], inv) } #[cfg(not(zopro_quotient_mullo))] { _mm512_madd52lo_epu64(zero, t[0], inv) } }, mask) }\n                    };",
+  "architecture_policy_pending": true,
+  "before": "let m = _mm512_and_si512({ #[cfg(zopro_quotient_mullo)] { _mm512_mullo_epi64(t[0], inv) } #[cfg(not(zopro_quotient_mullo))] { _mm512_madd52lo_epu64(zero, t[0], inv) } }, mask);",
+  "changed_member": "crates/zopro-bn254/src/ifma8.rs",
+  "field_members": 18,
+  "generator_integration_pending": true,
+  "mixed_48_body_unchanged": true,
+  "new_storage": false,
+  "normal_quotient_consumers_only_ifma52": true,
+  "normal_quotient_use_lines": [
+    "                    let m = _mm512_and_si512({ #[cfg(zopro_quotient_mullo)] { _mm512_mullo_epi64(t[0], inv) } #[cfg(not(zopro_quotient_mullo))] { _mm512_madd52lo_epu64(zero, t[0], inv) } }, mask);",
+    "                            t[$j] = _mm512_madd52lo_epu64(t[$j], m, p[$j]);",
+    "                            t[$k] = _mm512_madd52hi_epu64(t[$k], m, p[$j]);",
+    "                        let low = _mm512_madd52hi_epu64(carry, m, p[0]);"
+  ],
+  "original_members": 176,
+  "original_reference_suffix_unchanged": true,
+  "other_field_members_exact": 17,
+  "parent_recovery_exact": true,
+  "parent_root": "/home/ubuntu/src/zopro-perf-work/quotient-mullo176",
+  "production_changed": false
+}
