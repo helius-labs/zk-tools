@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "kind": "Manual review of saved source and optimized disassembly; no repeated decoder",
+  "G1_caller": "codegen/ON-2.stdout calls stream_g1_impl<G1Config,true,true,&Affine> at0x51910",
+  "G1_destination_stores": "codegen/ON-0.stdout lines4254-4266 at0x57c95..0x57ce4 issue8vmovdqu64 ZMM stores to bucketbase+checked shifted-index registers, after canonical word packing and paired-coordinate permutes",
+  "G2_caller": "codegen/ON-3.stdout calls g2_borrowed::apply<G2Config,true> at0x7d9d0",
+  "G2_destination_stores": "codegen/ON-1.stdout lines8031-8051 at0x896a3..0x8972e issue8x-coordinate ZMM stores; lines8140-8157 at0x89971..0x899e2 issue8y-coordinate stores atoffset64",
+  "no_new_formatter_ABI": true,
+  "source_contract": "Allindiceschecked before writes; native const layout/offset assertions; source FqBatch values independent from bucket destination storage; repeated destinations ordered by ordinary lane loop",
+  "original_field_math_byte_exact": true,
+  "observed_G1_IFMA_OFF_ON": [800,800],
+  "observed_G2_IFMA_OFF_ON": [1450,1450],
+  "observed_G1_static_instruction_OFF_ON": [4425,4454],
+  "observed_G2_static_instruction_OFF_ON": [8590,8512],
+  "limits": "Actual destination stores establish activation/format, not faster execution, fewer dynamic copies, smaller stack or RAM. No performance observation yet.",
+  "new_performance_recordings": 0,
+  "adopted": false
+}

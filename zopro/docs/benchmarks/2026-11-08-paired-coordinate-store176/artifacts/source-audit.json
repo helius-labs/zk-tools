@@ -1,0 +1,31 @@
+{
+  "adapter_inherited_path": "/home/ubuntu/src/zopro-perf-work/mixed-pair52-callers176/source/crates/zopro-core/src/msm/mixed_pair52_caller.rs",
+  "adapter_runtime_prefix_sha256": "156126f272c5aed03f4fb6679c7acc080083aa6cf6f9fa293d1cd6d23c86ce47",
+  "canonical_unchanged": 35050,
+  "changed_parents": [
+    "scripts/ifma8.py",
+    "crates/zopro-bn254/src/ifma8.rs",
+    "crates/zopro-core/src/msm.rs",
+    "crates/zopro-core/src/msm/g2_borrowed.rs",
+    "crates/zopro-core/src/simd.rs",
+    "crates/zopro-core/src/lib.rs"
+  ],
+  "field_suffix": "\ninclude!(\"paired_store.rs\");\n",
+  "g1_original": "        let (x, y) = (x.get(), y.get());\n        for i in 0..LANES {\n            buckets[batch_index::<SIGNED>(batch[j * LANES + i].0)] = Affine::new(x[i], y[i]);\n        }",
+  "g1_replacement": "        #[cfg(all(zopro_paired_coordinate_store,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        paired_coordinate_store::g1::<C,SIGNED>(&x,&y,buckets,&batch[j*LANES..(j+1)*LANES]);\n        #[cfg(not(all(zopro_paired_coordinate_store,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        {\n        let (x, y) = (x.get(), y.get());\n        for i in 0..LANES {\n            buckets[batch_index::<SIGNED>(batch[j * LANES + i].0)] = Affine::new(x[i], y[i]);\n        }\n        }",
+  "g2_original": "        let (x, y) = (fq2_unpack(x), fq2_unpack(y));\n        for i in 0..LANES {\n            buckets[(batch[k + i].0 & 0x7fffffff) as usize] = Affine::new(x[i], y[i]);\n        }",
+  "g2_replacement": "        #[cfg(all(zopro_paired_coordinate_store,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        super::paired_coordinate_store::g2::<C>(&x,&y,buckets,&batch[k..k+LANES]);\n        #[cfg(not(all(zopro_paired_coordinate_store,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        {\n        let (x, y) = (fq2_unpack(x), fq2_unpack(y));\n        for i in 0..LANES {\n            buckets[(batch[k + i].0 & 0x7fffffff) as usize] = Affine::new(x[i], y[i]);\n        }\n        }",
+  "generator_insert": "source += '\\ninclude!(\"paired_store.rs\");\\n'\n",
+  "lib_suffix": "\n#[cfg(all(zopro_g2_horner_buckets,zopro_g2_prefix_records,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)]\npub use msm::paired_store_caller::{G1Caller,G2Caller};\n",
+  "msm_suffix": "\n#[cfg(all(zopro_paired_coordinate_store,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod paired_coordinate_store;\n#[cfg(all(zopro_g2_horner_buckets,zopro_g2_prefix_records,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)]\npub mod paired_store_caller;\n",
+  "native_bench_adapter_gated_for_generic": true,
+  "new_files": 5,
+  "new_proofs": 0,
+  "no_existing_field_arithmetic_changes": true,
+  "originals": 176,
+  "passed": true,
+  "private_exact_originals": 170,
+  "private_source_files": 181,
+  "scratch_types_unchanged": true,
+  "simd_bridge": "    #[cfg(zopro_paired_coordinate_store)]\n    #[inline(always)]\n    pub(crate) unsafe fn write_canonical_pairs(&self,other:&Self,destinations:[*mut Fq;8]) {\n        // SAFETY: caller grants two consecutive live Fq fields per destination.\n        unsafe {self.0.write_canonical_pairs(&other.0,destinations);}\n    }\n"
+}
