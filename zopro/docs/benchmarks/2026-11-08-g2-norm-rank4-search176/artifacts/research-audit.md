@@ -1,0 +1,14 @@
+# Source and history audit
+
+The saved accepted1×2/32-worker profile contains12,274 user-cycle samples: G1 stream2,502; G2 borrowed1,980; crossbeam pin1,044; Fq inverse919; G2/G1 reductions686/580. These flat/inlined samples are not exclusive wall-critical-path shares. Source: 2026-11-08-uniform-carry-default-performance183/artifacts/diagnostic-analysis.json. Accepted three fused G2 operations compute N,R,I separately across forward and reverse passes; no four-product coupled packet was located by the bounded history/source audit. This is not an exhaustive novelty claim.
+
+Rechecked existing negatives without rerunning them: G1 GLV/Horner, borrowed fusedK/H GLV, recursive affine/linear-wire elimination, symmetric norm, floating RNE51, joint signed-pair complex, raw rank-five projective cross, coefficient/inverse and shared-point-window studies. Their source/timing results remain unchanged. The rank-five free-six-variable cross identity can specialize to this packet, but five separately reduced multiplications are not cheaper than three accepted fused products; no five-product native rescue is selected. The proposed search asks a different question: whether the shared four-variable packet admits only four products.
+
+Primary-source web checks:
+- https://eprint.iacr.org/2026/1324 describes LogJumps for FPGA/BLS12-377; this implementation line already has local outcomes and is not reopened.
+- https://eprint.iacr.org/2026/521 describes extended-Jacobian hardware point addition, conflict scheduling and aggregation. Abstract only; PDF403 through web and curl. No algorithm or hardware performance figure is imported.
+- https://eprint.iacr.org/2026/780 describes signed redundant Montgomery arithmetic and whole-primitive range analysis, with a RISC-V emphasis. Abstract only; PDF403 through web and curl. No unread range proof or code is claimed.
+- https://github.com/herumi/mcl/blob/master/src/msm_avx.cpp fetched via GitHub connector, blob0fb8a31c13b60f1a8af9c2e48c0c4de245658f90. Read field multiplication helpers around313–431 and FpMT dispatch654–690. It uses ordinary radix52 CIOS with canonical subtraction, not a discovered lower-product BN254 packet. Its BN254 label is a different curve; BN_SNARK1 is the compatible modulus per https://github.com/herumi/mcl/blob/master/api.md. No C++ rewrite/import or native peer benchmark follows.
+- https://github.com/herumi/mcl/blob/master/src/avx512.hpp fetched via connector, blob9198264adc0c198e217861f6725d5f36257d3fd0; read initial130lines for direct IFMA mappings and two-register VecA. Its SIMD organization is not a new Zopro speed result.
+
+Full external papers/source bodies are not published. The coupled polynomial search is derived here from accepted norm/numerator expressions. Its positive split-field control is algebraically expected; that field has a square root of−1, unlike BN254 Fq. A negative small-field result alone cannot establish BN254 impossibility.
