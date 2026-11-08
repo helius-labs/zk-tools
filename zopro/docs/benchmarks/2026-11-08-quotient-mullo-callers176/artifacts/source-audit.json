@@ -1,0 +1,22 @@
+{
+  "G1_G2_driver_perf_byte_exact_donor": true,
+  "append_only_diagnostic_parents": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)] pub use msm::quotient_caller::{G1Caller,G2Caller};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod quotient_caller;\n"
+  },
+  "both_curves_changed": true,
+  "canonical_proofs": 37023,
+  "diagnostic_child": "crates/zopro-core/src/msm/quotient_caller.rs",
+  "field_source_reused_exact": true,
+  "frozen_pins_checked": 385,
+  "frozen_reference": "/home/ubuntu/src/zopro-perf-work/g2-denominator-tree176/control-bin",
+  "native_field_qualification_inherited": "/home/ubuntu/src/zopro-perf-work/quotient-mullo176/qualification.json",
+  "new_proofs": 0,
+  "new_timings": 0,
+  "no_phase_descriptor_tree_offset_runtime": true,
+  "only_qualified_field_runtime_change": true,
+  "original_core_runtime_bodies_recover_exact": true,
+  "passed": true,
+  "private_snapshot_files": 177,
+  "production_originals": 176
+}
