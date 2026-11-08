@@ -1,0 +1,21 @@
+{
+  "all176_recover": true,
+  "canonical_unchanged": 35171,
+  "core_prover_source_exact": true,
+  "existing35fieldtests_inherited": true,
+  "field_suffix": "\ninclude!(\"normalize_prefix.rs\");\n",
+  "generator_insert": "assert source.count(\"            for j in 0..4 {\\n                t[j + 1] = _mm512_add_epi64(t[j + 1], _mm512_srli_epi64::<52>(t[j]));\\n                t[j] = _mm512_and_si512(t[j], mask);\\n            }\\n            // Inputs are below 2p, so REDC is below p + 4p²/2^260 < 2p.\") == 1\nsource = source.replace(\"            for j in 0..4 {\\n                t[j + 1] = _mm512_add_epi64(t[j + 1], _mm512_srli_epi64::<52>(t[j]));\\n                t[j] = _mm512_and_si512(t[j], mask);\\n            }\\n            // Inputs are below 2p, so REDC is below p + 4p²/2^260 < 2p.\", \"            if cfg!(zopro_normalize_prefix) {\\n                t = Self::normalize_prefix4(t);\\n            } else {\\n            for j in 0..4 {\\n                t[j + 1] = _mm512_add_epi64(t[j + 1], _mm512_srli_epi64::<52>(t[j]));\\n                t[j] = _mm512_and_si512(t[j], mask);\\n            }\\n            }\\n            // Inputs are below 2p, so REDC is below p + 4p²/2^260 < 2p.\")\nsource += '\\ninclude!(\"normalize_prefix.rs\");\\n'\n",
+  "new_children": 2,
+  "new_proofs": 0,
+  "new_tests": 2,
+  "old_normalization": "            for j in 0..4 {\n                t[j + 1] = _mm512_add_epi64(t[j + 1], _mm512_srli_epi64::<52>(t[j]));\n                t[j] = _mm512_and_si512(t[j], mask);\n            }\n",
+  "original_field_bodies_recover_after_one_final_normalization_replacement": true,
+  "originals": 176,
+  "passed": true,
+  "private_exact_originals": 174,
+  "private_files": 178,
+  "reversible_parents": [
+    "scripts/ifma8.py",
+    "crates/zopro-bn254/src/ifma8.rs"
+  ]
+}

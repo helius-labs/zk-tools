@@ -1,0 +1,117 @@
+{
+  "G1_IFMA_sites": 800,
+  "G2_IFMA_sites": 1450,
+  "actual_linked_consumers": true,
+  "arms": {
+    "OFF": [
+      {
+        "G1": true,
+        "G2": false,
+        "IFMA_sites": 800,
+        "bytes": 26198,
+        "caller": false,
+        "disassembly": "/home/ubuntu/src/zopro-perf-work/normalize-prefix176/codegen/OFF-0.stdout",
+        "instruction_sites": 4425,
+        "mask_operand_rows": 55,
+        "sha256": "8abd8f103087eea96ec5a128343fb875c66d498d162865f81fce1bf9155cf7da",
+        "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        "zmm_stack_operand_rows": 226
+      },
+      {
+        "G1": false,
+        "G2": true,
+        "IFMA_sites": 1450,
+        "bytes": 51830,
+        "caller": false,
+        "disassembly": "/home/ubuntu/src/zopro-perf-work/normalize-prefix176/codegen/OFF-1.stdout",
+        "instruction_sites": 8590,
+        "mask_operand_rows": 162,
+        "sha256": "55ccdf84396db54a6280bdaa8fd187bc8e9ceb9cf41c3823d885430d12530912",
+        "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        "zmm_stack_operand_rows": 500
+      },
+      {
+        "G1": false,
+        "G2": false,
+        "IFMA_sites": 800,
+        "bytes": 26982,
+        "caller": true,
+        "disassembly": "/home/ubuntu/src/zopro-perf-work/normalize-prefix176/codegen/OFF-2.stdout",
+        "instruction_sites": 4458,
+        "mask_operand_rows": 36,
+        "sha256": "7aea298f0a879c520a762cc782c63c69297dba3e7ef78d5e1aa1e87b28edb169",
+        "symbol": "<zopro_core::msm::normalize_prefix_caller::G1Caller>::run",
+        "zmm_stack_operand_rows": 225
+      },
+      {
+        "G1": false,
+        "G2": false,
+        "IFMA_sites": 0,
+        "bytes": 859,
+        "caller": true,
+        "disassembly": "/home/ubuntu/src/zopro-perf-work/normalize-prefix176/codegen/OFF-3.stdout",
+        "instruction_sites": 172,
+        "mask_operand_rows": 0,
+        "sha256": "f055ede2612397b71008fe350be63c100bc0a52026d0bf5dfcec23b6e19e5afc",
+        "symbol": "<zopro_core::msm::normalize_prefix_caller::G2Caller>::run",
+        "zmm_stack_operand_rows": 0
+      }
+    ],
+    "ON": [
+      {
+        "G1": true,
+        "G2": false,
+        "IFMA_sites": 800,
+        "bytes": 26896,
+        "caller": false,
+        "disassembly": "/home/ubuntu/src/zopro-perf-work/normalize-prefix176/codegen/ON-0.stdout",
+        "instruction_sites": 4533,
+        "mask_operand_rows": 138,
+        "sha256": "e20275986b77b503f2457ea6b1cc05aa940a6ccc930564c56dc1819dcc6ada55",
+        "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        "zmm_stack_operand_rows": 230
+      },
+      {
+        "G1": false,
+        "G2": true,
+        "IFMA_sites": 1450,
+        "bytes": 52723,
+        "caller": false,
+        "disassembly": "/home/ubuntu/src/zopro-perf-work/normalize-prefix176/codegen/ON-1.stdout",
+        "instruction_sites": 8771,
+        "mask_operand_rows": 282,
+        "sha256": "44aa8d1db934f394fc73a9cc79bd06776c44764769431ae28ffb8ca2a4b225eb",
+        "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        "zmm_stack_operand_rows": 494
+      },
+      {
+        "G1": false,
+        "G2": false,
+        "IFMA_sites": 0,
+        "bytes": 883,
+        "caller": true,
+        "disassembly": "/home/ubuntu/src/zopro-perf-work/normalize-prefix176/codegen/ON-2.stdout",
+        "instruction_sites": 181,
+        "mask_operand_rows": 0,
+        "sha256": "08aed8af974ed86d54145f1191f736baf0aa1c947ddda74d4c3337c8803cb36d",
+        "symbol": "<zopro_core::msm::normalize_prefix_caller::G1Caller>::run",
+        "zmm_stack_operand_rows": 0
+      },
+      {
+        "G1": false,
+        "G2": false,
+        "IFMA_sites": 0,
+        "bytes": 859,
+        "caller": true,
+        "disassembly": "/home/ubuntu/src/zopro-perf-work/normalize-prefix176/codegen/ON-3.stdout",
+        "instruction_sites": 172,
+        "mask_operand_rows": 0,
+        "sha256": "8ce85c030fcfbc3ed36eadbeb8779b8d62e8598e5c76e84b22dfd627fb598962",
+        "symbol": "<zopro_core::msm::normalize_prefix_caller::G2Caller>::run",
+        "zmm_stack_operand_rows": 0
+      }
+    ]
+  },
+  "new_timings": 0,
+  "static_sites_not_dynamic_spills_cycles_or_stack_peak": true
+}
