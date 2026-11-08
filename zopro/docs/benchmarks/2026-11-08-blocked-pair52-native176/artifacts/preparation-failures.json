@@ -1,0 +1,31 @@
+{
+  "scope": "preparation only; no native command ran in these attempts",
+  "failures": [
+    {
+      "action": "initial prepare helper",
+      "exit_code": 101,
+      "reason": "attempted to hash the not-yet-built native-tests executable",
+      "source": "prepare.rs",
+      "retained_partial_outputs": ["source", "native-tests.rs", "native-plan.json"],
+      "repair": "finish-preparation.rs verifies and reuses all written source/plan bytes, and pins only already existing input artifacts"
+    },
+    {
+      "action": "initial xtask workflow native-run",
+      "exit_code": 1,
+      "stderr": "xtask: No such file or directory (os error 2)\n",
+      "reason": "native-pins.json not produced by the failed helper",
+      "retained_output": "native-run/protocol.json"
+    },
+    {
+      "action": "xtask workflow native-run after pin repair",
+      "exit_code": 1,
+      "stderr": "xtask: File exists (os error 17)\n",
+      "reason": "the earlier failed setup had already created protocol.json",
+      "repair": "use the fresh native-run-qualified output directory; no successful command is repeated"
+    }
+  ],
+  "arithmetic_source_changed_by_repairs": false,
+  "native_plan_changed_by_repairs": false,
+  "successful_native_builds_or_tests_replayed": false,
+  "provenance": "observed interactive tool outputs; this note is not an xtask command/exit receipt"
+}
