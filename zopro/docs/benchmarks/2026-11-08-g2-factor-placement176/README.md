@@ -1,5 +1,7 @@
 # G2 real-factor placement: native qualification
 
+Follow-up: the [completed caller screen](../2026-11-08-g2-factor-placement-screen176/README.md) rejected this candidate for slower measured performance. The qualification below records the state before that screen.
+
 **Native correctness passes; performance is unmeasured.** One algebraic reassociation moves the shared real factor onto the two denominator components before the complex product. The complete signed borrowed G2 caller passes all 128 core tests, including three new cases. The generic/no-assembly/no-IFMA compile also passes. Production remains unchanged; no optimization is adopted.
 
 For real f, the original slope expression `(dy · conjugate(dx)) · f` equals `dy · conjugate(f · dx)`. Both use two ordinary Fq products and two fused products: the same nominal 500-IFMA arithmetic block. Norms, inversion/prefix recurrence, tails, signs, coordinate formulas, scatter and scratch retain their exact original code. The private experiment changes one call inside a clone of the accepted borrowed kernel.
