@@ -1,0 +1,31 @@
+{
+  "exact_copies": 17,
+  "native_test_harness_inherited_with_method_names_and_new_random_seed": true,
+  "new_child": "crates/zopro-bn254/src/ifma8/top_cross52.rs",
+  "new_row_calls": "            row!(self,b,0,1,top);if FUSED{row!(c,d,0,1,second_top);}cancel!();\n            row!(self,b,1,2,top);if FUSED{row!(c,d,1,2,second_top);}cancel!();\n            row!(self,b,2,3,top);if FUSED{row!(c,d,2,3,second_top);}cancel!();\n            row!(self,b,3,4,top);if FUSED{row!(c,d,3,4,second_top);}cancel!();\n            t[4]=_mm512_add_epi64(t[4],top.0);\n            t[5]=_mm512_add_epi64(t[5],top.1);\n            if FUSED{\n                t[4]=_mm512_add_epi64(t[4],second_top.0);\n                t[5]=_mm512_add_epi64(t[5],second_top.1);\n            }\n",
+  "new_rows": "            let mut t=[zero;6];\n            let top=(\n                _mm512_madd52lo_epu64(zero,self.0[4],b.0[4]),\n                _mm512_madd52hi_epu64(zero,self.0[4],b.0[4]),\n            );\n            let second_top=if FUSED{(\n                _mm512_madd52lo_epu64(zero,c.0[4],d.0[4]),\n                _mm512_madd52hi_epu64(zero,c.0[4],d.0[4]),\n            )}else{(zero,zero)};\n            macro_rules! raw{\n                ($a:expr,$b:expr,$j:literal,$i:literal,$k:literal)=>{{\n                    t[$j]=_mm512_madd52lo_epu64(t[$j],$a.0[$j],$b.0[$i]);\n                    t[$k]=_mm512_madd52hi_epu64(t[$k],$a.0[$j],$b.0[$i]);\n                }};\n            }\n            macro_rules! row{\n                ($a:expr,$b:expr,$i:literal,$next:literal,$top:expr)=>{{\n                    let diagonal=(\n                        _mm512_madd52lo_epu64(zero,$a.0[$i],$b.0[$i]),\n                        _mm512_madd52hi_epu64(zero,$a.0[$i],$b.0[$i]),\n                    );\n                    t[$i]=_mm512_add_epi64(t[$i],diagonal.0);\n                    t[$next]=_mm512_add_epi64(t[$next],diagonal.1);\n                    if $i!=0{raw!($a,$b,0,$i,1);}\n                    if $i!=1{raw!($a,$b,1,$i,2);}\n                    if $i!=2{raw!($a,$b,2,$i,3);}\n                    if $i!=3{raw!($a,$b,3,$i,4);}\n                    let dx=_mm512_sub_epi64($a.0[$i],$a.0[4]);\n                    let dy=_mm512_sub_epi64($b.0[4],$b.0[$i]);\n                    let flip=_mm512_cmplt_epi64_mask(dx,zero);\n                    let x=_mm512_abs_epi64(dx);\n                    let y=_mm512_mask_sub_epi64(dy,flip,zero,dy);\n                    let negative=_mm512_cmplt_epi64_mask(y,zero);\n                    let lo=_mm512_madd52lo_epu64(zero,x,y);\n                    let hi=_mm512_madd52hi_epu64(zero,x,y);\n                    let hi=_mm512_mask_sub_epi64(hi,negative,hi,x);\n                    let cross_lo=_mm512_add_epi64(_mm512_add_epi64(diagonal.0,$top.0),lo);\n                    let cross_hi=_mm512_add_epi64(_mm512_add_epi64(diagonal.1,$top.1),hi);\n                    t[4]=_mm512_add_epi64(t[4],cross_lo);\n                    t[5]=_mm512_add_epi64(t[5],cross_hi);\n                }};\n            }\n",
+  "old_cancel_fragment": "            macro_rules! cancel{\n                ()=>{{\n                    let q=_mm512_madd52lo_epu64(zero,t[0],inv);\n                    let ceil=_mm512_srai_epi64::<52>(_mm512_add_epi64(t[0],mask));\n                    let carry=_mm512_madd52hi_epu64(ceil,q,p[0]);\n                    t[1]=_mm512_madd52lo_epu64(t[1],q,p[1]);\n                    t[2]=_mm512_madd52hi_epu64(t[2],q,p[1]);\n                    t[2]=_mm512_madd52lo_epu64(t[2],q,p[2]);\n                    t[3]=_mm512_madd52hi_epu64(t[3],q,p[2]);\n                    t[3]=_mm512_madd52lo_epu64(t[3],q,p[3]);\n                    t[4]=_mm512_madd52hi_epu64(t[4],q,p[3]);\n                    t[4]=_mm512_madd52lo_epu64(t[4],q,p[4]);\n                    t[5]=_mm512_madd52hi_epu64(t[5],q,p[4]);\n                    t[1]=_mm512_add_epi64(t[1],carry);\n                    t=[t[1],t[2],t[3],t[4],t[5],zero];\n                }};\n            }\n",
+  "original_field_files": {
+    "crates/zopro-bn254/Cargo.toml": "92f52a0b0d2dcfc281302f4422413c209f8ed3b191b3632451e58883f18e3cd0",
+    "crates/zopro-bn254/examples/field_compare.rs": "4bd73ed4863c5e7a9bc58390e1c34a685ee675e88e18f132e2abed9b33ed77eb",
+    "crates/zopro-bn254/src/arm64.rs": "686ec3caad895c69aa269b552c54bbaa91859c930985fc84e14ea9ca952dae05",
+    "crates/zopro-bn254/src/curve.rs": "5f3e48a973b0d93c7564ed4e4e8a70c430ad4f4534db3c9d7f82f9d743fd39f3",
+    "crates/zopro-bn254/src/fp.rs": "0e751959955672406e54d98b83e726e178e47d6322b10d83b0d3ab69dfb808ad",
+    "crates/zopro-bn254/src/fq12.rs": "6cfe5913297e21939aacde96256d64dddd2be4c34997f3fc002fcc6a75cc00fb",
+    "crates/zopro-bn254/src/fq2.rs": "876853f38da449e36c06a02d191398f1471823ca8e881ecbbc7af489f30af5a7",
+    "crates/zopro-bn254/src/fq6.rs": "7ea6e4c81e82555ce953f6ee80a697a2a49a60597593d242f9ad763827c7c620",
+    "crates/zopro-bn254/src/ifma.rs": "719a9a11c1c7668c0d1885edeab565bca1b228b5284bb5793e2313cfe90f36d5",
+    "crates/zopro-bn254/src/ifma8.rs": "4a31a8f6095e0da56a40c7ebd2d1bc4a1d8360d83d8cad48d3dc9860a4deb4c6",
+    "crates/zopro-bn254/src/inverse.rs": "c827f87e38c4bf6417a424059d6312fe719ae2f8a278a59c7ca0f1f026ef15ff",
+    "crates/zopro-bn254/src/lib.rs": "4c094d9587faefae370288632714604a787dde0859493248862816dc91f898d0",
+    "crates/zopro-bn254/src/mont29.rs": "c224dc0149b563a140b5bf58197b0c77f3f6955c2ccc8f56e5fe122eb18b7775",
+    "crates/zopro-bn254/src/pairing.rs": "9bcebea7ab0892b0a3db767d7cf8f712982ffdd10435b5c8a890272f99dd2aa9",
+    "crates/zopro-bn254/src/portable.rs": "6e4aba05e68eb7c434c2f45e3e18a7c2dca5d1a2a7812ff51786a7bb1a4ac1e2",
+    "crates/zopro-bn254/src/signed_delta.rs": "1dc6704d9fc7edc4c5229c9cf0c4f025f9feef0c87a967fef92fe477a629b410",
+    "crates/zopro-bn254/src/tests.rs": "69356fe514f3dcdb33d5b955b4c05345336c68a642080707fa0ac29ae363ea1d",
+    "crates/zopro-bn254/src/x86_64.rs": "d263094ebcff92b81d92699ef5e8a9177eef565352fe147b532e2f57ce1f78c3"
+  },
+  "original_package_members": 18,
+  "original_reference": "/home/ubuntu/src/zopro-perf-work/blocked-pair52-native176/blocked_pair52.rs",
+  "parent_suffix": "\n#[path=\"ifma8/top_cross52.rs\"]\nmod top_cross52;\n"
+}
