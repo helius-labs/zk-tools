@@ -1,0 +1,380 @@
+{
+  "aggregate_gain_passed": false,
+  "canonical_unchanged": 35181,
+  "comparisons": [
+    {
+      "OFF_ns": 529.8827514648438,
+      "ON_ns": 568.5759735107422,
+      "field": "Fq",
+      "gain_passed": false,
+      "gain_required": true,
+      "nonregression_passed": false,
+      "ratio": {
+        "blocks": 31,
+        "lower": 1.0675946637817697,
+        "median": 1.0691224322918058,
+        "upper": 1.0775199784410388,
+        "wins": 0
+      },
+      "workers": 1
+    },
+    {
+      "OFF_ns": 577.3093414306641,
+      "ON_ns": 623.2848205566406,
+      "field": "Fq",
+      "gain_passed": false,
+      "gain_required": false,
+      "nonregression_passed": false,
+      "ratio": {
+        "blocks": 31,
+        "lower": 1.0786406553667742,
+        "median": 1.0805536307415635,
+        "upper": 1.0819003623093102,
+        "wins": 0
+      },
+      "workers": 16
+    },
+    {
+      "OFF_ns": 787.9456176757812,
+      "ON_ns": 812.6701049804688,
+      "field": "Fq",
+      "gain_passed": false,
+      "gain_required": true,
+      "nonregression_passed": false,
+      "ratio": {
+        "blocks": 31,
+        "lower": 1.0279611647324307,
+        "median": 1.03140210533724,
+        "upper": 1.0367987308726423,
+        "wins": 0
+      },
+      "workers": 32
+    },
+    {
+      "OFF_ns": 531.3200836181641,
+      "ON_ns": 566.0274047851562,
+      "field": "Fr",
+      "gain_passed": false,
+      "gain_required": false,
+      "nonregression_passed": false,
+      "ratio": {
+        "blocks": 31,
+        "lower": 1.0584581653929608,
+        "median": 1.060498613229095,
+        "upper": 1.0686060379960285,
+        "wins": 0
+      },
+      "workers": 1
+    },
+    {
+      "OFF_ns": 579.9999389648438,
+      "ON_ns": 620.2347869873047,
+      "field": "Fr",
+      "gain_passed": false,
+      "gain_required": false,
+      "nonregression_passed": false,
+      "ratio": {
+        "blocks": 31,
+        "lower": 1.0653352316496958,
+        "median": 1.067494078892681,
+        "upper": 1.0717565640058593,
+        "wins": 0
+      },
+      "workers": 16
+    },
+    {
+      "OFF_ns": 791.9340057373047,
+      "ON_ns": 809.3875427246094,
+      "field": "Fr",
+      "gain_passed": false,
+      "gain_required": false,
+      "nonregression_passed": false,
+      "ratio": {
+        "blocks": 31,
+        "lower": 1.0185885906924066,
+        "median": 1.021771838410289,
+        "upper": 1.0265199583718472,
+        "wins": 0
+      },
+      "workers": 32
+    }
+  ],
+  "diagnostic_only_consumer_differs": true,
+  "diagnostic_quality_passed": true,
+  "equal_log_aggregate": {
+    "blocks": 31,
+    "lower": 1.054510888780697,
+    "median": 1.0558350526806075,
+    "upper": 1.05809340806517,
+    "wins": 0
+  },
+  "goal_complete": false,
+  "latency_processes_replayed": 0,
+  "limits": "Complete scalar inverse in fixed standalone workload, not batch/SDK proof latency. Native checksums checked after timer; individual timed outputs not retained; full pre/post outputs match independent expected fixtures. Static/PMU/flat profile evidence not exclusive critical-path attribution.",
+  "new_SDK_requests": 0,
+  "new_proofs": 0,
+  "original_diagnostic_attempts_unqualified": 2,
+  "production_adopted": false,
+  "profiles": [
+    {
+      "data_sha256": "082bcb6857be4613eba1c4f6f50835615bd784945345d7154f07605a91f3b61d",
+      "loss": {
+        "lines": 107729,
+        "records": [],
+        "zero_lost": true
+      },
+      "name": "cycles-Fq-OFF",
+      "ownership_period_geometry": true,
+      "quality_passed": true,
+      "samples": 8202,
+      "top_symbols": [
+        [
+          "complete_fq_original",
+          8116
+        ],
+        [
+          "_RINvNtNtCs9k3SxhrAWiO_3std3sys9backtrace28___rust_begin_short_backtraceNCNCINvCs4Zi6l5Gwrb4_7profile5fieldNtCs70XhLDo8QHz_11zopro_bn2548FqConfigEs_00NtNtCs6i54tJFfzR_5alloc6string6StringEB1e_",
+          75
+        ],
+        [
+          "[unknown]",
+          11
+        ]
+      ],
+      "unknown": 11,
+      "unknown_percent": 0.1341136308217508,
+      "worker_samples": 8202
+    },
+    {
+      "data_sha256": "1fcd5bbca3eabc25be107594a20d39e7950e1620f4dcc0f65104b315783bea98",
+      "loss": {
+        "lines": 106585,
+        "records": [],
+        "zero_lost": true
+      },
+      "name": "cycles-Fq-ON",
+      "ownership_period_geometry": true,
+      "quality_passed": true,
+      "samples": 8114,
+      "top_symbols": [
+        [
+          "_RINvNtCs4Zi6l5Gwrb4_7profile6native7inverseNtCs70XhLDo8QHz_11zopro_bn2548FqConfigEB4_",
+          5312
+        ],
+        [
+          "_RNvMNtCs4Zi6l5Gwrb4_7profile6nativeNtB2_4Wide6linear",
+          1959
+        ],
+        [
+          "_RINvNtCs4Zi6l5Gwrb4_7profile6native10correctionNtCs70XhLDo8QHz_11zopro_bn2548FqConfigEB4_",
+          396
+        ],
+        [
+          "[unknown]",
+          387
+        ],
+        [
+          "_RINvNtNtCs9k3SxhrAWiO_3std3sys9backtrace28___rust_begin_short_backtraceNCNCINvCs4Zi6l5Gwrb4_7profile5fieldNtCs70XhLDo8QHz_11zopro_bn2548FqConfigEs_00NtNtCs6i54tJFfzR_5alloc6string6StringEB1e_",
+          36
+        ],
+        [
+          "complete_fq_candidate",
+          24
+        ]
+      ],
+      "unknown": 387,
+      "unknown_percent": 4.769534138526004,
+      "worker_samples": 8114
+    },
+    {
+      "data_sha256": "b9d70b35883ec7b2c1c938cfac5f6229854691ffb3460a1ce01c5c1d7ba7ec15",
+      "loss": {
+        "lines": 108535,
+        "records": [],
+        "zero_lost": true
+      },
+      "name": "cycles-Fr-OFF",
+      "ownership_period_geometry": true,
+      "quality_passed": true,
+      "samples": 8264,
+      "top_symbols": [
+        [
+          "complete_fr_original",
+          8205
+        ],
+        [
+          "_RINvNtNtCs9k3SxhrAWiO_3std3sys9backtrace28___rust_begin_short_backtraceNCNCINvCs4Zi6l5Gwrb4_7profile5fieldNtCs70XhLDo8QHz_11zopro_bn2548FrConfigEs_00NtNtCs6i54tJFfzR_5alloc6string6StringEB1e_",
+          57
+        ],
+        [
+          "[unknown]",
+          2
+        ]
+      ],
+      "unknown": 2,
+      "unknown_percent": 0.02420135527589545,
+      "worker_samples": 8264
+    },
+    {
+      "data_sha256": "9222274c1932404f886aea55d7e537cf48e9a90480fa6734257dec939ed29ac4",
+      "loss": {
+        "lines": 106936,
+        "records": [],
+        "zero_lost": true
+      },
+      "name": "cycles-Fr-ON",
+      "ownership_period_geometry": true,
+      "quality_passed": true,
+      "samples": 8141,
+      "top_symbols": [
+        [
+          "_RINvNtCs4Zi6l5Gwrb4_7profile6native7inverseNtCs70XhLDo8QHz_11zopro_bn2548FrConfigEB4_",
+          5256
+        ],
+        [
+          "_RNvMNtCs4Zi6l5Gwrb4_7profile6nativeNtB2_4Wide6linear",
+          2076
+        ],
+        [
+          "[unknown]",
+          395
+        ],
+        [
+          "_RINvNtCs4Zi6l5Gwrb4_7profile6native10correctionNtCs70XhLDo8QHz_11zopro_bn2548FrConfigEB4_",
+          362
+        ],
+        [
+          "complete_fr_candidate",
+          31
+        ],
+        [
+          "_RINvNtNtCs9k3SxhrAWiO_3std3sys9backtrace28___rust_begin_short_backtraceNCNCINvCs4Zi6l5Gwrb4_7profile5fieldNtCs70XhLDo8QHz_11zopro_bn2548FrConfigEs_00NtNtCs6i54tJFfzR_5alloc6string6StringEB1e_",
+          21
+        ]
+      ],
+      "unknown": 395,
+      "unknown_percent": 4.851983785775703,
+      "worker_samples": 8141
+    }
+  ],
+  "raw_rows_preserved_in_archive": true,
+  "selected_for_G1_G2_callers": false,
+  "stat_panels": [
+    {
+      "events": [
+        {
+          "count": 32433066725,
+          "event": "cycles:u",
+          "per_inverse": 3866.3228422403336,
+          "running_percent": 100.0
+        },
+        {
+          "count": 68606570464,
+          "event": "instructions:u",
+          "per_inverse": 8178.540523529053,
+          "running_percent": 100.0
+        },
+        {
+          "count": 17048,
+          "event": "cache-misses:u",
+          "per_inverse": 0.0020322799682617188,
+          "running_percent": 100.0
+        },
+        {
+          "count": 108621557,
+          "event": "branch-misses:u",
+          "per_inverse": 12.94869863986969,
+          "running_percent": 100.0
+        }
+      ],
+      "name": "stat-Fq-OFF"
+    },
+    {
+      "events": [
+        {
+          "count": 32470622810,
+          "event": "cycles:u",
+          "per_inverse": 3870.799876451492,
+          "running_percent": 100.0
+        },
+        {
+          "count": 67909839600,
+          "event": "instructions:u",
+          "per_inverse": 8095.483732223511,
+          "running_percent": 100.0
+        },
+        {
+          "count": 15044,
+          "event": "cache-misses:u",
+          "per_inverse": 0.0017933845520019531,
+          "running_percent": 100.0
+        },
+        {
+          "count": 120507654,
+          "event": "branch-misses:u",
+          "per_inverse": 14.365631818771362,
+          "running_percent": 100.0
+        }
+      ],
+      "name": "stat-Fq-ON"
+    },
+    {
+      "events": [
+        {
+          "count": 32448676546,
+          "event": "cycles:u",
+          "per_inverse": 3868.1836779117584,
+          "running_percent": 100.0
+        },
+        {
+          "count": 68350603037,
+          "event": "instructions:u",
+          "per_inverse": 8148.026828408241,
+          "running_percent": 100.0
+        },
+        {
+          "count": 8795,
+          "event": "cache-misses:u",
+          "per_inverse": 0.001048445701599121,
+          "running_percent": 100.0
+        },
+        {
+          "count": 105145129,
+          "event": "branch-misses:u",
+          "per_inverse": 12.534276127815248,
+          "running_percent": 100.0
+        }
+      ],
+      "name": "stat-Fr-OFF"
+    },
+    {
+      "events": [
+        {
+          "count": 32447313803,
+          "event": "cycles:u",
+          "per_inverse": 3868.021226286888,
+          "running_percent": 100.0
+        },
+        {
+          "count": 67850061923,
+          "event": "instructions:u",
+          "per_inverse": 8088.357677817345,
+          "running_percent": 100.0
+        },
+        {
+          "count": 17242,
+          "event": "cache-misses:u",
+          "per_inverse": 0.0020554065704345703,
+          "running_percent": 100.0
+        },
+        {
+          "count": 118115239,
+          "event": "branch-misses:u",
+          "per_inverse": 14.08043372631073,
+          "running_percent": 100.0
+        }
+      ],
+      "name": "stat-Fr-ON"
+    }
+  ]
+}
