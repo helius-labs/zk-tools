@@ -1,0 +1,29 @@
+{
+  "G1_G2_driver_perf_tests_byte_exact_C": true,
+  "append_only_diagnostic_parents": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)] pub use msm::quotient_caller::{G1Caller,G2Caller};\n",
+    "crates/zopro-core/src/msm.rs": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod quotient_caller;\n"
+  },
+  "both_curves_changed": true,
+  "canonical_proofs": 37023,
+  "diagnostic_child": "crates/zopro-core/src/msm/quotient_caller.rs",
+  "field_source_reused_exact": true,
+  "native_field_qualification_inherited": "/home/ubuntu/src/zopro-perf-work/quotient52-wide176/qualification.json",
+  "new_proofs": 0,
+  "new_timings": 0,
+  "no_phase_descriptor_tree_offset_runtime": true,
+  "original_core_runtime_bodies_recover_exact": true,
+  "original_nonfield_bodies": 158,
+  "passed": true,
+  "private_snapshot_files": 177,
+  "production_originals": 176,
+  "reused_OFF_qualification": "/home/ubuntu/src/zopro-perf-work/quotient-mullo-callers176/qualification.json",
+  "reused_original_OFF_identity": {
+    "binary": "/home/ubuntu/src/zopro-perf-work/quotient-mullo-callers176/caller-OFF",
+    "binary_sha256": "45e583b0180d92e4355b16c3649e0d23f206497138d9c927a774fa58a151e7d0",
+    "field_library": "/home/ubuntu/src/zopro-perf-work/quotient-mullo176/libzopro_bn254-OFF.rlib",
+    "field_sha256": "9322c085d8abff6500d3d628b5c79515321a30d408d440b71e8c7a1b17e1d724",
+    "kind": "complete G1/G2 caller, not SDK",
+    "native_optimized_fatLTO_one_CGU": true
+  }
+}
