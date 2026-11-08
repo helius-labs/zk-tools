@@ -1,0 +1,29 @@
+
+/home/ubuntu/src/zopro-perf-work/deferred-limb-sign176/native-tests:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+000000000005fff0 <actual_deferred_pair>:
+   5fff0:	vmovdqu64 (%rsi),%zmm0
+   5fff6:	vmovdqu64 (%rdx),%zmm1
+   5fffc:	vpxor  %xmm2,%xmm2,%xmm2
+   60000:	vpxor  %xmm3,%xmm3,%xmm3
+   60004:	mov    %rdi,%rax
+   60007:	vpsraq $0x3f,%zmm1,%zmm4
+   6000e:	vpternlogq $0x80,-0x4cf19(%rip){1to8},%zmm0,%zmm4        # 13100 <GCC_except_table0+0x1924>
+   60019:	vpmadd52huq %zmm1,%zmm0,%zmm2
+   6001f:	vpmadd52luq %zmm1,%zmm0,%zmm3
+   60025:	vpmovq2m %zmm0,%k1
+   6002b:	vmovdqu64 %zmm3,(%rdi)
+   60031:	vpaddq %zmm1,%zmm4,%zmm4{%k1}
+   60037:	vpsubq %zmm4,%zmm2,%zmm0
+   6003d:	vmovdqu64 %zmm0,0x40(%rdi)
+   60044:	vzeroupper
+   60047:	ret
+
+Disassembly of section .init:
+
+Disassembly of section .fini:
+
+Disassembly of section .plt:
