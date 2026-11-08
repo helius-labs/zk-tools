@@ -1,0 +1,15 @@
+{
+  "modified_originals": [
+    "crates/zopro-core/src/msm.rs",
+    "crates/zopro-core/src/lib.rs"
+  ],
+  "module_suffix": "\n#[cfg(zopro_indexed_tile_bundles)]mod indexed_tiles;\n",
+  "new_field_formulas": false,
+  "new_hook": "    #[cfg(zopro_indexed_tile_bundles)]\n    if crate::simd::cpu_option(\"ZOPRO_CPU_INDEXED_TILE_BUNDLES\") {\n        if let Some(out)=indexed_tiles::try_reduce::<C>(bases,order,starts){return out;}\n    }\n",
+  "original_msm_body_recovered": true,
+  "originals": 176,
+  "originals_exact": 174,
+  "probe_export": "\n#[cfg(zopro_coalesce_probe)]\npub mod coalesce_query_probe{\n use zopro_bn254::{G1Affine,G2Affine,G1Projective,G2Projective};use std::sync::atomic::{AtomicUsize,Ordering};\n #[derive(Clone,Copy,Debug,Default,PartialEq,Eq)]pub struct Metadata{pub route:u32,pub classes:usize,pub skips:usize,pub payload:usize}\n static ENTRIES:AtomicUsize=AtomicUsize::new(0);static CHARGE:AtomicUsize=AtomicUsize::new(0);\n pub(crate)fn record(charge:usize){ENTRIES.fetch_add(1,Ordering::Relaxed);CHARGE.fetch_max(charge,Ordering::Relaxed);}\n pub fn a(bases:&[G1Affine],words:&[[u64;4]])->(G1Projective,Metadata){(crate::msm_affine::msm_canonical(bases,words),Metadata::default())}\n pub fn b(bases:&[G2Affine],words:&mut[[u64;4]])->(G2Projective,Metadata){ENTRIES.store(0,Ordering::Relaxed);CHARGE.store(0,Ordering::Relaxed);let p=crate::msm_affine::g2_query_exclusive(bases,words);let entries=ENTRIES.load(Ordering::Relaxed);(p,Metadata{route:if entries>0{314}else{0},classes:entries,skips:0,payload:CHARGE.load(Ordering::Relaxed)})}\n}\n",
+  "production_changed": false,
+  "snapshot_files": 177
+}
