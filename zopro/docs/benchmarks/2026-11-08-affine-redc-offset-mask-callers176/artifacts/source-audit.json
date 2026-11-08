@@ -1,0 +1,74 @@
+{
+  "G2_nonprefix_group_changed": false,
+  "Gnark_exports": 0,
+  "SDK_requests": 0,
+  "accepted_originals": 176,
+  "adapter_prefix_bytes": 5744,
+  "adapter_prefix_sha256": "156126f272c5aed03f4fb6679c7acc080083aa6cf6f9fa293d1cd6d23c86ce47",
+  "adapter_prefix_source": "/home/ubuntu/src/zopro-perf-work/joint-pair52-callers176/source/crates/zopro-core/src/msm/joint_complex_caller.rs",
+  "canonical_offset_paths": [
+    "stream_g1_impl native full groups both stores",
+    "g2_borrowed::apply full groups",
+    "g2_prefix::apply full groups"
+  ],
+  "exact_originals": 170,
+  "field_identity": {
+    "libzopro_bn254-fixed.rlib": "6ce73715b5a3c6acb5748bb06d5080b2c3796112a63ad1f92025dd41ee1ba04b",
+    "libzopro_bn254-generic-fixed.rlib": "162d6740b74f3c87896cb670261e8a762d176c1aaefb8a08211c562086c9098a",
+    "native-fixed-tests": "0f3610e3ba8feb96b733850518a1389e2a47072dade0eeec8c9b8593e510ad98"
+  },
+  "generic_tree_lane_helpers_changed": false,
+  "passed": true,
+  "private_sources": 178,
+  "qualified_field_reused_no_rebuild": true,
+  "qualified_source_root": "/home/ubuntu/src/zopro-perf-work/affine-redc-offset-mask176/source-fixed",
+  "record_field_count_unchanged": true,
+  "reversible_core_changes": [
+    {
+      "file": "crates/zopro-core/src/simd.rs",
+      "suffix": "\n#[cfg(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch {\n    #[inline(always)]pub(crate)fn affine_mul_minus(&self,b:&Self,x:&Self)->Self{Self(self.0.affine_mul_minus(&b.0,&x.0))}\n    #[inline(always)]pub(crate)fn affine_mul_minus_sum(&self,b:&Self,x:&Self,y:&Self)->Self{Self(self.0.affine_mul_minus_sum(&b.0,&x.0,&y.0))}\n    #[inline(always)]pub(crate)fn affine_mul_double_minus_sum(&self,b:&Self,x:&Self,y:&Self)->Self{Self(self.0.affine_mul_double_minus_sum(&b.0,&x.0,&y.0))}\n    #[inline(always)]pub(crate)fn affine_sum2_minus(&self,b:&Self,c:&Self,d:&Self,x:&Self)->Self{Self(self.0.affine_sum2_minus(&b.0,&c.0,&d.0,&x.0))}\n    #[inline(always)]pub(crate)fn affine_difference2_minus(&self,b:&Self,c:&Self,d:&Self,x:&Self)->Self{Self(self.0.affine_difference2_minus(&b.0,&c.0,&d.0,&x.0))}\n}\n"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "struct FqAddGroup {\n    ax: FqBatch,\n    ay: FqBatch,\n    #[cfg(not(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n    xsum: FqBatch,\n    #[cfg(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    bx: FqBatch,",
+      "old": "struct FqAddGroup {\n    ax: FqBatch,\n    ay: FqBatch,\n    xsum: FqBatch,"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "                #[cfg(not(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n                core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));\n                #[cfg(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n                core::ptr::addr_of_mut!((*slot).bx).write(bx);",
+      "old": "                core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "                #[cfg(not(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n                xsum: canonical_add::<FAST>(&ax, &bx),\n                #[cfg(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n                bx,",
+      "old": "                xsum: canonical_add::<FAST>(&ax, &bx),"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "        #[cfg(not(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let x = slope.mul(&slope).sub(&g.xsum);\n        #[cfg(not(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);\n        #[cfg(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let x = slope.affine_mul_minus_sum(&slope,&g.ax,&g.bx);\n        #[cfg(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let y = slope.affine_mul_minus(&g.ax.sub(&x),&g.ay);",
+      "old": "        let x = slope.mul(&slope).sub(&g.xsum);\n        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "suffix": "\n// Only direct streaming packs canonical original affine coordinates.\n// Generic reduction lane helpers deliberately retain their lazy contract.\n#[cfg(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[inline(always)]\nfn affine_offset_g2_finish(s:&[FqBatch;2],ax:&[FqBatch;2],bx:&[FqBatch;2],ay:&[FqBatch;2])->([FqBatch;2],[FqBatch;2]){\n    let x=[s[0].add(&s[1]).affine_mul_minus_sum(&s[0].sub(&s[1]),&ax[0],&bx[0]),s[0].affine_mul_double_minus_sum(&s[1],&ax[1],&bx[1])];\n    let dx=[ax[0].sub(&x[0]),ax[1].sub(&x[1])];\n    let y=[s[0].affine_difference2_minus(&dx[0],&s[1],&dx[1],&ay[0]),s[0].affine_sum2_minus(&dx[1],&s[1],&dx[0],&ay[1])];\n    (x,y)\n}\n"
+    },
+    {
+      "file": "crates/zopro-core/src/msm/g2_borrowed.rs",
+      "new": "        #[cfg(not(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        #[cfg(not(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);\n        #[cfg(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let (x,y)=affine_offset_g2_finish(&slope,&ax,&bx,&ay);",
+      "old": "        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);"
+    },
+    {
+      "file": "crates/zopro-core/src/msm/g2_prefix.rs",
+      "new": "        #[cfg(not(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let x=Fq2::lanes_sub(&Fq2::lanes_square(&slope),&Fq2::lanes_add(&ax,&bx));\n        #[cfg(not(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let y=Fq2::lanes_sub(&Fq2::lanes_mul(&slope,&Fq2::lanes_sub(&ax,&x)),&ay);\n        #[cfg(all(zopro_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let (x,y)=affine_offset_g2_finish(&slope,&ax,&bx,&ay);",
+      "old": "        let x=Fq2::lanes_sub(&Fq2::lanes_square(&slope),&Fq2::lanes_add(&ax,&bx));\n        let y=Fq2::lanes_sub(&Fq2::lanes_mul(&slope,&Fq2::lanes_sub(&ax,&x)),&ay);"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "suffix": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod affine_offset_caller;\n"
+    },
+    {
+      "file": "crates/zopro-core/src/lib.rs",
+      "suffix": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)]pub use msm::affine_offset_caller::{G1Caller,G2Caller};\n"
+    }
+  ]
+}
