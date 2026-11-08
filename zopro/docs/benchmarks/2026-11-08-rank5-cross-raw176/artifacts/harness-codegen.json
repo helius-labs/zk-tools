@@ -1,0 +1,82 @@
+{
+  "arms": {
+    "OFF": {
+      "functions": [
+        {
+          "IFMA_sites": 450,
+          "ZMM_stack_addressed_rows": 192,
+          "bytes": 8465,
+          "calls": [],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/harness-codegen/OFF-0.stdout",
+          "instruction_sites": 1203,
+          "sha256": "385e862aa2cb68384f2558765cb27bbac7716cfc52a890bb2860390aa4744d4e",
+          "symbol": "driver::kernel_loop::run_one"
+        },
+        {
+          "IFMA_sites": 450,
+          "ZMM_stack_addressed_rows": 109,
+          "bytes": 7771,
+          "calls": [],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/harness-codegen/OFF-1.stdout",
+          "instruction_sites": 1167,
+          "sha256": "b485fdcaa70b7c3a09b8669f83f29e809e59e8dd5320315b42a1cba62633bd87",
+          "symbol": "driver::kernel_loop::run_four"
+        }
+      ]
+    },
+    "ON": {
+      "functions": [
+        {
+          "IFMA_sites": 305,
+          "ZMM_stack_addressed_rows": 353,
+          "bytes": 9704,
+          "calls": [
+            "call   *0x57e75(%rip)        # 8fc30 <memset@GLIBC_2.2.5>"
+          ],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/harness-codegen/ON-0.stdout",
+          "instruction_sites": 1432,
+          "sha256": "774780fa51f1dafc7ec1874b70965a0808d8a54859f3ac5be90a4469a8fea636",
+          "symbol": "driver::kernel_loop::run_one"
+        },
+        {
+          "IFMA_sites": 305,
+          "ZMM_stack_addressed_rows": 355,
+          "bytes": 9818,
+          "calls": [
+            "call   *0x55830(%rip)        # 8fc30 <memset@GLIBC_2.2.5>"
+          ],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/harness-codegen/ON-1.stdout",
+          "instruction_sites": 1441,
+          "sha256": "3c166ce57315e4e0368f712c1ba02248a4d9b84244fa2b046ef509d3696c2bf4",
+          "symbol": "driver::kernel_loop::run_four"
+        }
+      ]
+    },
+    "frozen": {
+      "functions": [
+        {
+          "IFMA_sites": 450,
+          "ZMM_stack_addressed_rows": 192,
+          "bytes": 8465,
+          "calls": [],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/harness-codegen/frozen-0.stdout",
+          "instruction_sites": 1203,
+          "sha256": "fc9aac449cb38014b16ca397bddecfa61d715a9a9c415a1dfd12d0cda9537705",
+          "symbol": "driver::kernel_loop::run_one"
+        },
+        {
+          "IFMA_sites": 450,
+          "ZMM_stack_addressed_rows": 109,
+          "bytes": 7771,
+          "calls": [],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/harness-codegen/frozen-1.stdout",
+          "instruction_sites": 1167,
+          "sha256": "bfe356c78d5acbc7b5e44617f2234be6a8c57010c116f4b5e0aa5355937159fa",
+          "symbol": "driver::kernel_loop::run_four"
+        }
+      ]
+    }
+  },
+  "passed": true,
+  "scope": "Six NEW actual benchmark loops, not repeated static prototypes; ON305sites includes55IFMAreducer looptrip3, dynamic415vs450; staticstackrowsnotspills/cycles"
+}

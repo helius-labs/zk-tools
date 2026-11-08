@@ -1,0 +1,90 @@
+{
+  "arms": {
+    "OFF": {
+      "binary": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/static-OFF",
+      "binary_sha256": "56370d7110f9986249e5ea1262ef58aa06ed2edac28331171e43864bf8b24034",
+      "functions": [
+        {
+          "IFMA_sites": 450,
+          "ZMM_stack_addressed_rows": 192,
+          "bytes": 8465,
+          "calls": [],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/codegen/OFF-0.stdout",
+          "disassembly_sha256": "2e1fe761cf3684b175a853a466f9ebd0830d8009b6da87a82fbc443d38fc2b0a",
+          "instruction_sites": 1203,
+          "symbol": "codegen_consumer::kernel_loop::run_one"
+        },
+        {
+          "IFMA_sites": 450,
+          "ZMM_stack_addressed_rows": 109,
+          "bytes": 7771,
+          "calls": [],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/codegen/OFF-1.stdout",
+          "disassembly_sha256": "6124cbdc2fb9349b376e18776d41ce4a4100bc96347cdb4345890a518e2a11d3",
+          "instruction_sites": 1167,
+          "symbol": "codegen_consumer::kernel_loop::run_four"
+        }
+      ]
+    },
+    "ON": {
+      "binary": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/static-ON",
+      "binary_sha256": "2112781b04df6e99789376177f27562d9bbeadc55569c873e82a845eb788d6c6",
+      "functions": [
+        {
+          "IFMA_sites": 305,
+          "ZMM_stack_addressed_rows": 353,
+          "bytes": 9704,
+          "calls": [
+            "call   *0x407ed(%rip)        # 50e08 <memset@GLIBC_2.2.5>"
+          ],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/codegen/ON-0.stdout",
+          "disassembly_sha256": "ccd50e6b5cfeef7dbe319e4744f93e45e44c0ee9be93f9a9b1051cf0f63b38de",
+          "instruction_sites": 1432,
+          "symbol": "codegen_consumer::kernel_loop::run_one"
+        },
+        {
+          "IFMA_sites": 305,
+          "ZMM_stack_addressed_rows": 355,
+          "bytes": 9818,
+          "calls": [
+            "call   *0x3e1a8(%rip)        # 50e08 <memset@GLIBC_2.2.5>"
+          ],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/codegen/ON-1.stdout",
+          "disassembly_sha256": "1498f5871f2e992e6862d2948f7646921bd4eccdc16b6e2e00a7d7b181973776",
+          "instruction_sites": 1441,
+          "symbol": "codegen_consumer::kernel_loop::run_four"
+        }
+      ]
+    },
+    "frozen": {
+      "binary": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/static-frozen",
+      "binary_sha256": "b3499e725fa77b94a2a8055e266710aafeed0cb010150cd53b05a875c2ff83a2",
+      "functions": [
+        {
+          "IFMA_sites": 450,
+          "ZMM_stack_addressed_rows": 192,
+          "bytes": 8465,
+          "calls": [],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/codegen/frozen-0.stdout",
+          "disassembly_sha256": "82a3faed4f7d555a366042f8c4cdc25f97884892e8cc31dac54a12e7bcb8ed79",
+          "instruction_sites": 1203,
+          "symbol": "codegen_consumer::kernel_loop::run_one"
+        },
+        {
+          "IFMA_sites": 450,
+          "ZMM_stack_addressed_rows": 109,
+          "bytes": 7771,
+          "calls": [],
+          "disassembly": "/home/ubuntu/src/zopro-perf-work/rank5-cross-raw176/codegen/frozen-1.stdout",
+          "disassembly_sha256": "1bf3c4340e2240e4cec29515ccf0505e9885bea71bf8f85b25025e56ef32f176",
+          "instruction_sites": 1167,
+          "symbol": "codegen_consumer::kernel_loop::run_four"
+        }
+      ]
+    }
+  },
+  "model_IFMA_prediction": 400,
+  "model_prediction_excludes_quotient_generation_IFMA_unless_compensated_by_cancelled_low_product": true,
+  "passed_decode": true,
+  "scope": "Six new changing-input loop consumers only, not native timing/completepointlaw/SDK; static sites/stack-addressed rows not dynamic copies/spills/cycles"
+}
