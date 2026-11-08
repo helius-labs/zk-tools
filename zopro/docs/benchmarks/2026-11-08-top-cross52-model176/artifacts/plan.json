@@ -1,0 +1,39 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/top-cross52-model176/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "overflow-checks=yes",
+        "/home/ubuntu/src/zopro-perf-work/top-cross52-model176/model.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/packed-miller-sdk176/target-candidate/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "--extern",
+        "num_bigint=/home/ubuntu/src/zopro-perf-work/packed-miller-sdk176/target-candidate/release/deps/libnum_bigint-83f387c52754efc1.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/top-cross52-model176/model"
+      ],
+      "kind": "command",
+      "name": "compile-top-cross-model",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/top-cross52-model176/model"
+      ],
+      "kind": "command",
+      "name": "run-top-cross-model",
+      "timeout_seconds": 1200
+    }
+  ],
+  "version": 1
+}
