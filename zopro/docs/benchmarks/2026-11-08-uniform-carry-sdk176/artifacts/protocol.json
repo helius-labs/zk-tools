@@ -1,0 +1,74 @@
+{
+  "FIFO_ack_sequence": [
+    "Events disabled",
+    "Events enabled",
+    "Events disabled"
+  ],
+  "PMU_events": [
+    "cycles:u",
+    "instructions:u",
+    "cache-misses:u",
+    "branch-misses:u"
+  ],
+  "RSS_screen": "candidate max latency-processRSS<=max(accepted,OFF)*1.05+1024KiB; not a fixed architecture cap or minimumRAM",
+  "SDK_requests": 15186,
+  "adopted": false,
+  "all_commands": 213,
+  "all_recordings_before_verifiers_and_offline": true,
+  "arms": [
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/native/candidate-sdk",
+      "name": "accepted",
+      "sha256": "6d83f1d6fda6f16576cb351b81789e8d26a6177cc0f26f169a3dc98448c0e661"
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/uniform-carry-sdk176/native/sdk-OFF-sdk",
+      "name": "control",
+      "sha256": "c859a7bed22633b42b429c71f919c984b320f26fad5cddde1f027844b3ae8acd"
+    },
+    {
+      "binary": "/home/ubuntu/src/zopro-perf-work/uniform-carry-sdk176/native/sdk-ON-sdk",
+      "name": "candidate",
+      "sha256": "a040a281d9fa847e164012c7447ae33d418661b61d73f9fcf751b59948a0929c"
+    }
+  ],
+  "assigned_execution_min_percent": 95,
+  "assigned_execution_scope": "SDKmain+32Rayonthreads;tasksetCPU0-31; no per-thread fixedCPU claim",
+  "blocks": 31,
+  "calibration_factor": 1.03,
+  "candidate_tree_option_profile_samples_required": 0,
+  "canonical_after_count": 35446,
+  "canonical_before": "/home/ubuntu/src/zopro-perf-work/uniform-carry-sdk176/proof-sha256-after-preflight.json",
+  "canonical_before_count": 35347,
+  "counter_min_running_percent": 99.9,
+  "cpus": "0-31",
+  "diagnostic_processes": 6,
+  "fresh_exports": 99,
+  "gain_upper_strict": 1.0,
+  "gain_wins_minimum": 21,
+  "latency_processes": 93,
+  "mmap_pages": 512,
+  "no_owned_build_helper_hash_analysis_report_push_during_recordings": true,
+  "no_reroll_exclusion_extension_subset_tuning": true,
+  "order": "arm rotation blockmod3 then reversal when floor(block/3) odd; all blocks retained",
+  "portable_check_is_compile_only": true,
+  "positive_gain_floor": null,
+  "primes": 3,
+  "prior_inverse_candidate_remains_closed": true,
+  "profile_min_samples": 1000,
+  "profile_period": 16000000,
+  "quality_failure_retained_and_blocks_pilot_selection": true,
+  "ratio_interval": "fixed rank interval; no bootstrap or absolute point subtraction",
+  "ratio_statistic": "median of31 paired process-mean ratios",
+  "rounds": 151,
+  "scope": "Combined uniform scaled prefixes and typed uncarried Xsum SDK pilot,1x2 local32workers only; selects ALL8+merge54 qualification on success; no adoption at pilot",
+  "sorted_ratio_ranks_zero_based": [
+    10,
+    15,
+    22
+  ],
+  "timed": "freshsolve/randomizedproof/internalverify/serialize; loading and3primes excluded",
+  "unknown_max_percent": 5,
+  "workers": 32,
+  "zero_LOST_required": true
+}
