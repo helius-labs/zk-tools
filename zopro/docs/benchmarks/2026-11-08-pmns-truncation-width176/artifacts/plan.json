@@ -1,0 +1,43 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/pmns-truncation-width176/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "overflow-checks=yes",
+        "/home/ubuntu/src/zopro-perf-work/pmns-truncation-width176/model.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/packed-miller-sdk176/target-candidate/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "num_bigint=/home/ubuntu/src/zopro-perf-work/packed-miller-sdk176/target-candidate/release/deps/libnum_bigint-83f387c52754efc1.rlib",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/pmns-truncation-width176/model"
+      ],
+      "kind": "command",
+      "name": "compile-new-pmns-width-model",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/pmns-truncation-width176/model"
+      ],
+      "kind": "command",
+      "name": "run-new-pmns-width-model",
+      "timeout_seconds": 600
+    }
+  ],
+  "version": 1
+}
