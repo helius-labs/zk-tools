@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "kind": "Manual review of already saved optimized disassembly plus constructor/driver source; no repeated decoder or native execution",
+  "candidate_G1_caller": "codegen/ON-3.stdout:169 calls stream_g1_impl<G1Config,true,true,&Affine> at0x601c0",
+  "candidate_G1_dispatch": "codegen/ON-0.stdout: vector_inverse byte0x32 and len>=9 branch at0x601e7..0x60223; true route immediately computes quotient/remainder by9 and reaches mixed vector/scalar body; original route at0x625f8",
+  "candidate_G1_stride": "codegen/ON-0.stdout contains +9 iteration at0x604b0 and division-by9 multiplier0xe38e38e38e38e38f",
+  "candidate_G2_caller": "codegen/ON-4.stdout calls original g2_borrowed::apply wrapper",
+  "candidate_G2_dispatch": "codegen/ON-1.stdout: vector_inverse byte0x48 and len>=9 branch at0x8e3a7..0x8e3c0; true route calls scalar_interpolated::g2 at0x9ae30 and skips original body",
+  "known_capture_inputs": "Driver fixes borrowed=true; both constructors set vector_inverse=true; all selected sizes200/201/352/353 exceed9",
+  "source_native_guard": "Candidate core alone receives --cfg zopro_scalar_interpolation; same accepted IFMA native feature flags and exact original field backend libraries",
+  "fixed_implementation_limits": "Initial G1 implementation uses Vec::push records rather than the accepted write_groups=true in-place record writes; this is part of this fixed implementation and may affect its performance. No alternate write/layout/attribute recipe is selected or claimed equivalent in cost.",
+  "static_counts_limit": "G1 ON function contains both new600IFMA branch and old800IFMA fallback (1400 total). Whole-function count changes do not measure actual per-call instruction work. G2 new body1450IFMA,1062scalar mulx versus original1450IFMA,512mulx; these are static sites, not dynamic instruction counts or measured spills.",
+  "new_performance_recordings": 0,
+  "requires_dynamic_profile_quality": true,
+  "adopted": false
+}

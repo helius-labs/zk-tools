@@ -1,0 +1,20 @@
+{
+  "adapter_inherited_path": "/home/ubuntu/src/zopro-perf-work/mixed-pair52-callers176/source/crates/zopro-core/src/msm/mixed_pair52_caller.rs",
+  "adapter_runtime_prefix_sha256": "156126f272c5aed03f4fb6679c7acc080083aa6cf6f9fa293d1cd6d23c86ce47",
+  "all176_recover": true,
+  "canonical_unchanged": 35050,
+  "g1_insertion": "    #[cfg(all(zopro_scalar_interpolation,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    if s.vector_inverse && batch.len()>=9 {return scalar_interpolated::g1::<C,FAST,SIGNED>(buckets,batch,s);}\n",
+  "g2_insertion": "    #[cfg(all(zopro_scalar_interpolation,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    if s.vector_inverse && batch.len()>=9 {return super::scalar_interpolated::g2::<C,FAST>(buckets,batch,s);}\n",
+  "lib_suffix": "\n#[doc(hidden)]\npub use msm::scalar_interpolated_caller::{G1Caller,G2Caller};\n",
+  "msm_suffix": "\n#[cfg(all(zopro_scalar_interpolation,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod scalar_interpolated;\n#[doc(hidden)]\npub mod scalar_interpolated_caller;\n",
+  "new_native_or_performance_results": false,
+  "new_proofs": 0,
+  "new_strategy": "ONE scalar point per eight vector points; no interpolation factor sweep",
+  "no_field_changes": true,
+  "no_new_scratch_field": true,
+  "originals": 176,
+  "passed": true,
+  "private_exact_originals": 173,
+  "resource_original": "    payload?.checked_add(core::mem::size_of::<Vec<[FqBatch; 2]>>())",
+  "resource_replacement": "    let payload=payload?;\n    #[cfg(all(zopro_scalar_interpolation,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    let payload=if n>=9 {\n        let groups=n/9+usize::from(n%9==8);\n        let scalars=n.checked_sub(groups.checked_mul(8)?)?;\n        let extra=if core::mem::size_of::<C::Base>()==32 {v::<FqAddGroup>(groups.checked_mul(2)?,false)?.checked_add(v::<[Fq;5]>(scalars.checked_mul(2)?,false)?)?} else {v::<[FqBatch;2]>(groups.checked_mul(2)?,false)?.checked_add(v::<[Fq2;5]>(scalars.div_ceil(5).checked_mul(2)?,false)?)?};\n        payload.max(extra)\n    }else{payload};\n    payload.checked_add(core::mem::size_of::<Vec<[FqBatch; 2]>>())"
+}
