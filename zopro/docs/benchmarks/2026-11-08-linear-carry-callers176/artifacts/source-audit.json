@@ -1,0 +1,67 @@
+{
+  "adapter_prefix_path": "/home/ubuntu/src/zopro-perf-work/paired-coordinate-store176/source/crates/zopro-core/src/msm/paired_store_caller.rs",
+  "adapter_prefix_sha256": "4cc4ba936288a6ada160f78939b1975963007a20a1dd62e2a35de0442cd3faca",
+  "all176_recover": true,
+  "canonical_proofs": 35314,
+  "edits": [
+    {
+      "after": "\n#[path=\"linear_carry.rs\"] mod linear_carry;\npub use linear_carry::UncarriedSum8;\n",
+      "append": true,
+      "before": "",
+      "file": "crates/zopro-bn254/src/ifma8.rs"
+    },
+    {
+      "after": "struct FqAddGroup {\n    ax: FqBatch,\n    ay: FqBatch,\n    #[cfg(not(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n    xsum: FqBatch,\n    #[cfg(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    xsum: crate::simd::UncarriedXSum,",
+      "before": "struct FqAddGroup {\n    ax: FqBatch,\n    ay: FqBatch,\n    xsum: FqBatch,",
+      "file": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "after": "core::ptr::addr_of_mut!((*slot).xsum).write({\n                    #[cfg(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))] { FqBatch::uncarried_xsum(&ax,&bx) }\n                    #[cfg(not(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))] { canonical_add::<FAST>(&ax, &bx) }\n                });",
+      "before": "core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));",
+      "file": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "after": "                xsum: {\n                    #[cfg(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))] { FqBatch::uncarried_xsum(&ax,&bx) }\n                    #[cfg(not(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))] { canonical_add::<FAST>(&ax, &bx) }\n                },",
+      "before": "                xsum: canonical_add::<FAST>(&ax, &bx),",
+      "file": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "after": "        #[cfg(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let x = slope.mul(&slope).subtract_uncarried_xsum(&g.xsum);\n        #[cfg(not(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let x = slope.mul(&slope).sub(&g.xsum);",
+      "before": "        let x = slope.mul(&slope).sub(&g.xsum);",
+      "file": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "after": "\n#[cfg(all(zopro_g2_horner_buckets,zopro_g2_prefix_records,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)] pub mod linear_carry_caller;\n",
+      "append": true,
+      "before": "",
+      "file": "crates/zopro-core/src/msm.rs"
+    },
+    {
+      "after": "        #[cfg(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let x = if FAST {\n            let square=Fq2::lanes_square(&slope);\n            core::array::from_fn(|i| square[i].subtract_uncarried_xsum(&FqBatch::uncarried_xsum(&ax[i],&bx[i])))\n        } else { Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx)) };\n        #[cfg(not(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));",
+      "before": "        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));",
+      "file": "crates/zopro-core/src/msm/g2_borrowed.rs"
+    },
+    {
+      "after": "\n#[cfg(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(crate) type UncarriedXSum = zopro_bn254::ifma8::UncarriedSum8<FqConfig,true>;\n#[cfg(all(zopro_linear_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch {\n    #[inline(always)] pub(crate) fn uncarried_xsum(a:&Self,b:&Self)->UncarriedXSum {\n        // Host X imports and all canonical .get() bucket writes are below p.\n        UncarriedXSum::from_canonical(&a.0,&b.0)\n    }\n    #[inline(always)] pub(crate) fn subtract_uncarried_xsum(&self,sum:&UncarriedXSum)->Self {Self(sum.subtract_from(&self.0))}\n}\n",
+      "append": true,
+      "before": "",
+      "file": "crates/zopro-core/src/simd.rs"
+    },
+    {
+      "after": "\n#[cfg(all(zopro_g2_horner_buckets,zopro_g2_prefix_records,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)] pub use msm::linear_carry_caller::{G1Caller,G2Caller};\n",
+      "append": true,
+      "before": "",
+      "file": "crates/zopro-core/src/lib.rs"
+    }
+  ],
+  "exact_originals": 171,
+  "field_library": "/home/ubuntu/src/zopro-perf-work/linear-carry-fusion176/libzopro_bn254.rlib",
+  "field_library_sha256": "88a23cdcf65e5b81255b2f7efbe0cc5a485ef0edf4ff0d98485376047ac4430a",
+  "field_source_and_library_inherited_exact": true,
+  "new_files": 3,
+  "new_proofs": 0,
+  "originals": 176,
+  "passed": true,
+  "private_files": 179,
+  "production_unchanged": true
+}
