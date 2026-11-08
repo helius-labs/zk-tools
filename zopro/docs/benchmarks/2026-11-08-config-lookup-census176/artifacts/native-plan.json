@@ -1,0 +1,73 @@
+{
+  "environment": {
+    "PATH": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin:/usr/bin:/bin"
+  },
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/config-lookup-census176/source-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/cargo",
+        "test",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/config-lookup-census176/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-core",
+        "--features",
+        "ifma8",
+        "--lib",
+        "config_census::tests::environment_results_allocator_scope_reset_and_thread_isolation",
+        "--",
+        "--exact",
+        "--test-threads=1"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/config-lookup-census176/target",
+        "PATH": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin:/usr/bin:/bin",
+        "RUSTC": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "RUSTDOC": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustdoc",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "new-config-counter-and-allocator-test",
+      "timeout_seconds": 1200
+    },
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/cargo",
+        "build",
+        "--manifest-path",
+        "/home/ubuntu/src/zopro-perf-work/config-lookup-census176/source/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "zopro-bench",
+        "--lib",
+        "--message-format=json"
+      ],
+      "environment": {
+        "CARGO_BUILD_JOBS": "16",
+        "CARGO_TARGET_DIR": "/home/ubuntu/src/zopro-perf-work/config-lookup-census176/target",
+        "PATH": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin:/usr/bin:/bin",
+        "RUSTC": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "RUSTDOC": "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustdoc",
+        "RUSTFLAGS": "-C target-cpu=native --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records"
+      },
+      "kind": "command",
+      "name": "coherent-diagnostic-libraries",
+      "timeout_seconds": 1200
+    },
+    {
+      "artifacts": "/home/ubuntu/src/zopro-perf-work/config-lookup-census176/native/coherent-diagnostic-libraries/stdout.log",
+      "driver": "/home/ubuntu/src/zopro-perf-work/config-lookup-census176/driver.rs",
+      "kind": "link-sdk",
+      "name": "census",
+      "timeout_seconds": 1200
+    }
+  ],
+  "version": 1
+}
