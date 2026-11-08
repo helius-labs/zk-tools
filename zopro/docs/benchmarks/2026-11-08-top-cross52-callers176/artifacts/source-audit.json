@@ -1,0 +1,37 @@
+{
+  "Gnark_exports": 0,
+  "SDK_requests": 0,
+  "adapter_prefix_bytes": 5744,
+  "adapter_prefix_sha256": "156126f272c5aed03f4fb6679c7acc080083aa6cf6f9fa293d1cd6d23c86ce47",
+  "adapter_prefix_source": "/home/ubuntu/src/zopro-perf-work/joint-pair52-callers176/source/crates/zopro-core/src/msm/joint_complex_caller.rs",
+  "all176_originals_recover": true,
+  "canonical_proofs": 36477,
+  "core_replacements": [
+    {
+      "new": "#[cfg(zopro_top_cross)]\n        { Self(self.0.top_cross_mul(&b.0)) }\n        #[cfg(not(zopro_top_cross))]\n        { Self(self.0.mul(&b.0)) }",
+      "old": "Self(self.0.mul(&b.0))"
+    },
+    {
+      "new": "#[cfg(zopro_top_cross)]\n        { Self(self.0.top_cross_sum2(&b.0, &c.0, &d.0)) }\n        #[cfg(not(zopro_top_cross))]\n        { Self(self.0.sum2(&b.0, &c.0, &d.0)) }",
+      "old": "Self(self.0.sum2(&b.0, &c.0, &d.0))"
+    },
+    {
+      "new": "#[cfg(zopro_top_cross)]\n        { Self(self.0.top_cross_difference2(&b.0, &c.0, &d.0)) }\n        #[cfg(not(zopro_top_cross))]\n        { Self(self.0.difference2(&b.0, &c.0, &d.0)) }",
+      "old": "Self(self.0.difference2(&b.0, &c.0, &d.0))"
+    }
+  ],
+  "field_child": "crates/zopro-bn254/src/ifma8/top_cross52.rs",
+  "field_generic_sha256": "a6d7ca565ef12ea4daa50b696a3f410f74dad748d3827c8e7dea00eb05444bef",
+  "field_library_rebuilt": false,
+  "field_native_sha256": "62e1dc6432d6840f59771060436bbf446cee074f3d5973b577b248a26c1a8661",
+  "field_parent_suffix": "\n#[path=\"ifma8/top_cross52.rs\"]\nmod top_cross52;\n",
+  "lib_suffix": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)]pub use msm::top_cross_caller::{G1Caller,G2Caller};\n",
+  "msm_suffix": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod top_cross_caller;\n",
+  "new_source_files": 178,
+  "no_new_table_key_copy_plan_pool": true,
+  "originals": 176,
+  "passed": true,
+  "private_exact_originals": 172,
+  "selector": "zopro_top_cross",
+  "signed_difference_scaled_field_primitive_retains_original_product": true
+}

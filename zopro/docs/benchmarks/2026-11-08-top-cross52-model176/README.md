@@ -1,5 +1,7 @@
 # Shared top-limb products in six-slot Montgomery rows
 
+Follow-ups: [native qualification](../2026-11-08-top-cross52-native176/README.md) passed; the [completed caller screen](../2026-11-08-top-cross52-callers176/README.md) rejected the candidate for slower measured performance. The model below records its earlier mathematical qualification.
+
 **The exact arithmetic and range screen passes. Native qualification is next; performance is unmeasured.** A new fixed schedule shares the top diagonal across four ordinary CIOS rows, reducing the source IFMA recipe from 100→92 for ordinary products and 150→134 for fused products. The accumulator retains six slots. Production remains unchanged.
 
 For i<4, let Di=ai·bi, D4=a4·b4 and Pi=(ai−a4)(b4−bi). Then Di+D4+Pi=ai·b4+a4·bi. Row i computes Di once, retains the other three lower-limb products and inserts the combined cross term at coefficient 4. That pulls ai·b4 forward from row 4; the last row inserts only D4. Four cross identities remove four of 25 elementary products. Fused operations apply the same schedule twice and retain one cancellation frontier.

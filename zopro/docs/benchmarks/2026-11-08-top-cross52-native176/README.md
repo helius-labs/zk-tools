@@ -1,5 +1,7 @@
 # Shared top-limb products: native qualification
 
+Follow-up: the [completed G1/G2 caller screen](../2026-11-08-top-cross52-callers176/README.md) rejected this candidate. The qualification below records the state before that performance screen.
+
 **Native correctness and code generation pass; performance is unmeasured.** All twelve linked consumer kernels retain the predicted 92 IFMAs for ordinary multiplication and 134 for fused operations, versus the original recipe's 100/150. The new kernel passes 554,496 raw lane-output checks and as many canonical export checks against independent Arkworks arithmetic. Production remains unchanged; nothing is adopted.
 
 The [exact model](../2026-11-08-top-cross52-model176/README.md) established the six-slot schedule, signed range bounds and unchanged R256/R260 representation. This stage implements it in a private field child. Each of four ordinary CIOS rows shares its diagonal and the precomputed top diagonal to combine ai·b4+a4·bi with one signed difference product. The last row retains only the top diagonal. There is no key table/copy, retained plan, new heap payload or production pool.
