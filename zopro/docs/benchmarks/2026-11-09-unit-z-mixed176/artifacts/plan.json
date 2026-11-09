@@ -1,0 +1,119 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/unit-z-mixed176/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "--test",
+        "/home/ubuntu/src/zopro-perf-work/unit-z-mixed176/qualification.rs",
+        "-O",
+        "-C",
+        "target-cpu=native",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "overflow-checks=on",
+        "-C",
+        "debug-assertions=on",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/word-export176/target-candidate/release/deps",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_bn254-1200e63547baa41c299a48e3221f1cef85990b0369f17452dc12eb17045f9713.rlib",
+        "--extern",
+        "rayon=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/librayon-bf7ab8bf274c84025bc411d349fd1a65105f41c57b184396781dc43ee353a282.rlib",
+        "--extern",
+        "ark_bn254=/home/ubuntu/src/zopro-perf-work/word-export176/target-candidate/release/deps/libark_bn254-d28868a71f06f5b5.rlib",
+        "--extern",
+        "ark_ec=/home/ubuntu/src/zopro-perf-work/word-export176/target-candidate/release/deps/libark_ec-59ebd5b49f9b3011.rlib",
+        "--extern",
+        "ark_ff=/home/ubuntu/src/zopro-perf-work/word-export176/target-candidate/release/deps/libark_ff-3a8e68dc8045d2bd.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/unit-z-mixed176/qualification",
+        "--cfg",
+        "unit_z_native_test"
+      ],
+      "kind": "command",
+      "name": "build-native-independent-qualification",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/unit-z-mixed176/qualification",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "kind": "command",
+      "name": "native-independent-curve-and-worker-tests",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "--test",
+        "/home/ubuntu/src/zopro-perf-work/unit-z-mixed176/qualification.rs",
+        "-O",
+        "-C",
+        "target-cpu=generic",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "overflow-checks=on",
+        "-C",
+        "debug-assertions=on",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/word-export176/target-candidate/release/deps",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/tree-policy-owner176/libzopro_bn254-generic.rlib",
+        "--extern",
+        "rayon=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/librayon-bf7ab8bf274c84025bc411d349fd1a65105f41c57b184396781dc43ee353a282.rlib",
+        "--extern",
+        "ark_bn254=/home/ubuntu/src/zopro-perf-work/word-export176/target-candidate/release/deps/libark_bn254-d28868a71f06f5b5.rlib",
+        "--extern",
+        "ark_ec=/home/ubuntu/src/zopro-perf-work/word-export176/target-candidate/release/deps/libark_ec-59ebd5b49f9b3011.rlib",
+        "--extern",
+        "ark_ff=/home/ubuntu/src/zopro-perf-work/word-export176/target-candidate/release/deps/libark_ff-3a8e68dc8045d2bd.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/unit-z-mixed176/qualification-generic",
+        "--cfg",
+        "no_ifma",
+        "--cfg",
+        "no_asm"
+      ],
+      "kind": "command",
+      "name": "build-generic-noASM-noIFMA-qualification",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/unit-z-mixed176/qualification-generic",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "kind": "command",
+      "name": "generic-independent-curve-tests",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "objdump",
+        "-d",
+        "-C",
+        "/home/ubuntu/src/zopro-perf-work/unit-z-mixed176/qualification"
+      ],
+      "kind": "command",
+      "name": "decode-native-actual-entrypoints",
+      "timeout_seconds": 120
+    }
+  ],
+  "version": 1
+}
