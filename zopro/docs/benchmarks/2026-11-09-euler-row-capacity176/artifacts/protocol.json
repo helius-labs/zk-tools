@@ -1,0 +1,27 @@
+{
+  "RSS_guard": "ON max <= OFF max + max(4MiB,2percent OFF max) each condition; no minimumRAM/pressure/mobile bound",
+  "adopted": false,
+  "all_latency_then_instrumented_then_offline_and_verifiers": true,
+  "blocks": 7,
+  "bootstrap": "fixed-seed10000block-resamples percentile95",
+  "calibration_OFF_over_REF_range": [
+    0.95,
+    1.05
+  ],
+  "conditions": 13,
+  "cycle_profiles": 4,
+  "full_M5_scope": 8,
+  "gain_minimum_percent": 0,
+  "goal_complete": false,
+  "latency_processes": 273,
+  "pmu_panels": 4,
+  "primes_per_process": 3,
+  "production_changed": false,
+  "rerolls": false,
+  "selection": "primary32 and merge54_32 ON/OFF and ON/REF paired geometric ratios with bootstrap upper95<1 and at least5of7 wins; all8shape32 upper95<=1.03; solo16 upper95<=1.05; all calibrations and correctness required",
+  "variants": [
+    "REF",
+    "OFF",
+    "ON"
+  ]
+}
