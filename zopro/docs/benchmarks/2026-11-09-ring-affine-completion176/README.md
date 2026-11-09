@@ -25,14 +25,16 @@ The necessary screen declared before execution requires bounded algebra/accounti
 
 The proxy 100V+150F counts nominal eight-lane product/fused-product sites and omits scalar work. New primary/raw 2×2 queue checks are **64,188/96,687**, completion rounds **1,182/1,519**, and overflow drains **54/5**. Both reach **199 rounds** in one completion; **854/1,399 affine batches contain only one pair**. These serial chains explain why removing projective spill is insufficient by itself. No speedup is inferred.
 
+**Arithmetic ledger correction (9 November 2026):** the accepted comparator normalizes once per ordinary window and part: 10×2=20 calls. Its earlier covered ledger counted 40. The accepted rows below are corrected; the original frozen review remains intact, with [revised values and source binding](artifacts/accepted-normalization-erratum.json). Raw operation histograms, measured timings, tests and selection decisions are unchanged.
+
 The extended source ledger charges scalar tails, unit maps, mixed projective additions and normalization, including empty finish boundaries, beta-squared setup and ring axis maps. Full vector operations expand into eight logical events. Scalar and vector throughput differ; these are neither instructions nor cycles. Weighted projective postprocessing, linear operations, packing, memory and scheduling remain unpriced, and their geometry differs between accepted and ring methods.
 
 |Population / recipe|Covered Fq products|Covered fused2 events|Scalar Fq squares|Scalar root inverses|
 |---|---:|---:|---:|---:|
-|1x2-B / Accepted|4806837|3183702|376|6627|
+|1x2-B / Accepted|4806797|3183702|336|6607|
 |1x2-B / Old ring|4310769|2873206|320|2644|
 |1x2-B / Complete phases|4530736|2863707|5158|4106|
-|2x2-B / Accepted|8062858|5453357|368|8951|
+|2x2-B / Accepted|8062818|5453357|328|8931|
 |2x2-B / Old ring|7069126|4791575|312|4430|
 |2x2-B / Complete phases|7340483|4779972|4468|6442|
 
