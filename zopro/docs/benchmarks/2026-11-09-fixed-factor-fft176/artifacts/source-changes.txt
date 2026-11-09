@@ -1,0 +1,222 @@
+diff --git a/home/ubuntu/src/zk-tools/zopro/crates/zopro-bn254/src/ifma8.rs b/home/ubuntu/src/zopro-perf-work/fixed-factor-fft176/source/crates/zopro-bn254/src/ifma8.rs
+index 8e44baad32..a4350d91db 100644
+--- a/home/ubuntu/src/zk-tools/zopro/crates/zopro-bn254/src/ifma8.rs
++++ b/home/ubuntu/src/zopro-perf-work/fixed-factor-fft176/source/crates/zopro-bn254/src/ifma8.rs
+@@ -1469,3 +1469,7 @@ mod tests {
+         check::<FrConfig, true>();
+     }
+ }
++
++// Private fixed-factor truncated-product qualification. Original methods unchanged.
++#[cfg(zopro_fixed_factor_trunc)]mod fixed_factor;
++#[cfg(zopro_fixed_factor_trunc)]pub use fixed_factor::{FixedFactor,FixedFactor8};
+diff --git a/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/fft.rs b/home/ubuntu/src/zopro-perf-work/fixed-factor-fft176/source/crates/zopro-core/src/fft.rs
+index bb0e813c20..da7cf136c7 100644
+--- a/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/fft.rs
++++ b/home/ubuntu/src/zopro-perf-work/fixed-factor-fft176/source/crates/zopro-core/src/fft.rs
+@@ -174,7 +174,12 @@ fn bit_reverse(i: usize, bits: usize) -> usize {
+ // quad, for the layers whose butterflies are four or more elements apart;
+ // `pair` is (1, t, 1, t) for the layer two apart; the layer one apart
+ // multiplies by one.
++#[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++mod fixed_roots;
++
+ struct Twiddles {
++    #[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    fixed: Option<Box<fixed_roots::FixedRoots>>,
+     // Optional key-only roots in five-stage column order; empty uses layers.
+     #[allow(dead_code)]
+     columns: Vec<Vec<Quad>>,
+@@ -194,6 +199,8 @@ impl Twiddles {
+         debug_assert_eq!(layer.len(), 2);
+         Self {
+             reservations: Vec::new(),
++            #[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++            fixed: None,
+             columns: Vec::new(),
+             layers,
+             pair: Quad::new(&[layer[0], layer[1], layer[0], layer[1]]),
+@@ -203,6 +210,8 @@ impl Twiddles {
+     fn empty() -> Self {
+         Self {
+             reservations: Vec::new(),
++            #[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++            fixed: None,
+             columns: Vec::new(),
+             layers: Vec::new(),
+             pair: Quad::one(),
+@@ -270,6 +279,8 @@ impl Twiddles {
+             .collect();
+         Self {
+             reservations: Vec::new(),
++            #[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++            fixed: None,
+             columns: Vec::new(),
+             layers,
+             pair: self.pair.mul(&Quad::new(&[factor; 4])),
+@@ -466,6 +477,11 @@ impl Plan {
+                 roots.prepare_columns();
+             }
+         }
++        #[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] {
++            roots.fixed=fixed_roots::FixedRoots::prepare(&roots);
++            inverse_roots.fixed=fixed_roots::FixedRoots::prepare(&inverse_roots);
++            if let Some((forward,_))=&mut twisted{forward.fixed=fixed_roots::FixedRoots::prepare(forward);}
++        }
+         super::trace("plan-roots", started);
+         Self {
+             n,
+@@ -1389,3 +1405,17 @@ mod euler_basis_tests {
+         assert_eq!(count,10);println!("EULER_GENERIC_H_IDENTITIES={count}");
+     }
+ }
++
++#[cfg(all(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)),zopro_fixed_fft_diagnostics))]
++#[doc(hidden)]
++pub mod fixed_fft_diagnostics {
++    use super::*;
++    pub use super::fixed_roots::diag::DenyGuard;
++    pub fn counters()->[usize;5]{fixed_roots::diag::counters()}
++    pub fn snapshots(p:&Plan)->[[usize;4];3]{fixed_roots::diag::snapshots(p)}
++    pub fn unique_charged(p:&Plan)->usize{fixed_roots::diag::unique_charged(p)}
++    pub fn clear(p:&mut Plan){fixed_roots::diag::clear(p)}
++    pub fn force_denial()->DenyGuard{fixed_roots::diag::force_denial()}
++    pub fn transform(p:&Plan,a:Vec<Fr>,b:Vec<Fr>,direction:u8)->(Vec<Fr>,Vec<Fr>){pair::fixed_fft_transform(p,a,b,direction)}
++    pub fn inline_option_bytes()->usize{core::mem::size_of::<Option<Box<fixed_roots::FixedRoots>>>()}
++}
+diff --git a/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/fft/pair.rs b/home/ubuntu/src/zopro-perf-work/fixed-factor-fft176/source/crates/zopro-core/src/fft/pair.rs
+index 486672d7ac..6d5c5449da 100644
+--- a/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/fft/pair.rs
++++ b/home/ubuntu/src/zopro-perf-work/fixed-factor-fft176/source/crates/zopro-core/src/fft/pair.rs
+@@ -1876,3 +1876,20 @@ mod euler_pointwise_tests {
+ }
+
+ mod leaf;
++
++#[cfg(all(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)),zopro_fixed_fft_diagnostics))]
++/// Qualification only: production stored transform, without inverse/forward
++/// cancellation. Direction 0 is inverse, 1 ordinary forward, 2 coset forward.
++pub(super) fn fixed_fft_transform(plan:&Plan,a:Vec<Fr>,b:Vec<Fr>,direction:u8)->(Vec<Fr>,Vec<Fr>) {
++    assert!(!plan.released&&plan.n>=8&&a.len()==plan.n&&b.len()==plan.n);
++    let mut values:Vec<PackedPair>=(0..plan.n/4).map(|i|PackedPair::store(Pair::new(&core::array::from_fn(|j|if j<4{a[4*i+j]}else{b[4*i+j-4]})))).collect();
++    match direction {
++        0=>stored_transform::<PackedPair,false>(&mut values,&plan.inverse_roots,0),
++        1=>stored_transform::<PackedPair,true>(&mut values,&plan.roots,0),
++        2=>stored_transform::<PackedPair,true>(&mut values,&plan.twisted.as_ref().expect("twisted plan").0,0),
++        _=>panic!("invalid direction"),
++    }
++    let(mut a,mut b)=(Vec::with_capacity(plan.n),Vec::with_capacity(plan.n));
++    for value in values{let lanes=value.load().get();a.extend_from_slice(&lanes[..4]);b.extend_from_slice(&lanes[4..]);}
++    (a,b)
++}
+diff --git a/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/fft/pair/leaf.rs b/home/ubuntu/src/zopro-perf-work/fixed-factor-fft176/source/crates/zopro-core/src/fft/pair/leaf.rs
+index 7b2c5c3fbe..001d483ff0 100644
+--- a/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/fft/pair/leaf.rs
++++ b/home/ubuntu/src/zopro-perf-work/fixed-factor-fft176/source/crates/zopro-core/src/fft/pair/leaf.rs
+@@ -31,15 +31,32 @@ fn dif_serial(values:&mut [Pair], roots:&Twiddles, mut level:usize) {
+     let mut gap=values.len()/2;
+     while gap>=1 {
+         let layer=&roots.layers[level][..gap];
++        #[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++        if let Some(fixed)=roots.fixed.as_ref().and_then(|r|r.layer(level)) {
++            for chunk in values.chunks_exact_mut(gap*2){let(lo,hi)=chunk.split_at_mut(gap);fixed_dif_quads(lo,hi,&fixed[..gap]);}
++        } else {
+         for chunk in values.chunks_exact_mut(gap*2) {
+             let (lo,hi)=chunk.split_at_mut(gap);
+             dif_quads(lo,hi,layer);
+         }
++        }
++        #[cfg(not(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++        {
++        for chunk in values.chunks_exact_mut(gap*2) {
++            let (lo,hi)=chunk.split_at_mut(gap);
++            dif_quads(lo,hi,layer);
++        }
++        }
+         gap/=2;
+         level+=1;
+     }
+     for pair in values.as_chunks_mut::<2>().0 {
+         let (a,b)=pair.split_at_mut(1);
++        #[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++        if let Some(fixed)=&roots.fixed{fixed_dif_within(&mut a[0],&mut b[0],fixed.pair());}else{
++        dif_within(&mut a[0],&mut b[0],&broadcast(&roots.pair));
++        }
++        #[cfg(not(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
+         dif_within(&mut a[0],&mut b[0],&broadcast(&roots.pair));
+     }
+ }
+@@ -47,15 +64,32 @@ fn dif_serial(values:&mut [Pair], roots:&Twiddles, mut level:usize) {
+ fn dit_serial(values:&mut [Pair], roots:&Twiddles) {
+     for pair in values.as_chunks_mut::<2>().0 {
+         let (a,b)=pair.split_at_mut(1);
++        #[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++        if let Some(fixed)=&roots.fixed{fixed_dit_within(&mut a[0],&mut b[0],fixed.pair(),fixed.single());}else{
++        dit_within(&mut a[0],&mut b[0],&broadcast(&roots.pair),roots.single.as_ref().map(broadcast).as_ref());
++        }
++        #[cfg(not(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
+         dit_within(&mut a[0],&mut b[0],&broadcast(&roots.pair),roots.single.as_ref().map(broadcast).as_ref());
+     }
+     let mut gap=1;
+     while gap<values.len() {
+         let layer=&roots.layers[roots.layers.len()-1-gap.trailing_zeros() as usize][..gap];
++        #[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++        if let Some(fixed)=roots.fixed.as_ref().and_then(|r|r.layer(roots.layers.len()-1-gap.trailing_zeros() as usize)) {
++            for chunk in values.chunks_exact_mut(gap*2){let(lo,hi)=chunk.split_at_mut(gap);fixed_dit_quads(lo,hi,&fixed[..gap]);}
++        } else {
+         for chunk in values.chunks_exact_mut(gap*2) {
+             let (lo,hi)=chunk.split_at_mut(gap);
+             dit_quads(lo,hi,layer);
+         }
++        }
++        #[cfg(not(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++        {
++        for chunk in values.chunks_exact_mut(gap*2) {
++            let (lo,hi)=chunk.split_at_mut(gap);
++            dit_quads(lo,hi,layer);
++        }
++        }
+         gap*=2;
+     }
+ }
+@@ -178,3 +212,40 @@ mod tests {
+         });
+     }
+ }
++
++// Original shuffle graph; only its twiddle products use fixed factors.
++#[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++#[inline(always)]
++fn fixed_dif_quads(lo:&mut[Pair],hi:&mut[Pair],roots:&[super::super::fixed_roots::FixedQuad]) {
++    #[cfg(zopro_fixed_fft_diagnostics)] super::super::fixed_roots::diag::product(false,lo.len());
++    for j in 0..lo.len() {let difference=lo[j].sub(&hi[j]);lo[j]=lo[j].add(&hi[j]);hi[j]=super::super::fixed_roots::expand(&roots[j]).mul(&difference);}
++}
++#[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++#[inline(always)]
++fn fixed_dit_quads(lo:&mut[Pair],hi:&mut[Pair],roots:&[super::super::fixed_roots::FixedQuad]) {
++    #[cfg(zopro_fixed_fft_diagnostics)] super::super::fixed_roots::diag::product(true,lo.len());
++    for j in 0..lo.len() {let product=super::super::fixed_roots::expand(&roots[j]).mul(&hi[j]);hi[j]=lo[j].sub(&product);lo[j]=lo[j].add(&product);}
++}
++#[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++#[inline(always)]
++fn fixed_dif_within(a:&mut Pair,b:&mut Pair,pair:&super::super::fixed_roots::FixedQuad) {
++    #[cfg(zopro_fixed_fft_diagnostics)] super::super::fixed_roots::diag::product(false,1);
++    let(lo,hi)=(Pair::shuffle_pair::<0,1,4,5>(a,b),Pair::shuffle_pair::<2,3,6,7>(a,b));
++    let sum=lo.add(&hi);let difference=super::super::fixed_roots::expand(pair).mul(&lo.sub(&hi));
++    *a=Pair::shuffle_pair::<0,1,4,5>(&sum,&difference);*b=Pair::shuffle_pair::<2,3,6,7>(&sum,&difference);
++    let(lo,hi)=(Pair::shuffle_pair::<0,2,4,6>(a,b),Pair::shuffle_pair::<1,3,5,7>(a,b));
++    let(sum,difference)=(lo.add(&hi),lo.sub(&hi));
++    *a=Pair::shuffle_pair::<0,4,1,5>(&sum,&difference);*b=Pair::shuffle_pair::<2,6,3,7>(&sum,&difference);
++}
++#[cfg(all(zopro_fixed_fft,zopro_fixed_factor_trunc,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++#[inline(always)]
++fn fixed_dit_within(a:&mut Pair,b:&mut Pair,pair:&super::super::fixed_roots::FixedQuad,single:Option<&super::super::fixed_roots::FixedQuad>) {
++    #[cfg(zopro_fixed_fft_diagnostics)] super::super::fixed_roots::diag::product(true,1+usize::from(single.is_some()));
++    let(lo,hi)=(Pair::shuffle_pair::<0,2,4,6>(a,b),Pair::shuffle_pair::<1,3,5,7>(a,b));
++    let hi=single.map_or(hi,|r|super::super::fixed_roots::expand(r).mul(&hi));
++    let(sum,difference)=(lo.add(&hi),lo.sub(&hi));
++    *a=Pair::shuffle_pair::<0,4,1,5>(&sum,&difference);*b=Pair::shuffle_pair::<2,6,3,7>(&sum,&difference);
++    let(lo,hi)=(Pair::shuffle_pair::<0,1,4,5>(a,b),Pair::shuffle_pair::<2,3,6,7>(a,b));
++    let product=super::super::fixed_roots::expand(pair).mul(&hi);let(sum,difference)=(lo.add(&product),lo.sub(&product));
++    *a=Pair::shuffle_pair::<0,1,4,5>(&sum,&difference);*b=Pair::shuffle_pair::<2,3,6,7>(&sum,&difference);
++}
