@@ -1,0 +1,1325 @@
+{
+  "interpretation_limits": "Separate descriptive PMU panels and flat symbols do not isolate wall-critical time or a unique cause. Namespace samples establish XYZZ Window execution; many include ordinary feed code with that type.",
+  "rows": [
+    {
+      "XYZZ_type_namespace_samples": 0,
+      "context": "g1-balanced-w1",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.2,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.00006666666666666672,
+          "user_cpu_ms": 34.507799999999996
+        },
+        "ON": {
+          "involuntary_switches": 0.3333333333333333,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.0008666666666666896,
+          "user_cpu_ms": 34.973
+        },
+        "REF": {
+          "involuntary_switches": 0.26666666666666666,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.0,
+          "user_cpu_ms": 34.6828
+        }
+      },
+      "profile_top_symbols": {},
+      "single_panel_PMU": {}
+    },
+    {
+      "XYZZ_type_namespace_samples": 1620,
+      "context": "g1-balanced-w16",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.0,
+          "minor_faults": 44.4,
+          "system_cpu_ms": 0.5283333333333333,
+          "user_cpu_ms": 38.38486666666667
+        },
+        "ON": {
+          "involuntary_switches": 0.06666666666666667,
+          "minor_faults": 48.93333333333333,
+          "system_cpu_ms": 0.5026666666666667,
+          "user_cpu_ms": 38.427533333333336
+        },
+        "REF": {
+          "involuntary_switches": 0.0,
+          "minor_faults": 47.06666666666667,
+          "system_cpu_ms": 0.4870000000000001,
+          "user_cpu_ms": 38.577
+        }
+      },
+      "profile_top_symbols": {
+        "OFF": [
+          {
+            "samples": 7432,
+            "share": 0.5867677246170852,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 1653,
+            "share": 0.1305068687825675,
+            "symbol": "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 1176,
+            "share": 0.09284699194694458,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 1059,
+            "share": 0.08360966366650877,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 332,
+            "share": 0.026211905889783674,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 240,
+            "share": 0.018948365703458078,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 163,
+            "share": 0.012869098373598611,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          },
+          {
+            "samples": 145,
+            "share": 0.011447970945839254,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 91,
+            "share": 0.007184588662561188,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+          },
+          {
+            "samples": 81,
+            "share": 0.006395073424917101,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double"
+          }
+        ],
+        "ON": [
+          {
+            "samples": 7509,
+            "share": 0.593362307388384,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 1563,
+            "share": 0.12350849466613986,
+            "symbol": "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config, zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 1208,
+            "share": 0.0954563413670486,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 1017,
+            "share": 0.08036349269063611,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 329,
+            "share": 0.025997629395495853,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 244,
+            "share": 0.019280916633741603,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 148,
+            "share": 0.01169498222046622,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          },
+          {
+            "samples": 127,
+            "share": 0.010035559067562228,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 112,
+            "share": 0.008850256815487949,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+          },
+          {
+            "samples": 80,
+            "share": 0.006321612011062821,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double"
+          }
+        ]
+      },
+      "single_panel_PMU": {
+        "branch-misses:u": {
+          "OFF_per_MSM": 262434.078125,
+          "ON_OFF": 1.0158703397001903,
+          "ON_per_MSM": 266598.99609375
+        },
+        "cache-misses:u": {
+          "OFF_per_MSM": 401606.49609375,
+          "ON_OFF": 0.9809442473243423,
+          "ON_per_MSM": 393953.58203125
+        },
+        "cycles:u": {
+          "OFF_per_MSM": 198220920.77734375,
+          "ON_OFF": 0.9981888101748502,
+          "ON_per_MSM": 197861905.0625
+        },
+        "instructions:u": {
+          "OFF_per_MSM": 488185895.00390625,
+          "ON_OFF": 0.9976351309957511,
+          "ON_per_MSM": 487031399.3125
+        }
+      }
+    },
+    {
+      "XYZZ_type_namespace_samples": 2121,
+      "context": "g1-balanced-w32",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.8,
+          "minor_faults": 43.333333333333336,
+          "system_cpu_ms": 1.2587333333333333,
+          "user_cpu_ms": 53.308066666666676
+        },
+        "ON": {
+          "involuntary_switches": 0.8,
+          "minor_faults": 43.93333333333333,
+          "system_cpu_ms": 0.9692000000000002,
+          "user_cpu_ms": 53.633066666666664
+        },
+        "REF": {
+          "involuntary_switches": 0.6666666666666666,
+          "minor_faults": 45.0,
+          "system_cpu_ms": 1.1644,
+          "user_cpu_ms": 53.443133333333336
+        }
+      },
+      "profile_top_symbols": {
+        "OFF": [
+          {
+            "samples": 8372,
+            "share": 0.5261107270784893,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 2145,
+            "share": 0.13479545026079306,
+            "symbol": "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config, zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 1408,
+            "share": 0.08848111606862313,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 1285,
+            "share": 0.08075158675296927,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 1054,
+            "share": 0.06623515364796079,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 294,
+            "share": 0.018475460315465344,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 278,
+            "share": 0.017469993087412806,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+          },
+          {
+            "samples": 190,
+            "share": 0.011939923333123862,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 152,
+            "share": 0.009551938666499088,
+            "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+          },
+          {
+            "samples": 148,
+            "share": 0.009300571859485955,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          }
+        ],
+        "ON": [
+          {
+            "samples": 8341,
+            "share": 0.5249213341724355,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 2043,
+            "share": 0.12857142857142856,
+            "symbol": "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config, zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 1433,
+            "share": 0.09018250471994965,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 1330,
+            "share": 0.08370044052863436,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 1089,
+            "share": 0.0685336689741976,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 291,
+            "share": 0.01831340465701699,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 245,
+            "share": 0.015418502202643172,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+          },
+          {
+            "samples": 195,
+            "share": 0.012271869100062933,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 165,
+            "share": 0.01038388923851479,
+            "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+          },
+          {
+            "samples": 142,
+            "share": 0.00893643801132788,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          }
+        ]
+      },
+      "single_panel_PMU": {
+        "branch-misses:u": {
+          "OFF_per_MSM": 298258.0,
+          "ON_OFF": 1.0166220525727725,
+          "ON_per_MSM": 303215.66015625
+        },
+        "cache-misses:u": {
+          "OFF_per_MSM": 640052.5625,
+          "ON_OFF": 0.9523707513377075,
+          "ON_per_MSM": 609567.33984375
+        },
+        "cycles:u": {
+          "OFF_per_MSM": 252620475.1640625,
+          "ON_OFF": 0.9969265256032958,
+          "ON_per_MSM": 251844052.6015625
+        },
+        "instructions:u": {
+          "OFF_per_MSM": 497391382.5703125,
+          "ON_OFF": 0.9991379550716495,
+          "ON_per_MSM": 496962608.8515625
+        }
+      }
+    },
+    {
+      "XYZZ_type_namespace_samples": 0,
+      "context": "g1-uniform-w1",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.26666666666666666,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.00006666666666665934,
+          "user_cpu_ms": 37.0786
+        },
+        "ON": {
+          "involuntary_switches": 0.3333333333333333,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.06626666666666668,
+          "user_cpu_ms": 37.278800000000004
+        },
+        "REF": {
+          "involuntary_switches": 0.26666666666666666,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.00006666666666665934,
+          "user_cpu_ms": 37.18626666666667
+        }
+      },
+      "profile_top_symbols": {},
+      "single_panel_PMU": {}
+    },
+    {
+      "XYZZ_type_namespace_samples": 1706,
+      "context": "g1-uniform-w16",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.0,
+          "minor_faults": 31.2,
+          "system_cpu_ms": 0.5236666666666667,
+          "user_cpu_ms": 41.02733333333334
+        },
+        "ON": {
+          "involuntary_switches": 0.13333333333333333,
+          "minor_faults": 30.4,
+          "system_cpu_ms": 0.6019333333333332,
+          "user_cpu_ms": 41.111599999999996
+        },
+        "REF": {
+          "involuntary_switches": 0.0,
+          "minor_faults": 29.466666666666665,
+          "system_cpu_ms": 0.6276666666666666,
+          "user_cpu_ms": 41.01173333333333
+        }
+      },
+      "profile_top_symbols": {
+        "OFF": [
+          {
+            "samples": 8040,
+            "share": 0.5960854092526691,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 1596,
+            "share": 0.11832740213523131,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 1494,
+            "share": 0.11076512455516015,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::feed"
+          },
+          {
+            "samples": 957,
+            "share": 0.07095195729537367,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 354,
+            "share": 0.026245551601423486,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 322,
+            "share": 0.023873072360616844,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 83,
+            "share": 0.00615361803084223,
+            "symbol": "zopro_core::msm_affine::top_window::<zopro_bn254::curve::G1Config, true>"
+          },
+          {
+            "samples": 77,
+            "share": 0.005708778173190984,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 77,
+            "share": 0.005708778173190984,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          },
+          {
+            "samples": 69,
+            "share": 0.005115658362989324,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G1Config>::{closure#0}>>"
+          }
+        ],
+        "ON": [
+          {
+            "samples": 8023,
+            "share": 0.5916230366492147,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 1634,
+            "share": 0.12049258904210604,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config, zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G1Config>>>::feed"
+          },
+          {
+            "samples": 1548,
+            "share": 0.11415087382936362,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 951,
+            "share": 0.07012757171300052,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 326,
+            "share": 0.02403952510876779,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 324,
+            "share": 0.023892043359634244,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 91,
+            "share": 0.006710419585576285,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          },
+          {
+            "samples": 81,
+            "share": 0.005973010839908561,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 76,
+            "share": 0.005604306467074699,
+            "symbol": "zopro_core::msm_affine::top_window::<zopro_bn254::curve::G1Config, true>"
+          },
+          {
+            "samples": 73,
+            "share": 0.005383083843374383,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double"
+          }
+        ]
+      },
+      "single_panel_PMU": {
+        "branch-misses:u": {
+          "OFF_per_MSM": 300876.05859375,
+          "ON_OFF": 1.0243134141444845,
+          "ON_per_MSM": 308191.3828125
+        },
+        "cache-misses:u": {
+          "OFF_per_MSM": 393752.23046875,
+          "ON_OFF": 0.969051951104523,
+          "ON_per_MSM": 381566.3671875
+        },
+        "cycles:u": {
+          "OFF_per_MSM": 210835660.5,
+          "ON_OFF": 1.0046835274042742,
+          "ON_per_MSM": 211823115.09375
+        },
+        "instructions:u": {
+          "OFF_per_MSM": 527706213.3125,
+          "ON_OFF": 0.9982665501767632,
+          "ON_per_MSM": 526791461.0703125
+        }
+      }
+    },
+    {
+      "XYZZ_type_namespace_samples": 2278,
+      "context": "g1-uniform-w32",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 1.0,
+          "minor_faults": 47.0,
+          "system_cpu_ms": 1.3950666666666665,
+          "user_cpu_ms": 58.77346666666667
+        },
+        "ON": {
+          "involuntary_switches": 0.8,
+          "minor_faults": 45.333333333333336,
+          "system_cpu_ms": 1.4646000000000001,
+          "user_cpu_ms": 58.10253333333334
+        },
+        "REF": {
+          "involuntary_switches": 0.8,
+          "minor_faults": 43.333333333333336,
+          "system_cpu_ms": 1.2204666666666666,
+          "user_cpu_ms": 58.592933333333335
+        }
+      },
+      "profile_top_symbols": {
+        "OFF": [
+          {
+            "samples": 9185,
+            "share": 0.5386780833968682,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 2173,
+            "share": 0.12744120579438156,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::feed"
+          },
+          {
+            "samples": 1861,
+            "share": 0.10914315875901706,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 1316,
+            "share": 0.07718022403378101,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 1055,
+            "share": 0.06187320391765879,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 329,
+            "share": 0.019295056008445253,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 155,
+            "share": 0.009090375931030438,
+            "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+          },
+          {
+            "samples": 123,
+            "share": 0.0072136531581725415,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 108,
+            "share": 0.006333939358395402,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          },
+          {
+            "samples": 94,
+            "share": 0.005512873145270072,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+          }
+        ],
+        "ON": [
+          {
+            "samples": 9110,
+            "share": 0.5317844842682856,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 2188,
+            "share": 0.12772167415795926,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config, zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G1Config>>>::feed"
+          },
+          {
+            "samples": 1882,
+            "share": 0.1098593193625591,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 1263,
+            "share": 0.0737259938123869,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 1143,
+            "share": 0.06672114879458292,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 349,
+            "share": 0.020372424260113244,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 157,
+            "share": 0.009164672231626876,
+            "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+          },
+          {
+            "samples": 117,
+            "share": 0.0068297238923588814,
+            "symbol": "zopro_core::msm_affine::top_window::<zopro_bn254::curve::G1Config, true>"
+          },
+          {
+            "samples": 107,
+            "share": 0.0062459868075418834,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          },
+          {
+            "samples": 97,
+            "share": 0.0056622497227248846,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+          }
+        ]
+      },
+      "single_panel_PMU": {
+        "branch-misses:u": {
+          "OFF_per_MSM": 331440.07421875,
+          "ON_OFF": 1.0260924218024472,
+          "ON_per_MSM": 340088.1484375
+        },
+        "cache-misses:u": {
+          "OFF_per_MSM": 519642.71875,
+          "ON_OFF": 1.0107116340812772,
+          "ON_per_MSM": 525208.94140625
+        },
+        "cycles:u": {
+          "OFF_per_MSM": 270654007.640625,
+          "ON_OFF": 1.005361998643678,
+          "ON_per_MSM": 272105254.0625
+        },
+        "instructions:u": {
+          "OFF_per_MSM": 539094665.0625,
+          "ON_OFF": 0.9989897630547074,
+          "ON_per_MSM": 538550051.7148438
+        }
+      }
+    },
+    {
+      "XYZZ_type_namespace_samples": 0,
+      "context": "g1-ordinary-w1",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.2,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.0,
+          "user_cpu_ms": 14.449333333333334
+        },
+        "ON": {
+          "involuntary_switches": 0.2,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.0664666666666667,
+          "user_cpu_ms": 14.550466666666669
+        },
+        "REF": {
+          "involuntary_switches": 0.2,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.0,
+          "user_cpu_ms": 14.545933333333332
+        }
+      },
+      "profile_top_symbols": {},
+      "single_panel_PMU": {}
+    },
+    {
+      "XYZZ_type_namespace_samples": 635,
+      "context": "g1-ordinary-w16",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.0,
+          "minor_faults": 35.06666666666667,
+          "system_cpu_ms": 0.3615333333333333,
+          "user_cpu_ms": 16.484533333333335
+        },
+        "ON": {
+          "involuntary_switches": 0.06666666666666667,
+          "minor_faults": 35.333333333333336,
+          "system_cpu_ms": 0.43206666666666665,
+          "user_cpu_ms": 16.48473333333333
+        },
+        "REF": {
+          "involuntary_switches": 0.0,
+          "minor_faults": 32.266666666666666,
+          "system_cpu_ms": 0.32053333333333334,
+          "user_cpu_ms": 16.5606
+        }
+      },
+      "profile_top_symbols": {
+        "OFF": [
+          {
+            "samples": 2451,
+            "share": 0.45330127612354354,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 764,
+            "share": 0.14129831699648604,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 652,
+            "share": 0.12058442759385982,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 639,
+            "share": 0.11818013685962642,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::feed"
+          },
+          {
+            "samples": 231,
+            "share": 0.04272239689291659,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 112,
+            "share": 0.020713889402626227,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 95,
+            "share": 0.017569816904013318,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 92,
+            "share": 0.017014980580728686,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          },
+          {
+            "samples": 58,
+            "share": 0.010726835583502866,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double"
+          },
+          {
+            "samples": 43,
+            "share": 0.007952653967079712,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+          }
+        ],
+        "ON": [
+          {
+            "samples": 2555,
+            "share": 0.4698418536226554,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 732,
+            "share": 0.13460831187936742,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 637,
+            "share": 0.1171386539168812,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 594,
+            "share": 0.1092313350496506,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config, zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G1Config>>>::feed"
+          },
+          {
+            "samples": 251,
+            "share": 0.04615667524825304,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 112,
+            "share": 0.020595807282089002,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 93,
+            "share": 0.01710187568959176,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          },
+          {
+            "samples": 88,
+            "share": 0.016182420007355647,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 61,
+            "share": 0.011217359323280617,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double"
+          },
+          {
+            "samples": 49,
+            "share": 0.00901066568591394,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+          }
+        ]
+      },
+      "single_panel_PMU": {
+        "branch-misses:u": {
+          "OFF_per_MSM": 141018.40625,
+          "ON_OFF": 1.0434541014038725,
+          "ON_per_MSM": 147146.234375
+        },
+        "cache-misses:u": {
+          "OFF_per_MSM": 185033.74609375,
+          "ON_OFF": 1.1971943504646607,
+          "ON_per_MSM": 221521.35546875
+        },
+        "cycles:u": {
+          "OFF_per_MSM": 84747441.94921875,
+          "ON_OFF": 1.0063181323976078,
+          "ON_per_MSM": 85282887.5078125
+        },
+        "instructions:u": {
+          "OFF_per_MSM": 202793757.0546875,
+          "ON_OFF": 0.999353711613693,
+          "ON_per_MSM": 202662693.8046875
+        }
+      }
+    },
+    {
+      "XYZZ_type_namespace_samples": 895,
+      "context": "g1-ordinary-w32",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.4,
+          "minor_faults": 42.0,
+          "system_cpu_ms": 1.0076666666666667,
+          "user_cpu_ms": 23.74253333333333
+        },
+        "ON": {
+          "involuntary_switches": 0.26666666666666666,
+          "minor_faults": 41.2,
+          "system_cpu_ms": 0.41980000000000006,
+          "user_cpu_ms": 24.522266666666667
+        },
+        "REF": {
+          "involuntary_switches": 0.6,
+          "minor_faults": 45.333333333333336,
+          "system_cpu_ms": 0.6902000000000001,
+          "user_cpu_ms": 23.976066666666668
+        }
+      },
+      "profile_top_symbols": {
+        "OFF": [
+          {
+            "samples": 2842,
+            "share": 0.40215084194141787,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 968,
+            "share": 0.13697467100608463,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 821,
+            "share": 0.11617376538842507,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 817,
+            "share": 0.11560775435120985,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::feed"
+          },
+          {
+            "samples": 658,
+            "share": 0.09310881562190462,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 158,
+            "share": 0.022357435970001414,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 103,
+            "share": 0.014574784208292061,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 102,
+            "share": 0.014433281448988255,
+            "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+          },
+          {
+            "samples": 94,
+            "share": 0.013301259374557804,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double"
+          },
+          {
+            "samples": 91,
+            "share": 0.012876751096646384,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+          }
+        ],
+        "ON": [
+          {
+            "samples": 2826,
+            "share": 0.39791607997747114,
+            "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+          },
+          {
+            "samples": 977,
+            "share": 0.1375668825682906,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+          },
+          {
+            "samples": 850,
+            "share": 0.11968459588848211,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config, zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G1Config>>>::feed"
+          },
+          {
+            "samples": 778,
+            "share": 0.10954660658969305,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 674,
+            "share": 0.09490284426921994,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 137,
+            "share": 0.019290340749084766,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 116,
+            "share": 0.016333427203604617,
+            "symbol": "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new"
+          },
+          {
+            "samples": 109,
+            "share": 0.015347789355111236,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+          },
+          {
+            "samples": 97,
+            "share": 0.013658124471979723,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G1Config>::{closure#1}>>"
+          },
+          {
+            "samples": 96,
+            "share": 0.013517319065052097,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double"
+          }
+        ]
+      },
+      "single_panel_PMU": {
+        "branch-misses:u": {
+          "OFF_per_MSM": 159210.24609375,
+          "ON_OFF": 1.0167014317717606,
+          "ON_per_MSM": 161869.28515625
+        },
+        "cache-misses:u": {
+          "OFF_per_MSM": 276112.890625,
+          "ON_OFF": 0.9083193015764329,
+          "ON_per_MSM": 250798.66796875
+        },
+        "cycles:u": {
+          "OFF_per_MSM": 110924254.609375,
+          "ON_OFF": 1.0052303800097584,
+          "ON_per_MSM": 111504430.61328124
+        },
+        "instructions:u": {
+          "OFF_per_MSM": 207053632.48828125,
+          "ON_OFF": 0.9996611955532332,
+          "ON_per_MSM": 206983481.796875
+        }
+      }
+    },
+    {
+      "XYZZ_type_namespace_samples": 0,
+      "context": "g2-phi-w1",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.2,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.00013333333333333345,
+          "user_cpu_ms": 22.862
+        },
+        "ON": {
+          "involuntary_switches": 0.26666666666666666,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.06719999999999997,
+          "user_cpu_ms": 23.093999999999998
+        },
+        "REF": {
+          "involuntary_switches": 0.2,
+          "minor_faults": 0.13333333333333333,
+          "system_cpu_ms": 0.0,
+          "user_cpu_ms": 22.522733333333335
+        }
+      },
+      "profile_top_symbols": {},
+      "single_panel_PMU": {}
+    },
+    {
+      "XYZZ_type_namespace_samples": 1242,
+      "context": "g2-phi-w16",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.0,
+          "minor_faults": 33.666666666666664,
+          "system_cpu_ms": 0.3582666666666667,
+          "user_cpu_ms": 28.48506666666667
+        },
+        "ON": {
+          "involuntary_switches": 0.0,
+          "minor_faults": 38.86666666666667,
+          "system_cpu_ms": 0.528,
+          "user_cpu_ms": 28.59853333333334
+        },
+        "REF": {
+          "involuntary_switches": 0.0,
+          "minor_faults": 40.2,
+          "system_cpu_ms": 0.4531999999999999,
+          "user_cpu_ms": 27.91633333333333
+        }
+      },
+      "profile_top_symbols": {
+        "OFF": [
+          {
+            "samples": 3222,
+            "share": 0.35468956406869223,
+            "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+          },
+          {
+            "samples": 1776,
+            "share": 0.1955085865257596,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+          },
+          {
+            "samples": 948,
+            "share": 0.10435931307793923,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 554,
+            "share": 0.060986349625715544,
+            "symbol": "<&zopro_core::msm_affine::g2_phi::hb_raw_with<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+          },
+          {
+            "samples": 534,
+            "share": 0.058784676354029064,
+            "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+          },
+          {
+            "samples": 425,
+            "share": 0.04678555702333774,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 256,
+            "share": 0.028181417877586965,
+            "symbol": "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>"
+          },
+          {
+            "samples": 201,
+            "share": 0.02212681638044914,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine"
+          },
+          {
+            "samples": 178,
+            "share": 0.019594892118009688,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 107,
+            "share": 0.011778952003522677,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>"
+          }
+        ],
+        "ON": [
+          {
+            "samples": 3228,
+            "share": 0.3554283197533583,
+            "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+          },
+          {
+            "samples": 1862,
+            "share": 0.20502092050209206,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+          },
+          {
+            "samples": 901,
+            "share": 0.09920722307861704,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 558,
+            "share": 0.061440211407179035,
+            "symbol": "zopro_core::msm_affine::g2_phi::hb_window::<zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G2Config>>"
+          },
+          {
+            "samples": 557,
+            "share": 0.0613301035014314,
+            "symbol": "<zopro_core::msm_affine::g2_borrowed::Window<zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G2Config>>>::feed"
+          },
+          {
+            "samples": 423,
+            "share": 0.04657564413124862,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 290,
+            "share": 0.03193129266681348,
+            "symbol": "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>"
+          },
+          {
+            "samples": 198,
+            "share": 0.02180136533803127,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 113,
+            "share": 0.012442193349482492,
+            "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>"
+          },
+          {
+            "samples": 108,
+            "share": 0.011891653820744329,
+            "symbol": "[unknown]"
+          }
+        ]
+      },
+      "single_panel_PMU": {
+        "branch-misses:u": {
+          "OFF_per_MSM": 190249.953125,
+          "ON_OFF": 1.0377380800931537,
+          "ON_per_MSM": 197429.62109375
+        },
+        "cache-misses:u": {
+          "OFF_per_MSM": 514250.6171875,
+          "ON_OFF": 0.9975081838972635,
+          "ON_per_MSM": 512969.19921875
+        },
+        "cycles:u": {
+          "OFF_per_MSM": 141782593.09375,
+          "ON_OFF": 1.0025633061674375,
+          "ON_per_MSM": 142146025.2890625
+        },
+        "instructions:u": {
+          "OFF_per_MSM": 331627040.90625,
+          "ON_OFF": 0.9999140480105954,
+          "ON_per_MSM": 331598536.90234375
+        }
+      }
+    },
+    {
+      "XYZZ_type_namespace_samples": 1965,
+      "context": "g2-phi-w32",
+      "median_usage_per_MSM": {
+        "OFF": {
+          "involuntary_switches": 0.8666666666666667,
+          "minor_faults": 20.4,
+          "system_cpu_ms": 1.3477999999999999,
+          "user_cpu_ms": 45.193799999999996
+        },
+        "ON": {
+          "involuntary_switches": 0.8666666666666667,
+          "minor_faults": 29.266666666666666,
+          "system_cpu_ms": 1.3917333333333335,
+          "user_cpu_ms": 45.07466666666666
+        },
+        "REF": {
+          "involuntary_switches": 1.0,
+          "minor_faults": 27.733333333333334,
+          "system_cpu_ms": 1.4268666666666665,
+          "user_cpu_ms": 45.108
+        }
+      },
+      "profile_top_symbols": {
+        "OFF": [
+          {
+            "samples": 4302,
+            "share": 0.3239945774966109,
+            "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+          },
+          {
+            "samples": 2072,
+            "share": 0.15604759752974845,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+          },
+          {
+            "samples": 1431,
+            "share": 0.10777225485765929,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 1132,
+            "share": 0.08525380328362706,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 882,
+            "share": 0.06642566651604158,
+            "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+          },
+          {
+            "samples": 793,
+            "share": 0.059722849826781145,
+            "symbol": "<&zopro_core::msm_affine::g2_phi::hb_raw_with<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+          },
+          {
+            "samples": 373,
+            "share": 0.028091580057237536,
+            "symbol": "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>"
+          },
+          {
+            "samples": 220,
+            "share": 0.01656876035547522,
+            "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine"
+          },
+          {
+            "samples": 217,
+            "share": 0.016342822714264196,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 198,
+            "share": 0.0149118843199277,
+            "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+          }
+        ],
+        "ON": [
+          {
+            "samples": 4248,
+            "share": 0.3203136781782537,
+            "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+          },
+          {
+            "samples": 2271,
+            "share": 0.1712411400995325,
+            "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+          },
+          {
+            "samples": 1306,
+            "share": 0.09847685115367215,
+            "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+          },
+          {
+            "samples": 1222,
+            "share": 0.09214296486201176,
+            "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+          },
+          {
+            "samples": 889,
+            "share": 0.06703362992007239,
+            "symbol": "<zopro_core::msm_affine::g2_borrowed::Window<zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G2Config>>>::feed"
+          },
+          {
+            "samples": 802,
+            "share": 0.060473533403709846,
+            "symbol": "zopro_core::msm_affine::g2_phi::hb_window::<zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G2Config>>"
+          },
+          {
+            "samples": 377,
+            "share": 0.028427084904237673,
+            "symbol": "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>"
+          },
+          {
+            "samples": 227,
+            "share": 0.017116573669129845,
+            "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+          },
+          {
+            "samples": 193,
+            "share": 0.01455285778917207,
+            "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+          },
+          {
+            "samples": 164,
+            "share": 0.012366158950384558,
+            "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw_with<zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G2Config>>::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw_with<zopro_core::msm_affine::sparse_point::xyzz::Xyzz<zopro_bn254::curve::G2Config>>::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+          }
+        ]
+      },
+      "single_panel_PMU": {
+        "branch-misses:u": {
+          "OFF_per_MSM": 223935.16015625,
+          "ON_OFF": 1.011417018538831,
+          "ON_per_MSM": 226491.83203125
+        },
+        "cache-misses:u": {
+          "OFF_per_MSM": 718620.63671875,
+          "ON_OFF": 1.0740616831563103,
+          "ON_per_MSM": 771842.890625
+        },
+        "cycles:u": {
+          "OFF_per_MSM": 207210605.859375,
+          "ON_OFF": 1.0049917563397828,
+          "ON_per_MSM": 208244950.71484375
+        },
+        "instructions:u": {
+          "OFF_per_MSM": 344202212.24609375,
+          "ON_OFF": 0.9995460898240623,
+          "ON_per_MSM": 344045975.359375
+        }
+      }
+    }
+  ]
+}
