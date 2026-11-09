@@ -1,0 +1,70 @@
+{
+  "accepted_major_faults_unavailable": true,
+  "adopted": false,
+  "contexts": [
+    {
+      "context": "1x2-w16",
+      "m0_instructions_per_request": 1343353002.3225806,
+      "m0_ms": 9.65989393548387,
+      "remove_ALL_ms": 2.237922741935484,
+      "remove_A_ms": 8.466017774193551,
+      "remove_G2_KH_ms": 4.005517935483871,
+      "remove_G2_ms": 6.514417354838709,
+      "remove_KH_ms": 7.031359612903227
+    },
+    {
+      "context": "1x2-w32",
+      "m0_instructions_per_request": 1386530890.548387,
+      "m0_ms": 8.023721870967742,
+      "remove_ALL_ms": 2.452107129032258,
+      "remove_A_ms": 7.630239032258064,
+      "remove_G2_KH_ms": 3.875174032258065,
+      "remove_G2_ms": 5.446772387096775,
+      "remove_KH_ms": 6.4967438709677445
+    },
+    {
+      "context": "4x2-w32",
+      "m0_instructions_per_request": 2365784105.2580647,
+      "m0_ms": 16.199434258064514,
+      "remove_ALL_ms": 5.65827929032258,
+      "remove_A_ms": 15.414282870967742,
+      "remove_G2_KH_ms": 8.437663096774193,
+      "remove_G2_ms": 12.829492612903229,
+      "remove_KH_ms": 12.60601687096774
+    }
+  ],
+  "counter_panels": 30,
+  "data_verified": true,
+  "decision": "Use32worker results to prioritize real G2 and KH arithmetic/work reductions. Do not promote cached-query times or infer exact/additive cost fractions, immutable lower bounds, or RAM-only causality. Retain16worker and one profile qualification failures.",
+  "failed_checks": [
+    {
+      "name": "1x2-w16:OFF/accepted-calibration",
+      "passed": false
+    },
+    {
+      "name": "1x2-w16:m0/OFF-observer",
+      "passed": false
+    },
+    {
+      "name": "automatic-diagnostic-quality",
+      "passed": false
+    }
+  ],
+  "failed_profiles": [
+    {
+      "assigned_percent": 100.0,
+      "profile": "4x2-w32-m7",
+      "samples": 17270,
+      "unknown_percent": 5.338737695425594,
+      "zero_LOST": true
+    }
+  ],
+  "global_diagnostic_qualification_passed": false,
+  "goal_active": true,
+  "goal_complete": false,
+  "maximum_measured_major_faults_per_process": 0,
+  "minimum_counter_running_percent": 100.0,
+  "processes_with_major_fault_counter": 549,
+  "profile_samples": 720598,
+  "profiles": 30
+}
