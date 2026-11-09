@@ -1,0 +1,9 @@
+# Joint endpoint release artifacts and complete MSM qualification
+
+Preserve all frozen checked caller sources and receipts. Copy the 178-source qualified caller snapshot here. The only new source suffix exports the actual complete raw G1/G2 MSM entry points for an independent full-width generator-coefficient oracle. Field arithmetic and original caller adapter prefix stay byte-exact. OFF and ON share all source and the same newly built release field, differing only in the core/driver endpoint selector.
+
+Compile with native optimization, embedded bitcode and one codegen unit. Explicitly disable debug assertions and overflow checks for the normal release field and cores, omit both diagnostic cfgs (field raw helper exports and caller TLS route counters), and use fat LTO for actual consumers. These are newly qualified release artifacts, not timing results assigned to the earlier checked binaries.
+
+An independent new complete MSM population covers raw actual dispatch for G1/G2, sizes 0/1/7/8/9/255/1024/2051, 1/4/16/32-worker pools with 512KiB requested stacks, ordinary and exceptional repeated/opposite/identity bases, zero/one/minus-one/full-width scalar edges, and unchanged input arrays. Expected sums derive independently from Arkworks field coefficient dot products and generator multiplication. Comparison counts describe cases, not proofs. This is not a full actual proving-key query, all-shape proof, or generic/ARM/mobile execution.
+
+Build matched complete caller consumers from the existing driver with only its compiled cfg name changed. Decode and inspect these actual release consumers before deciding whether a fixed prospectively frozen caller performance test is justified. No timings or profiles in this stage. No whole-proof gain, CPU10× achievement, or favorable-curve selection from static code counts. Existing universal bounded-memory constraints and production sources remain unchanged.

@@ -1,0 +1,14 @@
+{
+  "all_original_176_recoverable_via_qualified_parent": true,
+  "diagnostic_cfgs_omitted": true,
+  "driver_single_cfg_name_change": true,
+  "exact_qualified_caller_entries": 177,
+  "field_source_exact": true,
+  "lib_suffix": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma),zopro_g2_horner_buckets))]\nmod joint_complete_exports {use super::*;\n// Private qualification entry points retain the actual complete MSM dispatch.\n#[doc(hidden)]pub fn joint_complete_g1(bases:&[G1Affine],words:&[[u64;4]])->G1Projective {\n    msm_affine::msm_raw::<zopro_bn254::G1Config>(bases,words)\n}\n#[doc(hidden)]pub fn joint_complete_g2(bases:&[G2Affine],words:&[[u64;4]])->G2Projective {\n    msm_affine::g2_query_raw(bases,words)\n}\n\n}\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma),zopro_g2_horner_buckets))]\npub use joint_complete_exports::{joint_complete_g1,joint_complete_g2};\n",
+  "normal_release_no_debug_assertions_or_overflow_checks": true,
+  "only_new_change": "guarded complete MSM diagnostic exports appended to lib.rs",
+  "passed": true,
+  "performance_recordings": 0,
+  "qualified_parent_review": "/home/ubuntu/src/zopro-perf-work/joint-coordinate-delta-callers176/review.json",
+  "source_entries": 178
+}
