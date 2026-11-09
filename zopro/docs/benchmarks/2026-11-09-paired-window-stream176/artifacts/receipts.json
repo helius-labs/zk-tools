@@ -1,0 +1,169 @@
+[
+  {
+    "command": {
+      "argv": [
+        "timeout",
+        "-k",
+        "5s",
+        "300s",
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "/home/ubuntu/src/zopro-perf-work/paired-window-stream176/model.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/paired-window-stream176/model-test",
+        "--test"
+      ],
+      "environment": {}
+    },
+    "exit": {
+      "elapsed_ms": 274.4702,
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "success": true
+    },
+    "name": "build-model-test",
+    "stderr": "",
+    "stdout": ""
+  },
+  {
+    "command": {
+      "argv": [
+        "timeout",
+        "-k",
+        "5s",
+        "300s",
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "/home/ubuntu/src/zopro-perf-work/paired-window-stream176/model.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/paired-window-stream176/model"
+      ],
+      "environment": {}
+    },
+    "exit": {
+      "elapsed_ms": 581.6263849999999,
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "success": true
+    },
+    "name": "build-model",
+    "stderr": "",
+    "stdout": ""
+  },
+  {
+    "command": {
+      "argv": [
+        "timeout",
+        "-k",
+        "5s",
+        "300s",
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "/home/ubuntu/src/zopro-perf-work/paired-window-stream176/review.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/paired-window-stream176/review"
+      ],
+      "environment": {}
+    },
+    "exit": {
+      "elapsed_ms": 431.192069,
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "success": true
+    },
+    "name": "build-review",
+    "stderr": "",
+    "stdout": ""
+  },
+  {
+    "command": {
+      "argv": [
+        "timeout",
+        "-k",
+        "5s",
+        "120s",
+        "/home/ubuntu/src/zopro-perf-work/paired-window-stream176/model-test",
+        "--nocapture"
+      ],
+      "environment": {}
+    },
+    "exit": {
+      "elapsed_ms": 2.2019499999999996,
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "9e3c674be24b9841c0624ec908a86fb11bdf5f942fc8d325266fb958cfa625df",
+      "success": true
+    },
+    "name": "new-paired-state-tests",
+    "stderr": "",
+    "stdout": "\nrunning 2 tests\nPAIRED_MERGE_CASES=9\ntest tests::merged_parts_match_two_independent_signed_windows ... ok\nPAIRED_STATE_CASES=60\ntest tests::original_queue_busy_and_spill_boundaries ... ok\n\ntest result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n\n"
+  },
+  {
+    "command": {
+      "argv": [
+        "timeout",
+        "-k",
+        "5s",
+        "120s",
+        "/home/ubuntu/src/zopro-perf-work/paired-window-stream176/model"
+      ],
+      "environment": {}
+    },
+    "exit": {
+      "elapsed_ms": 57.627001,
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "8f38b8ab7aabfd49e242f2245c6e48bf7d88ee99cd9846948aad146e5e7f0015",
+      "success": true
+    },
+    "name": "retained-primary-paired-window-census",
+    "stderr": "",
+    "stdout": "Pairedwindow modeledstream=1640/merge=139 stages=1779 vs3713;genericjoins=1100052;nativeimplementationselected=false;no timings\n"
+  },
+  {
+    "command": {
+      "argv": [
+        "timeout",
+        "-k",
+        "5s",
+        "120s",
+        "/home/ubuntu/src/zopro-perf-work/paired-window-stream176/review"
+      ],
+      "environment": {}
+    },
+    "exit": {
+      "elapsed_ms": 32.780062,
+      "returncode": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "574132a28fb7c2a3b391a8f28e60601df14e1d3b28b51eea5cf7a4b679a1e585",
+      "success": true
+    },
+    "name": "independent-saved-count-reader",
+    "stderr": "",
+    "stdout": "Pairedwindow readerPASS20actors/20merges/1229020independentbits;no proof or native correctness claim\n"
+  }
+]
