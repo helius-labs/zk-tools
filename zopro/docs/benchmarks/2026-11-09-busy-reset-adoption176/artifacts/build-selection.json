@@ -1,0 +1,78 @@
+{
+  "GPU_selection_preserved": true,
+  "cases": 10,
+  "no_runtime_proof_calls": true,
+  "passed": true,
+  "rows": [
+    {
+      "expected": true,
+      "name": "native-ifma",
+      "selected": true,
+      "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-cfg=zopro_dense_busy_reset\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n",
+      "target_arch": "x86_64"
+    },
+    {
+      "expected": false,
+      "name": "missing-ifma",
+      "selected": false,
+      "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n",
+      "target_arch": "x86_64"
+    },
+    {
+      "expected": false,
+      "name": "missing-vl",
+      "selected": false,
+      "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n",
+      "target_arch": "x86_64"
+    },
+    {
+      "expected": false,
+      "name": "missing-dq",
+      "selected": false,
+      "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n",
+      "target_arch": "x86_64"
+    },
+    {
+      "expected": false,
+      "name": "feature-disabled",
+      "selected": false,
+      "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n",
+      "target_arch": "x86_64"
+    },
+    {
+      "expected": false,
+      "name": "explicit-no-ifma",
+      "selected": false,
+      "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n",
+      "target_arch": "x86_64"
+    },
+    {
+      "expected": false,
+      "name": "arm",
+      "selected": false,
+      "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n",
+      "target_arch": "aarch64"
+    },
+    {
+      "expected": false,
+      "name": "wasm",
+      "selected": false,
+      "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n",
+      "target_arch": "wasm32"
+    },
+    {
+      "expected": true,
+      "name": "native-metal-fallback",
+      "selected": true,
+      "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-cfg=zopro_dense_busy_reset\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\ncargo::rustc-cfg=gpu\ncargo::rustc-cfg=gpu_any\n",
+      "target_arch": "x86_64"
+    },
+    {
+      "expected": true,
+      "name": "native-wgpu-fallback",
+      "selected": true,
+      "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-cfg=zopro_dense_busy_reset\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\ncargo::rustc-cfg=gpu_wgpu\ncargo::rustc-cfg=gpu_any\n",
+      "target_arch": "x86_64"
+    }
+  ]
+}

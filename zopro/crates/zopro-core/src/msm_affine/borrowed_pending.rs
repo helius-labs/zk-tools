@@ -83,6 +83,15 @@ impl<'a, C: CurveConfig<Base = Fq>> Window<'a, C> {
         }
         self.packed
             .apply_signed_borrowed(&mut self.affine, &self.batch);
+        #[cfg(zopro_dense_busy_reset)]
+        if self.busy.len() <= self.batch.len() {
+            self.busy.fill(0);
+        } else {
+        for (index, _) in &self.batch {
+            self.busy[(index & 0x7fffffff) as usize / 64] = 0;
+        }
+        }
+        #[cfg(not(zopro_dense_busy_reset))]
         for (index, _) in &self.batch {
             self.busy[(index & 0x7fffffff) as usize / 64] = 0;
         }
@@ -456,5 +465,97 @@ mod tests {
                 }
             });
         }
+    }
+}
+
+#[cfg(all(test,zopro_dense_busy_reset))]
+mod busy_reset_qualification {
+    use super::*;
+    use zopro_bn254::{Fr, Field};
+    type Config = zopro_bn254::G1Config;
+    type Point = zopro_bn254::Affine<Config>;
+    type Proj = zopro_bn254::Projective<Config>;
+    type State<'a> = Window<'a, Config>;
+    fn state<'a>(half: usize, size: usize) -> State<'a> { Window::new(half,size) }
+    #[derive(Default, Debug)]
+    struct Counts { cases: usize, checks: usize, dense: usize, sparse: usize, empty: usize, queued: usize, flushes: usize, equal: usize, opposite: usize, identities: usize }
+    impl Counts {
+        fn add(&mut self, b: Self) { self.cases+=b.cases;self.checks+=b.checks;self.dense+=b.dense;self.sparse+=b.sparse;self.empty+=b.empty;self.queued+=b.queued;self.flushes+=b.flushes;self.equal+=b.equal;self.opposite+=b.opposite;self.identities+=b.identities; }
+    }
+    fn check(s: &State<'_>, c: &mut Counts) {
+        let mut want = vec![0u64; s.busy.len()];
+        for &(encoded, _) in &s.batch {
+            let b = (encoded & 0x7fffffff) as usize;
+            assert_eq!(want[b/64] >> (b%64) & 1, 0);
+            want[b/64] |= 1 << (b%64);
+        }
+        assert_eq!(s.busy, want); c.checks += 1;
+    }
+    fn execute(s: &mut State<'_>, c: &mut Counts) {
+        check(s,c);
+        let ptr = s.busy.as_ptr(); let cap = s.busy.capacity(); let len = s.busy.len();
+        if s.batch.is_empty() { c.empty+=1; }
+        else if s.busy.len() <= s.batch.len() { c.dense+=1; }
+        else { c.sparse+=1; }
+        s.execute();
+        assert!(s.busy.iter().all(|v| *v==0)); assert!(s.batch.is_empty());
+        assert_eq!(s.busy.as_ptr(),ptr); assert_eq!(s.busy.capacity(),cap); assert_eq!(s.busy.len(),len);
+        check(s,c);
+    }
+    fn points() -> (Vec<Point>,Vec<Fr>) {
+        let g=Proj::generator(); let mut w=Fr::from(0x123456789abcdefu64);
+        let mut weights=Vec::new();
+        for i in 0..64 {w=w.double()+Fr::from(0x9e3779b97f4a7c15u64);weights.push(match i%16 {0=>Fr::ZERO,1|2=>Fr::ONE,3=>-Fr::ONE,_=>w});}
+        let points=Proj::batch_to_affine(&weights.iter().map(|w|g**w).collect::<Vec<_>>());
+        (points,weights)
+    }
+    fn case(half:usize,size:usize,points:&[Point],weights:&[Fr]) -> Counts {
+        let mut c=Counts::default(); let mut s=state(half,size);
+        let n=half.min(size+7); let mut want=vec![Fr::ZERO;half];
+        execute(&mut s,&mut c);
+        for i in 0..(4*n+19) {
+            let j=i%points.len();let p=&points[j];
+            if p.is_identity() {c.identities+=1;continue;}
+            let b=if i%9==0 {0} else {(i*37+i/7)%n};
+            let neg=i%3==0;let encoded=b as u32|if neg{1<<31}else{0};
+            want[b]+=if neg{-weights[j]}else{weights[j]};
+            if s.busy(b) {
+                s.queue.push((encoded,p));c.queued+=1;
+                if s.queue.len()==size-1 {s.flush_queue();c.flushes+=1;}
+            } else {
+                if !s.affine[b].is_identity() && s.affine[b].x==p.x {
+                    if s.affine[b].y==if neg{-p.y}else{p.y}{c.equal+=1;}else{c.opposite+=1;}
+                }
+                s.add(encoded,p);
+                if s.batch.len()==size {execute(&mut s,&mut c);s.take_from_queue();}
+            }
+            check(&s,&mut c);
+        }
+        execute(&mut s,&mut c);
+        s.take_from_queue();check(&s,&mut c);
+        execute(&mut s,&mut c);
+        let actual=s.finish();let g=Proj::generator();
+        for (i,(&w,p)) in want.iter().zip(&actual).enumerate() {assert_eq!(*p,(g*w).to_affine(),"bucket {i}/{half},capacity {size}");}
+        c.cases+=1;c
+    }
+    #[test]
+    fn exact_pending_set_complete_windows_and_workers() {
+        let (p,w)=points();let original=p.clone();let mut c=Counts::default();
+        for half in [1,63,64,65,127,128,2048,4096,16384] {for size in [8,32,200,352,512] {c.add(case(half,size,&p,&w));}}
+        assert_eq!(c.cases,45);assert!(c.dense>0&&c.sparse>0&&c.empty>0&&c.queued>0&&c.flushes>0);
+        let mut workers=0;
+        for n in [1,4,16,32] {
+            let pool=rayon::ThreadPoolBuilder::new().num_threads(n).stack_size(512*1024).build().unwrap();
+            let outputs=pool.broadcast(|_|case(65,32,&p,&w));assert_eq!(outputs.len(),n);
+            for o in outputs {c.add(o);}workers+=n;
+        }
+        let pool=rayon::ThreadPoolBuilder::new().num_threads(8).stack_size(512*1024).build().unwrap();
+        let outputs=std::thread::scope(|scope|{
+            let mut handles=Vec::new();for _ in 0..4 {let pool=&pool;let p=&p;let w=&w;handles.push(scope.spawn(move||{let mut out=Counts::default();for _ in 0..3 {out.add(pool.install(||case(65,32,p,w)));}out}));}
+            handles.into_iter().map(|h|h.join().unwrap()).collect::<Vec<_>>()
+        });
+        for o in outputs {c.add(o);}
+        assert_eq!(workers,53);assert_eq!(c.cases,110);assert_eq!(p,original);
+        println!("BUSY_RESET G1 WORKERS={workers} CONCURRENT_CALLS=12 COUNTS={c:?}");
     }
 }

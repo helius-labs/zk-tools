@@ -1,4 +1,19 @@
 fn main() {
+    // Select the measured borrowed-window metadata path on native IFMA builds.
+    println!("cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)");
+    let arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+    let features = std::env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
+    let ifma8 = std::env::var_os("CARGO_FEATURE_IFMA8").is_some();
+    let disabled = std::env::var_os("CARGO_CFG_NO_IFMA").is_some();
+    if arch == "x86_64"
+        && ifma8
+        && !disabled
+        && ["avx512ifma", "avx512vl", "avx512dq"]
+            .iter()
+            .all(|needed| features.split(',').any(|feature| feature == *needed))
+    {
+        println!("cargo::rustc-cfg=zopro_dense_busy_reset");
+    }
     println!("cargo::rustc-check-cfg=cfg(gpu)");
     println!("cargo::rustc-check-cfg=cfg(gpu_wgpu)");
     println!("cargo::rustc-check-cfg=cfg(gpu_any)");
