@@ -1,0 +1,25 @@
+# Continue after the original-order forward-map query
+
+GoalACTIVE/UNMET0/8: verifiedsingle-proofCPUAVX>=10xsuppliedM5CPUALL8,reportCPU+Metal. No budgets/questions/subagents;Rust1.98.1/serializedxtask;commitANDpushcompletedexperiments,politefactualreports. Universal lowRAM:no multiGBLUT,retainedkey/witness/point/scalarcopy/plan,newproductionpool,artificialcap,C/ASMrewrite. PreviousgoalturnPROGRESScompleteforwardtransformcapture/report/push6335f2daea. ThisturnPROGRESSneworiginal-orderquery/native/actuallinks/frozencapture/profiles/reader/allnegative+positiveevidence/report/push.
+
+Root/home/ubuntu/src/zopro-perf-work/forward-phi-query176. Actualcapture26942terminal0;functionskeyforward_phi_query176_capture_sessioncleared. No livejob/ownedcloudresource. All399captureoffline+7native/caller+3toolbuildcommandscompletefirstexecution,409successfulworkflowreceipts,nofailedscientificcommand. One applypatch syntax rejection beforeedit/build retainedintooltranscript;receiptlabelcleanupbeforecallerlinks/clocks,notruntimechange. Original176recover(174exact+2appendparents)+3privatechildren. Originalfunctionsbyteexact;ONLYthreeaffineforwardloopsusequalifiednegative_phi_short map. No scalarpair swap/finalquerycorrection; originalprojectivebeta/split/order/window12/parts2/grouping/admission/queues/weightingunchanged. Sourceprefixrecoveryindependentlycheckedprospectively.
+
+Native3newtestsPASS125inheritedfiltered:40raw/owned+21group/admissioncases,106nestedquerieson53actualRayonworkers512KiBrequestedstacks. Expectedlengthguardassertcaught,nottestfailure. GenericnoASM/noIFMAcompilePASS,notportableexecution. QualifiedshortnegativefieldREUSEDexact,no fieldrebuild/retest. RealBfixtures+independentfullArkworksMSMoraclesreused,noresolve/oraclererun. Everytimedoutputmatchesoracle/keypointsunchanged/N+1tasks/workerCPUchecked.
+
+Capture354callers/28140completequeriesincludingprimespostchecks,318latencyprocesses,31primary15otherblocks. Allrecordingbeforeoffline,onlyexacthandlepolled. FrozenreaderPASS412pins/399commands/7nativecallerreceipts/all37gates/rawmeans/two-shapeaggregate/profileassignment. All9profilesqualify82385samples/zeroLOST/unknown<=0.948%;all36PMU100%running. Thesearequerytimings,NOTproofs orM5speedup. AllRSSchecksPASS;benchprocesspeak13..35.25MiB,notproverpeak/minRAM.
+
+GATEFALSE sevenfailures:
+1x2-w32/OFF/REF/calibration;
+1x2-w32/ON/OFF/primary-gain;
+1x2-w32/ON/REF/nonregression;
+1x2-w32/ON/REF/primary-gain;
+2x2-w16/OFF/REF/calibration;
+2x2-w32/OFF/REF/calibration;
+two-shape32/ON/REF/gain.
+PrimarymarginalREF/OFF/ON3.143465/3.160846/3.102894ms. PairedON/OFF0.977754377[0.956035486,1.000361996],22/31wins (2.225%positiveestimate,NOTverifiedgain);ON/REF1.004649567[0.989709536,1.022034689],22/31wins (pointestimateslightlyslowerdespitelowermarginalmedian). OFF/REF1.027507103[1.011733286,1.045152373]outsidefactor1.03. Keepoutliers/allblocks;no unchangedreroll/extension/threshold/subset/parameter/layoutrescue oradditionalexception. ExactqueryrecipeCLOSED,notadopted,noreplacementselected. Parenttransform12.39%validinitsownendpoint;doesnotestablishquery/proofgain.
+
+Positivesretained: all6withinbinaryON/OFFpointestimatesimprove;solo1x2/2x2ratios0.982088192/0.981360496,15/15wins;primary16ratio0.973647345[0.952386747,0.993984151];2x2w32ratio0.960434473[0.925739686,0.985438838],14/15wins.32two-shapeaggregateON/OFF0.969055731[0.948820763,0.986567138]passes;vsREF0.998656846[0.984164524,1.014132350]fails. Neitherwaivesprimaryorcontrolfailures.1x2w32PMUinstructions568716270->555316606 (~2.36%less),cycles319862177->311987151 (~2.46%less),singlepanelsnotcausalbounds. Mapoptimizationtouchesonlysmallpartofquerywork;needsubstantialrealG2/KHarithmetic/workreductionforfullobjective.
+
+NEXTselectaDISTINCTrealG2/KHworkreductionafterreviewingexistingnegativehistory/profiles. Nonecurrentlyselectedorimplemented. DoNOTopenunchangedforward/inverse/beta-transformrecipeorclaimmapprimitivegainasproofgain. Reuseunchangedqualifiedlibraries/tests/oracles;derivefullconsumercost/resourceinvariantBEFOREnative. Freezeactualcoherentcontrols/order/rounds/readers/statistics/automaticprofilesbeforeanyclock. DuringANYpreflight/clock/profileONLYpoll exactconfirmed-livehandle;nohelpers/builds/hashes/analysis/decode/verifier/report/archive/push. Timeout/truncationnotterminal,repollexacthandle. Capture->offlineanalysis/frozenreview->report->commitANDpush->exactremoteverify. All8+54/Gnark/resources/admission/portable/concurrencybeforeadoption.
+
+Production176/SDK6d83andcanonical38668unchanged;noSDK/Gnarkrequests. Seedfutureinventory/exports /home/ubuntu/src/zopro-perf-work/weighted-prefix-fixed-sdk176/proof-sha256-after-capture.json. Historicalstandard1x2=7.915095msvalid/latest8.075143ms;distinctfixed7.869302msnotplacementdefault. LatestALL8fixedms7.869302033/10.984867843/15.734199647/23.929023235/33.722646157/39.776844863/66.183856353/65.448733471. Merge54=162.489760431msnoM5reference. M5CPU37/59/109/189/284/335/528/507ms;Metal24/30/48/74/101/124/176/175ms;CPU10xtargets3.7/5.9/10.9/18.9/28.4/33.5/52.8/50.7msallunmet0/8. NonewAWS/Aeglos/mobile/largecircuit/pressure/swap/minimumRAM/concurrentproofresult.
