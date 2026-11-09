@@ -1,0 +1,96 @@
+{
+  "PMU_min_running_percent": 99.9,
+  "RSS_additive_KiB": 256,
+  "RSS_ratio_limit": 1.05,
+  "adopted": false,
+  "all_recordings_before_any_offline_work": true,
+  "arms": {
+    "OFF": {
+      "binary": "/home/ubuntu/src/zopro-perf-work/fixed-factor-fft-performance176/caller-OFF",
+      "core_path_from_link": [
+        "zopro_core=/home/ubuntu/src/zopro-perf-work/fixed-factor-fft-release176/libs/OFF/libzopro_core.rlib"
+      ],
+      "sha256": "8bdbb1b73499e821c9f4005c2cff85e99954417d531cc80873e4928d2a9d88d6"
+    },
+    "ON": {
+      "binary": "/home/ubuntu/src/zopro-perf-work/fixed-factor-fft-performance176/caller-ON",
+      "core_path_from_link": [
+        "zopro_core=/home/ubuntu/src/zopro-perf-work/fixed-factor-fft-release176/libs/ON-v2/libzopro_core.rlib"
+      ],
+      "sha256": "a8104d634fa96c816762684b55449a26ee6d57f4a7e3d79bf83f075ee803421e"
+    },
+    "REF": {
+      "binary": "/home/ubuntu/src/zopro-perf-work/fixed-factor-fft-performance176/caller-REF",
+      "core_path_from_link": [
+        "zopro_core=/home/ubuntu/src/zopro-perf-work/g2-vector-sign-default175/frozen/candidate/libzopro_core-9dc62928d2988dd5d9b59a18502c8c462ce13a670f6b58a5eae26e88fc8bdc7c.rlib"
+      ],
+      "sha256": "b37254871705e749ce876434dc5663c975de32c7fe313ceb1532a39674c9cfe7"
+    }
+  },
+  "assigned_min_percent": 95,
+  "automatic_region_gated_profiles_all_contexts_arms": true,
+  "blocks": 7,
+  "calibration_factor": 1.05,
+  "caller_calls_including_first_oracle_and_primes": 25416,
+  "caller_processes": 180,
+  "calls_in_measured_loops": 24696,
+  "canonical_proofs_unchanged": 40154,
+  "capture_and_offline_commands": 270,
+  "contexts": [
+    {
+      "domain": 65536,
+      "workers": 1
+    },
+    {
+      "domain": 65536,
+      "workers": 16
+    },
+    {
+      "domain": 65536,
+      "workers": 32
+    },
+    {
+      "domain": 262144,
+      "workers": 1
+    },
+    {
+      "domain": 262144,
+      "workers": 16
+    },
+    {
+      "domain": 262144,
+      "workers": 32
+    }
+  ],
+  "gain_geometric_aggregate_contexts": [
+    "65536-w32",
+    "262144-w32"
+  ],
+  "gain_min_wins": 5,
+  "gain_upper_strict": 1.0,
+  "goal_complete": false,
+  "latency_calls": 31,
+  "latency_processes": 126,
+  "new_SDK_requests": 0,
+  "no_extension_reroll_or_subset": true,
+  "nonregression_upper": 1.02,
+  "obvious_regression_lower_strict": 1.02,
+  "preflight_calls": 3,
+  "preflights": 18,
+  "priming_calls": 3,
+  "profile_calls": 1024,
+  "profile_max_unknown_percent": 5,
+  "profile_min_samples": 1000,
+  "profile_period": 1000000,
+  "profile_processes": 18,
+  "range_is_descriptive_not_confidence_interval": true,
+  "ratio_ranks_zero_based": [
+    1,
+    3,
+    5
+  ],
+  "stat_calls": 128,
+  "stat_processes": 18,
+  "version": 1,
+  "zero_LOST_required": true
+}
