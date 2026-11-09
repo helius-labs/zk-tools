@@ -1,0 +1,11 @@
+{
+  "accepted_files": 176,
+  "accepted_group_size": 256,
+  "control_schedule_binding_not_machine_proof": true,
+  "manifest": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-11-09-busy-reset-adoption176/artifacts/production-source-manifest.json",
+  "manifest_sha256": "98aa8375935abd62ad21821407bd6ccb317493d87ffd7b0bc8a7ba0d381d1c5c",
+  "model_is_Arkworks_not_native_SIMD": true,
+  "weighted_body": "fn weighted_sum<C: CurveConfig>(\n    points: &mut [LimbPoint<C::Base>],\n    n: usize,\n    scratch: &mut Scratch<C>,\n) -> Projective<C>\nwhere\n    C::Base: BatchInverse,\n{\n    debug_assert!(n.is_power_of_two());\n    debug_assert_eq!(points.len(), 2 * n - 1);\n    {\n        // A power-of-two usize has at most usize::BITS reduction levels.\n        let mut starts = [0usize; usize::BITS as usize];\n        let mut counts = [0usize; usize::BITS as usize];\n        counts[0] = n;\n        let mut levels = 1;\n        let mut next = n;\n        while counts[0] > 1 {\n            let half = counts[0] / 2;\n            for i in 0..half {\n                points[next + i] = points[2 * i];\n            }\n            reduce_layer(points, &starts[..levels], &mut counts[..levels], scratch);\n            starts[levels] = next;\n            counts[levels] = half;\n            levels += 1;\n            next += half;\n        }\n        let mut sum = affine::<C>(points[0]).to_projective();\n        for start in starts[1..levels].iter().rev() {\n            sum = sum.double();\n            sum -= affine::<C>(points[*start]);\n        }\n        return sum;\n    }\n}\n",
+  "weighted_source": "/home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/msm.rs",
+  "weighted_source_sha256": "d616eb2e6542b358447099edea4a1c7923d6544c1e5840fa568df0d4f09caed9"
+}
