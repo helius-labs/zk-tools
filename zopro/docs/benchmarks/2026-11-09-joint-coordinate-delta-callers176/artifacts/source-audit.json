@@ -1,0 +1,62 @@
+{
+  "FAST_false_formulas_unchanged": true,
+  "G1_record_field_count": 5,
+  "accepted_originals_recoverable": 176,
+  "adapter_original_prefix": "/home/ubuntu/src/zopro-perf-work/joint-pair52-callers176/source/crates/zopro-core/src/msm/joint_complex_caller.rs",
+  "adapter_prefix_bytes": 5744,
+  "core_changes": [
+    {
+      "file": "crates/zopro-core/src/simd.rs",
+      "suffix": "\n#[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod joint_coordinate_bridge {use super::*;\n// This bridge retains Delta3's type and never exports it as an ordinary field.\npub(crate) struct JointDelta(zopro_bn254::ifma8::AffineDelta3<FqConfig>);\nimpl FqBatch {\n    #[inline(always)]\n    pub(crate) fn joint_x_delta(&self, ax: &Self, bx: &Self) -> (Self, JointDelta) {\n        let (x,d)=self.0.joint_x_delta(&ax.0,&bx.0); (Self(x),JointDelta(d))\n    }\n}\nimpl JointDelta {\n    #[inline(always)]\n    pub(crate) fn mul(&self,s:&FqBatch)->FqBatch { FqBatch(self.0.mul(&s.0)) }\n    #[inline(always)]\n    pub(crate) fn complex_mul(d0:&Self,d1:&Self,s:&[FqBatch;2])->[FqBatch;2] {\n        zopro_bn254::ifma8::AffineDelta3::complex_mul(&d0.0,&d1.0,&s[0].0,&s[1].0).map(FqBatch)\n    }\n}\n\n}\n#[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(crate)use joint_coordinate_bridge::JointDelta;\n"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "    #[cfg(not(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n    xsum: FqBatch,\n    #[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    bx_or_xsum: FqBatch,",
+      "old": "    xsum: FqBatch,"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "                #[cfg(not(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n                core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));\n                #[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n                core::ptr::addr_of_mut!((*slot).bx_or_xsum).write(if FAST{bx}else{canonical_add::<FAST>(&ax,&bx)});",
+      "old": "                core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "                #[cfg(not(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n                xsum: canonical_add::<FAST>(&ax, &bx),\n                #[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n                bx_or_xsum:if FAST{bx}else{canonical_add::<FAST>(&ax,&bx)},",
+      "old": "                xsum: canonical_add::<FAST>(&ax, &bx),"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "        #[cfg(not(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let x = slope.mul(&slope).sub(&g.xsum);\n        #[cfg(not(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);\n        #[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let(x,y)=if FAST{joint_g1_finish(&slope,&g.ax,&g.bx_or_xsum,&g.ay)}else{let x=slope.mul(&slope).sub(&g.bx_or_xsum);let y=slope.mul(&g.ax.sub(&x)).sub(&g.ay);(x,y)};",
+      "old": "        let x = slope.mul(&slope).sub(&g.xsum);\n        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "suffix": "\n#[cfg(all(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)),zopro_joint_caller_diagnostics))]\nstd::thread_local! { static JOINT_ROUTES: std::cell::Cell<[usize;3]>=const {std::cell::Cell::new([0;3])}; }\n#[cfg(zopro_joint_caller_diagnostics)]\n#[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[inline(always)]fn joint_route(i:usize) { JOINT_ROUTES.with(|v|{let mut c=v.get();c[i]+=1;v.set(c);}); }\n#[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[inline(always)]\nfn joint_g1_finish(s:&FqBatch,ax:&FqBatch,bx:&FqBatch,ay:&FqBatch)->(FqBatch,FqBatch) {\n    #[cfg(zopro_joint_caller_diagnostics)] joint_route(0);\n    let (x,d)=s.mul(s).joint_x_delta(ax,bx);\n    (x,d.mul(s).sub(ay))\n}\n#[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[inline(always)]\nfn joint_g2_finish<const BORROWED:bool>(s:&[FqBatch;2],ax:&[FqBatch;2],bx:&[FqBatch;2],ay:&[FqBatch;2])->([FqBatch;2],[FqBatch;2]) {\n    #[cfg(zopro_joint_caller_diagnostics)] joint_route(if BORROWED{1}else{2});\n    let square=Fq2::lanes_square(s);\n    let(x0,d0)=square[0].joint_x_delta(&ax[0],&bx[0]);\n    let(x1,d1)=square[1].joint_x_delta(&ax[1],&bx[1]);\n    let y=crate::simd::JointDelta::complex_mul(&d0,&d1,s);\n    ([x0,x1],Fq2::lanes_sub(&y,ay))\n}\n"
+    },
+    {
+      "file": "crates/zopro-core/src/msm/g2_borrowed.rs",
+      "new": "        #[cfg(not(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        #[cfg(not(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);\n        #[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let(x,y)=if FAST{joint_g2_finish::<true>(&slope,&ax,&bx,&ay)}else{\n        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);\n            (x,y)\n        };",
+      "old": "        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);"
+    },
+    {
+      "file": "crates/zopro-core/src/msm/g2_prefix.rs",
+      "new": "        #[cfg(not(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let x=Fq2::lanes_sub(&Fq2::lanes_square(&slope),&Fq2::lanes_add(&ax,&bx));\n        #[cfg(not(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let y=Fq2::lanes_sub(&Fq2::lanes_mul(&slope,&Fq2::lanes_sub(&ax,&x)),&ay);\n        #[cfg(all(zopro_joint_coordinate_delta,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let(x,y)=if FAST{joint_g2_finish::<false>(&slope,&ax,&bx,&ay)}else{\n        let x=Fq2::lanes_sub(&Fq2::lanes_square(&slope),&Fq2::lanes_add(&ax,&bx));\n        let y=Fq2::lanes_sub(&Fq2::lanes_mul(&slope,&Fq2::lanes_sub(&ax,&x)),&ay);\n            (x,y)\n        };",
+      "old": "        let x=Fq2::lanes_sub(&Fq2::lanes_square(&slope),&Fq2::lanes_add(&ax,&bx));\n        let y=Fq2::lanes_sub(&Fq2::lanes_mul(&slope,&Fq2::lanes_sub(&ax,&x)),&ay);"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "suffix": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub mod joint_coordinate_caller;\n"
+    },
+    {
+      "file": "crates/zopro-core/src/lib.rs",
+      "suffix": "\n#[cfg(all(feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[doc(hidden)]pub use msm::joint_coordinate_caller::{G1Caller,G2Caller,G1Probe,G2Probe,routes as joint_caller_routes,record_layout as joint_caller_layout};\n"
+    }
+  ],
+  "exact_originals": 170,
+  "generic_field_reused": "3da3593002462bdc711e93a7724136e60b30236104834119127877e849ce3385",
+  "new_kernel_heap_buffers": 0,
+  "passed": true,
+  "qualified_field_reused": "8e95729b3bd0de59fee555ccda9933b7eead7a99f9f08a7c857e03f6f4d50492",
+  "total_sources": 178,
+  "unchanged_scalar_tails_and_exception_routing": true
+}

@@ -1,0 +1,9 @@
+# Joint X/delta complete caller qualification
+
+Use the exact qualified joint-coordinate-delta176 checked field, without rebuilding it. Integrate the endpoint pair into actual G1 forward/reverse records and owned/borrowed G2 prefix paths. The ordinary full-vector kernels require nonidentity points, distinct X and distinct bucket indices; those preconditions do not change. Scalar tails, exception routing, generic lane helpers and inversion bodies remain unchanged.
+
+G1 retains five existing fields and 1600-byte records: under the new selector, the third field stores canonical Bx for FAST=true and the original X-sum for FAST=false. Forward packing from host coordinates establishes canonical Ax/Bx; no global lazy helper contract is changed. FAST=false uses the original formulas. G2 retains the original square and prefix flow; only FAST=true uses the joint finish. OFF source statements remain verbatim behind opposite guards.
+
+Qualification adds only diagnostic wrappers and per-thread route counters. Counters are guarded separately and will be omitted from any future performance artifact. The facade may allocate reference/owned vectors for test convenience; these are outside the changed kernel and must not be claimed as allocation-free full callers. No new production record field, buffer, table, plan, pool or cap.
+
+Use a new external unfiltered test binary with independent Arkworks point construction/addition. Cover every tail length, signs, zero-delta P+(-2P), coordinate reuse, both record stores, both inverse modes, FAST=false controls, and 1/4/16/32 Rayon workers with 512KiB requested stacks. Route counts must prove all three candidate paths execute and FAST=false bypasses them. Complete exceptional MSM queries require a later actual-dispatch oracle; ordinary stream tests must not be presented as that evidence. No timing or speedup is selected by this stage.
