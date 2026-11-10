@@ -1,0 +1,1 @@
+The first capture-helper compile lacked the rustc_demangle dependency used by the unchanged sampling parser. The repaired plan adds that external dependency to both helper compiles. Original failure retained; no helper had succeeded, and no preflight or timing had started. Sources, libraries, cases, analysis, and thresholds unchanged.
