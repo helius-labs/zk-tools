@@ -1,0 +1,512 @@
+{
+  "Aeglos_default_Rust_categories_other_not_unknown": true,
+  "CXX_named_symbol_shares_posthoc": true,
+  "absolute_period_coverage_unvalidated": true,
+  "after": {
+    "/proc/loadavg": "15.57 22.13 24.71 1/1280 105064\n",
+    "/proc/swaps": "Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority\n",
+    "/sys/fs/cgroup/cpu.max": "9600000 100000\n",
+    "/sys/fs/cgroup/cpu.stat": "usage_usec 73155759325\nuser_usec 70469443395\nsystem_usec 2686315930\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 26002\nnr_throttled 46\nthrottled_usec 341760\nnr_bursts 0\nburst_usec 0\n",
+    "/sys/fs/cgroup/memory.current": "292810752\n",
+    "/sys/fs/cgroup/memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\n",
+    "/sys/fs/cgroup/memory.max": "32212254720\n",
+    "/sys/fs/cgroup/memory.peak": "13896298496\n",
+    "/sys/fs/cgroup/memory.swap.current": "0\n",
+    "/sys/fs/cgroup/memory.swap.events": "high 0\nmax 0\nfail 0\n",
+    "/sys/fs/cgroup/memory.swap.max": "0\n"
+  },
+  "before": {
+    "/proc/loadavg": "2.34 1.62 0.68 1/1297 6\n",
+    "/proc/swaps": "Filename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority\n",
+    "/sys/fs/cgroup/cpu.max": "9600000 100000\n",
+    "/sys/fs/cgroup/cpu.stat": "usage_usec 2559153\nuser_usec 2226262\nsystem_usec 332890\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 26\nnr_throttled 0\nthrottled_usec 0\nnr_bursts 0\nburst_usec 0\n",
+    "/sys/fs/cgroup/memory.current": "15081472\n",
+    "/sys/fs/cgroup/memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0\n",
+    "/sys/fs/cgroup/memory.max": "32212254720\n",
+    "/sys/fs/cgroup/memory.peak": "15081472\n",
+    "/sys/fs/cgroup/memory.swap.current": "0\n",
+    "/sys/fs/cgroup/memory.swap.events": "high 0\nmax 0\nfail 0\n",
+    "/sys/fs/cgroup/memory.swap.max": "0\n"
+  },
+  "faults": [
+    {
+      "engine": "accepted",
+      "major_faults_per_query_median": 0.0,
+      "minor_faults_per_query_median": 181.83168316831683,
+      "workers": 32
+    },
+    {
+      "engine": "accepted",
+      "major_faults_per_query_median": 0.0,
+      "minor_faults_per_query_median": 195.6138613861386,
+      "workers": 64
+    },
+    {
+      "engine": "accepted",
+      "major_faults_per_query_median": 0.0,
+      "minor_faults_per_query_median": 199.04950495049505,
+      "workers": 96
+    },
+    {
+      "engine": "aeglos",
+      "major_faults_per_query_median": null,
+      "minor_faults_per_query_median": 34.584158415841586,
+      "workers": 32
+    },
+    {
+      "engine": "aeglos",
+      "major_faults_per_query_median": null,
+      "minor_faults_per_query_median": 71.85148514851485,
+      "workers": 64
+    },
+    {
+      "engine": "aeglos",
+      "major_faults_per_query_median": null,
+      "minor_faults_per_query_median": 91.31683168316832,
+      "workers": 96
+    }
+  ],
+  "profiles": [
+    {
+      "name": "cycles-1x2-w32-accepted",
+      "profile": {
+        "CXX_pool_work_period_percent_posthoc": 0.0,
+        "category_percent": {
+          "G1_arithmetic": 37.98481372053754,
+          "G2_arithmetic": 26.940782899433025,
+          "epoch": 8.770017877763816,
+          "fft": 4.306468898734652,
+          "grouping": 0.783254088999002,
+          "inverse": 5.912035865358765,
+          "other": 8.21966240155713,
+          "scheduler": 5.310016181175599,
+          "solver": 1.7729480664404682
+        },
+        "category_periods": {
+          "G1_arithmetic": 80238705153,
+          "G2_arithmetic": 56909415209,
+          "epoch": 18525689868,
+          "fft": 9096937812,
+          "grouping": 1654537373,
+          "inverse": 12488519916,
+          "other": 17363124978,
+          "scheduler": 11216820118,
+          "solver": 3745156109
+        },
+        "lost_records": 0,
+        "period": 211238906536,
+        "sampled_pids": [
+          104544
+        ],
+        "sampled_tids": 33,
+        "samples": 13039,
+        "top_symbols": [
+          [
+            "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+            47287984580
+          ],
+          [
+            "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+            36619307394
+          ],
+          [
+            "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+            14423654315
+          ],
+          [
+            "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+            12455702151
+          ],
+          [
+            "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+            10953642038
+          ],
+          [
+            "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+            9729072396
+          ],
+          [
+            "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+            8453320701
+          ],
+          [
+            "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+            5590126980
+          ],
+          [
+            "[unknown]",
+            5320110820
+          ],
+          [
+            "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+            4409234608
+          ],
+          [
+            "<crossbeam_epoch::internal::Global>::try_advance",
+            4102035553
+          ],
+          [
+            "<zopro_core::simd::FqBatch>::inverse_nonzero",
+            3341609647
+          ],
+          [
+            "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+            2763729034
+          ],
+          [
+            "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+            2613480690
+          ],
+          [
+            "<zopro_core::solver::Plan>::run",
+            2511454769
+          ],
+          [
+            "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+            2370975297
+          ],
+          [
+            "<rayon_core::registry::WorkerThread>::take_local_job.945",
+            2069598863
+          ],
+          [
+            "<zopro_core::msm_affine::borrowed_pending::Window<zopro_bn254::curve::G1Config>>::new",
+            1999950702
+          ],
+          [
+            "<rayon_core::registry::WorkerThread>::wait_until_cold",
+            1696429100
+          ],
+          [
+            "zopro_core::msm_affine::grouping::scalar_groups",
+            1623163763
+          ]
+        ],
+        "unknown_period_percent": 2.5185279109998278
+      }
+    },
+    {
+      "name": "cycles-1x2-w32-aeglos",
+      "profile": {
+        "CXX_pool_work_period_percent_posthoc": 16.063404541896848,
+        "category_percent": {
+          "other": 100.0
+        },
+        "category_periods": {
+          "other": 292512019189
+        },
+        "lost_records": 0,
+        "period": 292512019189,
+        "sampled_pids": [
+          104581
+        ],
+        "sampled_tids": 40,
+        "samples": 17214,
+        "top_symbols": [
+          [
+            "aeglos::cpu::Pool::work(unsigned int)",
+            46987388976
+          ],
+          [
+            "aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+            34853843898
+          ],
+          [
+            "aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+            31960836021
+          ],
+          [
+            "aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::invert_all(aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E*, unsigned long)",
+            31149055974
+          ],
+          [
+            "aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+            27582884273
+          ],
+          [
+            "aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+            17972609720
+          ],
+          [
+            "aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Sorted<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::accumulate(unsigned long)",
+            13858455519
+          ],
+          [
+            "aeglos::cpu::ifma512::U256 aeglos::cpu::ifma512::safegcd::invert<aeglos::cpu::ifma512::FpParams>(aeglos::cpu::ifma512::U256 const&)",
+            10127957583
+          ],
+          [
+            "aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Sorted<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::step(aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Phase, unsigned long)",
+            8937593081
+          ],
+          [
+            "aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::invert_all(aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E*, unsigned long)",
+            8372858199
+          ],
+          [
+            "aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::inverse(aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E const&)",
+            7907699514
+          ],
+          [
+            "aeglos::cpu::ifma512::glv::split(unsigned long const*, unsigned long*, unsigned long*)",
+            7099097757
+          ],
+          [
+            "aeglos::cpu::ifma512::Ntt<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FrParams> >::dif4_vectors(unsigned long*, unsigned int, aeglos::cpu::Direction, unsigned long, unsigned long) const",
+            5973455582
+          ],
+          [
+            "aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Sorted<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::accumulate(unsigned long)",
+            4075634989
+          ],
+          [
+            "aeglos::cpu::ifma512::Ntt<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FrParams> >::dit4_vectors(unsigned long*, unsigned int, aeglos::cpu::Direction, unsigned long, unsigned long) const",
+            3866451474
+          ],
+          [
+            "aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Sorted<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::step(aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Phase, unsigned long)",
+            3361890181
+          ],
+          [
+            "aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Sorted<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::count(unsigned long)",
+            3214508156
+          ],
+          [
+            "[unknown]",
+            3095938078
+          ],
+          [
+            "aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FrParams>::E aeglos::cpu::ifma512::Ntt<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FrParams> >::small_dif<1u>(aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FrParams>::E, aeglos::cpu::Direction) const",
+            1950307055
+          ],
+          [
+            "aeglos::cpu::base::Poseidon::sboxes(aeglos::cpu::base::Fe<aeglos::cpu::base::FrParams> const*, unsigned long, aeglos::cpu::base::Poseidon::Sbox*) const",
+            1936457168
+          ]
+        ],
+        "unknown_period_percent": 1.0583968777021877
+      }
+    },
+    {
+      "name": "cycles-1x2-w96-accepted",
+      "profile": {
+        "CXX_pool_work_period_percent_posthoc": 0.0,
+        "category_percent": {
+          "G1_arithmetic": 13.304970925990588,
+          "G2_arithmetic": 10.693726081163708,
+          "epoch": 53.0768818025437,
+          "fft": 2.456304314888368,
+          "grouping": 0.27180624294529204,
+          "inverse": 1.9524278726112556,
+          "other": 5.516944792870533,
+          "scheduler": 11.932206166024958,
+          "solver": 0.7947318009615936
+        },
+        "category_periods": {
+          "G1_arithmetic": 84332930922,
+          "G2_arithmetic": 67781678586,
+          "epoch": 336425312878,
+          "fft": 15569169092,
+          "grouping": 1722831056,
+          "inverse": 12375372019,
+          "other": 34968894461,
+          "scheduler": 75631726213,
+          "solver": 5037370051
+        },
+        "lost_records": 0,
+        "period": 633845285278,
+        "sampled_pids": [
+          104650
+        ],
+        "sampled_tids": 97,
+        "samples": 39821,
+        "top_symbols": [
+          [
+            "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+            231567345330
+          ],
+          [
+            "<crossbeam_epoch::internal::Global>::try_advance",
+            104506280603
+          ],
+          [
+            "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+            47495864043
+          ],
+          [
+            "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+            37565550742
+          ],
+          [
+            "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+            17829922271
+          ],
+          [
+            "<rayon_core::registry::WorkerThread>::take_local_job.945",
+            15375134488
+          ],
+          [
+            "[unknown]",
+            13320036959
+          ],
+          [
+            "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+            12446984418
+          ],
+          [
+            "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+            12358627968
+          ],
+          [
+            "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+            11309335129
+          ],
+          [
+            "<rayon_core::registry::WorkerThread>::wait_until_cold",
+            10101571342
+          ],
+          [
+            "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+            8510046787
+          ],
+          [
+            "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+            7641047162
+          ],
+          [
+            "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, rayon::iter::collect::consumer::CollectResult<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>::{closure#0}",
+            6645958824
+          ],
+          [
+            "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#1}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::collect::consumer::CollectResult<[u64; 4]>>::{closure#0}",
+            5921560471
+          ],
+          [
+            "<rayon_core::sleep::Sleep>::wake_specific_thread",
+            4935405643
+          ],
+          [
+            "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+            4888837554
+          ],
+          [
+            "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>::{closure#1}, (), ()>::{closure#0}",
+            4701277554
+          ],
+          [
+            "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterProducer<u32>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<[u64; 4]>, <zopro_core::Key>::solve_canonical_wires::{closure#0}::{closure#0}>>::{closure#1}, rayon::iter::collect::consumer::CollectResult<[u64; 4]>, rayon::iter::collect::consumer::CollectResult<[u64; 4]>>::{closure#0}",
+            4392890906
+          ],
+          [
+            "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::fp::Fp<zopro_bn254::FrConfig>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::fft::pair::euler_combine_products::{closure#0}>>::{closure#1}, (), ()>::{closure#0}",
+            4330266559
+          ]
+        ],
+        "unknown_period_percent": 2.101465021256398
+      }
+    },
+    {
+      "name": "cycles-1x2-w96-aeglos",
+      "profile": {
+        "CXX_pool_work_period_percent_posthoc": 25.864987628433628,
+        "category_percent": {
+          "other": 100.0
+        },
+        "category_periods": {
+          "other": 407059997335
+        },
+        "lost_records": 0,
+        "period": 407059997335,
+        "sampled_pids": [
+          104751
+        ],
+        "sampled_tids": 104,
+        "samples": 27015,
+        "top_symbols": [
+          [
+            "aeglos::cpu::Pool::work(unsigned int)",
+            105286017951
+          ],
+          [
+            "aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+            41060707390
+          ],
+          [
+            "aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::invert_all(aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E*, unsigned long)",
+            38238377538
+          ],
+          [
+            "aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+            36183593241
+          ],
+          [
+            "aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+            28768931512
+          ],
+          [
+            "aeglos::cpu::ifma512::U256 aeglos::cpu::ifma512::safegcd::invert<aeglos::cpu::ifma512::FpParams>(aeglos::cpu::ifma512::U256 const&)",
+            22039636861
+          ],
+          [
+            "aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+            20847076674
+          ],
+          [
+            "aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::inverse(aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E const&)",
+            16098752804
+          ],
+          [
+            "aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Sorted<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::accumulate(unsigned long)",
+            15644788169
+          ],
+          [
+            "aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Sorted<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::step(aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Phase, unsigned long)",
+            12693275483
+          ],
+          [
+            "aeglos::cpu::ifma512::glv::split(unsigned long const*, unsigned long*, unsigned long*)",
+            8299109755
+          ],
+          [
+            "aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::invert_all(aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E*, unsigned long)",
+            7622681366
+          ],
+          [
+            "aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Sorted<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::step(aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Phase, unsigned long)",
+            6077725889
+          ],
+          [
+            "[unknown]",
+            5133899659
+          ],
+          [
+            "aeglos::cpu::ifma512::Ntt<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FrParams> >::dif4_vectors(unsigned long*, unsigned int, aeglos::cpu::Direction, unsigned long, unsigned long) const",
+            4519692409
+          ],
+          [
+            "aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Sorted<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::accumulate(unsigned long)",
+            4231269366
+          ],
+          [
+            "aeglos::cpu::ifma512::Msm<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::Sorted<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::count(unsigned long)",
+            2810825145
+          ],
+          [
+            "aeglos::cpu::ifma512::Ntt<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FrParams> >::dit4_vectors(unsigned long*, unsigned int, aeglos::cpu::Direction, unsigned long, unsigned long) const",
+            2632434072
+          ],
+          [
+            "aeglos::cpu::Pool::enter(unsigned long)",
+            2488389776
+          ],
+          [
+            "aeglos::cpu::base::Poseidon::sboxes(aeglos::cpu::base::Fe<aeglos::cpu::base::FrParams> const*, unsigned long, aeglos::cpu::base::Poseidon::Sbox*) const",
+            1995772799
+          ]
+        ],
+        "unknown_period_percent": 1.2612144874493603
+      }
+    }
+  ],
+  "total_samples": 97089
+}
