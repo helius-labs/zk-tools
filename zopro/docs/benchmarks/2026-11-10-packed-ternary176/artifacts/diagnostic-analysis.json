@@ -1,0 +1,873 @@
+{
+  "PACKED_over_control_counters": {
+    "FRESH_BASE": {
+      "branch-misses:u": 0.8278583464032936,
+      "cache-misses:u": 0.9445040867213188,
+      "cycles:u": 0.9177378852039408,
+      "instructions:u": 0.9184993498086754
+    },
+    "OLD_BASE": {
+      "branch-misses:u": 0.8278957337700835,
+      "cache-misses:u": 1.0768369375788456,
+      "cycles:u": 0.9144105199428156,
+      "instructions:u": 0.917624440437172
+    },
+    "RECIPROCAL": {
+      "branch-misses:u": 1.0040544977003223,
+      "cache-misses:u": 1.06551349819574,
+      "cycles:u": 0.9911286889562836,
+      "instructions:u": 0.9948500530038354
+    }
+  },
+  "canonical_proof_ledger": 44265,
+  "complete_queries": 1840,
+  "limits": "One primary32 stat and cycles profile per arm; no repeated-panel CI or exclusive wall-time/DRAM/fault causal inference. Worker affinity and ownership checked; no exact IP-to-ELF analysis. Existing qualified raw LOST helper reused once per new profile, not retested or replayed. No SDK or production qualification.",
+  "new_proofs": 0,
+  "passed_data_validation": true,
+  "profiles": {
+    "FRESH_BASE": {
+      "cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "data_sha256": "cb4702e15bc1b56e6603d59a5a89010a49e40e38ab2fffa68638ad1f440e0521",
+      "first_sample": 929100.43044714,
+      "last_sample": 929101.205081769,
+      "owned_MMAP_and_worker_affinity_and_gate_checks": true,
+      "period_total": 79584000000,
+      "pid": 3910182,
+      "quality_passed": true,
+      "samples": 4974,
+      "tids": [
+        3910182,
+        3910184,
+        3910185,
+        3910186,
+        3910187,
+        3910188,
+        3910189,
+        3910190,
+        3910191,
+        3910192,
+        3910193,
+        3910194,
+        3910195,
+        3910196,
+        3910197,
+        3910198,
+        3910199,
+        3910200,
+        3910201,
+        3910202,
+        3910203,
+        3910204,
+        3910205,
+        3910206,
+        3910207,
+        3910208,
+        3910209,
+        3910210,
+        3910211,
+        3910212,
+        3910213,
+        3910214,
+        3910215
+      ],
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1999
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          747
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          468
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          383
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          335
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          132
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          79
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::new",
+          78
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          78
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          73
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          67
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          50
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.911",
+          47
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>::{closure#1}, (), ()>::{closure#0}",
+          45
+        ],
+        [
+          "[unknown]",
+          43
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>",
+          32
+        ],
+        [
+          "zopro_core::msm_affine::g2_phi::hb_top_component",
+          30
+        ],
+        [
+          "<rayon_core::sleep::Sleep>::wake_specific_thread",
+          28
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>",
+          28
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          22
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double",
+          21
+        ],
+        [
+          "<std::sys::sync::mutex::futex::Mutex>::lock_contended",
+          19
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::execute",
+          18
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::wait_until_cold",
+          16
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::batch_to_affine",
+          13
+        ]
+      ],
+      "unknown_percent": 0.8644953759549658,
+      "unknown_samples": 43,
+      "zero_LOST": true
+    },
+    "OLD_BASE": {
+      "cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "data_sha256": "b1c756394509b2242df531057f69eb7c9f13d96d709e7e39954ec2bc0290c004",
+      "first_sample": 929099.278774339,
+      "last_sample": 929100.04574692,
+      "owned_MMAP_and_worker_affinity_and_gate_checks": true,
+      "period_total": 79648000000,
+      "pid": 3910143,
+      "quality_passed": true,
+      "samples": 4978,
+      "tids": [
+        3910143,
+        3910145,
+        3910146,
+        3910147,
+        3910148,
+        3910149,
+        3910150,
+        3910151,
+        3910152,
+        3910153,
+        3910154,
+        3910155,
+        3910156,
+        3910157,
+        3910158,
+        3910159,
+        3910160,
+        3910161,
+        3910162,
+        3910163,
+        3910164,
+        3910165,
+        3910166,
+        3910167,
+        3910168,
+        3910169,
+        3910170,
+        3910171,
+        3910172,
+        3910173,
+        3910174,
+        3910175,
+        3910176
+      ],
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          2053
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          726
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          459
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          355
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+          338
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          108
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          92
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::new",
+          91
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          78
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          74
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          67
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(usize, usize)>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, zopro_core::msm::reduce_indexed_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          52
+        ],
+        [
+          "[unknown]",
+          49
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.911",
+          39
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>::{closure#1}, (), ()>::{closure#0}",
+          39
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>",
+          33
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>",
+          29
+        ],
+        [
+          "<std::sys::sync::mutex::futex::Mutex>::lock_contended",
+          26
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          26
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::wait_until_cold",
+          22
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double",
+          22
+        ],
+        [
+          "zopro_core::msm_affine::g2_phi::hb_top_component",
+          22
+        ],
+        [
+          "<rayon_core::sleep::Sleep>::wake_specific_thread",
+          21
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::merge_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          19
+        ],
+        [
+          "std::sys::env::unix::getenv::{closure#0}",
+          14
+        ]
+      ],
+      "unknown_percent": 0.9843310566492568,
+      "unknown_samples": 49,
+      "zero_LOST": true
+    },
+    "PACKED": {
+      "cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "data_sha256": "03140713028bd6de8f406849f15a9954388a3c38b53454dcfb4b5ace14fc3668",
+      "first_sample": 929102.744404398,
+      "last_sample": 929103.556161954,
+      "owned_MMAP_and_worker_affinity_and_gate_checks": true,
+      "period_total": 72992000000,
+      "pid": 3910261,
+      "quality_passed": true,
+      "samples": 4562,
+      "tids": [
+        3910261,
+        3910263,
+        3910264,
+        3910265,
+        3910266,
+        3910267,
+        3910268,
+        3910269,
+        3910270,
+        3910271,
+        3910272,
+        3910273,
+        3910274,
+        3910275,
+        3910276,
+        3910277,
+        3910278,
+        3910279,
+        3910280,
+        3910281,
+        3910282,
+        3910283,
+        3910284,
+        3910285,
+        3910286,
+        3910287,
+        3910288,
+        3910289,
+        3910290,
+        3910291,
+        3910292,
+        3910293,
+        3910294
+      ],
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1763
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          505
+        ],
+        [
+          "zopro_core::msm_affine::g2_borrowed::ternary::feed",
+          377
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          359
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          218
+        ],
+        [
+          "zopro_core::msm_affine::g2_borrowed::ternary::codec::component",
+          209
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          152
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::new",
+          140
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_borrowed::ternary::raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          132
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          90
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          75
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.911",
+          70
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::merge_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          52
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>",
+          51
+        ],
+        [
+          "[unknown]",
+          38
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double",
+          36
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          33
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::zip::ZipProducer<rayon::slice::IterMutProducer<[u64; 4]>, rayon::slice::IterMutProducer<u8>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_borrowed::ternary::raw::{closure#0}>>",
+          28
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          28
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::execute",
+          23
+        ],
+        [
+          "<std::sys::sync::mutex::futex::Mutex>::lock_contended",
+          22
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_projective",
+          22
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::zip::ZipProducer<rayon::slice::IterMutProducer<[u64; 4]>, rayon::slice::IterMutProducer<u8>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_borrowed::ternary::raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::zip::ZipProducer<rayon::slice::IterMutProducer<[u64; 4]>, rayon::slice::IterMutProducer<u8>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_borrowed::ternary::raw::{closure#0}>>::{closure#1}, (), ()>::{closure#0}",
+          22
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::wait_until_cold",
+          14
+        ],
+        [
+          "std::sys::env::unix::getenv::{closure#0}",
+          14
+        ]
+      ],
+      "unknown_percent": 0.8329679964927663,
+      "unknown_samples": 38,
+      "zero_LOST": true
+    },
+    "RECIPROCAL": {
+      "cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "data_sha256": "b35a34f556e8b07deb72fc040882c1db6ed3f7ff17a373ef66f7be048aea408f",
+      "first_sample": 929101.592430653,
+      "last_sample": 929102.417531534,
+      "owned_MMAP_and_worker_affinity_and_gate_checks": true,
+      "period_total": 73664000000,
+      "pid": 3910222,
+      "quality_passed": true,
+      "samples": 4604,
+      "tids": [
+        3910222,
+        3910224,
+        3910225,
+        3910226,
+        3910227,
+        3910228,
+        3910229,
+        3910230,
+        3910231,
+        3910232,
+        3910233,
+        3910234,
+        3910235,
+        3910236,
+        3910237,
+        3910238,
+        3910239,
+        3910240,
+        3910241,
+        3910242,
+        3910243,
+        3910244,
+        3910245,
+        3910246,
+        3910247,
+        3910248,
+        3910249,
+        3910250,
+        3910251,
+        3910252,
+        3910253,
+        3910254,
+        3910255
+      ],
+      "top_symbols_demangled": [
+        [
+          "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+          1777
+        ],
+        [
+          "zopro_core::msm_affine::g2_borrowed::ternary::feed",
+          559
+        ],
+        [
+          "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          511
+        ],
+        [
+          "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+          336
+        ],
+        [
+          "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+          210
+        ],
+        [
+          "<&zopro_core::msm_affine::g2_borrowed::ternary::raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+          201
+        ],
+        [
+          "<zopro_core::msm_affine::g2_borrowed::Window>::new",
+          130
+        ],
+        [
+          "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+          121
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+          94
+        ],
+        [
+          "<crossbeam_epoch::internal::Global>::try_advance",
+          70
+        ],
+        [
+          "zopro_core::msm_affine::g2_borrowed::ternary::carry_component",
+          67
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::take_local_job.911",
+          50
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::merge_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>",
+          46
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>",
+          45
+        ],
+        [
+          "[unknown]",
+          40
+        ],
+        [
+          "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_borrowed::ternary::raw::{closure#0}>>",
+          40
+        ],
+        [
+          "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_borrowed::ternary::raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_borrowed::ternary::raw::{closure#0}>>::{closure#1}, (), ()>::{closure#0}",
+          38
+        ],
+        [
+          "zopro_core::msm_affine::grouping::scalar_groups",
+          33
+        ],
+        [
+          "<zopro_core::simd::FqBatch>::inverse_nonzero",
+          32
+        ],
+        [
+          "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double",
+          28
+        ],
+        [
+          "<std::sys::sync::mutex::futex::Mutex>::lock_contended",
+          27
+        ],
+        [
+          "<rayon_core::sleep::Sleep>::wake_specific_thread",
+          22
+        ],
+        [
+          "<rayon_core::registry::WorkerThread>::wait_until_cold",
+          21
+        ],
+        [
+          "zopro_core::msm_affine::g2_phi::phi_split",
+          17
+        ],
+        [
+          "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+          14
+        ]
+      ],
+      "unknown_percent": 0.8688097306689835,
+      "unknown_samples": 40,
+      "zero_LOST": true
+    }
+  },
+  "quality_passed": true,
+  "stats": {
+    "FRESH_BASE": {
+      "branch-misses:u": {
+        "per_query": 313096.9104477612,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 62932479
+      },
+      "cache-misses:u": {
+        "per_query": 1222332.7562189056,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 245688884
+      },
+      "cycles:u": {
+        "per_query": 317678389.8507463,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 63853356360
+      },
+      "instructions:u": {
+        "per_query": 567204580.5273632,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 114008120686
+      }
+    },
+    "OLD_BASE": {
+      "branch-misses:u": {
+        "per_query": 313082.7711442786,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 62929637
+      },
+      "cache-misses:u": {
+        "per_query": 1072119.8756218906,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 215496095
+      },
+      "cycles:u": {
+        "per_query": 318834360.84577113,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 64085706530
+      },
+      "instructions:u": {
+        "per_query": 567745381.9502487,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 114116821772
+      }
+    },
+    "PACKED": {
+      "branch-misses:u": {
+        "per_query": 259199.89054726367,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 52099178
+      },
+      "cache-misses:u": {
+        "per_query": 1154498.2835820897,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 232054155
+      },
+      "cycles:u": {
+        "per_query": 291545493.6766169,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 58600644229
+      },
+      "instructions:u": {
+        "per_query": 520977038.4228856,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 104716384723
+      }
+    },
+    "RECIPROCAL": {
+      "branch-misses:u": {
+        "per_query": 258153.20895522388,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 51888795
+      },
+      "cache-misses:u": {
+        "per_query": 1083513.5223880596,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 217786218
+      },
+      "cycles:u": {
+        "per_query": 294155034.48258704,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 59125161931
+      },
+      "instructions:u": {
+        "per_query": 523673931.4129353,
+        "quality_passed": true,
+        "running_percent": 100.0,
+        "value": 105258460214
+      }
+    }
+  },
+  "workflow_receipts": 28
+}
