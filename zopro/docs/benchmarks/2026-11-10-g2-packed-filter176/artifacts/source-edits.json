@@ -1,0 +1,46 @@
+{
+  "edits": {
+    "crates/zopro-bn254/src/ifma8.rs": {
+      "suffix": "\n#[cfg(zopro_g2_packed_filter)]\n#[path=\"ifma8/packed_filter.rs\"]mod packed_filter;\n"
+    },
+    "crates/zopro-core/src/lib.rs": {
+      "suffix": "\n#[doc(hidden)]pub fn block_gap_probe(bases:&[zopro_bn254::G2Affine],words:&mut[[u64;4]])->zopro_bn254::G2Affine{msm_affine::g2_query_exclusive(bases,words).to_affine()}\n"
+    },
+    "crates/zopro-core/src/msm.rs": {
+      "replacements": [
+        [
+          "struct Fq2AddScratch {",
+          "struct Fq2AddScratch {\n    #[cfg(all(zopro_g2_packed_filter,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]classified:Vec<u8>,"
+        ],
+        [
+          "    payload?.checked_add(core::mem::size_of::<Vec<[FqBatch; 2]>>())",
+          "    let payload=payload?.checked_add(core::mem::size_of::<Vec<[FqBatch;2]>>())?;\n    #[cfg(all(zopro_g2_packed_filter,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    let payload={let align=core::mem::align_of::<BatchAdd<C>>();let header=core::mem::size_of::<Vec<u8>>().checked_add(align-1)?/align*align;let status=if core::mem::size_of::<C::Base>()==64{v::<u8>(groups.checked_add(1)?,false)?}else{0};payload.checked_add(header)?.checked_add(status)?};\n    Some(payload)"
+        ]
+      ],
+      "suffix": "\n#[cfg(all(zopro_g2_packed_filter,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[path=\"msm/packed_filter.rs\"]mod packed_filter;\n"
+    },
+    "crates/zopro-core/src/msm_affine/g2_borrowed.rs": {
+      "replacements": [
+        [
+          "        if a.x == p.x {\n            let signed = if neg { -*p } else { *p };\n            if a.y == signed.y {\n                self.projective(b, signed)\n            } else {\n                *a = G2Affine::IDENTITY\n            }\n            return;\n        }\n",
+          "        #[cfg(not(all(zopro_g2_packed_filter,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        if a.x == p.x {\n            let signed = if neg { -*p } else { *p };\n            if a.y == signed.y {\n                self.projective(b, signed)\n            } else {\n                *a = G2Affine::IDENTITY\n            }\n            return;\n        }\n"
+        ],
+        [
+          "        self.packed\n            .apply_signed_borrowed_g2(&mut self.affine, &self.batch);",
+          "        #[cfg(not(all(zopro_g2_packed_filter,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        self.packed\n            .apply_signed_borrowed_g2(&mut self.affine, &self.batch);\n        #[cfg(all(zopro_g2_packed_filter,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        self.packed.apply_signed_filtered_g2(&mut self.affine,&self.batch);"
+        ]
+      ],
+      "suffix": "\n#[cfg(all(test,all(zopro_g2_packed_filter,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n#[path=\"g2_filter_window_tests.rs\"]mod filter_window_tests;\n"
+    },
+    "crates/zopro-core/src/simd.rs": {
+      "suffix": "\n#[cfg(all(zopro_g2_packed_filter,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nimpl FqBatch{#[inline(always)]pub(crate)fn low_limb_eq_mask(&self,b:&Self)->u8{self.0.low_limb_eq_mask(&b.0)}#[inline(always)]pub(crate)fn masked_one(&self,mask:u8)->Self{Self(self.0.masked_one(mask))}}\n"
+    }
+  },
+  "new_children": 5,
+  "new_field_APIs_only": true,
+  "ordinary_arithmetic_changed": false,
+  "originals": 176,
+  "private_query_export": true,
+  "production_changed": false,
+  "unchanged_originals": 171
+}

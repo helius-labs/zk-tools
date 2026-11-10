@@ -1,0 +1,11 @@
+# G2 packed exception filter: frozen caller protocol
+
+Native qualification completed before this protocol. REF uses retained block-gap OFF core (accepted arithmetic plus private exclusive G2 export) and original field1200. OFF/ON use new API-only field crate, with filter disabled/enabled in core. All retained common dependencies and dense busy reset preserved. Calibration OFF/REF must stay within factor1.03 at both fixed central order bounds.
+
+Six contexts: primary G2 exclusive query1/16/32workers, secondary2x2 G2 at32; two G1 general-API32worker controls. G2 timers include reset of original scalar words, Phi/grouping/allMSM stages/allocation/drop/normalization. G1 timers include originalFr conversion/grouping/fullMSM/normalization. Fixture loading/pools and3checked primes precede timing. Default worker stacks; affinity CPU2 solo or0..workers. No proofs/SDK/full-proof claims.
+
+Fifteen fixed paired blocks, rotated/reversed six-context and three-arm orders,17calls per process. All latency/diagnostic/prime outputs match retained independent whole-MSM Arkworks oracles. No new fixture or oracle producers. Every row checks point/scalar inputs and worker affinity. Native127old+3newtests PASS; no_ifma exclusion native-field compile.
+
+Predeclared gates: all six OFF/REF calibration bounds factor1.03; ON/OFF and ON/REF nonregression upper<=1.02 and RSS<=1.05control+1MiB. PrimaryB32 gain and geometric twoB32 gain require upper<1 and at least10/15wins for both controls. Ratios use mean17-call processes paired by block; interval is sorted ranks4/8/12 (one-based).12diagnostic quality checks require PMU4events>=99.9%scheduled; profiles fixed16Mcycles:u>=1000samples,<=5%unknown,zeroLOST,PID/TID/CPU/periodownership and executable mapping. No other gate or subset rescue.46checks total.
+
+Automatic FIFO PMU101queries and profiles1021queries for G2primary16/32 and secondary32, OFF/ON. Timed ranges exclude primes via control. Producer and differently ranked/folded same-agent reader compiled and pinned before first preflight; receipt/PMU/profile parsers shared. All checks required for SDK selection; never adoption from these isolated query results alone. Full ALL8+54SDK/fresh Gnark mandatory for production adoption. No concurrent throughput/mobile/pressure/minRAM/AWS/Aeglos inference. Canonical proof ledger45335 unchanged.

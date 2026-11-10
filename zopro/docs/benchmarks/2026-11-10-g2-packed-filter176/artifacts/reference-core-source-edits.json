@@ -1,0 +1,26 @@
+{
+  "admission_fallback_not_yet_implemented": true,
+  "edits": {
+    "crates/zopro-core/src/lib.rs": {
+      "original_sha256": "eda14cf185c08d1dff40f4b8a2da0b30cb53da59ca694af6089aa6133ef21631",
+      "private_sha256": "d14361017c16aca77f7f4eadaf3d92d3243bbfacfa9d73441fbf4d432d2f2b4a",
+      "suffix": "\npub fn block_gap_probe(bases:&[G2Affine],words:&mut[[u64;4]])->G2Affine{msm_affine::g2_query_exclusive(bases,words).to_affine()}\n"
+    },
+    "crates/zopro-core/src/msm.rs": {
+      "original_sha256": "d616eb2e6542b358447099edea4a1c7923d6544c1e5840fa568df0d4f09caed9",
+      "private_sha256": "afa6783a7de0662c68f073109a94963cfd40a9dc4a6072bb2cfa8b2b3a7f55a6",
+      "suffix": "\n#[cfg(all(zopro_block_gap_factoring,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[path=\"msm/block_gap.rs\"]mod block_gap;\n#[cfg(all(zopro_block_gap_factoring,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(crate) use block_gap::suffix as block_gap_suffix;\n"
+    },
+    "crates/zopro-core/src/msm_affine/g2_phi.rs": {
+      "anchor": "    short.par_iter_mut().for_each(|s| *s = phi_split(*s));",
+      "original_sha256": "31b877209d2f9916430ece5fb83d00d277ab3b1c4866fe8c940abaddd3d17d9f",
+      "private_sha256": "6efd8a4746b62c4712ec35c0c9136ca89f4be7b8c96500cbae75fdf4cc03b9cf",
+      "replacement": "    short.par_iter_mut().for_each(|s| *s = phi_split(*s));\n    #[cfg(all(zopro_block_gap_factoring,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    let derived=block_gap::prepare(bases,short);\n    #[cfg(all(zopro_block_gap_factoring,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    let(bases,short)=(&derived.0[..],&derived.1[..]);",
+      "suffix": "\n#[cfg(all(zopro_block_gap_factoring,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[path=\"g2_block_gap.rs\"]mod block_gap;\n"
+    }
+  },
+  "new_children": 2,
+  "original_files": 176,
+  "production_changed": false,
+  "unchanged_originals": 173
+}
