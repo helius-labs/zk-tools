@@ -1,0 +1,4363 @@
+{
+  "absolute_period_coverage_unvalidated": true,
+  "instantaneous_concurrency_measured": false,
+  "new_proofs": 0,
+  "new_recordings": 0,
+  "profiles": [
+    {
+      "caller": {
+        "periods": {
+          "all": 534418863,
+          "other": 534418860,
+          "scheduler": 3
+        },
+        "samples": 41
+      },
+      "distributions_excluding_caller": {
+        "all": {
+          "effective_threads": 31.874291641171034,
+          "max": 8257924892,
+          "min": 6230069928,
+          "nonzero": 32,
+          "period": 210704487673,
+          "threads": 32,
+          "threads_for_90_percent": 29,
+          "top_thread_percent": 3.919197442446397
+        },
+        "epoch": {
+          "effective_threads": 31.07105353727167,
+          "max": 831289339,
+          "min": 391036288,
+          "nonzero": 32,
+          "period": 18525689868,
+          "threads": 32,
+          "threads_for_90_percent": 28,
+          "top_thread_percent": 4.487224739932151
+        },
+        "g1_stream": {
+          "effective_threads": 31.695403475862186,
+          "max": 1736403406,
+          "min": 1032874279,
+          "nonzero": 32,
+          "period": 47287984580,
+          "threads": 32,
+          "threads_for_90_percent": 29,
+          "top_thread_percent": 3.6719759182428664
+        },
+        "g2_apply": {
+          "effective_threads": 31.544906040542532,
+          "max": 1380096771,
+          "min": 702865115,
+          "nonzero": 32,
+          "period": 36619307394,
+          "threads": 32,
+          "threads_for_90_percent": 28,
+          "top_thread_percent": 3.7687680876949794
+        },
+        "scheduler": {
+          "effective_threads": 30.441534660579375,
+          "max": 584829502,
+          "min": 206797803,
+          "nonzero": 32,
+          "period": 11804470814,
+          "threads": 32,
+          "threads_for_90_percent": 28,
+          "top_thread_percent": 4.954305120619192
+        }
+      },
+      "epoch_instruction_sites": [
+        {
+          "elf_address": "0x112741",
+          "instruction": "mov    rax,QWORD PTR [rbx+0x828]",
+          "ip": "0x5f9e7bfeb741",
+          "period": 7968645625,
+          "profile_percent": 3.7723380392721158,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 97
+        },
+        {
+          "elf_address": "0x112732",
+          "instruction": "xor    eax,eax",
+          "ip": "0x5f9e7bfeb732",
+          "period": 4126893580,
+          "profile_percent": 1.9536616846180663,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 82
+        },
+        {
+          "elf_address": "0x106527",
+          "instruction": "mov    r13,rax",
+          "ip": "0x5f9e7bfdf527",
+          "period": 3056585454,
+          "profile_percent": 1.4469803428371217,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 167
+        },
+        {
+          "elf_address": "0x1064c3",
+          "instruction": "mov    ecx,ebp",
+          "ip": "0x5f9e7bfdf4c3",
+          "period": 697769961,
+          "profile_percent": 0.3303226533607737,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 67
+        },
+        {
+          "elf_address": "0x112748",
+          "instruction": "lea    rcx,[rax+0x1]",
+          "ip": "0x5f9e7bfeb748",
+          "period": 566926296,
+          "profile_percent": 0.2683815710357233,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 104
+        },
+        {
+          "elf_address": "0x11271b",
+          "instruction": "mov    QWORD PTR [rbx+0x818],rcx",
+          "ip": "0x5f9e7bfeb71b",
+          "period": 247130587,
+          "profile_percent": 0.1169910368561216,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 59
+        },
+        {
+          "elf_address": "0x1126e3",
+          "instruction": "push   rax",
+          "ip": "0x5f9e7bfeb6e3",
+          "period": 163752673,
+          "profile_percent": 0.07752012907342556,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 3
+        },
+        {
+          "elf_address": "0x112765",
+          "instruction": "ret",
+          "ip": "0x5f9e7bfeb765",
+          "period": 162477216,
+          "profile_percent": 0.07691633073867958,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 133
+        },
+        {
+          "elf_address": "0x1126ff",
+          "instruction": "mov    rbx,QWORD PTR [rax]",
+          "ip": "0x5f9e7bfeb6ff",
+          "period": 146365884,
+          "profile_percent": 0.06928926417968172,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 31
+        },
+        {
+          "elf_address": "0x1d6ca1",
+          "instruction": "mov    rax,QWORD PTR [rbx+0x828]",
+          "ip": "0x5f9e7c0afca1",
+          "period": 144139287,
+          "profile_percent": 0.06823519841286213,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 97
+        },
+        {
+          "elf_address": "0x1126f8",
+          "instruction": "lea    rax,[rax-0x38]",
+          "ip": "0x5f9e7bfeb6f8",
+          "period": 139778666,
+          "profile_percent": 0.06617089071902504,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 24
+        },
+        {
+          "elf_address": "0x1126ed",
+          "instruction": "jne    112766 <crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>+0x86>",
+          "ip": "0x5f9e7bfeb6ed",
+          "period": 110400314,
+          "profile_percent": 0.05226324819153769,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 13
+        },
+        {
+          "elf_address": "0x112711",
+          "instruction": "je     112826 <crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>+0x146>",
+          "ip": "0x5f9e7bfeb711",
+          "period": 85003805,
+          "profile_percent": 0.04024060074629925,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 49
+        },
+        {
+          "elf_address": "0x11272b",
+          "instruction": "mov    rcx,QWORD PTR [rax+0x180]",
+          "ip": "0x5f9e7bfeb72b",
+          "period": 82973456,
+          "profile_percent": 0.03927943831969202,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 75
+        },
+        {
+          "elf_address": "0x10652a",
+          "instruction": "test   cl,0x1",
+          "ip": "0x5f9e7bfdf52a",
+          "period": 82514993,
+          "profile_percent": 0.039062403017096445,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 170
+        },
+        {
+          "elf_address": "0x112762",
+          "instruction": "pop    rbx",
+          "ip": "0x5f9e7bfeb762",
+          "period": 67402523,
+          "profile_percent": 0.031908195372386594,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 130
+        },
+        {
+          "elf_address": "0x112725",
+          "instruction": "jne    11275b <crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>+0x7b>",
+          "ip": "0x5f9e7bfeb725",
+          "period": 63786075,
+          "profile_percent": 0.030196177421098976,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 69
+        },
+        {
+          "elf_address": "0x11275e",
+          "instruction": "add    rsp,0x8",
+          "ip": "0x5f9e7bfeb75e",
+          "period": 53916537,
+          "profile_percent": 0.02552396141608098,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 126
+        },
+        {
+          "elf_address": "0x1d6c92",
+          "instruction": "xor    eax,eax",
+          "ip": "0x5f9e7c0afc92",
+          "period": 53040026,
+          "profile_percent": 0.025109023176542882,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 82
+        },
+        {
+          "elf_address": "0x112763",
+          "instruction": "pop    r14",
+          "ip": "0x5f9e7bfeb763",
+          "period": 49303909,
+          "profile_percent": 0.02334035420297798,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 131
+        },
+        {
+          "elf_address": "0x106498",
+          "instruction": "mov    rbp,QWORD PTR [rdi+0x180]",
+          "ip": "0x5f9e7bfdf498",
+          "period": 47116557,
+          "profile_percent": 0.022304866926571715,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 24
+        },
+        {
+          "elf_address": "0x10649f",
+          "instruction": "mov    r15,QWORD PTR [rsi]",
+          "ip": "0x5f9e7bfdf49f",
+          "period": 47105514,
+          "profile_percent": 0.022299639196424324,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 31
+        },
+        {
+          "elf_address": "0x106533",
+          "instruction": "mov    r13,rax",
+          "ip": "0x5f9e7bfdf533",
+          "period": 45816061,
+          "profile_percent": 0.021689215188297657,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 179
+        },
+        {
+          "elf_address": "0x1064c5",
+          "instruction": "and    ecx,0x7",
+          "ip": "0x5f9e7bfdf4c5",
+          "period": 44733374,
+          "profile_percent": 0.02117667371676931,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 69
+        },
+        {
+          "elf_address": "0x112722",
+          "instruction": "test   rax,rax",
+          "ip": "0x5f9e7bfeb722",
+          "period": 32817189,
+          "profile_percent": 0.01553557985039427,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 66
+        },
+        {
+          "elf_address": "0x112734",
+          "instruction": "or     rcx,0x1",
+          "ip": "0x5f9e7bfeb734",
+          "period": 32418395,
+          "profile_percent": 0.01534679171162778,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 84
+        },
+        {
+          "elf_address": "0x106492",
+          "instruction": "lock or DWORD PTR [rsp-0x40],0x0",
+          "ip": "0x5f9e7bfdf492",
+          "period": 32280459,
+          "profile_percent": 0.015281493134645942,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 18
+        },
+        {
+          "elf_address": "0x1126ef",
+          "instruction": "mov    rax,QWORD PTR fs:0x0",
+          "ip": "0x5f9e7bfeb6ef",
+          "period": 31806661,
+          "profile_percent": 0.015057198279228646,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 15
+        },
+        {
+          "elf_address": "0x1126e0",
+          "instruction": "push   r14",
+          "ip": "0x5f9e7bfeb6e0",
+          "period": 30966287,
+          "profile_percent": 0.014659367210236258,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 0
+        },
+        {
+          "elf_address": "0x10654c",
+          "instruction": "jmp    106552 <<crossbeam_epoch::internal::Global>::try_advance+0xd2>",
+          "ip": "0x5f9e7bfdf54c",
+          "period": 18314336,
+          "profile_percent": 0.008669963455277976,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 204
+        },
+        {
+          "elf_address": "0x11270d",
+          "instruction": "cmp    rax,0xffffffffffffffff",
+          "ip": "0x5f9e7bfeb70d",
+          "period": 17576415,
+          "profile_percent": 0.008320633394778803,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 45
+        },
+        {
+          "elf_address": "0x112706",
+          "instruction": "mov    rax,QWORD PTR [rbx+0x818]",
+          "ip": "0x5f9e7bfeb706",
+          "period": 17188262,
+          "profile_percent": 0.008136882680308101,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 38
+        },
+        {
+          "elf_address": "0x1064b2",
+          "instruction": "and    rax,0xfffffffffffffff8",
+          "ip": "0x5f9e7bfdf4b2",
+          "period": 15428304,
+          "profile_percent": 0.007303722715195299,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 50
+        },
+        {
+          "elf_address": "0x1126e2",
+          "instruction": "push   rbx",
+          "ip": "0x5f9e7bfeb6e2",
+          "period": 15067942,
+          "profile_percent": 0.0071331281945601595,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 2
+        },
+        {
+          "elf_address": "0x106552",
+          "instruction": "mov    rax,rbx",
+          "ip": "0x5f9e7bfdf552",
+          "period": 14370540,
+          "profile_percent": 0.006802979733068693,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 210
+        },
+        {
+          "elf_address": "0x112753",
+          "instruction": "test   al,0x7f",
+          "ip": "0x5f9e7bfeb753",
+          "period": 13876705,
+          "profile_percent": 0.0065691994091226225,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 115
+        }
+      ],
+      "name": "cycles-1x2-w32-accepted",
+      "period": 211238906536,
+      "pid": 104544,
+      "registered_workers": 32,
+      "sample_time_span_ns": 2956573000,
+      "sampled_tids": 33,
+      "samples": 13039,
+      "threads": [
+        {
+          "caller": true,
+          "periods": {
+            "all": 534418863,
+            "other": 534418860,
+            "scheduler": 3
+          },
+          "samples": 41,
+          "tid": 104544,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8257924892,
+            "epoch": 457364599,
+            "g1_stream": 1032874279,
+            "g2_apply": 702865115,
+            "other": 5721214559,
+            "scheduler": 343606340
+          },
+          "samples": 522,
+          "tid": 104545,
+          "worker_index": 0
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7499403642,
+            "epoch": 802992550,
+            "g1_stream": 1608462080,
+            "g2_apply": 1317840386,
+            "other": 3185279124,
+            "scheduler": 584829502
+          },
+          "samples": 480,
+          "tid": 104546,
+          "worker_index": 1
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7355015552,
+            "epoch": 831289339,
+            "g1_stream": 1736403406,
+            "g2_apply": 1231632788,
+            "other": 3152101019,
+            "scheduler": 403589000
+          },
+          "samples": 472,
+          "tid": 104547,
+          "worker_index": 2
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7011832313,
+            "epoch": 512377257,
+            "g1_stream": 1602050041,
+            "g2_apply": 1079534192,
+            "other": 3388755243,
+            "scheduler": 429115580
+          },
+          "samples": 454,
+          "tid": 104548,
+          "worker_index": 3
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6930020269,
+            "epoch": 694203734,
+            "g1_stream": 1666664112,
+            "g2_apply": 1209711344,
+            "other": 2986718427,
+            "scheduler": 372722652
+          },
+          "samples": 448,
+          "tid": 104549,
+          "worker_index": 4
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6719714187,
+            "epoch": 610038490,
+            "g1_stream": 1425071366,
+            "g2_apply": 1058884180,
+            "other": 3047314083,
+            "scheduler": 578406068
+          },
+          "samples": 437,
+          "tid": 104550,
+          "worker_index": 5
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6637385558,
+            "epoch": 631854075,
+            "g1_stream": 1560316972,
+            "g2_apply": 1231670911,
+            "other": 2902555319,
+            "scheduler": 310988281
+          },
+          "samples": 420,
+          "tid": 104551,
+          "worker_index": 6
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6578645642,
+            "epoch": 574946007,
+            "g1_stream": 1384920882,
+            "g2_apply": 1074786393,
+            "other": 3172881714,
+            "scheduler": 371110646
+          },
+          "samples": 413,
+          "tid": 104552,
+          "worker_index": 7
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6483152776,
+            "epoch": 641519947,
+            "g1_stream": 1504052287,
+            "g2_apply": 1215321524,
+            "other": 2757441271,
+            "scheduler": 364817747
+          },
+          "samples": 406,
+          "tid": 104553,
+          "worker_index": 8
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6556136560,
+            "epoch": 627524310,
+            "g1_stream": 1608636573,
+            "g2_apply": 1158160842,
+            "other": 2823260363,
+            "scheduler": 338554472
+          },
+          "samples": 408,
+          "tid": 104554,
+          "worker_index": 9
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6380444256,
+            "epoch": 674684054,
+            "g1_stream": 1480295582,
+            "g2_apply": 1099254431,
+            "other": 2868113865,
+            "scheduler": 258096324
+          },
+          "samples": 395,
+          "tid": 104555,
+          "worker_index": 10
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6524481504,
+            "epoch": 515644959,
+            "g1_stream": 1488129764,
+            "g2_apply": 1243291833,
+            "other": 2942615224,
+            "scheduler": 334799724
+          },
+          "samples": 399,
+          "tid": 104556,
+          "worker_index": 11
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6468534207,
+            "epoch": 599594977,
+            "g1_stream": 1297122016,
+            "g2_apply": 1047213161,
+            "other": 3083069580,
+            "scheduler": 441534473
+          },
+          "samples": 397,
+          "tid": 104557,
+          "worker_index": 12
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6289715782,
+            "epoch": 482369489,
+            "g1_stream": 1409292788,
+            "g2_apply": 1380096771,
+            "other": 2669425893,
+            "scheduler": 348530841
+          },
+          "samples": 386,
+          "tid": 104558,
+          "worker_index": 13
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6441790426,
+            "epoch": 638937102,
+            "g1_stream": 1571857773,
+            "g2_apply": 1182544258,
+            "other": 2811386765,
+            "scheduler": 237064528
+          },
+          "samples": 392,
+          "tid": 104559,
+          "worker_index": 14
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6439221234,
+            "epoch": 391036288,
+            "g1_stream": 1570034145,
+            "g2_apply": 1117081166,
+            "other": 2953372664,
+            "scheduler": 407696971
+          },
+          "samples": 395,
+          "tid": 104560,
+          "worker_index": 15
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6410272870,
+            "epoch": 530592255,
+            "g1_stream": 1481597971,
+            "g2_apply": 1293700418,
+            "other": 2635701820,
+            "scheduler": 468680406
+          },
+          "samples": 389,
+          "tid": 104561,
+          "worker_index": 16
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6364771969,
+            "epoch": 755717451,
+            "g1_stream": 1197014034,
+            "g2_apply": 1150489571,
+            "other": 2962073199,
+            "scheduler": 299477714
+          },
+          "samples": 390,
+          "tid": 104562,
+          "worker_index": 17
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6503801386,
+            "epoch": 476499185,
+            "g1_stream": 1428345043,
+            "g2_apply": 1107814783,
+            "other": 3029933313,
+            "scheduler": 461209062
+          },
+          "samples": 397,
+          "tid": 104563,
+          "worker_index": 18
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6392987106,
+            "epoch": 484979781,
+            "g1_stream": 1409154338,
+            "g2_apply": 1288276806,
+            "other": 2856581212,
+            "scheduler": 353994969
+          },
+          "samples": 388,
+          "tid": 104564,
+          "worker_index": 19
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6437791525,
+            "epoch": 526474667,
+            "g1_stream": 1439429990,
+            "g2_apply": 1350505120,
+            "other": 2914583945,
+            "scheduler": 206797803
+          },
+          "samples": 390,
+          "tid": 104565,
+          "worker_index": 20
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6403936569,
+            "epoch": 517289473,
+            "g1_stream": 1224410705,
+            "g2_apply": 1127308656,
+            "other": 3163803529,
+            "scheduler": 371124206
+          },
+          "samples": 389,
+          "tid": 104566,
+          "worker_index": 21
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6447743278,
+            "epoch": 596044294,
+            "g1_stream": 1488564169,
+            "g2_apply": 1094314392,
+            "other": 2964382958,
+            "scheduler": 304437465
+          },
+          "samples": 389,
+          "tid": 104567,
+          "worker_index": 22
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6463389085,
+            "epoch": 557431109,
+            "g1_stream": 1411729142,
+            "g2_apply": 1098629232,
+            "other": 3023101147,
+            "scheduler": 372498455
+          },
+          "samples": 389,
+          "tid": 104568,
+          "worker_index": 23
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6409110102,
+            "epoch": 676062878,
+            "g1_stream": 1626492446,
+            "g2_apply": 1165094930,
+            "other": 2683675988,
+            "scheduler": 257783860
+          },
+          "samples": 386,
+          "tid": 104569,
+          "worker_index": 24
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6308837980,
+            "epoch": 512280249,
+            "g1_stream": 1519998549,
+            "g2_apply": 942806662,
+            "other": 3022291940,
+            "scheduler": 311460580
+          },
+          "samples": 380,
+          "tid": 104570,
+          "worker_index": 25
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6378268783,
+            "epoch": 460781520,
+            "g1_stream": 1334260096,
+            "g2_apply": 1038432914,
+            "other": 3126224187,
+            "scheduler": 418570066
+          },
+          "samples": 384,
+          "tid": 104571,
+          "worker_index": 26
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6359475557,
+            "epoch": 597742152,
+            "g1_stream": 1620866517,
+            "g2_apply": 1152821010,
+            "other": 2593914067,
+            "scheduler": 394131811
+          },
+          "samples": 385,
+          "tid": 104572,
+          "worker_index": 27
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6392287478,
+            "epoch": 490978968,
+            "g1_stream": 1509667803,
+            "g2_apply": 1259250193,
+            "other": 2697004474,
+            "scheduler": 435386040
+          },
+          "samples": 385,
+          "tid": 104573,
+          "worker_index": 28
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6340392103,
+            "epoch": 580151385,
+            "g1_stream": 1609459408,
+            "g2_apply": 1076660760,
+            "other": 2674296367,
+            "scheduler": 399824183
+          },
+          "samples": 386,
+          "tid": 104574,
+          "worker_index": 29
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6287933154,
+            "epoch": 576252909,
+            "g1_stream": 1568338937,
+            "g2_apply": 1266415713,
+            "other": 2566659894,
+            "scheduler": 310265701
+          },
+          "samples": 374,
+          "tid": 104575,
+          "worker_index": 30
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6230069928,
+            "epoch": 500034415,
+            "g1_stream": 1472471366,
+            "g2_apply": 856896939,
+            "other": 3087301864,
+            "scheduler": 313365344
+          },
+          "samples": 373,
+          "tid": 104576,
+          "worker_index": 31
+        }
+      ]
+    },
+    {
+      "caller": {
+        "periods": {
+          "all": 250706089,
+          "other": 250701903,
+          "scheduler": 4186
+        },
+        "samples": 547
+      },
+      "distributions_excluding_caller": {
+        "all": {
+          "effective_threads": 95.51765866578725,
+          "max": 9313593713,
+          "min": 6226794051,
+          "nonzero": 96,
+          "period": 633594579189,
+          "threads": 96,
+          "threads_for_90_percent": 86,
+          "top_thread_percent": 1.4699610790422772
+        },
+        "epoch": {
+          "effective_threads": 95.60821569289462,
+          "max": 4047456041,
+          "min": 2885445572,
+          "nonzero": 96,
+          "period": 336425312878,
+          "threads": 96,
+          "threads_for_90_percent": 86,
+          "top_thread_percent": 1.2030771425537037
+        },
+        "g1_stream": {
+          "effective_threads": 87.75890791265907,
+          "max": 956675443,
+          "min": 274869102,
+          "nonzero": 96,
+          "period": 47495864043,
+          "threads": 96,
+          "threads_for_90_percent": 82,
+          "top_thread_percent": 2.014228948722528
+        },
+        "g2_apply": {
+          "effective_threads": 91.24682565015,
+          "max": 604802019,
+          "min": 114776009,
+          "nonzero": 96,
+          "period": 37565550742,
+          "threads": 96,
+          "threads_for_90_percent": 81,
+          "top_thread_percent": 1.6099910877223045
+        },
+        "scheduler": {
+          "effective_threads": 93.3959499999241,
+          "max": 1156877958,
+          "min": 502533240,
+          "nonzero": 96,
+          "period": 81302249305,
+          "threads": 96,
+          "threads_for_90_percent": 83,
+          "top_thread_percent": 1.4229347501322491
+        }
+      },
+      "epoch_instruction_sites": [
+        {
+          "elf_address": "0x112741",
+          "instruction": "mov    rax,QWORD PTR [rbx+0x828]",
+          "ip": "0x5cbfa07b6741",
+          "period": 123222685309,
+          "profile_percent": 19.440498836392766,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 97
+        },
+        {
+          "elf_address": "0x106527",
+          "instruction": "mov    r13,rax",
+          "ip": "0x5cbfa07aa527",
+          "period": 85879565137,
+          "profile_percent": 13.548979085540383,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 167
+        },
+        {
+          "elf_address": "0x112732",
+          "instruction": "xor    eax,eax",
+          "ip": "0x5cbfa07b6732",
+          "period": 78406050568,
+          "profile_percent": 12.369903569387862,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 82
+        },
+        {
+          "elf_address": "0x1064c3",
+          "instruction": "mov    ecx,ebp",
+          "ip": "0x5cbfa07aa4c3",
+          "period": 11964953722,
+          "profile_percent": 1.8876773244045284,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 67
+        },
+        {
+          "elf_address": "0x112748",
+          "instruction": "lea    rcx,[rax+0x1]",
+          "ip": "0x5cbfa07b6748",
+          "period": 10458777887,
+          "profile_percent": 1.6500521704461137,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 104
+        },
+        {
+          "elf_address": "0x11271b",
+          "instruction": "mov    QWORD PTR [rbx+0x818],rcx",
+          "ip": "0x5cbfa07b671b",
+          "period": 4616038746,
+          "profile_percent": 0.7282595379683922,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 59
+        },
+        {
+          "elf_address": "0x1126ed",
+          "instruction": "jne    112766 <crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>+0x86>",
+          "ip": "0x5cbfa07b66ed",
+          "period": 3144118152,
+          "profile_percent": 0.49603873768990997,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 13
+        },
+        {
+          "elf_address": "0x1d6ca1",
+          "instruction": "mov    rax,QWORD PTR [rbx+0x828]",
+          "ip": "0x5cbfa087aca1",
+          "period": 1486875256,
+          "profile_percent": 0.23458015552610242,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 97
+        },
+        {
+          "elf_address": "0x112765",
+          "instruction": "ret",
+          "ip": "0x5cbfa07b6765",
+          "period": 1358079100,
+          "profile_percent": 0.21426034578838213,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 133
+        },
+        {
+          "elf_address": "0x106533",
+          "instruction": "mov    r13,rax",
+          "ip": "0x5cbfa07aa533",
+          "period": 1289051841,
+          "profile_percent": 0.20337010796485314,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 179
+        },
+        {
+          "elf_address": "0x1064c5",
+          "instruction": "and    ecx,0x7",
+          "ip": "0x5cbfa07aa4c5",
+          "period": 1140084408,
+          "profile_percent": 0.1798679322036713,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 69
+        },
+        {
+          "elf_address": "0x10652a",
+          "instruction": "test   cl,0x1",
+          "ip": "0x5cbfa07aa52a",
+          "period": 1114084718,
+          "profile_percent": 0.17576603374297728,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 170
+        },
+        {
+          "elf_address": "0x1064b2",
+          "instruction": "and    rax,0xfffffffffffffff8",
+          "ip": "0x5cbfa07aa4b2",
+          "period": 1068991638,
+          "profile_percent": 0.16865182447971477,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 50
+        },
+        {
+          "elf_address": "0x11270d",
+          "instruction": "cmp    rax,0xffffffffffffffff",
+          "ip": "0x5cbfa07b670d",
+          "period": 1061129389,
+          "profile_percent": 0.16741141941832008,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 45
+        },
+        {
+          "elf_address": "0x1126e0",
+          "instruction": "push   r14",
+          "ip": "0x5cbfa07b66e0",
+          "period": 855095727,
+          "profile_percent": 0.13490606412335482,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 0
+        },
+        {
+          "elf_address": "0x11272b",
+          "instruction": "mov    rcx,QWORD PTR [rax+0x180]",
+          "ip": "0x5cbfa07b672b",
+          "period": 840687770,
+          "profile_percent": 0.13263296099635424,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 75
+        },
+        {
+          "elf_address": "0x1126e3",
+          "instruction": "push   rax",
+          "ip": "0x5cbfa07b66e3",
+          "period": 791658807,
+          "profile_percent": 0.12489779846714236,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 3
+        },
+        {
+          "elf_address": "0x1126ff",
+          "instruction": "mov    rbx,QWORD PTR [rax]",
+          "ip": "0x5cbfa07b66ff",
+          "period": 707461117,
+          "profile_percent": 0.11161416412361774,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 31
+        },
+        {
+          "elf_address": "0x10649f",
+          "instruction": "mov    r15,QWORD PTR [rsi]",
+          "ip": "0x5cbfa07aa49f",
+          "period": 606690526,
+          "profile_percent": 0.0957158694860229,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 31
+        },
+        {
+          "elf_address": "0x11275e",
+          "instruction": "add    rsp,0x8",
+          "ip": "0x5cbfa07b675e",
+          "period": 563125750,
+          "profile_percent": 0.08884277647549545,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 126
+        },
+        {
+          "elf_address": "0x1126e4",
+          "instruction": "cmp    BYTE PTR fs:0xffffffffffffffd0,0x1",
+          "ip": "0x5cbfa07b66e4",
+          "period": 493943773,
+          "profile_percent": 0.077928129225314,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 4
+        },
+        {
+          "elf_address": "0x112734",
+          "instruction": "or     rcx,0x1",
+          "ip": "0x5cbfa07b6734",
+          "period": 492550507,
+          "profile_percent": 0.07770831754060786,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 84
+        },
+        {
+          "elf_address": "0x112725",
+          "instruction": "jne    11275b <crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>+0x7b>",
+          "ip": "0x5cbfa07b6725",
+          "period": 487409273,
+          "profile_percent": 0.07689719941455836,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 69
+        },
+        {
+          "elf_address": "0x112711",
+          "instruction": "je     112826 <crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>+0x146>",
+          "ip": "0x5cbfa07b6711",
+          "period": 447776109,
+          "profile_percent": 0.07064438584624143,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 49
+        },
+        {
+          "elf_address": "0x106498",
+          "instruction": "mov    rbp,QWORD PTR [rdi+0x180]",
+          "ip": "0x5cbfa07aa498",
+          "period": 377951484,
+          "profile_percent": 0.059628349816348826,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 24
+        },
+        {
+          "elf_address": "0x106492",
+          "instruction": "lock or DWORD PTR [rsp-0x40],0x0",
+          "ip": "0x5cbfa07aa492",
+          "period": 342771338,
+          "profile_percent": 0.05407807645830527,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 18
+        },
+        {
+          "elf_address": "0x112753",
+          "instruction": "test   al,0x7f",
+          "ip": "0x5cbfa07b6753",
+          "period": 294805252,
+          "profile_percent": 0.0465106010642172,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 115
+        },
+        {
+          "elf_address": "0x1126f8",
+          "instruction": "lea    rax,[rax-0x38]",
+          "ip": "0x5cbfa07b66f8",
+          "period": 282272860,
+          "profile_percent": 0.04453340058784174,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 24
+        },
+        {
+          "elf_address": "0x1064b6",
+          "instruction": "je     106541 <<crossbeam_epoch::internal::Global>::try_advance+0xc1>",
+          "ip": "0x5cbfa07aa4b6",
+          "period": 260366064,
+          "profile_percent": 0.04107722657995402,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 54
+        },
+        {
+          "elf_address": "0x1d6c92",
+          "instruction": "xor    eax,eax",
+          "ip": "0x5cbfa087ac92",
+          "period": 231383947,
+          "profile_percent": 0.036504798942933944,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 82
+        },
+        {
+          "elf_address": "0x112722",
+          "instruction": "test   rax,rax",
+          "ip": "0x5cbfa07b6722",
+          "period": 219047301,
+          "profile_percent": 0.034558480766158486,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 66
+        },
+        {
+          "elf_address": "0x106143",
+          "instruction": "mov    rdi,r12",
+          "ip": "0x5cbfa07aa143",
+          "period": 194864010,
+          "profile_percent": 0.03074315050155087,
+          "symbol": "<crossbeam_epoch::internal::Global>::collect",
+          "symbol_offset": 83
+        },
+        {
+          "elf_address": "0x112738",
+          "instruction": "lock cmpxchg QWORD PTR [rbx+0x880],rcx",
+          "ip": "0x5cbfa07b6738",
+          "period": 192897035,
+          "profile_percent": 0.030432826350581237,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 88
+        },
+        {
+          "elf_address": "0x1126ef",
+          "instruction": "mov    rax,QWORD PTR fs:0x0",
+          "ip": "0x5cbfa07b66ef",
+          "period": 179061363,
+          "profile_percent": 0.028250011029342117,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 15
+        },
+        {
+          "elf_address": "0x11274c",
+          "instruction": "mov    QWORD PTR [rbx+0x828],rcx",
+          "ip": "0x5cbfa07b674c",
+          "period": 175818064,
+          "profile_percent": 0.027738324806326747,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 108
+        },
+        {
+          "elf_address": "0x112763",
+          "instruction": "pop    r14",
+          "ip": "0x5cbfa07b6763",
+          "period": 164258463,
+          "profile_percent": 0.02591459884851197,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 131
+        },
+        {
+          "elf_address": "0x112762",
+          "instruction": "pop    rbx",
+          "ip": "0x5cbfa07b6762",
+          "period": 150247902,
+          "profile_percent": 0.023704191778298446,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 130
+        },
+        {
+          "elf_address": "0x1064bf",
+          "instruction": "nop",
+          "ip": "0x5cbfa07aa4bf",
+          "period": 144840874,
+          "profile_percent": 0.02285114007536931,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 63
+        },
+        {
+          "elf_address": "0x106536",
+          "instruction": "cmp    rcx,rbx",
+          "ip": "0x5cbfa07aa536",
+          "period": 115778866,
+          "profile_percent": 0.018266108258456197,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 182
+        },
+        {
+          "elf_address": "0x1126e2",
+          "instruction": "push   rbx",
+          "ip": "0x5cbfa07b66e2",
+          "period": 100069660,
+          "profile_percent": 0.015787710711788312,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 2
+        },
+        {
+          "elf_address": "0x10655a",
+          "instruction": "pop    r12",
+          "ip": "0x5cbfa07aa55a",
+          "period": 68600411,
+          "profile_percent": 0.01082289520697663,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 218
+        },
+        {
+          "elf_address": "0x10654c",
+          "instruction": "jmp    106552 <<crossbeam_epoch::internal::Global>::try_advance+0xd2>",
+          "ip": "0x5cbfa07aa54c",
+          "period": 35917824,
+          "profile_percent": 0.005666654755386672,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 204
+        },
+        {
+          "elf_address": "0x112838",
+          "instruction": "sub    rdi,0xffffffffffffff80",
+          "ip": "0x5cbfa07b6838",
+          "period": 33663054,
+          "profile_percent": 0.005310925991227595,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 344
+        },
+        {
+          "elf_address": "0x1d6cc5",
+          "instruction": "ret",
+          "ip": "0x5cbfa087acc5",
+          "period": 32371521,
+          "profile_percent": 0.005107164437738475,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 133
+        },
+        {
+          "elf_address": "0x1d6ca8",
+          "instruction": "lea    rcx,[rax+0x1]",
+          "ip": "0x5cbfa087aca8",
+          "period": 32035499,
+          "profile_percent": 0.005054151185482031,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 104
+        },
+        {
+          "elf_address": "0x106118",
+          "instruction": "mov    rbp,QWORD PTR [r15]",
+          "ip": "0x5cbfa07aa118",
+          "period": 31963089,
+          "profile_percent": 0.005042727262060681,
+          "symbol": "<crossbeam_epoch::internal::Global>::collect",
+          "symbol_offset": 40
+        },
+        {
+          "elf_address": "0x10611b",
+          "instruction": "mov    r13,rax",
+          "ip": "0x5cbfa07aa11b",
+          "period": 31341291,
+          "profile_percent": 0.004944627928604681,
+          "symbol": "<crossbeam_epoch::internal::Global>::collect",
+          "symbol_offset": 43
+        },
+        {
+          "elf_address": "0x112706",
+          "instruction": "mov    rax,QWORD PTR [rbx+0x818]",
+          "ip": "0x5cbfa07b6706",
+          "period": 30891712,
+          "profile_percent": 0.004873699105681778,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 38
+        },
+        {
+          "elf_address": "0x106154",
+          "instruction": "and    r15,0xfffffffffffffff8",
+          "ip": "0x5cbfa07aa154",
+          "period": 30209212,
+          "profile_percent": 0.004766022987257917,
+          "symbol": "<crossbeam_epoch::internal::Global>::collect",
+          "symbol_offset": 100
+        },
+        {
+          "elf_address": "0x106109",
+          "instruction": "sub    rsp,0x48",
+          "ip": "0x5cbfa07aa109",
+          "period": 17225272,
+          "profile_percent": 0.0027175830443299928,
+          "symbol": "<crossbeam_epoch::internal::Global>::collect",
+          "symbol_offset": 25
+        },
+        {
+          "elf_address": "0x1064cb",
+          "instruction": "jne    106520 <<crossbeam_epoch::internal::Global>::try_advance+0xa0>",
+          "ip": "0x5cbfa07aa4cb",
+          "period": 16841635,
+          "profile_percent": 0.002657057706536916,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 75
+        },
+        {
+          "elf_address": "0x10612c",
+          "instruction": "mov    QWORD PTR [rsp+0x8],rax",
+          "ip": "0x5cbfa07aa12c",
+          "period": 16836578,
+          "profile_percent": 0.0026562598777737376,
+          "symbol": "<crossbeam_epoch::internal::Global>::collect",
+          "symbol_offset": 60
+        },
+        {
+          "elf_address": "0x106545",
+          "instruction": "mov    QWORD PTR [r14+0x100],rbx",
+          "ip": "0x5cbfa07aa545",
+          "period": 16746030,
+          "profile_percent": 0.002641974372761219,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 197
+        },
+        {
+          "elf_address": "0x106489",
+          "instruction": "push   rbx",
+          "ip": "0x5cbfa07aa489",
+          "period": 16432058,
+          "profile_percent": 0.0025924398874077005,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 9
+        },
+        {
+          "elf_address": "0x106552",
+          "instruction": "mov    rax,rbx",
+          "ip": "0x5cbfa07aa552",
+          "period": 16426247,
+          "profile_percent": 0.0025915231021708344,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 210
+        },
+        {
+          "elf_address": "0x106560",
+          "instruction": "pop    r15",
+          "ip": "0x5cbfa07aa560",
+          "period": 15383293,
+          "profile_percent": 0.0024269791631017653,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 224
+        },
+        {
+          "elf_address": "0x1d6c94",
+          "instruction": "or     rcx,0x1",
+          "ip": "0x5cbfa087ac94",
+          "period": 15058457,
+          "profile_percent": 0.0023757306948170276,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+          "symbol_offset": 84
+        },
+        {
+          "elf_address": "0x106559",
+          "instruction": "pop    rbx",
+          "ip": "0x5cbfa07aa559",
+          "period": 14802489,
+          "profile_percent": 0.002335347338508282,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance",
+          "symbol_offset": 217
+        },
+        {
+          "elf_address": "0x106151",
+          "instruction": "mov    r15,rcx",
+          "ip": "0x5cbfa07aa151",
+          "period": 14624271,
+          "profile_percent": 0.0023072303825035,
+          "symbol": "<crossbeam_epoch::internal::Global>::collect",
+          "symbol_offset": 97
+        },
+        {
+          "elf_address": "0x106146",
+          "instruction": "and    rdi,0xfffffffffffffff8",
+          "ip": "0x5cbfa07aa146",
+          "period": 14623222,
+          "profile_percent": 0.0023070648847039006,
+          "symbol": "<crossbeam_epoch::internal::Global>::collect",
+          "symbol_offset": 86
+        }
+      ],
+      "name": "cycles-1x2-w96-accepted",
+      "period": 633845285278,
+      "pid": 104650,
+      "registered_workers": 96,
+      "sample_time_span_ns": 3521672000,
+      "sampled_tids": 97,
+      "samples": 39821,
+      "threads": [
+        {
+          "caller": true,
+          "periods": {
+            "all": 250706089,
+            "other": 250701903,
+            "scheduler": 4186
+          },
+          "samples": 547,
+          "tid": 104650,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9313593713,
+            "epoch": 2885445572,
+            "g1_stream": 458721767,
+            "g2_apply": 339410249,
+            "other": 4652850235,
+            "scheduler": 977165890
+          },
+          "samples": 590,
+          "tid": 104651,
+          "worker_index": 0
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8075730157,
+            "epoch": 3827071705,
+            "g1_stream": 733984442,
+            "g2_apply": 380965668,
+            "other": 2275626381,
+            "scheduler": 858081961
+          },
+          "samples": 524,
+          "tid": 104652,
+          "worker_index": 1
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7969341961,
+            "epoch": 4047456041,
+            "g1_stream": 733302352,
+            "g2_apply": 440796094,
+            "other": 1688608006,
+            "scheduler": 1059179468
+          },
+          "samples": 516,
+          "tid": 104653,
+          "worker_index": 2
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7795879642,
+            "epoch": 3954344891,
+            "g1_stream": 742442057,
+            "g2_apply": 355119751,
+            "other": 1659262279,
+            "scheduler": 1084710664
+          },
+          "samples": 511,
+          "tid": 104654,
+          "worker_index": 3
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7851025108,
+            "epoch": 4046600534,
+            "g1_stream": 956675443,
+            "g2_apply": 443749994,
+            "other": 1598929519,
+            "scheduler": 805069618
+          },
+          "samples": 510,
+          "tid": 104655,
+          "worker_index": 4
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7535507045,
+            "epoch": 3948231880,
+            "g1_stream": 758114543,
+            "g2_apply": 326972300,
+            "other": 1552696501,
+            "scheduler": 949491821
+          },
+          "samples": 496,
+          "tid": 104656,
+          "worker_index": 5
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7514853977,
+            "epoch": 3654631031,
+            "g1_stream": 850563296,
+            "g2_apply": 320997438,
+            "other": 1836364969,
+            "scheduler": 852297243
+          },
+          "samples": 488,
+          "tid": 104657,
+          "worker_index": 6
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7251324695,
+            "epoch": 3537223887,
+            "g1_stream": 637865063,
+            "g2_apply": 360664964,
+            "other": 1739946842,
+            "scheduler": 975623939
+          },
+          "samples": 470,
+          "tid": 104658,
+          "worker_index": 7
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7296541044,
+            "epoch": 3802947653,
+            "g1_stream": 674082688,
+            "g2_apply": 374368601,
+            "other": 1550606164,
+            "scheduler": 894535938
+          },
+          "samples": 474,
+          "tid": 104659,
+          "worker_index": 8
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7154944442,
+            "epoch": 3707454233,
+            "g1_stream": 563349059,
+            "g2_apply": 311506509,
+            "other": 1725703521,
+            "scheduler": 846931120
+          },
+          "samples": 462,
+          "tid": 104660,
+          "worker_index": 9
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6919767169,
+            "epoch": 3855449144,
+            "g1_stream": 689054543,
+            "g2_apply": 114776009,
+            "other": 1481835940,
+            "scheduler": 778651533
+          },
+          "samples": 444,
+          "tid": 104661,
+          "worker_index": 10
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6828953632,
+            "epoch": 3140119998,
+            "g1_stream": 884667563,
+            "g2_apply": 319724816,
+            "other": 1546114817,
+            "scheduler": 938326438
+          },
+          "samples": 440,
+          "tid": 104662,
+          "worker_index": 11
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6802430483,
+            "epoch": 3327689093,
+            "g1_stream": 657842866,
+            "g2_apply": 423747016,
+            "other": 1545240537,
+            "scheduler": 847910971
+          },
+          "samples": 433,
+          "tid": 104663,
+          "worker_index": 12
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6750438508,
+            "epoch": 3391455101,
+            "g1_stream": 706312099,
+            "g2_apply": 361417273,
+            "other": 1470031941,
+            "scheduler": 821222094
+          },
+          "samples": 428,
+          "tid": 104664,
+          "worker_index": 13
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6681500519,
+            "epoch": 3124100133,
+            "g1_stream": 948225549,
+            "g2_apply": 273999515,
+            "other": 1422595040,
+            "scheduler": 912580282
+          },
+          "samples": 428,
+          "tid": 104665,
+          "worker_index": 14
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6618566501,
+            "epoch": 3420036211,
+            "g1_stream": 707476247,
+            "g2_apply": 325444562,
+            "other": 1424708956,
+            "scheduler": 740900525
+          },
+          "samples": 424,
+          "tid": 104666,
+          "worker_index": 15
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6703814687,
+            "epoch": 3476602245,
+            "g1_stream": 563502405,
+            "g2_apply": 319425860,
+            "other": 1649490608,
+            "scheduler": 694793569
+          },
+          "samples": 422,
+          "tid": 104667,
+          "worker_index": 16
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6571527254,
+            "epoch": 3515775866,
+            "g1_stream": 661627310,
+            "g2_apply": 172835046,
+            "other": 1346207691,
+            "scheduler": 875081341
+          },
+          "samples": 418,
+          "tid": 104668,
+          "worker_index": 17
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6671753455,
+            "epoch": 3136416334,
+            "g1_stream": 712175455,
+            "g2_apply": 338698531,
+            "other": 1525463272,
+            "scheduler": 958999863
+          },
+          "samples": 420,
+          "tid": 104669,
+          "worker_index": 18
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6673159301,
+            "epoch": 3349532709,
+            "g1_stream": 493258266,
+            "g2_apply": 332898777,
+            "other": 1541050801,
+            "scheduler": 956418748
+          },
+          "samples": 421,
+          "tid": 104670,
+          "worker_index": 19
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6683847633,
+            "epoch": 3694463055,
+            "g1_stream": 693764047,
+            "g2_apply": 410443026,
+            "other": 1226426611,
+            "scheduler": 658750894
+          },
+          "samples": 419,
+          "tid": 104671,
+          "worker_index": 20
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6695313415,
+            "epoch": 3479394518,
+            "g1_stream": 550829383,
+            "g2_apply": 449023100,
+            "other": 1507895692,
+            "scheduler": 708170722
+          },
+          "samples": 421,
+          "tid": 104672,
+          "worker_index": 21
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6590346455,
+            "epoch": 3340063924,
+            "g1_stream": 596767047,
+            "g2_apply": 200598729,
+            "other": 1304633601,
+            "scheduler": 1148283154
+          },
+          "samples": 415,
+          "tid": 104673,
+          "worker_index": 22
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6581232903,
+            "epoch": 3356166379,
+            "g1_stream": 522716735,
+            "g2_apply": 424927534,
+            "other": 1335388736,
+            "scheduler": 942033519
+          },
+          "samples": 413,
+          "tid": 104674,
+          "worker_index": 23
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6697011429,
+            "epoch": 3092610594,
+            "g1_stream": 545338920,
+            "g2_apply": 428615381,
+            "other": 1473568576,
+            "scheduler": 1156877958
+          },
+          "samples": 419,
+          "tid": 104675,
+          "worker_index": 24
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6579333675,
+            "epoch": 3308998266,
+            "g1_stream": 550436131,
+            "g2_apply": 413241952,
+            "other": 1449991730,
+            "scheduler": 856665596
+          },
+          "samples": 414,
+          "tid": 104676,
+          "worker_index": 25
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6645861561,
+            "epoch": 3623039301,
+            "g1_stream": 511899063,
+            "g2_apply": 503939793,
+            "other": 1204831445,
+            "scheduler": 802151959
+          },
+          "samples": 417,
+          "tid": 104677,
+          "worker_index": 26
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6647198742,
+            "epoch": 3437369337,
+            "g1_stream": 544840965,
+            "g2_apply": 429797102,
+            "other": 1265613534,
+            "scheduler": 969577804
+          },
+          "samples": 414,
+          "tid": 104678,
+          "worker_index": 27
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6554990904,
+            "epoch": 3550516718,
+            "g1_stream": 318826703,
+            "g2_apply": 281849809,
+            "other": 1360048480,
+            "scheduler": 1043749194
+          },
+          "samples": 409,
+          "tid": 104679,
+          "worker_index": 28
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6635296162,
+            "epoch": 3489640837,
+            "g1_stream": 447548351,
+            "g2_apply": 308088047,
+            "other": 1284014632,
+            "scheduler": 1106004295
+          },
+          "samples": 411,
+          "tid": 104680,
+          "worker_index": 29
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6617955020,
+            "epoch": 3665336489,
+            "g1_stream": 457247002,
+            "g2_apply": 467528201,
+            "other": 1157789648,
+            "scheduler": 870053680
+          },
+          "samples": 407,
+          "tid": 104681,
+          "worker_index": 30
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6596942979,
+            "epoch": 3451850374,
+            "g1_stream": 560666587,
+            "g2_apply": 480736901,
+            "other": 1410383529,
+            "scheduler": 693305588
+          },
+          "samples": 407,
+          "tid": 104682,
+          "worker_index": 31
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6588840039,
+            "epoch": 3456508453,
+            "g1_stream": 455304264,
+            "g2_apply": 431163120,
+            "other": 1359527108,
+            "scheduler": 886337094
+          },
+          "samples": 414,
+          "tid": 104683,
+          "worker_index": 32
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6508908450,
+            "epoch": 3351118624,
+            "g1_stream": 330182453,
+            "g2_apply": 472145910,
+            "other": 1343737564,
+            "scheduler": 1011723899
+          },
+          "samples": 404,
+          "tid": 104684,
+          "worker_index": 33
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6488088373,
+            "epoch": 3716922059,
+            "g1_stream": 309719059,
+            "g2_apply": 390664637,
+            "other": 1322029737,
+            "scheduler": 748752881
+          },
+          "samples": 400,
+          "tid": 104685,
+          "worker_index": 34
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6427815796,
+            "epoch": 3439984318,
+            "g1_stream": 371443019,
+            "g2_apply": 399334342,
+            "other": 1191452367,
+            "scheduler": 1025601750
+          },
+          "samples": 396,
+          "tid": 104686,
+          "worker_index": 35
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6424916268,
+            "epoch": 3787171454,
+            "g1_stream": 380280186,
+            "g2_apply": 301539624,
+            "other": 1192200659,
+            "scheduler": 763724345
+          },
+          "samples": 399,
+          "tid": 104687,
+          "worker_index": 36
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6575621504,
+            "epoch": 3597094065,
+            "g1_stream": 409058439,
+            "g2_apply": 522384274,
+            "other": 1162818708,
+            "scheduler": 884266018
+          },
+          "samples": 406,
+          "tid": 104688,
+          "worker_index": 37
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6609373790,
+            "epoch": 3512142976,
+            "g1_stream": 473783794,
+            "g2_apply": 566849828,
+            "other": 1187446463,
+            "scheduler": 869150729
+          },
+          "samples": 410,
+          "tid": 104689,
+          "worker_index": 38
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6430296918,
+            "epoch": 3338621624,
+            "g1_stream": 425124475,
+            "g2_apply": 286861394,
+            "other": 1373780083,
+            "scheduler": 1005909342
+          },
+          "samples": 396,
+          "tid": 104690,
+          "worker_index": 39
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6500659464,
+            "epoch": 3612002694,
+            "g1_stream": 515446056,
+            "g2_apply": 347917278,
+            "other": 1215396087,
+            "scheduler": 809897349
+          },
+          "samples": 401,
+          "tid": 104691,
+          "worker_index": 40
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6487223271,
+            "epoch": 3672593725,
+            "g1_stream": 366935955,
+            "g2_apply": 451252575,
+            "other": 1025088961,
+            "scheduler": 971352055
+          },
+          "samples": 399,
+          "tid": 104692,
+          "worker_index": 41
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6460123085,
+            "epoch": 3829842900,
+            "g1_stream": 354281093,
+            "g2_apply": 311561016,
+            "other": 1332446325,
+            "scheduler": 631991751
+          },
+          "samples": 400,
+          "tid": 104693,
+          "worker_index": 42
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6440723574,
+            "epoch": 3417894402,
+            "g1_stream": 302536748,
+            "g2_apply": 376662915,
+            "other": 1349894607,
+            "scheduler": 993734902
+          },
+          "samples": 397,
+          "tid": 104694,
+          "worker_index": 43
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6523516129,
+            "epoch": 3618735674,
+            "g1_stream": 333409225,
+            "g2_apply": 475056973,
+            "other": 1318306129,
+            "scheduler": 778008128
+          },
+          "samples": 402,
+          "tid": 104695,
+          "worker_index": 44
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6581764038,
+            "epoch": 3767669311,
+            "g1_stream": 310622168,
+            "g2_apply": 307388162,
+            "other": 1241686386,
+            "scheduler": 954398011
+          },
+          "samples": 403,
+          "tid": 104696,
+          "worker_index": 45
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6503933114,
+            "epoch": 3437058290,
+            "g1_stream": 353679623,
+            "g2_apply": 379129062,
+            "other": 1199958008,
+            "scheduler": 1134108131
+          },
+          "samples": 402,
+          "tid": 104697,
+          "worker_index": 46
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6486427442,
+            "epoch": 3599615631,
+            "g1_stream": 377266882,
+            "g2_apply": 317351480,
+            "other": 1223093567,
+            "scheduler": 969099882
+          },
+          "samples": 399,
+          "tid": 104698,
+          "worker_index": 47
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6480849499,
+            "epoch": 3513622805,
+            "g1_stream": 345991023,
+            "g2_apply": 482696072,
+            "other": 1182801222,
+            "scheduler": 955738377
+          },
+          "samples": 401,
+          "tid": 104699,
+          "worker_index": 48
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6435702600,
+            "epoch": 3341093146,
+            "g1_stream": 523055221,
+            "g2_apply": 464189020,
+            "other": 1231045795,
+            "scheduler": 876319418
+          },
+          "samples": 397,
+          "tid": 104700,
+          "worker_index": 49
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6372661644,
+            "epoch": 3493850267,
+            "g1_stream": 323365047,
+            "g2_apply": 410713250,
+            "other": 1374242270,
+            "scheduler": 770490810
+          },
+          "samples": 393,
+          "tid": 104701,
+          "worker_index": 50
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6335902284,
+            "epoch": 3614236878,
+            "g1_stream": 467046929,
+            "g2_apply": 268480264,
+            "other": 1197163059,
+            "scheduler": 788975154
+          },
+          "samples": 389,
+          "tid": 104702,
+          "worker_index": 51
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6455774966,
+            "epoch": 3889540002,
+            "g1_stream": 357028549,
+            "g2_apply": 411644299,
+            "other": 1005847811,
+            "scheduler": 791714305
+          },
+          "samples": 394,
+          "tid": 104703,
+          "worker_index": 52
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6411298121,
+            "epoch": 3246618309,
+            "g1_stream": 274869102,
+            "g2_apply": 364855031,
+            "other": 1471902717,
+            "scheduler": 1053052962
+          },
+          "samples": 394,
+          "tid": 104704,
+          "worker_index": 53
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6279863524,
+            "epoch": 3504924600,
+            "g1_stream": 354906524,
+            "g2_apply": 361807868,
+            "other": 1220930840,
+            "scheduler": 837293692
+          },
+          "samples": 383,
+          "tid": 104705,
+          "worker_index": 54
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6276208318,
+            "epoch": 3645536322,
+            "g1_stream": 490738161,
+            "g2_apply": 313729809,
+            "other": 919004166,
+            "scheduler": 907199860
+          },
+          "samples": 386,
+          "tid": 104706,
+          "worker_index": 55
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6462596859,
+            "epoch": 3637366205,
+            "g1_stream": 449485439,
+            "g2_apply": 473538785,
+            "other": 971943873,
+            "scheduler": 930262557
+          },
+          "samples": 393,
+          "tid": 104707,
+          "worker_index": 56
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6362530742,
+            "epoch": 3506676398,
+            "g1_stream": 364306710,
+            "g2_apply": 270794094,
+            "other": 1231782321,
+            "scheduler": 988971219
+          },
+          "samples": 392,
+          "tid": 104708,
+          "worker_index": 57
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6406307035,
+            "epoch": 3766958840,
+            "g1_stream": 382453481,
+            "g2_apply": 362684316,
+            "other": 1126980184,
+            "scheduler": 767230214
+          },
+          "samples": 389,
+          "tid": 104709,
+          "worker_index": 58
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6467942268,
+            "epoch": 3558940957,
+            "g1_stream": 429864274,
+            "g2_apply": 250202575,
+            "other": 1492472429,
+            "scheduler": 736462033
+          },
+          "samples": 392,
+          "tid": 104710,
+          "worker_index": 59
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6448519534,
+            "epoch": 3625036216,
+            "g1_stream": 355623468,
+            "g2_apply": 245944185,
+            "other": 1444309773,
+            "scheduler": 777605892
+          },
+          "samples": 395,
+          "tid": 104711,
+          "worker_index": 60
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6369619244,
+            "epoch": 3385878314,
+            "g1_stream": 368279761,
+            "g2_apply": 341512570,
+            "other": 1242157240,
+            "scheduler": 1031791359
+          },
+          "samples": 389,
+          "tid": 104712,
+          "worker_index": 61
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6471495032,
+            "epoch": 3702439392,
+            "g1_stream": 298478003,
+            "g2_apply": 455708274,
+            "other": 1248843530,
+            "scheduler": 766025833
+          },
+          "samples": 395,
+          "tid": 104713,
+          "worker_index": 62
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6372653218,
+            "epoch": 3510005495,
+            "g1_stream": 538560727,
+            "g2_apply": 234066118,
+            "other": 1235088733,
+            "scheduler": 854932145
+          },
+          "samples": 387,
+          "tid": 104714,
+          "worker_index": 63
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6232910874,
+            "epoch": 3476120039,
+            "g1_stream": 409939447,
+            "g2_apply": 452695351,
+            "other": 1085757047,
+            "scheduler": 808398990
+          },
+          "samples": 381,
+          "tid": 104715,
+          "worker_index": 64
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6262097797,
+            "epoch": 3538365960,
+            "g1_stream": 447432602,
+            "g2_apply": 415136832,
+            "other": 1358629163,
+            "scheduler": 502533240
+          },
+          "samples": 382,
+          "tid": 104716,
+          "worker_index": 65
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6324330061,
+            "epoch": 3834277774,
+            "g1_stream": 298057256,
+            "g2_apply": 214941312,
+            "other": 1310684847,
+            "scheduler": 666368872
+          },
+          "samples": 387,
+          "tid": 104717,
+          "worker_index": 66
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6353485555,
+            "epoch": 3260335339,
+            "g1_stream": 501348958,
+            "g2_apply": 426250165,
+            "other": 1185134522,
+            "scheduler": 980416571
+          },
+          "samples": 387,
+          "tid": 104718,
+          "worker_index": 67
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6284584036,
+            "epoch": 3542212967,
+            "g1_stream": 350690949,
+            "g2_apply": 406337993,
+            "other": 1240574284,
+            "scheduler": 744767843
+          },
+          "samples": 383,
+          "tid": 104719,
+          "worker_index": 68
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6356999008,
+            "epoch": 3698187932,
+            "g1_stream": 333463483,
+            "g2_apply": 347540516,
+            "other": 1292692090,
+            "scheduler": 685114987
+          },
+          "samples": 382,
+          "tid": 104720,
+          "worker_index": 69
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6307739252,
+            "epoch": 3477110771,
+            "g1_stream": 383234773,
+            "g2_apply": 345406957,
+            "other": 1364114717,
+            "scheduler": 737872034
+          },
+          "samples": 383,
+          "tid": 104721,
+          "worker_index": 70
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6230634204,
+            "epoch": 3327430046,
+            "g1_stream": 351726791,
+            "g2_apply": 352599633,
+            "other": 1203843433,
+            "scheduler": 995034301
+          },
+          "samples": 381,
+          "tid": 104722,
+          "worker_index": 71
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6446758229,
+            "epoch": 3106963004,
+            "g1_stream": 662421795,
+            "g2_apply": 412667342,
+            "other": 1337433372,
+            "scheduler": 927272716
+          },
+          "samples": 395,
+          "tid": 104723,
+          "worker_index": 72
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6383682469,
+            "epoch": 3559903168,
+            "g1_stream": 539941162,
+            "g2_apply": 346096977,
+            "other": 1324807706,
+            "scheduler": 612933456
+          },
+          "samples": 390,
+          "tid": 104724,
+          "worker_index": 73
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6301413106,
+            "epoch": 3349751703,
+            "g1_stream": 409818158,
+            "g2_apply": 435349857,
+            "other": 1320750451,
+            "scheduler": 785742937
+          },
+          "samples": 387,
+          "tid": 104725,
+          "worker_index": 74
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6384328844,
+            "epoch": 3597932235,
+            "g1_stream": 506473886,
+            "g2_apply": 443245941,
+            "other": 1050954078,
+            "scheduler": 785722704
+          },
+          "samples": 389,
+          "tid": 104726,
+          "worker_index": 75
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6378656601,
+            "epoch": 3670965058,
+            "g1_stream": 454524450,
+            "g2_apply": 442752640,
+            "other": 1033457843,
+            "scheduler": 776956610
+          },
+          "samples": 390,
+          "tid": 104727,
+          "worker_index": 76
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6407201953,
+            "epoch": 3274465673,
+            "g1_stream": 424699747,
+            "g2_apply": 466349203,
+            "other": 1263937994,
+            "scheduler": 977749336
+          },
+          "samples": 386,
+          "tid": 104728,
+          "worker_index": 77
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6307907193,
+            "epoch": 3303625918,
+            "g1_stream": 530243782,
+            "g2_apply": 396443444,
+            "other": 1406026926,
+            "scheduler": 671567123
+          },
+          "samples": 381,
+          "tid": 104729,
+          "worker_index": 78
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6325851026,
+            "epoch": 3306298297,
+            "g1_stream": 549576949,
+            "g2_apply": 406333672,
+            "other": 1144434551,
+            "scheduler": 919207557
+          },
+          "samples": 384,
+          "tid": 104730,
+          "worker_index": 79
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6332403210,
+            "epoch": 3518900197,
+            "g1_stream": 342468897,
+            "g2_apply": 604802019,
+            "other": 1029758149,
+            "scheduler": 836473948
+          },
+          "samples": 385,
+          "tid": 104731,
+          "worker_index": 80
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6275079244,
+            "epoch": 3231460657,
+            "g1_stream": 541149673,
+            "g2_apply": 465112844,
+            "other": 1221022944,
+            "scheduler": 816333126
+          },
+          "samples": 382,
+          "tid": 104732,
+          "worker_index": 81
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6312781031,
+            "epoch": 3499068033,
+            "g1_stream": 358979614,
+            "g2_apply": 498430543,
+            "other": 1272076266,
+            "scheduler": 684226575
+          },
+          "samples": 380,
+          "tid": 104733,
+          "worker_index": 82
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6384978586,
+            "epoch": 3653356737,
+            "g1_stream": 398014286,
+            "g2_apply": 431391275,
+            "other": 1248518812,
+            "scheduler": 653697476
+          },
+          "samples": 385,
+          "tid": 104734,
+          "worker_index": 83
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6366609426,
+            "epoch": 3547952378,
+            "g1_stream": 518830854,
+            "g2_apply": 478773260,
+            "other": 1151156022,
+            "scheduler": 669896912
+          },
+          "samples": 384,
+          "tid": 104735,
+          "worker_index": 84
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6231888014,
+            "epoch": 3520785392,
+            "g1_stream": 344429641,
+            "g2_apply": 534297512,
+            "other": 1266199536,
+            "scheduler": 566175933
+          },
+          "samples": 381,
+          "tid": 104736,
+          "worker_index": 85
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6226794051,
+            "epoch": 3023003106,
+            "g1_stream": 411510852,
+            "g2_apply": 466752474,
+            "other": 1358220321,
+            "scheduler": 967307298
+          },
+          "samples": 379,
+          "tid": 104737,
+          "worker_index": 86
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6260030304,
+            "epoch": 3420243924,
+            "g1_stream": 339458278,
+            "g2_apply": 440113743,
+            "other": 1204004750,
+            "scheduler": 856209609
+          },
+          "samples": 377,
+          "tid": 104738,
+          "worker_index": 87
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6361615589,
+            "epoch": 3615612107,
+            "g1_stream": 392064871,
+            "g2_apply": 449270702,
+            "other": 1167952222,
+            "scheduler": 736715687
+          },
+          "samples": 386,
+          "tid": 104739,
+          "worker_index": 88
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6415643246,
+            "epoch": 3262906148,
+            "g1_stream": 528032793,
+            "g2_apply": 499392949,
+            "other": 1247423311,
+            "scheduler": 877888045
+          },
+          "samples": 385,
+          "tid": 104740,
+          "worker_index": 89
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6744298960,
+            "epoch": 3565229955,
+            "g1_stream": 524465961,
+            "g2_apply": 560357615,
+            "other": 1505287503,
+            "scheduler": 588957926
+          },
+          "samples": 405,
+          "tid": 104741,
+          "worker_index": 90
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6270131458,
+            "epoch": 3507015276,
+            "g1_stream": 468643442,
+            "g2_apply": 542201809,
+            "other": 1018233063,
+            "scheduler": 734037868
+          },
+          "samples": 379,
+          "tid": 104742,
+          "worker_index": 91
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6402981016,
+            "epoch": 3331973147,
+            "g1_stream": 558870242,
+            "g2_apply": 518345486,
+            "other": 1304703098,
+            "scheduler": 689089043
+          },
+          "samples": 386,
+          "tid": 104743,
+          "worker_index": 92
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6253388814,
+            "epoch": 3391553871,
+            "g1_stream": 611859717,
+            "g2_apply": 388692921,
+            "other": 1324268847,
+            "scheduler": 537013458
+          },
+          "samples": 375,
+          "tid": 104744,
+          "worker_index": 93
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6285585105,
+            "epoch": 2969438345,
+            "g1_stream": 676072854,
+            "g2_apply": 489096634,
+            "other": 1300482736,
+            "scheduler": 850494536
+          },
+          "samples": 378,
+          "tid": 104745,
+          "worker_index": 94
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 6227650613,
+            "epoch": 3307133322,
+            "g1_stream": 500168075,
+            "g2_apply": 402233453,
+            "other": 1413762661,
+            "scheduler": 604353102
+          },
+          "samples": 377,
+          "tid": 104746,
+          "worker_index": 95
+        }
+      ]
+    },
+    {
+      "caller": null,
+      "distributions_excluding_caller": {
+        "all": {
+          "effective_threads": 32.992015427271255,
+          "max": 10156551722,
+          "min": 236148,
+          "nonzero": 40,
+          "period": 292512019189,
+          "threads": 40,
+          "threads_for_90_percent": 29,
+          "top_thread_percent": 3.4721826987347058
+        },
+        "epoch": {
+          "nonzero": 0,
+          "period": 0,
+          "threads": 40
+        },
+        "g1_stream": {
+          "nonzero": 0,
+          "period": 0,
+          "threads": 40
+        },
+        "g2_apply": {
+          "nonzero": 0,
+          "period": 0,
+          "threads": 40
+        },
+        "scheduler": {
+          "nonzero": 0,
+          "period": 0,
+          "threads": 40
+        }
+      },
+      "epoch_instruction_sites": [],
+      "name": "cycles-1x2-w32-aeglos",
+      "period": 292512019189,
+      "pid": 104581,
+      "registered_workers": 0,
+      "sample_time_span_ns": 3057851000,
+      "sampled_tids": 40,
+      "samples": 17214,
+      "threads": [
+        {
+          "caller": false,
+          "periods": {
+            "all": 236148,
+            "other": 236148
+          },
+          "samples": 42,
+          "tid": 104582,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3336004285,
+            "other": 3336004285
+          },
+          "samples": 219,
+          "tid": 104588,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 627517172,
+            "other": 627517172
+          },
+          "samples": 68,
+          "tid": 104593,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 716555068,
+            "other": 716555068
+          },
+          "samples": 61,
+          "tid": 104595,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 968638633,
+            "other": 968638633
+          },
+          "samples": 95,
+          "tid": 104596,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 878025608,
+            "other": 878025608
+          },
+          "samples": 88,
+          "tid": 104602,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 2098326150,
+            "other": 2098326150
+          },
+          "samples": 152,
+          "tid": 104603,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 905889564,
+            "other": 905889564
+          },
+          "samples": 112,
+          "tid": 104604,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 1101912077,
+            "other": 1101912077
+          },
+          "samples": 79,
+          "tid": 104605,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 10156551722,
+            "other": 10156551722
+          },
+          "samples": 577,
+          "tid": 104615,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 10091958361,
+            "other": 10091958361
+          },
+          "samples": 581,
+          "tid": 104616,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9955531399,
+            "other": 9955531399
+          },
+          "samples": 568,
+          "tid": 104617,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 10078537446,
+            "other": 10078537446
+          },
+          "samples": 579,
+          "tid": 104618,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9949637157,
+            "other": 9949637157
+          },
+          "samples": 573,
+          "tid": 104619,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9967000176,
+            "other": 9967000176
+          },
+          "samples": 581,
+          "tid": 104620,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 10033926235,
+            "other": 10033926235
+          },
+          "samples": 579,
+          "tid": 104621,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8904318148,
+            "other": 8904318148
+          },
+          "samples": 512,
+          "tid": 104622,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9074400818,
+            "other": 9074400818
+          },
+          "samples": 516,
+          "tid": 104623,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9059882075,
+            "other": 9059882075
+          },
+          "samples": 515,
+          "tid": 104624,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9018017438,
+            "other": 9018017438
+          },
+          "samples": 520,
+          "tid": 104625,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8553624129,
+            "other": 8553624129
+          },
+          "samples": 485,
+          "tid": 104626,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9036947875,
+            "other": 9036947875
+          },
+          "samples": 518,
+          "tid": 104627,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9048012231,
+            "other": 9048012231
+          },
+          "samples": 515,
+          "tid": 104628,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9034791821,
+            "other": 9034791821
+          },
+          "samples": 518,
+          "tid": 104629,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8878318248,
+            "other": 8878318248
+          },
+          "samples": 514,
+          "tid": 104630,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8542344411,
+            "other": 8542344411
+          },
+          "samples": 537,
+          "tid": 104631,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8822527026,
+            "other": 8822527026
+          },
+          "samples": 511,
+          "tid": 104632,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8954690790,
+            "other": 8954690790
+          },
+          "samples": 513,
+          "tid": 104633,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8867838881,
+            "other": 8867838881
+          },
+          "samples": 504,
+          "tid": 104634,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8858380986,
+            "other": 8858380986
+          },
+          "samples": 520,
+          "tid": 104635,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8997753548,
+            "other": 8997753548
+          },
+          "samples": 513,
+          "tid": 104636,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 9024354129,
+            "other": 9024354129
+          },
+          "samples": 513,
+          "tid": 104637,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8719757864,
+            "other": 8719757864
+          },
+          "samples": 512,
+          "tid": 104638,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8658706684,
+            "other": 8658706684
+          },
+          "samples": 508,
+          "tid": 104639,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8452528012,
+            "other": 8452528012
+          },
+          "samples": 510,
+          "tid": 104640,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8971758816,
+            "other": 8971758816
+          },
+          "samples": 514,
+          "tid": 104641,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8883663616,
+            "other": 8883663616
+          },
+          "samples": 515,
+          "tid": 104642,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8675739657,
+            "other": 8675739657
+          },
+          "samples": 501,
+          "tid": 104643,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 8950195267,
+            "other": 8950195267
+          },
+          "samples": 510,
+          "tid": 104644,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 7657219518,
+            "other": 7657219518
+          },
+          "samples": 466,
+          "tid": 104645,
+          "worker_index": null
+        }
+      ]
+    },
+    {
+      "caller": null,
+      "distributions_excluding_caller": {
+        "all": {
+          "effective_threads": 94.54734484856517,
+          "max": 5769896110,
+          "min": 108375,
+          "nonzero": 104,
+          "period": 407059997335,
+          "threads": 104,
+          "threads_for_90_percent": 83,
+          "top_thread_percent": 1.417455939609689
+        },
+        "epoch": {
+          "nonzero": 0,
+          "period": 0,
+          "threads": 104
+        },
+        "g1_stream": {
+          "nonzero": 0,
+          "period": 0,
+          "threads": 104
+        },
+        "g2_apply": {
+          "nonzero": 0,
+          "period": 0,
+          "threads": 104
+        },
+        "scheduler": {
+          "nonzero": 0,
+          "period": 0,
+          "threads": 104
+        }
+      },
+      "epoch_instruction_sites": [],
+      "name": "cycles-1x2-w96-aeglos",
+      "period": 407059997335,
+      "pid": 104751,
+      "registered_workers": 0,
+      "sample_time_span_ns": 2038606000,
+      "sampled_tids": 104,
+      "samples": 27015,
+      "threads": [
+        {
+          "caller": false,
+          "periods": {
+            "all": 156455,
+            "other": 156455
+          },
+          "samples": 27,
+          "tid": 104752,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 347093336,
+            "other": 347093336
+          },
+          "samples": 92,
+          "tid": 104764,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 850299510,
+            "other": 850299510
+          },
+          "samples": 94,
+          "tid": 104765,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 1374267883,
+            "other": 1374267883
+          },
+          "samples": 149,
+          "tid": 104778,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 461416496,
+            "other": 461416496
+          },
+          "samples": 52,
+          "tid": 104781,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 1132624400,
+            "other": 1132624400
+          },
+          "samples": 119,
+          "tid": 104786,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 194540181,
+            "other": 194540181
+          },
+          "samples": 54,
+          "tid": 104787,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 108375,
+            "other": 108375
+          },
+          "samples": 11,
+          "tid": 104793,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 1787372816,
+            "other": 1787372816
+          },
+          "samples": 159,
+          "tid": 104802,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 5764335829,
+            "other": 5764335829
+          },
+          "samples": 369,
+          "tid": 104821,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 5769896110,
+            "other": 5769896110
+          },
+          "samples": 364,
+          "tid": 104822,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 5751551000,
+            "other": 5751551000
+          },
+          "samples": 363,
+          "tid": 104823,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 5758004355,
+            "other": 5758004355
+          },
+          "samples": 363,
+          "tid": 104824,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 5727355728,
+            "other": 5727355728
+          },
+          "samples": 361,
+          "tid": 104825,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 5028900202,
+            "other": 5028900202
+          },
+          "samples": 333,
+          "tid": 104826,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 5713527615,
+            "other": 5713527615
+          },
+          "samples": 365,
+          "tid": 104827,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4667777240,
+            "other": 4667777240
+          },
+          "samples": 294,
+          "tid": 104828,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4667242379,
+            "other": 4667242379
+          },
+          "samples": 293,
+          "tid": 104829,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4658833356,
+            "other": 4658833356
+          },
+          "samples": 295,
+          "tid": 104830,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4655221905,
+            "other": 4655221905
+          },
+          "samples": 292,
+          "tid": 104831,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3973220949,
+            "other": 3973220949
+          },
+          "samples": 259,
+          "tid": 104832,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4648005186,
+            "other": 4648005186
+          },
+          "samples": 291,
+          "tid": 104833,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4639712131,
+            "other": 4639712131
+          },
+          "samples": 290,
+          "tid": 104834,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4644126769,
+            "other": 4644126769
+          },
+          "samples": 291,
+          "tid": 104835,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4637373182,
+            "other": 4637373182
+          },
+          "samples": 291,
+          "tid": 104836,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4632516299,
+            "other": 4632516299
+          },
+          "samples": 291,
+          "tid": 104837,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4621716165,
+            "other": 4621716165
+          },
+          "samples": 290,
+          "tid": 104838,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4628244773,
+            "other": 4628244773
+          },
+          "samples": 290,
+          "tid": 104839,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3991233013,
+            "other": 3991233013
+          },
+          "samples": 265,
+          "tid": 104840,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4612065350,
+            "other": 4612065350
+          },
+          "samples": 294,
+          "tid": 104841,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4129260140,
+            "other": 4129260140
+          },
+          "samples": 281,
+          "tid": 104842,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4608313621,
+            "other": 4608313621
+          },
+          "samples": 292,
+          "tid": 104843,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4614051333,
+            "other": 4614051333
+          },
+          "samples": 289,
+          "tid": 104844,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4595739573,
+            "other": 4595739573
+          },
+          "samples": 288,
+          "tid": 104845,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4131117732,
+            "other": 4131117732
+          },
+          "samples": 279,
+          "tid": 104846,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4598173606,
+            "other": 4598173606
+          },
+          "samples": 292,
+          "tid": 104847,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4598159208,
+            "other": 4598159208
+          },
+          "samples": 290,
+          "tid": 104848,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4594987455,
+            "other": 4594987455
+          },
+          "samples": 288,
+          "tid": 104849,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4577655274,
+            "other": 4577655274
+          },
+          "samples": 290,
+          "tid": 104850,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4586338343,
+            "other": 4586338343
+          },
+          "samples": 287,
+          "tid": 104851,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4137986913,
+            "other": 4137986913
+          },
+          "samples": 283,
+          "tid": 104852,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 2330823846,
+            "other": 2330823846
+          },
+          "samples": 188,
+          "tid": 104853,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4552575057,
+            "other": 4552575057
+          },
+          "samples": 294,
+          "tid": 104854,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4546504071,
+            "other": 4546504071
+          },
+          "samples": 291,
+          "tid": 104855,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4576973275,
+            "other": 4576973275
+          },
+          "samples": 286,
+          "tid": 104856,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4556172886,
+            "other": 4556172886
+          },
+          "samples": 291,
+          "tid": 104857,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4568121672,
+            "other": 4568121672
+          },
+          "samples": 286,
+          "tid": 104858,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4570408658,
+            "other": 4570408658
+          },
+          "samples": 286,
+          "tid": 104859,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4270462458,
+            "other": 4270462458
+          },
+          "samples": 280,
+          "tid": 104860,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4545836589,
+            "other": 4545836589
+          },
+          "samples": 285,
+          "tid": 104861,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4546453309,
+            "other": 4546453309
+          },
+          "samples": 285,
+          "tid": 104862,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4499756491,
+            "other": 4499756491
+          },
+          "samples": 285,
+          "tid": 104863,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4259997424,
+            "other": 4259997424
+          },
+          "samples": 293,
+          "tid": 104864,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4521634242,
+            "other": 4521634242
+          },
+          "samples": 290,
+          "tid": 104865,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4340535406,
+            "other": 4340535406
+          },
+          "samples": 297,
+          "tid": 104866,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4114915834,
+            "other": 4114915834
+          },
+          "samples": 275,
+          "tid": 104867,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4290431817,
+            "other": 4290431817
+          },
+          "samples": 291,
+          "tid": 104868,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4464291642,
+            "other": 4464291642
+          },
+          "samples": 283,
+          "tid": 104869,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4459350432,
+            "other": 4459350432
+          },
+          "samples": 283,
+          "tid": 104870,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4461581115,
+            "other": 4461581115
+          },
+          "samples": 281,
+          "tid": 104871,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4454942606,
+            "other": 4454942606
+          },
+          "samples": 281,
+          "tid": 104872,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4252058752,
+            "other": 4252058752
+          },
+          "samples": 300,
+          "tid": 104873,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3801608357,
+            "other": 3801608357
+          },
+          "samples": 264,
+          "tid": 104874,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4043165530,
+            "other": 4043165530
+          },
+          "samples": 288,
+          "tid": 104875,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4413267585,
+            "other": 4413267585
+          },
+          "samples": 284,
+          "tid": 104876,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4439330876,
+            "other": 4439330876
+          },
+          "samples": 279,
+          "tid": 104877,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4423616972,
+            "other": 4423616972
+          },
+          "samples": 282,
+          "tid": 104878,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4429617115,
+            "other": 4429617115
+          },
+          "samples": 283,
+          "tid": 104879,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3444047889,
+            "other": 3444047889
+          },
+          "samples": 269,
+          "tid": 104880,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4435909726,
+            "other": 4435909726
+          },
+          "samples": 278,
+          "tid": 104881,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4179949561,
+            "other": 4179949561
+          },
+          "samples": 292,
+          "tid": 104882,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4311991759,
+            "other": 4311991759
+          },
+          "samples": 301,
+          "tid": 104883,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4412220567,
+            "other": 4412220567
+          },
+          "samples": 288,
+          "tid": 104884,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3535666965,
+            "other": 3535666965
+          },
+          "samples": 265,
+          "tid": 104885,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4419201221,
+            "other": 4419201221
+          },
+          "samples": 280,
+          "tid": 104886,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3907801352,
+            "other": 3907801352
+          },
+          "samples": 267,
+          "tid": 104887,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4417452346,
+            "other": 4417452346
+          },
+          "samples": 278,
+          "tid": 104888,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4103433092,
+            "other": 4103433092
+          },
+          "samples": 284,
+          "tid": 104889,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4140167774,
+            "other": 4140167774
+          },
+          "samples": 280,
+          "tid": 104890,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4031075780,
+            "other": 4031075780
+          },
+          "samples": 273,
+          "tid": 104891,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3308634077,
+            "other": 3308634077
+          },
+          "samples": 262,
+          "tid": 104892,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3834370605,
+            "other": 3834370605
+          },
+          "samples": 267,
+          "tid": 104893,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4401953264,
+            "other": 4401953264
+          },
+          "samples": 275,
+          "tid": 104894,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4198925655,
+            "other": 4198925655
+          },
+          "samples": 280,
+          "tid": 104895,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3629470183,
+            "other": 3629470183
+          },
+          "samples": 256,
+          "tid": 104896,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3846220507,
+            "other": 3846220507
+          },
+          "samples": 256,
+          "tid": 104897,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3938387706,
+            "other": 3938387706
+          },
+          "samples": 253,
+          "tid": 104898,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 2933651556,
+            "other": 2933651556
+          },
+          "samples": 227,
+          "tid": 104899,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 1734158213,
+            "other": 1734158213
+          },
+          "samples": 132,
+          "tid": 104900,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4379978517,
+            "other": 4379978517
+          },
+          "samples": 273,
+          "tid": 104901,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4361296718,
+            "other": 4361296718
+          },
+          "samples": 275,
+          "tid": 104902,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 2711716122,
+            "other": 2711716122
+          },
+          "samples": 226,
+          "tid": 104903,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 2998213229,
+            "other": 2998213229
+          },
+          "samples": 198,
+          "tid": 104904,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3823642350,
+            "other": 3823642350
+          },
+          "samples": 240,
+          "tid": 104905,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 4205599915,
+            "other": 4205599915
+          },
+          "samples": 273,
+          "tid": 104906,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 2726013294,
+            "other": 2726013294
+          },
+          "samples": 209,
+          "tid": 104907,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3471004744,
+            "other": 3471004744
+          },
+          "samples": 217,
+          "tid": 104908,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3660071508,
+            "other": 3660071508
+          },
+          "samples": 244,
+          "tid": 104909,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 2241934125,
+            "other": 2241934125
+          },
+          "samples": 152,
+          "tid": 104910,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3868605310,
+            "other": 3868605310
+          },
+          "samples": 251,
+          "tid": 104911,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3726984278,
+            "other": 3726984278
+          },
+          "samples": 237,
+          "tid": 104912,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 2336428208,
+            "other": 2336428208
+          },
+          "samples": 170,
+          "tid": 104913,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 2219731579,
+            "other": 2219731579
+          },
+          "samples": 175,
+          "tid": 104914,
+          "worker_index": null
+        },
+        {
+          "caller": false,
+          "periods": {
+            "all": 3919131437,
+            "other": 3919131437
+          },
+          "samples": 241,
+          "tid": 104915,
+          "worker_index": null
+        }
+      ]
+    }
+  ],
+  "sample_multisets_reconcile": true
+}
