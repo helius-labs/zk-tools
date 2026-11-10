@@ -1,0 +1,42 @@
+[
+  {
+    "after": "#[cfg(zopro_ready_victims)]\nmod ready_victims;\n#[cfg(all(test,zopro_ready_victims))]\nmod ready_pool_tests;\nmod registry;",
+    "before": "mod registry;",
+    "file": "src/lib.rs"
+  },
+  {
+    "after": "    thread_infos: Vec<ThreadInfo>,\n    #[cfg(zopro_ready_victims)]\n    ready_victims: crate::ready_victims::ReadyVictims,",
+    "before": "    thread_infos: Vec<ThreadInfo>,",
+    "file": "src/registry.rs"
+  },
+  {
+    "after": "            thread_infos: stealers.into_iter().map(ThreadInfo::new).collect(),\n            #[cfg(zopro_ready_victims)]\n            ready_victims: crate::ready_victims::ReadyVictims::new(n_threads),",
+    "before": "            thread_infos: stealers.into_iter().map(ThreadInfo::new).collect(),",
+    "file": "src/registry.rs"
+  },
+  {
+    "after": "    rng: XorShift64Star,\n    #[cfg(zopro_ready_victims)]\n    ready_advertised: Cell<bool>,",
+    "before": "    rng: XorShift64Star,",
+    "file": "src/registry.rs"
+  },
+  {
+    "after": "            rng: XorShift64Star::new(),\n            #[cfg(zopro_ready_victims)]\n            ready_advertised: Cell::new(false),",
+    "before": "            rng: XorShift64Star::new(),",
+    "file": "src/registry.rs"
+  },
+  {
+    "after": "        self.worker.push(job);\n        #[cfg(zopro_ready_victims)]\n        if !self.ready_advertised.get() {\n            self.registry.ready_victims.publish(self.index);\n            self.ready_advertised.set(true);\n        }\n        self.registry.sleep.new_internal_jobs(1, queue_was_empty);",
+    "before": "        self.worker.push(job);\n        self.registry.sleep.new_internal_jobs(1, queue_was_empty);",
+    "file": "src/registry.rs"
+  },
+  {
+    "after": "        let popped_job = self.worker.pop();\n        #[cfg(zopro_ready_victims)]\n        if self.ready_advertised.get() && self.worker.is_empty() {\n            self.registry.ready_victims.clear(self.index);\n            self.ready_advertised.set(false);\n        }",
+    "before": "        let popped_job = self.worker.pop();",
+    "file": "src/registry.rs"
+  },
+  {
+    "after": "            #[cfg(not(zopro_ready_victims))]\n            let victims = (start..num_threads).chain(0..start);\n            #[cfg(zopro_ready_victims)]\n            let victims = self.registry.ready_victims.from(start);\n            let job = victims",
+    "before": "            let job = (start..num_threads)\n                .chain(0..start)",
+    "file": "src/registry.rs"
+  }
+]
