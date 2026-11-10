@@ -1,0 +1,15 @@
+{
+  "ON_SOURCE": "/home/ubuntu/src/zopro-perf-work/persistent-quarter-window176",
+  "REF_all_originals_recovered": true,
+  "REF_exact_originals": 172,
+  "REF_new_runtime_children": 0,
+  "REF_parents": 176,
+  "REF_suffixes": {
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]pub use msm_affine::{quarter_window_g1,quarter_window_g2};\n",
+    "crates/zopro-core/src/msm_affine.rs": "\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[inline(never)]pub fn quarter_window_g1(bases:&[zopro_bn254::G1Affine],words:&[[u64;4]],w:usize,bits:usize,size:usize,candidate:bool)->Vec<zopro_bn254::G1Affine>{assert!(!candidate);assert!(size>=2);borrowed_pending::quarter_trial(bases,words,w,bits,size)}\n\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[inline(never)]pub fn quarter_window_g2(bases:&[zopro_bn254::G2Affine],words:&[[u64;4]],w:usize,bits:usize,size:usize,candidate:bool)->Vec<zopro_bn254::G2Affine>{assert!(!candidate);assert!(size>=2);g2_borrowed::quarter_trial(bases,words,w,bits,size)}\n",
+    "crates/zopro-core/src/msm_affine/borrowed_pending.rs": "\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(super)fn quarter_trial(bases:&[zopro_bn254::G1Affine],words:&[[u64;4]],w:usize,bits:usize,size:usize)->Vec<zopro_bn254::G1Affine>{assert!(enabled());let mut s:Window<zopro_bn254::G1Config>=Window::new(1<<(bits-1),size);s.feed(bases,words,w,bits,size);s.finish()}\n",
+    "crates/zopro-core/src/msm_affine/g2_borrowed.rs": "\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(super)fn quarter_trial(bases:&[G2Affine],short:&[[u64;4]],w:usize,bits:usize,size:usize)->Vec<G2Affine>{assert!(BatchAdd::<G2Config>::default().borrowed_g2_enabled());let mut s=Window::new(1<<(bits-1),size,BatchAdd::default());s.feed(bases,short,true,w,bits,size);assert!(s.batch.is_empty()&&s.queue.is_empty());for p in &mut s.affine{if !p.is_identity(){p.x=p.x.mul_by_fp(&BETA);}}for p in &mut s.projective{p.x=p.x.mul_by_fp(&BETA);}s.feed(bases,short,false,w,bits,size);s.finish()}\n"
+  },
+  "production_changed": false,
+  "qualified_ON_artifacts_reused": true
+}
