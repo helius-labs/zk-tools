@@ -1,0 +1,38 @@
+{
+  "all_176_production_exact": true,
+  "changed": [
+    {
+      "appended": "/// Canonical incoming H words -> signed difference in persistent quarter-Y.\n/// For b=4a+r, b/4 mod p = a+r*T, T=(p+1)/4. Form the difference\n/// before propagating carries; this avoids normalizing the quarter separately.\n#[inline(always)]\npub fn incoming_dy(b:&[Fq;8],ay:&Wide<2>,negative:u8)->Wide<3>{\n    unsafe {\n        const T:[u64;4]={let p=crate::portable::add4(FqConfig::P,[1,0,0,0]).0;\n            [p[0]>>2|p[1]<<62,p[1]>>2|p[2]<<62,p[2]>>2|p[3]<<62,p[3]>>2]};\n        let raw=Raw::raw(&b.map(|v|v.0));let k=_mm512_and_si512(raw.0[0],splat(3));\n        let t=const{super::split(T)};let two=const{modulus(2)};let three=const{modulus(3)};\n        let mut carry=splat(0);let mut out=[splat(0);5];\n        for j in 0..5 {\n            let shifted=if j<4{_mm512_or_si512(_mm512_srli_epi64::<2>(raw.0[j]),\n                _mm512_and_si512(_mm512_slli_epi64::<50>(raw.0[j+1]),splat(MASK)))}\n                else{_mm512_srli_epi64::<2>(raw.0[j])};\n            // This digit can exceed radix52, but is <4*2^52. Signed carry\n            // propagation below incorporates that excess without truncation.\n            let v=_mm512_add_epi64(shifted,_mm512_mullo_epi64(k,splat(t[j])));\n            let signed=_mm512_mask_sub_epi64(v,negative,splat(0),v);\n            let p=_mm512_mask_blend_epi64(negative,splat(two[j]),splat(three[j]));\n            let d=_mm512_add_epi64(_mm512_sub_epi64(_mm512_add_epi64(p,signed),ay.0.0[j]),carry);\n            carry=_mm512_srai_epi64::<52>(d);out[j]=_mm512_and_si512(d,splat(MASK));\n        }\n        // Positive 2p+quarter(b)-ay is in (0,3p); negative\n        // 3p-quarter(b)-ay is in (0,3p], inclusive only at both zeros.\n        debug_assert_eq!(_mm512_cmpneq_epi64_mask(carry,splat(0)),0);\n        bounded(Ifma8(out,PhantomData))\n    }\n}\n",
+      "file": "crates/zopro-bn254/src/quarter.rs",
+      "removal_recovers_parent": true
+    },
+    {
+      "edits": [
+        {
+          "after": "",
+          "before": "let by=q::incoming_y(&b.map(|p|p.y));"
+        },
+        {
+          "after": "q::incoming_dy(&b.map(|p|p.y),&ay,signs(&batch[k..k+8]))",
+          "before": "q::dy(&by,&ay,signs(&batch[k..k+8]))"
+        },
+        {
+          "after": "let by=[b.map(|p|p.y.c0),b.map(|p|p.y.c1)];",
+          "before": "let by=[q::incoming_y(&b.map(|p|p.y.c0)),q::incoming_y(&b.map(|p|p.y.c1))];"
+        },
+        {
+          "after": "q::incoming_dy(&by[j],&ay[j],signs(&batch[k..k+8]))",
+          "before": "q::dy(&by[j],&ay[j],signs(&batch[k..k+8]))"
+        }
+      ],
+      "file": "crates/zopro-core/src/msm_affine/quarter_kernels.rs",
+      "reversal_exact": true
+    }
+  ],
+  "inherited_exact_files": 179,
+  "no_new_lookup_alloc_or_layout": true,
+  "parent": "/home/ubuntu/src/zopro-perf-work/scalar-quarter-codec176",
+  "portable_fallback_inherited": "native guarded appended helper and native quarter kernel only; guards and inactive fallback bytes unchanged",
+  "reverse_recovers_all_181": true,
+  "snapshot_files": 181
+}
