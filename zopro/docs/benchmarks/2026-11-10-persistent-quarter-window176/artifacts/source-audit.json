@@ -1,0 +1,172 @@
+{
+  "accepted_sources": 176,
+  "all_176_recovered": true,
+  "g1_window_edits": [
+    {
+      "count": 1,
+      "new": "",
+      "old": "mod balanced;"
+    },
+    {
+      "count": 1,
+      "new": "struct Window<'a> {",
+      "old": "struct Window<'a, C: CurveConfig<Base = Fq>> {"
+    },
+    {
+      "count": 1,
+      "new": "impl<'a> Window<'a> {",
+      "old": "impl<'a, C: CurveConfig<Base = Fq>> Window<'a, C> {"
+    },
+    {
+      "count": 2,
+      "new": "G1Affine",
+      "old": "Affine::<C>"
+    },
+    {
+      "count": 1,
+      "new": "G1Projective",
+      "old": "Projective::<C>"
+    },
+    {
+      "count": 7,
+      "new": "G1Affine",
+      "old": "Affine<C>"
+    },
+    {
+      "count": 1,
+      "new": "G1Projective",
+      "old": "Projective<C>"
+    },
+    {
+      "count": 2,
+      "new": "Vec<G1Bucket>",
+      "old": "Vec<G1Affine>"
+    },
+    {
+      "count": 1,
+      "new": "G1Scratch",
+      "old": "BatchAdd<C>"
+    },
+    {
+      "count": 1,
+      "new": "G1Scratch::default()",
+      "old": "BatchAdd::default()"
+    },
+    {
+      "count": 1,
+      "new": "vec![G1Bucket::identity(); half]",
+      "old": "vec![G1Affine::IDENTITY; half]"
+    },
+    {
+      "count": 1,
+      "new": "*current = G1Bucket::from_affine(if negative { -*point } else { *point });",
+      "old": "*current = if negative { -*point } else { *point };"
+    },
+    {
+      "count": 1,
+      "new": "if current.canonical_y() == signed.y",
+      "old": "if current.y == signed.y"
+    },
+    {
+      "count": 1,
+      "new": "*current = G1Bucket::identity()",
+      "old": "*current = G1Affine::IDENTITY"
+    },
+    {
+      "count": 1,
+      "new": ".apply(",
+      "old": ".apply_signed_borrowed("
+    },
+    {
+      "count": 1,
+      "new": ".map(|(p, &i)| *p + self.affine[i].canonical())",
+      "old": ".map(|(p, &i)| *p + self.affine[i])"
+    },
+    {
+      "count": 1,
+      "new": "self.affine[i] = G1Bucket::from_affine(p);",
+      "old": "self.affine[i] = p;"
+    },
+    {
+      "count": 1,
+      "new": "fn finish(mut self) -> Vec<G1Affine>",
+      "old": "fn finish(mut self) -> Vec<G1Bucket>"
+    },
+    {
+      "count": 1,
+      "new": "        self.affine.into_iter().map(G1Bucket::canonical).collect()\n    }",
+      "old": "        self.affine\n    }"
+    }
+  ],
+  "g2_window_edits": [
+    {
+      "count": 1,
+      "new": "affine: Vec<G2Bucket>",
+      "old": "affine: Vec<G2Affine>"
+    },
+    {
+      "count": 2,
+      "new": "packed: G2Scratch",
+      "old": "packed: BatchAdd<G2Config>"
+    },
+    {
+      "count": 1,
+      "new": "vec![G2Bucket::identity(); half]",
+      "old": "vec![G2Affine::IDENTITY; half]"
+    },
+    {
+      "count": 1,
+      "new": "*a = G2Bucket::from_affine(if neg { -*p } else { *p });",
+      "old": "*a = if neg { -*p } else { *p };"
+    },
+    {
+      "count": 1,
+      "new": "if a.canonical_y() == signed.y",
+      "old": "if a.y == signed.y"
+    },
+    {
+      "count": 1,
+      "new": "*a = G2Bucket::identity()",
+      "old": "*a = G2Affine::IDENTITY"
+    },
+    {
+      "count": 1,
+      "new": ".apply(",
+      "old": ".apply_signed_borrowed_g2("
+    },
+    {
+      "count": 1,
+      "new": ".map(|(p, &i)| *p + self.affine[i].canonical())",
+      "old": ".map(|(p, &i)| *p + self.affine[i])"
+    },
+    {
+      "count": 1,
+      "new": "self.affine[i] = G2Bucket::from_affine(p);",
+      "old": "self.affine[i] = p;"
+    },
+    {
+      "count": 1,
+      "new": "        self.affine.into_iter().map(G2Bucket::canonical).collect()\n    }",
+      "old": "        self.affine\n    }"
+    },
+    {
+      "count": 1,
+      "new": "let mut s = Window::new(1 << (bits - 1), size, G2Scratch::default());",
+      "old": "let mut s = Window::new(1 << (bits - 1), size, packed);"
+    }
+  ],
+  "new_field_suffix": "\n// Integration-only bridges. Original qualified field operations above exact.\nimpl Stored {\n    #[inline(always)] pub fn canonical_host(self)->Fq {\n        Fq::from_montgomery(crate::portable::reduce_once(self.0,FqConfig::P))\n    }\n}\nimpl Wide<2> {\n    #[inline(always)]pub fn to_host(&self)->[Fq;8]{self.0.get()}\n    #[inline(always)]pub fn from_host(x:&[Fq;8])->Self{bounded(Raw::new(x))}\n}\n",
+  "no_new_retained_key": true,
+  "originals_exact": 171,
+  "parent_suffixes": {
+    "crates/zopro-bn254/src/ifma8.rs": "\n#[cfg(zopro_persistent_quarter)]\n#[path=\"quarter.rs\"]\npub mod persistent_quarter;\n",
+    "crates/zopro-core/src/lib.rs": "\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub use msm_affine::{quarter_window_g1,quarter_window_g2,quarter_convert_g1,quarter_convert_g2};\n",
+    "crates/zopro-core/src/msm_affine.rs": "\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]mod quarter_kernels;\n\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]mod g1_quarter_window;\n\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]mod g2_quarter_window;\n\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[inline(never)]pub fn quarter_window_g1(bases:&[zopro_bn254::G1Affine],words:&[[u64;4]],w:usize,bits:usize,size:usize,candidate:bool)->Vec<zopro_bn254::G1Affine>{assert!(size>=2);if candidate{g1_quarter_window::quarter_trial(bases,words,w,bits,size)}else{borrowed_pending::quarter_trial(bases,words,w,bits,size)}}\n\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[inline(never)]pub fn quarter_window_g2(bases:&[zopro_bn254::G2Affine],words:&[[u64;4]],w:usize,bits:usize,size:usize,candidate:bool)->Vec<zopro_bn254::G2Affine>{assert!(size>=2);if candidate{g2_quarter_window::quarter_trial(bases,words,w,bits,size)}else{g2_borrowed::quarter_trial(bases,words,w,bits,size)}}\n\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub fn quarter_convert_g1(input:&[zopro_bn254::G1Affine],spare:usize,begin:fn(),end:fn())->(Vec<zopro_bn254::G1Affine>,usize,usize){use quarter_kernels::G1Bucket;let mut v=Vec::with_capacity(input.len()+spare);v.extend(input.iter().copied().map(G1Bucket::from_affine));let p=v.as_ptr()as usize;let c=v.capacity();begin();let out=v.into_iter().map(G1Bucket::canonical).collect();end();(out,p,c)}\n\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub fn quarter_convert_g2(input:&[zopro_bn254::G2Affine],spare:usize,begin:fn(),end:fn())->(Vec<zopro_bn254::G2Affine>,usize,usize){use quarter_kernels::G2Bucket;let mut v=Vec::with_capacity(input.len()+spare);v.extend(input.iter().copied().map(G2Bucket::from_affine));let p=v.as_ptr()as usize;let c=v.capacity();begin();let out=v.into_iter().map(G2Bucket::canonical).collect();end();(out,p,c)}\n\n#[cfg(all(test,all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]mod quarter_window_tests;\n",
+    "crates/zopro-core/src/msm_affine/borrowed_pending.rs": "\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(super)fn quarter_trial(bases:&[zopro_bn254::G1Affine],words:&[[u64;4]],w:usize,bits:usize,size:usize)->Vec<zopro_bn254::G1Affine>{assert!(enabled());let mut s:Window<zopro_bn254::G1Config>=Window::new(1<<(bits-1),size);s.feed(bases,words,w,bits,size);s.finish()}\n",
+    "crates/zopro-core/src/msm_affine/g2_borrowed.rs": "\n#[cfg(all(zopro_quarter_window,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\npub(super)fn quarter_trial(bases:&[G2Affine],short:&[[u64;4]],w:usize,bits:usize,size:usize)->Vec<G2Affine>{assert!(BatchAdd::<G2Config>::default().borrowed_g2_enabled());let mut s=Window::new(1<<(bits-1),size,BatchAdd::default());s.feed(bases,short,true,w,bits,size);assert!(s.batch.is_empty()&&s.queue.is_empty());for p in &mut s.affine{if !p.is_identity(){p.x=p.x.mul_by_fp(&BETA);}}for p in &mut s.projective{p.x=p.x.mul_by_fp(&BETA);}s.feed(bases,short,false,w,bits,size);s.finish()}\n"
+  },
+  "production_changed": false,
+  "qualified_field_prefix": "/home/ubuntu/src/zopro-perf-work/persistent-quarter176/source/crates/zopro-bn254/src/quarter.rs",
+  "query_selection_changed": false,
+  "snapshot_sources": 181
+}
