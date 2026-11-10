@@ -8,7 +8,9 @@ The130 native tests,704 new curve-window cases/45,056 Arkworks bucket outputs,66
 
 ## Fixed complete-proof results
 
-Ryzen9950X,16 physical/32 logical CPUs, shared host. All eight supplied shapes plus merge54 run at32 workers; primary also runs at1/16. Solo pins to CPU2; otherwise worker i pins to CPUi, with512 KiB requested stacks. Solving, fresh randomized proving, internal verification and serialization are timed. Key loading, pool creation, three primes and final proof export are excluded. These are complete SDK requests, not an admission microbenchmark or server-throughput test.
+Ryzen9950X,16 physical/32 logical CPUs, shared host. All eight supplied shapes plus merge54 run at32 workers; primary also runs at1/16. Solo pins to CPU2; otherwise worker i pins to CPUi, with default worker stacks. Solving, fresh randomized proving, internal verification and serialization are timed. Key loading, pool creation, three primes and final proof export are excluded. These are complete SDK requests, not an admission microbenchmark or server-throughput test.
+
+**Stack-setting correction:** the original report and frozen protocol incorrectly stated that SDK workers requested 512 KiB stacks. The actual pinned SDK driver calls `ThreadPoolBuilder` without `stack_size`, and its launch environment has no `RUST_MIN_STACK` setting. The explicit 512 KiB request applied to native qualification pools. The SDK driver, recordings, timings and decisions are unchanged; no measurement was repeated for this correction. The [following complete-proof trial](../2026-11-10-retained-tail-sdk176/README.md) uses the same default-stack driver.
 
 Fifteen fixed matched blocks rotate/reverse contexts and arms; each process measures31 requests. Values are medians of arithmetic process means of integer-rounded SDK nanoseconds. Paired median ratios need not equal quotients of displayed medians. Bounds use zero-based sorted ranks3/7/11 of15, nominal96.484375% marginal coverage under exchangeable independent blocks, without familywise or stationarity guarantees. There are no excluded blocks, added samples, favorable subsets, changed thresholds or unchanged recaptures.
 
