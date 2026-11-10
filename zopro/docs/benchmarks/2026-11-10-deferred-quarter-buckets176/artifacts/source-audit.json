@@ -1,0 +1,85 @@
+{
+  "all_176_production_exact": true,
+  "changed": [
+    {
+      "edits": [
+        {
+          "after": "    /// Keep original canonical H words until a vector/scalar consumer needs them.\n    #[inline(always)]\n    pub fn from_original(y:Fq)->Self {\n        debug_assert!(crate::portable::less(y.0,FqConfig::P));\n        let mut w=y.0;w[3]|=1u64<<63;Self(w)\n    }\n    #[inline(always)]\n    fn original(&self)->bool{self.0[3]>>63!=0}\n    #[inline(always)]\n    fn payload(self)->[u64;4]{let mut w=self.0;w[3]&=!(1u64<<63);w}\n    #[inline(always)]\n    pub fn is_zero(self)->bool {\n        let w=self.payload();w==[0;4]||!self.original()&&w==FqConfig::P\n    }\n    pub fn decode(self)->Fq {\n        let w=self.payload();\n        if self.original(){Fq::from_montgomery(w)}\n        else{Fq::from_montgomery(crate::portable::reduce_once(w,FqConfig::P)).double().double()}\n    }",
+          "before": "    pub fn decode(self) -> Fq {\n        let w=crate::portable::reduce_once(self.0,FqConfig::P);\n        Fq::from_montgomery(w).double().double()\n    }"
+        },
+        {
+          "after": "assert!(B<=4);export_raw(&self.0)",
+          "before": "assert!(B<=4);export_raw(&self.0).map(|x|x.0)"
+        },
+        {
+          "after": "#[inline(always)]\npub fn load_y(a:&[Stored;8])->Wide<2>{\n    unsafe {\n        let mut raw=Raw::raw(&a.map(|v|v.0));\n        // Stored payloads are <2p<2^255. The format bit at255 becomes bit47\n        // of the high radix52 limb. Clear it before any field operation.\n        let tag=splat(1u64<<47);\n        let original=_mm512_test_epi64_mask(raw.0[4],tag);\n        raw.0[4]=_mm512_andnot_si512(tag,raw.0[4]);\n        if original==0{return bounded(raw);}\n        // Untagged lanes may be lazy >=p. The private quarter helper permits\n        // <2p input, returns <2p, and these lanes are blended back unchanged.\n        let converted=quarter_raw(raw);\n        for j in 0..5{raw.0[j]=_mm512_mask_blend_epi64(original,raw.0[j],converted.0.0[j]);}\n        bounded(raw)\n    }\n}",
+          "before": "#[inline(always)]\npub fn load_y(a:&[Stored;8])->Wide<2>{bounded(Raw::raw(&a.map(|v|v.0)))}"
+        },
+        {
+          "after": "pub fn incoming_y(a:&[Fq;8])->Wide<1>{\n    bounded(quarter_raw(Raw::raw(&a.map(|v|v.0))).0)\n}\n// Numerical input <2p gives (raw+k*p)/4 <5p/4 <2p.\n#[inline(always)]\nfn quarter_raw(raw:Raw)->Wide<2>{\n    unsafe {\n        let p=const{modulus(1)}.map(splat);",
+          "before": "pub fn incoming_y(a:&[Fq;8])->Wide<1>{\n    unsafe {\n        let raw=Raw::raw(&a.map(|v|v.0));let p=const{modulus(1)}.map(splat);"
+        },
+        {
+          "after": "pub fn store_y(a:&Wide<2>)->[Stored;8]{export_raw(&a.0).map(Stored)}",
+          "before": "pub fn store_y(a:&Wide<2>)->[Stored;8]{export_raw(&a.0)}"
+        },
+        {
+          "after": "pub fn export_x(a:&Wide<1>)->[Fq;8]{export_raw(&a.0).map(Fq::from_montgomery)}",
+          "before": "pub fn export_x(a:&Wide<1>)->[Fq;8]{export_raw(&a.0).map(|v|Fq::from_montgomery(v.0))}"
+        },
+        {
+          "after": "fn export_raw(x:&Raw)->[[u64;4];8]",
+          "before": "fn export_raw(x:&Raw)->[Stored;8]"
+        },
+        {
+          "after": "MaybeUninit::<[[u64;4]; 8]>",
+          "before": "MaybeUninit::<[Stored; 8]>"
+        },
+        {
+          "after": "        if self.original(){Self::encode(Fq::from_montgomery(self.payload())).canonical_host()}\n        else{Fq::from_montgomery(crate::portable::reduce_once(self.0,FqConfig::P))}",
+          "before": "        Fq::from_montgomery(crate::portable::reduce_once(self.0,FqConfig::P))"
+        }
+      ],
+      "file": "crates/zopro-bn254/src/quarter.rs",
+      "reversal_exact": true
+    },
+    {
+      "edits": [
+        {
+          "after": "fn zero(y:Stored)->bool{y.is_zero()}",
+          "before": "fn zero(y:Stored)->bool{let w=y.words();w==[0;4]||w==FqConfig::P}"
+        },
+        {
+          "after": "Stored::from_original(a.y)",
+          "before": "Stored::encode(a.y)"
+        },
+        {
+          "after": "Stored::from_original(a.y.c0)",
+          "before": "Stored::encode(a.y.c0)"
+        },
+        {
+          "after": "Stored::from_original(a.y.c1)",
+          "before": "Stored::encode(a.y.c1)"
+        }
+      ],
+      "file": "crates/zopro-core/src/msm_affine/quarter_kernels.rs",
+      "reversal_exact": true
+    },
+    {
+      "edits": [
+        {
+          "after": "let a=s.canonical_host().0;",
+          "before": "let a=s.words();"
+        }
+      ],
+      "file": "crates/zopro-core/src/msm_affine/quarter_window_tests.rs",
+      "reversal_exact": true
+    }
+  ],
+  "inherited_exact_files": 178,
+  "new_bucket_bytes": false,
+  "new_lookup_or_allocations": false,
+  "portable_fallback_inherited": "unchanged native module guards; three changed native child files only",
+  "reverse_recovers_all_181": true,
+  "snapshot_files": 181
+}
