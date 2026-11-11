@@ -58,7 +58,8 @@ zero benefit or proof of a slowdown. It still fails a declared nonregression gat
 6. Run the missing qualification, verify outputs and make an explicit adoption
    decision. Once the candidate meets its declared release requirements, apply
    the tested change, check that the production configuration matches, commit
-   and push. Do not postpone a qualified improvement because it falls short of
+   locally. Push only with user authorization; publication is currently withheld.
+   Do not postpone a qualified improvement because it falls short of
    the broader research goal or because another cleanup might look nicer.
 
 Retain qualified small improvements. There is no minimum percentage gain floor.
@@ -130,6 +131,43 @@ is research prioritization, not a minimum gain floor: retain and finish adopting
 small improvements that already have credible evidence. For an AWS discrepancy,
 a local result screens an idea but cannot establish that it fixes C7a behavior.
 
+## Explore beyond the current implementation
+
+Maintain two tracks: finish candidates with credible gains, and test structural
+alternatives. For the next three new exploratory decisions, devote at least two
+to a different algorithm, representation or execution dependency, rather than
+another parameter or helper variant. This is a research allocation rule, not an
+adoption threshold; existing promising candidates still receive qualification.
+
+Before building, write five short items in the existing experiment record:
+the assumption being challenged, the predicted observable change, the cheapest
+test that distinguishes explanations, the added memory/setup cost, and the
+decision each possible outcome enables. Give the first screen a preparation and
+measurement time allowance. If it overruns, simplify the question or explicitly
+justify continuing. Elapsed time is not evidence that an idea failed.
+
+After two unsuccessful variants in one mechanism family, choose a different
+family unless new evidence changes the hypothesis. Consult retained negative
+results first. A changed constant, language or function boundary alone is not a
+new hypothesis. Do not require a speculative prototype to look like production
+code before screening it. Keep it isolated, preserve output checks, and charge
+its setup, conversion, merge and allocation costs at the actual caller boundary.
+
+For the C7a gap, separate excess arithmetic work from poor parallel execution.
+Use matched input and timing boundaries, worker-count curves, CPU time and
+latency for both implementations. Select a targeted intervention that can
+distinguish the remaining explanations. Local experiments can reject ideas;
+they cannot establish a C7a fix. Lower operation counts are neither necessary
+nor sufficient for lower latency, and a scheduler sample is not automatically
+avoidable overhead. Reuse trustworthy captures before commissioning new ones.
+
+Measure iteration by time to a resolved question and verified proof time saved,
+not reports, tests or candidates produced. Reuse the Rust/xtask harness and
+inherited qualification. Keep rejected screens to a short decision plus raw
+evidence; reserve full campaigns and integration work for credible survivors.
+At each three-experiment review, state what assumption changed. If none changed
+and no candidate advanced, change the question before generating more variants.
+
 ## Handle a failed follow-up without losing its parent
 
 A new variant's failure applies to that variant and campaign. Preserve the
@@ -198,8 +236,10 @@ protocol design and does not relax any completed experiment's declared rules.
 Publish a short factual report with exact candidate identities, results and
 limitations. Preserve raw evidence, and use respectful comparisons with Gnark,
 Aeglos and other projects. Label historical comparisons and supplied references.
-Commit and push each completed experiment, verify the remote commit, and update
-the candidate register and current handoff. Preserve historical report decisions.
+Commit each completed experiment locally and update the candidate register and
+current handoff. Push only when the user authorizes publication, then verify the
+remote commit. Current authorization does not permit pushing. Preserve historical
+report decisions.
 
 The handoff must identify the production baseline, each pending candidate and its
 remaining requirements, the current proof ledger, live handles/resources, actual
