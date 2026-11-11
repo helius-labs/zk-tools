@@ -146,15 +146,18 @@ goal or claim that the metadata was repaired.
 
 The [experimental build](benchmarks/2026-11-11-phi-grain-c7a176/README.md), SDK
 `c88a3528…`, passed all twelve primary checks at 32/96 C7a workers, including
-the 96-worker improvement. Its adoption remains pending broader qualification
-and release review. It was also retained as PARENT in the later all-shape run;
-those measurements are available for review, without retroactively declaring
-new adoption gates passed.
+the 96-worker improvement. It was retained as PARENT in the later all-shape
+run, and those control measurements were reviewed retrospectively. A separate
+[31-block prospective qualification](benchmarks/2026-11-11-phi-grain-parent176/README.md)
+then passed all forty adoption checks. The exact experimental runtime and a
+separately validated native build selector are now adopted. No cleanup build
+was substituted for the measured SDK.
 
 The [default build](benchmarks/2026-11-11-phi-grain-clean176/README.md), SDK
 `96915d56…`, passed correctness, exported-proof verification and all thirteen
 RSS guards, but passed only 58 of its 66 performance/resource checks. Its
 performance qualification failed and it is not adopted. This does not reject
-the experimental build. Review the retained PARENT evidence and list the exact
-experimental build's remaining adoption requirements before another cleanup
-or unrelated optimization. Production remains unchanged.
+the experimental build. Its failed protocol remains unchanged. The adoption
+record preserves the distinction between retrospective control review, fresh
+prospective qualification, default-selection evidence and production source
+mapping. Future experiments start from the newly adopted baseline.

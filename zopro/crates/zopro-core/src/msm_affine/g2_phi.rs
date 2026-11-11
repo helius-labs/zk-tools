@@ -191,6 +191,9 @@ fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> V
 }
 fn hb_raw(bases: &[G2Affine], short: &mut [[u64; 4]], bits: usize, parts: usize) -> G2Projective {
     assert_eq!(bases.len(), short.len());
+    #[cfg(zopro_phi_grain)]
+    short.par_iter_mut().with_min_len(128).for_each(|s| *s = phi_split(*s));
+    #[cfg(not(zopro_phi_grain))]
     short.par_iter_mut().for_each(|s| *s = phi_split(*s));
     let chunk = bases.len().div_ceil(parts);
     let windows = 127usize.div_ceil(bits);
