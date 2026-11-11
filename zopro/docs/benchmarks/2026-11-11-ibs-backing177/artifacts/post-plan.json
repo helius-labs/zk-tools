@@ -1,0 +1,1361 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/ibs-backing177/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b0-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c1.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b0-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c1.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b0-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-1",
+        "op",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b0-op-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b0-op-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b0-op-c1-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b0-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b0-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b0-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c2.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b0-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c2.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b0-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-2",
+        "op",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b0-op-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b0-op-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b0-op-c2-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b0-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b0-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b0-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c0.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b0-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-op-c0.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b0-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-0",
+        "op",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b0-op-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b0-op-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b0-op-c0-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b0-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b0-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b0-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c2.data",
+        "-F",
+        "pid,tid,time,ip,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b0-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c2.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b0-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-2",
+        "fetch",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b0-fetch-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b0-fetch-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b0-fetch-c2-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b0-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b0-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b0-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c0.data",
+        "-F",
+        "pid,tid,time,ip,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b0-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c0.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b0-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-0",
+        "fetch",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b0-fetch-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b0-fetch-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b0-fetch-c0-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b0-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b0-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b0-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c1.data",
+        "-F",
+        "pid,tid,time,ip,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b0-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b0-fetch-c1.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b0-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-1",
+        "fetch",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b0-fetch-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b0-fetch-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b0-fetch-c1-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b0-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b1-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b1-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c1.data",
+        "-F",
+        "pid,tid,time,ip,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b1-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c1.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b1-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-1",
+        "fetch",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b1-fetch-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b1-fetch-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b1-fetch-c1-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b1-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b1-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b1-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c0.data",
+        "-F",
+        "pid,tid,time,ip,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b1-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c0.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b1-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-0",
+        "fetch",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b1-fetch-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b1-fetch-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b1-fetch-c0-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b1-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b1-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b1-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c2.data",
+        "-F",
+        "pid,tid,time,ip,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b1-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-fetch-c2.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b1-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-2",
+        "fetch",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b1-fetch-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b1-fetch-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b1-fetch-c2-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b1-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b1-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b1-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c2.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b1-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c2.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b1-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-2",
+        "op",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b1-op-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b1-op-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b1-op-c2-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b1-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b1-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b1-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c1.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b1-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c1.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b1-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-1",
+        "op",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b1-op-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b1-op-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b1-op-c1-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b1-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b1-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b1-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c0.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b1-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b1-op-c0.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b1-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-0",
+        "op",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b1-op-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b1-op-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b1-op-c0-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b1-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b2-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b2-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c2.data",
+        "-F",
+        "pid,tid,time,ip,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b2-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c2.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b2-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-2",
+        "fetch",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b2-fetch-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b2-fetch-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b2-fetch-c2-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b2-fetch-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b2-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b2-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c0.data",
+        "-F",
+        "pid,tid,time,ip,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b2-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c0.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b2-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-0",
+        "fetch",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b2-fetch-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b2-fetch-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b2-fetch-c0-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b2-fetch-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b2-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b2-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c1.data",
+        "-F",
+        "pid,tid,time,ip,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b2-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-fetch-c1.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b2-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-1",
+        "fetch",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b2-fetch-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b2-fetch-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b2-fetch-c1-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b2-fetch-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b2-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c1.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b2-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c1.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b2-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c1.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b2-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-1",
+        "op",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b2-op-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b2-op-c1/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b2-op-c1-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b2-op-c1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b2-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c2.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b2-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c2.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b2-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c2.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b2-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-2",
+        "op",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b2-op-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b2-op-c2/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b2-op-c2-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b2-op-c2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "sudo",
+        "-n",
+        "chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "own-b2-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "report",
+        "-D",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c0.data"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "raw-b2-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-lost-events",
+        "--no-demangle",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c0.data",
+        "-F",
+        "pid,tid,time,ip,weight,data_src,sym,symoff,dso"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "script-b2-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "perf",
+        "script",
+        "--ns",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/perf/b2-op-c0.data",
+        "-F",
+        "pid,tid,cpu,time,ip"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "metadata-b2-op-c0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/decode-0",
+        "op",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/raw-b2-op-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/postrun/script-b2-op-c0/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/run/disassembly/stdout.log",
+        "/home/ubuntu/src/zopro-perf-work/ibs-backing177/b2-op-c0-analysis.json"
+      ],
+      "environment": {},
+      "kind": "command",
+      "name": "decode-b2-op-c0",
+      "timeout_seconds": 600
+    }
+  ],
+  "version": 1
+}
