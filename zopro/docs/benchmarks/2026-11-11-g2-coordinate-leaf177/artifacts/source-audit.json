@@ -1,0 +1,24 @@
+{
+  "added_files": [
+    "crates/zopro-core/src/msm/g2_borrowed/coordinate_leaf.rs",
+    "crates/zopro-core/src/msm/affine_offset_caller.rs"
+  ],
+  "base_files": 176,
+  "base_manifest": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-11-11-phi-grain-parent176/artifacts/production-source-manifest.json",
+  "base_manifest_sha256": "fb6cc4287fda9ce2a3fcbacc68d7618bcd1e10449031e9bf47021864fa909e2e",
+  "changed_originals": [
+    "crates/zopro-core/src/msm.rs",
+    "crates/zopro-core/src/msm/g2_borrowed.rs"
+  ],
+  "field_sources_exact": true,
+  "inherited_test_adapter_sha256": "56643213e4f409ca971c747512f9b9e0b72013b4d1ea9798f77f861820bdec9e",
+  "production_changed": false,
+  "reversible_parent_edit": {
+    "file": "crates/zopro-core/src/msm/g2_borrowed.rs",
+    "new": "        let (x,y) = {\n            #[cfg(zopro_g2_coordinate_leaf)]\n            { if FAST { coordinate_leaf::finish(&ax,&ay,&bx,&slope) } else {\n        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);\n        (x,y)\n        } }\n            #[cfg(not(zopro_g2_coordinate_leaf))]\n            {\n        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);\n        (x,y)\n        }\n        };",
+    "old": "        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));\n        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);",
+    "suffix": "\n#[cfg(zopro_g2_coordinate_leaf)]\nmod coordinate_leaf;\n"
+  },
+  "test_only_msm_suffix": "\n#[cfg(all(test,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod affine_offset_caller;\n",
+  "unchanged_originals": 174
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "Current G2 scalar-grain adoption follow-up; not an exhaustive history",
+  "scope": "Adopted G2 scalar grain and latest coordinate-helper follow-up; not an exhaustive history",
   "maintenance": "Manual register; xtask does not enforce these states",
   "production_baseline": {
     "id": "g2-phi-grain-experimental176",
@@ -9,6 +9,35 @@
     "source_manifest": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/production-source-manifest.json"
   },
   "candidates": [
+    {
+      "id": "g2-coordinate-leaf177",
+      "parent_id": "g2-phi-grain-experimental176",
+      "sdk_sha256": "d3a3f3b084a43de0cf856650b71834b845f64c7baf89a7910e4ce1d1bd653521",
+      "change": "One coordinate helper per full eight-point borrowed G2 reverse group, selected by zopro_g2_coordinate_leaf",
+      "correctness": {
+        "status": "passed_tested_scope",
+        "scope": "130 native core, 2 prover unit, 6 cubic, 97 generic core tests; 945 fresh Gnark-verified exports across three consumers",
+        "evidence": "benchmarks/2026-11-11-g2-coordinate-leaf177/README.md"
+      },
+      "resources_and_compatibility": {
+        "status": "all10_RSS_guards_passed",
+        "scope": "No new heap allocations or tables; explicit selected stack reservations grew; no new ARM, huge-circuit, memory-pressure or throughput qualification",
+        "evidence": "benchmarks/2026-11-11-g2-coordinate-leaf177/artifacts/build-review.json"
+      },
+      "performance": {
+        "status": "failed_declared_progression_screen",
+        "scope": "Local Ryzen 9950X, ten contexts, 30 paired blocks across three fixed executable copies per consumer",
+        "checks_passed": 29,
+        "checks_required": 31,
+        "failed_latency_checks": 2,
+        "evidence": "benchmarks/2026-11-11-g2-coordinate-leaf177/artifacts/assessment.json"
+      },
+      "adoption": {
+        "status": "not_adopted",
+        "reason": "Primary32 paired median slower than accepted by 0.895%; profiles show more instructions and cycles. Preserve the closed screen.",
+        "invalidates_parent": false
+      }
+    },
     {
       "id": "g2-phi-grain-experimental176",
       "parent_id": "accepted-busy-reset176-znver4",
@@ -104,8 +133,8 @@
   ],
   "next_action": {
     "baseline_id": "g2-phi-grain-experimental176",
-    "action": "Continue toward the unchanged all-eight 10x goal from the adopted baseline; quantify the remaining full-proof coordination bottleneck before a distinct bounded-memory experiment",
-    "note": "The separate default variant remains failed/unadopted; no new SDK or source cleanup is required for this adoption"
+    "action": "Continue toward the unchanged all-eight 10x goal using mechanism-first short screening; prioritize a cost model and algorithmic reductions in operations or repeated work before another helper-boundary variant",
+    "note": "Coordinate-helper and separate default variants remain closed/unadopted. Full all-shape release qualification remains required for a promising build; current user hold forbids push/publication."
   },
   "previous_baseline": {
     "id": "accepted-busy-reset176-znver4",

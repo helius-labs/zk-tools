@@ -67,6 +67,69 @@ CPU use and memory. A high-core gain does not automatically improve the best
 worker-count latency; report both. Do not demand that a candidate beat Aeglos,
 reach 2×, or meet the full 10× goal before adopting a smaller qualified gain.
 
+## Make rejection cheap and reserve qualification for promising changes
+
+Do not start every candidate with the full all-shape performance campaign.
+Correctness qualification, exploratory screening and release qualification answer
+different questions. Use the smallest measurement that can answer the current
+question; keep all eight shapes in the final goal and release requirements.
+
+1. **Check the mechanism first.** State which work disappears, which cost is
+   added, and what observation would refute the hypothesis. Inspect generated
+   code when relevant. Measure the actual caller with representative inputs,
+   including packing, scratch and reduction costs. A faster isolated field
+   primitive is insufficient. For a scheduling change, inspect worker activity
+   and the critical path; aggregate CPU samples are not a critical-path estimate.
+2. **Run a short full-proof screen.** Freeze the exact consumers, a small fixed
+   sample count, relevant worker counts and representative cases before capture.
+   On this host retain all three predeclared executable backings and balance
+   ordering. Include a memory-sensitive case when the change can affect resources.
+   Verify exported proofs. This screen is for rejecting an expensive idea or
+   choosing a follow-up question, not declaring adoption or a precise small gain.
+   Preserve inconclusive results as inconclusive. Do not extend a screen until
+   a favorable answer appears.
+3. **Profile the surviving mechanism.** Collect counters or samples that can
+   distinguish the proposed explanation from added work elsewhere, with observer
+   checks. Reuse valid prior tests and retained captures. If the mechanism is
+   refuted and whole-proof benefit is absent, close the candidate without a
+   full all-shape timing run. A profile needed to test the original mechanism
+   belongs in the first stage, not after expensive qualification.
+4. **Qualify a promising exact build.** Run the missing all-shape correctness,
+   performance, portability and resource checks against accepted production.
+   Use a separately frozen, adequately powered protocol. Finish qualification
+   before adoption; report CPU and Metal comparisons for all eight supplied
+   shapes and merge 54×1 separately. An exploratory success does not relax these
+   requirements.
+
+Record preparation, capture, analysis and total elapsed time, plus the decision
+each stage enabled. Prefer reusable xtask commands and existing readers over a
+new campaign framework. A source change that increases instructions or stack
+traffic may still help scheduling or instruction delivery, but it needs a short
+test of that benefit before hundreds of full-proof processes.
+
+## Prioritize changes that remove work
+
+Before choosing the next experiment, make a compact cost model from the current
+production implementation and profiles. Count field operations, point operations,
+passes over memory and synchronization where feasible. Separate measured work
+from hypotheses. Estimate how much complete-proof time the proposed change could
+plausibly remove, and account for its added work and memory. Amdahl-style estimates
+are upper bounds only when their critical-path assumptions hold.
+
+Use this model to prioritize algorithmic changes: fewer scalar/point operations,
+sharing work already repeated within a proof, less expensive representations or
+fewer passes and synchronization boundaries. Check previous experiments and
+primary papers/code before repeating an idea. Preserve Groth16 semantics,
+fresh blinding, portable fallback and bounded memory; a genuinely different proof
+system or protocol is a separate compatibility decision, not a drop-in speedup.
+
+After a mechanism-directed variant fails, require new evidence before trying
+another annotation, threshold or helper boundary in the same family. Document
+why the next hypothesis differs and what a short experiment will resolve. This
+is research prioritization, not a minimum gain floor: retain and finish adopting
+small improvements that already have credible evidence. For an AWS discrepancy,
+a local result screens an idea but cannot establish that it fixes C7a behavior.
+
 ## Handle a failed follow-up without losing its parent
 
 A new variant's failure applies to that variant and campaign. Preserve the
