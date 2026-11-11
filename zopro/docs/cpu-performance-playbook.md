@@ -98,6 +98,16 @@ protocol design and does not relax any completed experiment's declared rules.
 - Use the Rust xtask workflow and exact build receipts. Keep portable and native
   builds separate. Resolve actual Cargo libraries and proc-macro artifacts, and
   use the pinned toolchain for SDK linking. Never nest xtask under itself.
+- For small-change comparisons on this Ryzen host, distribute each consumer
+  across a fixed, predeclared set of independently written, byte-identical
+  executable files. Record complete hashes and device/inode identities; retain
+  every copy and outcome. Pair or balance backing replicas in the analysis.
+  Do not select the fastest copy or use copying to reopen a failed gate. The
+  [full-SDK backing diagnostic](benchmarks/2026-11-11-gather-backing177/README.md)
+  reproduced a large file-associated latency difference despite identical bytes.
+  It does not establish a hardware mechanism or guarantee that any particular
+  number of copies removes the effect. Diagnose large backing interactions
+  before attributing their size to source changes.
 - During any SDK preflight or recording, only poll the confirmed live handle
   until authoritative completion. No owned build, helper, hashing, analysis,
   reporting or push may overlap it. A timeout or truncated output is not

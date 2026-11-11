@@ -5,6 +5,12 @@ fresh disabled control. It passed correctness and all six memory guards, but
 failed all twelve latency/CPU checks. It remains disabled and is not adopted.
 The 31-block screen is closed without sample extension or threshold changes.
 
+A later [backing diagnostic](../2026-11-11-gather-backing177/README.md) found that
+the large 16-worker gap disappears in both predetermined byte-identical copy
+pairs. Thus this screen's large slowdown cannot be attributed to the gather
+algorithm alone. Its original measurements and failed gates remain unchanged;
+the later copies establish no proof-latency gain or adoption qualification.
+
 The implementation applies `with_min_len(ceil(indices / (2 * workers)))` to
 the existing canonical A/B indexed map/collect. It retains the original joins,
 output order, allocation path and arithmetic. There is no new pool, key table,
