@@ -1,0 +1,48 @@
+{
+  "G1_edits": [
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "struct FqAddGroup {\n    ax: FqBatch,\n    ay: FqBatch,\n    #[cfg(not(all(zopro_g1_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n    xsum: FqBatch,\n    #[cfg(all(zopro_g1_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    bx: FqBatch,",
+      "old": "struct FqAddGroup {\n    ax: FqBatch,\n    ay: FqBatch,\n    xsum: FqBatch,"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "                #[cfg(not(all(zopro_g1_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n                core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));\n                #[cfg(all(zopro_g1_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n                core::ptr::addr_of_mut!((*slot).bx).write(bx);",
+      "old": "                core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "                #[cfg(not(all(zopro_g1_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n                xsum: canonical_add::<FAST>(&ax, &bx),\n                #[cfg(all(zopro_g1_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n                bx,",
+      "old": "                xsum: canonical_add::<FAST>(&ax, &bx),"
+    },
+    {
+      "file": "crates/zopro-core/src/msm.rs",
+      "new": "        #[cfg(not(all(zopro_g1_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let x = slope.mul(&slope).sub(&g.xsum);\n        #[cfg(not(all(zopro_g1_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\n        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);\n        #[cfg(all(zopro_g1_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let x = slope.affine_mul_minus_sum(&slope,&g.ax,&g.bx);\n        #[cfg(all(zopro_g1_affine_offset,zopro_cios_cancel_carry,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n        let y = slope.affine_mul_minus(&g.ax.sub(&x),&g.ay);",
+      "old": "        let x = slope.mul(&slope).sub(&g.xsum);\n        let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);"
+    }
+  ],
+  "G2_files_exact": true,
+  "SDK_requests": 0,
+  "added_files": [
+    "crates/zopro-bn254/src/ifma8/affine_offset.rs",
+    "crates/zopro-core/src/msm/affine_offset_caller.rs"
+  ],
+  "adopted": false,
+  "base_files": 176,
+  "base_manifest": "/home/ubuntu/src/zk-tools/zopro/docs/benchmarks/2026-11-11-phi-grain-parent176/artifacts/production-source-manifest.json",
+  "base_manifest_sha256": "fb6cc4287fda9ce2a3fcbacc68d7618bcd1e10449031e9bf47021864fa909e2e",
+  "changed_originals": [
+    "crates/zopro-bn254/src/ifma8.rs",
+    "crates/zopro-core/src/msm.rs",
+    "crates/zopro-core/src/simd.rs"
+  ],
+  "field_module_sha256": "95058e1f0aab3cfb13f7179508744436ab93f2dbd5f2e01447f105b2bd1fcce0",
+  "field_parent_body_exact": true,
+  "production_changed": false,
+  "proofs": 0,
+  "restored_local_default_off_gather_files": [
+    "crates/zopro-core/build.rs",
+    "crates/zopro-core/src/lib.rs"
+  ],
+  "test_adapter_sha256": "56643213e4f409ca971c747512f9b9e0b72013b4d1ea9798f77f861820bdec9e"
+}

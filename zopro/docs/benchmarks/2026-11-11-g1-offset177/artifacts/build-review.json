@@ -1,0 +1,153 @@
+{
+  "SDK_calls": 0,
+  "adoption": "pending full-proof qualification",
+  "consumers": [
+    {
+      "frozen_metadata_sha256": "6d3b16149300000505bf200178fe1b6ec26d9930f550cb0ad5ed8458fe192c09",
+      "label": "control",
+      "link_receipt_sha256": "72f2f13e153347d982b6ffe3d5db9bd298a09e255784b7ebee0bad16f0c24110",
+      "path": "/home/ubuntu/src/zopro-perf-work/g1-offset177/sdk-control-znver4",
+      "sha256": "90f1d8fbd8bd533daa4fcd572f66764a71266de378c17112f4074d5814ace4c3"
+    },
+    {
+      "frozen_metadata_sha256": "2eac609b5b24c81808d9c8079e918f6e283ad1423b711a841535a3f4379ed8eb",
+      "label": "candidate",
+      "link_receipt_sha256": "d80cbe55a9d018d87c3e829ef8f633539d08998e7615741bb801562af6a385d8",
+      "path": "/home/ubuntu/src/zopro-perf-work/g1-offset177/sdk-candidate-znver4",
+      "sha256": "0db7b2530991766c7d5b6436b89d759a9f258690aa60f625bc70ea5bc265108e"
+    }
+  ],
+  "field_qualification_inherited": {
+    "G1_edits_reversed_to_accepted_hash": true,
+    "G2_sources_exact": true,
+    "SDK_calls": 0,
+    "adopted": false,
+    "base_files": 176,
+    "canonical_ledger_sha256": "7069c3c56ce4619e024753ef25eccd24b8d36ac1211929b923fdd2767e1e76ca",
+    "changed_files": {
+      "crates/zopro-bn254/src/ifma8.rs": "4b0795d753b7dd90d49462dfefc733007f99287fe7d87699bf27f73f54ba4c2e",
+      "crates/zopro-core/src/msm.rs": "998ef95d12ac232048e1662fee646b77b7dcece671fdf80a2f39d1e5f4fa3408",
+      "crates/zopro-core/src/simd.rs": "47461f7113c5ec16e9ae2a6eaab8b46b14c016778e95c98d9d9d986e4a896ca1"
+    },
+    "exact_original_files": 173,
+    "field_arithmetic_module_exact": true,
+    "field_inputs_verified_against_qualified_build_pins": 19,
+    "native_helper_sha256": "adc95c6a1bc9d6e2cdf2e9700767fd78d1a2f5a2a0e88322e8ba765c6c82838d",
+    "new_exports": 0,
+    "new_source_pins_checked": 188,
+    "passed": true,
+    "performance_tested": false
+  },
+  "goal_achieved": false,
+  "native_core_tests": 130,
+  "native_cubic_tests": 6,
+  "native_prover_unit_tests": 2,
+  "new_Gnark_exports": 0,
+  "passed": true,
+  "performance": "untested",
+  "portable_core_tests": 97,
+  "portable_scope": "generic x86-64, no_ifma/no_asm, new candidate cfg enabled but native selector excludes it; no optional native experiment cfgs",
+  "reader_repair": "Initial reader expected 102 from a different cfg set; actual unfiltered generic suite is 97. Initial source and binary retained. No test was rerun or omitted.",
+  "receipts": [
+    {
+      "exit": {
+        "elapsed_ms": 97634.803785,
+        "returncode": 0,
+        "stderr_sha256": "2225a845f5985930097d7df87cc7f80a089abf58faa590d3d8ac51b5154eff26",
+        "stdout_sha256": "8ad655ee5acb68e2b740f885a4295862acfac22dc7133d36d597fa658a576f25",
+        "success": true
+      },
+      "folder": "native-candidate",
+      "step": "candidate-core"
+    },
+    {
+      "exit": {
+        "elapsed_ms": 51751.505534,
+        "returncode": 0,
+        "stderr_sha256": "e7ac0d7815101fd0c01d433fdf10c2b1c133f8e99b99448247184c480340fd7e",
+        "stdout_sha256": "4c295cf8ecf21f6d8b986d5d6b1673edf88ba018a803b8b1bb8a464bc8bd85e4",
+        "success": true
+      },
+      "folder": "native-candidate",
+      "step": "candidate-prover"
+    },
+    {
+      "exit": {
+        "elapsed_ms": 3921.218008,
+        "returncode": 0,
+        "stderr_sha256": "29a4a14da0c4e2d87a3047497a53d022491e1d4885289e4be9370fb0f9bbb987",
+        "stdout_sha256": "8a00422b83852d7b880b1ced8faa1032288931e9d1082e05722b3d457a55f35c",
+        "success": true
+      },
+      "folder": "native-candidate",
+      "step": "libraries-candidate"
+    },
+    {
+      "exit": {
+        "elapsed_ms": 157.371095,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "93af942bbe3d46af9470d3307bff6fd53c0e50ad4def0518c0ae8415c09775df",
+        "success": true
+      },
+      "folder": "native-candidate",
+      "step": "freeze-candidate"
+    },
+    {
+      "exit": {
+        "elapsed_ms": 16377.236286999998,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "f1276dc144f8e7daf335cdb89a90c37df87c2656ccc621f8fceb1444ec00bf5e",
+        "success": true
+      },
+      "folder": "native-candidate",
+      "step": "link-candidate"
+    },
+    {
+      "exit": {
+        "elapsed_ms": 40062.814871,
+        "returncode": 0,
+        "stderr_sha256": "ea78ab992d02d7d5672153b22650fc95e6e249908678042f9016db6f4a4c8723",
+        "stdout_sha256": "f82a3e7008b835117ff7a2ff70fc07e90012f402251986eb48ef43ec5322f5b3",
+        "success": true
+      },
+      "folder": "native-control",
+      "step": "libraries-control"
+    },
+    {
+      "exit": {
+        "elapsed_ms": 157.340526,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "bae0b566e4fb09dce8893c0058d2bd985283a1806fbd75a4c969dc7dc61307d9",
+        "success": true
+      },
+      "folder": "native-control",
+      "step": "freeze-control"
+    },
+    {
+      "exit": {
+        "elapsed_ms": 16303.873757,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "7d6e41f97bc437880e08b0e03525382f83a8066f0aa65959e859b66fe7a8b53e",
+        "success": true
+      },
+      "folder": "native-control",
+      "step": "link-control"
+    },
+    {
+      "exit": {
+        "elapsed_ms": 91740.654922,
+        "returncode": 0,
+        "stderr_sha256": "c2571e52e356ebd079e0aedaac3f95bab068c258a54d5b2e9648a1bdf9e8051f",
+        "stdout_sha256": "6385cae88878e1c1d9fd55a584d3992286ba81ecc2a35bd9de51f26e7c081294",
+        "success": true
+      },
+      "folder": "portable",
+      "step": "portable-core"
+    }
+  ],
+  "verified_workflow_commands": 9
+}
