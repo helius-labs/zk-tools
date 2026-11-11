@@ -1,0 +1,26 @@
+# Bounded G2 reducer: mechanism profile after positive SDK screen
+
+The exact bundle-sdk178 candidate passes the short primary16 screen:all9pairs
+win againstOFFandREF,pairedON/REF0.982089. Primary32isstillinconclusive. Thispanel
+tests whether fewer inversions/tails reduce instructions/cycles in completeproofs.
+No adoption ornewlatencygate;do notturnsamplecounts intoexclusivecriticalpathtime.
+
+Retain exact sharedOFF/ONbinaryb646c7b8c1d8a26a0db45fb3f67c453dd616bd9f02e25c36192721ae02855abe,
+3originalbackings. Primary1x2,16fixedworkersCPU0–15. Oneblockperbacking,rotate
+plain/stat/cyclespanelsandreverseoddblockorder.18processes×251requests+3primes=
+4518timedsamples/4572SDKcalls/18exports. No additional latency screen orsamples.
+OFFexplicitoption0,ON1. Routecounts0/1004 respectivelyandpositiveONreservation.
+Seed54286/SHAdeb98161a2e4d383eb749c2d6ba6002020158453c18bfda6e8b483d79c482a0e;
+expectedfinal54304onlyafterallbindings/independentGnarkchecks.
+
+UsequalifiedFIFO-gatedfourcounter/sixprofile harness. Groupusercycles,instructions,
+cachemisses,branchmisses≥99.9%running;cyclesperiod16million,512pages,≥1000samples,
+≤5%unknown,zeroLOST,MMAP/PID/TID/CPUattribution. Eacharm/instrumentedpanelmedianof
+3ratiosagainstmatchedplainwithin1.05 todescribeasbroadlyrepresentative. These
+descriptiveguardsdonotproveunbiasedobservation orcausality. No percopyuncertainty.
+
+Allrecordingprecedesdecoding/verification;onlypollconfirmedlivehandle. Noowned
+helper/build/hash/reportoverlap. Reporteachcopyandtotals,CPU/RSS/faults,allfailures.
+Preparationallowance15minutes,capture5minutes. Inheritqualifiedparsers;no new
+nativebuildornewcopies. Remainingresource/portable/allshape/adoptionworkcontinues
+onlyonthesamecandidateifthisevidenceisconsistent;no cleanuprelinkrequired.

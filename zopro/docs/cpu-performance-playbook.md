@@ -3,9 +3,9 @@
 Keep useful improvements moving toward adoption while preserving correctness,
 bounded memory and honest measurements. Follow the [xtask workflow](../xtask/README.md)
 for execution. The [candidate register](cpu-performance-candidates.json) records
-the current G2 scalar-grain candidates; it is manually maintained, not an
-enforced xtask state machine. Historical reports retain their original protocols
-and decisions.
+the production baseline and selected pending or closed candidates. It is manually
+maintained, not an enforced xtask state machine. Historical reports retain their
+original protocols and decisions.
 
 ## Keep the goal, experiment and candidate separate
 
@@ -167,6 +167,34 @@ inherited qualification. Keep rejected screens to a short decision plus raw
 evidence; reserve full campaigns and integration work for credible survivors.
 At each three-experiment review, state what assumption changed. If none changed
 and no candidate advanced, change the question before generating more variants.
+
+### Current execution queue
+
+The [bounded G2 batching screen](benchmarks/2026-11-11-bundle-sdk178/README.md)
+has a surviving 16-worker result and lower measured CPU work; 32-worker benefit
+remains inconclusive. Finish its listed qualification requirements on the exact
+artifact before selecting another implementation. Do not spend that work on a
+cleanup build, another batching parameter, or another generic harness. Maintain
+one active qualification and at most one next exploratory question.
+
+The next structural question is whether starting query work before the solver
+finishes exposes enough overlap to matter. The existing
+[parallel-epoch readiness census](benchmarks/2026-11-05-parallel-readiness176/README.md)
+already establishes early complete chunks; do not repeat it. What is missing is
+elapsed readiness and the remaining solver window, checked against observer
+overhead. First bound the opportunity from retained timing evidence or a minimal
+observer. If that window is small, deprioritize the direction before implementing
+a scheduler. If substantial, test bounded chunk publication with persistent
+bucket state, including lost grouping opportunities, staging and merge costs.
+Never mutate live solver storage or repeat whole-query reductions per chunk.
+This is a different dependency boundary from the rejected post-solver job
+rearrangements, but it is not yet evidence of a speedup or a twofold opportunity.
+
+At the next checkpoint, report one resolved question, the evidence that changed
+the decision, and elapsed preparation/capture/analysis time. An unchanged
+explanation after another three variants calls for a different question, not
+another playbook expansion. These queue entries are current decisions; replace
+them as work completes rather than accumulating another experiment history here.
 
 ## Handle a failed follow-up without losing its parent
 

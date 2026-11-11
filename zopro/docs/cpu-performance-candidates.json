@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "Adopted G2 scalar grain and latest coordinate-helper follow-up; not an exhaustive history",
+  "scope": "Accepted baseline and selected pending or closed CPU candidates; not an exhaustive history",
   "maintenance": "Manual register; xtask does not enforce these states",
   "production_baseline": {
     "id": "g2-phi-grain-experimental176",
@@ -9,6 +9,37 @@
     "source_manifest": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/production-source-manifest.json"
   },
   "candidates": [
+    {
+      "id": "g2-indexed-bundles178",
+      "parent_id": "g2-phi-grain-experimental176",
+      "sdk_sha256": "b646c7b8c1d8a26a0db45fb3f67c453dd616bd9f02e25c36192721ae02855abe",
+      "change": "Bounded independent G2 tile trees share batch inversions; exact indexed_tiles176 body, original 1024-point leaf bound",
+      "correctness": {
+        "status": "passed_tested_scope",
+        "scope": "Inherited native generator/edge and Arkworks query checks with source binding; 111 fresh Gnark-verified SDK exports",
+        "evidence": "benchmarks/2026-11-11-bundle-sdk178/README.md"
+      },
+      "resources_and_compatibility": {
+        "status": "qualification_pending",
+        "scope": "Screen CPU/RSS measured; checked metadata admission retained; actual SDK denial, all-shape resources, applicable portable/concurrent behavior and activation review pending",
+        "evidence": "benchmarks/2026-11-11-bundle-sdk178/artifacts/source-audit.json"
+      },
+      "performance": {
+        "status": "primary16_screen_passed; primary32_inconclusive",
+        "scope": "Local Ryzen 9950X; three retained executable backings, nine paired short-screen processes per context; diagnostic profiles support lower instructions and cycles",
+        "evidence": "benchmarks/2026-11-11-bundle-sdk178/artifacts/screen-analysis.json",
+        "profile_evidence": "benchmarks/2026-11-11-bundle-sdk178/artifacts/profile-summary.json"
+      },
+      "adoption": {
+        "status": "pending",
+        "remaining": [
+          "Freeze and execute all-shape performance/resource qualification against accepted REF on exact retained SDK",
+          "Verify actual denied-admission SDK fallback and applicable portable/concurrent behavior",
+          "Validate production activation and source mapping if qualification passes"
+        ],
+        "invalidates_parent": false
+      }
+    },
     {
       "id": "g2-coordinate-leaf177",
       "parent_id": "g2-phi-grain-experimental176",
@@ -133,8 +164,8 @@
   ],
   "next_action": {
     "baseline_id": "g2-phi-grain-experimental176",
-    "action": "Continue toward the unchanged all-eight 10x goal using mechanism-first short screening; prioritize a cost model and algorithmic reductions in operations or repeated work before another helper-boundary variant",
-    "note": "Coordinate-helper and separate default variants remain closed/unadopted. Full all-shape release qualification remains required for a promising build; current user hold forbids push/publication."
+    "action": "Finish qualification of g2-indexed-bundles178 on exact retained SDK before opening another implementation; then bound solver-to-query overlap opportunity using existing readiness evidence",
+    "note": "Short-screen success is not adoption. Primary32 remains inconclusive. Production baseline and all-eight goal unchanged; no push/publication authorized."
   },
   "previous_baseline": {
     "id": "accepted-busy-reset176-znver4",
