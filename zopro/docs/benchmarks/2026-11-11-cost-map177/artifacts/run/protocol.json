@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/cost-map177/pins.json",
+  "environment": {},
+  "steps": [
+    {
+      "kind": "command",
+      "name": "compile-fold",
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "/home/ubuntu/src/zopro-perf-work/cost-map177/fold.rs",
+        "-C",
+        "target-cpu=znver4",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "lto=fat",
+        "-C",
+        "codegen-units=1",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/g2-coordinate-leaf177/frozen/control",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/g2-coordinate-leaf177/frozen/control/libzopro_bn254-9897b0c8b62467b14ad68db9de53326c9e51c532f9b39d26dc1c991a3bc32ce8.rlib",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/g2-coordinate-leaf177/frozen/control/libserde_json-1a86e28755b7a046242fe220e4e27fafe1ba856559efecd286898a5a5230b7d3.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/cost-map177/fold"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 1800
+    },
+    {
+      "kind": "command",
+      "name": "measure-fold",
+      "argv": [
+        "/usr/bin/taskset",
+        "-c",
+        "2",
+        "/home/ubuntu/src/zopro-perf-work/cost-map177/fold"
+      ],
+      "environment": {},
+      "required_tests": [],
+      "unfiltered": false,
+      "timeout_seconds": 1800
+    }
+  ]
+}
