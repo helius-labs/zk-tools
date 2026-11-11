@@ -167,6 +167,10 @@ witness against gnark's byte for byte, and leave raw proofs that
 
 ## Measured
 
+The [CPU performance playbook](docs/cpu-performance-playbook.md) describes the
+experiment and adoption process. The [candidate register](docs/cpu-performance-candidates.json)
+separates pending optimizations from adopted builds and failed follow-ups.
+
 The latest adopted AVX CPU results, including all eight supplied M5 CPU and
 Metal comparisons, source hashes and validation, are in the
 [G2 vector-sign adoption report](docs/benchmarks/2026-10-30-g2-vector-sign-adoption176/README.md).

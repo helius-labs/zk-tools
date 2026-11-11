@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "scope": "Current G2 scalar-grain adoption follow-up; not an exhaustive history",
+  "maintenance": "Manual register; xtask does not enforce these states",
+  "production_baseline": {
+    "id": "accepted-busy-reset176-znver4",
+    "sdk_sha256": "d5e1b2c981fb9bcab2beb69e3b2af5608d298d792c7e3814e87273b04509662e",
+    "evidence": "benchmarks/2026-11-10-accepted-current-c7a176/README.md"
+  },
+  "candidates": [
+    {
+      "id": "g2-phi-grain-experimental176",
+      "parent_id": "accepted-busy-reset176-znver4",
+      "sdk_sha256": "c88a3528d5feb363732dd2557d1894c93e9161f4e3ec9e9d3c7e2564283bf2fe",
+      "change": "Minimum Rayon grain 128 for in-place G2 phi_split, enabled by zopro_phi_grain",
+      "correctness": {
+        "status": "passed_tested_scope",
+        "scope": "Native core/prover/cubic, generic x86-64 and fresh externally verified SDK exports",
+        "evidence": "benchmarks/2026-11-11-phi-grain-c7a176/README.md"
+      },
+      "resources_and_compatibility": {
+        "status": "passed_measured_primary_RSS_guards",
+        "scope": "Original campaign: 1x2 at 32/96 C7a workers; broader release review pending",
+        "evidence": "benchmarks/2026-11-11-phi-grain-c7a176/artifacts/target-analysis.json"
+      },
+      "performance": {
+        "status": "passed_declared_primary_campaign",
+        "scope": "1x2 at 32/96 C7a workers, 21 paired blocks",
+        "checks_passed": 12,
+        "checks_required": 12,
+        "evidence": "benchmarks/2026-11-11-phi-grain-c7a176/artifacts/target-analysis.json",
+        "additional_evidence": {
+          "role": "PARENT control in later all-shape campaign",
+          "status": "measured_as_control; broader adoption decision not established",
+          "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/target-analysis.json"
+        }
+      },
+      "adoption": {
+        "status": "pending_qualification",
+        "remaining": [
+          "Review retained PARENT-versus-accepted data; label new comparisons retrospective",
+          "Inventory missing all-shape performance and release resource/concurrency requirements for this exact candidate",
+          "Declare and complete only the missing qualification before adoption",
+          "Verify the production integration preserves the tested source/configuration; changed artifacts keep separate evidence"
+        ],
+        "rejected_by_child_failure": false
+      }
+    },
+    {
+      "id": "g2-phi-grain-default176",
+      "parent_id": "g2-phi-grain-experimental176",
+      "sdk_sha256": "96915d56cec6fc3479e155001ac2f2e69acf13895a454a765172bbe6d9bfe22e",
+      "change": "Make the minimum-grain operation unconditional and remove the experimental phi cfg",
+      "correctness": {
+        "status": "passed_tested_scope",
+        "scope": "Native core/prover/cubic, generic x86-64 and fresh externally verified SDK exports",
+        "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/remote-review.json"
+      },
+      "resources_and_compatibility": {
+        "status": "all13_measured_RSS_guards_passed; release_review_not_completed",
+        "scope": "Thirteen C7a contexts; no new concurrent-throughput or physical-ARM claim",
+        "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/release-review.json"
+      },
+      "performance": {
+        "status": "failed_declared_qualification",
+        "scope": "Thirteen C7a contexts, nine paired blocks, CLEAN versus REF/PARENT",
+        "checks_passed": 58,
+        "checks_required": 66,
+        "failed_latency_checks": 6,
+        "failed_CPU_checks": 2,
+        "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/target-analysis.json"
+      },
+      "adoption": {
+        "status": "not_adopted",
+        "reason": "Failed its declared qualification; preserve the completed protocol and results",
+        "invalidates_parent": false
+      }
+    }
+  ],
+  "next_action": {
+    "candidate_id": "g2-phi-grain-experimental176",
+    "action": "Review existing exact-candidate evidence and enumerate missing adoption requirements before further cleanup or unrelated optimization",
+    "note": "This record changes the workflow, not any historical gate, production implementation or goal-completion status"
+  }
+}

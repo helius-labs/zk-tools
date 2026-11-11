@@ -5,6 +5,12 @@ SDK drivers from exact Cargo artifacts, and measures separate-process latency
 and warm Linux `perf` captures. The Cargo alias uses a release build to hash
 large key images efficiently.
 
+Use the [CPU performance playbook](../docs/cpu-performance-playbook.md) for
+candidate qualification and adoption decisions. Keep the
+[candidate register](../docs/cpu-performance-candidates.json) current: a failed
+follow-up build does not reject its parent, and a passed screen does not by
+itself complete release qualification.
+
 ```sh
 cargo test --manifest-path xtask/Cargo.toml --locked --offline
 cargo xtask prepare /absolute/accepted-manifest.json /absolute/source /absolute/candidate /absolute/overlay
