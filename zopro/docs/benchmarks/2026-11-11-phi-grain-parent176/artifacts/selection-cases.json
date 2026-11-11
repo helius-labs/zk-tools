@@ -1,0 +1,357 @@
+{
+  "cases": 10,
+  "passed": true,
+  "physical_ARM_or_GPU_execution": false,
+  "rows": [
+    {
+      "commands": [
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-before",
+          "binary_sha256": "e7105827185eae3e9af6a674f3f5165cdbd5bd08cd351b84e7db0f917fd2b705",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl,avx512dq",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-cfg=zopro_dense_busy_reset\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        },
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-after",
+          "binary_sha256": "14ed6b6e84acbcdc73643c4d33997953c29ae8ab26a1e250578edc2cc3136caf",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl,avx512dq",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_phi_grain)\ncargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-cfg=zopro_dense_busy_reset\ncargo::rustc-cfg=zopro_phi_grain\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        }
+      ],
+      "existing_dense_and_GPU_output_preserved": true,
+      "expected_phi": true,
+      "name": "native-linux",
+      "selected_phi": true
+    },
+    {
+      "commands": [
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-before",
+          "binary_sha256": "e7105827185eae3e9af6a674f3f5165cdbd5bd08cd351b84e7db0f917fd2b705",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl,avx512dq",
+            "CARGO_CFG_TARGET_OS": "macos",
+            "CARGO_FEATURE_IFMA8": "1",
+            "CARGO_FEATURE_METAL": "1",
+            "CARGO_FEATURE_WGPU": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-cfg=zopro_dense_busy_reset\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\ncargo::rustc-cfg=gpu\ncargo::rustc-cfg=gpu_any\n"
+        },
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-after",
+          "binary_sha256": "14ed6b6e84acbcdc73643c4d33997953c29ae8ab26a1e250578edc2cc3136caf",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl,avx512dq",
+            "CARGO_CFG_TARGET_OS": "macos",
+            "CARGO_FEATURE_IFMA8": "1",
+            "CARGO_FEATURE_METAL": "1",
+            "CARGO_FEATURE_WGPU": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_phi_grain)\ncargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-cfg=zopro_dense_busy_reset\ncargo::rustc-cfg=zopro_phi_grain\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\ncargo::rustc-cfg=gpu\ncargo::rustc-cfg=gpu_any\n"
+        }
+      ],
+      "existing_dense_and_GPU_output_preserved": true,
+      "expected_phi": true,
+      "name": "native-metal",
+      "selected_phi": true
+    },
+    {
+      "commands": [
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-before",
+          "binary_sha256": "e7105827185eae3e9af6a674f3f5165cdbd5bd08cd351b84e7db0f917fd2b705",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl,avx512dq",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1",
+            "CARGO_FEATURE_WGPU": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-cfg=zopro_dense_busy_reset\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\ncargo::rustc-cfg=gpu_wgpu\ncargo::rustc-cfg=gpu_any\n"
+        },
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-after",
+          "binary_sha256": "14ed6b6e84acbcdc73643c4d33997953c29ae8ab26a1e250578edc2cc3136caf",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl,avx512dq",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1",
+            "CARGO_FEATURE_WGPU": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_phi_grain)\ncargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-cfg=zopro_dense_busy_reset\ncargo::rustc-cfg=zopro_phi_grain\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\ncargo::rustc-cfg=gpu_wgpu\ncargo::rustc-cfg=gpu_any\n"
+        }
+      ],
+      "existing_dense_and_GPU_output_preserved": true,
+      "expected_phi": true,
+      "name": "native-wgpu",
+      "selected_phi": true
+    },
+    {
+      "commands": [
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-before",
+          "binary_sha256": "e7105827185eae3e9af6a674f3f5165cdbd5bd08cd351b84e7db0f917fd2b705",
+          "environment": {
+            "CARGO_CFG_NO_IFMA": "1",
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl,avx512dq",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        },
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-after",
+          "binary_sha256": "14ed6b6e84acbcdc73643c4d33997953c29ae8ab26a1e250578edc2cc3136caf",
+          "environment": {
+            "CARGO_CFG_NO_IFMA": "1",
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl,avx512dq",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_phi_grain)\ncargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        }
+      ],
+      "existing_dense_and_GPU_output_preserved": true,
+      "expected_phi": false,
+      "name": "native-optout",
+      "selected_phi": false
+    },
+    {
+      "commands": [
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-before",
+          "binary_sha256": "e7105827185eae3e9af6a674f3f5165cdbd5bd08cd351b84e7db0f917fd2b705",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl,avx512dq",
+            "CARGO_CFG_TARGET_OS": "linux"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        },
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-after",
+          "binary_sha256": "14ed6b6e84acbcdc73643c4d33997953c29ae8ab26a1e250578edc2cc3136caf",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl,avx512dq",
+            "CARGO_CFG_TARGET_OS": "linux"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_phi_grain)\ncargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        }
+      ],
+      "existing_dense_and_GPU_output_preserved": true,
+      "expected_phi": false,
+      "name": "no-ifma8",
+      "selected_phi": false
+    },
+    {
+      "commands": [
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-before",
+          "binary_sha256": "e7105827185eae3e9af6a674f3f5165cdbd5bd08cd351b84e7db0f917fd2b705",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512dq",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        },
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-after",
+          "binary_sha256": "14ed6b6e84acbcdc73643c4d33997953c29ae8ab26a1e250578edc2cc3136caf",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512dq",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_phi_grain)\ncargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        }
+      ],
+      "existing_dense_and_GPU_output_preserved": true,
+      "expected_phi": false,
+      "name": "missing-vl",
+      "selected_phi": false
+    },
+    {
+      "commands": [
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-before",
+          "binary_sha256": "e7105827185eae3e9af6a674f3f5165cdbd5bd08cd351b84e7db0f917fd2b705",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        },
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-after",
+          "binary_sha256": "14ed6b6e84acbcdc73643c4d33997953c29ae8ab26a1e250578edc2cc3136caf",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "avx512ifma,avx512vl",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_phi_grain)\ncargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        }
+      ],
+      "existing_dense_and_GPU_output_preserved": true,
+      "expected_phi": false,
+      "name": "missing-dq",
+      "selected_phi": false
+    },
+    {
+      "commands": [
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-before",
+          "binary_sha256": "e7105827185eae3e9af6a674f3f5165cdbd5bd08cd351b84e7db0f917fd2b705",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        },
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-after",
+          "binary_sha256": "14ed6b6e84acbcdc73643c4d33997953c29ae8ab26a1e250578edc2cc3136caf",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "x86_64",
+            "CARGO_CFG_TARGET_FEATURE": "",
+            "CARGO_CFG_TARGET_OS": "linux",
+            "CARGO_FEATURE_IFMA8": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_phi_grain)\ncargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\n"
+        }
+      ],
+      "existing_dense_and_GPU_output_preserved": true,
+      "expected_phi": false,
+      "name": "generic-x86",
+      "selected_phi": false
+    },
+    {
+      "commands": [
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-before",
+          "binary_sha256": "e7105827185eae3e9af6a674f3f5165cdbd5bd08cd351b84e7db0f917fd2b705",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "aarch64",
+            "CARGO_CFG_TARGET_FEATURE": "neon",
+            "CARGO_CFG_TARGET_OS": "ios",
+            "CARGO_FEATURE_IFMA8": "1",
+            "CARGO_FEATURE_METAL": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\ncargo::rustc-cfg=gpu\ncargo::rustc-cfg=gpu_any\n"
+        },
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-after",
+          "binary_sha256": "14ed6b6e84acbcdc73643c4d33997953c29ae8ab26a1e250578edc2cc3136caf",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "aarch64",
+            "CARGO_CFG_TARGET_FEATURE": "neon",
+            "CARGO_CFG_TARGET_OS": "ios",
+            "CARGO_FEATURE_IFMA8": "1",
+            "CARGO_FEATURE_METAL": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_phi_grain)\ncargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\ncargo::rustc-cfg=gpu\ncargo::rustc-cfg=gpu_any\n"
+        }
+      ],
+      "existing_dense_and_GPU_output_preserved": true,
+      "expected_phi": false,
+      "name": "arm-selector",
+      "selected_phi": false
+    },
+    {
+      "commands": [
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-before",
+          "binary_sha256": "e7105827185eae3e9af6a674f3f5165cdbd5bd08cd351b84e7db0f917fd2b705",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "wasm32",
+            "CARGO_CFG_TARGET_FEATURE": "",
+            "CARGO_CFG_TARGET_OS": "unknown",
+            "CARGO_FEATURE_IFMA8": "1",
+            "CARGO_FEATURE_WGPU": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\ncargo::rustc-cfg=gpu_wgpu\ncargo::rustc-cfg=gpu_any\n"
+        },
+        {
+          "binary": "/home/ubuntu/src/zopro-perf-work/phi-grain-parent176/selector-after",
+          "binary_sha256": "14ed6b6e84acbcdc73643c4d33997953c29ae8ab26a1e250578edc2cc3136caf",
+          "environment": {
+            "CARGO_CFG_TARGET_ARCH": "wasm32",
+            "CARGO_CFG_TARGET_FEATURE": "",
+            "CARGO_CFG_TARGET_OS": "unknown",
+            "CARGO_FEATURE_IFMA8": "1",
+            "CARGO_FEATURE_WGPU": "1"
+          },
+          "exit_code": 0,
+          "stderr": "",
+          "stdout": "cargo::rustc-check-cfg=cfg(zopro_phi_grain)\ncargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)\ncargo::rustc-check-cfg=cfg(gpu)\ncargo::rustc-check-cfg=cfg(gpu_wgpu)\ncargo::rustc-check-cfg=cfg(gpu_any)\ncargo::rustc-cfg=gpu_wgpu\ncargo::rustc-cfg=gpu_any\n"
+        }
+      ],
+      "existing_dense_and_GPU_output_preserved": true,
+      "expected_phi": false,
+      "name": "wasm-selector",
+      "selected_phi": false
+    }
+  ]
+}

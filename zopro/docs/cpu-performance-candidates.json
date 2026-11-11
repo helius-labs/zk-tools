@@ -32,18 +32,33 @@
         "additional_evidence": {
           "role": "PARENT control in later all-shape campaign",
           "status": "measured_as_control; broader adoption decision not established",
-          "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/target-analysis.json"
+          "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/target-analysis.json",
+          "reviewed_retrospective_evidence": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/retrospective.json",
+          "prospective_followup": {
+            "status": "prepared; target not yet run",
+            "blocks": 31,
+            "contexts": 13,
+            "required_checks": 40,
+            "evidence": "benchmarks/2026-11-11-phi-grain-parent176/README.md",
+            "protocol": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/protocol.md"
+          }
         }
       },
       "adoption": {
         "status": "pending_qualification",
         "remaining": [
-          "Review retained PARENT-versus-accepted data; label new comparisons retrospective",
-          "Inventory missing all-shape performance and release resource/concurrency requirements for this exact candidate",
-          "Declare and complete only the missing qualification before adoption",
-          "Verify the production integration preserves the tested source/configuration; changed artifacts keep separate evidence"
+          "Complete the frozen exact-parent 31-block/13-context/40-check prospective C7a qualification",
+          "If every gate passes, finish production-source mapping review and adopt exact gated runtime plus the verified native selector",
+          "Publish the target/adoption decision and update the accepted manifest, register and handoff"
         ],
-        "rejected_by_child_failure": false
+        "rejected_by_child_failure": false,
+        "completed_followup": {
+          "retained_control_review": "retrospective only; no retroactive gates",
+          "source_resource_concurrency_review": "pure disjoint map; inherited 3 accepted functional concurrency cases; no new throughput claim",
+          "default_selection": "10 finite contexts and actual Cargo core check pass without manual phi",
+          "local_harness": "8 calls; 2 fresh externally verified proofs; no prover SDK rebuild",
+          "evidence": "benchmarks/2026-11-11-phi-grain-parent176/README.md"
+        }
       }
     },
     {
@@ -79,7 +94,7 @@
   ],
   "next_action": {
     "candidate_id": "g2-phi-grain-experimental176",
-    "action": "Review existing exact-candidate evidence and enumerate missing adoption requirements before further cleanup or unrelated optimization",
+    "action": "Run the frozen exact-parent prospective C7a qualification, then adopt only if all declared performance and release requirements pass",
     "note": "This record changes the workflow, not any historical gate, production implementation or goal-completion status"
   }
 }
