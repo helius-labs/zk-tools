@@ -13,6 +13,22 @@ defaults:
     working-directory: zopro
 
 jobs:
+  parallel:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zopro/parallel
+      - run: cargo fmt --manifest-path parallel/Cargo.toml -- --check
+      - run: cargo test --manifest-path parallel/Cargo.toml --locked
+      - run: cargo clippy --manifest-path parallel/Cargo.toml --locked --all-targets -- -D warnings
   xtask:
     runs-on: ubuntu-latest
     steps:

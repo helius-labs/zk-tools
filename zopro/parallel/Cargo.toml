@@ -1,0 +1,24 @@
+[package]
+name = "zopro-parallel"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+description = "Scoped task and chunk parallelism on an existing Rayon pool"
+repository = "https://github.com/helius-labs/zk-tools"
+readme = "README.md"
+keywords = ["parallel", "rayon", "scheduling"]
+categories = ["concurrency", "algorithms"]
+include = ["src/**", "tests/**", "benches/**", "README.md", "LICENSE-*", "Cargo.toml", "Cargo.lock"]
+
+# Keep the experimental execution API independent of the prover's build graph.
+[workspace]
+
+[dependencies]
+rayon = "1.12"
+
+[dev-dependencies]
+criterion = { version = "0.5.1", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "chunks"
+harness = false

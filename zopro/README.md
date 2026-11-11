@@ -153,6 +153,10 @@ never a panic.
 
 ## Tests
 
+The experimental [parallel execution crate](parallel/README.md) provides a
+standalone task/chunk API and benchmarks. It has an independent workspace;
+prover integration and end-to-end speed effects remain unmeasured.
+
 `cargo test --workspace` (CPU), plus `--features zopro-core/metal` and
 `--features zopro-core/wgpu`: the GPU crates check their MSMs against
 zopro-bn254's reference MSM (1 to 20 000 points, random, witness-like and
