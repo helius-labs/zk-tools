@@ -1,6 +1,7 @@
 fn main() {
     // Select the measured native IFMA paths.
     println!("cargo::rustc-check-cfg=cfg(zopro_phi_grain)");
+    println!("cargo::rustc-check-cfg=cfg(zopro_bounded_gather)");
     println!("cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)");
     let arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
     let features = std::env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();

@@ -2184,9 +2184,13 @@ mod gpu_tests {
     }
 }
 
+#[cfg(zopro_bounded_gather)]
+mod bounded_gather;
+
 #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
 impl Key {
     fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>)->Result<Vec<u8>,String>{
+        #[cfg(not(zopro_bounded_gather))]
         use rayon::prelude::*;
         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
         let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
@@ -2196,7 +2200,10 @@ impl Key {
         // in-place conversion. All later accesses to w use canonical words.
         let correction=folded.public_term(&w[..plan.n_public]);
         let words=canonical(&mut w);
+        #[cfg(not(zopro_bounded_gather))]
         let (sa_vec,mut sb_vec):(Vec<_>,Vec<_>)=rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect());
+        #[cfg(zopro_bounded_gather)]
+        let (sa_vec,mut sb_vec)=rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices));
         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
         let mut product=queries.product_values(&self.plan,a,b);
         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
