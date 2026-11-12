@@ -254,11 +254,23 @@ Close this exact topology without a bucket-size sweep or full-SDK campaign.
 Another ordinary-fill proposal must address remaining work or dependency cost;
 removing storage/queue bookkeeping alone has not established a production gain.
 
-Ordinary-fill algorithm research remains available, but no next mechanism is
-selected. The tree/independent-plane/two-bank variants and memory-band/hexagonal
-studies remain historical evidence, not new proposals. The G1 two-bank caller
-already has an inconclusive SDK follow-up. No tree parameter sweep, new pool,
-expanded key table, DSL or all-shape campaign is queued.
+The [accepted-build scaling diagnostic](benchmarks/2026-11-12-accepted-scaling179/README.md)
+adds local 1/2/4/8/16/32-worker evidence without rebuilding. Primary is 87.94,
+8.76 and 7.71 ms at 1/16/32 workers. In three separate counter blocks, 32/1
+instructions grow about 5.4%, while user cycles grow about 62%; most proportional
+cycle growth is in cycles/instruction. The local SMT curve does not reproduce
+C7a's additional-physical-core behavior or establish redundant scheduler work.
+Do not select another local scheduler variant from aggregate CPU time alone.
+Native radix-52 bucket storage also already has a measured 22–27% regression;
+it is not an untried conversion-elimination proposal.
+
+Canonical exports are now 55085 at accepted-scaling179/proof-sha256-after-stat.json.
+Preserve the C7a package's frozen 55028 seed. After target verification, merge
+its 124 new exports with the latest canonical ledger, checking disjointness;
+with no intervening exports, the merged count would be 55209. No package rebuild
+or completed preflight replay is needed. Ordinary-fill research remains available,
+but no next implementation is selected. Previous tree, plane and two-bank
+results remain closed or inconclusive at their documented scope.
 
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
