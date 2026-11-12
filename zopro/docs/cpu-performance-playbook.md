@@ -214,15 +214,21 @@ the failure is performance. New/staged counter panels show0.98%more instructions
 and13.61%more cache-miss events. Staging-helper samples fall while arithmetic-helper
 samples rise. A removed source copy was not a net cost reduction in this caller.
 
-Change mechanism family now. Seek an ordinary-fill algorithm that changes required
-point operations or their dependency structure, accounting for routing, compact
-operand locality and merges. Before implementing it, compare its work and live
-storage with streaming and the closed tree/independent-plane/two-bank families.
-Use primary papers/code for an actual new mechanism rather than repeat earlier
-memory-band, hexagonal or shifted-table studies. No tree partition/annotation
-sweep, new pool, expanded key table, DSL or all-shape campaign is queued. The G1
-two-bank caller already has an inconclusive SDK follow-up; do not rediscover it
-as an unfinished caller-only candidate.
+The [joint search/publication analysis](benchmarks/2026-11-12-search-overlap178/README.md)
+finds that most recorded search residence in all54 historical C7a graphs occurs
+without pending publications. At96workers the whole-request median is75.85%;
+only0.33% overlaps at least96 pending jobs. The observer failed its overhead
+qualification and phi grain has since changed; these are research leads, not
+current-source attribution or removable latency. Next distinguish a phase-specific
+participation/work-exposure intervention on the existing pool from the closed
+pause/yield, victim-bitmap, coarse-graph and separate-worker-group experiments.
+Charge transition and wake costs; do not infer a C7a gain from a local screen.
+
+Ordinary-fill algorithm research remains available, but no new mechanism is
+selected. The tree/independent-plane/two-bank variants and memory-band/hexagonal
+studies remain historical evidence, not new proposals. The G1 two-bank caller
+already has an inconclusive SDK follow-up. No tree parameter sweep, new pool,
+expanded key table, DSL or all-shape campaign is queued.
 
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
