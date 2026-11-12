@@ -235,7 +235,16 @@ request failed with expired SSO credentials. No resources were created. Resume
 the retained package; do not rebuild it or replay successful preflights.
 No further local divisor sweep is queued.
 
-Ordinary-fill algorithm research remains available, but no new mechanism is
+The [destination-round screen](benchmarks/2026-11-12-bucket-round178/README.md)
+replaces tree intermediates and collision handling with one accumulator per bucket,
+advancing independent destinations in rounds. All1229 complete-query checks pass,
+but primary32 rounds/streaming is1.0048 with1/3wins and threaded nonregression
+checks fail. It beats the staged tree while still using more CPU than streaming.
+Close this exact topology without a bucket-size sweep or full-SDK campaign.
+Another ordinary-fill proposal must address remaining work or dependency cost;
+removing storage/queue bookkeeping alone has not established a production gain.
+
+Ordinary-fill algorithm research remains available, but no next mechanism is
 selected. The tree/independent-plane/two-bank variants and memory-band/hexagonal
 studies remain historical evidence, not new proposals. The G1 two-bank caller
 already has an inconclusive SDK follow-up. No tree parameter sweep, new pool,
