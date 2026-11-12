@@ -227,10 +227,13 @@ and restores full participation before scalar preparation.113scheduler tests and
 97freshGnark exports pass. Its local screen fails three gain checks:primary32
 ON/OFF is0.999933;2x2 is1.004676. All nonregression/RSS guards pass. Profiles show
 only a small cycle reduction, not a local breakthrough. Keep this screen closed.
-Next prepare a matched C7a32/96 test of exact retainedSDK1f1f against current
-acceptedSDKb646 and same-binary OFF, including wake/transition costs and best-count
-latency. AWS credentials expired at the last check; no resources were created.
-Reuse completed native/local evidence. No further local divisor sweep is queued.
+The matched [C7a32/96 package](benchmarks/2026-11-12-phase-search-c7a178/README.md)
+is now prepared with exact retained SDK1f1f, accepted SDKb646 and same-binary OFF,
+including wake/transition costs, best-count comparisons and subsequent profiles.
+Its local container checks passed; AWS remains unmeasured because a fresh STS
+request failed with expired SSO credentials. No resources were created. Resume
+the retained package; do not rebuild it or replay successful preflights.
+No further local divisor sweep is queued.
 
 Ordinary-fill algorithm research remains available, but no new mechanism is
 selected. The tree/independent-plane/two-bank variants and memory-band/hexagonal
