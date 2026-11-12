@@ -37,3 +37,10 @@ prepublication manifest is pinned separately from the lifecycle's mutable manife
 The full all-eight CPU10x goal remains unmet, 0/8. Accepted CPU/Metal results
 remain in the [adoption report](../2026-11-12-bundle-adoption178/README.md).
 This preparation report and its source records are local and unpushed.
+
+Subsequent local measurements advanced the canonical proof ledger to 55,085.
+The frozen target seed above remains unchanged. The
+[host finalizer](artifacts/resume-ledger.md) now merges the verified target branch
+with later local exports, rejecting reused proofs and omitted ancestry. Five
+ledger tests pass; actual target-receipt integration remains untested. This
+addition changes no image, measurement protocol or performance result.

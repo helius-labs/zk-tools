@@ -268,7 +268,10 @@ Canonical exports are now 55085 at accepted-scaling179/proof-sha256-after-stat.j
 Preserve the C7a package's frozen 55028 seed. After target verification, merge
 its 124 new exports with the latest canonical ledger, checking disjointness;
 with no intervening exports, the merged count would be 55209. No package rebuild
-or completed preflight replay is needed. Ordinary-fill research remains available,
+or completed preflight replay is needed. The tested
+[host finalizer](benchmarks/2026-11-12-phase-search-c7a178/artifacts/resume-ledger.md)
+checks transported verifier receipts and preserves both proof-history branches;
+actual target integration awaits the AWS run. Ordinary-fill research remains available,
 but no next implementation is selected. Previous tree, plane and two-bank
 results remain closed or inconclusive at their documented scope.
 
