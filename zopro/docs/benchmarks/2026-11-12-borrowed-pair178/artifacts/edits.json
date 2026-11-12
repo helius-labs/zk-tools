@@ -1,0 +1,22 @@
+{
+  "moved_before_phi_cfg": "    let selected = diagnostic_mode();\n    let reservation = if bits == 12 && parts == 2 { match selected {\n        1 => staged_tree::admit(bases.len()), 2 => direct_tree::admit(bases.len()), _ => None,\n    }} else {None};\n    let tree = if reservation.is_some() {selected} else {0};\n    DIAGNOSTIC_CALLS[tree].fetch_add(1, std::sync::atomic::Ordering::Relaxed);\n",
+  "phi_appendix": "\nmod staged_tree;\nmod direct_tree;\nstatic DIAGNOSTIC_CALLS: [std::sync::atomic::AtomicUsize;3] = [const {std::sync::atomic::AtomicUsize::new(0)};3];\nfn diagnostic_mode()->usize { static MODE:std::sync::OnceLock<usize>=std::sync::OnceLock::new(); *MODE.get_or_init(|| {let m=std::env::var(\"ZOPRO_DIAGNOSTIC_PAIR_MODE\").unwrap().parse().unwrap();assert!(m<3);m}) }\npub(crate) fn diagnostic_status()->[usize;3] { DIAGNOSTIC_CALLS.each_ref().map(|a|a.load(std::sync::atomic::Ordering::Relaxed)) }\n",
+  "phi_edits": [
+    {
+      "after": "fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize, tree: usize)",
+      "before": "fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize)"
+    },
+    {
+      "after": "    if tree == 1 && bits == 12 { return staged_tree::window(bases, short, w); }\n    if tree == 2 && bits == 12 { return direct_tree::window(bases, short, w); }\n    #[cfg(all(zopro_g2_horner_buckets",
+      "before": "    #[cfg(all(zopro_g2_horner_buckets"
+    },
+    {
+      "after": "    let selected = diagnostic_mode();\n    let reservation = if bits == 12 && parts == 2 { match selected {\n        1 => staged_tree::admit(bases.len()), 2 => direct_tree::admit(bases.len()), _ => None,\n    }} else {None};\n    let tree = if reservation.is_some() {selected} else {0};\n    DIAGNOSTIC_CALLS[tree].fetch_add(1, std::sync::atomic::Ordering::Relaxed);\n    let chunk = bases.len().div_ceil(parts);",
+      "before": "    let chunk = bases.len().div_ceil(parts);"
+    },
+    {
+      "after": "hb_window(&bases[start..end], &short[start..end], w, bits, tree)",
+      "before": "hb_window(&bases[start..end], &short[start..end], w, bits)"
+    }
+  ]
+}

@@ -207,14 +207,22 @@ reductions replayed. All1632 query oracles pass. These are fixed-input diagnosti
 times, not valid production gains, full-proof bounds or a C7a explanation.
 Ordinary filling takes priority over another top/reduction-only variant.
 
-Next screen a specific cost in the rejected borrowed-tree implementation: each
-generic pair first copies its left point into the output buffer, then the
-in-place adder reads and overwrites it. A two-input borrowed reducer could write
-the result once and preserve the tree's independent bucket groups. Check the
-history and source, then charge descriptor/sign handling and exceptional paths
-before a short actual-caller comparison. Do not repeat the unchanged tree or
-independent-plane recipes, or infer a speedup from saved bytes. A new pool, table
-expansion, DSL, partition sweep or full all-shape campaign is not the next step.
+The [borrowed-pair follow-up](benchmarks/2026-11-12-borrowed-pair178/README.md)
+implemented that dataflow change and failed its screen: primary32 is3.118ms
+versus2.917ms streaming and3.092ms staged tree. All2609query oracle checks pass;
+the failure is performance. New/staged counter panels show0.98%more instructions
+and13.61%more cache-miss events. Staging-helper samples fall while arithmetic-helper
+samples rise. A removed source copy was not a net cost reduction in this caller.
+
+Change mechanism family now. Seek an ordinary-fill algorithm that changes required
+point operations or their dependency structure, accounting for routing, compact
+operand locality and merges. Before implementing it, compare its work and live
+storage with streaming and the closed tree/independent-plane/two-bank families.
+Use primary papers/code for an actual new mechanism rather than repeat earlier
+memory-band, hexagonal or shifted-table studies. No tree partition/annotation
+sweep, new pool, expanded key table, DSL or all-shape campaign is queued. The G1
+two-bank caller already has an inconclusive SDK follow-up; do not rediscover it
+as an unfinished caller-only candidate.
 
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
