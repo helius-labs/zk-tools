@@ -276,6 +276,20 @@ Ordinary-fill research remains available,
 but no next implementation is selected. Previous tree, plane and two-bank
 results remain closed or inconclusive at their documented scope.
 
+The [retained Aeglos stage decomposition](benchmarks/2026-11-12-scaling-divergence180/README.md)
+now narrows the scaling question to MSM. Across all fifteen November 10 blocks,
+1x2 MSM mean time falls 8.337837→3.900750 ms at32→96, saving4.437088 ms;
+witness time rises1.288977→1.625243 ms. MSM improves and witness worsens in
+every block for both1x2 and2x2. These are historical stage timers, not current
+Zopro timings or exclusive CPU. The October25 Aeglos Windowed control uses the
+same pool but slows26.808818→55.113735 ms for1x2: the pool alone does not explain
+Sorted scaling. Do not attribute this mixed algorithm/preparation difference
+solely to shifted tables. Next obtain matched coarse MSM substages/work geometry
+for current Zopro and pinned Sorted/Windowed at32/96, with explicit observer
+checks. Avoid another aggregate profile audit, per-task trace, solver search
+sweep or unchanged joint-window-queue retry. No new capture or implementation
+is supplied by the retrospective decomposition; canonical55209 remains unchanged.
+
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
 explanation after another three variants calls for a different question, not
