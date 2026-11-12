@@ -81,6 +81,10 @@ question; keep all eight shapes in the final goal and release requirements.
    including packing, scratch and reduction costs. A faster isolated field
    primitive is insufficient. For a scheduling change, inspect worker activity
    and the critical path; aggregate CPU samples are not a critical-path estimate.
+   Static instruction counts, frame sizes and operation counts are explanatory
+   evidence, not general latency vetoes. A correctness or resource violation can
+   stop a prototype; an uncertain codegen tradeoff usually calls for a short
+   actual-caller timing. A screen stopped on a surrogate leaves latency unmeasured.
 2. **Run a short full-proof screen.** Freeze the exact consumers, a small fixed
    sample count, relevant worker counts and representative cases before capture.
    On this host retain all three predeclared executable backings and balance
@@ -168,6 +172,14 @@ evidence; reserve full campaigns and integration work for credible survivors.
 At each three-experiment review, state what assumption changed. If none changed
 and no candidate advanced, change the question before generating more variants.
 
+For exploration, keep one short record with the hypothesis, exact artifacts,
+fixed screen, result and next decision. Reuse raw receipts and existing readers;
+do not commission a new reporting framework or adoption-sized evidence bundle
+before the first discriminating measurement. Diagnostic ablations may deliberately
+remove work to test an explanation, but label them non-production: their times
+are not valid proof speedups or automatically attainable bounds. Production
+correctness and resource requirements still apply to any candidate being adopted.
+
 ### Current execution queue
 
 The [bounded G2 batching candidate](benchmarks/2026-11-12-bundle-adoption178/README.md)
@@ -178,18 +190,31 @@ retain its measured observer until a separately measured change replaces it.
 Do not make another batching parameter or generic harness the next experiment.
 Maintain one active qualification and at most one next exploratory question.
 
-The next structural question is whether starting query work before the solver
-finishes exposes enough overlap to matter. The existing
-[parallel-epoch readiness census](benchmarks/2026-11-05-parallel-readiness176/README.md)
-already establishes early complete chunks; do not repeat it. What is missing is
-elapsed readiness and the remaining solver window, checked against observer
-overhead. First bound the opportunity from retained timing evidence or a minimal
-observer. If that window is small, deprioritize the direction before implementing
-a scheduler. If substantial, test bounded chunk publication with persistent
-bucket state, including lost grouping opportunities, staging and merge costs.
-Never mutate live solver storage or repeat whole-query reductions per chunk.
-This is a different dependency boundary from the rejected post-solver job
-rearrangements, but it is not yet evidence of a speedup or a twofold opportunity.
+The previous queue entry missed the completed
+[solver-to-A streaming trial](benchmarks/2026-11-06-solver-a-stream176/README.md).
+Its 32-worker solver-to-A chain regressed by 20.25%; do not implement that recipe
+again or repeat the readiness census. Likewise, the promising inversion-count
+model for [borrowed bucket trees](benchmarks/2026-11-07-borrowed-bucket-tree-pilot176/README.md)
+was followed by a full-proof regression. These are measured negative results.
+By contrast, [uniform scaled prefixes](benchmarks/2026-11-07-uniform-prefix-native176/README.md)
+stopped at a static-codegen screen: latency is unmeasured. Preserve its failed
+protocol, but do not call it a measured slowdown or automatically reopen it.
+
+The next question is which part of the small-proof MSM execution prevents useful
+scaling on C7a: dependency depth in bucket accumulation, dispatch/coordination,
+or the cost of moving intermediate points. Reconcile the retained C7a profiles
+with the adopted phi-grain change before selecting one causal intervention.
+The [matched comparison](benchmarks/2026-11-10-accepted-current-c7a176/README.md)
+shows the symptom, not its cause: at 32 workers Zopro beats Aeglos, while Aeglos
+continues improving to 96. The later
+[phi-grain trial](benchmarks/2026-11-11-phi-grain-c7a176/README.md)
+improves Zopro at 96 but leaves its best tested count at 32. Both precede current
+bounded batching; neither is a measurement of the latest production build.
+Choose a minimal diagnostic that distinguishes those explanations, using retained
+captures first. Its result must select or reject an execution/representation
+change, not merely produce another profile. Check the specific intervention
+against the history before coding; no new pool, table expansion, generic DSL,
+parameter sweep or full all-shape campaign is the next step.
 
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
