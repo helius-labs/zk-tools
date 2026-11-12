@@ -196,9 +196,19 @@ Its 32-worker solver-to-A chain regressed by 20.25%; do not implement that recip
 again or repeat the readiness census. Likewise, the promising inversion-count
 model for [borrowed bucket trees](benchmarks/2026-11-07-borrowed-bucket-tree-pilot176/README.md)
 was followed by a full-proof regression. These are measured negative results.
-By contrast, [uniform scaled prefixes](benchmarks/2026-11-07-uniform-prefix-native176/README.md)
-stopped at a static-codegen screen: latency is unmeasured. Preserve its failed
-protocol, but do not call it a measured slowdown or automatically reopen it.
+The earlier queue incorrectly said uniform scaled prefixes stopped at codegen.
+The subsequent [CFG audit](benchmarks/2026-11-07-uniform-prefix-cfg176/README.md)
+led to a [complete-SDK pilot](benchmarks/2026-11-07-uniform-prefix-pilot176/README.md):
+ON/OFF was0.9910 with interval0.98368–1.000012. This is positive but insufficiently
+qualified evidence, not an unmeasured candidate or a measured regression.
+The [combined default carry version](benchmarks/2026-11-08-uniform-carry-default-performance183/README.md)
+then passed all32-worker checks but failed three16-worker checks; the
+[short-map composition](benchmarks/2026-11-09-prefix-short-sdk186/README.md)
+also has completed full-proof results and failed nine checks, including memory.
+Preserve these separate decisions. Do not rerun them as a first clock, mistake
+a native-stage report for the latest status, or adopt a component from a
+post-result subset. Search references to a candidate's report and artifact root
+before treating it as unfinished.
 
 The [ordinary-stage diagnostic](benchmarks/2026-11-12-ordinary-elision178/README.md)
 now resolves one local priority: primary32 complete G2 query changes from2.993ms

@@ -1,5 +1,11 @@
 # Uniform scaled prefixes: native qualification and consumer screen
 
+Later stages: the [CFG audit](../2026-11-07-uniform-prefix-cfg176/README.md)
+justified the [first complete-SDK pilot](../2026-11-07-uniform-prefix-pilot176/README.md).
+That pilot recorded a positive estimate with an interval narrowly crossing parity
+and no adoption. The statements about unmeasured latency below describe this
+native stage, not the final status of the candidate.
+
 The construction passes native correctness checks but **fails the prospective consumer screen**: G1 has fewer packing shifts and slightly more total static instructions. G2 has fewer instructions and a larger frame. The exact construction closes without adoption or a full-proof performance pilot. **Whether it changes proving latency is unmeasured.**
 
 ## Implementation and qualification

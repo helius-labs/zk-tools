@@ -1,5 +1,10 @@
 # Current solver eight-term dot-product coverage
 
+Follow-up: the [native arithmetic screen](../2026-11-07-dot8-preredc-native176/README.md)
+measured a dependent-call improvement and an independent-call regression, failing
+its declared throughput requirement. The proposal below is not awaiting its first
+native measurement; no full-proof benefit was established.
+
 The current accepted solver retains **11,422 eight-term dot products per valid primary solve**. Across one solve of each of the nine retained workloads, the count is **1,085,089**. This establishes a real caller for the proposed horizontal accumulation before Montgomery reduction. No arithmetic operator, timing result or speedup is established yet; production remains unchanged.
 
 The older raw-plan census counted 25,634 primary dots. Current recognized execution bypasses 14,212 of those opportunities. Reusing the old count as current coverage would overstate this target. This diagnostic follows the current admitted schedule and recognized-task dispatch instead of merely scanning every original constraint.
