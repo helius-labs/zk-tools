@@ -278,6 +278,10 @@ pub(super) fn reduce_indexed_buckets<C: CurveConfig>(
 where
     C::Base: BatchInverse,
 {
+    #[cfg(zopro_indexed_tile_bundles)]
+    if crate::simd::cpu_option("ZOPRO_CPU_INDEXED_TILE_BUNDLES") {
+        if let Some(out)=indexed_tiles::try_reduce::<C>(bases,order,starts){return out;}
+    }
     let tile = 2048 / (core::mem::size_of::<C::Base>() / 32);
     let mut tasks = Vec::new();
     let mut partial_starts = Vec::with_capacity(starts.len());
@@ -2341,3 +2345,5 @@ mod adaptive_tree_tests {
 
 #[cfg(all(zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
 mod g2_borrowed;
+
+#[cfg(zopro_indexed_tile_bundles)]mod indexed_tiles;

@@ -170,12 +170,13 @@ and no candidate advanced, change the question before generating more variants.
 
 ### Current execution queue
 
-The [bounded G2 batching screen](benchmarks/2026-11-11-bundle-sdk178/README.md)
-has a surviving 16-worker result and lower measured CPU work; 32-worker benefit
-remains inconclusive. Finish its listed qualification requirements on the exact
-artifact before selecting another implementation. Do not spend that work on a
-cleanup build, another batching parameter, or another generic harness. Maintain
-one active qualification and at most one next exploratory question.
+The [bounded G2 batching candidate](benchmarks/2026-11-12-bundle-adoption178/README.md)
+passed all 33 local performance/resource checks and its remaining release checks;
+its exact runtime and native selector are adopted. Primary16 improves, while
+primary32 gain remains inconclusive. Start from this production baseline and
+retain its measured observer until a separately measured change replaces it.
+Do not make another batching parameter or generic harness the next experiment.
+Maintain one active qualification and at most one next exploratory question.
 
 The next structural question is whether starting query work before the solver
 finishes exposes enough overlap to matter. The existing

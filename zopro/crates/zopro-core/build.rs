@@ -1,5 +1,7 @@
 fn main() {
     // Select the measured native IFMA paths.
+    println!("cargo::rustc-check-cfg=cfg(zopro_indexed_tile_bundles)");
+    println!("cargo::rustc-check-cfg=cfg(zopro_coalesce_probe)");
     println!("cargo::rustc-check-cfg=cfg(zopro_phi_grain)");
     println!("cargo::rustc-check-cfg=cfg(zopro_bounded_gather)");
     println!("cargo::rustc-check-cfg=cfg(zopro_dense_busy_reset)");
@@ -16,6 +18,9 @@ fn main() {
     {
         println!("cargo::rustc-cfg=zopro_dense_busy_reset");
         println!("cargo::rustc-cfg=zopro_phi_grain");
+        // Preserve the qualified reducer and its measured admission counters.
+        println!("cargo::rustc-cfg=zopro_indexed_tile_bundles");
+        println!("cargo::rustc-cfg=zopro_coalesce_probe");
     }
     println!("cargo::rustc-check-cfg=cfg(gpu)");
     println!("cargo::rustc-check-cfg=cfg(gpu_wgpu)");

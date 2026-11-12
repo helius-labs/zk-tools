@@ -3,10 +3,10 @@
   "scope": "Accepted baseline and selected pending or closed CPU candidates; not an exhaustive history",
   "maintenance": "Manual register; xtask does not enforce these states",
   "production_baseline": {
-    "id": "g2-phi-grain-experimental176",
-    "sdk_sha256": "c88a3528d5feb363732dd2557d1894c93e9161f4e3ec9e9d3c7e2564283bf2fe",
-    "evidence": "benchmarks/2026-11-11-phi-grain-parent176/README.md",
-    "source_manifest": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/production-source-manifest.json"
+    "id": "g2-indexed-bundles178",
+    "sdk_sha256": "b646c7b8c1d8a26a0db45fb3f67c453dd616bd9f02e25c36192721ae02855abe",
+    "evidence": "benchmarks/2026-11-12-bundle-adoption178/README.md",
+    "source_manifest": "benchmarks/2026-11-12-bundle-adoption178/artifacts/production-source-manifest.json"
   },
   "candidates": [
     {
@@ -16,27 +16,30 @@
       "change": "Bounded independent G2 tile trees share batch inversions; exact indexed_tiles176 body, original 1024-point leaf bound",
       "correctness": {
         "status": "passed_tested_scope",
-        "scope": "Inherited native generator/edge and Arkworks query checks with source binding; 111 fresh Gnark-verified SDK exports",
-        "evidence": "benchmarks/2026-11-11-bundle-sdk178/README.md"
+        "scope": "Source-bound inherited native tests and Arkworks comparisons; 734 fresh Gnark exports across screen/profile/qualification; 104 new concurrent group-oracle comparisons; 97 generic core tests",
+        "evidence": "benchmarks/2026-11-12-bundle-adoption178/README.md"
       },
       "resources_and_compatibility": {
-        "status": "qualification_pending",
-        "scope": "Screen CPU/RSS measured; checked metadata admission retained; actual SDK denial, all-shape resources, applicable portable/concurrent behavior and activation review pending",
-        "evidence": "benchmarks/2026-11-11-bundle-sdk178/artifacts/source-audit.json"
+        "status": "all10_RSS_guards_and_release_checks_passed",
+        "scope": "Bounded checked metadata admission, 3 complete SDK configured-denial cases, shared-pool functional concurrency, generic tests and native selection; no physical RAM-pressure/ARM/huge-circuit/throughput claim",
+        "evidence": "benchmarks/2026-11-12-bundle-adoption178/artifacts/release-review.json"
       },
       "performance": {
-        "status": "primary16_screen_passed; primary32_inconclusive",
-        "scope": "Local Ryzen 9950X; three retained executable backings, nine paired short-screen processes per context; diagnostic profiles support lower instructions and cycles",
-        "evidence": "benchmarks/2026-11-11-bundle-sdk178/artifacts/screen-analysis.json",
+        "status": "passed_declared_adoption_qualification",
+        "scope": "Local Ryzen9950X ten contexts, 30 paired processes per context across three fixed executable backings; primary16 gain, other contexts nonregression; primary32 speedup remains inconclusive",
+        "checks_passed": 33,
+        "checks_required": 33,
+        "evidence": "benchmarks/2026-11-12-bundle-adoption178/artifacts/assessment.json",
         "profile_evidence": "benchmarks/2026-11-11-bundle-sdk178/artifacts/profile-summary.json"
       },
       "adoption": {
-        "status": "pending",
-        "remaining": [
-          "Freeze and execute all-shape performance/resource qualification against accepted REF on exact retained SDK",
-          "Verify actual denied-admission SDK fallback and applicable portable/concurrent behavior",
-          "Validate production activation and source mapping if qualification passes"
-        ],
+        "status": "adopted",
+        "remaining": [],
+        "evidence": "benchmarks/2026-11-12-bundle-adoption178/artifacts/decision.json",
+        "production_source_manifest": "benchmarks/2026-11-12-bundle-adoption178/artifacts/production-source-manifest.json",
+        "default_activation": "Native IFMA selector enables exact measured reducer and admission observer; generic fallback unchanged",
+        "default_Cargo_release_newly_timed": false,
+        "canonical_verified_exports": 54927,
         "invalidates_parent": false
       }
     },
@@ -128,7 +131,8 @@
         "evidence": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/decision.json",
         "production_source_manifest": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/production-source-manifest.json",
         "default_activation": "Native IFMA cfg emitted beside existing dense-reset selector; runtime file exact to measured parent",
-        "canonical_verified_exports": 51586
+        "canonical_verified_exports": 51586,
+        "superseded_by": "g2-indexed-bundles178"
       }
     },
     {
@@ -163,13 +167,14 @@
     }
   ],
   "next_action": {
-    "baseline_id": "g2-phi-grain-experimental176",
-    "action": "Finish qualification of g2-indexed-bundles178 on exact retained SDK before opening another implementation; then bound solver-to-query overlap opportunity using existing readiness evidence",
-    "note": "Short-screen success is not adoption. Primary32 remains inconclusive. Production baseline and all-eight goal unchanged; no push/publication authorized."
+    "baseline_id": "g2-indexed-bundles178",
+    "action": "Bound elapsed opportunity for solver-to-query overlap using existing parallel-epoch readiness evidence; only prototype bounded early publication if the remaining window is useful",
+    "note": "Do not repeat readiness census, closed post-solver scheduling variants or batching constants. Accepted all-eight CPU10x objective remains unmet. No push/publication authorized."
   },
   "previous_baseline": {
-    "id": "accepted-busy-reset176-znver4",
-    "sdk_sha256": "d5e1b2c981fb9bcab2beb69e3b2af5608d298d792c7e3814e87273b04509662e",
-    "evidence": "benchmarks/2026-11-10-accepted-current-c7a176/README.md"
+    "id": "g2-phi-grain-experimental176",
+    "sdk_sha256": "c88a3528d5feb363732dd2557d1894c93e9161f4e3ec9e9d3c7e2564283bf2fe",
+    "evidence": "benchmarks/2026-11-11-phi-grain-parent176/README.md",
+    "source_manifest": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/production-source-manifest.json"
   }
 }

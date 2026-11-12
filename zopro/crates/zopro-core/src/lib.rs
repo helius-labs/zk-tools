@@ -2365,3 +2365,14 @@ impl Key {
         let mut out=Vec::with_capacity(384);for p in [ar,bs1,kr+correction,q.finish_product(hz)]{output_g1(&mut out,p);}output_g2(&mut out,bs2);Ok(out)
     }
 }
+
+#[cfg(zopro_coalesce_probe)]
+pub mod coalesce_query_probe{
+ use zopro_bn254::{G1Affine,G2Affine,G1Projective,G2Projective};use std::sync::atomic::{AtomicUsize,Ordering};
+ #[derive(Clone,Copy,Debug,Default,PartialEq,Eq)]pub struct Metadata{pub route:u32,pub classes:usize,pub skips:usize,pub payload:usize}
+ static ENTRIES:AtomicUsize=AtomicUsize::new(0);static CHARGE:AtomicUsize=AtomicUsize::new(0);
+ pub(crate)fn record(charge:usize){ENTRIES.fetch_add(1,Ordering::Relaxed);CHARGE.fetch_max(charge,Ordering::Relaxed);}
+ pub fn a(bases:&[G1Affine],words:&[[u64;4]])->(G1Projective,Metadata){(crate::msm_affine::msm_canonical(bases,words),Metadata::default())}
+ pub fn b(bases:&[G2Affine],words:&mut[[u64;4]])->(G2Projective,Metadata){ENTRIES.store(0,Ordering::Relaxed);CHARGE.store(0,Ordering::Relaxed);let p=crate::msm_affine::g2_query_exclusive(bases,words);let entries=ENTRIES.load(Ordering::Relaxed);(p,Metadata{route:if entries>0{314}else{0},classes:entries,skips:0,payload:CHARGE.load(Ordering::Relaxed)})}
+ pub fn snapshot()->(usize,usize){(ENTRIES.load(Ordering::Relaxed),CHARGE.load(Ordering::Relaxed))}
+}
