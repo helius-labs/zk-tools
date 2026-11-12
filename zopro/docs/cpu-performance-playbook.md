@@ -237,13 +237,15 @@ and restores full participation before scalar preparation.113scheduler tests and
 97freshGnark exports pass. Its local screen fails three gain checks:primary32
 ON/OFF is0.999933;2x2 is1.004676. All nonregression/RSS guards pass. Profiles show
 only a small cycle reduction, not a local breakthrough. Keep this screen closed.
-The matched [C7a32/96 package](benchmarks/2026-11-12-phase-search-c7a178/README.md)
-is now prepared with exact retained SDK1f1f, accepted SDKb646 and same-binary OFF,
-including wake/transition costs, best-count comparisons and subsequent profiles.
-Its local container checks passed; AWS remains unmeasured because a fresh STS
-request failed with expired SSO credentials. No resources were created. Resume
-the retained package; do not rebuild it or replay successful preflights.
-No further local divisor sweep is queued.
+The matched [C7a32/96 experiment](benchmarks/2026-11-12-phase-search-c7a178/README.md)
+is complete and negative: 23/28 screen checks passed, all RSS guards passed,
+124 fresh exports verified, and both cycle profiles passed quality checks.
+Accepted primary latency is 11.178852/12.714640 ms at 32/96 workers; ON is
+11.366803/12.729304 ms. Primary96 paired ON/OFF is 1.001355 with 4/9 wins.
+Epoch/scheduler symbol shares remain about 61–62% of sampled cycles, but this
+does not identify removable wall time or the next causal intervention. Close
+the solver-only search intervention; no divisor sweep is queued. All owned
+AWS resources were removed. No capture or successful analysis needs replaying.
 
 The [destination-round screen](benchmarks/2026-11-12-bucket-round178/README.md)
 replaces tree intermediates and collision handling with one accumulator per bucket,
@@ -264,14 +266,13 @@ Do not select another local scheduler variant from aggregate CPU time alone.
 Native radix-52 bucket storage also already has a measured 22–27% regression;
 it is not an untried conversion-elimination proposal.
 
-Canonical exports are now 55085 at accepted-scaling179/proof-sha256-after-stat.json.
-Preserve the C7a package's frozen 55028 seed. After target verification, merge
-its 124 new exports with the latest canonical ledger, checking disjointness;
-with no intervening exports, the merged count would be 55209. No package rebuild
-or completed preflight replay is needed. The tested
+Canonical exports are now 55209 at phase-search-c7a178/canonical-final/proof-sha256.json,
+SHA-256 64f44d498212b79be20498597f39fd6b5eb2e063004816f9f2d5c73f524cd350.
+The C7a package's frozen 55028 seed remains historical. Its 124 new exports were
+merged with the later local 55085 ledger after local transport verification. The
 [host finalizer](benchmarks/2026-11-12-phase-search-c7a178/artifacts/resume-ledger.md)
-checks transported verifier receipts and preserves both proof-history branches;
-actual target integration awaits the AWS run. Ordinary-fill research remains available,
+passed actual target integration and preserved both proof-history branches.
+Ordinary-fill research remains available,
 but no next implementation is selected. Previous tree, plane and two-bank
 results remain closed or inconclusive at their documented scope.
 
