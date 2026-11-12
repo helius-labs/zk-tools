@@ -219,10 +219,18 @@ finds that most recorded search residence in all54 historical C7a graphs occurs
 without pending publications. At96workers the whole-request median is75.85%;
 only0.33% overlaps at least96 pending jobs. The observer failed its overhead
 qualification and phi grain has since changed; these are research leads, not
-current-source attribution or removable latency. Next distinguish a phase-specific
-participation/work-exposure intervention on the existing pool from the closed
-pause/yield, victim-bitmap, coarse-graph and separate-worker-group experiments.
-Charge transition and wake costs; do not infer a C7a gain from a local screen.
+current-source attribution or removable latency.
+
+The [solver-phase intervention](benchmarks/2026-11-12-phase-search178/README.md)
+now restricts private-deque searching to ceil(N/3) existing workers during solving
+and restores full participation before scalar preparation.113scheduler tests and
+97freshGnark exports pass. Its local screen fails three gain checks:primary32
+ON/OFF is0.999933;2x2 is1.004676. All nonregression/RSS guards pass. Profiles show
+only a small cycle reduction, not a local breakthrough. Keep this screen closed.
+Next prepare a matched C7a32/96 test of exact retainedSDK1f1f against current
+acceptedSDKb646 and same-binary OFF, including wake/transition costs and best-count
+latency. AWS credentials expired at the last check; no resources were created.
+Reuse completed native/local evidence. No further local divisor sweep is queued.
 
 Ordinary-fill algorithm research remains available, but no new mechanism is
 selected. The tree/independent-plane/two-bank variants and memory-band/hexagonal
