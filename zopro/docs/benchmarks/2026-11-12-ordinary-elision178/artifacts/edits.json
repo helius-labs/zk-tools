@@ -1,0 +1,14 @@
+[
+  {
+    "after": "    let windows = 127usize.div_ceil(bits);\n    assert_eq!((bits,parts,windows),(12,2,11), \"diagnostic fixture geometry\");",
+    "before": "    let windows = 127usize.div_ceil(bits);"
+  },
+  {
+    "after": "                    if w < 10 {\n                        super::phase_elision::fill(w, part, || hb_window(&bases[start..end], &short[start..end], w, bits))\n                    } else {\n                        hb_window(&bases[start..end], &short[start..end], w, bits)\n                    }",
+    "before": "                    hb_window(&bases[start..end], &short[start..end], w, bits)"
+  },
+  {
+    "after": "            let reduce = || {\n                let mut combined = buckets.swap_remove(0);\n                for b in buckets { merge_buckets(&mut combined, &b); }\n                crate::msm::weighted_affine(&combined)\n            };\n            if w < 10 { super::phase_elision::reduce(w, reduce) } else { reduce() }",
+    "before": "            let mut combined = buckets.swap_remove(0);\n            for b in buckets {\n                merge_buckets(&mut combined, &b);\n            }\n            crate::msm::weighted_affine(&combined)"
+  }
+]

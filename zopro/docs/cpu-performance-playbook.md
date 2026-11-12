@@ -200,21 +200,21 @@ By contrast, [uniform scaled prefixes](benchmarks/2026-11-07-uniform-prefix-nati
 stopped at a static-codegen screen: latency is unmeasured. Preserve its failed
 protocol, but do not call it a measured slowdown or automatically reopen it.
 
-The next question is which part of the small-proof MSM execution prevents useful
-scaling on C7a: dependency depth in bucket accumulation, dispatch/coordination,
-or the cost of moving intermediate points. Reconcile the retained C7a profiles
-with the adopted phi-grain change before selecting one causal intervention.
-The [matched comparison](benchmarks/2026-11-10-accepted-current-c7a176/README.md)
-shows the symptom, not its cause: at 32 workers Zopro beats Aeglos, while Aeglos
-continues improving to 96. The later
-[phi-grain trial](benchmarks/2026-11-11-phi-grain-c7a176/README.md)
-improves Zopro at 96 but leaves its best tested count at 32. Both precede current
-bounded batching; neither is a measurement of the latest production build.
-Choose a minimal diagnostic that distinguishes those explanations, using retained
-captures first. Its result must select or reject an execution/representation
-change, not merely produce another profile. Check the specific intervention
-against the history before coding; no new pool, table expansion, generic DSL,
-parameter sweep or full all-shape campaign is the next step.
+The [ordinary-stage diagnostic](benchmarks/2026-11-12-ordinary-elision178/README.md)
+now resolves one local priority: primary32 complete G2 query changes from2.993ms
+to1.407ms with ordinary fills replayed, versus2.667ms with their downstream
+reductions replayed. All1632 query oracles pass. These are fixed-input diagnostic
+times, not valid production gains, full-proof bounds or a C7a explanation.
+Ordinary filling takes priority over another top/reduction-only variant.
+
+Next screen a specific cost in the rejected borrowed-tree implementation: each
+generic pair first copies its left point into the output buffer, then the
+in-place adder reads and overwrites it. A two-input borrowed reducer could write
+the result once and preserve the tree's independent bucket groups. Check the
+history and source, then charge descriptor/sign handling and exceptional paths
+before a short actual-caller comparison. Do not repeat the unchanged tree or
+independent-plane recipes, or infer a speedup from saved bytes. A new pool, table
+expansion, DSL, partition sweep or full all-shape campaign is not the next step.
 
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
