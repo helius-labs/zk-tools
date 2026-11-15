@@ -318,6 +318,20 @@ prior solver-search, weighted groups and fused-product overlap recipes stay
 closed. All owned cloud resources are cleaned. Production unchanged; no rerun
 of the successful capture or relaxed calibration gates is queued.
 
+The subsequent [preparation/G2 diagnostic](benchmarks/2026-11-15-prep-g2-detail181/README.md)
+is complete locally and on C7a. All 114 new exports verify; canonical 55778
+supersedes 55664. Local calibration passes 16/16; C7a passes 15/16 plus all ten
+environment guards. C7a OFF/REF at 96 cores exceeds the interval bound, so its
+fine substages describe the diagnostic build, not exact accepted attribution.
+ON/OFF passes at both counts. In that build, canonical conversion and A/B gathers
+account for 0.819689 ms of the 0.822236 ms preparation increase. Reclamation is
+negligible. G2 itself gets faster (7.044007 to 6.630071 ms), but G1 improves more;
+only 0.042770 ms remains after the final G2 window. Most of its 1.280190 ms late
+tail lies inside ordinary window work, not the final collection return.
+All owned resources are cleaned. Next target an actual preparation boundary or
+ordinary G2 fill dependency; do not repeat prior gather, grouping-bypass,
+independent-plane or routed-bucket recipes unchanged. No algorithm is adopted.
+
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
 explanation after another three variants calls for a different question, not
