@@ -290,16 +290,20 @@ checks. Avoid another aggregate profile audit, per-task trace, solver search
 sweep or unchanged joint-window-queue retry. No new capture or implementation
 is supplied by the retrospective decomposition; canonical55209 remains unchanged.
 
-The [Aeglos MSM observer](benchmarks/2026-11-15-msm-stage180/README.md) is now
-implemented privately and passes ten observer checks plus all seven inherited
-MSM test families (227 passing test/subtest entries). All1014 real MSM records
-validate. It surrounds original serial phases and reuses their existing job
-counts; it adds no per-task/steal/field hook. Recorder10,808B plus32,768B formatting
-stack, with explicit overflow/error flags. These are functional checks, not
-overhead or96-core qualification. Next integrate the full-request harness and
-current Zopro coarse boundaries, then freeze/verify the matched C7a controls.
-Do not rebuild or replay the completed observer/native qualification unchanged.
-No SDK/export/AWS/production change; canonical55209 remains current.
+Both coarse observers are now integrated into full-request harnesses. The
+[local phase comparison](benchmarks/2026-11-15-msm-local180/README.md) passes
+all16 calibration/observer gates at16/32 threads, with231 fresh Gnark exports
+including integration. Canonical55440 supersedes55209. Zopro reference1x2 is
+7.710818ms/115MiB at32; Aeglos Sorted is12.792590ms/427.45MiB. Zopro's query
+span shrinks6.606→5.087ms with SMT; Sorted's MSM stays near10.2ms. Windowed
+accumulation/sum savings are offset by merge planning/execution. This locates
+local phase costs but does not explain C7a's physical-core reversal or establish
+a production gain. The panel used one backing per binary: calibration is scoped
+to those files, not backing independence. Carry the prescribed backing replicas
+into the target comparison. Existing Aeglos native qualification was reused;
+no successful SDK capture or verification needs replaying. Next package the
+matched32/96 C7a controls and qualify target overhead; no target package/capture
+exists yet. AWS SSO is expired, no resources were created, production unchanged.
 
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
