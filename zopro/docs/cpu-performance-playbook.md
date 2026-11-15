@@ -290,6 +290,17 @@ checks. Avoid another aggregate profile audit, per-task trace, solver search
 sweep or unchanged joint-window-queue retry. No new capture or implementation
 is supplied by the retrospective decomposition; canonical55209 remains unchanged.
 
+The [Aeglos MSM observer](benchmarks/2026-11-15-msm-stage180/README.md) is now
+implemented privately and passes ten observer checks plus all seven inherited
+MSM test families (227 passing test/subtest entries). All1014 real MSM records
+validate. It surrounds original serial phases and reuses their existing job
+counts; it adds no per-task/steal/field hook. Recorder10,808B plus32,768B formatting
+stack, with explicit overflow/error flags. These are functional checks, not
+overhead or96-core qualification. Next integrate the full-request harness and
+current Zopro coarse boundaries, then freeze/verify the matched C7a controls.
+Do not rebuild or replay the completed observer/native qualification unchanged.
+No SDK/export/AWS/production change; canonical55209 remains current.
+
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
 explanation after another three variants calls for a different question, not

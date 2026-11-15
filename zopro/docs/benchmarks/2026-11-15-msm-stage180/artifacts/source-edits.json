@@ -1,0 +1,38 @@
+{
+  "edits": [
+    {
+      "new": "#include \"projective.hpp\"\n#include \"bench_msm_phases.hpp\"",
+      "old": "#include \"projective.hpp\""
+    },
+    {
+      "new": "    bench::PhaseTrace<> trace(bench::phases_enabled(), pool.size(), count);\n    trace.start(\"begin\");\n    std::vector<Job *> jobs(given, given + count);",
+      "old": "    std::vector<Job *> jobs(given, given + count);"
+    },
+    {
+      "new": "    std::vector<size_t> offsets(count + 1);\n    trace.stop();\n    auto pass = [&](Phase phase) {\n      const char *names[] = {\"recode\",\"count\",\"scatter\",\"accumulate\",\"merge\",\"sums\"};\n      trace.start(names[size_t(phase)]);",
+      "old": "    std::vector<size_t> offsets(count + 1);\n    auto pass = [&](Phase phase) {"
+    },
+    {
+      "new": "        jobs[j]->step(phase, i - offsets[j]);\n      });\n      trace.stop(offsets[count], offsets.data(), count);",
+      "old": "        jobs[j]->step(phase, i - offsets[j]);\n      });"
+    },
+    {
+      "new": "    trace.start(\"place\");\n    for (Job *job : jobs)\n      job->place();\n    trace.stop();",
+      "old": "    for (Job *job : jobs)\n      job->place();"
+    },
+    {
+      "new": "    for (size_t round = 0;; ++round) {\n      trace.start(\"merge_plan\");\n      size_t pairs = 0;",
+      "old": "    for (size_t round = 0;; ++round) {\n      size_t pairs = 0;"
+    },
+    {
+      "new": "        pairs += job->merge_round(round);\n      trace.stop(pairs);\n      if (pairs == 0)",
+      "old": "        pairs += job->merge_round(round);\n      if (pairs == 0)"
+    },
+    {
+      "new": "    trace.start(\"finish\");\n    pool.run(count, [&](size_t j) { jobs[j]->finish(); });\n    trace.stop(count);\n    trace.finish();\n    return AEGLOS_OK;",
+      "old": "    pool.run(count, [&](size_t j) { jobs[j]->finish(); });\n    return AEGLOS_OK;"
+    }
+  ],
+  "original_sha256": "6a57cf5dd2312a1bcbadefa6b409c600dc33dd38cc138d11e3849b23d99aac85",
+  "recovery_exact": true
+}
