@@ -301,9 +301,14 @@ local phase costs but does not explain C7a's physical-core reversal or establish
 a production gain. The panel used one backing per binary: calibration is scoped
 to those files, not backing independence. Carry the prescribed backing replicas
 into the target comparison. Existing Aeglos native qualification was reused;
-no successful SDK capture or verification needs replaying. Next package the
-matched32/96 C7a controls and qualify target overhead; no target package/capture
-exists yet. AWS SSO is expired, no resources were created, production unchanged.
+no successful SDK capture or verification needs replaying. The
+[C7a package](benchmarks/2026-11-15-msm-c7a180/README.md) is now ready locally:
+all15 executable backings, the full220-process dry plan, four container proof
+exports and host transport verification pass. Canonical55444 supersedes55440.
+Next run the exact frozen32/96 target and qualify its64 calibration/backing
+checks plus environmental checks. No AWS upload/capture has run; SSO is expired.
+No resources were created, production unchanged. Reuse the sealed image and
+completed checks; valid AWS authentication is now required for the next action.
 
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
