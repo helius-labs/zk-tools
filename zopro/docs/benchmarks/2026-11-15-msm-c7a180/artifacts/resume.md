@@ -1,4 +1,11 @@
-# Resume the frozen C7a diagnostic
+# Completed C7a diagnostic — historical launch instructions
+
+The target capture and all220 host proof verifications are complete. All owned
+cloud resources are cleaned. Do not execute the old launch sequence again.
+Current canonical55664 is `/home/ubuntu/src/zopro-perf-work/msm-c7a180/transport/proof-sha256.json`,
+SHA256`5aa3b76fe67d3cc541636a7c94fa8eef7459b91a1cc7840d5330c901ddef0a4a`.
+See the current README and target-review.json for62/64 calibration/backing checks
+and10/10 environment checks. The instructions below preserve the original plan.
 
 Private root `/home/ubuntu/src/zopro-perf-work/msm-c7a180`.
 No successful build, smoke proof or host verification needs repeating.

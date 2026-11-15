@@ -302,13 +302,21 @@ a production gain. The panel used one backing per binary: calibration is scoped
 to those files, not backing independence. Carry the prescribed backing replicas
 into the target comparison. Existing Aeglos native qualification was reused;
 no successful SDK capture or verification needs replaying. The
-[C7a package](benchmarks/2026-11-15-msm-c7a180/README.md) is now ready locally:
-all15 executable backings, the full220-process dry plan, four container proof
-exports and host transport verification pass. Canonical55444 supersedes55440.
-Next run the exact frozen32/96 target and qualify its64 calibration/backing
-checks plus environmental checks. No AWS upload/capture has run; SSO is expired.
-No resources were created, production unchanged. Reuse the sealed image and
-completed checks; valid AWS authentication is now required for the next action.
+[C7a capture](benchmarks/2026-11-15-msm-c7a180/README.md) is now complete:
+220 fresh exports verify on target and host; canonical55664 supersedes55444.
+Zopro REF is11.257745ms32/12.986700ms96; Sorted REF11.871786/8.097657ms.
+All Zopro and ON/OFF checks pass. Sorted96 FRESH/REF fails one interval and one
+backing guard:62/64 overall,10/10 environment checks. Fresh Sorted traces cannot
+be assigned exactly to the retained96 reference; their own OFF/FRESH and ON/OFF
+controls pass. Zopro solve/preparation/FFT add1.943684ms while query span saves
+0.371650ms, consistently across9/9blocks. Its actual G2 late-callback tail grows
+0.442806->1.296600ms; callbacks are not exclusive arithmetic or removable time.
+Fresh Sorted accumulation saves3.916824ms; Windowed serial merge planning adds
+18.823415ms. These observations prioritize concrete pre-query passes and G2
+dependencies, not another general pool rewrite. No new implementation selected;
+prior solver-search, weighted groups and fused-product overlap recipes stay
+closed. All owned cloud resources are cleaned. Production unchanged; no rerun
+of the successful capture or relaxed calibration gates is queued.
 
 At the next checkpoint, report one resolved question, the evidence that changed
 the decision, and elapsed preparation/capture/analysis time. An unchanged
