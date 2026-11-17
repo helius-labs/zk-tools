@@ -8,6 +8,10 @@ from a gnark constraint system and its keys (`zopro/tools/gnark`), and
 gnark's verifier accepts zopro's proofs. See `zopro/README.md` for the
 layout, the tests and the benchmarks.
 
+[`@heliuslabs/zopro-spr`](zopro/packages/spr-prover/README.md) packages the
+CPU WASM runtime for Node and browsers, with a shared API and single or
+multithreaded proving. Build and pack it from this repository.
+
 **Experimental.** New and unaudited: do not rely on it where a wrong or
 leaked proof would cost anything.
 

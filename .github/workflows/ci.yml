@@ -33,3 +33,37 @@ jobs:
       # GPU tests skip without a GPU; the kernels still compile.
       - run: cargo test --workspace --release
       - run: cargo test --release -p zopro-core --features metal
+  wasm-package:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [24, 26]
+    defaults:
+      run:
+        working-directory: zopro/packages/spr-prover
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: zopro/packages/spr-prover/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zopro
+          key: wasm
+          cache-bin: true
+      - run: rustup toolchain install nightly-2025-11-15 --profile minimal --component rust-src --target wasm32-unknown-unknown
+      - run: cargo install wasm-bindgen-cli --version 0.2.128 --locked
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm run test:types
+      - run: npm run test:proof
+      - run: npm run test:package
+      - if: matrix.node == 24
+        run: npx playwright install --with-deps chromium firefox webkit
+      - if: matrix.node == 24
+        run: npm run test:browser

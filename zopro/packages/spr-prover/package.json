@@ -1,0 +1,37 @@
+{
+  "name": "@heliuslabs/zopro-spr",
+  "version": "0.1.0",
+  "description": "Single and multithreaded Solana Privacy Rings WASM proving in Node and browsers",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "node": "./src/node.js",
+      "default": "./src/browser.js"
+    }
+  },
+  "files": [
+    "src",
+    "runtime",
+    "examples",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "prepack": "npm run build",
+    "test": "node --test test/unit.test.js",
+    "test:proof": "node --test --test-concurrency=1 test/node.test.js",
+    "test:browser": "node --test --test-concurrency=1 test/browser.test.js",
+    "test:package": "node --test test/packed.test.js",
+    "test:types": "tsc --noEmit --module nodenext --target es2022 test/types.ts",
+    "example": "node examples/prove.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.65.1",
+    "typescript": "7.0.2"
+  }
+}
