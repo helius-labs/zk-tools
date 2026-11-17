@@ -1,0 +1,83 @@
+--- /home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/lib.rs	2026-11-17 13:20:14.239630374 +0000
++++ /home/ubuntu/src/zopro-perf-work/boolean-proof209/source-v2/crates/zopro-core/src/lib.rs	2026-11-17 17:28:26.076278299 +0000
+@@ -821,6 +821,8 @@
+     /// Shared, for a browser's CPU share of the G2 MSM on the pool while
+     /// the proof's future awaits the GPU.
+     b2: std::sync::Arc<Store<G2Affine>>,
++    #[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    boolean_query: Option<msm_affine::boolean_query::Prepared>,
+     generated_g2: generated_proof::G2InputCertificate,
+     #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+     canonical_wires: bool,
+@@ -1220,6 +1222,7 @@
+         false
+     }
+     fn prepare_plan(&mut self, plan: &solver::Plan) {
++        #[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] { self.boolean_query=None; }
+         self.proof_workspace = None;
+         #[cfg(zopro_live_preparation_charge)]
+         {
+@@ -1252,6 +1255,13 @@
+             });
+             if std::env::var_os("ZOPRO_CPU_WORKSPACE_TRACE").is_some(){eprintln!("TYPED_WORKSPACE geometry={geometry:?} estimate={estimate:?}");}
+             self.proof_workspace = estimate.map(|v|v.total);
++            #[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++            if self.canonical_wires && !self.has_gpu() && self.equal_witness.is_none() {
++                self.boolean_query = estimate.and_then(|v|msm_affine::boolean_query::prepare(plan,self.b2.len(),v.total));
++                if let Some(q)=&self.boolean_query { self.proof_workspace=self.proof_workspace.and_then(|v|v.checked_add(q.workspace)); }
++            }
++            // Boolean owner separately forecasts baseline+overlap even if this
++            // schedule declines. Keep original normal forecast conservative.
+             plan.prepare_with_workspace(estimate.map(|v|v.total),true);
+         }
+         #[cfg(not(all(zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
+@@ -1494,6 +1504,8 @@
+             k,
+             z,
+             b2: std::sync::Arc::new(b2),
++            #[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++            boolean_query: None,
+             generated_g2: Default::default(),
+             #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+             canonical_wires: !cfg!(target_arch="wasm32") && lengths.iter().copied().max().unwrap_or(0)<(1<<16) && std::env::var("ZOPRO_CPU_CANONICAL_WIRES").as_deref()==Ok("1"),
+@@ -2226,7 +2238,7 @@
+                     || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+-                        msm_affine::g2_query_exclusive(&self.b2,sb)
++                        self.canonical_b2_query(sb)
+                     } else {
+                         let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(||scalar_groups(sb)).flatten();
+@@ -2256,7 +2268,7 @@
+                     },
+                     || {
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
++                            return (G1Projective::IDENTITY,self.canonical_b2_query(sb));
+                         }
+                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(|| scalar_groups(sb))
+@@ -2311,6 +2323,7 @@
+ 
+ impl Key {
+     fn invalidate_solver(&mut self) {
++        #[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] { self.boolean_query=None; }
+         self.proof_workspace = None;
+         if self.basis_only {
+             if let Some(plan) = self.solver.take() {
+@@ -2400,3 +2413,14 @@
+         Ok(generated_proof::GeneratedProof::new(self.solve_rerandomized(witness,fixed)?,certified))
+     }
+ }
++
++#[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
++impl Key {
++ fn canonical_b2_query(&self,words:&mut[[u64;4]])->G2Projective {
++  #[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++  if let Some(q)=&self.boolean_query { return msm_affine::boolean_query::query(&self.b2,words,&q.positions,true); }
++  msm_affine::g2_query_exclusive(&self.b2,words)
++ }
++}
++#[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++pub mod boolean_query_probe {pub fn snapshot()->([usize;4],usize,usize){crate::msm_affine::boolean_query::snapshot()}}

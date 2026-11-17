@@ -1,0 +1,25 @@
+--- /home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/msm.rs	2026-11-12 00:02:49.518528313 +0000
++++ /home/ubuntu/src/zopro-perf-work/boolean-proof209/source-v2/crates/zopro-core/src/msm.rs	2026-11-17 17:28:26.077278318 +0000
+@@ -2347,3 +2347,22 @@
+ mod g2_borrowed;
+ 
+ #[cfg(zopro_indexed_tile_bundles)]mod indexed_tiles;
++
++#[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++pub(crate) fn workspace_boolean_indexed(n:usize)->Option<usize> {
++ use crate::msm_affine::workspace::vector as v;
++ use zopro_bn254::G2Config;
++ if n==0 {return Some(0);}
++ let tiles=n.div_ceil(1024);
++ // First tree and final partial tree conservatively overlap; all selected
++ // indices survive the join. Include both fallback and bundled metadata.
++ let trees=workspace_grouping::<G2Config>(n,tiles)?.checked_add(workspace_grouping::<G2Config>(tiles,1)?)?;
++ trees.checked_add(v::<u32>(n,false)?)?
++ .checked_add(v::<(usize,usize)>(tiles,true)?)?
++ .checked_add(v::<zopro_bn254::G2Affine>(tiles,false)?)?
++ .checked_add(v::<u32>(tiles,false)?)?
++ .checked_add(v::<usize>(tiles.checked_mul(2)?.checked_add(4)?,false)?)?
++ .checked_add(v::<(&[(usize,usize)],&mut[zopro_bn254::G2Affine])>(tiles,false)?)?
++ .checked_add(v::<usize>(n.checked_mul(2)?,false)?)?
++ .checked_add(tiles.checked_mul(4*64)?)
++}

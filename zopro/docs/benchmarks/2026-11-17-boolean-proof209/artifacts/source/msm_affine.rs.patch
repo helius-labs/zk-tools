@@ -1,0 +1,9 @@
+--- /home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/msm_affine.rs	2026-10-28 17:14:07.820390576 +0000
++++ /home/ubuntu/src/zopro-perf-work/boolean-proof209/source-v2/crates/zopro-core/src/msm_affine.rs	2026-11-17 17:28:26.077278318 +0000
+@@ -1795,3 +1795,6 @@
+ 
+ #[cfg(all(zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+ mod g2_borrowed;
++
++#[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++pub(crate) mod boolean_query;

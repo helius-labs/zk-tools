@@ -1,0 +1,11 @@
+--- /home/ubuntu/src/zk-tools/zopro/crates/zopro-core/src/solver.rs	2026-10-24 22:37:55.081096673 +0000
++++ /home/ubuntu/src/zopro-perf-work/boolean-proof209/source-v2/crates/zopro-core/src/solver.rs	2026-11-17 17:28:26.077278318 +0000
+@@ -3056,3 +3056,8 @@
+ }
+ 
+ #[cfg(zopro_resource_schedule)] mod sparse_poseidon;
++
++#[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++impl Plan {
++ pub(crate) fn for_each_boolean_range(&self,mut f:impl FnMut(core::ops::Range<usize>)) {for op in &self.ops {if let Op::Hint(h)=op {if matches!(h.kind,HintKind::Bits) {f(h.outputs());}}}}
++}

@@ -157,56 +157,78 @@
       "sdk_sha256": "96915d56cec6fc3479e155001ac2f2e69acf13895a454a765172bbe6d9bfe22e"
     },
     {
-      "id": "static-query-fold204-205",
-      "parent_id": "certified-proof194",
-      "sdk_sha256": "bcc8e0775bb5bc6c09ad86b1987ca45eebac62617340911266c84aa601fa05b1",
+      "adoption": {
+        "canonical_verified_exports": 58915,
+        "reason": "Frozen strict latency upper<1 not met; fixed recipe closed without sample or threshold rescue",
+        "remaining": [],
+        "status": "not_adopted"
+      },
       "change": "Offline certified proportional A/B/B2 folding and compact extraction indices; exact accepted SDK reads replacement Euler-v2 images",
       "correctness": {
-        "status": "passed_tested_native_scope",
+        "evidence": "benchmarks/2026-11-17-static-query-fold205/README.md",
         "scope": "10 model/converter tests, all9 independent symbolic certificates, 658 fresh Gnark exports across screen/qualification/profiles",
-        "evidence": "benchmarks/2026-11-17-static-query-fold205/README.md"
+        "status": "passed_tested_native_scope"
+      },
+      "id": "static-query-fold204-205",
+      "parent_id": "certified-proof194",
+      "performance": {
+        "evidence": "benchmarks/2026-11-17-static-query-fold205/artifacts/assessment.json",
+        "scope": "Primary32 paired0.992798194 [0.988917021,1.000002914],20/30wins; CPU0.991707596 upper0.998341385; all guards and3backings pass; 4observer+12profile quality checks pass",
+        "status": "latency_inconclusive_failed_frozen_strict_gain_check"
       },
       "resources_and_compatibility": {
-        "status": "all10_relative_CPU_and_RSS_guards_passed",
-        "scope": "No new runtime table/key copy/pool; offline analysis budget, portable images and physical pressure unqualified"
+        "scope": "No new runtime table/key copy/pool; offline analysis budget, portable images and physical pressure unqualified",
+        "status": "all10_relative_CPU_and_RSS_guards_passed"
       },
-      "performance": {
-        "status": "latency_inconclusive_failed_frozen_strict_gain_check",
-        "scope": "Primary32 paired0.992798194 [0.988917021,1.000002914],20/30wins; CPU0.991707596 upper0.998341385; all guards and3backings pass; 4observer+12profile quality checks pass",
-        "evidence": "benchmarks/2026-11-17-static-query-fold205/artifacts/assessment.json"
-      },
+      "sdk_sha256": "bcc8e0775bb5bc6c09ad86b1987ca45eebac62617340911266c84aa601fa05b1"
+    },
+    {
       "adoption": {
-        "status": "not_adopted",
-        "reason": "Frozen strict latency upper<1 not met; fixed recipe closed without sample or threshold rescue",
-        "canonical_verified_exports": 58915,
-        "remaining": []
+        "reason": "Integrated209 short fullproof screen fails primary32 directional gain:ON/REF1.002879,1/3wins; component benefit preserved but not fullproof gain",
+        "remaining": [],
+        "status": "not_adopted"
+      },
+      "change": "Table-free guarded HintBits point sum overlaps ordinary ungrouped G2 query on existing Rayon pool; grouped calls bypass",
+      "correctness": {
+        "evidence": "benchmarks/2026-11-17-boolean-g2-208/README.md",
+        "scope": "2native tests and544retainedArkworks-checked complete queries; invalid guards, identities/opposites/repeats, grouping bypass,1/4/16/32worker pools",
+        "status": "passed_focused_native_scope"
+      },
+      "id": "boolean-g2-208",
+      "parent_id": "certified-proof194",
+      "performance": {
+        "scope": "1x2/32 paired0.980841,3/3wins;1x2/16 paired1.016829,0/3wins; all4median guards pass; no full-proof/C7a result",
+        "status": "positive_directional_query_screen"
+      },
+      "resources_and_compatibility": {
+        "scope": "Key-owned solver-derived positions, actual capacity admission, summed overlap forecast; conservative duplicate baseline forecast; native guards/denial/lifetime pass, no portable/pressure/SDKconcurrency qualification",
+        "status": "integrated_and_native_tested_in209"
       }
     },
     {
-      "id": "boolean-g2-208",
-      "parent_id": "certified-proof194",
-      "change": "Table-free guarded HintBits point sum overlaps ordinary ungrouped G2 query on existing Rayon pool; grouped calls bypass",
+      "adoption": {
+        "canonical_verified_exports": 58948,
+        "reason": "Positive208query result did not carry to actualSDK; fixed209recipe closed, no unchanged timing retry",
+        "remaining": [],
+        "status": "not_adopted"
+      },
+      "change": "Native opt-in guarded Boolean G2 overlap with actual solver metadata and Key-bound summed workspace forecast",
       "correctness": {
-        "status": "passed_focused_native_scope",
-        "scope": "2native tests and544retainedArkworks-checked complete queries; invalid guards, identities/opposites/repeats, grouping bypass,1/4/16/32worker pools",
-        "evidence": "benchmarks/2026-11-17-boolean-g2-208/README.md"
+        "evidence": "benchmarks/2026-11-17-boolean-proof209/README.md",
+        "scope": "138native core tests,564SDK requests,33fresh Gnark exports,independent66receipt reader",
+        "status": "passed_native_tested_scope"
+      },
+      "id": "boolean-proof209",
+      "parent_id": "boolean-g2-208",
+      "performance": {
+        "scope": "1x2/32ON/REF1.002879,1/3wins;ON/OFF1.007915;CPUON/REF0.991993; all3nonregression guards pass, no significant slowdown claim",
+        "status": "failed_directional_fullproof_gain_screen"
       },
       "resources_and_compatibility": {
-        "status": "pending_SDK_admission_and_metadata_integration",
-        "scope": "No point table/keycopy/newpool; concurrent tree and ordinary workspace require summed accounting; no portable/pressure claim"
+        "scope": "No point table/keycopy/newpool; metadata1753/3166indices; baseline conservatively forecast twice; no portable/huge/pressure/SDKconcurrency claim",
+        "status": "screen_RSS_CPU_guards_pass"
       },
-      "performance": {
-        "status": "positive_directional_query_screen",
-        "scope": "1x2/32 paired0.980841,3/3wins;1x2/16 paired1.016829,0/3wins; all4median guards pass; no full-proof/C7a result"
-      },
-      "adoption": {
-        "status": "pending",
-        "remaining": [
-          "Integrate solver-derived metadata, lifetime/fallback and summed overlapping workspace admission",
-          "Short verified full-SDK screen against exact accepted194 and fresh OFF",
-          "If promising, finish missing full-shape performance/correctness/resource/portable qualification and profiling"
-        ]
-      }
+      "sdk_sha256": "e661251632f21c391c5ea1ffa55207e0d70be6990a2386d6fb6b02db5366d6ed"
     }
   ],
   "historical_followups": [
@@ -246,38 +268,38 @@
       "scope": "arithmetic caller; no full-proof timing"
     },
     {
-      "id": "server-shifted183",
       "evidence": "benchmarks/2026-11-17-server-shifted183/README.md",
+      "id": "server-shifted183",
       "status": "closed_local_component_screen; all-window shifted G2 with serial routing regressed; no production change"
     },
     {
-      "id": "server-routing184",
       "evidence": "benchmarks/2026-11-17-server-routing184/README.md",
+      "id": "server-routing184",
       "status": "closed_local_component_screen; parallel routing helped parent but still slower than current; no parameter sweep"
     },
     {
-      "id": "reducer-census185",
       "evidence": "benchmarks/2026-11-17-reducer-census185/README.md",
+      "id": "reducer-census185",
       "status": "semantic counts/grouping verified; phase observer failed overhead qualification"
     },
     {
-      "id": "reducer-samples186",
       "evidence": "benchmarks/2026-11-17-reducer-samples186/README.md",
+      "id": "reducer-samples186",
       "status": "sample quality and warm-query checks pass; wholeprocess observer guard fails; no warm-only attribution"
     },
     {
-      "id": "warm-reducer187",
       "evidence": "benchmarks/2026-11-17-warm-reducer187/README.md",
+      "id": "warm-reducer187",
       "status": "4/4warmobserver+12/12PMUqualitychecks pass; pointidentityrouting/copyhotspots; no newproductiongain"
     },
     {
-      "id": "shifted-identity188",
       "evidence": "benchmarks/2026-11-17-shifted-identity188/README.md",
+      "id": "shifted-identity188",
       "status": "metadata removes fulltableidentityreads and improves rejectedparent23-29%; stillslowerthancurrent; noSDKadoption"
     },
     {
-      "id": "first-pair189",
       "evidence": "benchmarks/2026-11-17-first-pair189/README.md",
+      "id": "first-pair189",
       "status": "135nativecoretestspass;first-pairpointcopyremovaldoesnotbeatcurrent;parentcomparisoninconclusiveprimary32andregressesothercases;closedwithoutSDKadoption"
     },
     {
@@ -291,8 +313,8 @@
       "status": "Short SDK screen positive; exact profile ~0.2% fewer instructions; full qualification30/33, primary gain not reproduced. Correctness/resource checks pass; retained experimental, not adopted."
     },
     {
-      "id": "certified-proof194",
       "evidence": "benchmarks/2026-11-17-certified-proof194/README.md",
+      "id": "certified-proof194",
       "status": "Adopted exact native opt-in after196qualification33/33 and portable102core+2prover+6cubic tests. Primary16paired gain0.385%,32gain inconclusive. Cold setup52–64ms primary; no new table/pool.724Gnark exports across screen/profile/qualification."
     },
     {
@@ -311,38 +333,38 @@
       "status": "Offline audit: both hosts have 32 KiB L1I. Whole G2 symbol 51862 B; IFMA loops 27796 B/436 lines hold 2047 of 2049 kernel samples. Entire inverse plus diagnostic feeder union: 583 lines; no causal cache-pressure claim. No compact-code candidate, new queries or AWS. All 179 source hashes and ledger of 58033 proofs unchanged."
     },
     {
-      "id": "bucket-tree-c7a200",
       "evidence": "benchmarks/2026-11-17-bucket-tree-c7a200/README.md",
+      "id": "bucket-tree-c7a200",
       "status": "Unshifted tree primary96 improves 23.90%, 9/9 wins; best primary tree4.916ms loses to streaming4.870ms. Grouped best regresses7.03%. One of three progression checks passes; closed, not adopted. 80 processes/1552 checked queries; no SDK proofs. Owned VM/volume/transfer storage removed."
     },
     {
-      "id": "accepted-c7a201",
       "evidence": "benchmarks/2026-11-17-accepted-c7a201/README.md",
+      "id": "accepted-c7a201",
       "status": "Exact adopted SDK194 measured on C7a32/96, all8+merge54. Primary11.097968/12.514959ms; pinned Aeglos12.143331/8.311102ms. Certificate ON/OFF32 paired0.986170 upper0.999130;96 inconclusive.224 new Gnark-verified exports, canonical58257; goal0/8. Source unchanged; native quota observation limited; VM/volume/transfer storage removed."
     },
     {
-      "id": "g2-compact-prefix202",
       "evidence": "benchmarks/2026-11-17-g2-compact-prefix202/README.md",
+      "id": "g2-compact-prefix202",
       "status": "Record payload640->512bytes; four native test functions pass. Primary32 complete query paired1.023380,0/3wins; local SDK and C7a-spending rules fail.48processes/816checkedqueries. Closed, not adopted; no new SDK proofs, cloud or source changes. Canonical58257 unchanged."
     },
     {
-      "id": "odd-scalar-relations203",
       "evidence": "benchmarks/2026-11-17-odd-scalar-relations203/README.md",
+      "id": "odd-scalar-relations203",
       "status": "Real full-scalar odd relations yield only2/7extra class-merges beyond free exact/sign grouping in1x2/2x2; no runtime implementation or speed claim; canonical58257 unchanged."
     },
     {
-      "id": "static-query-profile206",
       "evidence": "benchmarks/2026-11-17-static-query-fold205/README.md",
+      "id": "static-query-profile206",
       "status": "18diagnostic processes;72116assigned samples; all4observer and12quality checks pass. Instructions0.026-0.103%lower,cyclesmixed. Not additional205qualification samples; finalcanonical58915."
     },
     {
-      "id": "boolean-g2-207",
       "evidence": "benchmarks/2026-11-17-boolean-g2-207/README.md",
+      "id": "boolean-g2-207",
       "status": "Serial Boolean tree then ordinary G2 fails primary16/32:1.052560/1.012829,0/3winsboth;544checkedqueries;closed,noSDKadoption orproofs. Separate208 changes execution dependency, not extra207samples."
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "Finish positive boolean-g2-208 candidate before selecting a new family: bounded solver-derived HintBits metadata plus summed overlap admission, then short verified SDK screen against accepted194/freshOFF. Query1x2/32 paired0.980841 is component evidence only;1x2/16 is1.016829. Keep207serial and205static-fold strict-latency failure closed; no unchanged retries or table/width sweep. Latestcanonical58915from206;production194/196unchanged,goal0/8. Do not push.",
+  "next_action": "Preserve small positive208 component result and completed209integration.209 fullproof gain screen fails, not a correctness bug or minimum-gain rejection. Diagnose actual wholeproof branch finish order with bounded phase timestamps/observer controls, not aggregate CPU causality or another unchanged timing retry. Production194/196 unchanged; canonical58948/e63bea37a40fb006269ea4b5bf9209a558ec7a712a40827c349c0dfa0321365b. No push.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",
