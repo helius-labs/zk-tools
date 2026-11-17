@@ -1,0 +1,14 @@
+{
+  "baseline_files": 186,
+  "changed_parents": [
+    "crates/zopro-bn254/src/curve.rs",
+    "crates/zopro-bn254/src/lib.rs"
+  ],
+  "curve_insert": "        #[cfg(zopro_unscaled_mixed_g1)]\n        if core::mem::size_of::<C::Base>() == core::mem::size_of::<Fq>() {\n            // HMV mixed addition: scalar Fq square and multiply share a backend.\n            // Keep the existing complete guards; ordinary output uses half the old Z.\n            let h = u2 - self.x;\n            let r = s2 - self.y;\n            let hh = h.square();\n            let hhh = h * hh;\n            let v = self.x * hh;\n            let x = r.square() - hhh - v.double();\n            let y = r * (v - x) - self.y * hhh;\n            let z = self.z * h;\n            return Self::new(x, y, z);\n        }\n",
+  "inverse_edits_recover_baseline": true,
+  "lib_suffix": "\n#[cfg(all(test,zopro_unscaled_mixed_g1))]\nmod unscaled_mixed_tests;\n",
+  "new_child": "crates/zopro-bn254/src/unscaled_mixed_tests.rs",
+  "production_changed": false,
+  "runtime_allocation_or_state_added": false,
+  "source_files": 187
+}

@@ -517,6 +517,28 @@
         "status": "all_shape_prospective_RSS_10percent_plus8MiB_pass; native_and_generic_tests_pass"
       },
       "sdk_sha256": "b70a9472fa64ac6b6b41b227ca64ddfcf61c6443879c9187331eae6d5e22c153"
+    },
+    {
+      "id": "unscaled-mixed230",
+      "parent_id": "scaled-prefix-current227",
+      "change": "Standard HMV scalar G1 mixed Jacobian formula: same eleven Fq product-backend calls, seven fewer linear operations; existing exceptional guards and G2 unchanged",
+      "sdk_sha256": "100b0629207b7c4b276716ddf13ccbb97f707124154d0acb9f1fe66dfc104962",
+      "correctness": {
+        "status": "passed_tested_scope",
+        "scope": "41 native field,138 native core,14 generic field test executions;39 fresh Gnark exports;5160 SDK calls",
+        "evidence": "benchmarks/2026-11-17-unscaled-mixed230/artifacts/build-review.json"
+      },
+      "performance": {
+        "status": "no_primary_signal_closed",
+        "scope": "Three matched blocks,16/32 primary plus2x2/merge54; no gain floor; ON/REF primary medians1.021849993 and1.013901343,wins0/3 and1/3; all calibration/RSS guards pass; large first-block slowdowns retained",
+        "evidence": "benchmarks/2026-11-17-unscaled-mixed230/artifacts/assessment.json"
+      },
+      "adoption": {
+        "status": "not_adopted",
+        "invalidates_parent": false,
+        "reason": "Neither primary gains against both controls; close exact formula composition without reroll or rescue"
+      },
+      "evidence": "benchmarks/2026-11-17-unscaled-mixed230/README.md"
     }
   ],
   "historical_followups": [
@@ -652,7 +674,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "Adopted exact b70 scaled-prefix-current227 source in b0a41f30de after228 all70 checks and229 quality/observer/raw reviews. Source186 now authoritative; baseline b70 retained, existing three optins unchanged. Native185/generic122 tests,1005freshGnark across227–229;61104canonical at scaled-prefix-profile229/proof-sha256-after-profile.json SHA40c7d386963090fd69829225e51b35a7256ee7301348e4025957ca372bfa3e6c. Local16 gain1.18%,32pooled0.56% with backing limitation; no C7a claim. CPU instructions~2.1%lower but dominant G1/G2 work remains. Next distinct work-removing mechanism; check closed domain/static-queue experiments first. Full all8CPU10x goal remains active/unmet0/8. Local commits/no push.",
+  "next_action": "Accepted baseline remains exact b70 scaled-prefix-current227/source186, adopted b0a41f30de after228/229. Small qualified gains count.230 HMV mixed-add screen closes negative: primary16/32 ON/REF1.021850/1.013901,0/3 and1/3 wins;193 test executions/39 Gnark exports pass; no production change. Canonical now61143 at unscaled-mixed230/proof-sha256-after-main.json SHAab290bf3ef3d535745621f21aa914423ff5d578abfb30f44ed80f2f6998104f8. No231 created. Need distinct work-removing mechanism; historical domain/staticqueue and other negative families reviewed, do not reroll unchanged. Goal all8CPU10x active/unmet0/8. No new AWS or push; exactb70 still unmeasured on C7a. Local commits only.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",
