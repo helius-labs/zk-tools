@@ -1,0 +1,33 @@
+# Overlap Boolean and ordinary G2:208
+
+Frozen2026-11-17before208nativebuild/tests/capture.207serialversion fails:primary16
+paired1.052560,primary321.012829,0/3winsboth; groupedbypassunchanged. Keep207closed.
+
+New dependency hypothesis:207finishesBooleanreduction before ordinaryG2 although
+they need only sharedimmutablebases after guardedscalarseparation. Guardallbits,
+collecttrueindices,zeroownedwords, thenrayon::join(BooleanSum,ordinaryPhiQuery)
+usingtheexistingpool. Fewerpotentialserialdependencies,notdifferentpointformulas,
+digits,treesizes,tables,groupingthresholds orsampleextension. Originalgroupedcalls
+stillbypasspeeling. The chosenpositionlist/sourceimages/fixturesareexact207data,
+notregenerated. Originalfield/arithmetic/sourcequalification inherited.
+
+New resource cost: selectedindices andBooleantree scratch may overlapordinaryMSM
+workspace. AnyfutureSDKplanner mustSUMsimultaneousownership,notreuse207'smax.
+No newpool/pointtable/keycopy;prototypeonly,notfullmemoryadmissionqualification.
+Strongernewsyntheticfixture placesexactopposites,repeatedpoints andidentities at
+selectedpositions, inadditiontoallguards/generator/Arkworks tests and1/4/16/32
+worker512KiBpools. Failurestoptiming;noalteredgoldoracleorunhandledguardfallback.
+
+Same fixedscreenas207:1x2/1/16/32,2x2/32;3byte-identicalindependentexebackings,
+8preflightsthen24mainprocesses/3rotatedreversedblocks;3primes+17timed+onepostcheck.
+EveryquerymatchesretainedArkworkshash,baseinputimmutable,routecountersassert
+primaryONpeel/groupedONbypass/OFFbranch. Allcompletequeryworkincludingwordcopy,
+guard/indexcollection/zero/overlap/tree/normalizationtimed; hashingoutofwalltimer.
+NoownedCPUcojobsduringcapture,onlypolllivehandle. RetainallCPU/RSSobservations.
+
+SelectSDKqualificationifprimary32pairedmedian<1 with>=2/3wins andall4medianratios
+<=1.02. No minimumgainfloor; notadoption/CIqualifiedspeedup. Otherwiseclosefixed
+overlaprecipewithoutunchangedtimingretry/width/threshold/table rescue. NoAWS or
+newSDK/Gnarkproofplannedhere.Canonical58915unchanged;goalall8CPU10xactiveunmet.
+First-resultallowance15minfrom17:13UTC;checkclockbeforeanycaptureandrecordoverrun.
+Do notpush. Thisisanewexecutiondependencytest,notextra207samples.
