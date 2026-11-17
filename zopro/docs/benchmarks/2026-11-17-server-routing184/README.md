@@ -18,7 +18,8 @@ Entries are medians of nine measurements; separate column medians need not sum.
 Parallel/current paired medians are 1.597333 and 2.148853, with zero wins in both
 cases. Three primes per arm precede nine rotated/reversed blocks. Input copying,
 recoding, allocation, count/scatter/concatenation, indexed reduction, signed bucket
-merging and final normalization are included. Routing/reduction spans are coarse
+merging and weighted projective reduction are included. Final affine normalization
+and oracle checking occur after timing. Routing/reduction spans are coarse
 instrumented component intervals, not an exact accepted full-proof decomposition.
 Both shifted modes have identical timer reads; no calibrated phase-observer claim
 is made. These large regressions do not support production integration.

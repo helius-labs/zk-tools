@@ -14,8 +14,9 @@ complete memory-budget guarantee is introduced.
 | 2x2 | 32 | 4.237206 | 16.006307 | 3.846558 | 0/9 |
 
 Three primes per mode precede nine alternating pairs in one native binary.
-Timers include word copying, recoding, counting, scattering, reduction and
-normalization. These are isolated complete G2 queries, not full-proof timings.
+Timers include word copying, recoding, counting, scattering and weighted
+projective reduction. Final affine normalization and oracle checking occur
+after timing. These are G2 components, not full-proof timings.
 The 1x2 table retains 84,730,624 bytes and takes 135.55 ms setup at 32 workers;
 2x2 retains 147,203,584 bytes and takes 236.16 ms. Whole-process peak RSS is
 204892 KiB across all contexts. CPU includes setup/all cases; per-context CPU
