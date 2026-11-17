@@ -155,6 +155,32 @@
         "status": "all13_measured_RSS_guards_passed; release_review_not_completed"
       },
       "sdk_sha256": "96915d56cec6fc3479e155001ac2f2e69acf13895a454a765172bbe6d9bfe22e"
+    },
+    {
+      "id": "static-query-fold204-205",
+      "parent_id": "certified-proof194",
+      "sdk_sha256": "bcc8e0775bb5bc6c09ad86b1987ca45eebac62617340911266c84aa601fa05b1",
+      "change": "Offline certified proportional A/B/B2 folding and compact extraction indices; exact accepted SDK reads replacement Euler-v2 images",
+      "correctness": {
+        "status": "passed_tested_native_scope",
+        "scope": "10 model/converter tests, all9 independent symbolic certificates, 658 fresh Gnark exports across screen/qualification/profiles",
+        "evidence": "benchmarks/2026-11-17-static-query-fold205/README.md"
+      },
+      "resources_and_compatibility": {
+        "status": "all10_relative_CPU_and_RSS_guards_passed",
+        "scope": "No new runtime table/key copy/pool; offline analysis budget, portable images and physical pressure unqualified"
+      },
+      "performance": {
+        "status": "latency_inconclusive_failed_frozen_strict_gain_check",
+        "scope": "Primary32 paired0.992798194 [0.988917021,1.000002914],20/30wins; CPU0.991707596 upper0.998341385; all guards and3backings pass; 4observer+12profile quality checks pass",
+        "evidence": "benchmarks/2026-11-17-static-query-fold205/artifacts/assessment.json"
+      },
+      "adoption": {
+        "status": "not_adopted",
+        "reason": "Frozen strict latency upper<1 not met; fixed recipe closed without sample or threshold rescue",
+        "canonical_verified_exports": 58915,
+        "remaining": []
+      }
     }
   ],
   "historical_followups": [
@@ -272,10 +298,20 @@
       "id": "g2-compact-prefix202",
       "evidence": "benchmarks/2026-11-17-g2-compact-prefix202/README.md",
       "status": "Record payload640->512bytes; four native test functions pass. Primary32 complete query paired1.023380,0/3wins; local SDK and C7a-spending rules fail.48processes/816checkedqueries. Closed, not adopted; no new SDK proofs, cloud or source changes. Canonical58257 unchanged."
+    },
+    {
+      "id": "odd-scalar-relations203",
+      "evidence": "benchmarks/2026-11-17-odd-scalar-relations203/README.md",
+      "status": "Real full-scalar odd relations yield only2/7extra class-merges beyond free exact/sign grouping in1x2/2x2; no runtime implementation or speed claim; canonical58257 unchanged."
+    },
+    {
+      "id": "static-query-profile206",
+      "evidence": "benchmarks/2026-11-17-static-query-fold205/README.md",
+      "status": "18diagnostic processes;72116assigned samples; all4observer and12quality checks pass. Instructions0.026-0.103%lower,cyclesmixed. Not additional205qualification samples; finalcanonical58915."
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "Keep194 adopted;201 is exact SDK C7a all-shape baseline. Close202 compact records:20%record payload saving did not improve primary query; no packing/layout rescue or target run selected.197/198/200 remain closed. Select distinct complete-caller work/dependency removal; no unchanged baseline, table/tree/width or outlining sweep. CPU10x targets0/8. Do not push.",
+  "next_action": "Keep194/196 adopted and201 C7a baseline. 204/205 static fold CPU reduction is real but strict latency gain inconclusive; exact recipe closed, no successful timing retry. Latest canonical58915 is206. Investigate a distinct complete-caller mechanism: table-free reduction of statically known HintBits contributions, after reviewing the old20GB-LUT Boolean-partition negative and existing sparse grouping. No Boolean-table/threshold rescue or runtime candidate selected yet. Goal0/8; do not push.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",

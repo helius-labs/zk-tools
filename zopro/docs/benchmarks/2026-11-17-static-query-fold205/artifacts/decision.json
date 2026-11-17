@@ -1,0 +1,41 @@
+{
+  "candidate": "static-query-fold204-205",
+  "correctness": {
+    "native_all_nine_verified": true,
+    "independent_structural_certificates": true,
+    "synthetic_model_converter_tests": 10
+  },
+  "resources": {
+    "relative_CPU_and_RSS_guards_pass": true,
+    "no_new_runtime_point_table_or_pool": true,
+    "offline_analysis_budget_unqualified": true,
+    "portable_and_pressure_execution_not_run": true
+  },
+  "performance": {
+    "qualification_passed": false,
+    "reason": "Frozen primary32 latency upper bound includes parity",
+    "primary32": {
+      "lower": 0.9889170205186274,
+      "median": 0.9927981943857946,
+      "upper": 1.00000291358562,
+      "wins": 20
+    },
+    "primary32_CPU": {
+      "lower": 0.9868902176828244,
+      "median": 0.9917075960457848,
+      "upper": 0.9983413848076772,
+      "wins": 23
+    },
+    "nonregression_guards_pass": true
+  },
+  "adoption": {
+    "status": "not adopted; fixed recipe closed under declared rule",
+    "production_unchanged": true,
+    "no_successful_timing_retry": true,
+    "no_minimum_gain_floor": true
+  },
+  "canonical_count": 58915,
+  "canonical_sha256": "8e40735a1253e777437b8a1d06ca29a61642129fea8fcf5b68d7cebe8fbd35ee",
+  "goal_achieved": false,
+  "pushed": false
+}
