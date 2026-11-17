@@ -2199,11 +2199,18 @@ impl Key {
         // The correction consumes Montgomery public values before the one
         // in-place conversion. All later accesses to w use canonical words.
         let correction=folded.public_term(&w[..plan.n_public]);
-        let words=canonical(&mut w);
-        #[cfg(not(zopro_bounded_gather))]
-        let (sa_vec,mut sb_vec):(Vec<_>,Vec<_>)=rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect());
-        #[cfg(zopro_bounded_gather)]
-        let (sa_vec,mut sb_vec)=rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices));
+        let (sa_vec,mut sb_vec):(Vec<_>,Vec<_>)=if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
+            fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)
+        } else {
+            let words=canonical(&mut w);
+            #[cfg(not(zopro_bounded_gather))]
+            {rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect())}
+            #[cfg(zopro_bounded_gather)]
+            {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
+        };
+        // SAFETY: both branches converted every Fr in place to canonical limbs.
+        // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
+        let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
         let mut product=queries.product_values(&self.plan,a,b);
         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
@@ -2376,3 +2383,5 @@ pub mod coalesce_query_probe{
  pub fn b(bases:&[G2Affine],words:&mut[[u64;4]])->(G2Projective,Metadata){ENTRIES.store(0,Ordering::Relaxed);CHARGE.store(0,Ordering::Relaxed);let p=crate::msm_affine::g2_query_exclusive(bases,words);let entries=ENTRIES.load(Ordering::Relaxed);(p,Metadata{route:if entries>0{314}else{0},classes:entries,skips:0,payload:CHARGE.load(Ordering::Relaxed)})}
  pub fn snapshot()->(usize,usize){(ENTRIES.load(Ordering::Relaxed),CHARGE.load(Ordering::Relaxed))}
 }
+
+mod fused_canonical_gather;

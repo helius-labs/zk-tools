@@ -1,218 +1,218 @@
 {
-  "schema_version": 1,
-  "scope": "Accepted baseline and selected pending or closed CPU candidates; not an exhaustive history",
-  "maintenance": "Manual register; xtask does not enforce these states",
-  "production_baseline": {
-    "id": "g2-indexed-bundles178",
-    "sdk_sha256": "b646c7b8c1d8a26a0db45fb3f67c453dd616bd9f02e25c36192721ae02855abe",
-    "evidence": "benchmarks/2026-11-12-bundle-adoption178/README.md",
-    "source_manifest": "benchmarks/2026-11-12-bundle-adoption178/artifacts/production-source-manifest.json"
-  },
   "candidates": [
     {
-      "id": "g2-indexed-bundles178",
-      "parent_id": "g2-phi-grain-experimental176",
-      "sdk_sha256": "b646c7b8c1d8a26a0db45fb3f67c453dd616bd9f02e25c36192721ae02855abe",
+      "adoption": {
+        "canonical_verified_exports": 54927,
+        "default_Cargo_release_newly_timed": false,
+        "default_activation": "Native IFMA selector enables exact measured reducer and admission observer; generic fallback unchanged",
+        "evidence": "benchmarks/2026-11-12-bundle-adoption178/artifacts/decision.json",
+        "invalidates_parent": false,
+        "production_source_manifest": "benchmarks/2026-11-12-bundle-adoption178/artifacts/production-source-manifest.json",
+        "remaining": [],
+        "status": "adopted"
+      },
       "change": "Bounded independent G2 tile trees share batch inversions; exact indexed_tiles176 body, original 1024-point leaf bound",
       "correctness": {
-        "status": "passed_tested_scope",
+        "evidence": "benchmarks/2026-11-12-bundle-adoption178/README.md",
         "scope": "Source-bound inherited native tests and Arkworks comparisons; 734 fresh Gnark exports across screen/profile/qualification; 104 new concurrent group-oracle comparisons; 97 generic core tests",
-        "evidence": "benchmarks/2026-11-12-bundle-adoption178/README.md"
+        "status": "passed_tested_scope"
       },
-      "resources_and_compatibility": {
-        "status": "all10_RSS_guards_and_release_checks_passed",
-        "scope": "Bounded checked metadata admission, 3 complete SDK configured-denial cases, shared-pool functional concurrency, generic tests and native selection; no physical RAM-pressure/ARM/huge-circuit/throughput claim",
-        "evidence": "benchmarks/2026-11-12-bundle-adoption178/artifacts/release-review.json"
-      },
+      "id": "g2-indexed-bundles178",
+      "parent_id": "g2-phi-grain-experimental176",
       "performance": {
-        "status": "passed_declared_adoption_qualification",
-        "scope": "Local Ryzen9950X ten contexts, 30 paired processes per context across three fixed executable backings; primary16 gain, other contexts nonregression; primary32 speedup remains inconclusive",
         "checks_passed": 33,
         "checks_required": 33,
         "evidence": "benchmarks/2026-11-12-bundle-adoption178/artifacts/assessment.json",
-        "profile_evidence": "benchmarks/2026-11-11-bundle-sdk178/artifacts/profile-summary.json"
+        "profile_evidence": "benchmarks/2026-11-11-bundle-sdk178/artifacts/profile-summary.json",
+        "scope": "Local Ryzen9950X ten contexts, 30 paired processes per context across three fixed executable backings; primary16 gain, other contexts nonregression; primary32 speedup remains inconclusive",
+        "status": "passed_declared_adoption_qualification"
       },
-      "adoption": {
-        "status": "adopted",
-        "remaining": [],
-        "evidence": "benchmarks/2026-11-12-bundle-adoption178/artifacts/decision.json",
-        "production_source_manifest": "benchmarks/2026-11-12-bundle-adoption178/artifacts/production-source-manifest.json",
-        "default_activation": "Native IFMA selector enables exact measured reducer and admission observer; generic fallback unchanged",
-        "default_Cargo_release_newly_timed": false,
-        "canonical_verified_exports": 54927,
-        "invalidates_parent": false
-      }
+      "resources_and_compatibility": {
+        "evidence": "benchmarks/2026-11-12-bundle-adoption178/artifacts/release-review.json",
+        "scope": "Bounded checked metadata admission, 3 complete SDK configured-denial cases, shared-pool functional concurrency, generic tests and native selection; no physical RAM-pressure/ARM/huge-circuit/throughput claim",
+        "status": "all10_RSS_guards_and_release_checks_passed"
+      },
+      "sdk_sha256": "b646c7b8c1d8a26a0db45fb3f67c453dd616bd9f02e25c36192721ae02855abe"
     },
     {
-      "id": "g2-coordinate-leaf177",
-      "parent_id": "g2-phi-grain-experimental176",
-      "sdk_sha256": "d3a3f3b084a43de0cf856650b71834b845f64c7baf89a7910e4ce1d1bd653521",
+      "adoption": {
+        "invalidates_parent": false,
+        "reason": "Primary32 paired median slower than accepted by 0.895%; profiles show more instructions and cycles. Preserve the closed screen.",
+        "status": "not_adopted"
+      },
       "change": "One coordinate helper per full eight-point borrowed G2 reverse group, selected by zopro_g2_coordinate_leaf",
       "correctness": {
-        "status": "passed_tested_scope",
+        "evidence": "benchmarks/2026-11-11-g2-coordinate-leaf177/README.md",
         "scope": "130 native core, 2 prover unit, 6 cubic, 97 generic core tests; 945 fresh Gnark-verified exports across three consumers",
-        "evidence": "benchmarks/2026-11-11-g2-coordinate-leaf177/README.md"
+        "status": "passed_tested_scope"
       },
-      "resources_and_compatibility": {
-        "status": "all10_RSS_guards_passed",
-        "scope": "No new heap allocations or tables; explicit selected stack reservations grew; no new ARM, huge-circuit, memory-pressure or throughput qualification",
-        "evidence": "benchmarks/2026-11-11-g2-coordinate-leaf177/artifacts/build-review.json"
-      },
+      "id": "g2-coordinate-leaf177",
+      "parent_id": "g2-phi-grain-experimental176",
       "performance": {
-        "status": "failed_declared_progression_screen",
-        "scope": "Local Ryzen 9950X, ten contexts, 30 paired blocks across three fixed executable copies per consumer",
         "checks_passed": 29,
         "checks_required": 31,
+        "evidence": "benchmarks/2026-11-11-g2-coordinate-leaf177/artifacts/assessment.json",
         "failed_latency_checks": 2,
-        "evidence": "benchmarks/2026-11-11-g2-coordinate-leaf177/artifacts/assessment.json"
-      },
-      "adoption": {
-        "status": "not_adopted",
-        "reason": "Primary32 paired median slower than accepted by 0.895%; profiles show more instructions and cycles. Preserve the closed screen.",
-        "invalidates_parent": false
-      }
-    },
-    {
-      "id": "g2-phi-grain-experimental176",
-      "parent_id": "accepted-busy-reset176-znver4",
-      "sdk_sha256": "c88a3528d5feb363732dd2557d1894c93e9161f4e3ec9e9d3c7e2564283bf2fe",
-      "change": "Minimum Rayon grain 128 for in-place G2 phi_split, enabled by zopro_phi_grain",
-      "correctness": {
-        "status": "passed_tested_scope",
-        "scope": "Native core/prover/cubic, generic x86-64 and fresh externally verified SDK exports",
-        "evidence": "benchmarks/2026-11-11-phi-grain-c7a176/README.md"
+        "scope": "Local Ryzen 9950X, ten contexts, 30 paired blocks across three fixed executable copies per consumer",
+        "status": "failed_declared_progression_screen"
       },
       "resources_and_compatibility": {
-        "status": "all13_RSS_guards_and_release_review_passed",
-        "scope": "Native/generic correctness and three functional concurrent cases inherited with source review; ten selector cases plus actual Cargo core selection; no new throughput/ARM claim",
-        "evidence": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/post-adoption-review.json"
+        "evidence": "benchmarks/2026-11-11-g2-coordinate-leaf177/artifacts/build-review.json",
+        "scope": "No new heap allocations or tables; explicit selected stack reservations grew; no new ARM, huge-circuit, memory-pressure or throughput qualification",
+        "status": "all10_RSS_guards_passed"
       },
+      "sdk_sha256": "d3a3f3b084a43de0cf856650b71834b845f64c7baf89a7910e4ce1d1bd653521"
+    },
+    {
+      "adoption": {
+        "canonical_verified_exports": 51586,
+        "completed_followup": {
+          "default_selection": "10 finite contexts and actual Cargo core check pass without manual phi",
+          "evidence": "benchmarks/2026-11-11-phi-grain-parent176/README.md",
+          "local_harness": "8 calls; 2 fresh externally verified proofs; no prover SDK rebuild",
+          "operational_limitation": "Fresh pre-launch region/ingress observations missing; post-run absence/no-ingress observed, deviation recorded, future launch guards fixed",
+          "production_mapping": "176 sources checked:174 unchanged+2explicit; measured runtime preserved; native selector validated",
+          "prospective_target": "All40 checks pass; 57268calls/832freshGnark plus transport verification",
+          "retained_control_review": "retrospective only; no retroactive gates",
+          "source_resource_concurrency_review": "pure disjoint map; inherited 3 accepted functional concurrency cases; no new throughput claim"
+        },
+        "default_activation": "Native IFMA cfg emitted beside existing dense-reset selector; runtime file exact to measured parent",
+        "evidence": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/decision.json",
+        "production_source_manifest": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/production-source-manifest.json",
+        "rejected_by_child_failure": false,
+        "remaining": [],
+        "status": "adopted",
+        "superseded_by": "g2-indexed-bundles178"
+      },
+      "change": "Minimum Rayon grain 128 for in-place G2 phi_split, enabled by zopro_phi_grain",
+      "correctness": {
+        "evidence": "benchmarks/2026-11-11-phi-grain-c7a176/README.md",
+        "scope": "Native core/prover/cubic, generic x86-64 and fresh externally verified SDK exports",
+        "status": "passed_tested_scope"
+      },
+      "id": "g2-phi-grain-experimental176",
+      "parent_id": "accepted-busy-reset176-znver4",
       "performance": {
-        "status": "passed_declared_adoption_qualification",
-        "scope": "Thirteen C7a contexts, 31 paired blocks, exact retained PARENT versus accepted REF",
+        "additional_evidence": {
+          "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/target-analysis.json",
+          "prospective_followup": {
+            "blocks": 31,
+            "contexts": 13,
+            "evidence": "benchmarks/2026-11-11-phi-grain-parent176/README.md",
+            "protocol": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/protocol.md",
+            "required_checks": 40,
+            "status": "complete; all40 checks pass"
+          },
+          "reviewed_retrospective_evidence": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/retrospective.json",
+          "role": "PARENT control in later all-shape campaign",
+          "status": "measured_as_control; broader adoption decision not established"
+        },
         "checks_passed": 40,
         "checks_required": 40,
         "evidence": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/target-analysis.json",
-        "additional_evidence": {
-          "role": "PARENT control in later all-shape campaign",
-          "status": "measured_as_control; broader adoption decision not established",
-          "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/target-analysis.json",
-          "reviewed_retrospective_evidence": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/retrospective.json",
-          "prospective_followup": {
-            "status": "complete; all40 checks pass",
-            "blocks": 31,
-            "contexts": 13,
-            "required_checks": 40,
-            "evidence": "benchmarks/2026-11-11-phi-grain-parent176/README.md",
-            "protocol": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/protocol.md"
-          }
-        },
         "original_primary_campaign": {
-          "status": "passed",
           "checks_passed": 12,
           "checks_required": 12,
-          "evidence": "benchmarks/2026-11-11-phi-grain-c7a176/artifacts/target-analysis.json"
-        }
-      },
-      "adoption": {
-        "status": "adopted",
-        "remaining": [],
-        "rejected_by_child_failure": false,
-        "completed_followup": {
-          "retained_control_review": "retrospective only; no retroactive gates",
-          "source_resource_concurrency_review": "pure disjoint map; inherited 3 accepted functional concurrency cases; no new throughput claim",
-          "default_selection": "10 finite contexts and actual Cargo core check pass without manual phi",
-          "local_harness": "8 calls; 2 fresh externally verified proofs; no prover SDK rebuild",
-          "evidence": "benchmarks/2026-11-11-phi-grain-parent176/README.md",
-          "prospective_target": "All40 checks pass; 57268calls/832freshGnark plus transport verification",
-          "production_mapping": "176 sources checked:174 unchanged+2explicit; measured runtime preserved; native selector validated",
-          "operational_limitation": "Fresh pre-launch region/ingress observations missing; post-run absence/no-ingress observed, deviation recorded, future launch guards fixed"
+          "evidence": "benchmarks/2026-11-11-phi-grain-c7a176/artifacts/target-analysis.json",
+          "status": "passed"
         },
-        "evidence": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/decision.json",
-        "production_source_manifest": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/production-source-manifest.json",
-        "default_activation": "Native IFMA cfg emitted beside existing dense-reset selector; runtime file exact to measured parent",
-        "canonical_verified_exports": 51586,
-        "superseded_by": "g2-indexed-bundles178"
-      }
-    },
-    {
-      "id": "g2-phi-grain-default176",
-      "parent_id": "g2-phi-grain-experimental176",
-      "sdk_sha256": "96915d56cec6fc3479e155001ac2f2e69acf13895a454a765172bbe6d9bfe22e",
-      "change": "Make the minimum-grain operation unconditional and remove the experimental phi cfg",
-      "correctness": {
-        "status": "passed_tested_scope",
-        "scope": "Native core/prover/cubic, generic x86-64 and fresh externally verified SDK exports",
-        "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/remote-review.json"
+        "scope": "Thirteen C7a contexts, 31 paired blocks, exact retained PARENT versus accepted REF",
+        "status": "passed_declared_adoption_qualification"
       },
       "resources_and_compatibility": {
-        "status": "all13_measured_RSS_guards_passed; release_review_not_completed",
-        "scope": "Thirteen C7a contexts; no new concurrent-throughput or physical-ARM claim",
-        "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/release-review.json"
+        "evidence": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/post-adoption-review.json",
+        "scope": "Native/generic correctness and three functional concurrent cases inherited with source review; ten selector cases plus actual Cargo core selection; no new throughput/ARM claim",
+        "status": "all13_RSS_guards_and_release_review_passed"
       },
+      "sdk_sha256": "c88a3528d5feb363732dd2557d1894c93e9161f4e3ec9e9d3c7e2564283bf2fe"
+    },
+    {
+      "adoption": {
+        "invalidates_parent": false,
+        "reason": "Failed its declared qualification; preserve the completed protocol and results",
+        "status": "not_adopted"
+      },
+      "change": "Make the minimum-grain operation unconditional and remove the experimental phi cfg",
+      "correctness": {
+        "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/remote-review.json",
+        "scope": "Native core/prover/cubic, generic x86-64 and fresh externally verified SDK exports",
+        "status": "passed_tested_scope"
+      },
+      "id": "g2-phi-grain-default176",
+      "parent_id": "g2-phi-grain-experimental176",
       "performance": {
-        "status": "failed_declared_qualification",
-        "scope": "Thirteen C7a contexts, nine paired blocks, CLEAN versus REF/PARENT",
         "checks_passed": 58,
         "checks_required": 66,
-        "failed_latency_checks": 6,
+        "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/target-analysis.json",
         "failed_CPU_checks": 2,
-        "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/target-analysis.json"
+        "failed_latency_checks": 6,
+        "scope": "Thirteen C7a contexts, nine paired blocks, CLEAN versus REF/PARENT",
+        "status": "failed_declared_qualification"
       },
-      "adoption": {
-        "status": "not_adopted",
-        "reason": "Failed its declared qualification; preserve the completed protocol and results",
-        "invalidates_parent": false
-      }
+      "resources_and_compatibility": {
+        "evidence": "benchmarks/2026-11-11-phi-grain-clean176/artifacts/release-review.json",
+        "scope": "Thirteen C7a contexts; no new concurrent-throughput or physical-ARM claim",
+        "status": "all13_measured_RSS_guards_passed; release_review_not_completed"
+      },
+      "sdk_sha256": "96915d56cec6fc3479e155001ac2f2e69acf13895a454a765172bbe6d9bfe22e"
     }
   ],
-  "next_action": {
-    "baseline_id": "g2-indexed-bundles178",
-    "action": "Use completed preparation/G2 traces to select an intervention that removes a preparation pass or shortens ordinary G2 fill dependencies, accounting for added merge and memory costs",
-    "evidence": "benchmarks/2026-11-15-prep-g2-detail181/README.md",
-    "note": "Local16/16 controls pass; C7a15/16 controls and10/10 environment guards pass. 96-core OFF/REF interval [1.023449,1.053941] exceeds frozen1.05; fine traces describe diagnostic, not exact accepted attribution. ON/OFF passes at both counts. Canonicalization/gather add0.819689ms of0.822236ms preparation increase. G2 callback improves7.044007->6.630071ms; G1 improves more, exposing1.280190ms tail. Collection return after last window only0.042770ms; ordinary parts dominate. Current REF11.226110ms32/12.815133ms96; no Aeglos rerun. 3696SDKcalls/114newGnarkexports across local/container/AWS; canonical55778 SHA34ac77076db3000bf79866ee031fec523725966de90aea16f1c01d31015ee9ca. Resources cleaned. Prior gather, global dedup bypass, independent planes and routed rounds remain closed recipes. Production unchanged; no algorithm selected/adopted; full goal0/8; no push."
-  },
-  "previous_baseline": {
-    "id": "g2-phi-grain-experimental176",
-    "sdk_sha256": "c88a3528d5feb363732dd2557d1894c93e9161f4e3ec9e9d3c7e2564283bf2fe",
-    "evidence": "benchmarks/2026-11-11-phi-grain-parent176/README.md",
-    "source_manifest": "benchmarks/2026-11-11-phi-grain-parent176/artifacts/production-source-manifest.json"
-  },
   "historical_followups": [
     {
+      "adopted": false,
+      "evidence": "benchmarks/2026-11-07-uniform-prefix-pilot176/README.md",
       "id": "uniform-scaled-prefix176",
-      "performance": "measured_positive_estimate_but_declared_gain_gate_failed",
-      "paired_ON_OFF": 0.9910005570925716,
       "interval": [
         0.9836825900758922,
         1.0000116721762655
       ],
-      "adopted": false,
-      "evidence": "benchmarks/2026-11-07-uniform-prefix-pilot176/README.md",
+      "paired_ON_OFF": 0.9910005570925716,
+      "performance": "measured_positive_estimate_but_declared_gain_gate_failed",
       "prior_stage": "benchmarks/2026-11-07-uniform-prefix-native176/README.md"
     },
     {
-      "id": "uniform-carry-default183",
-      "performance": "all32_worker_checks_passed_three16_worker_checks_failed",
+      "adopted": false,
       "checks_passed": 42,
       "checks_required": 45,
-      "adopted": false,
-      "evidence": "benchmarks/2026-11-08-uniform-carry-default-performance183/README.md"
+      "evidence": "benchmarks/2026-11-08-uniform-carry-default-performance183/README.md",
+      "id": "uniform-carry-default183",
+      "performance": "all32_worker_checks_passed_three16_worker_checks_failed"
     },
     {
-      "id": "prefix-short186",
-      "performance": "primary_gain_passed_full_scope_failed_including_memory",
+      "adopted": false,
       "checks_passed": 62,
       "checks_required": 71,
-      "adopted": false,
-      "evidence": "benchmarks/2026-11-09-prefix-short-sdk186/README.md"
+      "evidence": "benchmarks/2026-11-09-prefix-short-sdk186/README.md",
+      "id": "prefix-short186",
+      "performance": "primary_gain_passed_full_scope_failed_including_memory"
     },
     {
+      "adopted": false,
+      "evidence": "benchmarks/2026-11-07-dot8-preredc-native176/README.md",
       "id": "dot8-preredc176",
       "performance": "dependent_calls_improved_independent_calls_regressed",
-      "scope": "arithmetic caller; no full-proof timing",
-      "adopted": false,
-      "evidence": "benchmarks/2026-11-07-dot8-preredc-native176/README.md"
+      "scope": "arithmetic caller; no full-proof timing"
     }
-  ]
+  ],
+  "maintenance": "Manual register; xtask does not enforce these states",
+  "next_action": "Compare exact fused candidate and previous accepted reference against Aeglos Sorted on C7a32/96; no public push. Default-on/selector cleanup is a separate artifact.",
+  "previous_baseline": {
+    "evidence": "benchmarks/2026-11-12-bundle-adoption178/README.md",
+    "id": "g2-indexed-bundles178",
+    "sdk_sha256": "b646c7b8c1d8a26a0db45fb3f67c453dd616bd9f02e25c36192721ae02855abe",
+    "source_manifest": "benchmarks/2026-11-12-bundle-adoption178/artifacts/production-source-manifest.json"
+  },
+  "production_baseline": {
+    "activation": "explicit opt-in; absent selector uses previous path",
+    "environment": {
+      "ZOPRO_BENCH_FUSED_PREPARATION": "1",
+      "ZOPRO_CPU_INDEXED_TILE_BUNDLES": "1"
+    },
+    "evidence": "benchmarks/2026-11-17-fused-preparation182/README.md",
+    "id": "fused-preparation182",
+    "sdk_sha256": "c285cbc88f783abac203c66db43ea86bda8207338b9fb209df7eb5d846126202",
+    "source_manifest": "benchmarks/2026-11-17-fused-preparation182/artifacts/production-source-manifest.json"
+  },
+  "schema_version": 1,
+  "scope": "Accepted baseline and selected pending or closed CPU candidates; not an exhaustive history"
 }
