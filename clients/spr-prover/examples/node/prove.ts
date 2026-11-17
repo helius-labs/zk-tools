@@ -1,9 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { SprNodeProver, shapeByLabel } from "@heliuslabs/spr-web-prover/node";
 
-const prover = new SprNodeProver({
-  proverUrl: "http://localhost:3001", // SDK routing identity; no server needed here.
-});
+const prover = new SprNodeProver({});
 
 try {
   await prover.ensureKey(shapeByLabel("2x2"));

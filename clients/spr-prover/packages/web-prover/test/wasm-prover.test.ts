@@ -23,6 +23,15 @@ vi.mock("../src/key-digests.js", async (importOriginal) =>
 proverTestHooks();
 
 describe("prover lifecycle", () => {
+  it("proves directly without a URL and requires one only for the fetch bridge", async () => {
+    const prover = new WasmProver({ fetch: async () => new Response(key) });
+    try {
+      expect(() => prover.createFetch()).toThrowError(expect.objectContaining({ code: "wasm_prover_url_required" }));
+      expect(TestWorker.instances).toHaveLength(0);
+      await expect(prover.proveRequest(body)).resolves.toMatchObject({ proof: '{"proof":"test"}' });
+    } finally { prover.terminate(); }
+  });
+
   it("starts its bundled worker automatically and exposes the product alias", async () => {
     const { prover } = await fixture();
     expect(prover).toBeInstanceOf(SprWebProver);

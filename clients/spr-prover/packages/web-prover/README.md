@@ -76,9 +76,7 @@ Prove from an extension page (not the service worker). For threaded proving, set
 ```ts
 import { SprWebProver, WasmProverError } from "@heliuslabs/spr-web-prover";
 
-const prover = new SprWebProver({
-  proverUrl: "http://127.0.0.1:3001",
-});
+const prover = new SprWebProver({});
 
 try {
   const requestJson = await (await fetch("/fixtures/transfer-2x2.json")).text();
@@ -89,6 +87,9 @@ try {
   prover.terminate();
 }
 ```
+
+`proverUrl` is required only for `createFetch()` integration. Direct proving
+through `proveRequest()` needs no URL or server.
 
 `proveRequest` takes a `/prove` JSON body and returns proof JSON after local verification. Supports `@heliuslabs/spr` 0.9.0-alpha transfers and merges of up to 24 notes (`MAX_BROWSER_MERGE_INPUTS`). Each proof includes `provingKeySha256` for the SDK’s key pin check. If a GPU proof fails verification, the same request is retried on the CPU.
 

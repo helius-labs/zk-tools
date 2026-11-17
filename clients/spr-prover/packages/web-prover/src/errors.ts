@@ -1,5 +1,6 @@
 const messages = {
   wasm_prover_error: "Prover operation failed",
+  wasm_prover_url_required: "createFetch requires proverUrl; direct proving does not need a URL",
   wasm_init_failed:
     "Prover initialization failed; check runtime assets, threads and isolation headers",
   wasm_gpu_unavailable: "GPU acceleration is unavailable; check WebGPU support and, in Node, install the webgpu peer",

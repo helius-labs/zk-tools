@@ -2,6 +2,8 @@
 
 ## 0.7.0-alpha — unreleased
 
+- Direct proving no longer requires `proverUrl`; only the optional `createFetch()` bridge requires a routing URL.
+
 - Add `SprNodeProver` through the `/node` entry for Node 24+, with worker threads, persistent public-key caching and optional Dawn WebGPU acceleration.
 - Add opt-in `residentKeyBudgetBytes` to retain multiple loaded shapes with LRU eviction, sharing one worker and thread pool. The default still retains one shape.
 - Add a minimal Node TypeScript example and reproducible per-shape and alternating-shape benchmarks.

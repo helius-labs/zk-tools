@@ -100,8 +100,8 @@ export interface WasmProverOptions {
   /** Trusted runtime keys from an authenticated source, such as `client.fetchProvingKeySet()`.
    * Mutually exclusive with keyCatalog and keyBaseUrl. */
   readonly keySource?: ProvingKeySource;
-  /** The prover URL handed to the SDK; requests to it are intercepted. */
-  readonly proverUrl: string;
+  /** Required only by createFetch(): the SDK prover URL whose requests are intercepted. */
+  readonly proverUrl?: string;
   readonly fetch?: typeof globalThis.fetch;
   /** Override worker construction for tests or a custom bundler. */
   readonly workerFactory?: () => ProverWorker;
@@ -420,8 +420,10 @@ export class WasmProver {
    * everything else is delegated, so one shim covers the client.
    */
   createFetch(): typeof globalThis.fetch {
+    const proverUrl = this.#options.proverUrl;
+    if (proverUrl === undefined) throw new WasmProverError("wasm_prover_url_required");
     return createProverFetch({
-      proverUrl: this.#options.proverUrl,
+      proverUrl,
       fetch: this.#fetch,
       ...(this.#options.onMeasurement === undefined
         ? {}
