@@ -2,6 +2,8 @@
 
 ## 0.7.0-alpha — unreleased
 
+- Generate key metadata with a standalone JavaScript build script so Git installs also work when pnpm’s store is inside `node_modules`.
+
 - Add the optional `/sdk` entry with `createLocalProofService(prover)` for typed SDK integration; the core entries keep no required SDK dependency.
 - Keep parent loaders and V8/test flags out of compiled Node workers.
 - Build package artifacts during prepack, including pinned Git-subdirectory installs.

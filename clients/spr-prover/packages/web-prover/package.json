@@ -31,7 +31,7 @@
     }
   },
   "scripts": {
-    "generate:keys": "node scripts/generate-key-digests.ts",
+    "generate:keys": "node scripts/generate-key-digests.mjs",
     "build": "rm -rf dist && ../../scripts/build-runtime.sh && npm run generate:keys && tsc -p tsconfig.build.json && node ../../scripts/prepare-prover-package.mjs",
     "types": "../../scripts/build-runtime.sh && npm run generate:keys && tsc -p tsconfig.build.json --emitDeclarationOnly",
     "pretypecheck": "npm run generate:keys",
