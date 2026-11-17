@@ -237,10 +237,15 @@
       "evidence": "benchmarks/2026-11-17-finite-all193/README.md",
       "id": "finite-sdk191",
       "status": "Short SDK screen positive; exact profile ~0.2% fewer instructions; full qualification30/33, primary gain not reproduced. Correctness/resource checks pass; retained experimental, not adopted."
+    },
+    {
+      "id": "certified-proof194",
+      "evidence": "benchmarks/2026-11-17-certified-proof194/README.md",
+      "status": "134 native core,2prover,6cubic tests pass;83Gnark exports. Opt-in immutable-input subgroup certificates pass short advancement; warm primary16 ON/OFF improves0.61%, ON/accepted inconclusive. Cold scan52-64ms primary; exact-build profile and full qualification pending."
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "Preserve190component and191/192mechanism evidence;193closed without adoption because primary full-proof gain did not reproduce, not because gain was small. No same-artifact rescue replay or layout sweep. Select a distinct execution/work-reduction hypothesis before the next experiment; accepted fusion182 remains baseline.",
+  "next_action": "Profile retained certified-proof194 SDK bcc8e077 without rebuilding. Keep first-proof certificate cost visible. If mechanism survives, finish portable/all-shape/resource qualification; no minimum gain floor and no cosmetic cleanup prerequisite. Accepted fusion182 unchanged; no push.",
   "previous_baseline": {
     "evidence": "benchmarks/2026-11-12-bundle-adoption178/README.md",
     "id": "g2-indexed-bundles178",
