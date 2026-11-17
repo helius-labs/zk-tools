@@ -1,0 +1,20 @@
+# Exact-SDK grouping admission audit213
+
+Frozen beforecapture2026-11-17. PreviousgoalturnPROGRESS211CPU/wall+212exactinput
+checks. Originalall8CPU10xgoalactive/unmet0/8.209fixedrecipeclosed/notadopted.
+Question beforehardwarecounters: does209'sadditional conservativeworkspace
+forecast changewhetherfull G2grouping receivesadmission, henceamountofwork?
+
+Exact211SDK84a472c6cd1a1eca40c9010d330aeea870ceb8e54381384bd163c2b626b3a6fe,
+no sourceedit/relink/debugger. Two32worker primary1x2SDKprocesses BooleanOFF/ON,
+traceON plus existing ZOPRO_CPU_GROUP_TRACE=1/ZOPRO_CPU_WORKSPACE_TRACE=1 flags.
+3primes+1timedcall each,2freshGnarkexports/8SDKcalls. Seed21258982ledgerSHA
+616aa4f0fa5259f893875bad99585b78c71366cbaebc65fc044586c85f7d1a5a.
+ReadactualGROUP_ADMISSION n=30089 peak/admitted records (4expected/process),
+retainingotherquery/workspace diagnostics. No expectedadmissionanswer imposed.
+Ifdifferent, investigateadmissioncost/workdifference beforehardwarecause. Ifsame,
+recordscopeandproceedtostageinstructions/cycles. This isobservabilityauditonly;
+printingperturbsperformance, soignoreSDKtimings. Allproofsverified/pins/receipts/
+ledgerdisjointnesschecked. NoAWS/publicrawkeys/scalars/proofs/ledger/binary.
+Firstresultallowance5min;commitlocally/no push. No newnative/portable/pressure/
+concurrency test neededforunmodifiedruntime,coverageinheritedfrom211/209.
