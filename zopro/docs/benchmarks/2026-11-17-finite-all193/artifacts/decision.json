@@ -1,0 +1,53 @@
+{
+  "SDK_calls_across_screen_profile_qualification": 19426,
+  "SDK_calls_this_qualification": 12092,
+  "adopted": false,
+  "all_CPU_and_peak_RSS_guards_passed": true,
+  "candidate_id": "finite-sdk191",
+  "canonical_count": 57309,
+  "canonical_sha256": "cec72464ff1de85ef6ee11cebf62f1ddd59fbc4fa41608fe52dc66e11cafca37",
+  "exports_across_screen_profile_qualification": 724,
+  "failed_checks": [
+    {
+      "comparator": "REF",
+      "context": "1x2-w16",
+      "limit": 1.0,
+      "metric": "ms",
+      "passed": false,
+      "ratio": {
+        "lower": 0.99877757430355,
+        "median": 1.005618259484436,
+        "upper": 1.0091910022975226
+      },
+      "strict": true
+    },
+    {
+      "comparator": "REF",
+      "context": "1x2-w16",
+      "copy": 0,
+      "median": 1.0132971039026613,
+      "metric": "backing_median",
+      "passed": false
+    },
+    {
+      "comparator": "REF",
+      "context": "1x2-w16",
+      "copy": 1,
+      "median": 1.0053247860074572,
+      "metric": "backing_median",
+      "passed": false
+    }
+  ],
+  "full_goal_achieved": false,
+  "implementation_correctness_passed_tested_scope": true,
+  "minimum_gain_floor": null,
+  "new_exports_this_qualification": 623,
+  "performance_checks_passed": 30,
+  "performance_checks_required": 33,
+  "production_baseline_unchanged": "fused-preparation182",
+  "public_push": false,
+  "reason": "Initial positive screen did not reproduce against accepted production: primary16 paired median +0.562%, interval spans parity, two backing medians above1. No minimum gain floor used.",
+  "release_checks_passed": true,
+  "retained_experiment": true,
+  "sdk_sha256": "b655c4c68483d54e2343a0593818b49be05e140c949fe83cd6216d332ecb1897"
+}
