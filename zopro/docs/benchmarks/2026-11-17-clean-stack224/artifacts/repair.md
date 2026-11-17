@@ -1,0 +1,3 @@
+# Offline decode repair before main capture
+
+Initial smoke-offline decode failed before emitting records: perf6.8 has no --show-user-regs. Use the documented uregs output field for sampled panels only. Keep original helpers, plans, failure and all smoke captures immutable. Repaired offline plan skips completed plain Gnark verification and completed chown; manager-v2 receipt lookup resolves those original successful steps. No successful SDK/capture/verifier replay. Original probe registration was already cleaned. Main capture/source/flags/gates remain unchanged; new helper identities and plans get separate pins before main.

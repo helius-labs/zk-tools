@@ -374,6 +374,78 @@
         "status": "screen_guards_pass_no_pressure_claim"
       },
       "sdk_sha256": "050841b025e1553d4155134bf953eb3fb4845af788bac22d71e5cf8efd5f3b24"
+    },
+    {
+      "adoption": {
+        "reason": "Diagnostic or preliminary evidence only; no production change",
+        "status": "not_adopted"
+      },
+      "change": "32-byte native grouping frame; diagnostic short screen",
+      "correctness": {
+        "status": "see_report_tested_and_inherited_scope"
+      },
+      "evidence": "benchmarks/2026-11-17-store-frame221/README.md",
+      "id": "store-frame221",
+      "performance": {
+        "status": "positive_preliminary_screen_not_adopted"
+      },
+      "resources_and_compatibility": {
+        "status": "see_report_no_device_or_pressure_claim"
+      }
+    },
+    {
+      "adoption": {
+        "reason": "No confirmed primary gain against accepted production; recipe closed",
+        "status": "not_adopted"
+      },
+      "change": "Same compact frame on clean179-file production source",
+      "correctness": {
+        "status": "see_report_tested_and_inherited_scope"
+      },
+      "evidence": "benchmarks/2026-11-17-store-frame-clean222/README.md",
+      "id": "store-frame-clean222",
+      "performance": {
+        "status": "failed_primary_gain_requirements_70_guardrails_pass"
+      },
+      "resources_and_compatibility": {
+        "status": "see_report_no_device_or_pressure_claim"
+      }
+    },
+    {
+      "adoption": {
+        "reason": "Diagnostic or preliminary evidence only; no production change",
+        "status": "not_adopted"
+      },
+      "change": "Reanalyse existing exact194 cycle profiles without SDK calls",
+      "correctness": {
+        "status": "see_report_tested_and_inherited_scope"
+      },
+      "evidence": "benchmarks/2026-11-17-clean-profile-reuse223/README.md",
+      "id": "clean-profile-reuse223",
+      "performance": {
+        "status": "diagnostic_no_persistent_hot_load_fingerprint_observed"
+      },
+      "resources_and_compatibility": {
+        "status": "see_report_no_device_or_pressure_claim"
+      }
+    },
+    {
+      "adoption": {
+        "reason": "Diagnostic or preliminary evidence only; no production change",
+        "status": "not_adopted"
+      },
+      "change": "Sparse uprobes plus userSP samples in exact194 consumer",
+      "correctness": {
+        "status": "see_report_tested_and_inherited_scope"
+      },
+      "evidence": "benchmarks/2026-11-17-clean-stack224/README.md",
+      "id": "clean-stack224",
+      "performance": {
+        "status": "qualified_observer_clean_frame_page_safe_all891loop_samples"
+      },
+      "resources_and_compatibility": {
+        "status": "see_report_no_device_or_pressure_claim"
+      }
     }
   ],
   "historical_followups": [
@@ -509,7 +581,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "215controlled16vs32offsetdoesnotexplain214CPIgap:both~8Mcycles,CPI~2.2,1/3SDKwins. Closefixedalignmenthypothesis,nopadding/4ksweep. 214inputs/code/admission/instructions equalyetCPI1.2vs2.2 remains. Retained214eventtimestamps showgroupstarts~1.5usafterproductboth,not~0.75mslater. Nextlocateextracycleswithinserialgrouping withphase-scopedprofiles/CPU-versus-kernelorcacheevidence,notmoreblindlayoutchanges. Preferexisting206perfdecode/observer workflow;scopeG2byTID+event10..11timestampsifprofilealsoincludesAgroup. Source214PMUunchangedfor215. Production194/196unchanged,goal0/8;canonical59016/a580ab01695c2785aeaad590b94cff52e5e131e46b5410cfa9f3bf30c21c424b. Localcommit/no push.",
+  "next_action": "224exact194sparseobserver qualifies at16/32;all891loopSP frame1104/spill1344,no4Kcrossing. 222compactframe cleanproduction gainFAILED,70guardrailsPASS;no unchanged frame retry or diagnostic45%cycle transfer. Canonical60046/clean-stack224/proof-sha256-after-main.json SHA4d2bb688410d7b16c36cd9a20420548e01bc27278c61f6336c818f72e9b67b87. Next distinct question: isolate G2-only grouping cost while preserving A/K/H grouping and workspace forecasts. Primary retained212 census26142nonzero distinct/30089 fails original80%cutoff,so fullmapwork declines. Oldglobaldedupoff174 is not this isolation. First short actualclean SDK counterfactual; no learned cache/adaptive policy or bypass adoption yet. Field/prefix/cache/arithmetic histories stayclosed absent newevidence. Production194/196unchanged;all8CPU10x0/8;localcommit/no push.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",
