@@ -2,8 +2,14 @@ name: CI
 
 on:
   pull_request:
+    paths:
+      - "zopro/**"
+      - ".github/workflows/ci.yml"
   push:
     branches: [main]
+    paths:
+      - "zopro/**"
+      - ".github/workflows/ci.yml"
 
 permissions:
   contents: read

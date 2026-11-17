@@ -1,0 +1,58 @@
+{
+  "name": "@heliuslabs/spr-web-prover",
+  "version": "0.7.0-alpha",
+  "description": "Local Groth16 proving for Solana Privacy Rings in browsers.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/helius-labs/zolana-web-sdk.git",
+    "directory": "packages/web-prover"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "type": "module",
+  "bin": {
+    "spr-prover-keys": "dist/scripts/install-keys.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "import": "./dist/node/index.js"
+    }
+  },
+  "scripts": {
+    "generate:keys": "node scripts/generate-key-digests.ts",
+    "build": "rm -rf dist && ../../scripts/build-runtime.sh && npm run generate:keys && tsc -p tsconfig.build.json && node ../../scripts/prepare-prover-package.mjs",
+    "types": "../../scripts/build-runtime.sh && npm run generate:keys && tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "pretypecheck": "npm run generate:keys",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "npm run generate:keys",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10",
+    "webgpu": "0.6.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "peerDependencies": {
+    "webgpu": "^0.6.2"
+  },
+  "peerDependenciesMeta": {
+    "webgpu": {
+      "optional": true
+    }
+  }
+}
