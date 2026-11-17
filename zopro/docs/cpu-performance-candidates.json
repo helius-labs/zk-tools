@@ -277,6 +277,30 @@
         "status": "diagnostic_only"
       },
       "sdk_sha256": "84a472c6cd1a1eca40c9010d330aeea870ceb8e54381384bd163c2b626b3a6fe"
+    },
+    {
+      "adoption": {
+        "canonical_verified_exports": 58982,
+        "remaining": [],
+        "status": "diagnostic_only_not_adopted"
+      },
+      "change": "Read runtime scalar arguments at sharedgrouping entry usingGDB; exact retained binary,no relink",
+      "correctness": {
+        "evidence": "benchmarks/2026-11-17-group-input212/README.md",
+        "scope": "8exactequal962848Bcanonical scalar arrays,allmatch175fixture,2freshGnarkexports/8SDKcalls,4receipt readerpass",
+        "status": "data_and_proof_audit_pass"
+      },
+      "id": "group-input212",
+      "parent_id": "group-cpu211",
+      "performance": {
+        "scope": "Identical scalar content andcounts verifiedatentry; alignment differsin debugger process,causalityunproven",
+        "status": "no_timing_claim"
+      },
+      "resources_and_compatibility": {
+        "scope": "Private scalar dumps excludedfromarchive;7GDBpackagesinstalled0upgrades;no production/runtime change",
+        "status": "debugger_only"
+      },
+      "sdk_sha256": "84a472c6cd1a1eca40c9010d330aeea870ceb8e54381384bd163c2b626b3a6fe"
     }
   ],
   "historical_followups": [
@@ -412,7 +436,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "211 resolves210phasequestion:~0.74ms grouping shift isrunningCPUtime,not shorterblockedwait. Assembly shows shared scalar_groups call immediately followedbygroup_end; no Phi work hoisted into that bracket ininspectedcallers. Before new optimization/PMUcausality, audit actual fullSDK scalar inputs atsharedfunctionentry in exact211artifact. No GDBinstalled; standarddebuggerinstallation ifneeded,or equivalent boundeddataaudit. Do not claim instructioncount reduction or newfullproofgain.209closed,210/211diagnosticonly;production194/196unchanged,goal0/8. Canonical58980/25f3486018e2702859911f4e047fb105d57020648a30aa46d2579e6262ad6e2b. No push.",
+  "next_action": "211CPUshift~0.74msisrunningtime;212exactSDKGDBaudit excludes inputmismatch in4calls/arm and confirms component175scalarfixture matches. Commonfunction stilldifferentCPUcost,not fewer mathematicalops. Next boundedhardwareprobe:thread-local cycles+instructions counters around same serialspan, initialized onallworkers beforeprimes withmatchedobservercontrols; runallcounterarms asroot becauseperfparanoid4 (sudoavailable). Do notclaim cache/SMT/alignmentcause:212alignmentOFF48/ON32afterpriming iscorrelationonly. Stageelapsedmarkerassembly alreadycheckedcallgroup_endimmediatelyaftersharedfunction. No unchanged209timingretry;209closed,210-212diagnostic,production194/196unchanged,goal0/8. Canonical58982/616aa4f0fa5259f893875bad99585b78c71366cbaebc65fc044586c85f7d1a5a. No push.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",
