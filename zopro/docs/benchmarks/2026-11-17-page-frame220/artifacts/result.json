@@ -1,0 +1,468 @@
+{
+  "OFF_over_REF": 1.0027759979026596,
+  "PMU_minimum_coverage": 1.0,
+  "SDK_calls": 2298,
+  "adopted": false,
+  "calibration_pass": true,
+  "canonical_count": 59074,
+  "canonical_sha256": "95544b6be55076ff5c759db9007f6576ae400533f58a028a012b7469d373fc83",
+  "causal_criterion_pass": false,
+  "comparisons": [
+    {
+      "SDK_ratios": [
+        1.0076208419998474,
+        0.9987225466777166,
+        1.0235879324874753
+      ],
+      "control": "REF",
+      "cpu_ratio": 1.0005168217512463,
+      "paired_median": 1.0076208419998474,
+      "pass": false,
+      "rss_ON": 129.25,
+      "rss_control": 126.0,
+      "wins": 1
+    },
+    {
+      "SDK_ratios": [
+        1.0126822492534757,
+        0.9835367723014429,
+        1.0207543206342637
+      ],
+      "control": "OFF",
+      "cpu_ratio": 1.0007955753061477,
+      "paired_median": 1.0126822492534757,
+      "pass": false,
+      "rss_ON": 129.25,
+      "rss_control": 128.25,
+      "wins": 1
+    }
+  ],
+  "diagnostic_screen": true,
+  "fresh_Gnark_exports": 12,
+  "mechanism_blocks": [
+    {
+      "OFF_REF_cycles": 1.0212744951850465,
+      "OFF_REF_instructions": 1.0000675229536533,
+      "ON_OFF_cycles": 0.5817522661031441,
+      "ON_OFF_instructions": 1.0225832427092585,
+      "block": 0,
+      "pass": false
+    },
+    {
+      "OFF_REF_cycles": 1.009488941642256,
+      "OFF_REF_instructions": 1.0000561762928295,
+      "ON_OFF_cycles": 0.5613093140100942,
+      "ON_OFF_instructions": 1.0224601232986525,
+      "block": 1,
+      "pass": false
+    },
+    {
+      "OFF_REF_cycles": 1.0268006014620865,
+      "OFF_REF_instructions": 0.999954339112618,
+      "ON_OFF_cycles": 0.5619565243196093,
+      "ON_OFF_instructions": 1.0226682064774448,
+      "block": 2,
+      "pass": false
+    }
+  ],
+  "ready_for_qualification": false,
+  "records": 2262,
+  "rows": [
+    {
+      "cpu_ms": 91.60399999999993,
+      "involuntary_switches": 1,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/REF0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "REF",
+        "name": "smoke-REF-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/smoke-REF-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 1,
+        "smoke": true,
+        "workers": 4
+      },
+      "major_faults": 0,
+      "mean_ms": 24.677577999999997,
+      "medians": {
+        "A_span_ms": 14.856012,
+        "G2_span_ms": 21.938887,
+        "MSM_join_ms": 21.942754,
+        "group_CPI": 1.4261295829638856,
+        "group_CPU_ms": 1.00313,
+        "group_cycles": 5151712.0,
+        "group_instructions": 3612373.0,
+        "group_wall_ms": 1.061996
+      },
+      "minor_faults": 1,
+      "peak_rss_mib": 40.5,
+      "proof_sha256": "b5694c9898e7394fb653ad62a582d3b7ad6222354ea7c7a2176ad7120e9627ab",
+      "voluntary_switches": 81
+    },
+    {
+      "cpu_ms": 92.46999999999987,
+      "involuntary_switches": 2,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/OFF0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "OFF",
+        "name": "smoke-OFF-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/smoke-OFF-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 1,
+        "smoke": true,
+        "workers": 4
+      },
+      "major_faults": 0,
+      "mean_ms": 24.303372,
+      "medians": {
+        "A_span_ms": 14.996357,
+        "G2_span_ms": 21.402424,
+        "MSM_join_ms": 21.403946,
+        "group_CPI": 1.3012407321837973,
+        "group_CPU_ms": 0.923901,
+        "group_cycles": 4697224.0,
+        "group_instructions": 3609804.0,
+        "group_wall_ms": 0.988286
+      },
+      "minor_faults": 620,
+      "peak_rss_mib": 46.25,
+      "proof_sha256": "8b9aa595be3062f8961c2a71a29b1bb8b4785bf553f417564474fcf52bf2bce1",
+      "voluntary_switches": 91
+    },
+    {
+      "cpu_ms": 91.75299999999991,
+      "involuntary_switches": 1,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/ON0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "ON",
+        "name": "smoke-ON-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/smoke-ON-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 1,
+        "smoke": true,
+        "workers": 4
+      },
+      "major_faults": 0,
+      "mean_ms": 24.100679,
+      "medians": {
+        "A_span_ms": 15.035932,
+        "G2_span_ms": 21.324216,
+        "MSM_join_ms": 21.328253,
+        "group_CPI": 0.5815599188935302,
+        "group_CPU_ms": 0.817973,
+        "group_cycles": 2148230.0,
+        "group_instructions": 3693910.0,
+        "group_wall_ms": 0.879541
+      },
+      "minor_faults": 603,
+      "peak_rss_mib": 45.0,
+      "proof_sha256": "3fda16f155eed73be76762d8cef80fc9c2630f66b793255840915c856d2c8f02",
+      "voluntary_switches": 72
+    },
+    {
+      "cpu_ms": 167.51172908366533,
+      "involuntary_switches": 795,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/REF0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "REF",
+        "name": "main-REF-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/main-REF-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "major_faults": 0,
+      "mean_ms": 7.501497223107575,
+      "medians": {
+        "A_span_ms": 4.949706,
+        "G2_span_ms": 4.968231,
+        "MSM_join_ms": 4.985043,
+        "group_CPI": 2.163380294921092,
+        "group_CPU_ms": 1.769807,
+        "group_cycles": 7819598.0,
+        "group_instructions": 3613586.0,
+        "group_wall_ms": 1.867256
+      },
+      "minor_faults": 18979,
+      "peak_rss_mib": 126.0,
+      "proof_sha256": "9d47ce90beba283f47eae00ba582175fde4ed6931d6c3f8a7010f5706e8ee74d",
+      "voluntary_switches": 95933
+    },
+    {
+      "cpu_ms": 167.4650717131474,
+      "involuntary_switches": 625,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/OFF0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "OFF",
+        "name": "main-OFF-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/main-OFF-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "major_faults": 0,
+      "mean_ms": 7.464004581673306,
+      "medians": {
+        "A_span_ms": 4.95173,
+        "G2_span_ms": 4.960045,
+        "MSM_join_ms": 4.980585,
+        "group_CPI": 2.209901386827299,
+        "group_CPU_ms": 1.799392,
+        "group_cycles": 7985956.0,
+        "group_instructions": 3613830.0,
+        "group_wall_ms": 1.898545
+      },
+      "minor_faults": 17548,
+      "peak_rss_mib": 127.0,
+      "proof_sha256": "1a37765ba6167a887f0687268aabd9d47637891c7b1d602244cf2acc385396bf",
+      "voluntary_switches": 94353
+    },
+    {
+      "cpu_ms": 167.59830278884465,
+      "involuntary_switches": 749,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/ON0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "ON",
+        "name": "main-ON-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/main-ON-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "major_faults": 0,
+      "mean_ms": 7.558664948207172,
+      "medians": {
+        "A_span_ms": 4.971798,
+        "G2_span_ms": 4.992367,
+        "MSM_join_ms": 5.001754,
+        "group_CPI": 1.2573013684357235,
+        "group_CPU_ms": 1.108437,
+        "group_cycles": 4645848.0,
+        "group_instructions": 3695442.0,
+        "group_wall_ms": 1.195417
+      },
+      "minor_faults": 17388,
+      "peak_rss_mib": 127.5,
+      "proof_sha256": "242cd51dfa0846cbff60cafe5f86ad452a83e010f0cf94984803ed77ea16c365",
+      "voluntary_switches": 99905
+    },
+    {
+      "cpu_ms": 168.68771314741034,
+      "involuntary_switches": 796,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/REF1",
+        "block": 1,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "REF",
+        "name": "main-REF-block1",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/main-REF-block1",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "major_faults": 0,
+      "mean_ms": 7.5553114940239015,
+      "medians": {
+        "A_span_ms": 4.984832,
+        "G2_span_ms": 5.003628,
+        "MSM_join_ms": 5.033464,
+        "group_CPI": 2.2419750155502576,
+        "group_CPU_ms": 1.841702,
+        "group_cycles": 8102695.0,
+        "group_instructions": 3613624.0,
+        "group_wall_ms": 1.939762
+      },
+      "minor_faults": 17472,
+      "peak_rss_mib": 123.0,
+      "proof_sha256": "dd222fedafdfdd13f7fc929fbb5984db690369cdfe7edddab76823b8525577e8",
+      "voluntary_switches": 94476
+    },
+    {
+      "cpu_ms": 168.7327091633466,
+      "involuntary_switches": 719,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/ON1",
+        "block": 1,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "ON",
+        "name": "main-ON-block1",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/main-ON-block1",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "major_faults": 0,
+      "mean_ms": 7.545659936254975,
+      "medians": {
+        "A_span_ms": 4.99422,
+        "G2_span_ms": 5.015099,
+        "MSM_join_ms": 5.030148,
+        "group_CPI": 1.2416620408136778,
+        "group_CPU_ms": 1.100072,
+        "group_cycles": 4591275.0,
+        "group_instructions": 3694994.0,
+        "group_wall_ms": 1.19194
+      },
+      "minor_faults": 18196,
+      "peak_rss_mib": 129.25,
+      "proof_sha256": "6f3e618e0f777a011a9b5bd67630783cfd7ff253c4d6b359d8f574ef39e6a738",
+      "voluntary_switches": 98433
+    },
+    {
+      "cpu_ms": 168.75693227091634,
+      "involuntary_switches": 758,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/OFF1",
+        "block": 1,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "OFF",
+        "name": "main-OFF-block1",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/main-OFF-block1",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "major_faults": 0,
+      "mean_ms": 7.671965247011951,
+      "medians": {
+        "A_span_ms": 4.977899,
+        "G2_span_ms": 5.000652,
+        "MSM_join_ms": 5.016211,
+        "group_CPI": 2.263991311142314,
+        "group_CPU_ms": 1.833415,
+        "group_cycles": 8179581.0,
+        "group_instructions": 3613827.0,
+        "group_wall_ms": 1.934192
+      },
+      "minor_faults": 19144,
+      "peak_rss_mib": 128.25,
+      "proof_sha256": "03d55fe44d1b3fc28dc38108059eae38528ac464665e15d4316e1e5945ae2505",
+      "voluntary_switches": 95414
+    },
+    {
+      "cpu_ms": 169.70985657370517,
+      "involuntary_switches": 698,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/ON2",
+        "block": 2,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "ON",
+        "name": "main-ON-block2",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/main-ON-block2",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "major_faults": 0,
+      "mean_ms": 7.724767657370524,
+      "medians": {
+        "A_span_ms": 5.011893,
+        "G2_span_ms": 5.069542,
+        "MSM_join_ms": 5.074862,
+        "group_CPI": 1.2168553399869138,
+        "group_CPU_ms": 1.086436,
+        "group_cycles": 4497469.0,
+        "group_instructions": 3695341.0,
+        "group_wall_ms": 1.176021
+      },
+      "minor_faults": 18344,
+      "peak_rss_mib": 126.75,
+      "proof_sha256": "89ac1ad483b27e82716833a068c7803a575652d2b8b24f893a9548b786f40a86",
+      "voluntary_switches": 98451
+    },
+    {
+      "cpu_ms": 168.4758406374502,
+      "involuntary_switches": 695,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/REF2",
+        "block": 2,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "REF",
+        "name": "main-REF-block2",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/main-REF-block2",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "major_faults": 0,
+      "mean_ms": 7.546755302788846,
+      "medians": {
+        "A_span_ms": 4.9784,
+        "G2_span_ms": 5.004489,
+        "MSM_join_ms": 5.019347,
+        "group_CPI": 2.157153956656045,
+        "group_CPU_ms": 1.765789,
+        "group_cycles": 7794340.0,
+        "group_instructions": 3613596.0,
+        "group_wall_ms": 1.868398
+      },
+      "minor_faults": 18238,
+      "peak_rss_mib": 125.25,
+      "proof_sha256": "8d59a9e0704eb3e8ebf2484b49b1c46aedb03abc198f69342afaaf417de5312a",
+      "voluntary_switches": 94922
+    },
+    {
+      "cpu_ms": 169.1342828685259,
+      "involuntary_switches": 644,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/page-frame220/bin/OFF2",
+        "block": 2,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "OFF",
+        "name": "main-OFF-block2",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/page-frame220/proofs/main-OFF-block2",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "major_faults": 0,
+      "mean_ms": 7.567705079681272,
+      "medians": {
+        "A_span_ms": 5.022934,
+        "G2_span_ms": 5.038924,
+        "MSM_join_ms": 5.061788,
+        "group_CPI": 2.2149553427673747,
+        "group_CPU_ms": 1.816094,
+        "group_cycles": 8003233.0,
+        "group_instructions": 3613431.0,
+        "group_wall_ms": 1.914776
+      },
+      "minor_faults": 17086,
+      "peak_rss_mib": 125.25,
+      "proof_sha256": "a2309a9792596b0041d2664186b6289fab376a8585eb862b8b9df9d3ada68024",
+      "voluntary_switches": 95285
+    }
+  ]
+}

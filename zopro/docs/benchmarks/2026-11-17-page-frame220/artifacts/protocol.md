@@ -1,0 +1,44 @@
+# Page-aligned grouping frame220
+
+Frozen before220source/build/SDK2026-11-17. Previousgoalturn219PROGRESS: actual
+unpausedsameSDK all1194slowloopSPs place32Bspillat0xff0mod4096;all626fastat
+0x1b0. Cachelinealignmentsame,oldCPUgapreproduces. Correlationnotcausality.
+NewboundedRustintervention:cfgnative-onlyrepr(align4096)nonzero1bytemarker in
+scalar_groups_policy,black_box mutableborrow toforceactualalignment. NoZST,
+heap,largermapkey,newhashAPI/dependency,arithmetic/input/table/poolchanges.
+
+Baseexact216source;two coherentOFF/ONSDKs fromsamepreparedsource,ONnewcfg only.
+Originalgroupalgorithm andfieldbytes unchanged. Keep exact216REF SDK. All
+Booleanpeelingdisabledthroughoutnewscreen. OFF/ONallnativecoretests (141old+
+1new) includingnewstablegrouporacleonall53workers1/4/16/32with512KiBstacks+
+4OScallersshared8workerpool. Markersize/alignment4096checkedON. Staticinspect
+actualprologue/stackprobes/keyspill BEFORE ANY SDK: functionframeworst<=16KiB;
+alignmentmustprove32Bkeyspilldoesnotcross4KiBforANYcallerRSP. Ifmechanismfails,
+stop withoutpadding/alignment/thresholdrescue. No inherenthardwarepenaltyclaim.
+
+Reuse218threecontrolscreen machinery:REF exact216,freshOFF,newON;three
+independentbackings perarm,3rotated/reversedblocks,3fourworker1timed+3prime
+smokes+9main32worker251timed+3primes=12Gnarkexports/2298SDKcalls. Allroot,
+nativeTrace/internalPMUON,noownedCPUcojobsduringcapture,allmainbeforelate
+Gnark/analysis. Seed21959062SHA
+ed597d8585b303890bfaceb4b4084948d87d88a7a375c35c1dcde1aeee58b58c.
+
+Separate performanceandcausaldecisions. QualificationreadyiffON/REFandON/OFF
+pairedSDKmeanmedians<1,>=2/3wins,pairedCPU<=1.02,RSSmax<=1.10control+8MiB,
+freshOFF/REFcalibrationwithin3%;no minimumgainfloor. Positivepointestimates
+reported evenifotherchecks fail. No unchanged sampleextension/rescue. This
+is bounded screen, notadoption/allshape/portable/memory-pressurequalification.
+Ifpositivequalifyall8+54/physical16/accepted194/genericbeforepromotion.
+
+Causalmechanism support requiresfreshOFFreproduceREFslowgroupcycleswithin10%
+andgroupinstructionswithin1%,plusON/OFFgroupcycles<=0.8 andinstructionswithin1%
+inall3blocks. Ifnot,stateoldmechanismunreproduced; don'teraseperformancegain.
+Samealgorithm/compilerinputspecdoesnotmakeallothermachineeffectsidentical.
+
+Twoindependentrawreadersmeans/pairing/proofs/source+allnativeevent/PMU/CPU/
+placement/route/export/receiptguardssame218,>=99%PMUcoverage. Automaticinternal
+stageCPU/cycles/instructions profileseverytimedrequest. Prior219SPsoftware
+profiletargetinherited;staticmachinecodeprovesnewframeplacement,notnewliveSP
+measurement. No externalPCsamplereplayforbookkeeping. Prototypekeptprivate,
+commiteachexperiment/NO PUSH/questions/subagents/Python/C/ASM. Fullall8CPU10x+
+MetalgoalACTIVEUNMET0/8. Firstresultallowance30minfromthisfreeze.
