@@ -172,12 +172,12 @@ impl Prover {
                 let started = zopro_core::time::Instant::now();
                 let raw = self
                     .key
-                    .solve_rerandomized(&encoded, &self.fixed)
+                    .solve_rerandomized_output(&encoded, &self.fixed)
                     .map_err(Error::Prove)?;
                 let prove_ms = started.elapsed().as_millis() as u64;
                 let verify_started = zopro_core::time::Instant::now();
                 let public = witness[..self.public].to_vec();
-                let proof = Proof::from_raw(&raw).map_err(|_| Error::Unverified)?;
+                let proof = raw.into_proof().map_err(|_| Error::Unverified)?;
                 if !self.verifying_key.verify(&proof, &public) {
                     return Err(Error::Unverified);
                 }

@@ -43,6 +43,7 @@ pub struct PreparedFixedPoints(std::sync::Arc<Prepared>);
 
 struct Prepared {
     fixed: FixedPoints,
+    generated_g2: crate::generated_proof::G2InputCertificate,
     windows: Option<(FixedBase<G1Config>, FixedBase<G2Config>)>,
 }
 
@@ -50,7 +51,7 @@ impl PreparedFixedPoints {
     pub fn new(fixed: FixedPoints) -> Self {
         let windows = crate::simd::cpu_option("ZOPRO_CPU_PREPARE_BLINDING")
             .then(|| (FixedBase::new(fixed.delta), FixedBase::new(fixed.delta2)));
-        Self(std::sync::Arc::new(Prepared { fixed, windows }))
+        Self(std::sync::Arc::new(Prepared { fixed, windows, generated_g2: Default::default() }))
     }
 
     pub fn assemble(&self, parts: &[u8]) -> Vec<u8> {
@@ -400,11 +401,13 @@ mod rerandomized_tests {
             let p = if prepared {
                 PreparedFixedPoints(std::sync::Arc::new(Prepared {
                     fixed,
+                    generated_g2: Default::default(),
                     windows: Some((FixedBase::new(fixed.delta), FixedBase::new(fixed.delta2))),
                 }))
             } else {
                 PreparedFixedPoints(std::sync::Arc::new(Prepared {
                     fixed,
+                    generated_g2: Default::default(),
                     windows: None,
                 }))
             };
@@ -480,3 +483,5 @@ mod rerandomized_tests {
 }
 
 include!("groth16_rerandomize.rs");
+
+impl PreparedFixedPoints{pub(crate)fn generated_g2_certified(&self)->bool{self.0.generated_g2.check(&[self.0.fixed.beta2,self.0.fixed.delta2],true)}}

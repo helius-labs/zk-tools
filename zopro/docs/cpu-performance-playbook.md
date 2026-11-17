@@ -182,13 +182,16 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
-The [bounded G2 batching candidate](benchmarks/2026-11-12-bundle-adoption178/README.md)
-passed all 33 local performance/resource checks and its remaining release checks;
-its exact runtime and native selector are adopted. Primary16 improves, while
-primary32 gain remains inconclusive. Start from this production baseline and
-retain its measured observer until a separately measured change replaces it.
-Do not make another batching parameter or generic harness the next experiment.
-Maintain one active qualification and at most one next exploratory question.
+The [generated-proof certificate](benchmarks/2026-11-17-certified-all196/README.md)
+passes all33 local performance/resource checks and portable release checks; its
+exact runtime is adopted with `ZOPRO_BENCH_CERTIFIED_OUTPUT=1`, alongside accepted
+fusion and indexed batching. Primary16 saves a paired34.055µs(0.385%);primary32
+gain remains inconclusive. Keep the52–64ms primary cold certificate cost visible:
+this is an explicit preparation opt-in, with ordinary validation without the flag.
+Start from this179file production baseline and retained SDKbcc8e077. No cosmetic
+rebuild or certificate/layout rescue sweep is queued. The all-eight CPU10xgoal
+remains unmet. Choose a distinct substantial work/dependency question against the
+retained profiles; maintain one active qualification and at most one next question.
 
 The previous queue entry missed the completed
 [solver-to-A streaming trial](benchmarks/2026-11-06-solver-a-stream176/README.md).

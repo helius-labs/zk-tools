@@ -28,7 +28,8 @@ fn raw_g1(bytes: &[u8]) -> Result<G1Affine, &'static str> {
 }
 
 /// A G2 point from gnark's raw encoding: x.c1, x.c0, y.c1, y.c0.
-fn raw_g2(bytes: &[u8]) -> Result<G2Affine, &'static str> {
+fn raw_g2(bytes: &[u8]) -> Result<G2Affine, &'static str> {raw_g2_policy(bytes,true)}
+fn raw_g2_policy(bytes: &[u8],check_subgroup:bool) -> Result<G2Affine, &'static str> {
     if bytes.iter().all(|&b| b == 0) {
         return Ok(G2Affine::IDENTITY);
     }
@@ -39,7 +40,7 @@ fn raw_g2(bytes: &[u8]) -> Result<G2Affine, &'static str> {
         ))
     };
     let point = G2Affine::new(fq2(0)?, fq2(64)?);
-    if !point.is_on_curve() || !point.is_in_subgroup() {
+    if !point.is_on_curve() || (check_subgroup && !point.is_in_subgroup()) {
         return Err("G2 point not on the curve");
     }
     Ok(point)
@@ -250,14 +251,15 @@ pub struct Proof {
 impl Proof {
     /// From `groth16::assemble`'s 256 bytes: Ar, Krs (x, y) then Bs (x.c1,
     /// x.c0, y.c1, y.c0), big endian.
-    pub fn from_raw(bytes: &[u8]) -> Result<Self, &'static str> {
+    pub fn from_raw(bytes: &[u8]) -> Result<Self, &'static str> { Self::from_generated_raw(bytes,false) }
+    pub(crate)fn from_generated_raw(bytes: &[u8],g2_certified:bool) -> Result<Self, &'static str> {
         if bytes.len() != 256 {
             return Err("a raw proof is 256 bytes");
         }
         Ok(Self {
             ar: raw_g1(&bytes[..64])?,
             krs: raw_g1(&bytes[64..128])?,
-            bs: raw_g2(&bytes[128..256])?,
+            bs: raw_g2_policy(&bytes[128..256],!g2_certified)?,
         })
     }
 

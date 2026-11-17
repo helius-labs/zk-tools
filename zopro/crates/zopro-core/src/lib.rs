@@ -821,6 +821,7 @@ pub struct Key {
     /// Shared, for a browser's CPU share of the G2 MSM on the pool while
     /// the proof's future awaits the GPU.
     b2: std::sync::Arc<Store<G2Affine>>,
+    generated_g2: generated_proof::G2InputCertificate,
     #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
     canonical_wires: bool,
     /// The FFT domain's size.
@@ -1493,6 +1494,7 @@ impl Key {
             k,
             z,
             b2: std::sync::Arc::new(b2),
+            generated_g2: Default::default(),
             #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
             canonical_wires: !cfg!(target_arch="wasm32") && lengths.iter().copied().max().unwrap_or(0)<(1<<16) && std::env::var("ZOPRO_CPU_CANONICAL_WIRES").as_deref()==Ok("1"),
             domain,
@@ -2385,3 +2387,16 @@ pub mod coalesce_query_probe{
 }
 
 mod fused_canonical_gather;
+
+pub mod generated_proof;
+impl Key {
+    /// Generate a fresh CPU proof. Point decoding retains all checks except a
+    /// subgroup check certified from this key's exact immutable G2 population.
+    pub fn solve_rerandomized_output(&self,witness:&[u8],fixed:&groth16::PreparedFixedPoints)->Result<generated_proof::GeneratedProof,String>{
+        let eligible=false;
+        #[cfg(all(target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",feature="ifma8",not(no_ifma)))]
+        let eligible=!self.has_gpu()&&self.b2.len()<65536&&std::env::var("ZOPRO_BENCH_CERTIFIED_OUTPUT").as_deref()==Ok("1");
+        let certified=eligible&&self.generated_g2.check(&self.b2,false)&&fixed.generated_g2_certified();
+        Ok(generated_proof::GeneratedProof::new(self.solve_rerandomized(witness,fixed)?,certified))
+    }
+}
