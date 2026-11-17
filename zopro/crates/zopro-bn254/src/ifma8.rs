@@ -738,6 +738,70 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
     }
 }
 
+impl<C: FpConfig> Ifma8<C, true> {
+    /// R256 value (self*b+c*d)/16, retaining normalized digits below 2p.
+    /// Raw R260 REDC supplies the scale; no representation codec is run.
+    #[inline(always)]
+    pub fn sum2_div16(&self, b: &Self, c: &Self, d: &Self) -> Self {
+        let a = Ifma8::<C, false>(self.0, PhantomData);
+        let b = Ifma8::<C, false>(b.0, PhantomData);
+        let c = Ifma8::<C, false>(c.0, PhantomData);
+        let d = Ifma8::<C, false>(d.0, PhantomData);
+        let value = a.sum2(&b, &c, &d);
+        Self(value.0, PhantomData)
+    }
+
+    /// R256 value (self*b-c*d)/16 with the existing complement product.
+    #[inline(always)]
+    pub fn difference2_div16(&self, b: &Self, c: &Self, d: &Self) -> Self {
+        let a = Ifma8::<C, false>(self.0, PhantomData);
+        let b = Ifma8::<C, false>(b.0, PhantomData);
+        let c = Ifma8::<C, false>(c.0, PhantomData);
+        let d = Ifma8::<C, false>(d.0, PhantomData);
+        let value = a.difference2(&b, &c, &d);
+        Self(value.0, PhantomData)
+    }
+}
+
+impl<C: FpConfig> Ifma8<C, true> {
+    /// Logical R256 value self*b/16; normalized inputs <=2p.
+    #[inline(always)]
+    pub fn mul_div16(&self, b: &Self) -> Self {
+        let a = Ifma8::<C, false>(self.0, PhantomData);
+        let b = Ifma8::<C, false>(b.0, PhantomData);
+        let value = a.mul(&b);
+        Self(value.0, PhantomData)
+    }
+    /// (sign*by-ay)*scale/16, for canonical by/ay and scale<2p, mixed R256.
+    /// The transient numerator is <=2p (the upper edge is negative zero).
+    /// For BN254 p<2^254, REDC(2p*2p)<p+4p^2/2^256<2p. It never escapes
+    /// before multiplication; normalized radix limbs meet the same carry bounds.
+    #[inline(always)]
+    pub fn signed_difference_scaled_div16(&self, ay: &Self, scale: &Self, negative: u8) -> Self {
+        assert!(C::P[3] < (1u64 << 62));
+        unsafe {
+            let p = split(C::P);
+            let twice = split(crate::portable::add4(C::P, C::P).0);
+            let flip = _mm512_maskz_mov_epi64(negative, Self::splat(MASK));
+            let mut carry = _mm512_maskz_mov_epi64(negative, Self::splat(1));
+            let mut t = [Self::splat(0); 5];
+            let mask = Self::splat(MASK);
+            for j in 0..5 {
+                let offset =
+                    _mm512_mask_blend_epi64(negative, Self::splat(p[j]), Self::splat(twice[j]));
+                let signed = _mm512_xor_si512(self.0[j], flip);
+                let v = _mm512_add_epi64(
+                    _mm512_sub_epi64(_mm512_add_epi64(offset, signed), ay.0[j]),
+                    carry,
+                );
+                t[j] = _mm512_and_si512(v, mask);
+                carry = _mm512_srai_epi64::<52>(v);
+            }
+            Self(t, PhantomData).mul_div16(scale)
+        }
+    }
+}
+
 impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
     /// Join two four-lane values without changing their Montgomery radix.
     #[inline(always)]
@@ -1469,3 +1533,7 @@ mod tests {
         check::<FrConfig, true>();
     }
 }
+
+#[path = "linear_carry.rs"]
+mod linear_carry;
+pub use linear_carry::UncarriedSum8;

@@ -776,7 +776,10 @@ impl<C: CurveConfig<Base = Fq>> BatchAdd<C> {
 struct FqAddGroup {
     ax: FqBatch,
     ay: FqBatch,
+    #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
     xsum: FqBatch,
+    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+    xsum: crate::simd::UncarriedXSum,
     denominator: FqBatch,
     numerator: FqBatch,
 }
@@ -839,10 +842,18 @@ fn signs<const SIGNED:bool,C:CurveConfig>(batch:&[(u32,impl std::borrow::Borrow<
 }
 #[inline(always)]
 fn scaled_signed_dy<const FAST:bool,const SIGNED:bool>(by:&FqBatch,ay:&FqBatch,chains:&FqBatch,negative:u8)->FqBatch {
+    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] {
+        if SIGNED {return by.signed_difference_scaled_div16(ay,chains,negative);}
+        return prefix_mul(&canonical_sub::<FAST>(by,ay),chains);
+    }
+
+    #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))] {
     #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
     if SIGNED {return by.signed_difference_scaled(ay,chains,negative);}
     if SIGNED {let values=by.get();let signed=core::array::from_fn(|i|if negative>>i&1!=0{-values[i]}else{values[i]});return canonical_sub::<FAST>(&FqBatch::new(&signed),ay).mul(chains);}
     canonical_sub::<FAST>(by,ay).mul(chains)
+
+    }
 }
 fn stream_g1_impl<C: CurveConfig<Base = Fq>, const FAST: bool, const SIGNED: bool>(
     buckets: &mut [Affine<C>],
@@ -869,14 +880,17 @@ fn stream_g1_impl<C: CurveConfig<Base = Fq>, const FAST: bool, const SIGNED: boo
                 core::ptr::addr_of_mut!((*slot).ax).write(ax);
                 let bx = FqBatch::new(&b.map(|p| p.x));
                 let denominator = canonical_sub::<FAST>(&bx, &ax);
-                core::ptr::addr_of_mut!((*slot).xsum).write(canonical_add::<FAST>(&ax, &bx));
+                core::ptr::addr_of_mut!((*slot).xsum).write({
+                    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] { FqBatch::uncarried_xsum(&ax,&bx) }
+                    #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))] { canonical_add::<FAST>(&ax, &bx) }
+                });
                 core::ptr::addr_of_mut!((*slot).denominator).write(denominator);
                 let ay = FqBatch::new(&a.map(|p| p.y));
                 core::ptr::addr_of_mut!((*slot).ay).write(ay);
                 let by = FqBatch::new(&b.map(|p| p.y));
                 let numerator = scaled_signed_dy::<FAST,SIGNED>(&by,&ay,&chains,signs::<SIGNED,C>(&batch[k..k+LANES]));
                 core::ptr::addr_of_mut!((*slot).numerator).write(numerator);
-                chains = chains.mul(&denominator);
+                chains = prefix_mul(&chains,&denominator);
                 // All five fields of this record are now initialized.
                 s.groups.set_len(k / LANES + 1);
             }
@@ -895,18 +909,21 @@ fn stream_g1_impl<C: CurveConfig<Base = Fq>, const FAST: bool, const SIGNED: boo
             // Host coordinates are canonical; only the resulting differences are lazy.
             let denominator = canonical_sub::<FAST>(&bx, &ax);
             let numerator = scaled_signed_dy::<FAST,SIGNED>(&by,&ay,&chains,signs::<SIGNED,C>(&batch[k..k+LANES]));
-            chains = chains.mul(&denominator);
+            chains = prefix_mul(&chains,&denominator);
             s.groups.push(FqAddGroup {
                 ax,
                 ay,
-                xsum: canonical_add::<FAST>(&ax, &bx),
+                xsum: {
+                    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] { FqBatch::uncarried_xsum(&ax,&bx) }
+                    #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))] { canonical_add::<FAST>(&ax, &bx) }
+                },
                 denominator,
                 numerator,
             });
         }
     }
     s.tail.clear();
-    let mut inverse = if let Some(value)=direct_chain_inverse(&chains,full==batch.len(),s.vector_inverse) {
+    let mut inverse = if let Some(value)=prefix_inverse(&chains,full==batch.len(),s.vector_inverse) {
         value
     } else {
         let mut tail = chains.get();
@@ -929,11 +946,14 @@ fn stream_g1_impl<C: CurveConfig<Base = Fq>, const FAST: bool, const SIGNED: boo
             let y = slope * (ax - x) - ay;
             buckets[batch_index::<SIGNED>(batch[k].0)] = Affine::new(x, y);
         }
-        FqBatch::new(&inverse)
+        prefix_tail_inverse(FqBatch::new(&inverse),full)
     };
     for (j, g) in s.groups.iter().enumerate().rev() {
-        let slope = g.numerator.mul(&inverse);
-        inverse = inverse.mul(&g.denominator);
+        let slope = prefix_mul(&g.numerator,&inverse);
+        inverse = prefix_mul(&inverse,&g.denominator);
+        #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+        let x = slope.mul(&slope).subtract_uncarried_xsum(&g.xsum);
+        #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
         let x = slope.mul(&slope).sub(&g.xsum);
         let y = slope.mul(&g.ax.sub(&x)).sub(&g.ay);
         let (x, y) = (x.get(), y.get());
@@ -2345,5 +2365,11 @@ mod adaptive_tree_tests {
 
 #[cfg(all(zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
 mod g2_borrowed;
+
+mod uniform_prefix;
+use uniform_prefix::{prefix_mul,prefix_norm,prefix_numerator,prefix_inverse,prefix_tail_inverse};
+
+#[cfg(all(test,zopro_g2_horner_buckets,zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+mod linear_carry_caller;
 
 #[cfg(zopro_indexed_tile_bundles)]mod indexed_tiles;

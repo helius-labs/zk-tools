@@ -343,6 +343,37 @@ impl FqBatch {
             .mul(&other_pair)
             .mul(&swapped)
     }
+    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+    #[inline(always)]
+    pub(crate) fn mul_div16(&self,b:&Self)->Self{Self(self.0.mul_div16(&b.0))}
+    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+    #[inline(always)]
+    pub(crate) fn sum2_div16(&self,b:&Self,c:&Self,d:&Self)->Self{Self(self.0.sum2_div16(&b.0,&c.0,&d.0))}
+    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+    #[inline(always)]
+    pub(crate) fn difference2_div16(&self,b:&Self,c:&Self,d:&Self)->Self{Self(self.0.difference2_div16(&b.0,&c.0,&d.0))}
+    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+    #[inline(always)]
+    pub(crate) fn signed_difference_scaled_div16(&self,ay:&Self,scale:&Self,negative:u8)->Self{Self(self.0.signed_difference_scaled_div16(&ay.0,&scale.0,negative))}
+    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+    /// Invert eight nonzero values with a product tree and one scalar inverse.
+    #[inline]
+    pub(crate) fn inverse_nonzero_scaled16(&self) -> Self {
+        use zopro_bn254::ifma8::Ifma8;
+        let swapped = Self(Ifma8::shuffle_pair::<1, 0, 3, 2>(&self.0, &self.0));
+        let pairs = self.mul(&swapped);
+        let other_pair = Self(Ifma8::shuffle_pair::<2, 3, 0, 1>(&pairs.0, &pairs.0));
+        let quads = pairs.mul(&other_pair);
+        let products = quads.get();
+        let inverse = zopro_bn254::uniform_prefix::div16_root(products[0] * products[4]).inverse().unwrap();
+        let (lo, hi) = quads.0.halves();
+        let other_quad = Self(Ifma8::from_halves(&hi, &lo));
+        Self::new(&[inverse; 8])
+            .mul(&other_quad)
+            .mul(&other_pair)
+            .mul(&swapped)
+    }
+
     #[inline(always)]
     pub(crate) fn one() -> Self {
         Self(zopro_bn254::ifma8::Ifma8::one())
@@ -791,4 +822,15 @@ fn packed_inverses_match_scalar_inverses() {
             assert_eq!(inverses[i], values[i].inverse().unwrap());
         }
     }
+}
+
+#[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+pub(crate) type UncarriedXSum = zopro_bn254::ifma8::UncarriedSum8<FqConfig,true>;
+#[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+impl FqBatch {
+    #[inline(always)] pub(crate) fn uncarried_xsum(a:&Self,b:&Self)->UncarriedXSum {
+        // Host X imports and all canonical .get() bucket writes are below p.
+        UncarriedXSum::from_canonical(&a.0,&b.0)
+    }
+    #[inline(always)] pub(crate) fn subtract_uncarried_xsum(&self,sum:&UncarriedXSum)->Self {Self(sum.subtract_from(&self.0))}
 }

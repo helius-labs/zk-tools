@@ -15,13 +15,13 @@ pub(super) fn apply<C: CurveConfig<Base = Fq2>, const FAST: bool>(
         }));
         let bx = fq2_pack(core::array::from_fn(|i| batch[k + i].1.x));
         let denominator = core::array::from_fn(|i| canonical_sub::<FAST>(&bx[i], &ax[i]));
-        let norm = Fq2::lanes_norm(&denominator);
+        let norm = prefix_norm(&denominator);
         s.prefix_records.push([chains, norm]);
-        chains = chains.mul(&norm);
+        chains = prefix_mul(&chains,&norm);
     }
     s.tail.clear();
     let mut inverse =
-        if let Some(value) = direct_chain_inverse(&chains, full == batch.len(), s.vector_inverse) {
+        if let Some(value) = prefix_inverse(&chains, full == batch.len(), s.vector_inverse) {
             value
         } else {
             let mut tail = chains.get();
@@ -46,7 +46,7 @@ pub(super) fn apply<C: CurveConfig<Base = Fq2>, const FAST: bool>(
                 let y = slope * (ax - x) - ay;
                 buckets[(batch[k].0 & 0x7fffffff) as usize] = Affine::new(x, y);
             }
-            FqBatch::new(&inverse)
+            prefix_tail_inverse(FqBatch::new(&inverse),full)
         };
     for j in (0..full / LANES).rev() {
         let k = j * LANES;
@@ -65,9 +65,15 @@ pub(super) fn apply<C: CurveConfig<Base = Fq2>, const FAST: bool>(
             core::array::from_fn(|i|canonical_sub::<FAST>(&by[i],&ay[i]))
         };
         let denominator=core::array::from_fn(|i|canonical_sub::<FAST>(&bx[i],&ax[i]));
-        let factor = s.prefix_records[j][0].mul(&inverse);
-        inverse = inverse.mul(&s.prefix_records[j][1]);
-        let slope = Fq2::lanes_scaled_numerator(&dy, &denominator, &factor);
+        let factor = prefix_mul(&s.prefix_records[j][0],&inverse);
+        inverse = prefix_mul(&inverse,&s.prefix_records[j][1]);
+        let slope = prefix_numerator(&dy, &denominator, &factor);
+        #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+        let x = if FAST {
+            let square=Fq2::lanes_square(&slope);
+            core::array::from_fn(|i| square[i].subtract_uncarried_xsum(&FqBatch::uncarried_xsum(&ax[i],&bx[i])))
+        } else { Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx)) };
+        #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
         let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));
         let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);
         let (x, y) = (fq2_unpack(x), fq2_unpack(y));

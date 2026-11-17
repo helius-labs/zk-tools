@@ -285,6 +285,8 @@ for name in ["compact_storage_roundtrip", "signed_difference_scaled_matches_arkw
     assert source.count(marker) == 1
     source = source.replace(marker, test + "\n" + marker)
 source = subprocess.check_output(["rustfmt", "--emit", "stdout", "--edition", "2021"], input=source, text=True)
+# Eight-lane-only linear sum; the arithmetic lives in its tested child.
+source += "\n#[path = \"linear_carry.rs\"]\nmod linear_carry;\npub use linear_carry::UncarriedSum8;\n"
 output = path.parent / "ifma8.rs"
 if "--check" in sys.argv:
     if output.read_text() != source:

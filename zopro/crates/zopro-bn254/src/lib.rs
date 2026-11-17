@@ -260,3 +260,7 @@ impl Fr {
         Some(root)
     }
 }
+
+pub mod uniform_prefix;
+#[cfg(all(test,target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+mod uniform_prefix_tests;
