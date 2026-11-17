@@ -1,0 +1,19 @@
+# Actual emitted store-width alignment
+
+Finalnative-v2SDK c4a57c54babb5729bf66a77dae1c2aa686d6d42829ed2c719bcac2d728ad4774.
+scalar_groupsbase0x233b90,size0x1e08. Prologue6pushes(48B),RSPand-32,sub0x1e0
+(480B). SysVentrymod16=8=>alignmentadjustmaximum24B;totalentrydelta<=552B,
+includingreturn<=560B. Thispassesdeclared2048Bboundwithout220'sexception.
+Old220pagealignedprototypeactivation16432B;newmarkerlogicalsize32B,not4096.
+
+Maincopy0x234c26VMOVAPS32B to[rsp+0x100]. RSPmod32=0,offset256mod32=0;
+thereforestoreaddressmod4096<=4064,32Bstorecannotcross4KiB. Reloads0x234c38/
+0x234c41are16Bhalveswithinthatspan. Native-v1/v2functiondisassemblyidentical
+whenfilenameheaderremoved. NoliveSPmeasurementofnewSDK;staticpropertyonly.
+StaticmechanismPASS; nohardwarecausality/latency/adoptionclaim.
+
+OnecoherentnewfinalONbinary,retainedREF2166d9ae8...andOFF220bd7938...,
+threeindependentbackingseach. Initialnative142PASS;finalnative2affectedentry
+oraclesPASS;finalsame-sourceportable103core+2proverPASS. Guardrepair/failures
+explicitinsource-repair.md. No additionalheap/mapbytes/fieldarithmetic/pool/
+keytableorcopy/defaultstackreservation. Fullproofmatrix16/32workersplanned.

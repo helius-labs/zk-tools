@@ -1,0 +1,25 @@
+# Pre-capture tracing guard repair
+
+Initialnative-v1 consumer passes142coretests; itsgroupfn uses32Bframealignment
+with560Bmaximumactivationincludingreturn. Initialportableworkflowattempt
+collideswiththehostexperimentlockbeforeANYcommand/rootcreation; retained
+portable-host-lock-attempt.log. Itisthenrunsequentially. Actualportable-core
+compilefails(E0433) atTWOold216group_begin/endcalls unguardedwhiletheirtrace
+moduleisnative-only. Newmarkerisinactiveonportable;failureisprivatebaseline
+instrumentation,nottheproduction179source. Oldsource/consumer/failure retained.
+
+Correctedsource-v2/overlay-v2 adds exacttrace-modulecfgattributes tothose2calls.
+Noalgorithm/field/marker/dependency/SDKdriver change. Native-v2coherentlyrebuilds
+core/dependents/SDK andruns2affectedexclusiveG2entryoracles (140filtered).
+All142native-v1checks,including53worker512KiB/concurrentgrouporacles,remain
+inherited; they are NOTclaimedas142reexecutedonv2. Theentiregroupfunction's
+header-strippeddisassembly isidenticalv1/v2 (savedbothlistings).Finalnative
+SDKc4a57c54babb5729bf66a77dae1c2aa686d6d42829ed2c719bcac2d728ad4774.
+
+Finalportable-v2 tests103core+2proverunfiltered,allPASS. Bothfinalconsumersuse
+samecorrectedsource-v2. Originalfailedportable-run preserved;no successful
+native-v1suiteorcaptureisreplayedforbookkeeping. AllrepairscompleteBEFOREANY
+221SDKpreflight/timing. Sourcepins/readersupdatedfor2changedparents/180exact
+versus216. No performance/calibration/CPU/RSSgate changes. No permissionneeded
+forauthorizedlocalfix;noquestions/push. Unusedpreparedbuild-OFFplanneverruns:
+OFFisexactretained220disabledconsumer,notafresh221build.

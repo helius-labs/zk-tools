@@ -1,0 +1,45 @@
+# Store-width-aligned grouping frame221
+
+Frozen before221source/build/SDK2026-11-17. Previousgoalturn220PROGRESS: actual
+4KiBmarkerremovesknown32Bpagecrossing andcutsgroupcycles42-44%,butwholeproof
+screenfails(ON/REF1.00762),instructions+2.26%,markerframe~16KiB.220fixedrecipe
+CLOSED. ThisengineeringfollowupderivesMINIMUMalignment32fromobservedstore
+width,notfromparameter/timingselection. Nointermediatealignmentsweep.
+
+Base216+exact220guard/testbutrepralign32 andsize/assert32. Nativecfgonly,one
+nonzero-bytefieldblack_boxlocal,noheap/keycopy/mapentry/pool/arithmeticchange.
+OnecoherentnewONbuild:all142nativecoretests (141old+same1workeroracle).
+Portablex86-64/noIFMA/noASMcore+provertests fromsamecurrentsource;inactivemarker
+mustpreserveportablepath. Reuse exact216REF andexact220disabledOFF;theyare
+retainedcontrols,NOTfreshlyrebuilt221controls. Sourceauditmustshowinactive
+cfgtransformationrecoversidentical216body/dependencies. NativeOFF142already
+qualifiedandnotreplayed. Sources/pins/readersfrozenbeforeANYSDKpreflight.
+
+StaticmechanismgateBEFORESDK:actualnewmainkeyspill32BalignedforEVERYcallerRSP
+andwithin4KiBpage;completeframeworst<=2048B inclsavedregisters/return. IfLLVM
+doesnotprovethis,stopwithoutparameterrescue. Thisisengineeringboundand
+mechanismtest,notglobalarchitecturalRAMcap. Recordactualinstructions/frame
+bytes; no1%instructionpredicateorclaimofsinglecausalfactorthisfollowup.
+
+Two1x2contexts:physical16CPUs0-15 andlogical32CPUs0-31,3rolesREF/OFF/ON,
+3independentbackings/arm and3fixedrotated/reversedblocks.3fourworker1timed+
+3prime smokes plus18main251timed+3prime=21Gnarkexports/4584SDKcalls/4521recorded
+requests. BoolOFFall,nativeTrace/PMUON/root,allmainbeforelateGnark/analysis,
+noownedCPUcojobsduringcapture. Seed22059074SHA
+95544b6be55076ff5c759db9007f6576ae400533f58a028a012b7469d373fc83.
+
+ReadyforqualificationiffPRIMARY32pairedON/REFandON/OFFSDKmeanmedians<1 with
+>=2/3wins;physical16eachmedian<=1.02;CPUeachcontext/controlmedian<=1.02;
+maxRSS<=1.10control+8MiB;OFF/REFcalibrationeachcontextwithinfactor1.03. No
+minimumgainfloor. Perrecordevents/workerplacement/CPUclock/PMUschema/coverage
+>=99%/route/freshproof/pins/receipt/sourcechecksmandatory. Twoindependentraw
+readerscomputeallgates. Anypositivepointretained; nooutcomeexclusion,unchanged
+sampleextension,favorablecopy/workerchoiceor220decisionrevision. Automatic
+stageCPU/PMUprofilesalltimedrequests;219PC/SPprofilesarepriorcontext,notnew
+actualSPmeasurement. NoexternalPCcaptureforbookkeeping.
+
+Thisispreliminaryscreen,notadoption/allshape/ARM/pressurequalification.
+Ifpositive:accepted194exactdefault/generic/all8+54qualifybeforepromotion.
+NoAWSlaunchhere. Commitlocal/no push/questions/subagents/Python/C/ASM/giantLUT/
+newpool. Originalall8verifiedCPU10x+MetalgoalACTIVEUNMET0/8. Firstresultallowance
+30minfromthisfreeze. Keepold220failsand219correlationaccurate.
