@@ -182,6 +182,20 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
+The [exact adopted SDK C7a campaign](benchmarks/2026-11-17-accepted-c7a201/README.md)
+now covers all eight supplied shapes plus merge54 at32/96 physical cores.
+Primary ON is11.098/12.515ms; retained Aeglos Sorted12.143/8.311ms. The adopted
+certificate flag improves primary32 versus its same-SDK OFF control (paired
+0.986170, interval upper0.999130);96 remains inconclusive. All224 new distinct
+exports pass independent Gnark verification; canonical inventory58257. All16
+M5 worker-context checks fail, so the all-eight goal remains0/8. Source unchanged.
+The last three studies change the scaling assumption:199 rules out a cache-
+capacity-only explanation;200 shows more tasks can improve96 without lowering
+best latency;201 shows96 helps24x2/merge54 while primary worsens. Do not describe
+the problem as a universal high-core failure or solely RAM capacity. Select a
+distinct complete-caller work/dependency reduction; no unchanged baseline rerun,
+tree/width sweep or next algorithm is queued. All owned cloud resources are gone.
+
 The [unshifted G2 tree C7a test](benchmarks/2026-11-17-bucket-tree-c7a200/README.md)
 closes another scaling-only route. Primary96 improves 23.90% with 9/9 wins and no
 retained table, but best tree latency 4.916 ms loses to streaming 4.870 ms at32;
