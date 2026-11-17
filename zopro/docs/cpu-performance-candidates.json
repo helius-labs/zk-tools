@@ -325,6 +325,30 @@
         "status": "observed_admission_equal"
       },
       "sdk_sha256": "84a472c6cd1a1eca40c9010d330aeea870ceb8e54381384bd163c2b626b3a6fe"
+    },
+    {
+      "adoption": {
+        "canonical_verified_exports": 59000,
+        "remaining": [],
+        "status": "diagnostic_only_not_adopted"
+      },
+      "change": "Per-worker initializedcycles/instructions userPMU groups aroundserialG2grouping",
+      "correctness": {
+        "evidence": "benchmarks/2026-11-17-group-pmu214/README.md",
+        "scope": "6focusedtests;16freshGnarkexports/3064SDKcalls;32receipt reader+CPU/PMUreaders;1508active+1508zerorecords",
+        "status": "native_diagnostic_pass"
+      },
+      "id": "group-pmu214",
+      "parent_id": "group-cpu211",
+      "performance": {
+        "scope": "100%coverageallrecords,bothobserverchecks pass;3blockinstructionratios1.000066/1.000074/1.000216,cycle ratios.540713/.573906/.547718;CPIchangesstrongly,notlessinstructionwork",
+        "status": "qualified_diagnostic_not_adoption"
+      },
+      "resources_and_compatibility": {
+        "scope": "2ownedFDs/worker initializedbeforeload/primes;allcontrolsroot;no production/resource/portableclaim",
+        "status": "diagnostic_only"
+      },
+      "sdk_sha256": "74604011e4fc33805b08305400ec5d993e0e167e889042a85fdecea291f97ab2"
     }
   ],
   "historical_followups": [
@@ -460,7 +484,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "213exactSDKaudit findsidenticalG2/Aadmission(alltrue),excludes thatshortcut in4calls/arm.211runningCPUshift and212inputequality remain; proceedtargetedthreadinstructions/cycles withallworkersinitializedbeforeprimes androotobservercontrols. Noalignment/cache/SMTcauseclaim.209closed;production194/196unchanged,goal0/8. Canonical58984/d74fcf01f908dd8b5b8eb1bd36fbd31c222b55ce8d880e4a008e614189dd2fd4. Localcommits/no push.",
+  "next_action": "214hardwareprobe:~3.613Minstructionsboth,cycles8.27Mvs4.52M,CPI2.29vs1.25;100%coverage/bothobserverguards pass. Identicalinputs/code/admission;executioncostdiffers,notfewermath/instructions. Controlled scalar-bufferlayout intervention next: sameallocator/capacity/logic,force16vs32mod64,BooleanOFF,recordactualoffset/perstagePMU/fullSDKwall;noalignmentcauseclaimeduntiltested. Checkhistoricalsourceavoidrepeatingpointtreealignmentvariants.209closed,production194/196unchanged,goal0/8;canonical59000/ab79c6d417c61ad2817e42608fabaa6b54f544aabab18b0a168b3c97b26489db. No push.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",

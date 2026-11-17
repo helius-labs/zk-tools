@@ -1,0 +1,37 @@
+# Serial grouping PMU diagnostic214
+
+Frozenbefore214build/capture2026-11-17.213exactSDKaudit foundsameadmission(alltrue)
+withsamepeaks in4calls/arm;211CPUshiftisrunningtime;212actualscalarinputs equal
+acrossarmsandfixture. Originalall8CPU10xgoalactive0/8,209recipeclosed/notadopted.
+TestwhethergroupingCPUshiftcorrespondstoinstructioncountorcyclesperinstruction,
+not another optimization/timingretry. Noexpectedhardwareanswerimposed.
+
+Copy211source,addthreadlocalLinuxperfgroup(cycles:u,instructions:u)readbrackets
+insideexistingserialgroupCPUbrackets. ReadIDsmapevents;exclude kernel/hypervisor,
+noinherit,2ownedFDs/worker,closeonDrop. InitializeeveryworkerBEFOREkeyload/primes,
+allfourBooleanOFF/ONxtraceOFF/ONmodesasroot(sudo-n env)withPMUinitialized;traceOFF
+skipsread/storeonly. Nativeexisting6focusedfunctionaltests beforecapture(newPMU
+flagabsent);4SDKsmokesproveactualcounterIOCTL/readformat/monotonicIDs/coverage.
+No pointtable/newpool,field/MSM/solver/grouping/memorypolicy/inputchange.
+
+Threeindependentbinarybackings,3rotatedreversedblocks,primary1x2/32only.
+4four-worker1timed+3prime SDKsmokes+12main251timed+3primeprocesses=16exports,
+3064SDKcalls. AllmaincapturesbeforelateGnark;noownedCPUcojobs. Seed21358984
+SHA d74fcf01f908dd8b5b8eb1bd36fbd31c222b55ce8d880e4a008e614189dd2fd4.
+Samecert/fused/indexedflags. AllworkerPMUinitializationrecordedandrootUIDchecked.
+
+RetainallCPU/walleventsandnew8-wordPMU(start/endcycles,instructions,enabled,
+running)records. TraceOFFallzero. TraceONstart/endmonotonic,positivecycle/instr/
+enabled/runningdeltas,running<=enabled+1us,covers>=99%enabled perrecord,stable
+workertags/allprevious211event/clock/proofchecks. DoNOTscalecounters ordiscard
+records; ifanyqualityfailsreportinconclusive(notnewlatencyspeedup). BothBoolean
+states medtraceON/OFF wholeSDKwall ratio mustlie[1/1.05,1.05] beforeinterpreting.
+Reportperprocessmedianinstr/cycles/CPI,pairedON/OFF ratios andallqualityminima.
+
+Instructionsdifferenceindicatesdifferentdynamicexecution,notfewermathematicalops
+withoutcodepathaudit;equalinstranddifferentcyclespoints towardexecutioncost,
+notproofcache/SMT/frequencycause. IfpriorCPUphasegapnotreproduced,newartifactdoes
+notsettleoldmechanism. AlwaysstatekernelworkexcludedfromPMUbutincludedthreadCPU.
+No confidence/adoption/new209samples. Firstresultallowance20min;commitlocally,
+no push/AWS/portable/pressure/concurrencyclaim. No rawkeys/scalars/proofs/full
+ledgers/binaries inreport. Goalall8unchanged,notfinishedbydiagnosticcompletion.
