@@ -1,0 +1,425 @@
+{
+  "PMU_ratios": [
+    {
+      "branch-misses:u": {
+        "median": 0.9898872562380642,
+        "paired_ratios": [
+          0.9891618415735259,
+          0.9983543396763448,
+          0.9898872562380642
+        ]
+      },
+      "cache-misses:u": {
+        "median": 1.0014618617086237,
+        "paired_ratios": [
+          1.0014618617086237,
+          1.008595392122997,
+          0.9825801676654232
+        ]
+      },
+      "context": "1x2-w16",
+      "cycles:u": {
+        "median": 0.9763091209385841,
+        "paired_ratios": [
+          0.9705218287217309,
+          0.9860243644280474,
+          0.9763091209385841
+        ]
+      },
+      "instructions:u": {
+        "median": 0.9789442897371178,
+        "paired_ratios": [
+          0.9789442897371178,
+          0.978872714639998,
+          0.979024785206471
+        ]
+      }
+    },
+    {
+      "branch-misses:u": {
+        "median": 0.9967999202831536,
+        "paired_ratios": [
+          0.9967999202831536,
+          0.9984137831770735,
+          0.9954729745665819
+        ]
+      },
+      "cache-misses:u": {
+        "median": 1.0010509418852909,
+        "paired_ratios": [
+          0.9923550249090932,
+          1.0010509418852909,
+          1.0641523527706074
+        ]
+      },
+      "context": "1x2-w32",
+      "cycles:u": {
+        "median": 0.9865470927640118,
+        "paired_ratios": [
+          0.97579693875919,
+          0.9868159931168639,
+          0.9865470927640118
+        ]
+      },
+      "instructions:u": {
+        "median": 0.9792776778389659,
+        "paired_ratios": [
+          0.9792195184261335,
+          0.9799170481798265,
+          0.9792776778389659
+        ]
+      }
+    }
+  ],
+  "additional_retrospective_5percent_plus1MiB_RSS_comparison_all_pass": true,
+  "canonical_count": 61104,
+  "canonical_sha256": "40c7d386963090fd69829225e51b35a7256ee7301348e4025957ca372bfa3e6c",
+  "generic_tests": 122,
+  "native_tests": 185,
+  "observer_checks": [
+    {
+      "arm": "REF",
+      "context": "1x2-w16",
+      "median_ratio": 1.0064603269337855,
+      "panel": "stat",
+      "passed": true
+    },
+    {
+      "arm": "REF",
+      "context": "1x2-w16",
+      "median_ratio": 1.0052696056990966,
+      "panel": "cycles",
+      "passed": true
+    },
+    {
+      "arm": "ON",
+      "context": "1x2-w16",
+      "median_ratio": 1.0027598301707648,
+      "panel": "stat",
+      "passed": true
+    },
+    {
+      "arm": "ON",
+      "context": "1x2-w16",
+      "median_ratio": 0.9990761227221252,
+      "panel": "cycles",
+      "passed": true
+    },
+    {
+      "arm": "REF",
+      "context": "1x2-w32",
+      "median_ratio": 1.0023363085617434,
+      "panel": "stat",
+      "passed": true
+    },
+    {
+      "arm": "REF",
+      "context": "1x2-w32",
+      "median_ratio": 1.0047240783157656,
+      "panel": "cycles",
+      "passed": true
+    },
+    {
+      "arm": "ON",
+      "context": "1x2-w32",
+      "median_ratio": 1.002524303304846,
+      "panel": "stat",
+      "passed": true
+    },
+    {
+      "arm": "ON",
+      "context": "1x2-w32",
+      "median_ratio": 1.0035815683971196,
+      "panel": "cycles",
+      "passed": true
+    }
+  ],
+  "profile_export_count": 36,
+  "profiles": [
+    {
+      "arm": "REF",
+      "context": "1x2-w16",
+      "samples": 25310,
+      "top_symbols": [
+        {
+          "samples": 6601,
+          "share": 0.26080600553141053,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "samples": 4654,
+          "share": 0.1838798893717898,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 1793,
+          "share": 0.07084156459897274,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+        },
+        {
+          "samples": 1270,
+          "share": 0.050177795337811144,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 1219,
+          "share": 0.048162781509284866,
+          "symbol": "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 1213,
+          "share": 0.04792572105887001,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 914,
+          "share": 0.03611220861319637,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+        },
+        {
+          "samples": 798,
+          "share": 0.03152903990517582,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+        },
+        {
+          "samples": 657,
+          "share": 0.025958119320426708,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+        },
+        {
+          "samples": 458,
+          "share": 0.018095614381667326,
+          "symbol": "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 412,
+          "share": 0.016278150928486765,
+          "symbol": "[unknown]"
+        },
+        {
+          "samples": 376,
+          "share": 0.014855788225997629,
+          "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+        }
+      ],
+      "unknown_share": 0.016278150928486765
+    },
+    {
+      "arm": "ON",
+      "context": "1x2-w16",
+      "samples": 24728,
+      "top_symbols": [
+        {
+          "samples": 6251,
+          "share": 0.2527903591070851,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "samples": 4371,
+          "share": 0.1767631834357813,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 1817,
+          "share": 0.07347945648657392,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+        },
+        {
+          "samples": 1355,
+          "share": 0.05479618246522161,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 1177,
+          "share": 0.04759786476868327,
+          "symbol": "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 1146,
+          "share": 0.046344225169847944,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 904,
+          "share": 0.036557748301520546,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+        },
+        {
+          "samples": 773,
+          "share": 0.031260109996764804,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+        },
+        {
+          "samples": 655,
+          "share": 0.026488191523778713,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+        },
+        {
+          "samples": 436,
+          "share": 0.017631834357813004,
+          "symbol": "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 359,
+          "share": 0.014517955354254286,
+          "symbol": "<zopro_core::solver::Plan>::run"
+        },
+        {
+          "samples": 352,
+          "share": 0.014234875444839857,
+          "symbol": "[unknown]"
+        }
+      ],
+      "unknown_share": 0.014234875444839857
+    },
+    {
+      "arm": "REF",
+      "context": "1x2-w32",
+      "samples": 36014,
+      "top_symbols": [
+        {
+          "samples": 7908,
+          "share": 0.21958127394901983,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "samples": 5955,
+          "share": 0.16535236296995612,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 3255,
+          "share": 0.09038151829843949,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+        },
+        {
+          "samples": 2321,
+          "share": 0.06444715943799634,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+        },
+        {
+          "samples": 1684,
+          "share": 0.046759593491420004,
+          "symbol": "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 1650,
+          "share": 0.04581551618814905,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 1547,
+          "share": 0.04295551729882823,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 1145,
+          "share": 0.031793191536624646,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+        },
+        {
+          "samples": 1026,
+          "share": 0.02848892097517632,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+        },
+        {
+          "samples": 674,
+          "share": 0.018714944188371187,
+          "symbol": "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 654,
+          "share": 0.018159604598211806,
+          "symbol": "[unknown]"
+        },
+        {
+          "samples": 491,
+          "share": 0.01363358693841284,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+        }
+      ],
+      "unknown_share": 0.018159604598211806
+    },
+    {
+      "arm": "ON",
+      "context": "1x2-w32",
+      "samples": 35429,
+      "top_symbols": [
+        {
+          "samples": 7460,
+          "share": 0.2105619690084394,
+          "symbol": "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>"
+        },
+        {
+          "samples": 5739,
+          "share": 0.16198594371842276,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 3157,
+          "share": 0.08910779305089052,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+        },
+        {
+          "samples": 2221,
+          "share": 0.06268875779728471,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+        },
+        {
+          "samples": 1773,
+          "share": 0.05004374947077253,
+          "symbol": "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 1649,
+          "share": 0.04654379180897005,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>"
+        },
+        {
+          "samples": 1554,
+          "share": 0.043862372632589124,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 1137,
+          "share": 0.032092353721527564,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine"
+        },
+        {
+          "samples": 1044,
+          "share": 0.029467385475175703,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+        },
+        {
+          "samples": 663,
+          "share": 0.018713483304637443,
+          "symbol": "<&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 662,
+          "share": 0.018685257839622906,
+          "symbol": "[unknown]"
+        },
+        {
+          "samples": 490,
+          "share": 0.013830477857122696,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+        }
+      ],
+      "unknown_share": 0.018685257839622906
+    }
+  ],
+  "quality_passed": true,
+  "retrospective_comparison_does_not_change_original_decisions": true,
+  "timing": {
+    "active_SDK_seconds": 90.356291293,
+    "capture_allowance_seconds": 600,
+    "capture_span_seconds": 90.39111161231995,
+    "explanation": "229 source/protocol prepared while228 qualification was still running; elapsed preparation includes waiting for that mandatory predecessor and its review. Active preparation not separately instrumented.",
+    "method": "Command/exit/review file timestamps bound descriptive spans; active commands use xtask elapsed_ms, not instrumented phase timers.",
+    "preparation_allowance_exceeded": false,
+    "preparation_allowance_seconds": 1800,
+    "preparation_wall_including_wait_for228_seconds": 1761.0956072807312,
+    "protocol_to_independent_review_seconds": 1865.6898937225342
+  }
+}
