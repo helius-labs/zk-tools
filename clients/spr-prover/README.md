@@ -11,6 +11,12 @@ Also runs in **Node.js 24+** through `@heliuslabs/spr-web-prover/node`, with
 multithreaded WASM, optional WebGPU acceleration, and a persistent key cache.
 See the [Node guide](packages/web-prover/README.md#nodejs).
 
+**Start with the [public quickstart](packages/web-prover/README.md#quickstart-node)**
+for copyable source-preview setup, Node and browser proofs, SDK transactions and
+runtime requirements. The npm `0.7.0-alpha` release predates the `/node` and `/sdk`
+entries; use the pinned source checkout documented there. This prover is
+experimental and unaudited; use test funds only.
+
 **Performance.** In Chrome at four threads on an Apple M5 Pro with WebGPU, a warm proof takes about 0.06–0.43 s for 1–24 notes (0.08 s for 2×2). CPU-only is slower (0.28 s for 2×2, 2.6 s for 24×2). The first load of a shape adds key download and decode; later loads use a cached raw form (tens of milliseconds).
 
 ## Packages
@@ -20,8 +26,8 @@ See the [Node guide](packages/web-prover/README.md#nodejs).
 - `examples/browser` — synthetic-request benchmark and timing harness.
 - [Minimal Node TypeScript example](examples/node) — preload a key and prove locally.
 
-The protocol pin is **v0.8.0-alpha**,
-`c4062d3860965855e47268f61b01a27e774096eb`. Applications supply their RPC,
+The protocol pin is **v0.9.0-alpha**,
+`abed9d6350f4524ad7486e94427a3025878b0633`. Applications supply their RPC,
 indexer and remote prover URLs and reviewed TEE policy. Deployment configuration
 lives in the [wallet example](examples/wallet/src/deployments.ts), which selects
 `SignedTeePolicy.forNetwork("devnet" | "mainnet")` from the protocol SDK. The prover
@@ -41,7 +47,9 @@ npm run dev         # benchmark
 npm run dev:wallet  # after setup in examples/wallet/README.md
 ```
 
-`npm run setup` builds the prover (needs Rust `nightly-2025-11-15` with `wasm32-unknown-unknown` and `rust-src`, plus wasm-bindgen 0.2.128) and installs the demo 2×2 key. Apps that only `npm install` the published package need a bundler, not Rust.
+`npm run setup` builds the prover and installs the demo 2×2 key. Install the
+pinned Rust/WASM prerequisites from the public quickstart first. Released
+packages include built WASM; their consumers do not need Rust.
 
 Threaded proving needs cross-origin isolation (the demo Vite server sends COOP/COEP). Use `threads: 0` when isolation is unavailable.
 

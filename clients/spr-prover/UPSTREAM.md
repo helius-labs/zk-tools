@@ -1,8 +1,8 @@
 # Upstream
 
-`upstream.lock.json` pins protocol SDK 0.8.0-alpha at release tag
-`ts-sdk-v0.8.0-alpha`, source `6bb4f7008294695ebe614f08affb215d4321a538`
-([#521](https://github.com/helius-labs/zolana/pull/521)). CI also builds and packs
+`upstream.lock.json` pins protocol SDK 0.9.0-alpha at release tag
+`ts-sdk-v0.9.0-alpha`, source `abed9d6350f4524ad7486e94427a3025878b0633`.
+CI also builds and packs
 this exact commit to check wallet compatibility. Local clients select
 `proofDataSource: "client"`; remote merge clients use the SDK's signed policies
 and `/v1/spr`, `/attestation`, `Spr-Tee*` protocol.

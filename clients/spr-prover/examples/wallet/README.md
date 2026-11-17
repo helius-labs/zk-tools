@@ -1,6 +1,6 @@
 # Private wallet with local proving and TEE merges
 
-A private wallet on devnet-e using SDK 0.8.0-alpha. Transfers and withdrawals are proved in the browser with at most eight input notes. If a payment, including its app fee, needs more notes, merge them through the TEE first.
+A private wallet on devnet-e using SDK 0.9.0-alpha. Transfers and withdrawals are proved in the browser with at most eight input notes. If a payment, including its app fee, needs more notes, merge them through the TEE first.
 
 The whole integration is in [`src/zolana.ts`](src/zolana.ts):
 
@@ -28,7 +28,8 @@ Merges use a separate SDK client and `LocalKeys` bound to its remote proof servi
 
 ## Run
 
-From the repository root:
+From `clients/spr-prover`, after the
+[source-preview toolchain setup](../../packages/web-prover/README.md#quickstart-node):
 
 ```sh
 npm ci
@@ -49,7 +50,7 @@ dedicated testing account, and use a wallet signer in a production application.
 Endpoint overrides retain the selected network's policy, including through a
 proxy; a different enclave requires a reviewed policy in the application.
 
-v0.6.0-alpha uses shielded-pool program
+The configured shielded-pool program is
 `ring1GaLCuJnkUMVkX2JeZLTTX17wKsV4fZmPVzXANW`. Notes and pending transactions
 from earlier program IDs cannot be used in this deployment. The old browser
 storage entry is preserved for recovery with the older SDK.
