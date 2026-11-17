@@ -88,6 +88,13 @@ precedes late verification/analysis, without owned CPU cojobs. All SDK/export
 commands succeeded on their first execution; the preparation compile failure
 above remains separate. No cloud resources or new profiler were used.
 
+Preparation took about305s; smoke and main capture spans were1.09s and64.87s.
+Active SDK commands total65.93s and Gnark commands4.28s; final review finished
+6.31s after the last verifier. Protocol creation to final review was393.25s.
+These descriptive spans use command/exit/review file timestamps, while active
+command durations come from xtask receipts; they are not instrumented monotonic
+phase timers. Both declared time allowances were met. [Timing](artifacts/timing.json).
+
 The next step is qualification of this exact binary across all eight shapes
 and merge54, with current CPU diagnostics, portable checks, memory and latency
 tradeoffs. Full CPU/Metal comparisons will use that campaign's results; accepted
