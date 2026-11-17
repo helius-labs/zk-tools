@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { SprNodeProver, shapeByLabel } from "@heliuslabs/spr-web-prover/node";
 
-const prover = new SprNodeProver({});
+const prover = new SprNodeProver({ threads: 4, gpu: "off" });
 
 try {
   await prover.ensureKey(shapeByLabel("2x2"));
