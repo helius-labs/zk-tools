@@ -182,6 +182,14 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
+The [central G2 denominator check](benchmarks/2026-11-17-g2-central-equality198/README.md)
+is closed after its short query screen: primary32paired0.997817but only2/3wins,
+below its fixed3/3progression rule. Profiles show0.47–0.60%fewer whole-caller
+instructions and mixed cycles; all16quality guards pass. This does not reopen
+the screen or establish a proof gain. Stop further equality/identity/bounds
+metadata variants as the main breakthrough track. No runtime change is adopted;
+choose a distinct reduction in complete-caller arithmetic or algorithmic work.
+
 The [prepared G2 C7a screen](benchmarks/2026-11-17-shifted-c7a197/README.md)
 closes the exact masked188recipe on both tested hosts. At96physical workers its
 primary query improves7.35%(9/9wins),but best prepared latency5.868ms loses to
