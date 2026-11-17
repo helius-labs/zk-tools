@@ -1,3 +1,5 @@
+import { proverClass } from "./prover.js";
+
 export function initializer(load) {
   let initialization;
   let configuredThreads;
@@ -29,7 +31,7 @@ export function initializer(load) {
       }
       let closing;
       return Object.freeze({
-        SprProver: module.SprProver,
+        SprProver: proverClass(module.SprProver),
         threads,
         close() {
           closed = true;

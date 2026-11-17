@@ -5,6 +5,18 @@ Both environments use the same `init` and `SprProver` API. Conditional exports
 select the worker host: Node's `worker_threads` or browser module workers.
 The threaded hosts share one WASM binary. Proofs are verified before returning.
 
+The prover implements `ProofService` from `@heliuslabs/spr` 0.9.0-alpha:
+
+```ts
+prove(inputs: ProverInputs, context?: RequestContext): Promise<Proof>;
+proveMerge(inputs: MergeInputs, context?: RequestContext): Promise<Proof>;
+```
+
+Inputs are the SDK's typed objects, including their `bigint` fields. The
+returned `Proof` is the same as a server proof: `a` and `c` are 64-byte
+`Uint8Array`s and `b` is 128 bytes. The SDK's serializer and proof decoder
+handle the WASM boundary, including negating A for Solana's pairing verifier.
+
 ```js
 import { init } from "@heliuslabs/zopro-spr";
 
@@ -12,21 +24,29 @@ const runtime = await init({ threads: 4 });
 let prover;
 try {
   prover = new runtime.SprProver(keyBytes); // Uint8Array of a checked .zopro key
-  const { proof, proveMs, verifyMs } = await prover.prove(requestJson);
-  // proof is the protocol prover's JSON response, including provingKeySha256.
+  const proof = await prover.prove(inputs); // SDK ProverInputs -> SDK Proof
+  const valid = prover.verify(inputs, proof);
 } finally {
   prover?.free();
   await runtime.close();
 }
 ```
 
+The same prover can be passed directly as the `ProofService` argument to
+`LocalKeys.fromKeypair(keypair, prover)`. A loaded key serves its own circuit
+and shape. Load the appropriate checksum-verified key for the inputs to prove.
+`verifyMerge(inputs, proof)` is the merge counterpart of `verify`.
+
 Use `threads: 0` (the default) for the single-threaded build, or 1–64 for a
 Rayon pool. Initialize once per JavaScript worker with a fixed thread count.
 Free loaded provers before calling `close()`, which terminates the pool; to
 initialize again after closing or a startup failure, start a new worker.
-Finish pending proofs before freeing a prover or closing its runtime.
+Finish pending proofs before freeing a prover or closing its runtime. Request
+contexts reject pre-aborted calls and discard results after cancellation or a
+timeout; CPU work already executing cannot be interrupted by the calling
+thread. Host the runtime in a worker when immediate cancellation is needed.
 
-The caller provides keys and requests. Check `.zopro` bytes against a trusted
+The caller provides keys and SDK inputs. Check `.zopro` bytes against a trusted
 deployment's size and SHA-256 before loading them, and check `prover.digest()`
 against its source gnark key pin. Transaction construction, RPC and indexer
 access remain in the protocol SDK. See [zopro](../../README.md) for supported
@@ -42,24 +62,30 @@ proving work block the calling thread.
 After building, run the [CLI example](examples/prove.mjs):
 
 ```sh
-npm run example -- /path/transfer_confidential_2_2.zopro /path/request.json 4
+npm run example -- /path/transfer_confidential_2_2.zopro /path/inputs.mjs 4
 ```
+
+The input module default-exports the SDK `ProverInputs` or `MergeInputs`
+object built by your application. Bigints stay as bigints; applications do
+not encode prover request JSON or decode server proof JSON themselves.
 
 ## Browser
 
-Call the same API inside a dedicated module worker. A browser bundler selects
-the package's default export; a static ESM deployment can import
-`./src/browser.js` from the extracted package. Serve its `src/` and `runtime/`
-directories together, with `application/wasm` for `.wasm` files. The worker
-hosts its Rayon workers itself; proving never moves to a remote server.
+Call the same API inside a dedicated module worker. Use a browser bundler
+such as Vite, which selects the browser export and emits the module workers
+and WASM assets. The worker hosts its Rayon workers itself; proving never
+moves to a remote server. Install the `@heliuslabs/spr` peer dependency in
+the application too.
 
 The [browser worker example](examples/browser-worker.js) takes checked key
-bytes and a request. From a page served beside the extracted package:
+bytes and typed SDK inputs. From a Vite application with that worker:
 
 ```js
-const worker = new Worker("./examples/browser-worker.js", { type: "module" });
+const worker = new Worker(new URL("./browser-worker.js", import.meta.url), {
+  type: "module",
+});
 worker.onmessage = ({ data }) => console.log(data);
-worker.postMessage({ key: keyBytes, request: requestJson, threads: 4 });
+worker.postMessage({ key: keyBytes, inputs, threads: 4 });
 ```
 
 For `threads` greater than zero, use HTTPS (or localhost) and serve the page
@@ -99,8 +125,11 @@ without Rust. The build replaces wasm-bindgen-rayon's generated browser helper
 import with the appropriate worker host; its import shape is checked before
 rewriting. Neither runtime changes the Rust kernel or its randomness source.
 
-Proof tests download the checksum-pinned 2x2 key from `tools/spr/zopro-keys.lock`
-once into ignored `test/keys/`. They prove twice with 0, 1, 2 and 4 threads,
+Proof tests download the checksum-pinned 2x2 transfer and 8-input merge keys
+from `tools/spr/zopro-keys.lock` once into ignored `test/keys/`. Transfers
+prove twice with 0, 1, 2 and 4 threads; merges prove twice with 4 threads. Tests
 verify each result, check that all three proof points differ, reject a changed
 public input and a malformed request, and close the runtime. Browser tests
-also cover missing isolation and missing cryptographic randomness.
+also cover missing isolation and missing cryptographic randomness. Codec tests
+compare serialized transfer and merge inputs with the protocol fixtures and
+check exact compatibility with the SDK's server proof decoder.

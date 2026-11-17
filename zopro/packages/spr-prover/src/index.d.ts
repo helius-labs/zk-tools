@@ -1,17 +1,18 @@
-export interface ProofResult {
-  readonly proof: string;
-  readonly witnessMs: number;
-  readonly proveMs: number;
-  readonly verifyMs: number;
-}
+import type {
+  MergeInputs,
+  Proof,
+  ProofService,
+  ProverInputs,
+} from "@heliuslabs/spr/client";
+export type { MergeInputs, Proof, ProverInputs } from "@heliuslabs/spr/client";
 
-export interface SprProver {
+export interface SprProver extends ProofService {
   name(): string;
   digest(): string;
   inputs(): number;
   outputs(): number;
-  prove(request: string): Promise<ProofResult>;
-  verify(request: string, proof: string): boolean;
+  verify(inputs: ProverInputs, proof: Proof): boolean;
+  verifyMerge(inputs: MergeInputs, proof: Proof): boolean;
   export_raw(): Uint8Array;
   free(): void;
 }

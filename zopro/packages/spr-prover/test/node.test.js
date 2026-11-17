@@ -23,3 +23,20 @@ for (const threads of [0, 1, 2, 4]) {
     },
   );
 }
+
+test(
+  "Node: SDK proveMerge with an 8-input key",
+  { timeout: 120_000 },
+  async () => {
+    const { stdout } = await promisify(execFile)(
+      process.execPath,
+      [
+        fileURLToPath(new URL("./node-proof.mjs", import.meta.url)),
+        "4",
+        "merge",
+      ],
+      { timeout: 110_000 },
+    );
+    assert.equal(JSON.parse(stdout.trim()).threads, 4);
+  },
+);

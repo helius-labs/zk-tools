@@ -23,15 +23,20 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "prepack": "npm run build",
-    "test": "node --test test/unit.test.js",
+    "test": "node --test test/unit.test.js test/sdk.test.js",
     "test:proof": "node --test --test-concurrency=1 test/node.test.js",
     "test:browser": "node --test --test-concurrency=1 test/browser.test.js",
     "test:package": "node --test test/packed.test.js",
-    "test:types": "tsc --noEmit --module nodenext --target es2022 test/types.ts",
+    "test:types": "tsc --noEmit --module nodenext --target esnext --types node test/types.ts",
     "example": "node examples/prove.mjs"
   },
   "devDependencies": {
+    "@types/node": "24.19.2",
     "playwright": "1.65.1",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vite": "8.3.8"
+  },
+  "peerDependencies": {
+    "@heliuslabs/spr": "0.9.0-alpha"
   }
 }

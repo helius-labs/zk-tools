@@ -1,13 +1,40 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
-import { resolve, sep } from "node:path";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { test } from "node:test";
+import { after, before, test } from "node:test";
 import { chromium, firefox, webkit } from "playwright";
-import { keyBytes, metadata, requestPath } from "./key.js";
+import { build } from "vite";
+import {
+  keyBytes,
+  metadata,
+  requestPath,
+  mergeMetadata,
+  mergeRequestPath,
+} from "./key.js";
 
 const root = resolve(fileURLToPath(new URL("../", import.meta.url)));
+let output;
+
+before(async () => {
+  output = await mkdtemp(join(tmpdir(), "zopro-browser-"));
+  await build({
+    configFile: false,
+    root,
+    logLevel: "warn",
+    worker: { format: "es" },
+    build: {
+      outDir: output,
+      emptyOutDir: true,
+      rolldownOptions: { input: resolve(root, "test/browser-page.html") },
+    },
+  });
+});
+after(async () => {
+  if (output) await rm(output, { recursive: true, force: true });
+});
 
 async function server(isolated) {
   const key = await keyBytes();
@@ -19,7 +46,8 @@ async function server(isolated) {
     }
     const pathname = new URL(req.url, "http://localhost").pathname;
     if (pathname === "/") {
-      res.end("<!doctype html><title>WASM proving test</title>");
+      res.setHeader("Content-Type", "text/html");
+      res.end(await readFile(join(output, "test/browser-page.html")));
       return;
     }
     if (pathname === "/key.zopro") {
@@ -30,8 +58,16 @@ async function server(isolated) {
       res.end(request);
       return;
     }
-    const path = resolve(root, `.${decodeURIComponent(pathname)}`);
-    if (!path.startsWith(root + sep)) {
+    if (pathname === "/merge-key.zopro") {
+      res.end(await keyBytes("merge_8_1.key"));
+      return;
+    }
+    if (pathname === "/merge-request.json") {
+      res.end(await readFile(mergeRequestPath));
+      return;
+    }
+    const path = resolve(output, `.${decodeURIComponent(pathname)}`);
+    if (!path.startsWith(output + sep)) {
       res.writeHead(403).end();
       return;
     }
@@ -48,33 +84,19 @@ async function server(isolated) {
   await new Promise((ready) => http.listen(0, "127.0.0.1", ready));
   return {
     url: `http://127.0.0.1:${http.address().port}`,
-    close: () => new Promise((done) => http.close(done)),
+    close: async () => {
+      await new Promise((done) => http.close(done));
+    },
   };
 }
 
-async function prove(page, threads, noCrypto = false) {
-  return page.evaluate(
-    ({ threads, keyDigest, noCrypto }) =>
-      new Promise((resolve, reject) => {
-        const worker = new Worker("/test/browser-proof.js", { type: "module" });
-        const timeout = setTimeout(() => {
-          worker.terminate();
-          reject(new Error("proof timed out"));
-        }, 60_000);
-        worker.onmessage = ({ data }) => {
-          clearTimeout(timeout);
-          worker.terminate();
-          resolve(data);
-        };
-        worker.onerror = (event) => {
-          clearTimeout(timeout);
-          worker.terminate();
-          reject(new Error(event.message));
-        };
-        worker.postMessage({ threads, keyDigest, noCrypto });
-      }),
-    { threads, keyDigest: metadata.key_sha256, noCrypto },
-  );
+async function prove(page, threads, noCrypto = false, merge = false) {
+  return page.evaluate((options) => globalThis.proveInWorker(options), {
+    threads,
+    keyDigest: (merge ? mergeMetadata : metadata).key_sha256,
+    noCrypto,
+    merge,
+  });
 }
 
 for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
@@ -92,6 +114,13 @@ for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
             const response = await prove(page, threads);
             assert.equal(response.error, undefined);
             assert.equal(response.result.threads, threads);
+          });
+        }
+        if (isolated) {
+          await t.test("SDK proveMerge with an 8-input key", async () => {
+            const response = await prove(page, 4, false, true);
+            assert.equal(response.error, undefined);
+            assert.equal(response.result.threads, 4);
           });
         }
         if (!isolated) {
