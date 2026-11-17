@@ -349,6 +349,31 @@
         "status": "diagnostic_only"
       },
       "sdk_sha256": "74604011e4fc33805b08305400ec5d993e0e167e889042a85fdecea291f97ab2"
+    },
+    {
+      "adoption": {
+        "canonical_verified_exports": 59016,
+        "reason": "16vs32alignmentdidnotreproducefast214contextorfullproofgain;fixedoffsethypothesisclosed,novariantsweep",
+        "remaining": [],
+        "status": "not_adopted"
+      },
+      "change": "ControlledSBpointermod64=16vs32,sameu64capacity/directgather/BooleanOFF,atmost56Bpadding",
+      "correctness": {
+        "evidence": "benchmarks/2026-11-17-scalar-layout215/README.md",
+        "scope": "142nativecore tests inclnewtail/concurrent/unwind owneroracles,16freshGnarkexports/3064SDKcalls,3016layout records;receipt/CPU/PMU/layoutreaderspass",
+        "status": "native_tested_scope_pass"
+      },
+      "id": "scalar-layout215",
+      "parent_id": "group-pmu214",
+      "performance": {
+        "scope": "CycleL32/L16ratios1.007408/1.034747/1.006949;SDKplainpaired1.002869,1/3wins;100%PMUcoverage,bothobserverguards pass",
+        "status": "failed_fixed_mechanism_and_SDK_screen"
+      },
+      "resources_and_compatibility": {
+        "scope": "No point table/copy/newpool;56Bpaddingbothlayouts,+64Bprivateforecast;ownerretainsbase/capacity;notadoptedorportablequalified",
+        "status": "screen_guards_pass_no_pressure_claim"
+      },
+      "sdk_sha256": "050841b025e1553d4155134bf953eb3fb4845af788bac22d71e5cf8efd5f3b24"
     }
   ],
   "historical_followups": [
@@ -484,7 +509,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "214hardwareprobe:~3.613Minstructionsboth,cycles8.27Mvs4.52M,CPI2.29vs1.25;100%coverage/bothobserverguards pass. Identicalinputs/code/admission;executioncostdiffers,notfewermath/instructions. Controlled scalar-bufferlayout intervention next: sameallocator/capacity/logic,force16vs32mod64,BooleanOFF,recordactualoffset/perstagePMU/fullSDKwall;noalignmentcauseclaimeduntiltested. Checkhistoricalsourceavoidrepeatingpointtreealignmentvariants.209closed,production194/196unchanged,goal0/8;canonical59000/ab79c6d417c61ad2817e42608fabaa6b54f544aabab18b0a168b3c97b26489db. No push.",
+  "next_action": "215controlled16vs32offsetdoesnotexplain214CPIgap:both~8Mcycles,CPI~2.2,1/3SDKwins. Closefixedalignmenthypothesis,nopadding/4ksweep. 214inputs/code/admission/instructions equalyetCPI1.2vs2.2 remains. Retained214eventtimestamps showgroupstarts~1.5usafterproductboth,not~0.75mslater. Nextlocateextracycleswithinserialgrouping withphase-scopedprofiles/CPU-versus-kernelorcacheevidence,notmoreblindlayoutchanges. Preferexisting206perfdecode/observer workflow;scopeG2byTID+event10..11timestampsifprofilealsoincludesAgroup. Source214PMUunchangedfor215. Production194/196unchanged,goal0/8;canonical59016/a580ab01695c2785aeaad590b94cff52e5e131e46b5410cfa9f3bf30c21c424b. Localcommit/no push.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",

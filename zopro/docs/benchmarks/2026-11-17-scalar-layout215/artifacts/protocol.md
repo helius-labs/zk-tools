@@ -1,0 +1,37 @@
+# Controlled scalar-buffer offset215
+
+Frozenbeforebuild/capture2026-11-17.214shows3.61Minstructionsbothpathsbut8.27Mvs
+4.52Mcycles,100%coverage;212sameinputs and213sameadmission. Actual212SBpointer
+mod64was48OFF/32ON. Testoneprecise causalintervention beforeanotherpassiveprobe:
+SAMErawu64storagecapacity4*n+7/backend/algorithm,forceactualSBpointermod64=16or32.
+No offsetsweep, pointertable,LUT,keycopy/newpool. BooleanpeelingOFFinbothlayouts.
+Thisisamechanismtest,notadoptionor209screenextension. Originalall8CPU10xactive0/8.
+
+Copy214source/PMUs. AppendfusedgatherhelperdirectlywritingselectedrawMaybeUninit
+u64storage viewedasMaybeUninitWords; publishtypedwordssliceonlyafterallfilljoins.
+OwnerretainstheoriginalbaseVec/capacityforcorrectdeallocation;nooutputcopy or
+extraarray. Atmost56Bpadding/Bquery,checked/fallibleallocation;invalidselector/
+denialfallbackstooriginalprepare. Oldprepareunchanged. Conservativelyadd64Bto
+privateworkspaceforecastbothmodes. KeylocaloptionownsbufferduringconsumingMSM;
+otherbranchesretained. Recordactualoffset,n,paddingeveryrequest. Field/arithmetic/
+solver/groupingpolicyunchanged. Newunsafeviewrequiresnativeoracles/tails/empty/
+concurrent1/4/16/32worker512KiBpool/panicfallbackandchecked-size tests.
+
+Nativefullcoretestsfirst(expected142from140base+2new),then4four-workersmokes
+and12primary32processes(3blocks xlayouts16/32 xtraceOFF/ON). ExistingPMUinitall
+workersbeforeload;all4modesroot;3distinctbinarybackings,rotated/reversedorder,
+3primes+251timedmain.16freshGnarkexports/3064SDKcalls,seed21459000ledgerSHA
+ab79c6d417c61ad2817e42608fabaa6b54f544aabab18b0a168b3c97b26489db.
+NoownedCPUcojobsduringcapture;lateGnarkafterallmaincaptures. Retainallrecords.
+
+Requireallexpectedoffset/n/paddingrecords,routeBooleanzero,allpriorCPU/event/
+PMUqualitygates(>=99%coverage),bothlayoutobservermedtraceON/OFFwithin1.05. Compare
+perprocessG2groupcycles/instructions/CPI andcompleteSDKwall/CPU/RSS. If32lowers
+cyclesinall3blocks,mechanismscreenpositive(noCIcausalityclaim);otherwiseclose
+thisfixed16vs32hypothesiswithout4k/padding/rescue sweep. Fullproofdirectional
+selectionneeds32/16pairedmeanmedian<1and>=2/3winsplusCPUmedian<=1.02/RSS<=
+max(16*1.1,16+8MiB),butthisdoesNOTestablishgainvsaccepted194/naturalalignment.
+Anyadoptionrequiresnewcoherentuninstrumentedcandidateandacceptedcomparison.
+IfCPIchangesbutSDKwallflat,recordmechanismwithoutadoption;don'tdiscardtiny
+qualifiedgainsormislabelCPUeffectasproofspeedup. Firstresultallowance25min.
+NoAWS/portable/pressure/ARM/newconcurrentSDKqualification,localcommit/no push.

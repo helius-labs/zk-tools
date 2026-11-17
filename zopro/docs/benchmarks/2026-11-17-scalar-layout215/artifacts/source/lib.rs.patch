@@ -1,0 +1,26 @@
+--- /home/ubuntu/src/zopro-perf-work/group-pmu214/source/crates/zopro-core/src/lib.rs	2026-11-17 18:20:57.608505058 +0000
++++ /home/ubuntu/src/zopro-perf-work/scalar-layout215/source/crates/zopro-core/src/lib.rs	2026-11-17 18:39:32.002332628 +0000
+@@ -2215,8 +2215,10 @@
+         // The correction consumes Montgomery public values before the one
+         // in-place conversion. All later accesses to w use canonical words.
+         let correction=folded.public_term(&w[..plan.n_public]);
++        let mut shifted_sb=None;
+         let (sa_vec,mut sb_vec):(Vec<_>,Vec<_>)=if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
+-            fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)
++            let wanted=std::env::var("ZOPRO_DIAGNOSTIC_SCALAR_OFFSET").ok().and_then(|s|s.parse::<usize>().ok()).filter(|v|[16,32].contains(v));
++            if let Some((a,b))=wanted.and_then(|v|fused_canonical_gather::prepare_shifted(&mut w,&plan.a_indices,&plan.b_indices,v)) {shifted_sb=Some(b);(a,Vec::new())}else{fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)}
+         } else {
+             let words=canonical(&mut w);
+             #[cfg(not(zopro_bounded_gather))]
+@@ -2228,7 +2230,10 @@
+         // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
+         crate::boolean_phase_trace::mark(2);
+         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
+-        let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
++        let excess=shifted_sb.as_ref().map_or(0,|s|s.excess_bytes());
++        let sb=match &mut shifted_sb{Some(b)=>b.words_mut(),None=>&mut sb_vec[..]};
++        crate::boolean_phase_trace::record_layout(sb.as_ptr()as usize%64,sb.len(),excess);
++        let (sa,sk)=(&sa_vec[..],&words[plan.n_public..]);
+         let mut product=queries.product_values(&self.plan,a,b);
+         crate::boolean_phase_trace::mark(3);
+         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);

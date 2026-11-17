@@ -1,0 +1,11 @@
+--- /home/ubuntu/src/zopro-perf-work/group-pmu214/source/crates/zopro-core/src/msm_affine/workspace.rs	2026-11-17 18:20:57.600504954 +0000
++++ /home/ubuntu/src/zopro-perf-work/scalar-layout215/source/crates/zopro-core/src/msm_affine/workspace.rs	2026-11-17 18:39:32.002332628 +0000
+@@ -387,6 +387,8 @@
+         add(add(wires, witness)?, extracted)?,
+         add(fft, vector::<Fr>(g.slots, false)?)?,
+     )?;
++    // Diagnostic shifted scalar storage adds at most56requested bytes.
++    let fields=add(fields,64)?;
+     let mont_h = g.h >= (1 << 18) && crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
+     let p = [
+         envelope::<G1Config>(g.a, true, false)?,

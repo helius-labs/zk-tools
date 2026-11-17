@@ -1,0 +1,10 @@
+--- /home/ubuntu/src/zopro-perf-work/group-pmu214/source/crates/zopro-core/src/boolean_phase_trace.rs	2026-11-17 18:20:57.608505058 +0000
++++ /home/ubuntu/src/zopro-perf-work/scalar-layout215/source/crates/zopro-core/src/boolean_phase_trace.rs	2026-11-17 18:39:32.002332628 +0000
+@@ -20,3 +20,7 @@
+ 
+ pub fn initialize_pmu()->usize{pmu::initialize()}
+ pub fn snapshot_pmu()->[u64;8]{pmu::snapshot()}
++
++static SCALAR_LAYOUT:[AtomicU64;3]=[const{AtomicU64::new(0)};3];
++pub(crate)fn record_layout(offset:usize,n:usize,excess:usize){for(i,v)in[offset,n,excess].into_iter().enumerate(){SCALAR_LAYOUT[i].store(v as u64,Ordering::Relaxed);}}
++pub fn scalar_layout()->[u64;3]{std::array::from_fn(|i|SCALAR_LAYOUT[i].load(Ordering::Relaxed))}

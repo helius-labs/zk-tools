@@ -1,0 +1,41 @@
+
+/// Diagnostic owner: base pointer/capacity retain their original u64 layout.
+/// Only prepare_shifted can construct this after joining all output writes.
+pub(super) struct ShiftedWords { raw:Vec<MaybeUninit<u64>>, offset:usize, len:usize }
+impl ShiftedWords {
+    pub(super) fn words_mut(&mut self)->&mut[Words] {
+        // SAFETY: prepare_shifted initializes exactly len Words after offset,
+        // within raw's capacity; u64 and Words share alignment8. The exclusive
+        // owner borrow prevents aliasing, and raw keeps its original base.
+        unsafe{std::slice::from_raw_parts_mut(self.raw.as_mut_ptr().add(self.offset).cast::<Words>(),self.len)}
+    }
+    pub(super) fn excess_bytes(&self)->usize{self.raw.capacity()*8-self.len*32}
+}
+fn raw_word_capacity(n:usize)->Option<usize>{n.checked_mul(4)?.checked_add(7)}
+pub(super) fn prepare_shifted(wires:&mut[Fr],a:&[u32],b:&[u32],wanted:usize)->Option<(Vec<Words>,ShiftedWords)> {
+    if ![16,32].contains(&wanted){return None;}
+    let capacity=raw_word_capacity(b.len())?;
+    let mut raw=Vec::<MaybeUninit<u64>>::new();raw.try_reserve_exact(capacity).ok()?;
+    if raw.capacity()>capacity{return None;}
+    let offset=(wanted+64-(raw.as_ptr()as usize%64))%64/8;
+    debug_assert!(offset+4*b.len()<=raw.capacity());
+    let mut out_a=Vec::<Words>::new();out_a.try_reserve_exact(a.len()).ok()?;
+    // SAFETY: raw owns capacity>=4*b.len()+7 u64s. offset<=7 and Words is
+    // four contiguous u64s with alignment8; this view is exclusively borrowed.
+    let out_b=unsafe{std::slice::from_raw_parts_mut(raw.as_mut_ptr().add(offset).cast::<MaybeUninit<Words>>(),b.len())};
+    fill(wires,0,a,&mut out_a.spare_capacity_mut()[..a.len()],b,out_b);
+    // SAFETY: fill writes every matching output once and joins descendants.
+    // If fill panics, both lengths remain0 and MaybeUninit/u64 need no drops.
+    unsafe{out_a.set_len(a.len());}
+    Some((out_a,ShiftedWords{raw,offset,len:b.len()}))
+}
+#[cfg(test)]mod shifted_tests{
+ use super::*;
+ #[test]fn shifted_gather_matches_serial_and_layout_in_concurrent_small_stack_pools(){
+  for workers in[1,4,16,32]{let pool=rayon::ThreadPoolBuilder::new().num_threads(workers).stack_size(512*1024).build().unwrap();for n in[0,1,2,3,7,8,1023,1024,1025,4097,32769]{let source=(0..n).map(|i|match i%5{0=>Fr::ZERO,1=>Fr::ONE,2=>-Fr::ONE,_=>Fr::from((i+19)as u64).square()}).collect::<Vec<_>>();let expected=source.iter().map(Fr::to_canonical).collect::<Vec<_>>();let ai=(0..n).filter(|i|i%3!=0).map(|i|i as u32).collect::<Vec<_>>();let bi=(0..n).filter(|i|i%7<2).map(|i|i as u32).collect::<Vec<_>>();pool.install(||{rayon::join(||{for wanted in[16,32]{let mut wires=source.clone();let(a,mut b)=prepare_shifted(&mut wires,&ai,&bi,wanted).unwrap();assert_eq!(a,ai.iter().map(|&i|expected[i as usize]).collect::<Vec<_>>());assert!(b.excess_bytes()<=56);let actual=b.words_mut();assert_eq!(actual.as_ptr()as usize%64,wanted);assert_eq!(actual,bi.iter().map(|&i|expected[i as usize]).collect::<Vec<_>>());assert_eq!(wires.iter().map(|w|w.0).collect::<Vec<_>>(),expected);}},||{let mut wires=source.clone();let(a,mut b)=prepare_shifted(&mut wires,&bi,&[],32).unwrap();assert_eq!(a,bi.iter().map(|&i|expected[i as usize]).collect::<Vec<_>>());assert!(b.words_mut().is_empty());});});}}
+ }
+ #[test]fn shifted_invalid_index_unwinds_without_publishing_and_checked_capacity_falls_back(){
+  assert_eq!(raw_word_capacity(usize::MAX),None);assert_eq!(raw_word_capacity(usize::MAX/4+1),None);
+  for wanted in[16,32]{let pool=rayon::ThreadPoolBuilder::new().num_threads(4).stack_size(512*1024).build().unwrap();assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(||pool.install(||prepare_shifted(&mut vec![Fr::ONE;1025],&[0,1025],&[1,1024],wanted)))).is_err());let mut w=vec![Fr::from(7u64)];let before=w.clone();assert!(prepare_shifted(&mut w,&[0],&[0],24).is_none());assert_eq!(w,before);let(a,mut b)=pool.install(||prepare_shifted(&mut w,&[0],&[0],wanted)).unwrap();assert_eq!(a,[before[0].to_canonical()]);assert_eq!(b.words_mut(),a);}
+ }
+}
