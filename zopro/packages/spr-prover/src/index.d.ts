@@ -26,3 +26,22 @@ export interface Runtime {
 
 /** Once per worker; threads: 0 (default) selects WASM without shared memory. */
 export function init(options?: { readonly threads?: number }): Promise<Runtime>;
+
+export interface LocalProofService extends ProofService {
+  /** Fetch, validate and decode this key into WASM before a proof is timed. One key is resident at a time. */
+  preload(keyName: string): Promise<void>;
+  /** Drain accepted calls, free the loaded key and close the worker's runtime. */
+  close(): Promise<void>;
+}
+
+export interface LocalProofServiceOptions {
+  /** 0 (default) uses the single-threaded runtime; 1–64 starts a Rayon pool. */
+  readonly threads?: number;
+  /** Node only. Omit for the platform cache directory; browsers use Cache API with memory fallback. */
+  readonly keyDirectory?: string;
+}
+
+/** One service owns this JavaScript worker's runtime. Uses the SDK's pinned production key set. */
+export function createLocalProofService(
+  options?: LocalProofServiceOptions,
+): Promise<LocalProofService>;

@@ -14,6 +14,7 @@ import {
   mergeMetadata,
   mergeRequestPath,
 } from "./key.js";
+import { productionKeyBytes } from "./service-key.js";
 
 const root = resolve(fileURLToPath(new URL("../", import.meta.url)));
 let output;
@@ -64,6 +65,21 @@ async function server(isolated) {
     }
     if (pathname === "/merge-request.json") {
       res.end(await readFile(mergeRequestPath));
+      return;
+    }
+    if (pathname === "/service-key.zopro") {
+      res.end(await productionKeyBytes());
+      return;
+    }
+    if (pathname === "/service-request.json") {
+      res.end(
+        await readFile(
+          new URL(
+            "../../../tools/spr/fixtures/transfer-1x2.json",
+            import.meta.url,
+          ),
+        ),
+      );
       return;
     }
     const path = resolve(output, `.${decodeURIComponent(pathname)}`);
@@ -117,6 +133,26 @@ for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
           });
         }
         if (isolated) {
+          await t.test(
+            "public service preloads its production key into the browser cache",
+            async () => {
+              const response = await page.evaluate(() =>
+                globalThis.proveInWorker({
+                  service: true,
+                  threads: 4,
+                  memory: false,
+                }),
+              );
+              assert.equal(response.error, undefined);
+              assert.deepEqual(response.result, {
+                service: true,
+                preloaded: true,
+                memory: false,
+                downloads: 1,
+                proofBytes: [64, 128, 64],
+              });
+            },
+          );
           await t.test("SDK proveMerge with an 8-input key", async () => {
             const response = await prove(page, 4, false, true);
             assert.equal(response.error, undefined);
@@ -124,6 +160,22 @@ for (const [name, engine] of Object.entries({ chromium, firefox, webkit })) {
           });
         }
         if (!isolated) {
+          await t.test(
+            "default public service works without Cache API or isolation",
+            async () => {
+              const response = await page.evaluate(() =>
+                globalThis.proveInWorker({ service: true, memory: true }),
+              );
+              assert.equal(response.error, undefined);
+              assert.deepEqual(response.result, {
+                service: true,
+                preloaded: true,
+                memory: true,
+                downloads: 1,
+                proofBytes: [64, 128, 64],
+              });
+            },
+          );
           await t.test(
             "threaded startup refuses missing isolation",
             async () => {

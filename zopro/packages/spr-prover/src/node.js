@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { initializer } from "./init.js";
 import { close } from "./node-rayon.js";
+import { nodeKeyStore } from "./node-key-store.js";
+import { localProofServiceFactory } from "./local-service.js";
 
 export const init = initializer(async (threads) => {
   const module =
@@ -18,3 +20,8 @@ export const init = initializer(async (threads) => {
     close,
   };
 });
+
+export const createLocalProofService = localProofServiceFactory(
+  init,
+  nodeKeyStore,
+);

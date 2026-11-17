@@ -1,10 +1,19 @@
 import { init } from "@heliuslabs/zopro-spr";
 import { checkProofs } from "./proof-check.js";
+import { checkBrowserService } from "./service-browser.js";
 
 self.addEventListener(
   "message",
-  async ({ data: { threads, keyDigest, noCrypto, merge } }) => {
+  async ({
+    data: { threads, keyDigest, noCrypto, merge, service, memory },
+  }) => {
     try {
+      if (service) {
+        self.postMessage({
+          result: await checkBrowserService({ threads, memory }),
+        });
+        return;
+      }
       const key = new Uint8Array(
         await (
           await fetch(merge ? "/merge-key.zopro" : "/key.zopro")

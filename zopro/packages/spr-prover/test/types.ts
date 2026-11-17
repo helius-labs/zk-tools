@@ -3,6 +3,7 @@ import {
   type Runtime,
   type Proof,
   type ProverInputs,
+  createLocalProofService,
 } from "@heliuslabs/zopro-spr";
 import type { ProofService, MergeInputs } from "@heliuslabs/spr/client";
 
@@ -31,5 +32,20 @@ async function merge(
   return service.proveMerge(inputs);
 }
 void merge;
+
+async function localService(inputs: ProverInputs): Promise<Proof> {
+  const local = await createLocalProofService({
+    threads: 4,
+    keyDirectory: "/checked-keys",
+  });
+  const service: ProofService = local;
+  try {
+    await local.preload("transfer_confidential_1_2.key");
+    return await service.prove(inputs);
+  } finally {
+    await local.close();
+  }
+}
+void localService;
 // @ts-expect-error threads are numeric in both environments
 void init({ threads: "4" });

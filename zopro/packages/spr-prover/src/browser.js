@@ -1,5 +1,7 @@
 import { initializer } from "./init.js";
 import { close } from "./browser-rayon.js";
+import { browserKeyStore } from "./browser-key-store.js";
+import { localProofServiceFactory } from "./local-service.js";
 
 export const init = initializer(async (threads) => {
   if (
@@ -23,3 +25,8 @@ export const init = initializer(async (threads) => {
       : await import("../runtime/single/zopro_spr.js");
   return { module, initialize: () => module.default(), close };
 });
+
+export const createLocalProofService = localProofServiceFactory(
+  init,
+  browserKeyStore,
+);

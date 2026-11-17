@@ -1,7 +1,7 @@
 # @heliuslabs/zopro-spr
 
 The `zopro-spr` CPU WASM runtime in one package for Node 24+ and browsers.
-Both environments use the same `init` and `SprProver` API. Conditional exports
+Both environments use the same local `ProofService` API. Conditional exports
 select the worker host: Node's `worker_threads` or browser module workers.
 The threaded hosts share one WASM binary. Proofs are verified before returning.
 
@@ -16,6 +16,45 @@ Inputs are the SDK's typed objects, including their `bigint` fields. The
 returned `Proof` is the same as a server proof: `a` and `c` are 64-byte
 `Uint8Array`s and `b` is 128 bytes. The SDK's serializer and proof decoder
 handle the WASM boundary, including negating A for Solana's pairing verifier.
+
+## Local proof service
+
+```ts
+import { LocalKeys } from "@heliuslabs/spr/client";
+import { createLocalProofService } from "@heliuslabs/zopro-spr";
+
+const proofs = await createLocalProofService({ threads: 4 });
+try {
+  await proofs.preload("transfer_confidential_1_2.key");
+  const keys = LocalKeys.fromKeypair(shieldedKeypair, proofs);
+  // Pass keys to the SDK transaction flow.
+} finally {
+  await proofs.close();
+}
+```
+
+Set the SDK client's `proofDataSource: "client"` so it assembles Merkle data
+before `LocalKeys` calls this proof service.
+
+The service selects the key for each confidential transfer or merge shape,
+checks its source digest against the SDK's production pins, downloads and
+checks the artifact, and caches it. Calls are serialized and one decoded
+key is resident at a time. `preload(keyName)` completes download, validation
+and WASM key decoding during setup. Proofs with that shape reuse the resident
+key; changing shape loads another key.
+
+Node uses its platform cache directory; `keyDirectory` overrides it. Browsers
+use Cache API storage, with a bounded in-memory fallback. The default is
+`threads: 0`; use 1–64 for a Rayon pool. Browser calls run in a dedicated
+module worker, with cross-origin isolation for a threaded pool.
+
+One service owns a worker's runtime. Finish calls and close the service before
+the worker exits; initialize a new worker for another service after closing.
+Proof counters and application HTTP policy belong in the caller's test code.
+
+## Explicit key buffers
+
+Use `init` and `SprProver` when the caller manages its own checked key bytes:
 
 ```js
 import { init } from "@heliuslabs/zopro-spr";
