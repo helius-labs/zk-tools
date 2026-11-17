@@ -1,18 +1,30 @@
-import { execFile } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
-import { mkdir, open, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { availableParallelism, cpus, homedir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { homedir, loadavg } from "node:os";
+import { mkdir, open, readFile, realpath } from "node:fs/promises";
+import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { parseArgs, promisify } from "node:util";
+import { parseArgs } from "node:util";
+import { campaign } from "./campaign.mjs";
+import { runtimeFlags } from "./provenance.mjs";
+import { keyBytes } from "./keys.mjs";
+import {
+  DEFAULT_ORDER_SEED,
+  caseId,
+  csv,
+  orderedCases,
+  quantile,
+  summarizeIterations,
+} from "./records.mjs";
+export { processFailure } from "./records.mjs";
 
 export const THREAD_COUNTS = Object.freeze([1, 2, 4, 8, 18]);
+export const DEFAULT_ROUNDS = 10;
+export const DEFAULT_WARMUP = 3;
 const lockPath = new URL("../../../tools/spr/zopro-keys.lock", import.meta.url);
 
 export function circuitShape(name) {
   const match = /^(transfer_confidential|merge)_(\d+)_(\d+)\.key$/u.exec(name);
   if (!match)
-    throw new Error(`Unsupported circuit in the key catalog: ${name}`);
+    throw new Error("Unsupported circuit in the key catalog: " + name);
   return {
     circuit: match[1],
     inputs: Number(match[2]),
@@ -33,88 +45,41 @@ export function matrix(keys, threads = THREAD_COUNTS) {
 }
 
 export function median(values) {
-  const ordered = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(ordered.length / 2);
-  return ordered.length % 2
-    ? ordered[middle]
-    : (ordered[middle - 1] + ordered[middle]) / 2;
-}
-
-export function processFailure(error, timeout) {
-  const message = error.message || String(error);
-  const status = `code=${error.code ?? "none"} signal=${error.signal ?? "none"} killed=${Boolean(error.killed)} timeout_ms=${timeout}`;
-  const stderr = error.stderr?.trim();
-  return [
-    message,
-    status,
-    stderr && !message.includes(stderr) ? stderr : undefined,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  return quantile(values, 0.5);
 }
 
 function integer(value, name, minimum = 1) {
   const number = Number(value);
   if (!Number.isSafeInteger(number) || number < minimum)
-    throw new Error(`${name} must be an integer >= ${minimum}`);
+    throw new Error(name + " must be an integer >= " + minimum);
   return number;
 }
 
-async function keyBytes(lock, key, directory) {
-  const artifact = lock.keys[key];
-  const path = join(directory, artifact.file);
-  let bytes;
-  let downloaded = false;
-  try {
-    bytes = await readFile(path);
-  } catch (error) {
-    if (error.code !== "ENOENT") throw error;
-    const response = await fetch(new URL(artifact.file, lock.baseUrl), {
-      signal: AbortSignal.timeout(180_000),
-    });
-    if (!response.ok)
-      throw new Error(
-        `Key download failed (${response.status}): ${artifact.file}`,
-      );
-    bytes = new Uint8Array(await response.arrayBuffer());
-    downloaded = true;
+/** Setup is complete before any sample timer begins. The driver override is for boundary tests. */
+export async function runCase(lock, entry, options, driver) {
+  if (!driver) {
+    const { benchmarkInputs } = await import("./inputs.mjs");
+    const { init } = await import("@heliuslabs/zopro-spr");
+    driver = { benchmarkInputs, init, keyBytes, now: () => performance.now() };
   }
-  if (
-    bytes.length !== artifact.size ||
-    createHash("sha256").update(bytes).digest("hex") !== artifact.sha256
-  ) {
-    throw new Error(`Key size or SHA-256 mismatch: ${artifact.file}`);
-  }
-  if (downloaded) {
-    await mkdir(directory, { recursive: true });
-    const temporary = `${path}.${randomUUID()}.part`;
-    try {
-      await writeFile(temporary, bytes);
-      await rename(temporary, path);
-    } finally {
-      await rm(temporary, { force: true });
-    }
-  }
-  return bytes;
-}
-
-async function runCase(lock, entry, options) {
-  // A new process owns each runtime: Rayon cannot change its pool size in place.
-  const { benchmarkInputs } = await import("./inputs.mjs");
-  const { init } = await import("@heliuslabs/zopro-spr");
-  const inputs = await benchmarkInputs(entry.key);
+  const clock = driver.now;
+  const inputStart = clock();
+  const inputs = await driver.benchmarkInputs(entry.key);
+  const inputSetupMs = clock() - inputStart;
   const artifact = lock.keys[entry.key];
-  const reading = performance.now();
-  const key = await keyBytes(lock, entry.key, options.keyDirectory);
-  const readMs = performance.now() - reading;
-  const starting = performance.now();
-  const runtime = await init({ threads: entry.threads });
-  const initMs = performance.now() - starting;
+  const readStart = clock();
+  const key = await driver.keyBytes(lock, entry.key, options.keyDirectory);
+  const readMs = clock() - readStart;
+  const initStart = clock();
+  const runtime = await driver.init({ threads: entry.threads });
+  const initMs = clock() - initStart;
   let prover;
+  let samplesFile;
+  const iterations = [];
   try {
-    const loading = performance.now();
+    const loadStart = clock();
     prover = new runtime.SprProver(key);
-    const loadMs = performance.now() - loading;
+    const loadMs = clock() - loadStart;
     if (
       prover.digest() !== artifact.key_sha256 ||
       prover.inputs() !== entry.inputs ||
@@ -124,6 +89,13 @@ async function runCase(lock, entry, options) {
         "Loaded proving key does not match the benchmark circuit",
       );
     }
+    if (options.recordDirectory) {
+      await mkdir(options.recordDirectory, { recursive: true });
+      samplesFile = await open(
+        join(options.recordDirectory, "iterations.jsonl"),
+        "wx",
+      );
+    }
     const merge = entry.circuit === "merge";
     const prove = merge
       ? prover.proveMerge.bind(prover)
@@ -131,72 +103,76 @@ async function runCase(lock, entry, options) {
     const verify = merge
       ? prover.verifyMerge.bind(prover)
       : prover.verify.bind(prover);
-    const proving = [];
-    const verifying = [];
     for (let round = 0; round < options.warmup + options.rounds; round++) {
-      const started = performance.now();
-      const proof = await prove(inputs);
-      const proveMs = performance.now() - started;
-      const checking = performance.now();
-      if (!verify(inputs, proof))
-        throw new Error("Benchmark proof failed verification");
-      const verifyMs = performance.now() - checking;
-      if (round >= options.warmup) {
-        proving.push(proveMs);
-        verifying.push(verifyMs);
+      const phase = round < options.warmup ? "warmup" : "measured";
+      const sample = {
+        case_id: caseId(entry),
+        key: entry.key,
+        threads: entry.threads,
+        case_index: options.caseIndex ?? null,
+        run_fingerprint: options.fingerprint ?? null,
+        session_id: options.sessionId ?? null,
+        attempt: options.attempt ?? 1,
+        phase,
+        iteration: phase === "warmup" ? round + 1 : round - options.warmup + 1,
+        started_at: new Date().toISOString(),
+        status: "error",
+        verified: false,
+      };
+      const proving = clock();
+      try {
+        const proof = await prove(inputs);
+        sample.prove_ms = clock() - proving;
+        const verifying = clock();
+        sample.verified = verify(inputs, proof);
+        sample.verify_ms = clock() - verifying;
+        if (!sample.verified)
+          throw new Error("Benchmark proof failed verification");
+        sample.status = "ok";
+      } catch (error) {
+        sample.error = error.message;
+        throw error;
+      } finally {
+        sample.finished_at = new Date().toISOString();
+        sample.load_avg = loadavg();
+        sample.rss_bytes = process.memoryUsage.rss();
+        iterations.push(sample);
+        await samplesFile?.write(JSON.stringify(sample) + "\n");
       }
     }
+    await samplesFile?.sync();
     return {
       ...entry,
+      case_id: caseId(entry),
       status: "ok",
       rounds: options.rounds,
       warmup: options.warmup,
+      ...summarizeIterations(iterations, options),
       key_bytes: key.byteLength,
+      input_setup_ms: inputSetupMs,
       key_read_ms: readMs,
       init_ms: initMs,
       key_load_ms: loadMs,
-      prove_min_ms: Math.min(...proving),
-      prove_median_ms: median(proving),
-      prove_max_ms: Math.max(...proving),
-      verify_median_ms: median(verifying),
+      artifact_sha256: artifact.sha256,
+      source_key_sha256: artifact.key_sha256,
       peak_rss_mb: process.resourceUsage().maxRSS / 1024,
+      resource_usage: process.resourceUsage(),
+      process_id: process.pid,
+      node: process.version,
+      exec_arguments: runtimeFlags(process.execArgv),
+      iterations,
     };
   } finally {
-    prover?.free();
-    await runtime.close();
+    try {
+      await samplesFile?.close();
+    } finally {
+      try {
+        prover?.free();
+      } finally {
+        await runtime.close();
+      }
+    }
   }
-}
-
-const columns = [
-  "key",
-  "circuit",
-  "inputs",
-  "outputs",
-  "threads",
-  "status",
-  "rounds",
-  "warmup",
-  "key_bytes",
-  "key_read_ms",
-  "init_ms",
-  "key_load_ms",
-  "prove_min_ms",
-  "prove_median_ms",
-  "prove_max_ms",
-  "verify_median_ms",
-  "peak_rss_mb",
-  "error",
-];
-function csv(value) {
-  const string =
-    value === undefined
-      ? ""
-      : typeof value === "number" && !Number.isInteger(value)
-        ? value.toFixed(3)
-        : String(value);
-  return /[",\r\n]/u.test(string)
-    ? `"${string.replaceAll('"', '""')}"`
-    : string;
 }
 
 export async function main(args = process.argv.slice(2)) {
@@ -207,19 +183,27 @@ export async function main(args = process.argv.slice(2)) {
       list: { type: "boolean" },
       circuits: { type: "string" },
       threads: { type: "string", default: THREAD_COUNTS.join(",") },
-      rounds: { type: "string", default: "3" },
-      warmup: { type: "string", default: "1" },
+      rounds: { type: "string", default: String(DEFAULT_ROUNDS) },
+      warmup: { type: "string", default: String(DEFAULT_WARMUP) },
       "keys-dir": { type: "string" },
-      "timeout-ms": { type: "string", default: "900000" },
+      "timeout-ms": { type: "string", default: "1800000" },
       output: { type: "string" },
       format: { type: "string", default: "csv" },
+      "run-dir": { type: "string" },
+      resume: { type: "boolean" },
+      seed: { type: "string", default: DEFAULT_ORDER_SEED },
       "fail-fast": { type: "boolean" },
       case: { type: "string" },
+      "record-dir": { type: "string" },
+      "run-fingerprint": { type: "string" },
+      "session-id": { type: "string" },
+      attempt: { type: "string" },
+      "case-index": { type: "string" },
     },
   });
   if (values.help) {
     console.log(
-      "Usage: npm run bench -- [--list] [--circuits 1x2,3x8,merge-8x1] [--threads 1,2,4,8,18] [--rounds 3] [--warmup 1] [--keys-dir PATH] [--output results.csv] [--format csv|jsonl] [--timeout-ms 900000] [--fail-fast]",
+      "Usage: npm run bench -- [--list] [--circuits 1x2,3x8,merge-8x1] [--threads 1,2,4,8,18] [--rounds 10] [--warmup 3] [--seed zopro-spr-matrix-v1] [--keys-dir PATH] [--run-dir RESULTS] [--resume] [--output summary.csv] [--format csv|jsonl] [--timeout-ms 1800000] [--fail-fast]",
     );
     return;
   }
@@ -240,6 +224,13 @@ export async function main(args = process.argv.slice(2)) {
         process.env.ZOPRO_KEYS_DIR ??
         join(homedir(), ".cache", "zopro-wasm", lock.prefix.split("/").at(-1)),
     ),
+    recordDirectory: values["record-dir"],
+    fingerprint: values["run-fingerprint"],
+    sessionId: values["session-id"],
+    attempt: values.attempt ? integer(values.attempt, "attempt") : undefined,
+    caseIndex: values["case-index"]
+      ? integer(values["case-index"], "case-index")
+      : undefined,
   };
   if (values.case) {
     if (!(values.case in lock.keys) || threads.length !== 1)
@@ -269,90 +260,60 @@ export async function main(args = process.argv.slice(2)) {
         name.endsWith(".key")
           ? name
           : name.startsWith("merge-")
-            ? `merge_${name.slice(6).replace("x", "_")}.key`
-            : `transfer_confidential_${name.replace("x", "_")}.key`,
+            ? "merge_" + name.slice(6).replace("x", "_") + ".key"
+            : "transfer_confidential_" + name.replace("x", "_") + ".key",
       );
     for (const name of names)
       if (!(name in lock.keys))
-        throw new Error(`Unknown benchmark circuit: ${name}`);
+        throw new Error("Unknown benchmark circuit: " + name);
     cases = cases.filter((entry) => names.includes(entry.key));
   }
+  cases = orderedCases(cases, values.seed);
   if (!["csv", "jsonl"].includes(values.format))
     throw new Error("format must be csv or jsonl");
-  const timeout = integer(values["timeout-ms"], "timeout-ms");
-  if (values.output)
-    await mkdir(dirname(resolve(values.output)), { recursive: true });
-  const file = values.output ? await open(values.output, "w") : undefined;
-  const emit = async (line) => {
-    if (file) await file.write(`${line}\n`);
-    else process.stdout.write(`${line}\n`);
-  };
-  let failures = 0;
-  try {
-    if (values.format === "csv") await emit(columns.join(","));
-    console.error(
-      JSON.stringify({
-        node: process.version,
-        platform: `${process.platform}/${process.arch}`,
-        cpu: cpus()[0]?.model,
-        available_threads: availableParallelism(),
-        circuits: new Set(cases.map((entry) => entry.key)).size,
-        cases: cases.length,
-        threads,
-        rounds: options.rounds,
-        warmup: options.warmup,
-        key_set: lock.prefix,
-      }),
-    );
-    for (const [index, entry] of cases.entries()) {
-      let row = entry;
-      if (!values.list) {
-        console.error(
-          `[${index + 1}/${cases.length}] ${entry.key}, ${entry.threads} threads`,
-        );
-        try {
-          const { stdout } = await promisify(execFile)(
-            process.execPath,
-            [
-              fileURLToPath(import.meta.url),
-              "--case",
-              entry.key,
-              "--threads",
-              String(entry.threads),
-              "--rounds",
-              String(options.rounds),
-              "--warmup",
-              String(options.warmup),
-              "--keys-dir",
-              options.keyDirectory,
-            ],
-            { timeout, maxBuffer: 1024 * 1024 },
-          );
-          row = JSON.parse(stdout);
-        } catch (error) {
-          failures++;
-          row = {
-            ...entry,
-            status: "error",
-            error: processFailure(error, timeout),
-          };
-        }
-      }
-      await emit(
+  if (values.list) {
+    if (values.format === "csv")
+      console.log("key,circuit,inputs,outputs,threads");
+    for (const entry of cases)
+      console.log(
         values.format === "jsonl"
-          ? JSON.stringify(row)
-          : columns.map((column) => csv(row[column])).join(","),
+          ? JSON.stringify(entry)
+          : ["key", "circuit", "inputs", "outputs", "threads"]
+              .map((name) => csv(entry[name]))
+              .join(","),
       );
-      if (failures && values["fail-fast"]) break;
-    }
-  } finally {
-    await file?.close();
+    return;
   }
-  if (failures) process.exitCode = 1;
+  if (values.resume && !values["run-dir"])
+    throw new Error("--resume requires --run-dir");
+  const runId =
+    new Date().toISOString().replace(/[:.]/gu, "-") +
+    "-" +
+    options.warmup +
+    "w" +
+    options.rounds +
+    "r";
+  const runDirectory = resolve(
+    values["run-dir"] ??
+      fileURLToPath(new URL("./results/" + runId, import.meta.url)),
+  );
+  await campaign({
+    lock,
+    cases,
+    options,
+    timeout: integer(values["timeout-ms"], "timeout-ms"),
+    seed: values.seed,
+    runDirectory,
+    resume: values.resume,
+    output: values.output,
+    format: values.format,
+    failFast: values["fail-fast"],
+    script: fileURLToPath(import.meta.url),
+  });
 }
 
-if (
-  process.argv[1] &&
-  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
-)
+const entryFile = process.argv[1]
+  ? await realpath(resolve(process.argv[1])).catch(() => null)
+  : null;
+if (entryFile && import.meta.url === pathToFileURL(entryFile).href)
   await main();
