@@ -112,6 +112,13 @@ new campaign framework. A source change that increases instructions or stack
 traffic may still help scheduling or instruction delivery, but it needs a short
 test of that benefit before hundreds of full-proof processes.
 
+Gate dependent stages on checked command exits and prerequisite review results.
+The main-capture launcher must refuse to run until smoke semantic checks and
+the independent smoke reader succeed. Do not launch it merely because a smoke
+command was invoked, or after a shell sequence whose earlier failure was hidden
+by a later successful command. Preserve and disclose any sequencing deviation;
+an offline reader repair cannot retroactively satisfy an unmet pre-capture gate.
+
 ## Prioritize changes that remove work
 
 Before choosing the next experiment, make a compact cost model from the current
