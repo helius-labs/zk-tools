@@ -1,0 +1,345 @@
+{
+  "adopted": false,
+  "comparisons": [
+    {
+      "CPU_ratio": 0.9985326460405839,
+      "RSS_ON": 58.75,
+      "RSS_control": 79.75,
+      "RSS_pass": true,
+      "context": "1x2-w16",
+      "control": "REF",
+      "median_ratio": 1.0138241034825877,
+      "paired_ratios": [
+        1.027358492358987,
+        1.004103052824369,
+        1.0138241034825877
+      ],
+      "wins": 0
+    },
+    {
+      "CPU_ratio": 1.000807892471783,
+      "RSS_ON": 58.75,
+      "RSS_control": 83.5,
+      "RSS_pass": true,
+      "context": "1x2-w16",
+      "control": "OFF",
+      "median_ratio": 1.0153602134441322,
+      "paired_ratios": [
+        1.0234029264984952,
+        1.0151581250828599,
+        1.0153602134441322
+      ],
+      "wins": 0
+    },
+    {
+      "OFF_REF": 0.9984871280741501,
+      "calibration_pass": true,
+      "context": "1x2-w16",
+      "control": "calibration"
+    },
+    {
+      "CPU_ratio": 1.0310036901877495,
+      "RSS_ON": 74.75,
+      "RSS_control": 129.25,
+      "RSS_pass": true,
+      "context": "1x2-w32",
+      "control": "REF",
+      "median_ratio": 1.009876028440393,
+      "paired_ratios": [
+        1.009876028440393,
+        0.9911204629684744,
+        1.0114488941773796
+      ],
+      "wins": 1
+    },
+    {
+      "CPU_ratio": 1.0265059365145532,
+      "RSS_ON": 74.75,
+      "RSS_control": 130.0,
+      "RSS_pass": true,
+      "context": "1x2-w32",
+      "control": "OFF",
+      "median_ratio": 1.0008127247738157,
+      "paired_ratios": [
+        1.0072250151015383,
+        0.9991410736112839,
+        1.0008127247738157
+      ],
+      "wins": 1
+    },
+    {
+      "OFF_REF": 1.002631997119916,
+      "calibration_pass": true,
+      "context": "1x2-w32",
+      "control": "calibration"
+    },
+    {
+      "CPU_ratio": 1.1047515399182792,
+      "RSS_ON": 188.0,
+      "RSS_control": 295.5,
+      "RSS_pass": true,
+      "context": "2x2-w32",
+      "control": "REF",
+      "median_ratio": 1.050759113277023,
+      "paired_ratios": [
+        1.050759113277023,
+        1.0164436956205025,
+        1.0596736996624692
+      ],
+      "wins": 0
+    },
+    {
+      "CPU_ratio": 1.0996975195850107,
+      "RSS_ON": 188.0,
+      "RSS_control": 282.0,
+      "RSS_pass": true,
+      "context": "2x2-w32",
+      "control": "OFF",
+      "median_ratio": 1.0473251063229796,
+      "paired_ratios": [
+        1.066989347769215,
+        1.0432199258440602,
+        1.0473251063229796
+      ],
+      "wins": 0
+    },
+    {
+      "OFF_REF": 0.9847887567705107,
+      "calibration_pass": true,
+      "context": "2x2-w32",
+      "control": "calibration"
+    },
+    {
+      "CPU_ratio": 0.9873035110382165,
+      "RSS_ON": 1566.22265625,
+      "RSS_control": 1593.48046875,
+      "RSS_pass": true,
+      "context": "merge-54x1-w32",
+      "control": "REF",
+      "median_ratio": 0.9949212876843305,
+      "paired_ratios": [
+        0.9903746690653644,
+        0.9949212876843305,
+        1.0435066321575537
+      ],
+      "wins": 2
+    },
+    {
+      "CPU_ratio": 0.9808805769490148,
+      "RSS_ON": 1566.22265625,
+      "RSS_control": 1603.89453125,
+      "RSS_pass": true,
+      "context": "merge-54x1-w32",
+      "control": "OFF",
+      "median_ratio": 0.9961142313777435,
+      "paired_ratios": [
+        0.9671668320434578,
+        0.9961142313777435,
+        1.0345194296977256
+      ],
+      "wins": 2
+    },
+    {
+      "OFF_REF": 1.0086873210901937,
+      "calibration_pass": true,
+      "context": "merge-54x1-w32",
+      "control": "calibration"
+    }
+  ],
+  "counterfactual_only": true,
+  "full_goal_achieved": false,
+  "guards_pass": true,
+  "primary": [
+    {
+      "context": "1x2-w16",
+      "useful_signal_against_both": false
+    },
+    {
+      "context": "1x2-w32",
+      "useful_signal_against_both": false
+    }
+  ],
+  "timings": [
+    {
+      "arm": "REF",
+      "context": "1x2-w16",
+      "cpu_ms": {
+        "maximum": 112.03593625498009,
+        "median": 110.96755776892431,
+        "minimum": 109.35507569721115
+      },
+      "ms": {
+        "maximum": 8.911640633466142,
+        "median": 8.880708454183269,
+        "minimum": 8.659789645418332
+      },
+      "peak_RSS_MiB": 79.75
+    },
+    {
+      "arm": "OFF",
+      "context": "1x2-w16",
+      "cpu_ms": {
+        "maximum": 111.44783266932271,
+        "median": 111.35360159362548,
+        "minimum": 109.65030677290837
+      },
+      "ms": {
+        "maximum": 8.867273079681278,
+        "median": 8.814592864541838,
+        "minimum": 8.693260693227094
+      },
+      "peak_RSS_MiB": 83.5
+    },
+    {
+      "arm": "ON",
+      "context": "1x2-w16",
+      "cpu_ms": {
+        "maximum": 111.66243824701195,
+        "median": 110.80472908366534,
+        "minimum": 109.73889243027888
+      },
+      "ms": {
+        "maximum": 9.003476286852589,
+        "median": 8.948205565737048,
+        "minimum": 8.896708434262944
+      },
+      "peak_RSS_MiB": 58.75
+    },
+    {
+      "arm": "REF",
+      "context": "1x2-w32",
+      "cpu_ms": {
+        "maximum": 170.07581274900397,
+        "median": 169.22310756972112,
+        "minimum": 168.40611952191236
+      },
+      "ms": {
+        "maximum": 7.712274418326693,
+        "median": 7.619735884462153,
+        "minimum": 7.553685653386452
+      },
+      "peak_RSS_MiB": 129.25
+    },
+    {
+      "arm": "OFF",
+      "context": "1x2-w32",
+      "cpu_ms": {
+        "maximum": 170.55864940239047,
+        "median": 170.13948207171313,
+        "minimum": 169.08584462151393
+      },
+      "ms": {
+        "maximum": 7.7007148725099634,
+        "median": 7.650364091633464,
+        "minimum": 7.573566932270917
+      },
+      "peak_RSS_MiB": 130.0
+    },
+    {
+      "arm": "ON",
+      "context": "1x2-w32",
+      "cpu_ms": {
+        "maximum": 175.07946613545818,
+        "median": 174.61013545816732,
+        "minimum": 173.62733067729084
+      },
+      "ms": {
+        "maximum": 7.706973434262943,
+        "median": 7.643792992031874,
+        "minimum": 7.628286067729086
+      },
+      "peak_RSS_MiB": 74.75
+    },
+    {
+      "arm": "REF",
+      "context": "2x2-w32",
+      "cpu_ms": {
+        "maximum": 248.54119607843134,
+        "median": 247.99527450980392,
+        "minimum": 247.89321568627452
+      },
+      "ms": {
+        "maximum": 10.962223745098038,
+        "median": 10.746604549019608,
+        "minimum": 10.668691529411763
+      },
+      "peak_RSS_MiB": 295.5
+    },
+    {
+      "arm": "OFF",
+      "context": "2x2-w32",
+      "cpu_ms": {
+        "maximum": 250.70256862745097,
+        "median": 249.0324901960784,
+        "minimum": 245.82017647058828
+      },
+      "ms": {
+        "maximum": 10.79448182352941,
+        "median": 10.680857352941173,
+        "minimum": 10.583135333333335
+      },
+      "peak_RSS_MiB": 282.0
+    },
+    {
+      "arm": "ON",
+      "context": "2x2-w32",
+      "cpu_ms": {
+        "maximum": 275.4194901960784,
+        "median": 274.3617647058824,
+        "minimum": 273.86041176470593
+      },
+      "ms": {
+        "maximum": 11.305331823529409,
+        "median": 11.292092666666667,
+        "minimum": 11.142483215686275
+      },
+      "peak_RSS_MiB": 188.0
+    },
+    {
+      "arm": "REF",
+      "context": "merge-54x1-w32",
+      "cpu_ms": {
+        "maximum": 4566.886857142857,
+        "median": 4511.003285714285,
+        "minimum": 4510.263857142857
+      },
+      "ms": {
+        "maximum": 164.43352557142856,
+        "median": 161.26092428571428,
+        "minimum": 160.25656042857145
+      },
+      "peak_RSS_MiB": 1593.48046875
+    },
+    {
+      "arm": "OFF",
+      "context": "merge-54x1-w32",
+      "cpu_ms": {
+        "maximum": 4596.791428571428,
+        "median": 4569.404285714286,
+        "minimum": 4522.930571428571
+      },
+      "ms": {
+        "maximum": 164.23660042857142,
+        "median": 164.1020274285714,
+        "minimum": 162.6618497142857
+      },
+      "peak_RSS_MiB": 1603.89453125
+    },
+    {
+      "arm": "ON",
+      "context": "merge-54x1-w32",
+      "cpu_ms": {
+        "maximum": 4660.451714285714,
+        "median": 4508.903428571428,
+        "minimum": 4432.962
+      },
+      "ms": {
+        "maximum": 168.27684399999998,
+        "median": 163.598415,
+        "minimum": 158.71403800000002
+      },
+      "peak_RSS_MiB": 1566.22265625
+    }
+  ],
+  "useful_primary_signal": false
+}
