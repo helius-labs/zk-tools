@@ -31,7 +31,8 @@ test(
         "npm",
         [
           "install",
-          "--offline",
+          "--cache",
+          join(directory, "npm-cache"),
           "--ignore-scripts",
           "--no-audit",
           "--no-fund",
