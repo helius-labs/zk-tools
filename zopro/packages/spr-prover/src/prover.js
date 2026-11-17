@@ -69,16 +69,18 @@ function kernelProof(proof) {
   });
 }
 
-export function proverClass(KernelProver) {
+export function proverClass(KernelProver, isClosed = () => false) {
   return class SprProver {
     #kernel;
     #pending = 0;
 
     constructor(key) {
+      if (isClosed()) throw new Error("The runtime is closed");
       this.#kernel = new KernelProver(key);
     }
 
     #loaded() {
+      if (isClosed()) throw new Error("The runtime is closed");
       if (!this.#kernel) throw new Error("The prover is freed");
       return this.#kernel;
     }

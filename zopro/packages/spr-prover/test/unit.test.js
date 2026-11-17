@@ -38,6 +38,10 @@ test("initialize once, fix the pool size, and close once", async () => {
   assert.equal(first, second);
   await assert.rejects(init({ threads: 4 }), /thread count is fixed/);
   await Promise.all([first.close(), second.close()]);
+  assert.throws(
+    () => new first.SprProver(new Uint8Array()),
+    /runtime is closed/,
+  );
   await assert.rejects(init({ threads: 2 }), /closed/);
   assert.deepEqual(
     { loads, starts, closes },

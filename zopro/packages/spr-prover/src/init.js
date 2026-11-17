@@ -31,7 +31,7 @@ export function initializer(load) {
       }
       let closing;
       return Object.freeze({
-        SprProver: proverClass(module.SprProver),
+        SprProver: proverClass(module.SprProver, () => closed),
         threads,
         close() {
           closed = true;

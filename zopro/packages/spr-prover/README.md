@@ -129,7 +129,7 @@ Proof tests download the checksum-pinned 2x2 transfer and 8-input merge keys
 from `tools/spr/zopro-keys.lock` once into ignored `test/keys/`. Transfers
 prove twice with 0, 1, 2 and 4 threads; merges prove twice with 4 threads. Tests
 verify each result, check that all three proof points differ, reject a changed
-public input and a malformed request, and close the runtime. Browser tests
+public input and malformed inputs, and close the runtime. Browser tests
 also cover missing isolation and missing cryptographic randomness. Codec tests
 compare serialized transfer and merge inputs with the protocol fixtures and
 check exact compatibility with the SDK's server proof decoder.
