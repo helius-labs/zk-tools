@@ -1,0 +1,31 @@
+--- /home/ubuntu/src/zopro-perf-work/boolean-proof209/source-v2/crates/zopro-core/src/msm_affine/boolean_query.rs	2026-11-17 17:28:26.077278318 +0000
++++ /home/ubuntu/src/zopro-perf-work/boolean-phases210/source/crates/zopro-core/src/msm_affine/boolean_query.rs	2026-11-17 17:39:26.002298803 +0000
+@@ -29,14 +29,18 @@
+     words: &mut [[u64; 4]],
+     positions: &[u32], on: bool,
+ ) -> zopro_bn254::G2Projective {
++    crate::boolean_phase_trace::mark(10);
+     assert_eq!(bases.len(), words.len());
+     let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+         .then(|| scalar_groups(words))
+         .flatten();
++    crate::boolean_phase_trace::mark(11);
+     if on && groups.is_none() && (1024..65536).contains(&bases.len()) {
++        crate::boolean_phase_trace::mark(19);
+         if let Some(selected)=peel(bases,words,positions) {
++            crate::boolean_phase_trace::mark(20);
+             ROUTES[1].fetch_add(1,Ordering::Relaxed);
+-            let(a,b)=rayon::join(||g2_phi::raw_exclusive(bases,words),||boolean_sum(bases,&selected));
++            let(a,b)=rayon::join(||crate::boolean_phase_trace::around(12,13,||g2_phi::raw_exclusive(bases,words)),||crate::boolean_phase_trace::around(14,15,||boolean_sum(bases,&selected)));
+             return a+b;
+         }
+         ROUTES[3].fetch_add(1,Ordering::Relaxed);
+@@ -58,7 +62,7 @@
+             let points = crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts);
+             return g2_phi::raw_exclusive(&points, &mut g.values);
+         }
+-        return g2_phi::raw_exclusive(bases, words);
++        return crate::boolean_phase_trace::around(12,13,||g2_phi::raw_exclusive(bases,words));
+     }
+     match groups {
+         Some(g) => crate::msm_grouped_b2(bases, &g),

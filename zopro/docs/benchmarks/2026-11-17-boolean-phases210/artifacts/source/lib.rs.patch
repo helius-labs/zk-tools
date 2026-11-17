@@ -1,0 +1,93 @@
+--- /home/ubuntu/src/zopro-perf-work/boolean-proof209/source-v2/crates/zopro-core/src/lib.rs	2026-11-17 17:28:26.076278299 +0000
++++ /home/ubuntu/src/zopro-perf-work/boolean-phases210/source/crates/zopro-core/src/lib.rs	2026-11-17 17:39:26.002298803 +0000
+@@ -2207,9 +2207,11 @@
+         #[cfg(not(zopro_bounded_gather))]
+         use rayon::prelude::*;
+         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
++        crate::boolean_phase_trace::mark(0);
+         let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
+         if let Some(scope) = reclaim { scope.release_unused(&mut w); }
+         drop(c);
++        crate::boolean_phase_trace::mark(1);
+         // The correction consumes Montgomery public values before the one
+         // in-place conversion. All later accesses to w use canonical words.
+         let correction=folded.public_term(&w[..plan.n_public]);
+@@ -2224,9 +2226,11 @@
+         };
+         // SAFETY: both branches converted every Fr in place to canonical limbs.
+         // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
++        crate::boolean_phase_trace::mark(2);
+         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
+         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
+         let mut product=queries.product_values(&self.plan,a,b);
++        crate::boolean_phase_trace::mark(3);
+         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
+         #[cfg(all(zopro_real_kh, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+         if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len()) {
+@@ -2234,8 +2238,8 @@
+                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+             }
+             let ((ar,kh),bs2)=rayon::join(
+-                || rayon::join(|| msm(&self.a[..],sa),
+-                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
++                || rayon::join(|| crate::boolean_phase_trace::around(4,5,||msm(&self.a[..],sa)),
++                    || crate::boolean_phase_trace::around(6,7,||msm_affine::fused_kh::fused(k,sk,z,canonical(h),13))),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+                         self.canonical_b2_query(sb)
+@@ -2246,9 +2250,11 @@
+                             |g|msm_grouped_b2(&self.b2,g))
+                     }
+                 });
+-            let mut out=Vec::with_capacity(384);
++            crate::boolean_phase_trace::mark(16);
++        let mut out=Vec::with_capacity(384);
+             for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY] {output_g1(&mut out,point);}
+             output_g2(&mut out,bs2);
++            crate::boolean_phase_trace::mark(18);
+             return Ok(out);
+         }
+         let (((ar,kr),hz),(bs1,bs2))={
+@@ -2256,13 +2262,13 @@
+                 rayon::join(
+                     || {
+                         rayon::join(
+-                            || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
++                            || rayon::join(|| crate::boolean_phase_trace::around(4,5,||msm(&self.a[..],sa)), || crate::boolean_phase_trace::around(6,7,||msm(k,sk))),
+                             || {
+-                                if montgomery_h {
++                                crate::boolean_phase_trace::around(21,22,||{                                if montgomery_h {
+                                     msm_affine::msm_montgomery(z, h)
+                                 } else {
+                                     msm(z, canonical(h))
+-                                }
++                                }})
+                             },
+                         )
+                     },
+@@ -2292,7 +2298,8 @@
+                 )
+         };
+ 
+-        let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(out)
++        crate::boolean_phase_trace::mark(16);
++        let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);crate::boolean_phase_trace::mark(18);Ok(out)
+     }
+ }
+ 
+@@ -2417,10 +2424,15 @@
+ #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ impl Key {
+  fn canonical_b2_query(&self,words:&mut[[u64;4]])->G2Projective {
++ crate::boolean_phase_trace::around(8,9,||{
+   #[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+   if let Some(q)=&self.boolean_query { return msm_affine::boolean_query::query(&self.b2,words,&q.positions,true); }
+   msm_affine::g2_query_exclusive(&self.b2,words)
++ })
+  }
+ }
+ #[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+ pub mod boolean_query_probe {pub fn snapshot()->([usize;4],usize,usize){crate::msm_affine::boolean_query::snapshot()}}
++
++#[cfg(all(zopro_resource_schedule,zopro_live_preparation_charge,feature="ifma8",target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++pub mod boolean_phase_trace;

@@ -1,0 +1,24 @@
+--- /home/ubuntu/src/zopro-perf-work/boolean-proof209/source-v2/crates/zopro-core/src/msm_affine.rs	2026-11-17 17:28:26.077278318 +0000
++++ /home/ubuntu/src/zopro-perf-work/boolean-phases210/source/crates/zopro-core/src/msm_affine.rs	2026-11-17 17:39:26.002298803 +0000
+@@ -1682,10 +1682,12 @@
+     bases: &[zopro_bn254::G2Affine],
+     words: &mut [[u64; 4]],
+ ) -> zopro_bn254::G2Projective {
++    crate::boolean_phase_trace::mark(10);
+     assert_eq!(bases.len(), words.len());
+     let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+         .then(|| scalar_groups(words))
+         .flatten();
++    crate::boolean_phase_trace::mark(11);
+     #[cfg(all(
+         zopro_g2_horner_buckets,
+         target_arch = "x86_64",
+@@ -1703,7 +1705,7 @@
+             let points = crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts);
+             return g2_phi::raw_exclusive(&points, &mut g.values);
+         }
+-        return g2_phi::raw_exclusive(bases, words);
++        return crate::boolean_phase_trace::around(12,13,||g2_phi::raw_exclusive(bases,words));
+     }
+     match groups {
+         Some(g) => crate::msm_grouped_b2(bases, &g),

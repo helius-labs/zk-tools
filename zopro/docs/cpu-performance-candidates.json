@@ -229,6 +229,30 @@
         "status": "screen_RSS_CPU_guards_pass"
       },
       "sdk_sha256": "e661251632f21c391c5ea1ffa55207e0d70be6990a2386d6fb6b02db5366d6ed"
+    },
+    {
+      "adoption": {
+        "canonical_verified_exports": 58964,
+        "remaining": [],
+        "status": "diagnostic_only_not_adopted"
+      },
+      "change": "Diagnostic-only bounded branch timestamps with traceOFF/ON observer controls",
+      "correctness": {
+        "evidence": "benchmarks/2026-11-17-boolean-phases210/README.md",
+        "scope": "5focused native tests,3064SDKcalls,16fresh Gnark exports,1508trace records incl2smokes,independent32receipt reader",
+        "status": "passed_native_diagnostic_scope"
+      },
+      "id": "boolean-phases210",
+      "parent_id": "boolean-proof209",
+      "performance": {
+        "scope": "Bothobservergatespass; Boolean sum done beforePhi753/753; completeG2span~5mswithbothstates; parallelpeersusuallyreturnlast",
+        "status": "not_an_adoption_comparison"
+      },
+      "resources_and_compatibility": {
+        "scope": "24atomic timestamps plus driver bounded record storage; single sequential driver only, no production/portable/pressure/concurrency claim",
+        "status": "diagnostic_only"
+      },
+      "sdk_sha256": "4d7c1cfc4733f995e4542a5741eb406bd24ee0ff50fb69cd4b388925eb6f3123"
     }
   ],
   "historical_followups": [
@@ -364,7 +388,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "Preserve small positive208 component result and completed209integration.209 fullproof gain screen fails, not a correctness bug or minimum-gain rejection. Diagnose actual wholeproof branch finish order with bounded phase timestamps/observer controls, not aggregate CPU causality or another unchanged timing retry. Production194/196 unchanged; canonical58948/e63bea37a40fb006269ea4b5bf9209a558ec7a712a40827c349c0dfa0321365b. No push.",
+  "next_action": "209 recipe remains closed/not adopted;210 direct phase diagnostic observer/event gates pass. Boolean sum finishes before Phi in753/753; G2/A/KH caller spans stay~5ms and peer query returns last in574/753OFF,534/753ON. Do not optimize Boolean tree or infer sole RAM/scheduler cause. Group-decision/Phi elapsed split moves~0.8ms despite one shared scalar_groups symbol; isolate serial CPU work versus waits before choosing an intervention. Early group rejection already tested2026-10-27-grouping-prefix-cutoff; do not rediscover it as new. Canonical58964/34f60e381bf9259290fa47b26fd5e9478e7624ea1557caa01ef2c068ed7f2d8b. Production194/196unchanged,goal0/8,no push.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",
