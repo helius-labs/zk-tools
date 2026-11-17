@@ -11,10 +11,11 @@ layout, the tests and the benchmarks.
 **Experimental.** New and unaudited: do not rely on it where a wrong or
 leaked proof would cost anything.
 
-The SDKs pin a commit of this repository: `zolana-web-sdk`'s
-`runtime.lock.json` (repository, path `zopro`, revision) builds the browser
-runtime from it, and `zolana-mobile-sdk`'s native crate takes `zopro-spr`
-as a git dependency of it.
+[clients/spr-prover](clients/spr-prover/) is the web and Node client,
+`@heliuslabs/spr-web-prover`, with the wallet and benchmark examples beside
+the package. `clients/spr-prover/runtime.lock.json` pins the zopro revision
+that client builds. The mobile SDK takes `zopro-spr` as a git dependency of
+this repository.
 
 The Go bridges this repository first held (`cgo/`, `prover-wasm/`, gnark's
 prover for the SDKs' earlier native and wasm paths) are in the history
