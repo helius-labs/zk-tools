@@ -182,6 +182,14 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
+The [compact G2 prefix record](benchmarks/2026-11-17-g2-compact-prefix202/README.md)
+reduces record payload640->512bytes using existing field packing, but primary32
+query latency regresses2.34%,0/3wins. It fails both local SDK progression and the
+predeclared local rule for selecting a C7a test. All816 query checks and four
+native test functions pass; production and ledger58257 are unchanged. Close this
+record recipe without a packing/layout sweep. Smaller storage alone did not
+improve the complete caller, and no C7a or whole-proof result is inferred.
+
 The [exact adopted SDK C7a campaign](benchmarks/2026-11-17-accepted-c7a201/README.md)
 now covers all eight supplied shapes plus merge54 at32/96 physical cores.
 Primary ON is11.098/12.515ms; retained Aeglos Sorted12.143/8.311ms. The adopted
