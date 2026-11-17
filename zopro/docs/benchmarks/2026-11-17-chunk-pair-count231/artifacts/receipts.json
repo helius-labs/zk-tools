@@ -1,0 +1,225 @@
+{
+  "all_first_scientific_executions_succeeded": true,
+  "commands": [
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "-O",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/count.rs",
+          "-L",
+          "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+          "--extern",
+          "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+          "--extern",
+          "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+          "--test",
+          "-o",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/count-tests"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 203.624814,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "success": true
+      },
+      "name": "compile-tests",
+      "stage": "run"
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/count-tests",
+          "--test-threads=1"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 384.903435,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "f7e3d690ac3ecb3582dbb477f558dc057409f7abd77b42461f29db78f1430cfc",
+        "success": true
+      },
+      "name": "model-tests",
+      "stage": "run"
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "-O",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/count.rs",
+          "-L",
+          "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+          "--extern",
+          "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+          "--extern",
+          "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+          "-o",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/count"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 375.269028,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "success": true
+      },
+      "name": "compile-count",
+      "stage": "run"
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/count"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 5171.009513999999,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "success": true
+      },
+      "name": "real-counts",
+      "stage": "run"
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "-O",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/review.rs",
+          "-L",
+          "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+          "--extern",
+          "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+          "--extern",
+          "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+          "-o",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/review"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 288.22558100000003,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "success": true
+      },
+      "name": "compile-review",
+      "stage": "run"
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/review"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 437.082262,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "c20fa6172e794f2b9abfc92bab04f5ef85d2e0316a4677046083be89e20b0faf",
+        "success": true
+      },
+      "name": "independent-review",
+      "stage": "run"
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+          "--edition=2021",
+          "-O",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/formal.rs",
+          "-L",
+          "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+          "--extern",
+          "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+          "--extern",
+          "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+          "--test",
+          "-o",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/formal-tests"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 234.521533,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "success": true
+      },
+      "name": "compile-formal",
+      "stage": "additional-run"
+    },
+    {
+      "command": {
+        "argv": [
+          "timeout",
+          "-k",
+          "5s",
+          "300s",
+          "/home/ubuntu/src/zopro-perf-work/chunk-pair-count231/formal-tests",
+          "--exact",
+          "formal::independent_basis_coefficients_for_every_small_signed_population",
+          "--test-threads=1"
+        ],
+        "environment": {}
+      },
+      "exit": {
+        "elapsed_ms": 381.630868,
+        "returncode": 0,
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stdout_sha256": "77469a92975e5f352a458c59b6a89e60c2f704c1270d5f151d82ebd37ff2ee05",
+        "success": true
+      },
+      "name": "formal-coefficients",
+      "stage": "additional-run"
+    }
+  ],
+  "commands_checked": 8,
+  "streams_checked": 16
+}
