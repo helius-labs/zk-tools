@@ -1,0 +1,807 @@
+{
+  "all_observer_checks_pass": false,
+  "all_quality_checks_pass": true,
+  "canonical_count": 56585,
+  "new_proofs": 0,
+  "observer_checks": [
+    {
+      "median": 2.1974497750119157,
+      "passed": false,
+      "ratios": [
+        2.1974497750119157,
+        2.198002492248675,
+        2.1564869710289885
+      ],
+      "scope": "wholeprocessincludingperfstartup/drain"
+    },
+    {
+      "median": 0.9955146899306793,
+      "passed": true,
+      "ratios": [
+        0.9955146899306793,
+        1.0007467192558184,
+        0.9838908778996047
+      ],
+      "scope": "1x2-arm0-timedqueries"
+    },
+    {
+      "median": 0.9823260958741171,
+      "passed": true,
+      "ratios": [
+        0.9823260958741171,
+        0.96841221070472,
+        1.0276744935432929
+      ],
+      "scope": "1x2-arm1-timedqueries"
+    },
+    {
+      "median": 1.0101451118340514,
+      "passed": true,
+      "ratios": [
+        1.017681499580782,
+        0.9880318830840269,
+        1.0101451118340514
+      ],
+      "scope": "1x2-arm2-timedqueries"
+    },
+    {
+      "median": 0.9699175639693498,
+      "passed": true,
+      "ratios": [
+        0.9699175639693498,
+        0.9927240115835831,
+        0.9613238812950502
+      ],
+      "scope": "2x2-arm0-timedqueries"
+    },
+    {
+      "median": 0.9652001559146982,
+      "passed": true,
+      "ratios": [
+        0.9652001559146982,
+        1.0133393705395404,
+        0.9577425075503981
+      ],
+      "scope": "2x2-arm1-timedqueries"
+    },
+    {
+      "median": 0.9796755206972355,
+      "passed": true,
+      "ratios": [
+        0.9957210476988503,
+        0.9796755206972355,
+        0.953284095838191
+      ],
+      "scope": "2x2-arm2-timedqueries"
+    }
+  ],
+  "profiles": [
+    {
+      "actual_PID": 628352,
+      "block": 0,
+      "quality_passed": true,
+      "samples": 6210,
+      "symbols": [
+        {
+          "samples": 2724,
+          "share": 0.4386473429951691,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double"
+        },
+        {
+          "samples": 971,
+          "share": 0.15636070853462158,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(&[(usize, usize)], &mut [zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>])>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm::indexed_tiles::reduce<zopro_bn254::curve::G2Config>::{closure#0}>>"
+        },
+        {
+          "samples": 922,
+          "share": 0.14847020933977456,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 472,
+          "share": 0.07600644122383253,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksProducer<[u64; 4]>>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<(alloc::vec::Vec<u32>, alloc::vec::Vec<usize>)>, <zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#0}>>"
+        },
+        {
+          "samples": 258,
+          "share": 0.04154589371980676,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 207,
+          "share": 0.03333333333333333,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::batch_to_affine"
+        },
+        {
+          "samples": 164,
+          "share": 0.02640901771336554,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+        },
+        {
+          "samples": 98,
+          "share": 0.015780998389694042,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+        },
+        {
+          "samples": 62,
+          "share": 0.00998389694041868,
+          "symbol": "<zopro_core::msm_affine::server_shifted::Table>::apply_mode"
+        },
+        {
+          "samples": 55,
+          "share": 0.008856682769726247,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, <zopro_core::msm_affine::server_shifted::Table>::new::{closure#0}>>"
+        },
+        {
+          "samples": 48,
+          "share": 0.007729468599033816,
+          "symbol": "[unknown]"
+        },
+        {
+          "samples": 35,
+          "share": 0.005636070853462158,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>"
+        },
+        {
+          "samples": 34,
+          "share": 0.005475040257648953,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+        },
+        {
+          "samples": 32,
+          "share": 0.0051529790660225444,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+        },
+        {
+          "samples": 26,
+          "share": 0.004186795491143317,
+          "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+        },
+        {
+          "samples": 11,
+          "share": 0.0017713365539452496,
+          "symbol": "<std::sys::sync::mutex::futex::Mutex>::lock_contended"
+        },
+        {
+          "samples": 11,
+          "share": 0.0017713365539452496,
+          "symbol": "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 9,
+          "share": 0.0014492753623188406,
+          "symbol": "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 7,
+          "share": 0.0011272141706924316,
+          "symbol": "zopro_core::msm_affine::g2_phi::hb_top_component"
+        },
+        {
+          "samples": 6,
+          "share": 0.000966183574879227,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::merge_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>"
+        },
+        {
+          "samples": 5,
+          "share": 0.0008051529790660225,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::new"
+        },
+        {
+          "samples": 5,
+          "share": 0.0008051529790660225,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::vec::DrainProducer<&mut [u32]>>, rayon::iter::for_each::ForEachConsumer<<zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#2}>>"
+        },
+        {
+          "samples": 5,
+          "share": 0.0008051529790660225,
+          "symbol": "zopro_core::msm_affine::grouping::scalar_groups_policy"
+        },
+        {
+          "samples": 4,
+          "share": 0.0006441223832528181,
+          "symbol": "<rayon_core::sleep::Sleep>::wake_specific_thread"
+        },
+        {
+          "samples": 4,
+          "share": 0.0006441223832528181,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine"
+        },
+        {
+          "samples": 3,
+          "share": 0.0004830917874396135,
+          "symbol": "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal"
+        },
+        {
+          "samples": 3,
+          "share": 0.0004830917874396135,
+          "symbol": "<rayon_core::registry::WorkerThread>::wait_until_cold"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032206119162640903,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::vec::DrainProducer<(&[(usize, usize)], &mut [zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>])>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm::indexed_tiles::reduce<zopro_bn254::curve::G2Config>::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032206119162640903,
+          "symbol": "<rayon_core::registry::WorkerThread>::take_local_job"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032206119162640903,
+          "symbol": "<rayon_core::sleep::Sleep>::sleep::<<rayon_core::registry::WorkerThread>::wait_until_cold::{closure#0}>"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032206119162640903,
+          "symbol": "malloc"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032206119162640903,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<[u64; 4]>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032206119162640903,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032206119162640903,
+          "symbol": "realloc"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032206119162640903,
+          "symbol": "sha2::sha256::compress256"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032206119162640903,
+          "symbol": "std::sys::env::unix::getenv::{closure#0}"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032206119162640903,
+          "symbol": "zopro_core::msm::invert_lanes"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016103059581320451,
+          "symbol": "<alloc::raw_vec::RawVec<usize>>::grow_one"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016103059581320451,
+          "symbol": "<alloc::raw_vec::RawVecInner>::finish_grow"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016103059581320451,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::vec::DrainProducer<&mut [u32]>>, rayon::iter::for_each::ForEachConsumer<<zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#2}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016103059581320451,
+          "symbol": "<std::sys::sync::rwlock::futex::RwLock>::read_contended"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016103059581320451,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_projective"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016103059581320451,
+          "symbol": "getenv"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016103059581320451,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::vec::DrainProducer<(&[(usize, usize)], &mut [zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>])>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm::indexed_tiles::reduce<zopro_bn254::curve::G2Config>::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::vec::DrainProducer<(&[(usize, usize)], &mut [zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>])>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm::indexed_tiles::reduce<zopro_bn254::curve::G2Config>::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016103059581320451,
+          "symbol": "zopro_core::msm::weighted_sum::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016103059581320451,
+          "symbol": "zopro_core::msm_affine::server_shifted::tests::fixture"
+        }
+      ],
+      "unknown": 48,
+      "zero_lost": true
+    },
+    {
+      "actual_PID": 628392,
+      "block": 1,
+      "quality_passed": true,
+      "samples": 6192,
+      "symbols": [
+        {
+          "samples": 2703,
+          "share": 0.436531007751938,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double"
+        },
+        {
+          "samples": 959,
+          "share": 0.15487726098191215,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 907,
+          "share": 0.14647932816537468,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(&[(usize, usize)], &mut [zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>])>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm::indexed_tiles::reduce<zopro_bn254::curve::G2Config>::{closure#0}>>"
+        },
+        {
+          "samples": 460,
+          "share": 0.07428940568475452,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksProducer<[u64; 4]>>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<(alloc::vec::Vec<u32>, alloc::vec::Vec<usize>)>, <zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#0}>>"
+        },
+        {
+          "samples": 240,
+          "share": 0.03875968992248062,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 198,
+          "share": 0.03197674418604651,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::batch_to_affine"
+        },
+        {
+          "samples": 182,
+          "share": 0.029392764857881136,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+        },
+        {
+          "samples": 129,
+          "share": 0.020833333333333332,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+        },
+        {
+          "samples": 63,
+          "share": 0.010174418604651164,
+          "symbol": "<zopro_core::msm_affine::server_shifted::Table>::apply_mode"
+        },
+        {
+          "samples": 62,
+          "share": 0.010012919896640826,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, <zopro_core::msm_affine::server_shifted::Table>::new::{closure#0}>>"
+        },
+        {
+          "samples": 52,
+          "share": 0.008397932816537468,
+          "symbol": "[unknown]"
+        },
+        {
+          "samples": 41,
+          "share": 0.006621447028423773,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+        },
+        {
+          "samples": 32,
+          "share": 0.00516795865633075,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>"
+        },
+        {
+          "samples": 30,
+          "share": 0.0048449612403100775,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+        },
+        {
+          "samples": 21,
+          "share": 0.003391472868217054,
+          "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+        },
+        {
+          "samples": 13,
+          "share": 0.002099483204134367,
+          "symbol": "<std::sys::sync::mutex::futex::Mutex>::lock_contended"
+        },
+        {
+          "samples": 13,
+          "share": 0.002099483204134367,
+          "symbol": "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 8,
+          "share": 0.0012919896640826874,
+          "symbol": "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 6,
+          "share": 0.0009689922480620155,
+          "symbol": "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal"
+        },
+        {
+          "samples": 6,
+          "share": 0.0009689922480620155,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::new"
+        },
+        {
+          "samples": 6,
+          "share": 0.0009689922480620155,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::vec::DrainProducer<&mut [u32]>>, rayon::iter::for_each::ForEachConsumer<<zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#2}>>"
+        },
+        {
+          "samples": 6,
+          "share": 0.0009689922480620155,
+          "symbol": "zopro_core::msm_affine::g2_phi::hb_top_component"
+        },
+        {
+          "samples": 5,
+          "share": 0.0008074935400516795,
+          "symbol": "<rayon_core::sleep::Sleep>::wake_specific_thread"
+        },
+        {
+          "samples": 5,
+          "share": 0.0008074935400516795,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine"
+        },
+        {
+          "samples": 5,
+          "share": 0.0008074935400516795,
+          "symbol": "zopro_core::msm_affine::grouping::scalar_groups_policy"
+        },
+        {
+          "samples": 4,
+          "share": 0.0006459948320413437,
+          "symbol": "<rayon_core::registry::WorkerThread>::take_local_job"
+        },
+        {
+          "samples": 4,
+          "share": 0.0006459948320413437,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>"
+        },
+        {
+          "samples": 3,
+          "share": 0.00048449612403100775,
+          "symbol": "<rayon_core::sleep::Sleep>::sleep::<<rayon_core::registry::WorkerThread>::wait_until_cold::{closure#0}>"
+        },
+        {
+          "samples": 3,
+          "share": 0.00048449612403100775,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<[u64; 4]>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>"
+        },
+        {
+          "samples": 3,
+          "share": 0.00048449612403100775,
+          "symbol": "zopro_core::msm::indexed_tiles::reduce::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 3,
+          "share": 0.00048449612403100775,
+          "symbol": "zopro_core::msm::invert_lanes"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032299741602067185,
+          "symbol": "<rayon_core::registry::WorkerThread>::wait_until_cold"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032299741602067185,
+          "symbol": "__libc_calloc"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032299741602067185,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::vec::DrainProducer<&mut [u32]>>, rayon::iter::for_each::ForEachConsumer<<zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#2}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::vec::DrainProducer<&mut [u32]>>, rayon::iter::for_each::ForEachConsumer<<zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#2}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 2,
+          "share": 0.00032299741602067185,
+          "symbol": "realloc"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "<alloc::raw_vec::RawVecInner>::finish_grow"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "<alloc::vec::Vec<&str> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<&str, core::str::iter::SplitWhitespace>>::from_iter"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::vec::DrainProducer<(&[(usize, usize)], &mut [zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>])>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm::indexed_tiles::reduce<zopro_bn254::curve::G2Config>::{closure#0}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, <zopro_core::msm_affine::server_shifted::Table>::new::{closure#0}>>::{closure#1}>::{closure#0}, rayon::iter::collect::consumer::CollectResult<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "<std::sys::sync::rwlock::futex::RwLock>::read_contended"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "<zopro_bn254::fq2::Fq2>::inverse"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "malloc"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::merge_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "sha2::sha256::compress256"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "std::sys::env::unix::getenv::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016149870801033592,
+          "symbol": "zopro_core::msm_affine::server_shifted::tests::fixture"
+        }
+      ],
+      "unknown": 52,
+      "zero_lost": true
+    },
+    {
+      "actual_PID": 628502,
+      "block": 2,
+      "quality_passed": true,
+      "samples": 6200,
+      "symbols": [
+        {
+          "samples": 2727,
+          "share": 0.43983870967741934,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double"
+        },
+        {
+          "samples": 948,
+          "share": 0.1529032258064516,
+          "symbol": "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 932,
+          "share": 0.1503225806451613,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::vec::DrainProducer<(&[(usize, usize)], &mut [zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>])>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm::indexed_tiles::reduce<zopro_bn254::curve::G2Config>::{closure#0}>>"
+        },
+        {
+          "samples": 444,
+          "share": 0.07161290322580645,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksProducer<[u64; 4]>>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<(alloc::vec::Vec<u32>, alloc::vec::Vec<usize>)>, <zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#0}>>"
+        },
+        {
+          "samples": 257,
+          "share": 0.041451612903225805,
+          "symbol": "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 189,
+          "share": 0.030483870967741935,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::batch_to_affine"
+        },
+        {
+          "samples": 166,
+          "share": 0.026774193548387098,
+          "symbol": "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>"
+        },
+        {
+          "samples": 118,
+          "share": 0.01903225806451613,
+          "symbol": "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>"
+        },
+        {
+          "samples": 66,
+          "share": 0.01064516129032258,
+          "symbol": "<zopro_core::msm_affine::server_shifted::Table>::apply_mode"
+        },
+        {
+          "samples": 59,
+          "share": 0.009516129032258064,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<alloc::vec::Vec<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, <zopro_core::msm_affine::server_shifted::Table>::new::{closure#0}>>"
+        },
+        {
+          "samples": 51,
+          "share": 0.008225806451612904,
+          "symbol": "[unknown]"
+        },
+        {
+          "samples": 37,
+          "share": 0.005967741935483871,
+          "symbol": "<crossbeam_epoch::internal::Global>::try_advance"
+        },
+        {
+          "samples": 35,
+          "share": 0.00564516129032258,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>"
+        },
+        {
+          "samples": 33,
+          "share": 0.00532258064516129,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::feed"
+        },
+        {
+          "samples": 19,
+          "share": 0.003064516129032258,
+          "symbol": "<zopro_core::simd::FqBatch>::inverse_nonzero"
+        },
+        {
+          "samples": 11,
+          "share": 0.0017741935483870969,
+          "symbol": "<&zopro_core::msm_affine::g2_phi::hb_raw::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut"
+        },
+        {
+          "samples": 11,
+          "share": 0.0017741935483870969,
+          "symbol": "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>"
+        },
+        {
+          "samples": 10,
+          "share": 0.0016129032258064516,
+          "symbol": "<rayon_core::registry::WorkerThread>::take_local_job"
+        },
+        {
+          "samples": 10,
+          "share": 0.0016129032258064516,
+          "symbol": "<rayon_core::sleep::Sleep>::wake_specific_thread"
+        },
+        {
+          "samples": 8,
+          "share": 0.0012903225806451613,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::new"
+        },
+        {
+          "samples": 7,
+          "share": 0.0011290322580645162,
+          "symbol": "<std::sys::sync::mutex::futex::Mutex>::lock_contended"
+        },
+        {
+          "samples": 6,
+          "share": 0.000967741935483871,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::vec::DrainProducer<&mut [u32]>>, rayon::iter::for_each::ForEachConsumer<<zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#2}>>"
+        },
+        {
+          "samples": 6,
+          "share": 0.000967741935483871,
+          "symbol": "realloc"
+        },
+        {
+          "samples": 6,
+          "share": 0.000967741935483871,
+          "symbol": "zopro_core::msm_affine::grouping::scalar_groups_policy"
+        },
+        {
+          "samples": 4,
+          "share": 0.0006451612903225806,
+          "symbol": "malloc"
+        },
+        {
+          "samples": 4,
+          "share": 0.0006451612903225806,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::collect::consumer::CollectConsumer<(zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>, zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>)>, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#0}, zopro_core::msm::weighted_affine<zopro_bn254::curve::G2Config>::{closure#1}>>"
+        },
+        {
+          "samples": 4,
+          "share": 0.0006451612903225806,
+          "symbol": "zopro_core::msm_affine::g2_phi::hb_top_component"
+        },
+        {
+          "samples": 4,
+          "share": 0.0006451612903225806,
+          "symbol": "zopro_core::msm_affine::g2_phi::phi_split"
+        },
+        {
+          "samples": 3,
+          "share": 0.0004838709677419355,
+          "symbol": "<rayon_core::sleep::Sleep>::sleep::<<rayon_core::registry::WorkerThread>::wait_until_cold::{closure#0}>"
+        },
+        {
+          "samples": 3,
+          "share": 0.0004838709677419355,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine"
+        },
+        {
+          "samples": 3,
+          "share": 0.0004838709677419355,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::vec::DrainProducer<&mut [u32]>>, rayon::iter::for_each::ForEachConsumer<<zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#2}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::vec::DrainProducer<&mut [u32]>>, rayon::iter::for_each::ForEachConsumer<<zopro_core::msm_affine::server_shifted::Table>::route_parallel::{closure#2}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 3,
+          "share": 0.0004838709677419355,
+          "symbol": "zopro_core::msm::invert_lanes"
+        },
+        {
+          "samples": 2,
+          "share": 0.0003225806451612903,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<[u64; 4]>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>"
+        },
+        {
+          "samples": 2,
+          "share": 0.0003225806451612903,
+          "symbol": "std::sys::env::unix::getenv::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "<rayon_core::job::StackJob<rayon_core::latch::SpinLatch, rayon_core::join::join_context::call_b<(), rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>::{closure#1}>::{closure#0}, ()> as rayon_core::job::Job>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "<rayon_core::registry::WorkerThread>::wait_until_cold"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_projective"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::to_affine"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::execute"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "<zopro_core::msm_affine::g2_borrowed::Window>::take_from_queue"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::zip::ZipProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>, rayon::slice::chunks::ChunksProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::merge_buckets<zopro_bn254::curve::G2Config>::{closure#0}>>"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<[u64; 4]>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::iter::len::MinLenProducer<rayon::slice::IterMutProducer<[u64; 4]>>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::g2_phi::hb_raw::{closure#0}>>::{closure#1}, (), ()>::{closure#0}"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "sha2::sha256::compress256"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "zopro_core::msm::indexed_tiles::reduce::<zopro_bn254::curve::G2Config>"
+        },
+        {
+          "samples": 1,
+          "share": 0.00016129032258064516,
+          "symbol": "zopro_core::msm_affine::server_shifted::tests::fixture"
+        }
+      ],
+      "unknown": 51,
+      "zero_lost": true
+    }
+  ],
+  "scope": "Whole component includes setup and all3queryarms; no production attribution",
+  "status": "complete"
+}

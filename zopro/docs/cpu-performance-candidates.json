@@ -192,10 +192,30 @@
       "id": "dot8-preredc176",
       "performance": "dependent_calls_improved_independent_calls_regressed",
       "scope": "arithmetic caller; no full-proof timing"
+    },
+    {
+      "id": "server-shifted183",
+      "evidence": "benchmarks/2026-11-17-server-shifted183/README.md",
+      "status": "closed_local_component_screen; all-window shifted G2 with serial routing regressed; no production change"
+    },
+    {
+      "id": "server-routing184",
+      "evidence": "benchmarks/2026-11-17-server-routing184/README.md",
+      "status": "closed_local_component_screen; parallel routing helped parent but still slower than current; no parameter sweep"
+    },
+    {
+      "id": "reducer-census185",
+      "evidence": "benchmarks/2026-11-17-reducer-census185/README.md",
+      "status": "semantic counts/grouping verified; phase observer failed overhead qualification"
+    },
+    {
+      "id": "reducer-samples186",
+      "evidence": "benchmarks/2026-11-17-reducer-samples186/README.md",
+      "status": "sample quality and warm-query checks pass; wholeprocess observer guard fails; no warm-only attribution"
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "Investigate retained REF/OFF96-core CPU discrepancy and ordinary G2 work. Current branch push authorized by user after completed C7a comparison; default-on cleanup is a separate artifact.",
+  "next_action": "Obtain FIFO-bounded warm-query CPU samples before selecting another server reducer; preserve closed183/184 screens, failed185 phase timing and186 whole-process guard. Local-only commits after previous authorized push.",
   "previous_baseline": {
     "evidence": "benchmarks/2026-11-12-bundle-adoption178/README.md",
     "id": "g2-indexed-bundles178",
