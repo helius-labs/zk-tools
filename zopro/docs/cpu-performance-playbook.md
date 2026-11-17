@@ -182,6 +182,15 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
+The [unshifted G2 tree C7a test](benchmarks/2026-11-17-bucket-tree-c7a200/README.md)
+closes another scaling-only route. Primary96 improves 23.90% with 9/9 wins and no
+retained table, but best tree latency 4.916 ms loses to streaming 4.870 ms at32;
+grouped best latency regresses about 7%. Only one of three progression checks
+passes. All 1552 remote queries match retained oracles; production is unchanged.
+More independent tasks can help high-core execution without improving the best
+configuration. Do not repeat this exact tree with a band/width sweep. Next work
+must change the cost of the complete caller, rather than task count alone.
+
 The [G2 footprint audit](benchmarks/2026-11-17-g2-code-footprint199/README.md)
 does not select a compact-code candidate. Both hosts have 32 KiB L1I; the 51.9 KB
 symbol is not one hot loop. Two IFMA-loop components total 27.8 KB and hold 2047/2049
