@@ -64,6 +64,14 @@ jobs:
       - run: npm run test:proof
       - run: npm run test:package
       - if: matrix.node == 24
+        run: npm run bench -- --circuits 1x2 --rounds 1 --warmup 0 --output benchmark-smoke.csv
+      - if: matrix.node == 24 && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-benchmark-smoke
+          path: zopro/packages/spr-prover/benchmark-smoke.csv
+          if-no-files-found: ignore
+      - if: matrix.node == 24
         run: npx playwright install --with-deps chromium firefox webkit
       - if: matrix.node == 24
         run: npm run test:browser

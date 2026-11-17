@@ -104,6 +104,11 @@ budget; a larger input shape needs more memory.
 
 ## Build and test
 
+The [Node benchmark](bench/README.md) covers all 41 supported transfer and
+merge circuit shapes at 1, 2, 4, 8 and 18 threads, using verified local
+proofs and a fresh process per case. Run `npm run bench -- --list` to inspect
+the full 205-case matrix, or `npm run bench -- --output results.csv` to run it.
+
 From this directory, install Node 24+, Rust `nightly-2025-11-15` with
 `rust-src` and `wasm32-unknown-unknown`, and `wasm-bindgen-cli` 0.2.128:
 
