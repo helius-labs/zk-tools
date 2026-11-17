@@ -2,16 +2,10 @@ import { Worker } from "node:worker_threads";
 import { threadPool } from "./pool.js";
 
 export const { startWorkers, close } = threadPool(() => {
-  // An eval/STDIN parent's --input-type flag is invalid for a worker file.
-  const execArgv = process.execArgv.filter(
-    (arg, index, args) =>
-      !arg.startsWith("--input-type=") &&
-      arg !== "--input-type" &&
-      args[index - 1] !== "--input-type",
-  );
+  // The worker is plain JS; parent test/loader and V8 flags may be invalid here.
   const worker = new Worker(
     new URL("./node-rayon-worker.js", import.meta.url),
-    { execArgv },
+    { execArgv: [] },
   );
   return {
     send: (message) => worker.postMessage(message),
