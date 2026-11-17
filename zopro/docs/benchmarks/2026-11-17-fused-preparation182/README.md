@@ -60,3 +60,25 @@ and large historical ledgers are retained privately. No AWS resources were
 created and nothing was pushed. The all-eight-shape CPU 10x goal remains unmet;
 retain the [accepted all-shape comparison](../2026-11-12-bundle-adoption178/README.md)
 until this candidate completes qualification.
+
+## Exact-build mechanism profile
+
+The subsequent 32-worker profile passes all four observer checks and all twelve
+counter/sample quality checks. Eighteen fresh exports independently verify;
+4572 SDK calls extend the canonical ledger to 55879, SHA-256
+`dce77ba26e6b6635bfcdfaa65b98af87dc9f493c6f884544ecfdde48ad4bcec4`.
+The retained SDK and three screen backings are unchanged.
+
+ON is faster in all three plain blocks (7.550–7.578 ms versus 7.628–7.692 ms).
+All three counter blocks show fewer instructions and cycles. The fused fill
+appears in all ON cycle profiles, with 75/93/94 samples, and never in OFF.
+Crossbeam epoch-pin samples decrease in each block, but sample counts are not
+exclusive wall time or a measure of a removable barrier. Cache misses are mixed;
+this does not establish a cache-hit improvement. These observations support
+continuing qualification, not a precise attribution of the complete saving.
+
+Counters have at least 99.9% running coverage. Cycle captures have 11997–12233
+samples each, validated executable/PID/TID/CPU ownership and no lost samples.
+Per-arm instrumented/plain median latency ratios are within 1.004. The coarse
+1.05 observer guard is not statistical equivalence. No capture was rerun.
+Private profile root: `/home/ubuntu/src/zopro-perf-work/fused-preparation-profile182`.
