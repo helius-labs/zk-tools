@@ -7,7 +7,9 @@ converts each wire block and immediately gathers its A/B scalars, removing the
 global conversion-to-gather barrier and separate gather iterator trees. It adds
 no lookup table, persistent metadata or output buffer beyond the existing two
 query vectors. Enable the measured path with `ZOPRO_BENCH_FUSED_PREPARATION=1`;
-without that setting the previous path remains active. C7a comparison is pending.
+without that setting the previous path remains active. The subsequent
+[C7a comparison](../2026-11-17-fused-preparation-c7a182/README.md) improves 32-core
+latency but fails the 96-core CPU nonregression check.
 
 | Local Ryzen 9950X case | Accepted REF, ms | Candidate OFF, ms | Candidate ON, ms | REF / ON peak RSS, MiB |
 |---|---:|---:|---:|---:|
@@ -126,8 +128,10 @@ largest lifetime peak. Supplied M5 timings come from different hardware.
 | 24x2 | 66.277972 | 66.178551 | 1210.25 | 528.0 / 7.978415x | 176.0 / 2.659471x |
 | merge-24x1 | 65.532595 | 65.549681 | 1107.25 | 507.0 / 7.734591x | 175.0 / 2.669730x |
 
-All eight CPU10x targets remain unmet. Merge54 has no supplied M5 reference;
-its complete timings and memory checks are retained in assessment.json.
+All eight CPU10x targets remain unmet. Merge54 is 162.670881 / 162.825706 ms,
+previous REF / ON, with paired ratio 1.000381 [0.996843, 1.004520]. Peak RSS is
+1866.292969 / 1891.0625 MiB. It has no supplied M5 reference; its complete checks
+remain in assessment.json.
 Canonical ledger is now 56502, SHA-256
 `2721a5c49351ae5dea2fdf91c3889d99a3f48619ee22fc520b5e36adfdeb3b23`.
 Private qualification root: `/home/ubuntu/src/zopro-perf-work/fused-preparation-all182`.
