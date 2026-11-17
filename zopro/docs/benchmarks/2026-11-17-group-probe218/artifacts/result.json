@@ -1,0 +1,393 @@
+{
+  "HB_over_STD": 1.0247637615053447,
+  "PMU_minimum_coverage": 1.0,
+  "SDK_calls": 2298,
+  "adopted": false,
+  "calibration_pass": true,
+  "canonical_count": 59046,
+  "canonical_sha256": "e8e6566bb7066b23a6f43dd73757873b2e2354e5037f9b4d6d1adf139ed05d73",
+  "comparisons": [
+    {
+      "SDK_ratios": [
+        1.000265342657366,
+        1.0079156675048069,
+        1.0055646985050564
+      ],
+      "control": "STD",
+      "cpu_ratio": 1.0041599440193805,
+      "paired_median": 1.0055646985050564,
+      "pass": false,
+      "rss_RAW": 129.25,
+      "rss_control": 126.25,
+      "wins": 0
+    },
+    {
+      "SDK_ratios": [
+        0.9783455926661665,
+        0.9774969159259315,
+        0.9812648888246346
+      ],
+      "control": "HB",
+      "cpu_ratio": 0.9903671031922168,
+      "paired_median": 0.9783455926661665,
+      "pass": true,
+      "rss_RAW": 129.25,
+      "rss_control": 126.75,
+      "wins": 3
+    }
+  ],
+  "diagnostic_screen": true,
+  "fresh_Gnark_exports": 12,
+  "ready_for_qualification": false,
+  "records": 2262,
+  "rows": [
+    {
+      "cpu_ms": 91.91999999999987,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "STD",
+        "name": "smoke-STD-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/smoke-STD-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 1,
+        "smoke": true,
+        "workers": 4
+      },
+      "mean_ms": 24.056036,
+      "medians": {
+        "A_span_ms": 14.998957,
+        "G2_span_ms": 21.217247,
+        "MSM_join_ms": 21.225802,
+        "group_CPI": 0.7679930875232116,
+        "group_CPU_ms": 0.565309,
+        "group_cycles": 2778450.0,
+        "group_instructions": 3617806.0,
+        "group_wall_ms": 0.623485
+      },
+      "peak_rss_mib": 46.5,
+      "proof_sha256": "1db1d668063e2b13582b702a65e36b3f87e0e447610d15e3dcb344805e95fb28"
+    },
+    {
+      "cpu_ms": 92.38,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "HB",
+        "name": "smoke-HB-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/smoke-HB-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 1,
+        "smoke": true,
+        "workers": 4
+      },
+      "mean_ms": 24.498139,
+      "medians": {
+        "A_span_ms": 15.109817,
+        "G2_span_ms": 21.567025,
+        "MSM_join_ms": 21.568659,
+        "group_CPI": 0.9918985373714608,
+        "group_CPU_ms": 0.818524,
+        "group_cycles": 4126410.0,
+        "group_instructions": 4160113.0,
+        "group_wall_ms": 0.877384
+      },
+      "peak_rss_mib": 48.75,
+      "proof_sha256": "ca06a4769d560f882421e6b635c552831166915ea0cdd94aa29f6ef9ba0092df"
+    },
+    {
+      "cpu_ms": 92.48599999999989,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "RAW",
+        "name": "smoke-RAW-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/smoke-RAW-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 1,
+        "smoke": true,
+        "workers": 4
+      },
+      "mean_ms": 24.320585,
+      "medians": {
+        "A_span_ms": 14.97423,
+        "G2_span_ms": 21.299561,
+        "MSM_join_ms": 21.301235,
+        "group_CPI": 0.8626506632751643,
+        "group_CPU_ms": 0.66689,
+        "group_cycles": 3312739.0,
+        "group_instructions": 3840186.0,
+        "group_wall_ms": 0.73179
+      },
+      "peak_rss_mib": 47.75,
+      "proof_sha256": "c3b7cb15c4000eb12a3b2ebdc5682199770e85ad5fe2579b7c5b5a1406e61e3d"
+    },
+    {
+      "cpu_ms": 167.51069322709165,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "STD",
+        "name": "main-STD-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/main-STD-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "mean_ms": 7.522904270916336,
+      "medians": {
+        "A_span_ms": 4.93951,
+        "G2_span_ms": 4.958555,
+        "MSM_join_ms": 4.976609,
+        "group_CPI": 1.2599326167210216,
+        "group_CPU_ms": 1.066979,
+        "group_cycles": 4555207.0,
+        "group_instructions": 3615032.0,
+        "group_wall_ms": 1.150849
+      },
+      "peak_rss_mib": 123.5,
+      "proof_sha256": "3771a92e2ff8e4e087709f3be11b14df83b26366ed78e6c538c9d434a0f3aace"
+    },
+    {
+      "cpu_ms": 169.79327490039842,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "HB",
+        "name": "main-HB-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/main-HB-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "mean_ms": 7.691454302788847,
+      "medians": {
+        "A_span_ms": 5.04035,
+        "G2_span_ms": 5.115982,
+        "MSM_join_ms": 5.130439,
+        "group_CPI": 1.4724208405393475,
+        "group_CPU_ms": 1.426904,
+        "group_cycles": 6121183.0,
+        "group_instructions": 4155985.0,
+        "group_wall_ms": 1.52297
+      },
+      "peak_rss_mib": 125.75,
+      "proof_sha256": "d534f51ca71f1e4809bd3483f63d6d3429b235d4c885d544ee007da86ac21301"
+    },
+    {
+      "cpu_ms": 167.95111952191235,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk0",
+        "block": 0,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "RAW",
+        "name": "main-RAW-block0",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/main-RAW-block0",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "mean_ms": 7.52490041832669,
+      "medians": {
+        "A_span_ms": 4.981248,
+        "G2_span_ms": 5.00369,
+        "MSM_join_ms": 5.011284,
+        "group_CPI": 1.3173902593571787,
+        "group_CPU_ms": 1.201141,
+        "group_cycles": 5064612.0,
+        "group_instructions": 3842721.0,
+        "group_wall_ms": 1.295
+      },
+      "peak_rss_mib": 126.0,
+      "proof_sha256": "9db86f0507bbd111066afdf1e424dd9561f17d77d69713477c8e5634f33ab5df"
+    },
+    {
+      "cpu_ms": 168.37256573705181,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk1",
+        "block": 1,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "STD",
+        "name": "main-STD-block1",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/main-STD-block1",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "mean_ms": 7.534666697211153,
+      "medians": {
+        "A_span_ms": 4.972892,
+        "G2_span_ms": 4.995866,
+        "MSM_join_ms": 5.006696,
+        "group_CPI": 1.2440459077951918,
+        "group_CPU_ms": 1.078932,
+        "group_cycles": 4500351.0,
+        "group_instructions": 3614771.0,
+        "group_wall_ms": 1.1672
+      },
+      "peak_rss_mib": 126.25,
+      "proof_sha256": "51894f993e10839042d8b51d7cd9589544f56b583b34877958ae446bfe45a12f"
+    },
+    {
+      "cpu_ms": 169.22835458167333,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk1",
+        "block": 1,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "RAW",
+        "name": "main-RAW-block1",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/main-RAW-block1",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "mean_ms": 7.5943086135458175,
+      "medians": {
+        "A_span_ms": 5.006475,
+        "G2_span_ms": 5.028507,
+        "MSM_join_ms": 5.040219,
+        "group_CPI": 1.245946227188179,
+        "group_CPU_ms": 1.166846,
+        "group_cycles": 4786837.0,
+        "group_instructions": 3842443.0,
+        "group_wall_ms": 1.26246
+      },
+      "peak_rss_mib": 125.75,
+      "proof_sha256": "b100b0a17e886f164b382ad5900e5feda5fadc8f7abd04fbf78646ededfc45d4"
+    },
+    {
+      "cpu_ms": 170.23233466135454,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk1",
+        "block": 1,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "HB",
+        "name": "main-HB-block1",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/main-HB-block1",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "mean_ms": 7.7691381832669295,
+      "medians": {
+        "A_span_ms": 5.064455,
+        "G2_span_ms": 5.135619,
+        "MSM_join_ms": 5.152961,
+        "group_CPI": 1.5033958226281685,
+        "group_CPU_ms": 1.434839,
+        "group_cycles": 6249424.0,
+        "group_instructions": 4156316.0,
+        "group_wall_ms": 1.532388
+      },
+      "peak_rss_mib": 121.75,
+      "proof_sha256": "8396be452ac84c85ada0acae40a5548ece1ff0d6b73227910e581fb5c1e68feb"
+    },
+    {
+      "cpu_ms": 169.34271314741036,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk2",
+        "block": 2,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "RAW",
+        "name": "main-RAW-block2",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/main-RAW-block2",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "mean_ms": 7.616070968127493,
+      "medians": {
+        "A_span_ms": 5.020743,
+        "G2_span_ms": 5.04617,
+        "MSM_join_ms": 5.059826,
+        "group_CPI": 1.282198051869451,
+        "group_CPU_ms": 1.192354,
+        "group_cycles": 4925601.0,
+        "group_instructions": 3842568.0,
+        "group_wall_ms": 1.28899
+      },
+      "peak_rss_mib": 129.25,
+      "proof_sha256": "12aa3516b424791acc7c0f458c66e009a38f7ebf3a8019c9e87694fc96db5283"
+    },
+    {
+      "cpu_ms": 168.6411752988048,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk2",
+        "block": 2,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "STD",
+        "name": "main-STD-block2",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/main-STD-block2",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "mean_ms": 7.5739243625498025,
+      "medians": {
+        "A_span_ms": 4.989443,
+        "G2_span_ms": 5.007277,
+        "MSM_join_ms": 5.025993,
+        "group_CPI": 1.2374756524479362,
+        "group_CPU_ms": 1.071348,
+        "group_cycles": 4468829.0,
+        "group_instructions": 3615158.0,
+        "group_wall_ms": 1.169985
+      },
+      "peak_rss_mib": 126.25,
+      "proof_sha256": "8ededc0ad3813410ae305743a8e1c1526a0d91cbc791b3950b8681df5bb5a686"
+    },
+    {
+      "cpu_ms": 170.98984063745021,
+      "job": {
+        "binary": "/home/ubuntu/src/zopro-perf-work/group-probe218/bin/sdk2",
+        "block": 2,
+        "image": "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "mode": "HB",
+        "name": "main-HB-block2",
+        "proof_dir": "/home/ubuntu/src/zopro-perf-work/group-probe218/proofs/main-HB-block2",
+        "public_sha256": "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b",
+        "rounds": 251,
+        "smoke": false,
+        "workers": 32
+      },
+      "mean_ms": 7.761483219123505,
+      "medians": {
+        "A_span_ms": 5.084893,
+        "G2_span_ms": 5.174672,
+        "MSM_join_ms": 5.196143,
+        "group_CPI": 1.4143139710961417,
+        "group_CPU_ms": 1.381338,
+        "group_cycles": 5880412.0,
+        "group_instructions": 4155956.0,
+        "group_wall_ms": 1.476443
+      },
+      "peak_rss_mib": 126.75,
+      "proof_sha256": "d50354d3e3d9617d8b1b8decd8ab468560fbb105ecf91ca9bc387258b2a2862a"
+    }
+  ]
+}
