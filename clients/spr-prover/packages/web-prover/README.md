@@ -1,6 +1,6 @@
 # @heliuslabs/spr-web-prover
 
-Local Groth16 proving in a browser worker. No protocol SDK or Solana dependencies — transaction building stays in your app (see the [wallet example](https://github.com/helius-labs/zolana-web-sdk/tree/main/examples/wallet)).
+Local Groth16 proving in browser and Node workers. The core entries have no required protocol SDK or Solana dependencies; transaction building stays in your app.
 
 ## Install
 
@@ -95,6 +95,28 @@ through `proveRequest()` needs no URL or server.
 
 ### With `@heliuslabs/spr`
 
+For typed SDK integration, install `@heliuslabs/spr@0.9.0-alpha` and use the
+optional `/sdk` entry. It owns serialization, source-key validation, proof
+decoding and request cancellation/deadlines:
+
+```ts
+import { SprNodeProver } from "@heliuslabs/spr-web-prover/node";
+import { createLocalProofService } from "@heliuslabs/spr-web-prover/sdk";
+import { LocalKeys } from "@heliuslabs/spr/client";
+
+const prover = new SprNodeProver({ threads: 4, gpu: "off" });
+const proofs = createLocalProofService(prover);
+const keys = LocalKeys.fromKeypair(keypair, proofs);
+// Build transactions with these keys and proofDataSource: "client".
+// After finishing all work, release the worker with prover.terminate().
+```
+
+A browser can pass `SprWebProver` to the same adapter. No routing URL or fetch
+interceptor is needed. The adapter checks proofs against the pinned SDK's
+compiled deployment keys. `/sdk` is the only entry importing the optional SDK
+peer. Use the fetch integration below when supplying runtime `keySource` sets.
+
+
 Supply remote endpoints and a reviewed deployment policy in your app:
 
 ```ts
@@ -116,7 +138,7 @@ supply a complete reviewed static policy with `teePolicyFromJson` instead.
 The wallet example shows devnet and mainnet configuration.
 `ZOLANA_PROGRAM_IDS` and `ZOLANA_PROTOCOL_VERSION` still describe protocol compatibility.
 
-For local proofs, use a loopback URL and omit `proverTee`. Keep the explicit policy
+For the optional fetch integration, use a loopback URL and omit `proverTee`. Keep the explicit policy
 on a separate client when using remote merges.
 
 Pass `prover.createFetch()` as `fetch`, set `proofDataSource: "client"`, and use the same loopback `proverUrl` on the client (0.8.0-alpha encrypts non-loopback prover calls for an enclave). Then prove through `LocalKeys.fromKeypair` or, in a wallet, `LocalKeys.fromDerivationSeed`. Paths under that URL’s `/prove` are answered locally; everything else is delegated.

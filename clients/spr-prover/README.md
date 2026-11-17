@@ -87,4 +87,7 @@ const { proof, proveMs, verifyMs } = await prover.proveRequest(requestJson);
 // Supply proverUrl only when using the optional createFetch() integration.
 ```
 
+For typed SDK inputs, `createLocalProofService(prover)` from the optional
+`@heliuslabs/spr-web-prover/sdk` entry plugs directly into `LocalKeys`.
+
 See the [package guide](packages/web-prover/README.md) for isolation headers, `threads: 0`, extensions, keys, and lifecycle.

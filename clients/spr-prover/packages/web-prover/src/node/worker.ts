@@ -20,9 +20,9 @@ export class NodeWorker extends EventTarget {
     this.#thread = new Thread(new URL("./worker-bootstrap.js", import.meta.url), {
       workerData: { url: url.href, gpu: options?.gpu ?? "off" },
       ...(options?.name === undefined ? {} : { name: options.name }),
-      // A parent launched with --input-type would otherwise break file workers.
-      execArgv: process.execArgv.filter((arg, index, args) =>
-        arg !== "--input-type" && !arg.startsWith("--input-type=") && args[index - 1] !== "--input-type"),
+      // These are compiled JS workers. Parent loaders, test and V8 flags do not
+      // belong to their runtime, and some are rejected by worker_threads.
+      execArgv: [],
     });
     this.#thread.on("message", (data: unknown) => this.dispatchEvent(new MessageEvent("message", { data })));
     this.#thread.on("messageerror", () => this.dispatchEvent(new Event("messageerror")));

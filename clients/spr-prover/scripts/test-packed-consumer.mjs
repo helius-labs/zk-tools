@@ -53,8 +53,8 @@ try {
   for (const field of ["dependencies", "optionalDependencies"]) {
     assert.deepEqual(Object.keys(manifest[field] || {}), [], `Unexpected ${field}`);
   }
-  assert.deepEqual(manifest.peerDependencies, { webgpu: "^0.6.2" });
-  assert.deepEqual(manifest.peerDependenciesMeta, { webgpu: { optional: true } });
+  assert.deepEqual(manifest.peerDependencies, { webgpu: "^0.6.2", "@heliuslabs/spr": "0.9.0-alpha" });
+  assert.deepEqual(manifest.peerDependenciesMeta, { webgpu: { optional: true }, "@heliuslabs/spr": { optional: true } });
   for (const dependency of ["@heliuslabs/spr", "@solana/kit", "webgpu"]) {
     await assert.rejects(lstat(join(consumer, "node_modules", dependency)), { code: "ENOENT" });
   }

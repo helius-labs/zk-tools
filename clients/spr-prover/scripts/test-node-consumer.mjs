@@ -22,11 +22,25 @@ try {
   await command("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", join(consumer, packed.filename), "typescript@^7.0.2", "@types/node@^24"]);
   // No browser DOM library, bundler, native GPU binding, or protocol SDK is needed for Node CPU proofs.
   await assert.rejects(readFile(join(consumer, "node_modules/webgpu/package.json")), { code: "ENOENT" });
+  await assert.rejects(readFile(join(consumer, "node_modules/@heliuslabs/spr/package.json")), { code: "ENOENT" });
   await command(process.execPath, ["--input-type", "module", "-e", `
     import { SprNodeProver } from "@heliuslabs/spr-web-prover/node";
     const prover = new SprNodeProver({ proverUrl: "http://localhost:3001", threads: 2, gpu: "off" });
     try { await prover.start(); } finally { prover.terminate(); }
   `]);
+  // Test subprocesses expand V8 flags in execArgv. Workers must ignore them,
+  // just as they ignore parent-only --input-type and loader options.
+  await writeFile(join(consumer, "worker-flags.test.mjs"), `
+    import { test } from "node:test";
+    import assert from "node:assert/strict";
+    import { SprNodeProver } from "@heliuslabs/spr-web-prover/node";
+    test("prover workers do not inherit test/V8 flags", async () => {
+      const prover = new SprNodeProver({ threads: 2, gpu: "off" });
+      try { await prover.start(); assert.equal(prover.threads, 2); }
+      finally { prover.terminate(); }
+    });
+  `);
+  await command(process.execPath, ["--stack-trace-limit=20", "--test", "worker-flags.test.mjs"]);
   await cp(join(root, "fixtures"), join(consumer, "fixtures"), { recursive: true });
   await cp(join(root, "examples/node"), join(consumer, "examples/node"), { recursive: true });
   await command(join(consumer, "node_modules/.bin/tsc"), ["-p", "examples/node/tsconfig.json"]);
@@ -40,5 +54,17 @@ try {
     await command("npm", ["install", "--no-audit", "--no-fund", "webgpu@0.6.2"]);
     console.log(await command(process.execPath, ["test-node.mjs"], consumer));
   }
+  await command("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", "@heliuslabs/spr@0.9.0-alpha"]);
+  await writeFile(join(consumer, "sdk-consumer.ts"), `
+    import { SprNodeProver } from "@heliuslabs/spr-web-prover/node";
+    import { createLocalProofService } from "@heliuslabs/spr-web-prover/sdk";
+    import type { ProofService } from "@heliuslabs/spr/client";
+    const prover = new SprNodeProver({ gpu: "off" });
+    const service: ProofService = createLocalProofService(prover);
+    if (typeof service.prove !== "function" || typeof service.proveMerge !== "function") throw new Error("missing SDK service");
+    prover.terminate();
+  `);
+  await command(join(consumer, "node_modules/.bin/tsc"), ["--noEmit", "--strict", "--skipLibCheck", "false", "--target", "ES2024", "--lib", "ES2024,DOM", "--module", "nodenext", "sdk-consumer.ts"]);
+  await command(process.execPath, ["sdk-consumer.ts"]);
   console.log("Packed Node consumer: types, proofs, caching and worker lifecycle passed");
 } finally { await rm(consumer, { recursive: true, force: true }); }

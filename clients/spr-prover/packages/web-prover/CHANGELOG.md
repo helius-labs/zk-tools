@@ -2,6 +2,10 @@
 
 ## 0.7.0-alpha — unreleased
 
+- Add the optional `/sdk` entry with `createLocalProofService(prover)` for typed SDK integration; the core entries keep no required SDK dependency.
+- Keep parent loaders and V8/test flags out of compiled Node workers.
+- Build package artifacts during prepack, including pinned Git-subdirectory installs.
+
 - Direct proving no longer requires `proverUrl`; only the optional `createFetch()` bridge requires a routing URL.
 
 - Add `SprNodeProver` through the `/node` entry for Node 24+, with worker threads, persistent public-key caching and optional Dawn WebGPU acceleration.
