@@ -1,0 +1,17 @@
+--- /home/ubuntu/src/zopro-perf-work/boolean-phases210/source/crates/zopro-core/src/msm_affine.rs	2026-11-17 17:39:26.002298803 +0000
++++ /home/ubuntu/src/zopro-perf-work/group-cpu211/source/crates/zopro-core/src/msm_affine.rs	2026-11-17 17:52:42.239366199 +0000
+@@ -1682,12 +1682,12 @@
+     bases: &[zopro_bn254::G2Affine],
+     words: &mut [[u64; 4]],
+ ) -> zopro_bn254::G2Projective {
+-    crate::boolean_phase_trace::mark(10);
++    crate::boolean_phase_trace::group_begin();
+     assert_eq!(bases.len(), words.len());
+     let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+         .then(|| scalar_groups(words))
+         .flatten();
+-    crate::boolean_phase_trace::mark(11);
++    crate::boolean_phase_trace::group_end();
+     #[cfg(all(
+         zopro_g2_horner_buckets,
+         target_arch = "x86_64",

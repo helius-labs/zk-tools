@@ -1,0 +1,13 @@
+warning: unexpected `cfg` condition name: `test`
+   --> /home/ubuntu/src/zopro-perf-work/group-cpu211/support/perf.rs:182:11
+    |
+182 | #[cfg(all(test, target_os = "linux"))]
+    |           ^^^^
+    |
+    = help: expected names are: `zopro_coalesce_probe`, `zopro_g2_coordinate_leaf`, `zopro_indexed_tile_bundles`, and `zopro_phi_grain` and 32 more
+    = help: to expect this configuration use `--check-cfg=cfg(test)`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: 1 warning emitted
+

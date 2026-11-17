@@ -1,0 +1,17 @@
+--- /home/ubuntu/src/zopro-perf-work/boolean-phases210/source/crates/zopro-core/src/msm_affine/boolean_query.rs	2026-11-17 17:39:26.002298803 +0000
++++ /home/ubuntu/src/zopro-perf-work/group-cpu211/source/crates/zopro-core/src/msm_affine/boolean_query.rs	2026-11-17 17:52:42.239366199 +0000
+@@ -29,12 +29,12 @@
+     words: &mut [[u64; 4]],
+     positions: &[u32], on: bool,
+ ) -> zopro_bn254::G2Projective {
+-    crate::boolean_phase_trace::mark(10);
++    crate::boolean_phase_trace::group_begin();
+     assert_eq!(bases.len(), words.len());
+     let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+         .then(|| scalar_groups(words))
+         .flatten();
+-    crate::boolean_phase_trace::mark(11);
++    crate::boolean_phase_trace::group_end();
+     if on && groups.is_none() && (1024..65536).contains(&bases.len()) {
+         crate::boolean_phase_trace::mark(19);
+         if let Some(selected)=peel(bases,words,positions) {

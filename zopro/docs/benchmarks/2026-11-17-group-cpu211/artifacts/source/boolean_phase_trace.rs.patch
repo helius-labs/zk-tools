@@ -1,0 +1,22 @@
+--- /home/ubuntu/src/zopro-perf-work/boolean-phases210/source/crates/zopro-core/src/boolean_phase_trace.rs	2026-11-17 17:39:26.002298803 +0000
++++ /home/ubuntu/src/zopro-perf-work/group-cpu211/source/crates/zopro-core/src/boolean_phase_trace.rs	2026-11-17 17:52:42.238366185 +0000
+@@ -1,10 +1,18 @@
+ //! Diagnostic-only, one sequential SDK request at a time. No production API.
+ use std::{sync::{OnceLock,atomic::{AtomicU64,Ordering}},time::Instant};
++static CPU:[AtomicU64;4]=[const{AtomicU64::new(0)};4];
+ static EVENTS:[AtomicU64;24]=[const{AtomicU64::new(0)};24];
+ static ENABLED:OnceLock<bool>=OnceLock::new();static ORIGIN:OnceLock<Instant>=OnceLock::new();
+ fn enabled()->bool{*ENABLED.get_or_init(||std::env::var("ZOPRO_DIAGNOSTIC_PHASES").as_deref()==Ok("1"))}
+-pub fn begin(){if enabled(){ORIGIN.get_or_init(Instant::now);for e in &EVENTS{e.store(0,Ordering::Relaxed);}mark(23);}}
++pub fn begin(){if enabled(){ORIGIN.get_or_init(Instant::now);for e in EVENTS.iter().chain(CPU.iter()){e.store(0,Ordering::Relaxed);}mark(23);}}
+ pub(crate)fn mark(i:usize){if enabled(){let t=ORIGIN.get_or_init(Instant::now).elapsed().as_nanos().try_into().unwrap();EVENTS[i].store(t,Ordering::Relaxed);}}
+ pub(crate)fn around<T>(first:usize,last:usize,f:impl FnOnce()->T)->T{mark(first);let result=f();mark(last);result}
+ pub fn snapshot()->[u64;24]{std::array::from_fn(|i|EVENTS[i].load(Ordering::Relaxed))}
+ #[cfg(test)]mod tests{use super::*;#[test]fn bounded_event_order_and_reset(){begin();mark(0);around(4,5,||{});let a=snapshot();if enabled(){assert!(a[23]>0&&a[0]>=a[23]&&a[4]>=a[0]&&a[5]>=a[4]);begin();let b=snapshot();assert!(b[23]>=a[5]);assert!(b[..23].iter().all(|&x|x==0));}else{assert_eq!(a,[0;24]);}}}
++
++fn thread_cpu()->u64{let mut t=std::mem::MaybeUninit::<libc::timespec>::uninit();assert_eq!(unsafe{libc::clock_gettime(libc::CLOCK_THREAD_CPUTIME_ID,t.as_mut_ptr())},0);let t=unsafe{t.assume_init()};assert!(t.tv_sec>=0&&t.tv_nsec>=0&&t.tv_nsec<1_000_000_000);(t.tv_sec as u64).checked_mul(1_000_000_000).unwrap().checked_add(t.tv_nsec as u64).unwrap()}
++fn worker()->u64{rayon::current_thread_index().map(|i|i as u64+1).unwrap_or(0)}
++pub(crate)fn group_begin(){if enabled(){mark(10);CPU[2].store(worker(),Ordering::Relaxed);CPU[0].store(thread_cpu(),Ordering::Relaxed);}}
++pub(crate)fn group_end(){if enabled(){CPU[1].store(thread_cpu(),Ordering::Relaxed);CPU[3].store(worker(),Ordering::Relaxed);mark(11);}}
++pub fn snapshot_cpu()->[u64;4]{std::array::from_fn(|i|CPU[i].load(Ordering::Relaxed))}
++#[cfg(test)]mod cpu_tests{use super::*;#[test]fn thread_clock_pair_and_reset(){begin();group_begin();std::hint::black_box((1..1001u64).fold(0,|a,b|std::hint::black_box(a+b)));group_end();let c=snapshot_cpu();if enabled(){assert!(c[0]>0&&c[1]>=c[0]);assert_eq!(c[2],c[3]);let e=snapshot();assert!(c[1]-c[0]<=e[11]-e[10]+10_000);begin();assert_eq!(snapshot_cpu(),[0;4]);}else{assert_eq!(c,[0;4]);}}}
