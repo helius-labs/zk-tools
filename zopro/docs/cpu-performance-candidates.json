@@ -446,6 +446,29 @@
       "resources_and_compatibility": {
         "status": "see_report_no_device_or_pressure_claim"
       }
+    },
+    {
+      "adoption": {
+        "canonical_verified_exports": 60085,
+        "reason": "Counterfactual_only; no exposed primary latency benefit,2x2 regresses",
+        "status": "not_adopted"
+      },
+      "change": "Private cfg removes only exclusiveG2 grouping; A/K/H and forecast sources unchanged",
+      "correctness": {
+        "status": "two_exclusive_G2_oracles_and_39_fresh_Gnark_exports_pass"
+      },
+      "evidence": "benchmarks/2026-11-17-g2-group-counterfactual225/README.md",
+      "id": "g2-group-counterfactual225",
+      "performance": {
+        "grouped2x2_ON_REF": 1.050759113277023,
+        "primary16_ON_REF": 1.0138241034825877,
+        "primary32_ON_REF": 1.009876028440393,
+        "status": "no_primary_gain_signal_3blocks"
+      },
+      "resources_and_compatibility": {
+        "status": "RSS_screens_pass_lower_peaks_no_pressure_or_portable_qualification"
+      },
+      "sdk_sha256": "30bc31a81d612ab6ea00d10467f275eabc7b617b26bb6b4c9cc80b27ceafa0c3"
     }
   ],
   "historical_followups": [
@@ -581,7 +604,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "224exact194sparseobserver qualifies at16/32;all891loopSP frame1104/spill1344,no4Kcrossing. 222compactframe cleanproduction gainFAILED,70guardrailsPASS;no unchanged frame retry or diagnostic45%cycle transfer. Canonical60046/clean-stack224/proof-sha256-after-main.json SHA4d2bb688410d7b16c36cd9a20420548e01bc27278c61f6336c818f72e9b67b87. Next distinct question: isolate G2-only grouping cost while preserving A/K/H grouping and workspace forecasts. Primary retained212 census26142nonzero distinct/30089 fails original80%cutoff,so fullmapwork declines. Oldglobaldedupoff174 is not this isolation. First short actualclean SDK counterfactual; no learned cache/adaptive policy or bypass adoption yet. Field/prefix/cache/arithmetic histories stayclosed absent newevidence. Production194/196unchanged;all8CPU10x0/8;localcommit/no push.",
+  "next_action": "225G2-only bypass counterfactual closed: primary16/32 no gain,lowerRSSnotlatency;2x2+5.08% slower. Do not build negative groupingcache on unsupported exposedsaving. 224exact194page-safe891/891observedloops,222framecandidateclosed. Canonical60085/g2-group-counterfactual225/proof-sha256-after-main.json SHAb1d1dda9966de33c8032128f59c1516507794c6e6f5f05d7060469200f5e6fa7. Next unchanged194 sparse query-deadline observer (SDKprove,canonical-wires,G1canonical,G2exclusive;4symbols,no frequentfeeds) withplain/traced16/32 and3backings, fullobserver/proof/rawscope checks. Does G2 finish on current finaljoin path? Canonicalresidual includesK/H/output; don't callitexclusiveKHCPU. Old175probeobserverfailedparallel; new194pipeline/sparse224observerdifferentandqualified. No226captureyet,production194/196same/all8CPU10x0/8/localcommits/no push.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",
