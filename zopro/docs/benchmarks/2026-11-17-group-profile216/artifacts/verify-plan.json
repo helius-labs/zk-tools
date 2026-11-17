@@ -1,0 +1,552 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/group-profile216/capture-pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t0-block0/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t0-block0/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b0-t0-block0",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t0-block0/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t0-block0/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b1-t0-block0",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/usr/bin/sudo",
+        "-n",
+        "/usr/bin/chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block0.data"
+      ],
+      "kind": "command",
+      "name": "own-main-b0-t1-block0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block0.data"
+      ],
+      "kind": "command",
+      "name": "events-main-b0-t1-block0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block0.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "decode-main-b0-t1-block0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block0.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "metadata-main-b0-t1-block0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/profile-analysis",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block0.data"
+      ],
+      "kind": "command",
+      "name": "loss-main-b0-t1-block0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t1-block0/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t1-block0/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b0-t1-block0",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/usr/bin/sudo",
+        "-n",
+        "/usr/bin/chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block0.data"
+      ],
+      "kind": "command",
+      "name": "own-main-b1-t1-block0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block0.data"
+      ],
+      "kind": "command",
+      "name": "events-main-b1-t1-block0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block0.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "decode-main-b1-t1-block0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block0.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "metadata-main-b1-t1-block0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/profile-analysis",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block0.data"
+      ],
+      "kind": "command",
+      "name": "loss-main-b1-t1-block0",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t1-block0/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t1-block0/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b1-t1-block0",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t0-block1/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t0-block1/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b0-t0-block1",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/usr/bin/sudo",
+        "-n",
+        "/usr/bin/chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block1.data"
+      ],
+      "kind": "command",
+      "name": "own-main-b1-t1-block1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block1.data"
+      ],
+      "kind": "command",
+      "name": "events-main-b1-t1-block1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block1.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "decode-main-b1-t1-block1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block1.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "metadata-main-b1-t1-block1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/profile-analysis",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block1.data"
+      ],
+      "kind": "command",
+      "name": "loss-main-b1-t1-block1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t1-block1/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t1-block1/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b1-t1-block1",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/usr/bin/sudo",
+        "-n",
+        "/usr/bin/chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block1.data"
+      ],
+      "kind": "command",
+      "name": "own-main-b0-t1-block1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block1.data"
+      ],
+      "kind": "command",
+      "name": "events-main-b0-t1-block1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block1.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "decode-main-b0-t1-block1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block1.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "metadata-main-b0-t1-block1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/profile-analysis",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block1.data"
+      ],
+      "kind": "command",
+      "name": "loss-main-b0-t1-block1",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t1-block1/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t1-block1/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b0-t1-block1",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t0-block1/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t0-block1/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b1-t0-block1",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/usr/bin/sudo",
+        "-n",
+        "/usr/bin/chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block2.data"
+      ],
+      "kind": "command",
+      "name": "own-main-b0-t1-block2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block2.data"
+      ],
+      "kind": "command",
+      "name": "events-main-b0-t1-block2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block2.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "decode-main-b0-t1-block2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block2.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "metadata-main-b0-t1-block2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/profile-analysis",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b0-t1-block2.data"
+      ],
+      "kind": "command",
+      "name": "loss-main-b0-t1-block2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t1-block2/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t1-block2/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b0-t1-block2",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/usr/bin/sudo",
+        "-n",
+        "/usr/bin/chown",
+        "ubuntu:ubuntu",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block2.data"
+      ],
+      "kind": "command",
+      "name": "own-main-b1-t1-block2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "evlist",
+        "-v",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block2.data"
+      ],
+      "kind": "command",
+      "name": "events-main-b1-t1-block2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block2.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "decode-main-b1-t1-block2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/usr/bin/perf",
+        "script",
+        "--header",
+        "--show-mmap-events",
+        "--show-task-events",
+        "--ns",
+        "-i",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block2.data",
+        "-F",
+        "pid,tid,cpu,time,period,ip,sym,symoff"
+      ],
+      "kind": "command",
+      "name": "metadata-main-b1-t1-block2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/profile-analysis",
+        "loss",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/perf/main-b1-t1-block2.data"
+      ],
+      "kind": "command",
+      "name": "loss-main-b1-t1-block2",
+      "timeout_seconds": 600
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t1-block2/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t1-block2/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b1-t1-block2",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t0-block2/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b0-t0-block2/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b0-t0-block2",
+      "timeout_seconds": 300
+    },
+    {
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/bin/verify",
+        "/home/ubuntu/src/zopro-perf-work/accepted-c7a201/bundle/images/transfer_confidential_1_2.image",
+        "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t0-block2/0.proof",
+        "/home/ubuntu/src/zopro-perf-work/group-profile216/proofs/main-b1-t0-block2/0.public",
+        "3f0d846c3905d11595d77dd988df829ddc51325eda2b93e4db8f0e17a5928e5b"
+      ],
+      "kind": "command",
+      "name": "verify-main-b1-t0-block2",
+      "timeout_seconds": 300
+    }
+  ],
+  "version": 1
+}

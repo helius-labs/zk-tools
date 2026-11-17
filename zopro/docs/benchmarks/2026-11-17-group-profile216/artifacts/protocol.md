@@ -1,0 +1,44 @@
+# Phase-scoped G2 grouping profile216
+
+Frozenbefore216nativebuild/capture2026-11-17. PreviousgoalturnPROGRESS213admission,
+214CPImeasurement,215controlledoffsetrefutation. Goalall8CPU10xactive0/8,not
+fulfilledbydiagnostics.209recipeand215offsethypothesisclosed/notadopted.
+Question: whereinsideG2'sserialgroupingspan does214's~0.75ms runningCPU gapoccur?
+Flat scalar_groups profilemixesA/G2,so scopebyactualworkerTIDAND10..11interval.
+
+Base214source(not215:both215layoutsremain slow),appendclock-syncgetteronlyto
+traceparent anddriveroutput. Eightstack-onlytriples perbefore/afterboundary:
+relativeORIGINelapsedlo,absoluteCLOCK_MONOTONICns,relativehi. Intersectionofall
+16origin-offsetintervals mustexist,width<=5us. NoopaqueInstantreinterpretation.
+CallsyncoutsideunitSDKtimers,printafterloop. Nativeexisting6tests+syncinvariant,
+unchangedfield/MSM/solver/grouping/admission/privatepointdata andPMU2FDs/worker.
+AllmodesTraceON/internalPMUON/root,initallworkersbeforekeyload/primes.
+
+Perfsoftwarecpu-clock:u,period1000000ns,clockidmono,512pages,IP/TID/TIME/CPU/PERIOD
+plus symboloffset. FIFOwarmenableafter3primes/disablebeforeoutput. RootCLIprobe
+succeeded;softwareeventavoidscompetingwithinternalcycles/instructionsPMCs.
+Threebyteidenticalindependentbackings,3rotatedreversedblocks,BooleanOFF/ON x
+plain/sampled.4four-worker1timed+3prime smokes+12primary32main251timed+3primes=
+16freshGnarkexports/3064SDKcalls. Seed21559016ledgerSHA
+a580ab01695c2785aeaad590b94cff52e5e131e46b5410cfa9f3bf30c21c424b.
+AllmaincapturesprecedelateGnark/decode/analysis;noownedCPUcojobswhilecapture.
+
+Reuse206Rustmetadataowner/loss/sampledecoders,extendtime/IP/symoffsetscope.
+Validateeventsoftware/config0/period1000000/clockid1/notfreq,PID/TID/affinity/
+executableMMAP,zeroLOST/THROTTLE,wholeunknown<=5%,allCPU/event/PMU/proofchecks.
+MapCPUworkerindex toSDKreportedTID. A sampleisdefinitelyinside iffT>=start+offsetHi
+ANDT<end+offsetLo; retain boundaryambiguous countsseparately,neverdiscardrawdata.
+Eachmainprofile requires>=100definiteG2samples/scopedunknown<=5%;pooled>=400/arm,
+ambiguous<=1%ofpossiblyscoped. Smokehasno count/unknownmin,max gateexceptschema/
+identity/sync/loss(allfewrecordsstillretained). BothBooleanmodesmedian sampled/
+plain SDKwall ratio mustlie[1/1.05,1.05] beforeinterpreting. AllinternalPMUrecords
+mustkeep>=99%coverage,trace/route/proofinvariants. Ifnewartifactfailsreproduce
+CPIgap,reportthatlimitationinstead ofinterpretingprofileasoldmechanism.
+
+Reportscopedsymbol/64-bytePCbincountsnormalizedbySDKcallsandCPUspan,retaining
+unknowns/ambiguouss. SoftwareperiodsamplinglocatesrunningCPUtime,notcachetier,
+preciseloadlatency/exclusivearithmeticcausality. Noadoptionoradditional209samples.
+Ifhotblocksidentified,useemittedcode/sourcebeforechoosingintervention;nooffset/
+parameterrescue. Firstresultallowance25min;commitlocal/no push/AWS/portable/
+pressure/concurrencyclaim. No rawkeys/scalars/proofbytes/fullledgers/binaries or
+rawperf payloads inreport. Keep originalall8CPU/Metalcomparisonobjectiveintact.
