@@ -182,6 +182,14 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
+The [prepared G2 C7a screen](benchmarks/2026-11-17-shifted-c7a197/README.md)
+closes the exact masked188recipe on both tested hosts. At96physical workers its
+primary query improves7.35%(9/9wins),but best prepared latency5.868ms loses to
+streaming4.875ms;grouped32regresses32.85%. Better high-core scaling alone does not
+meet the single-proof objective. No table/width/worker/layout rescue sweep is
+queued. Choose a distinct reduction in complete-caller work; no next algorithm
+is selected. This adds no full-proof/Aeglos comparison or SDK194 AWS measurement.
+
 The [generated-proof certificate](benchmarks/2026-11-17-certified-all196/README.md)
 passes all33 local performance/resource checks and portable release checks; its
 exact runtime is adopted with `ZOPRO_BENCH_CERTIFIED_OUTPUT=1`, alongside accepted
