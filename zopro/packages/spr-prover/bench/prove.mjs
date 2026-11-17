@@ -40,6 +40,19 @@ export function median(values) {
     : (ordered[middle - 1] + ordered[middle]) / 2;
 }
 
+export function processFailure(error, timeout) {
+  const message = error.message || String(error);
+  const status = `code=${error.code ?? "none"} signal=${error.signal ?? "none"} killed=${Boolean(error.killed)} timeout_ms=${timeout}`;
+  const stderr = error.stderr?.trim();
+  return [
+    message,
+    status,
+    stderr && !message.includes(stderr) ? stderr : undefined,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function integer(value, name, minimum = 1) {
   const number = Number(value);
   if (!Number.isSafeInteger(number) || number < minimum)
@@ -206,7 +219,7 @@ export async function main(args = process.argv.slice(2)) {
   });
   if (values.help) {
     console.log(
-      "Usage: npm run bench -- [--list] [--circuits 1x2,3x8,merge-8x1] [--threads 1,2,4,8,18] [--rounds 3] [--warmup 1] [--keys-dir PATH] [--output results.csv] [--format csv|jsonl] [--timeout-ms 300000] [--fail-fast]",
+      "Usage: npm run bench -- [--list] [--circuits 1x2,3x8,merge-8x1] [--threads 1,2,4,8,18] [--rounds 3] [--warmup 1] [--keys-dir PATH] [--output results.csv] [--format csv|jsonl] [--timeout-ms 900000] [--fail-fast]",
     );
     return;
   }
@@ -321,7 +334,7 @@ export async function main(args = process.argv.slice(2)) {
           row = {
             ...entry,
             status: "error",
-            error: error.stderr?.trim() || error.message,
+            error: processFailure(error, timeout),
           };
         }
       }

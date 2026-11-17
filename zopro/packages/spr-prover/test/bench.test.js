@@ -9,6 +9,7 @@ import {
   circuitShape,
   matrix,
   median,
+  processFailure,
 } from "../bench/prove.mjs";
 
 const lock = JSON.parse(
@@ -50,6 +51,22 @@ test("median sorts without changing the samples", () => {
   assert.equal(median(samples), 3);
   assert.deepEqual(samples, [5, 1, 3]);
   assert.equal(median([5, 1, 3, 7]), 4);
+});
+
+test("process failures retain termination details when SDK warnings are on stderr", () => {
+  const error = Object.assign(
+    new Error("Command failed: node benchmark case"),
+    {
+      stderr: "using deprecated parameters for the initialization function",
+      code: null,
+      signal: "SIGTERM",
+      killed: true,
+    },
+  );
+  const reported = processFailure(error, 500);
+  assert.match(reported, /Command failed/u);
+  assert.match(reported, /signal=SIGTERM killed=true timeout_ms=500/u);
+  assert.match(reported, /using deprecated parameters/u);
 });
 
 test("benchmark list exposes the whole matrix without downloading or initializing WASM", async () => {
