@@ -182,6 +182,14 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
+The [G2 footprint audit](benchmarks/2026-11-17-g2-code-footprint199/README.md)
+does not select a compact-code candidate. Both hosts have 32 KiB L1I; the 51.9 KB
+symbol is not one hot loop. Two IFMA-loop components total 27.8 KB and hold 2047/2049
+retained kernel samples. Their static union with entire helper/feeder bodies is
+37.3 KB, which is not measured residency or a causal cache model. Do not reopen
+outlining/loop-bound variants on whole-symbol size alone. Continue toward a
+distinct complete-caller arithmetic or dependency reduction; no algorithm queued.
+
 The [central G2 denominator check](benchmarks/2026-11-17-g2-central-equality198/README.md)
 is closed after its short query screen: primary32paired0.997817but only2/3wins,
 below its fixed3/3progression rule. Profiles show0.47–0.60%fewer whole-caller
