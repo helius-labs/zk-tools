@@ -30,3 +30,7 @@ The 24×2 row comes from the independent fixed 48-core confirmation. Other rows 
 | 16x2 | 32 | 41.253 | 335 | 124 | 8.121× | 3.006× | 33.5 |
 | 24x2 | 48 | 52.731 | 528 | 176 | 10.013× | 3.338× | 52.8 |
 | merge-24x1 | 96 | 62.182 | 507 | 175 | 8.153× | 2.814× | 50.7 |
+
+## How much time remains on fast 1×2 proofs?
+
+On the exact experimental build, 760 of 1,057 requests finished in under 10 ms at 96 cores. Restricting each block to those requests gives a median block mean of 9.242 ms. Aeglos averaged 7.935 ms over all requests by the same statistic. The paired difference was 1.288 ms for the fast subset and 2.017 ms for all requests. Every block retained a gap on its fast subset. This retrospective comparison estimates the residual gap if slower proofs could perform like their block’s fast group. It does not measure a scheduler change. A speedup on the already-fast path is worth pursuing alongside the documented slow-proof stalls. [Seven paired blocks](artifacts/fast-class.json)
