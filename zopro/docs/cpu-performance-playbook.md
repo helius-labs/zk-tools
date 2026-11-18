@@ -189,6 +189,22 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
+The [current adopted SDK C7a comparison](benchmarks/2026-11-18-adopted-c7a239/README.md)
+is complete following renewed login in experiment 243. Primary current latency
+at 32/96 workers is 10.926693/12.533971 ms; retained Aeglos is 11.928762/8.156681 ms.
+The current/previous-194 paired ratio at 32 workers is 0.981476
+[0.974575, 0.985245], with 9/9 wins; 96 workers remains inconclusive. Best observed
+current Zopro uses 88.82 MiB maximum RSS versus Aeglos at 462.84 MiB. Current
+96/32 CPU grows 3.014× while latency grows 1.143×; Aeglos CPU grows 1.568× while
+latency falls to 0.686×. Larger 24×2/merge54 circuits still benefit from 96 workers.
+Next distinguish useful arithmetic, synchronization and parallel slack on the
+current C7a critical path; CPU time alone does not identify the cause. All 220
+new remote exports pass server/host Gnark verification; canonical inventory is
+62,411. All 18 current shape/count rows are reported; all eight M5 targets remain
+unmet. Instance, EBS, bucket, objects and secrets are cleaned, with checks retained.
+The adopted implementation is unchanged. Entries below retain their historical
+preparation/status scopes.
+
 The [52-bit FMA/RZ prerequisite241](benchmarks/2026-11-18-fma52-rz241/README.md)
 is distinct from the old51-bit RNE field route: it uses embedded RZ/SAE and the
 current five-limb shape. Native exactness passes, but raw-product integer-storage
