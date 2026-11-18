@@ -121,6 +121,14 @@ grouping policy applies. `ZOPRO_BENCH_PROOFS=directory` saves each benchmark pro
 public witness for independent gnark verification. On IFMA builds with at
 least 16 workers, small MSMs split their points into two ranges and merge
 the buckets before weighting. `ZOPRO_CPU_MERGE_SPLIT=1` keeps one range.
+On Linux x86-64, servers can pass a caller-owned Rayon pool to
+`zopro_prover::Prover::set_frontend_pool(Some(pool.clone()))`. The native IFMA
+canonical path uses this pool for witness solving, query input preparation
+and the product FFT when it is smaller than the main Rayon pool. The same
+`Arc<rayon::ThreadPool>` can serve multiple loaded keys. Passing `None`
+restores the main pool. Single-proof latency and concurrent throughput can
+favor different pool sizes.
+
 Final windows with at most 256 buckets use a parallel affine tree instead
 of the scalar collision fallback; `ZOPRO_CPU_TOP_TREE=0` disables it.
 Large IFMA MSMs use width-13 bucket tables to reduce cache pressure;

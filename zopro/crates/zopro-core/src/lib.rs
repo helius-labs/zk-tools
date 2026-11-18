@@ -798,8 +798,14 @@ impl Points<'_> {
     }
 }
 
+/// A caller-owned Rayon pool for canonical witness and FFT preparation.
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+pub use rayon::ThreadPool as FrontendThreadPool;
+
 #[wasm_bindgen]
 pub struct Key {
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    frontend_pool: Option<std::sync::Arc<FrontendThreadPool>>,
     basis_only: bool,
     // Audited native workspace, or conservative prompt release when unknown.
     proof_workspace: Option<usize>,
@@ -1481,6 +1487,8 @@ impl Key {
             plan.release_tables();
         }
         let mut key = Self {
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            frontend_pool: None,
             basis_only,
             #[cfg(gpu_any)]
             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
@@ -2195,26 +2203,39 @@ impl Key {
         #[cfg(not(zopro_bounded_gather))]
         use rayon::prelude::*;
         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
-        let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
-        if let Some(scope) = reclaim { scope.release_unused(&mut w); }
-        drop(c);
-        // The correction consumes Montgomery public values before the one
-        // in-place conversion. All later accesses to w use canonical words.
-        let correction=folded.public_term(&w[..plan.n_public]);
-        let (sa_vec,mut sb_vec):(Vec<_>,Vec<_>)=if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
-            fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)
-        } else {
-            let words=canonical(&mut w);
-            #[cfg(not(zopro_bounded_gather))]
-            {rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect())}
-            #[cfg(zopro_bounded_gather)]
-            {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
+        let prepare = || -> Result<_, String> {
+            let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
+            if let Some(scope) = reclaim { scope.release_unused(&mut w); }
+            drop(c);
+            // The correction consumes Montgomery public values before the one
+            // in-place conversion. All later accesses to w use canonical words.
+            let correction=folded.public_term(&w[..plan.n_public]);
+            let (sa_vec,sb_vec):(Vec<_>,Vec<_>)=if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
+                fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)
+            } else {
+                let words=canonical(&mut w);
+                #[cfg(not(zopro_bounded_gather))]
+                {rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect())}
+                #[cfg(zopro_bounded_gather)]
+                {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
+            };
+            let product = queries.product_values(&self.plan, a, b);
+            Ok((w, sa_vec, sb_vec, product, correction))
         };
+        let (w, sa_vec, mut sb_vec, mut product, correction) =
+            if let Some(pool) = self
+                .frontend_pool
+                .as_ref()
+                .filter(|p| p.current_num_threads() < rayon::current_num_threads())
+            {
+                pool.install(prepare)?
+            } else {
+                prepare()?
+            };
         // SAFETY: both branches converted every Fr in place to canonical limbs.
         // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
-        let mut product=queries.product_values(&self.plan,a,b);
         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
         #[cfg(all(zopro_real_kh, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
         if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len()) {
@@ -2398,5 +2419,15 @@ impl Key {
         let eligible=!self.has_gpu()&&self.b2.len()<65536&&std::env::var("ZOPRO_BENCH_CERTIFIED_OUTPUT").as_deref()==Ok("1");
         let certified=eligible&&self.generated_g2.check(&self.b2,false)&&fixed.generated_g2_certified();
         Ok(generated_proof::GeneratedProof::new(self.solve_rerandomized(witness,fixed)?,certified))
+    }
+}
+
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+impl Key {
+    /// Use a shared pool for the native IFMA canonical witness and FFT stages.
+    /// The pool is used when it has fewer workers than the current Rayon pool.
+    /// Passing `None` restores execution in the current pool.
+    pub fn set_frontend_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
+        self.frontend_pool = pool;
     }
 }

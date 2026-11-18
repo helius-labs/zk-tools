@@ -86,6 +86,16 @@ pub struct Prover {
 }
 
 impl Prover {
+    /// Share a smaller Rayon pool across provers for native IFMA canonical
+    /// witness solving and FFT preparation. Pass `None` to detach the pool.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_frontend_pool(
+        &mut self,
+        pool: Option<std::sync::Arc<zopro_core::FrontendThreadPool>>,
+    ) {
+        self.key.set_frontend_pool(pool);
+    }
+
     /// From a zopro key file.
     pub fn load(bytes: &[u8]) -> Result<Self, String> {
         let artifact = Artifact::parse(bytes)?;
