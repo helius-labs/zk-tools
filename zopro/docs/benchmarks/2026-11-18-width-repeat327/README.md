@@ -72,3 +72,20 @@ The table gives the integrated 64-core configuration for 1×2, the isolated H ca
 At 64 cores the isolated H19 candidate reduced paired latency by 3.89% on merge24 (6/7 wins), 3.45% on 24×2 (7/7) and 2.34% on 16×2 (7/7). On 48 cores its paired reductions were 1.73%, 1.71% and 2.29% respectively. The only independently confirmed 10× M5 CPU crossing remains 24×2. The eight-shape target uses the supplied M5 CPU reference for each circuit. Metal ratios are reported separately.
 
 [Earlier full panel](../2026-11-18-frontend-confirm316/README.md) · [Matched-worker comparison](../2026-11-18-worker-match322/README.md)
+
+## Individual 1×2 request latency
+
+Each row pools 101 timed requests from each of seven fresh processes. The percentile columns use nearest ranks. The 9 ms milestone was defined on process means. The last column shows how often an individual request met it.
+
+| Host panel | Physical cores | Setting | p50 ms | p95 ms | p99 ms | Requests ≤9 ms |
+|---|---:|---|---:|---:|---:|---:|
+| 322 | 64 | pool16 | 8.331 | 8.677 | 11.735 | 681/707 |
+| 322 | 64 | aeg64 | 9.060 | 9.621 | 10.075 | 315/707 |
+| 322 | 96 | integral-both | 8.538 | 11.085 | 11.338 | 509/707 |
+| 322 | 96 | aeg96 | 7.920 | 8.524 | 8.919 | 704/707 |
+| 327 | 64 | pool16 | 8.335 | 8.668 | 11.741 | 683/707 |
+| 327 | 64 | aeg64 | 8.927 | 9.464 | 9.870 | 422/707 |
+| 327 | 96 | integral-both | 8.521 | 11.091 | 11.293 | 493/707 |
+| 327 | 96 | aeg96 | 7.859 | 8.529 | 8.982 | 700/707 |
+
+The 72-core comparison reveals where the mean changes direction. In panel 327 the ordinary G2 geometry had a faster request median (8.39 ms versus 8.79 ms), yet 121 of its 707 requests took at least 11 ms. Four ranges had two such requests. This difference motivates timing the slow requests by stage. The uninstrumented measurements cannot determine which stage caused the tail.
