@@ -1,0 +1,27 @@
+--- a/crates/zopro-core/src/msm_affine/h_layout.rs
++++ b/crates/zopro-core/src/msm_affine/h_layout.rs
+@@ -2,11 +2,15 @@
+ 
+ // Consecutive little-endian bit fields covering the 254 scalar bits.
+ const NINETEEN: &[usize] = &[14,13,14,13,13,14,13,13,14,13,13,14,13,13,14,13,13,14,13];
++const EIGHTEEN: &[usize] = &[14,14,14,14,15,14,14,14,14,14,14,14,14,15,14,14,14,14];
++const SEVENTEEN: &[usize] = &[15,15,15,15,15,15,15,15,14,15,15,15,15,15,15,15,15];
+ const WORD_ALIGNED: &[usize] = &[13,13,13,13,12,13,13,13,13,12,13,13,13,13,12,13,13,12,12,12];
+ 
+ pub(super) fn selected() -> Option<&'static [usize]> {
+     match std::env::var("ZOPRO_BENCH_H_LAYOUT").as_deref() {
+         Ok("19") => Some(NINETEEN),
++        Ok("18") => Some(EIGHTEEN),
++        Ok("17") => Some(SEVENTEEN),
+         Ok("word") => Some(WORD_ALIGNED),
+         _ => None,
+     }
+@@ -60,7 +64,7 @@
+             else { expected+=value; }
+             words.push(value.to_canonical());
+         }
+-        for layout in [NINETEEN,WORD_ALIGNED] {
++        for layout in [NINETEEN,WORD_ALIGNED,EIGHTEEN,SEVENTEEN] {
+             assert_eq!(sum::<G1Config>(&bases,&words,layout).to_affine(),(G1Affine::GENERATOR*expected).to_affine());
+         }
+     }
