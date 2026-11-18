@@ -519,69 +519,90 @@
       "sdk_sha256": "b70a9472fa64ac6b6b41b227ca64ddfcf61c6443879c9187331eae6d5e22c153"
     },
     {
+      "adoption": {
+        "invalidates_parent": false,
+        "reason": "Neither primary gains against both controls; close exact formula composition without reroll or rescue",
+        "status": "not_adopted"
+      },
+      "change": "Standard HMV scalar G1 mixed Jacobian formula: same eleven Fq product-backend calls, seven fewer linear operations; existing exceptional guards and G2 unchanged",
+      "correctness": {
+        "evidence": "benchmarks/2026-11-17-unscaled-mixed230/artifacts/build-review.json",
+        "scope": "41 native field,138 native core,14 generic field test executions;39 fresh Gnark exports;5160 SDK calls",
+        "status": "passed_tested_scope"
+      },
+      "evidence": "benchmarks/2026-11-17-unscaled-mixed230/README.md",
       "id": "unscaled-mixed230",
       "parent_id": "scaled-prefix-current227",
-      "change": "Standard HMV scalar G1 mixed Jacobian formula: same eleven Fq product-backend calls, seven fewer linear operations; existing exceptional guards and G2 unchanged",
-      "sdk_sha256": "100b0629207b7c4b276716ddf13ccbb97f707124154d0acb9f1fe66dfc104962",
-      "correctness": {
-        "status": "passed_tested_scope",
-        "scope": "41 native field,138 native core,14 generic field test executions;39 fresh Gnark exports;5160 SDK calls",
-        "evidence": "benchmarks/2026-11-17-unscaled-mixed230/artifacts/build-review.json"
-      },
       "performance": {
-        "status": "no_primary_signal_closed",
+        "evidence": "benchmarks/2026-11-17-unscaled-mixed230/artifacts/assessment.json",
         "scope": "Three matched blocks,16/32 primary plus2x2/merge54; no gain floor; ON/REF primary medians1.021849993 and1.013901343,wins0/3 and1/3; all calibration/RSS guards pass; large first-block slowdowns retained",
-        "evidence": "benchmarks/2026-11-17-unscaled-mixed230/artifacts/assessment.json"
+        "status": "no_primary_signal_closed"
       },
-      "adoption": {
-        "status": "not_adopted",
-        "invalidates_parent": false,
-        "reason": "Neither primary gains against both controls; close exact formula composition without reroll or rescue"
-      },
-      "evidence": "benchmarks/2026-11-17-unscaled-mixed230/README.md"
+      "sdk_sha256": "100b0629207b7c4b276716ddf13ccbb97f707124154d0acb9f1fe66dfc104962"
     },
     {
-      "id": "chunk-pair-count231",
-      "parent_id": "scaled-prefix-current227",
+      "adoption": {
+        "invalidates_parent": false,
+        "reason": "Close exact complete pair-cache recipe for poor memory/work tradeoff;no runtime table allocated or source changed;no arbitrary gain floor/RAM admission cap",
+        "status": "not_implemented"
+      },
       "change": "Read-only signed extension of complete fixed chunk pair caching over width12 point-major shifted bases, inspired by Preprints202604.0045v1",
       "correctness": {
-        "status": "passed_model_scope",
+        "evidence": "benchmarks/2026-11-17-chunk-pair-count231/artifacts/review.json",
         "scope": "Three new test executions;two-prime full-query identities;independent bit/carry/sorted-run reader checks64rows,206pins and186 unchanged production files;final checker8receipts16streams",
-        "evidence": "benchmarks/2026-11-17-chunk-pair-count231/artifacts/review.json"
+        "status": "passed_model_scope"
       },
+      "evidence": "benchmarks/2026-11-17-chunk-pair-count231/README.md",
+      "id": "chunk-pair-count231",
+      "parent_id": "scaled-prefix-current227",
       "performance": {
-        "status": "structural_screen_only_no_native_timing",
+        "evidence": "benchmarks/2026-11-17-chunk-pair-count231/artifacts/counts.json",
         "scope": "PrimaryG2:161.61MiB raw point payload saves128 fill additions(0.0211%);646.44MiB saves1043(0.1716%);20.20GiB theoretical saves7.0397%. Four retained raw queries;2x2 grouping preserved as required,not bypassed. Counts are prepared fill,not current227 or wall-time savings.",
-        "evidence": "benchmarks/2026-11-17-chunk-pair-count231/artifacts/counts.json"
-      },
-      "adoption": {
-        "status": "not_implemented",
-        "invalidates_parent": false,
-        "reason": "Close exact complete pair-cache recipe for poor memory/work tradeoff;no runtime table allocated or source changed;no arbitrary gain floor/RAM admission cap"
-      },
-      "evidence": "benchmarks/2026-11-17-chunk-pair-count231/README.md"
+        "status": "structural_screen_only_no_native_timing"
+      }
     },
     {
+      "adoption": {
+        "invalidates_parent": false,
+        "reason": "Both primary counts fail the fixed useful-signal rule;close exact composition without layout/curve/shape/parameter rescue or unchanged reroll",
+        "status": "not_adopted"
+      },
+      "change": "Typed compact G1 lazy Y across borrowed bucket updates;canonical X,current R260 scaled numerator,64B buckets/1600B records;no key table or copy",
+      "correctness": {
+        "evidence": "benchmarks/2026-11-18-lazy-g1-y232/artifacts/build-review.json",
+        "scope": "41nativefield/141nativecore/3additionalmode/12genericfield test executions plusgenericcorecompile;39freshGnark/5160SDKcalls. Initial binaryUTF8 preparer and core adapter compile failures retained;field success inherited,no unchanged replay.",
+        "status": "passed_tested_scope"
+      },
+      "evidence": "benchmarks/2026-11-18-lazy-g1-y232/README.md",
       "id": "lazy-g1-y232",
       "parent_id": "scaled-prefix-current227",
-      "change": "Typed compact G1 lazy Y across borrowed bucket updates;canonical X,current R260 scaled numerator,64B buckets/1600B records;no key table or copy",
-      "sdk_sha256": "9b2f92e54a866d455151821445d137815c30fac8657c3ad8aaa35e4c55e479c8",
-      "correctness": {
-        "status": "passed_tested_scope",
-        "scope": "41nativefield/141nativecore/3additionalmode/12genericfield test executions plusgenericcorecompile;39freshGnark/5160SDKcalls. Initial binaryUTF8 preparer and core adapter compile failures retained;field success inherited,no unchanged replay.",
-        "evidence": "benchmarks/2026-11-18-lazy-g1-y232/artifacts/build-review.json"
-      },
       "performance": {
-        "status": "no_primary_signal_closed",
+        "evidence": "benchmarks/2026-11-18-lazy-g1-y232/artifacts/assessment.json",
         "scope": "3blocks/4contexts/REF-OFF-ON;primary16/32 ON/REF1.017817185/1.004003825,wins0/3 and1/3;ON/OFFboth0wins. Merge54 descriptivepositive0.977593773 REF/0.986564891 OFF retained,not subsetpromotion. Calibration/RSS guards allpass;no gainfloor.",
-        "evidence": "benchmarks/2026-11-18-lazy-g1-y232/artifacts/assessment.json"
+        "status": "no_primary_signal_closed"
       },
+      "sdk_sha256": "9b2f92e54a866d455151821445d137815c30fac8657c3ad8aaa35e4c55e479c8"
+    },
+    {
       "adoption": {
-        "status": "not_adopted",
         "invalidates_parent": false,
-        "reason": "Both primary counts fail the fixed useful-signal rule;close exact composition without layout/curve/shape/parameter rescue or unchanged reroll"
+        "status": "pending_all_shape_resource_and_current_diagnostics"
       },
-      "evidence": "benchmarks/2026-11-18-lazy-g1-y232/README.md"
+      "change": "Pair independent original weighted trees in one affine batch at each level; existing requested-capacity forecast retained",
+      "correctness": {
+        "evidence": "benchmarks/2026-11-18-paired-weighted233/artifacts/build-review.json",
+        "status": "141_native_core_tests_and_generic_compile_pass"
+      },
+      "evidence": "benchmarks/2026-11-18-paired-weighted233/README.md",
+      "id": "paired-weighted233",
+      "performance": {
+        "evidence": "benchmarks/2026-11-18-paired-weighted233/artifacts/assessment.json",
+        "primary16_ON_REF": 0.9905698098297822,
+        "primary32_ON_REF": 0.988529757340789,
+        "status": "positive_exploratory_primary_signal",
+        "wins_both_controls_each_primary": "3/3"
+      },
+      "sdk_sha256": "d523f49e8548620c4373a1ab4be2712d705709fdd7a590c5ed73e9aff97424e3"
     }
   ],
   "historical_followups": [
@@ -717,7 +738,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "Accepted baseline remains exact b70 scaled-prefix-current227/source186,b0a41f30de after228/229.232 compactlazyG1Y correct but no primary signal:16/32 ON/REF1.017817/1.004004,0/3 and1/3wins;merge54positive shortscreen retained.197testexecutions/genericcorecompile/39freshGnark pass;initialpreparer/corecompile errors disclosed,successfulfield inherited. CanonicalNOW61182 at lazy-g1-y232/proof-sha256-after-main.json SHAb13f8652c75305401c54c2240014100aea4e9e33c4da60b86fc56fdeefdb2090. No233created. Need distinct substantial main-path work removal;do not retry unchanged lazycoords/completepaircache/scalarformula/queues. All8CPU10x active/unmet0/8;allshapeCPU-Metal comparison228 unchanged. Small qualifiedgains remaineligible. Localcommits,no push;exactb70stillnoC7a result.",
+  "next_action": "233paired weighted trees passes primary shortscreen at16/32 vsbothcontrols,3/3wins each;0.94%/1.15%lowerlatency,~2%lessCPU.2x2/merge54 descriptivepenalties retained. Exact233SDK/source188 needs all-shape/resource and currentCPUdiagnostics beforeadoption. Accepted227b70/source186 unchanged. CanonicalNOW61221 paired-weighted233/proof-sha256-after-main.json;do not seed61182again. NoAWS/push;smallqualifiedgainscount. Fullall8CPU10x active/unmet0/8;acceptedCPU-Metal228 unchanged.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",

@@ -1,0 +1,15 @@
+{
+  "baseline_files": 186,
+  "changed_parent": "crates/zopro-core/src/msm.rs",
+  "field_source_unchanged": true,
+  "hook": "    #[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n    if let Some(result)=paired_weighted::try_weighted(buckets){return result;}\n",
+  "inverse_edits_recover_all186": true,
+  "new_children": [
+    "crates/zopro-core/src/msm/paired_weighted.rs",
+    "crates/zopro-core/src/msm/paired_weighted_tests.rs"
+  ],
+  "no_new_table_key_copy_pool": true,
+  "production_changed": false,
+  "source_files": 188,
+  "suffix": "\n#[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod paired_weighted;\n"
+}
