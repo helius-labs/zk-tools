@@ -1,0 +1,16 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -141,7 +141,12 @@
+     C::Base: BatchInverse,
+ {
+     if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
+-        if let Some(groups) = scalar_groups(canonical) {
++        let groups = if std::env::var("ZOPRO_BENCH_CANONICAL_DIVERSITY").as_deref() == Ok("1") {
++            grouping::exclusive_groups(canonical)
++        } else {
++            scalar_groups(canonical)
++        };
++        if let Some(groups) = groups {
+             return msm_grouped(bases, &groups);
+         }
+     }
