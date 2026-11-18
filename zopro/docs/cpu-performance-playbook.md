@@ -189,6 +189,16 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
+The [52-bit FMA/RZ prerequisite241](benchmarks/2026-11-18-fma52-rz241/README.md)
+is distinct from the old51-bit RNE field route: it uses embedded RZ/SAE and the
+current five-limb shape. Native exactness passes, but raw-product integer-storage
+and prepared-input ratios are about2.00 and1.42, with0/3wins in every context.
+No field/SDK follow-up is selected. Preserve both measured FMA negatives; do not
+start another rounding/limb-width variant without new mechanism evidence.
+These are component results, not C7a or full-proof penalties. Third consecutive
+STS failure leaves239 unrun; its sources/package/payload and existing exports
+were rechecked intact. Canonical62191 and the adopted implementation stay unchanged.
+
 Current production is paired weighted233/adopted236, source188; canonical export
 inventory is62191. The [current C7a package239](benchmarks/2026-11-18-adopted-c7a239/README.md)
 is ready with four verified functional exports, but AWS SSO remains expired.

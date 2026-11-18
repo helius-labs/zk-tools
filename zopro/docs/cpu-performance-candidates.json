@@ -671,6 +671,26 @@
         "invalidates_parent": false,
         "reason": "Primary32 progression failed; preserve the exact negative screen without GLV window/partition rescue."
       }
+    },
+    {
+      "id": "fma52-rz241",
+      "change": "Exact 52-bit biased floating product using embedded RZ/SAE, with five-limb raw-product geometry and fixed integer bias cancellation",
+      "correctness": {
+        "status": "8192 native packets/1966080 output-limb comparisons passed against scalar-u128 schoolbook across 16 floating-control modes; not field qualification",
+        "evidence": "benchmarks/2026-11-18-fma52-rz241/artifacts/qualification.json"
+      },
+      "performance": {
+        "status": "raw_product_prerequisite_failed; no field or prover result",
+        "mixed_integer_storage_paired_ratio": 1.9977584523013976,
+        "mixed_prepared_paired_ratio": 1.4173203780006778,
+        "wins_of_3_each_context": 0,
+        "evidence": "benchmarks/2026-11-18-fma52-rz241/README.md"
+      },
+      "adoption": {
+        "status": "not_adopted_no_field_followup",
+        "invalidates_parent": false,
+        "reason": "Both input envelopes lose the fixed product screen; no unchanged RZ/RNE/width rescue is selected."
+      }
     }
   ],
   "historical_followups": [
