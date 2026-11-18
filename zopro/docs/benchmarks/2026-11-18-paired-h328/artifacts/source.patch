@@ -1,0 +1,170 @@
+--- a/crates/zopro-core/src/msm_affine/dense_h.rs
++++ b/crates/zopro-core/src/msm_affine/dense_h.rs
+@@ -5,6 +5,17 @@
+     14, 13, 14, 13, 13, 14, 13, 13, 14, 13, 13, 14, 13, 13, 14, 13, 13, 14, 13,
+ ];
+ pub(super) fn sum<C: CurveConfig>(bases: &[Affine<C>], words: &[[u64; 4]]) -> Projective<C>
++where
++    C::Base: BatchInverse,
++{
++    match std::env::var("ZOPRO_BENCH_H_PAIR").as_deref() {
++        Ok("256") => paired(bases, words, 256),
++        Ok("2048") => paired(bases, words, 2048),
++        _ => ordinary(bases, words),
++    }
++}
++
++fn ordinary<C: CurveConfig>(bases: &[Affine<C>], words: &[[u64; 4]]) -> Projective<C>
+ where
+     C::Base: BatchInverse,
+ {
+@@ -45,6 +56,11 @@
+             crate::msm::weighted_affine(&affine_buckets(buckets))
+         })
+         .collect();
++    combine(&sums)
++}
++
++fn combine<C: CurveConfig>(sums: &[Projective<C>]) -> Projective<C> {
++    let widths = WIDTHS;
+     let mut result = *sums.last().unwrap();
+     for j in (0..sums.len() - 1).rev() {
+         for _ in 0..widths[j] {
+@@ -53,6 +69,104 @@
+         result += sums[j];
+     }
+     result
++}
++
++// Two disjoint digit fields revisit the same tile while the base points and
++// scalar words are hot. Each field owns its collision queue and batch state.
++fn paired<C: CurveConfig>(bases: &[Affine<C>], words: &[[u64; 4]], tile: usize) -> Projective<C>
++where
++    C::Base: BatchInverse,
++{
++    assert_eq!(bases.len(), words.len());
++    let mut offset = 0;
++    let fields: Vec<_> = WIDTHS
++        .iter()
++        .map(|&bits| {
++            let start = offset;
++            offset += bits;
++            (bits, start)
++        })
++        .collect();
++    let pairs: Vec<_> = fields
++        .par_chunks(2)
++        .map(|pair| {
++            let left = pair[0];
++            let mut wl = Window::<C>::new(1 << left.0, batch_size(left.0 + 1).max(32));
++            let mut wr = pair
++                .get(1)
++                .map(|right| Window::<C>::new(1 << right.0, batch_size(right.0 + 1).max(32)));
++            for (points, scalars) in bases.chunks(tile).zip(words.chunks(tile)) {
++                feed(points, scalars, &mut wl, left);
++                if let (Some(&right), Some(w)) = (pair.get(1), wr.as_mut()) {
++                    feed(points, scalars, w, right);
++                }
++            }
++            let right = wr.map(|w| finish(w));
++            (finish(wl), right)
++        })
++        .collect();
++    let mut sums = Vec::with_capacity(WIDTHS.len());
++    for (left, right) in pairs {
++        sums.push(left);
++        sums.extend(right);
++    }
++    combine(&sums)
++}
++
++fn feed<C: CurveConfig>(
++    bases: &[Affine<C>],
++    words: &[[u64; 4]],
++    window: &mut Window<C>,
++    field: (usize, usize),
++) where
++    C::Base: BatchInverse,
++{
++    let (bits, offset) = field;
++    let lane = offset / 64;
++    let shift = offset % 64;
++    let mask = (1u64 << bits) - 1;
++    let size = batch_size(bits + 1).max(32);
++    // Hoist the cross-limb condition out of the hot scan.
++    let mut step = |base: Affine<C>, raw: u64| {
++        let digit = (raw & mask) as usize;
++        if digit == 0 || base.is_identity() {
++            return;
++        }
++        let k = digit - 1;
++        if window.busy(k) {
++            window.queue.push((k as u32, base));
++            if window.queue.len() == size - 1 {
++                window.flush_queue();
++            }
++        } else {
++            window.add_signed(k as u32, base);
++            if window.batch.len() == size {
++                window.execute();
++                window.take_from_queue();
++            }
++        }
++    };
++    if shift + bits <= 64 {
++        for (&point, scalar) in bases.iter().zip(words) {
++            step(point, scalar[lane] >> shift);
++        }
++    } else {
++        for (&point, scalar) in bases.iter().zip(words) {
++            step(
++                point,
++                (scalar[lane] >> shift) | (scalar[lane + 1] << (64 - shift)),
++            );
++        }
++    }
++}
++
++fn finish<C: CurveConfig>(mut w: Window<C>) -> Projective<C>
++where
++    C::Base: BatchInverse,
++{
++    w.execute();
++    w.flush_queue();
++    crate::msm::weighted_affine(&affine_buckets(w))
+ }
+ 
+ #[cfg(test)]
+@@ -82,9 +196,15 @@
+         }
+         {
+             assert_eq!(
+-                sum::<G1Config>(&bases, &words).to_affine(),
++                ordinary::<G1Config>(&bases, &words).to_affine(),
+                 (G1Affine::GENERATOR * expected).to_affine()
+             );
+-        }
+-    }
+-}
++            for tile in [1, 256, 2048] {
++                assert_eq!(
++                    paired::<G1Config>(&bases, &words, tile).to_affine(),
++                    (G1Affine::GENERATOR * expected).to_affine()
++                );
++            }
++        }
++    }
++}
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -199,6 +199,10 @@
+         let profile = shape::<C>(1usize.checked_shl(bits as u32)?, 1, 1, batch_size(bits + 1).max(32))?;
+         held = add(held, profile.held)?;
+         leaf = leaf.max(profile.leaf);
++    }
++    if matches!(std::env::var("ZOPRO_BENCH_H_PAIR").as_deref(), Ok("256" | "2048")) {
++        held=add(held,mul(dense_h::WIDTHS.len().div_ceil(2),leaf)?)?;
++        held=add(held,4096)?; // digit descriptors, partition outputs and final sum
+     }
+     add(held.saturating_sub(ordinary.held),
+         mul(leaf.saturating_sub(ordinary.leaf), rayon::current_num_threads())?)
