@@ -112,7 +112,12 @@ with its allocated physical cores, including the enclave allocation.
 Build without CPU-specific flags for the portable backend. CPU builds need
 no GPU libraries. Native IFMA MSMs group equal scalars afresh for every
 proof; the gain varies with the witness. `ZOPRO_CPU_DEDUP=0` disables that
-grouping. `ZOPRO_BENCH_PROOFS=directory` saves each benchmark proof and its
+grouping. With grouping enabled, `ZOPRO_CPU_GROUP_DIVERSITY=1` checks
+eligible exclusive G2 queries before allocating the grouping map. It uses
+up to 32 KiB of optional per-proof scratch to count distinct occupied bits.
+If that count already exceeds the grouping cutoff, the prover skips the map.
+Under memory pressure or when the count is inconclusive, the ordinary
+grouping policy applies. `ZOPRO_BENCH_PROOFS=directory` saves each benchmark proof and its
 public witness for independent gnark verification. On IFMA builds with at
 least 16 workers, small MSMs split their points into two ranges and merge
 the buckets before weighting. `ZOPRO_CPU_MERGE_SPLIT=1` keeps one range.

@@ -1684,7 +1684,7 @@ pub(super) fn g2_query_exclusive(
 ) -> zopro_bn254::G2Projective {
     assert_eq!(bases.len(), words.len());
     let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
-        .then(|| scalar_groups(words))
+        .then(|| grouping::exclusive_groups(words))
         .flatten();
     #[cfg(all(
         zopro_g2_horner_buckets,

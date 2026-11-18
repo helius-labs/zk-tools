@@ -39,6 +39,12 @@ pub(crate) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
     )
 }
 
+mod diversity;
+pub(super) fn exclusive_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+    let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+    group_with_gate::<true>(scalars, zero_aware)
+}
+
 type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
 
 fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSample<'_>, usize)> {
@@ -95,10 +101,20 @@ fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSampl
 }
 
 fn scalar_groups_policy(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
+    group_with_gate::<false>(scalars, zero_aware)
+}
+
+fn group_with_gate<const EXCLUSIVE: bool>(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
     if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
         return None;
     }
     let (unique, percent) = grouping_sample(scalars, zero_aware)?;
+    if EXCLUSIVE && (1024..65536).contains(&scalars.len())
+        && std::env::var("ZOPRO_CPU_GROUP_DIVERSITY").as_deref() == Ok("1")
+        && diversity::declines(scalars, scalars.len() * percent / 100)
+    {
+        return None;
+    }
     let reservation = grouping_cost::reserve(scalars.len(), percent)?;
     // Bound the initial allocation by the sample and by the grouping
     // cutoff. Small high-diversity inputs otherwise grow and rehash the
