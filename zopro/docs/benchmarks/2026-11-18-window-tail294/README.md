@@ -83,3 +83,14 @@ Aeglos reports times for its own witness, FFT, MSM and assembly phases. Each tim
 | trace | collect_to_raw | 0.068 | 0.071 | +0.003 |
 | trace | after_g2 | 0.284 | 0.318 | +0.034 |
 | trace | full | 9.608 | 10.376 | +0.768 |
+
+## The 3.7 ms 1×2 target
+
+To estimate what a G2-only optimization can achieve, subtract the entire G2 call from each traced sub-10 ms request while holding every other interval fixed. This deliberately optimistic calculation also removes any overlapping useful work from the elapsed timeline.
+
+| Cores | Fast proofs | Mean full proof, ms | Mean G2 call, ms | Remaining elapsed time, ms |
+|---:|---:|---:|---:|---:|
+| 64 | 308 | 8.686 | 3.913 | 4.774 |
+| 96 | 308 | 9.366 | 4.144 | 5.222 |
+
+At both widths the remaining time alone exceeds 3.7 ms. Closing the 9 ms milestone and reaching 10× the supplied M5 CPU reference therefore require different amounts of work. The 10× goal also calls for changes outside G2, such as shortening witness solving or overlapping it with work that already has its inputs. Scheduling changes can affect those other intervals and would need full-proof measurements.
