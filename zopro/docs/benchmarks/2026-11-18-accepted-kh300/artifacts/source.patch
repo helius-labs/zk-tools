@@ -1,0 +1,123 @@
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending.rs
+@@ -19,7 +19,7 @@
+         && crate::simd::cpu_option("ZOPRO_CPU_DIRECT")
+ }
+ 
+-struct Window<'a, C: CurveConfig<Base = Fq>> {
++pub(super) struct Window<'a, C: CurveConfig<Base = Fq>> {
+     affine: Vec<Affine<C>>,
+     projective: Vec<Projective<C>>,
+     projective_indices: Vec<u32>,
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
+@@ -61,6 +61,32 @@
+         }
+     }
+ }
++#[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++// The output slots are disjoint, and a window moves to its successor without
++// copying its buckets. The parent scope waits for all successors.
++fn scoped_sums<C: CurveConfig<Base = Fq>>(
++    cover: &[Span], k: &[Affine<C>], sk: &[[u64; 4]],
++    h: &[Affine<C>], sh: &[[u64; 4]],
++) -> Vec<Projective<C>> {
++    let mut sums = vec![Projective::<C>::IDENTITY; cover.len()];
++    rayon::scope(|scope| {
++        for (&span, output) in cover.iter().zip(&mut sums) {
++            scope.spawn(move |scope| {
++                let size = batch_size(span.width).max(32);
++                let mut state = Window::new(1usize << (span.width - 1), size);
++                feed(&mut state, k, sk, span, size);
++                scope.spawn(move |scope| {
++                    feed(&mut state, h, sh, span, size);
++                    scope.spawn(move |_| {
++                        *output = crate::msm::weighted_affine(&state.finish());
++                    });
++                });
++            });
++        }
++    });
++    sums
++}
++
+ pub(super) fn fused<C: CurveConfig<Base = Fq>>(
+     k: &[Affine<C>],
+     sk: &[[u64; 4]],
+@@ -68,6 +94,21 @@
+     sh: &[[u64; 4]],
+ ) -> Projective<C> {
+     let cover = spans();
++    #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++    if rayon::current_num_threads() >= COUNT
++        && std::env::var("ZOPRO_CPU_KH_CONTINUATION").as_deref() == Ok("1")
++    {
++        // Suspended jobs may retain their streaming scratch while other queries run.
++        let bytes = cover.iter().try_fold(0usize, |total, span| {
++            let half = 1usize << (span.width - 1);
++            let batch = batch_size(span.width).max(32);
++            let cost = super::super::workspace::suspended_kh_window(half, batch)?;
++            total.checked_add(cost)
++        });
++        if let Some(_reservation) = crate::preparation::Reservation::analysis(bytes) {
++            return fold_sums(&cover, &scoped_sums(&cover, k, sk, h, sh));
++        }
++    }
+     let sums: Vec<_> = cover
+         .par_iter()
+         .map(|&span| {
+@@ -78,8 +119,12 @@
+             crate::msm::weighted_affine(&state.finish())
+         })
+         .collect();
++    fold_sums(&cover, &sums)
++}
++
++fn fold_sums<C: CurveConfig<Base = Fq>>(cover: &[Span], sums: &[Projective<C>]) -> Projective<C> {
+     let mut result = Projective::<C>::IDENTITY;
+-    for (span, sum) in cover.iter().zip(&sums).rev() {
++    for (span, sum) in cover.iter().zip(sums).rev() {
+         for _ in 0..span.width {
+             result = result.double();
+         }
+@@ -196,6 +241,24 @@
+             weights.push(weight);
+         }
+         (G1Projective::batch_to_affine(&p), weights)
++    }
++    #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++    #[test]
++    fn continuation_slots_preserve_all_signed_window_sums() {
++        let (k, _) = points(1163, 37);
++        let (h, _) = points(1087, 900001);
++        let mut rng = Seeded::new(0x6230295);
++        let sk = (0..k.len()).map(|_| rng.fr().to_canonical()).collect::<Vec<_>>();
++        let sh = (0..h.len()).map(|_| rng.fr().to_canonical()).collect::<Vec<_>>();
++        let cover=spans();
++        for threads in [1,4] {
++            let pool=rayon::ThreadPoolBuilder::new().num_threads(threads).build().unwrap();
++            pool.install(|| {
++                let expected=fused(&k,&sk,&h,&sh);
++                let sums = scoped_sums(&cover, &k, &sk, &h, &sh);
++                assert_eq!(fold_sums(&cover, &sums).to_affine(), expected.to_affine());
++            });
++        }
+     }
+     #[test]
+     fn balanced_complete_generator_oracle_and_uniform_control() {
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -102,6 +102,13 @@
+         affine,
+     )?;
+     add(fill, normalize)
++}
++/// Bound a complete suspended window, including its job and capture storage.
++pub(super) fn suspended_kh_window(half: usize, batch: usize) -> Option<usize> {
++    let storage = window::<G1Config>(half, batch)?;
++    // At most three scoped jobs per window. The conservative complete-window
++    // charge also covers the affine output already present in the base forecast.
++    storage.checked_add(3 * (core::mem::size_of::<super::borrowed_pending::Window<G1Config>>() + 1024))
+ }
+ fn shape<C: CurveConfig>(half: usize, windows: usize, parts: usize, batch: usize) -> Option<Profile>
+ where
