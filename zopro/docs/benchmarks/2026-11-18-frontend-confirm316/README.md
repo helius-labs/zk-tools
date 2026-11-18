@@ -2,6 +2,23 @@
 
 On 1×2 with 64 physical cores, the retained 16-worker frontend pool took 8.444 ms versus 9.470 ms disabled, with 7/7 paired wins and 7/7 process means at or below 9 ms. The independent replication passed. The previous host measured 8.492 ms. Aeglos ran in 9.004 ms at 64 cores and 7.960 ms at 96 cores on this host.
 
+## Comparison across all eight M5 reference shapes
+
+The Zopro column uses the fastest observed median in this panel for each shape. That selection is exploratory except for the prespecified 64-core 1×2 frontend comparison. Aeglos used 96 physical cores in this table; its separate matched 64-core 1×2 result appears above. Peak RSS is the largest reported process high-water mark in each cell.
+
+| Shape | Zopro cores / setting | Zopro ms | M5 CPU / Metal ms | M5 CPU / Metal speedup | Aeglos ms | Peak MiB Zopro / Aeglos | 10× CPU target ms |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1x2 | 56 / front16 | 8.414 | 37 / 24 | 4.40× / 2.85× | 7.960 | 54 / 478 | 3.7 |
+| 2x2 | 48 / front16 | 14.024 | 59 / 30 | 4.21× / 2.14× | 11.641 | 104 / 811 | 5.9 |
+| 4x2 | 48 / front16 | 17.851 | 109 / 48 | 6.11× / 2.69× | 18.496 | 265 / 1350 | 10.9 |
+| 8x2 | 48 / front16 | 24.363 | 189 / 74 | 7.76× / 3.04× | 31.372 | 465 / 2507 | 18.9 |
+| 12x2 | 48 / front0 | 32.336 | 284 / 101 | 8.78× / 3.12× | 48.773 | 658 / 3730 | 28.4 |
+| 16x2 | 48 / mixed19 | 35.891 | 335 / 124 | 9.33× / 3.45× | 56.650 | 781 / 4626 | 33.5 |
+| 24x2 | 48 / mixed19 | 50.702 | 528 / 176 | 10.41× / 3.47× | 87.243 | 1174 / 6823 | 52.8 |
+| merge-24x1 | 48 / mixed19 | 53.093 | 507 / 175 | 9.55× / 3.30× | 84.855 | 1112 / 6632 | 50.7 |
+
+The full table gives every control, single-optimization run and paired comparison configuration. A target crossing on one host still requires an independent repeat.
+
 ## Single-proof latency
 
 Median of seven process means after three warmups. Peak RSS includes startup. Larger shapes compare a 48-core Zopro process with 96-core Aeglos; all rows state process affinity. M5 thresholds use the supplied CPU timings.
