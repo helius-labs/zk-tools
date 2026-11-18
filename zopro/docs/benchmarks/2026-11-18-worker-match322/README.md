@@ -61,3 +61,14 @@ All cells have seven randomized process means. The Aeglos setting gives its nati
 | merge-24x1 | 64 | hoff | 54.843 | 2452 | 1172 | 9.24× / 3.19× | 0/7 |
 
 [Primary comparison](artifacts/primary.json) · [Settings](artifacts/settings.json) · [Process and request data](artifacts/processes.json.gz) · [Proof verification](artifacts/verification.json)
+
+## Why the 96-core result warrants a separate test
+
+The experimental executable lets us change G2 partitioning while holding frontend workers, affinity and the rest of the binary fixed. The ordinary G2 path uses two point ranges and 12-bit windows. The alternate path uses four ranges and 11-bit windows. Each cell below uses 16 frontend workers.
+
+| Physical cores | Ordinary G2, ms | Alternate G2, ms | Paired change in latency | Faster blocks |
+|---:|---:|---:|---:|---:|
+| 64 | 8.431 | 9.152 | +8.08% | 0/7 |
+| 96 | 10.046 | 9.099 | -9.99% | 7/7 |
+
+The change reduced latency in every block at 96 cores and increased it in every block at 64. The best 96-core experimental setting took 9.099 ms against Aeglos at 7.990 ms. At 64 cores the integrated Zopro setting also beat the fastest tested Aeglos worker configuration on that mask (96 native workers, 8.934 ms). A repeat of the G2 comparison on a fresh host would test whether the difference persists before introducing a worker-count policy.
