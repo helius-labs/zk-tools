@@ -318,6 +318,8 @@ pub(super) fn weighted_affine<C: CurveConfig>(buckets: &[Affine<C>]) -> Projecti
 where
     C::Base: BatchInverse,
 {
+    #[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+    if let Some(result)=paired_weighted::try_weighted(buckets){return result;}
     const GROUP: usize = 256;
     let partials: Vec<_> = buckets
         .par_chunks(GROUP)
@@ -2373,3 +2375,6 @@ use uniform_prefix::{prefix_mul,prefix_norm,prefix_numerator,prefix_inverse,pref
 mod linear_carry_caller;
 
 #[cfg(zopro_indexed_tile_bundles)]mod indexed_tiles;
+
+#[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+mod paired_weighted;
