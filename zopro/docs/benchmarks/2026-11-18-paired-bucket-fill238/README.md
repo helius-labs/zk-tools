@@ -47,6 +47,15 @@ query caller, not SDK proof latency, default-SDK-stack or server-throughput
 qualification. Every sample/backing remains. No owned CPU cojob overlaps
 any smoke or main capture.
 
+The historical tree is compiled under cfg(test), retaining its per-State
+calls/real-pair/dummy-pair/exception statistics and test-only window counter in
+both TREE and PAIR. STREAM shares the outer route counter, but not those tree
+statistics. That bookkeeping is part of this measured diagnostic artifact.
+Its overhead is not separately qualified, so these ratios are not transferred
+as precise penalties for an uninstrumented production integration. The failed
+decision applies to this fixed caller; it does not prove pairing universally
+ineffective.
+
 |Shape / workers|STREAM ms|TREE ms|PAIR ms|PAIR/STREAM paired median|Wins|PAIR/TREE paired median|Wins|
 |---|---:|---:|---:|---:|---:|---:|---:|
 |1x2 / 1|31.402257|37.951188|36.292793|1.155738351|0/3|0.956301877|3/3|
