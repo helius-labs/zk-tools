@@ -860,6 +860,27 @@
     "activation": "Existing native ISA/ifma8/resource-schedule guards; build.rs selects paired reducer automatically, existing optimized preparation/output opt-ins unchanged",
     "adoption_commit": "b164b9776ba67cd2fdb56ba80ebee59b3fd329ee",
     "aws_evidence": "benchmarks/2026-11-18-adopted-c7a239/README.md",
+    "aws_full_catalog": {
+      "evidence": "benchmarks/2026-11-18-full-catalog-c7a244/README.md",
+      "key_release": "proving-keys/3a1c88f90f609eb1",
+      "shapes": 41,
+      "contexts": 164,
+      "workers": [32, 96],
+      "classification_order": ["Zopro_lower", "Aeglos_lower", "inconclusive"],
+      "equal_core_marginal_interval_counts": {
+        "32": [41, 0, 0],
+        "96": [19, 20, 2]
+      },
+      "best_observed_median_Zopro_lower_shapes": 23,
+      "Zopro_lower_maximum_RSS_contexts": 82,
+      "merge54_96": {
+        "Zopro_ms": 124.31232299999999,
+        "Aeglos_ms": 173.64833114285713,
+        "Zopro_max_RSS_MiB": 1873.33984375,
+        "Aeglos_max_RSS_MiB": 13011.82421875
+      },
+      "limitations": "Complete pinned confidential-transfer/merge catalog, not all 130 mobile keys; retained Aeglos 0290613; forced-cfg 233 SDK; seven timed requests in nine process blocks; marginal intervals without familywise guarantee; best-count selection descriptive; no new optimization/adoption or minimum-RAM/throughput/PMU claim"
+    },
     "aws_limitations": "Exact forced-cfg233 SDK measured; normal-selector SDK not newly linked/timed. Retained Aeglos Sorted source0290613; only32/96physical counts; cpu.max unavailable; no causal/throughput/minimum-RAM qualification.",
     "aws_preparation": "benchmarks/2026-11-18-adopted-c7a239/preparation.md",
     "aws_primary_ms_32": 10.926693352941172,

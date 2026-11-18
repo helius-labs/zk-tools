@@ -189,6 +189,29 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
+The [full pinned-catalog C7a comparison244](benchmarks/2026-11-18-full-catalog-c7a244/README.md)
+covers all 41 confidential-transfer/merge shapes at 32/96 physical cores for both
+engines. Equal-core marginal intervals favor Zopro on 41/41 shapes at 32 workers;
+at 96, 19 favor Zopro, 20 favor Aeglos and two are inconclusive. Zopro has lower
+maximum lifetime RSS in all 82 contexts. Merge54 at 96 is 124.312/173.648 ms and
+1.83/12.71 GiB peak RSS for Zopro/Aeglos. Primary best observed remains
+10.846 ms at 32 for Zopro versus 8.242 ms at 96 for Aeglos. Selecting each
+engine's lowest median among those counts gives Zopro 23/41 descriptive wins.
+All 1,640 remote exports pass server/host Gnark verification; the separate raw
+reader reconstructs 10,496 timed records and 4,920 receipts. Canonical inventory
+is 64,133. One VM, tagged EBS, private bucket/objects/MPUs and secrets are cleaned.
+The adopted source/SDK is unchanged and all eight M5 CPU10x targets remain unmet.
+This complete 41-key catalog differs from the broader 130-key mobile manifest.
+
+The sweep takes 57 min 26 s, including 51 min 37 s summed capture-command wall
+time versus 9 min 6 s summed timed requests. The difference includes setup,
+primes, process/export and harness work; it is not isolated setup time. Retain
+this comprehensive checkpoint while using focused screens for individual
+kernel candidates. Next distinguish useful arithmetic, synchronization and
+parallel slack on small-circuit C7a critical paths, with a larger scaling control.
+Source adoption still requires its declared correctness/resource qualification.
+No new minimum-gain floor, architecture memory cap or retrospective timing gate.
+
 The [current adopted SDK C7a comparison](benchmarks/2026-11-18-adopted-c7a239/README.md)
 is complete following renewed login in experiment 243. Primary current latency
 at 32/96 workers is 10.926693/12.533971 ms; retained Aeglos is 11.928762/8.156681 ms.
