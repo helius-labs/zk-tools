@@ -200,6 +200,17 @@ where
     // SAFETY: Fr is repr(transparent) over its four initialized limbs.
     let words =
         unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
+    #[cfg(all(
+        zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64",
+        target_feature = "avx512ifma", target_feature = "avx512vl",
+        target_feature = "avx512dq", not(no_ifma)
+    ))]
+    let result = dense_h::try_sum(bases, words).unwrap_or_else(|| msm_raw(bases, words));
+    #[cfg(not(all(
+        zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64",
+        target_feature = "avx512ifma", target_feature = "avx512vl",
+        target_feature = "avx512dq", not(no_ifma)
+    )))]
     let result = msm_raw(bases, words);
     let inverse_r = Fr::from_montgomery([1, 0, 0, 0]);
     result.mul(&inverse_r)
@@ -1795,3 +1806,6 @@ pub(super) mod fused_kh;
 
 #[cfg(all(zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
 mod g2_borrowed;
+
+#[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+mod dense_h;

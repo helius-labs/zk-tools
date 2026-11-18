@@ -189,6 +189,33 @@ where
     }
     Some(p)
 }
+/// Extra positive growth over the ordinary raw H query at this worker count.
+pub(super) fn dense_h_extra<C: CurveConfig>(n: usize) -> Option<usize>
+where
+    C::Base: BatchInverse,
+{
+    let ordinary = raw::<C>(n, false)?;
+    let mut held = 0;
+    let mut leaf = 0;
+    for &bits in &dense_h::WIDTHS {
+        let profile = shape::<C>(
+            1usize.checked_shl(bits as u32)?,
+            1,
+            1,
+            batch_size(bits + 1).max(32),
+        )?;
+        held = add(held, profile.held)?;
+        leaf = leaf.max(profile.leaf);
+    }
+    add(
+        held.saturating_sub(ordinary.held),
+        mul(
+            leaf.saturating_sub(ordinary.leaf),
+            rayon::current_num_threads(),
+        )?,
+    )
+}
+
 fn hb<C: CurveConfig>(n: usize) -> Option<Profile>
 where
     C::Base: BatchInverse,

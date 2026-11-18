@@ -129,6 +129,12 @@ and the product FFT when it is smaller than the main Rayon pool. The same
 restores the main pool. Single-proof latency and concurrent throughput can
 favor different pool sizes.
 
+On native IFMA builds with resource scheduling, `ZOPRO_CPU_DENSE_H_WINDOWS=19`
+uses mixed 13- and 14-bit windows for unsigned Montgomery H queries with at
+least 262,144 points. The prover checks the additional scratch against its
+optional memory allowance and falls back to ordinary windows under pressure.
+The buckets live for one proof. This setting is opt-in.
+
 Final windows with at most 256 buckets use a parallel affine tree instead
 of the scalar collision fallback; `ZOPRO_CPU_TOP_TREE=0` disables it.
 Large IFMA MSMs use width-13 bucket tables to reduce cache pressure;
