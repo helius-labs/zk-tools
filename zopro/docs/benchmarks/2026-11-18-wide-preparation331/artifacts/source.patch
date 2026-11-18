@@ -1,0 +1,29 @@
+--- a/source/crates/zopro-core/src/lib.rs
++++ b/source/crates/zopro-core/src/lib.rs
+@@ -2443,7 +2443,7 @@
+         if let Some(pool) = self.frontend_pool.as_ref() {
+             let mode = std::env::var("ZOPRO_BENCH_GENERAL_FRONTEND").unwrap_or_default();
+             if (mode == phase || mode == "both")
+-                && pool.current_num_threads() < rayon::current_num_threads()
++                && pool.current_num_threads() != rayon::current_num_threads()
+                 && !self.has_gpu()
+                 && self.lagrange.as_ref().is_some_and(|q| q.folded.is_some())
+             {
+--- a/driver.rs
++++ b/driver.rs
+@@ -100,7 +100,7 @@
+     if mode!="unbound"&&mode!="fixed"{return Err("placement must be unbound or fixed".into());}
+     let workers:usize=std::env::var("RAYON_NUM_THREADS")?.parse()?;
+     let allowed=placement_affinity()?;
+-    if workers!=allowed.len(){return Err("one worker per inherited logical CPU is required".into());}
++    if workers==0 || workers>allowed.len(){return Err("main workers exceed process affinity".into());}
+     let start_allowed=allowed.clone();let fixed=mode=="fixed";
+     rayon::ThreadPoolBuilder::new().num_threads(workers).start_handler(move|i|{
+         if fixed {placement_pin(start_allowed[i]).expect("worker affinity");}
+@@ -129,5 +129,5 @@
+ fn frontend_width() -> usize {
+     let main: usize = std::env::var("RAYON_NUM_THREADS").unwrap().parse().unwrap();
+     let front: usize = std::env::var("ZOPRO_BENCH_SHARED_FRONTEND").unwrap_or_default().parse().unwrap_or(0);
+-    if front < main { front } else { 0 }
++    if front != main { front } else { 0 }
+ }
