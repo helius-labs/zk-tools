@@ -129,6 +129,14 @@ and the product FFT when it is smaller than the main Rayon pool. The same
 restores the main pool. Single-proof latency and concurrent throughput can
 favor different pool sizes.
 
+Linux x86-64 servers can call `Prover::set_overlap_verification(true)` on a
+loaded prover to compute the public-input pairing during CPU proof generation.
+This setting uses the existing Rayon pool and applies to keys with at most
+sixteen public inputs. Each request computes its own pairing and verifies the
+finished proof. The setting defaults to disabled. On C7a it improved 1×2
+latency at 96 cores. Larger Ryzen circuits favored the default.
+[Full benchmark](docs/benchmarks/2026-11-18-public-verify-release372/README.md)
+
 On a general CPU solve, `ZOPRO_CPU_SOLVER_FRONTEND=1` also runs the witness
 instructions on the attached smaller pool. Witness allocation, scalar gathering,
 FFT and curve operations keep their existing worker placement. This option

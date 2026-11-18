@@ -158,20 +158,52 @@ impl VerifyingKey {
         self.k.len() - 1
     }
 
-    /// Whether `proof` proves `public`: e(Ar, Bs) = e(alpha, beta)
-    /// e(sum of the inputs' K, gamma) e(Krs, delta).
-    pub fn verify(&self, proof: &Proof, public: &[Fr]) -> bool {
-        if public.len() != self.public_inputs() {
-            return false;
-        }
-        let inputs = if let Some(windows) = &self.k_windows {
+    fn public_point(&self, public: &[Fr]) -> G1Affine {
+        if let Some(windows) = &self.k_windows {
             public_inputs_prepared(self.k[0], windows, public)
         } else {
             let mut scalars = Vec::with_capacity(self.k.len());
             scalars.push(Fr::ONE);
             scalars.extend_from_slice(public);
             zopro_bn254::curve::msm(&self.k, &scalars).to_affine()
+        }
+    }
+
+    /// Verify a freshly produced proof while its public input is available.
+    /// The prepared term belongs to this invocation and verifying key.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn verify_during_generation<E: Send>(
+        &self,
+        public: &[Fr],
+        generate: impl FnOnce() -> Result<Proof, E> + Send,
+    ) -> Result<Option<Proof>, E> {
+        if public.len() != self.public_inputs() {
+            return Ok(None);
+        }
+        let public_term = || multi_miller_loop(&[(self.public_point(public), &self.gamma2)]);
+        let proof_terms = |proof: Proof| {
+            let (ab, cd) = rayon::join(
+                || {
+                    let bs = G2Prepared::new(&proof.bs);
+                    multi_miller_loop(&[(-proof.ar, &bs)])
+                },
+                || multi_miller_loop(&[(proof.krs, &self.delta2)]),
+            );
+            (proof, ab * cd)
         };
+        let (proved, public_value) = rayon::join(|| generate().map(proof_terms), public_term);
+        let (proof, abcd) = proved?;
+        Ok((final_exponentiation(abcd * public_value) == Some(self.negative_alpha_beta))
+            .then_some(proof))
+    }
+
+    /// Whether `proof` proves `public`: e(Ar, Bs) = e(alpha, beta)
+    /// e(sum of the inputs' K, gamma) e(Krs, delta).
+    pub fn verify(&self, proof: &Proof, public: &[Fr]) -> bool {
+        if public.len() != self.public_inputs() {
+            return false;
+        }
+        let inputs = self.public_point(public);
         let bs = G2Prepared::new(&proof.bs);
         let pairs = [
             (-proof.ar, &bs),
@@ -387,6 +419,56 @@ mod tests {
                     zopro_bn254::curve::msm(&all, &scalars).to_affine()
                 );
             }
+        }
+    }
+}
+
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod overlap_tests {
+    use super::*;
+    #[test]
+    fn public_term_stays_bound_to_the_request_and_key() {
+        let key =
+            VerifyingKey::decode_raw(include_bytes!("../tests/fixtures/transfer-2x2.vk")).unwrap();
+        let proof =
+            Proof::from_raw(include_bytes!("../tests/fixtures/transfer-2x2.proof")).unwrap();
+        let input = crate::decode_frs(include_bytes!("../tests/fixtures/transfer-2x2.public"))[0];
+        for workers in [1, 4] {
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(workers)
+                .build()
+                .unwrap();
+            pool.install(|| {
+                let run = |inputs: &[Fr], p: Proof| {
+                    key.verify_during_generation(inputs, || Ok::<_, ()>(p))
+                        .unwrap()
+                };
+                let (correct, altered) =
+                    rayon::join(|| run(&[input], proof), || run(&[input + Fr::ONE], proof));
+                assert_eq!(correct, Some(proof));
+                assert_eq!(altered, None);
+                assert_eq!(run(&[], proof), None);
+                for p in [
+                    Proof {
+                        ar: (proof.ar.to_projective() + G1Affine::GENERATOR).to_affine(),
+                        ..proof
+                    },
+                    Proof {
+                        bs: (proof.bs.to_projective() + G2Affine::GENERATOR).to_affine(),
+                        ..proof
+                    },
+                    Proof {
+                        krs: (proof.krs.to_projective() + G1Affine::GENERATOR).to_affine(),
+                        ..proof
+                    },
+                ] {
+                    assert_eq!(run(&[input], p), None);
+                }
+                assert_eq!(
+                    key.verify_during_generation(&[input], || Err("generation failed")),
+                    Err("generation failed")
+                );
+            });
         }
     }
 }

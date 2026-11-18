@@ -120,6 +120,8 @@ impl Prover {
             return Err("basis public names mismatch".into());
         }
         Ok(Self {
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            overlap_verification: false,
             key,
             verifying_key,
             fixed: PreparedFixedPoints::new(artifact.fixed_points()?),

@@ -74,6 +74,8 @@ impl Proved {
 
 /// A loaded zopro key.
 pub struct Prover {
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    overlap_verification: bool,
     key: Key,
     verifying_key: VerifyingKey,
     fixed: PreparedFixedPoints,
@@ -95,6 +97,14 @@ impl Prover {
         pool: Option<std::sync::Arc<zopro_core::FrontendThreadPool>>,
     ) {
         self.key.set_frontend_pool(pool);
+    }
+
+    /// Compute the public-input pairing alongside CPU proof generation for
+    /// keys with up to sixteen public inputs. Uses the existing Rayon pool.
+    /// The default is sequential verification after generation.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_overlap_verification(&mut self, enabled: bool) {
+        self.overlap_verification = enabled;
     }
 
     /// From a zopro key file.
@@ -124,6 +134,8 @@ impl Prover {
             return Err("the key's inputs do not match its verifying key".into());
         }
         Ok(Self {
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            overlap_verification: false,
             key: artifact.key(points, solver_image)?,
             verifying_key,
             fixed: PreparedFixedPoints::new(artifact.fixed_points()?),
@@ -181,20 +193,32 @@ impl Prover {
         loop {
             if !self.key.has_gpu() {
                 let started = zopro_core::time::Instant::now();
-                let raw = self
-                    .key
-                    .solve_rerandomized_output(&encoded, &self.fixed)
-                    .map_err(Error::Prove)?;
-                let prove_ms = started.elapsed().as_millis() as u64;
-                let verify_started = zopro_core::time::Instant::now();
-                let public = witness[..self.public].to_vec();
-                let proof = raw.into_proof().map_err(|_| Error::Unverified)?;
-                if !self.verifying_key.verify(&proof, &public) {
-                    return Err(Error::Unverified);
-                }
+                let public = &witness[..self.public];
+                let mut prove_ms = 0;
+                let mut verify_started = started;
+                let mut generate = || {
+                    let raw = self.key.solve_rerandomized_output(&encoded, &self.fixed)
+                        .map_err(Error::Prove)?;
+                    prove_ms = started.elapsed().as_millis() as u64;
+                    verify_started = zopro_core::time::Instant::now();
+                    raw.into_proof().map_err(|_| Error::Unverified)
+                };
+                #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                let verified = if self.overlap_verification && self.public <= 16 {
+                    self.verifying_key.verify_during_generation(public, generate)?
+                } else {
+                    let proof = generate()?;
+                    self.verifying_key.verify(&proof, public).then_some(proof)
+                };
+                #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                let verified = {
+                    let proof = generate()?;
+                    self.verifying_key.verify(&proof, public).then_some(proof)
+                };
+                let proof = verified.ok_or(Error::Unverified)?;
                 return Ok(Proved {
                     proof,
-                    public,
+                    public: public.to_vec(),
                     prove_ms,
                     verify_ms: verify_started.elapsed().as_millis() as u64,
                 });
