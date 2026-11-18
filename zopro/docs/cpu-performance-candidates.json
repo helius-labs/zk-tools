@@ -585,8 +585,11 @@
     },
     {
       "adoption": {
+        "commit": "b164b9776ba67cd2fdb56ba80ebee59b3fd329ee",
+        "evidence": "benchmarks/2026-11-18-paired-weighted-adoption236/README.md",
         "invalidates_parent": false,
-        "status": "pending_current_diagnostics_and_final_review"
+        "scope": "Exact qualified implementation plus separately validated native selector; performance SDK233 remains exact, no newly timed normal-selection SDK",
+        "status": "adopted_locally"
       },
       "change": "Pair independent original weighted trees in one affine batch at each level; existing requested-capacity forecast retained",
       "correctness": {
@@ -741,7 +744,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "233exact candidate qualified234all70 and235allobserver/profilequality. Smallprimarygain16/32 .89%/.44%,allbackingspositivebothcontrols. Normalnativebuildselector integration/finalsource-resource review next; accepted227b70 remains unchanged pending integration. CanonicalNOW62187 paired-weighted-profile235/proof-sha256-after-profile.json;see independent-main SHA. No unchanged timing/test replay;noAWS/push. Fullall8CPU10x active/unmet0/8.",
+  "next_action": "Pairedweighted233 adoptedlocally b164b9776b after234all70/235qualityobserver and236normalnative-selection141tests+genericcheck+8selectorcases. Measured233SDKd523;allimplementationexact,build.rsselector-only difference;normal-selectionSDKnotnewlytimed/relinked. Primary16/32 .89%/.44%gain,allbackingspositivebothcontrols;smallgainkept. Source188manifest236. Canonical62187 at paired-weighted-profile235/proof-sha256-after-profile.json SHA38314450cd7201e88e527845db52c4de60479688cc2c7b8d0201c4d472596ff3. Needdistinctmain-pathworkreduction;no unchangedtiming/test rerolls. All8CPU10xactive/unmet0/8;CPU-Metal234. NoAWS/push;commitlocally untilfreshapproval.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",
@@ -756,20 +759,6 @@
     "source_manifest": "benchmarks/2026-11-17-fused-preparation182/artifacts/production-source-manifest.json"
   },
   "previous_production_baseline": {
-    "activation": "explicit native opt-in; ordinary output validation without selector",
-    "aws_evidence": "benchmarks/2026-11-17-accepted-c7a201/README.md",
-    "aws_limitations": "Exact SDK measured native C7a32/96 all8+merge54. Primary11.097968/12.514959ms; retained Aeglos12.143331/8.311102ms. Certificate OFF control only primary. cpu.max unavailable in unit cgroup; ancestor quota not independently recorded. No ARM/pressure qualification.",
-    "environment": {
-      "ZOPRO_BENCH_CERTIFIED_OUTPUT": "1",
-      "ZOPRO_BENCH_FUSED_PREPARATION": "1",
-      "ZOPRO_CPU_INDEXED_TILE_BUNDLES": "1"
-    },
-    "evidence": "benchmarks/2026-11-17-certified-all196/README.md",
-    "id": "certified-proof194",
-    "sdk_sha256": "bcc8e0775bb5bc6c09ad86b1987ca45eebac62617340911266c84aa601fa05b1",
-    "source_manifest": "benchmarks/2026-11-17-certified-all196/artifacts/production-source-manifest.json"
-  },
-  "production_baseline": {
     "activation": "Native arithmetic follows existing ISA/ifma8 guards; existing optimized preparation/output opt-ins unchanged",
     "adoption_commit": "b0a41f30de4715019b06447f2991db63d48517c1",
     "aws_evidence": null,
@@ -784,6 +773,23 @@
     "id": "scaled-prefix-current227",
     "sdk_sha256": "b70a9472fa64ac6b6b41b227ca64ddfcf61c6443879c9187331eae6d5e22c153",
     "source_manifest": "benchmarks/2026-11-17-scaled-prefix-adoption229/artifacts/production-source-manifest.json"
+  },
+  "production_baseline": {
+    "activation": "Existing native ISA/ifma8/resource-schedule guards; build.rs selects paired reducer automatically, existing optimized preparation/output opt-ins unchanged",
+    "adoption_commit": "b164b9776ba67cd2fdb56ba80ebee59b3fd329ee",
+    "aws_evidence": null,
+    "aws_limitations": "Current paired233/d523 implementation has no fresh C7a measurement; older201 evidence remains historical only",
+    "diagnostic_evidence": "benchmarks/2026-11-18-paired-weighted-profile235/README.md",
+    "environment": {
+      "ZOPRO_BENCH_CERTIFIED_OUTPUT": "1",
+      "ZOPRO_BENCH_FUSED_PREPARATION": "1",
+      "ZOPRO_CPU_INDEXED_TILE_BUNDLES": "1"
+    },
+    "evidence": "benchmarks/2026-11-18-paired-weighted-all234/README.md",
+    "id": "paired-weighted233",
+    "sdk_provenance": "Qualified233 forced-cfg SDK; implementation files exact, selector-only build.rs integration separately validated236; normal-selection SDK not newly timed/relinked",
+    "sdk_sha256": "d523f49e8548620c4373a1ab4be2712d705709fdd7a590c5ed73e9aff97424e3",
+    "source_manifest": "benchmarks/2026-11-18-paired-weighted-adoption236/artifacts/production-source-manifest.json"
   },
   "schema_version": 1,
   "scope": "Accepted baseline and selected pending or closed CPU candidates; not an exhaustive history"
