@@ -1,0 +1,121 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -52,6 +52,11 @@
+     debug_assert_eq!(b[6], 0);
+     let q1 = a[3] as u128 + u128::from(a[2] >> 63);
+     let q2 = (b[4] as u128 | ((b[5] as u128) << 64)) + u128::from(b[3] >> 63);
++    signed_residuals(s, q1, q2)
++}
++
++#[inline(always)]
++fn signed_residuals(s: [u64; 4], q1: u128, q2: u128) -> [u64; 4] {
+     let low = s[0] as u128 | ((s[1] as u128) << 64);
+     let k1 = low
+         .wrapping_sub(q1.wrapping_mul(V1X))
+@@ -59,6 +64,50 @@
+     let k2 = q1.wrapping_mul(V1Y_ABS).wrapping_sub(q2.wrapping_mul(V2Y));
+     let (a, b) = (sign_magnitude(k1), sign_magnitude(k2));
+     [a as u64, (a >> 64) as u64, b as u64, (b >> 64) as u64]
++}
++// Compute the rounded quotient by B^cut for B = 2^64. Accumulate whole
++// limbs of the product in units of B^(cut-1). In the omitted diagonals
++// each partial product contributes strictly less than one such unit;
++// each truncated partial product on the boundary also loses less than
++// one. If their sum could cross the rounding threshold, use the exact
++// product. Both quotients here fit in 128 bits on canonical scalars.
++#[inline(always)]
++fn high_quotient<const N: usize, const M: usize, const K: usize, const CUT: usize>(
++    a: [u64; N], b: [u64; M],
++) -> u128 {
++    let mut upper = [0u64; 4];
++    for i in 0..N {
++        let mut carry = 0u128;
++        let first = (CUT - 2).saturating_sub(i);
++        for j in first..M {
++            let term = a[i] as u128 * b[j] as u128;
++            if i + j == CUT - 2 {
++                carry = term >> 64;
++            } else {
++                let index = i + j - (CUT - 1);
++                let sum = term + upper[index] as u128 + carry;
++                upper[index] = sum as u64;
++                carry = sum >> 64;
++            }
++        }
++        upper[i + M - (CUT - 1)] = carry as u64;
++    }
++    let half = 1u64 << 63;
++    if (half - (N * M) as u64..half).contains(&upper[0]) {
++        let exact = product::<N, M, K>(a, b);
++        let high = exact.get(CUT + 1).copied().unwrap_or(0);
++        return ((exact[CUT] as u128) | (high as u128) << 64)
++            .wrapping_add((exact[CUT-1] >> 63) as u128);
++    }
++    ((upper[1] as u128) | (upper[2] as u128) << 64)
++        .wrapping_add((upper[0] >> 63) as u128)
++}
++
++#[inline(never)]
++fn split_high(s: [u64; 4]) -> [u64; 4] {
++    let q1 = high_quotient::<2,3,5,3>([s[2],s[3]], C1);
++    let q2 = high_quotient::<3,4,7,4>([s[1],s[2],s[3]], C2);
++    signed_residuals(s,q1,q2)
+ }
+ use zopro_bn254::{Fq, G2Affine, G2Config, G2Projective};
+ const BETA: Fq = Fq::from_decimal(
+@@ -201,7 +250,9 @@
+     serial: bool,
+ ) -> G2Projective {
+     assert_eq!(bases.len(), short.len());
+-    if serial {
++    if serial && std::env::var("ZOPRO_BENCH_PHI_HIGH").as_deref() == Ok("1") {
++        for word in short.iter_mut() { *word = split_high(*word); }
++    } else if serial {
+         for word in short.iter_mut() {
+             *word = phi_split(*word);
+         }
+@@ -263,6 +314,36 @@
+ mod tests {
+     use super::*;
+     #[test]
++    fn trimmed_quotients_match_full_products() {
++        let mut state = 9u64;
++        let mut next = || {
++            state ^= state << 13;
++            state ^= state >> 7;
++            state ^= state << 17;
++            state
++        };
++        for _ in 0..300_000 {
++            let a = [next(), next(), next()];
++            let b = [next(), next(), next(), next()];
++            let p = product::<3,4,7>(a,b);
++            let want = (p[4] as u128 | (p[5] as u128) << 64)
++                .wrapping_add((p[3] >> 63) as u128);
++            assert_eq!(high_quotient::<3,4,7,4>(a,b), want);
++            let p = product::<2,3,5>([a[0],a[1]],[b[0],b[1],b[2]]);
++            let want = (p[3] as u128 | (p[4] as u128) << 64)
++                .wrapping_add((p[2] >> 63) as u128);
++            assert_eq!(high_quotient::<2,3,5,3>([a[0],a[1]],[b[0],b[1],b[2]]), want);
++        }
++        // With these inputs the omitted carry from the two low columns
++        // can cross half. Exercise both sides of the exact fallback.
++        for x in (1u64 << 63)-32..=(1u64 << 63)+32 {
++            let a = [u64::MAX, 1];
++            let b = [u64::MAX, x, 0];
++            let p = product::<2,3,5>(a,b);
++            assert_eq!(high_quotient::<2,3,5,3>(a,b), p[3] as u128 + (p[2] >> 63) as u128);
++        }
++    }
++    #[test]
+     fn decomposition_and_endomorphism_match_independent_field_oracles() {
+         let lambda = Fr::from_decimal("4407920970296243842393367215006156084916469457145843978461");
+         let mut values = vec![
+@@ -284,6 +365,7 @@
+         }
+         for s in values {
+             let p = phi_split(s.to_canonical());
++            assert_eq!(split_high(s.to_canonical()), p);
+             let component = |i: usize| {
+                 let hi = p[i + 1] & 0x7fffffffffffffff;
+                 assert!(hi < 1u64 << 62);
