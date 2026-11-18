@@ -1,0 +1,8 @@
+#!/usr/bin/python3
+import json,os,sys
+from pathlib import Path
+root=Path(__file__).resolve().parent.parent
+mask=json.loads((root/'output/topology.json').read_bytes())['masks'][sys.argv[1]]
+os.sched_setaffinity(0,mask)
+assert sorted(os.sched_getaffinity(0))==mask
+os.execv(sys.argv[2],sys.argv[2:])

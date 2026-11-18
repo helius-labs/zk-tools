@@ -1,0 +1,28 @@
+#!/usr/bin/python3
+import json,os
+from pathlib import Path
+def parse(s):
+    out=set()
+    for span in s.strip().split(','):
+        ends=list(map(int,span.split('-')))
+        out.update(range(ends[0],ends[-1]+1))
+    return out
+allowed=set(os.sched_getaffinity(0));assert len(allowed)==96
+groups=set()
+for cpu in sorted(allowed):
+    caches=Path(f'/sys/devices/system/cpu/cpu{cpu}/cache')
+    levels=[p for p in caches.glob('index*') if (p/'level').read_text().strip()=='3' and (p/'type').read_text().strip()=='Unified']
+    assert len(levels)==1
+    g=parse((levels[0]/'shared_cpu_list').read_text())
+    assert cpu in g and g<=allowed and len(g)==8
+    groups.add(tuple(sorted(g)))
+groups=sorted(groups)
+assert len(groups)==12 and {v for g in groups for v in g}==allowed
+masks={}
+for side in (0,1):
+    masks[f'compact{side}']=sorted(x for g in groups[side*6:side*6+6] for x in g)
+    masks[f'spread{side}']=sorted(x for g in groups for x in g[side*4:side*4+4])
+for policy in ('compact','spread'):
+    x,y=[set(masks[policy+str(s)]) for s in (0,1)]
+    assert len(x)==len(y)==48 and x|y==allowed and not x&y
+Path('output/topology.json').write_text(json.dumps(dict(groups=groups,masks=masks),indent=2)+'\n')
