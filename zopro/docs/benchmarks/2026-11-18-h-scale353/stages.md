@@ -32,4 +32,15 @@ CPU-clock sampling covers userspace instructions across all threads during the i
 | merge-24x1 | 96 | throughfft | 1897.9 | 985.6 | 83.9 |
 | merge-24x1 | 96 | afterfft | 1561.7 | 365.6 | 32.7 |
 
+## CPU samples inside the solver interpreter
+
+CPU time here includes workers that looked for work while the interpreter ran. Epoch pinning and epoch advancement were the two most frequently sampled symbols in all four cells.
+
+| Shape | Cores | Sampled user CPU-ms/proof | In Crossbeam | In Rayon worker coordination |
+|---|---:|---:|---:|---:|
+| 16x2 | 64 | 337.2 | 227.2 | 12.3 |
+| 16x2 | 96 | 683.7 | 547.8 | 25.0 |
+| merge-24x1 | 64 | 423.3 | 273.5 | 15.6 |
+| merge-24x1 | 96 | 911.5 | 730.4 | 31.0 |
+
 [Timing samples](artifacts/stages.json.gz) · [CPU samples and symbols](artifacts/stage-samples.json) · [Protocol](artifacts/stage-protocol.md) · [Verification](artifacts/stage-verification.json)
