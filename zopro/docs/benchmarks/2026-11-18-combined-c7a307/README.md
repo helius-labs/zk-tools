@@ -1,5 +1,9 @@
 # C7a test of combined grouping, G2 windows, FFT input and H windows
 
+On 96-core 1×2 the combined G2 changes took 9.713 ms versus 12.268 ms disabled, winning all seven paired blocks (20.88% median paired reduction). The same-host Aeglos result was 7.891 ms. Peak process RSS was 63 MiB for the combination, 113 MiB disabled and 473 MiB for Aeglos. The inline grouping change on its own repeated its 96-core result from the previous host, improving 12.82% here and 13.11% there. The fastest Zopro 1×2 setting here was 9.390 ms at 64 cores. No Zopro process-mean median reached 9 ms.
+
+The exact direct-input FFT executable at 48 cores met the absolute 24×2 target on two independent C7a hosts. It measured 52.225 ms with four of seven blocks at or below 52.8 ms on the first host, then 51.884 ms with five of seven here. On this host that is 10.18× the supplied M5 CPU time and 3.39× Metal. Its gain relative to its disabled control missed the 2% screen on both hosts. The remaining seven shapes are above their CPU targets. [First host](../2026-11-18-fft-c7a303/README.md)
+
 Seven randomized fresh processes per configuration, three primes per process. Latency is the median of process means for sequential warm verified SDK requests. Every host export was re-verified locally against the pinned image and public inputs. Peak RSS includes setup. Aeglos used 96 cores for all shapes. The selected combined setting uses scalar diversity and four point ranges on the two smaller shapes, or direct FFT input and 13-bit dense H windows on the others. Each optimization retains its own eligibility rules.
 
 | Shape | Zopro cores | Accepted ms | Combined ms | Aeglos ms | Peak MiB accepted / combined / Aeglos | M5 CPU / Metal speedup combined | Target ms | Blocks at target |
