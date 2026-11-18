@@ -1,0 +1,73 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2203,13 +2203,16 @@
+         #[cfg(not(zopro_bounded_gather))]
+         use rayon::prelude::*;
+         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
+-        let prepare = || -> Result<_, String> {
++        let solve = || -> Result<_,String> {
+             let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
+             if let Some(scope) = reclaim { scope.release_unused(&mut w); }
+             drop(c);
+             // The correction consumes Montgomery public values before the one
+             // in-place conversion. All later accesses to w use canonical words.
+             let correction=folded.public_term(&w[..plan.n_public]);
++            Ok((w, a, b, correction))
++        };
++        let gather = |mut w: Vec<Fr>| {
+             let (sa_vec,sb_vec):(Vec<_>,Vec<_>)=if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
+                 fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)
+             } else {
+@@ -2219,19 +2222,40 @@
+                 #[cfg(zopro_bounded_gather)]
+                 {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
+             };
+-            let product = queries.product_values(&self.plan, a, b);
+-            Ok((w, sa_vec, sb_vec, product, correction))
++            (w,sa_vec,sb_vec)
+         };
+-        let (w, sa_vec, mut sb_vec, mut product, correction) =
+-            if let Some(pool) = self
+-                .frontend_pool
+-                .as_ref()
+-                .filter(|p| p.current_num_threads() < rayon::current_num_threads())
+-            {
+-                pool.install(prepare)?
+-            } else {
+-                prepare()?
+-            };
++        let prepare = || -> Result<_, String> {
++            let (w,a,b,correction)=solve()?;
++            let (w,sa,sb)=gather(w);
++            let prod=queries.product_values(&self.plan,a,b);
++            Ok((w,sa,sb,prod,correction))
++        };
++        let (w,sa_vec,mut sb_vec,mut product,correction)=if let Some(pool)=self.frontend_pool.as_ref()
++            .filter(|p| p.current_num_threads()<rayon::current_num_threads()) {
++            let mode=std::env::var("ZOPRO_BENCH_GATHER_PRODUCT").unwrap_or_default();
++            // The optional phase overlap may retain both gather outputs across
++            // FFT temporaries. Keep this conservative charge through the join.
++            #[cfg(zopro_resource_schedule)]
++            let scratch=if matches!(mode.as_str(),"together"|"main-gather"|"main-fft") {
++                let growth=plan.a_indices.len().checked_add(plan.b_indices.len())
++                    .and_then(|n|n.checked_mul(core::mem::size_of::<[u64;4]>()))
++                    .and_then(|bytes|bytes.checked_add(4096));
++                crate::preparation::Reservation::analysis(growth)
++            } else {None};
++            #[cfg(not(zopro_resource_schedule))]
++            let scratch:Option<()>=None;
++            if let Some(_held)=scratch {
++                let (w,a,b,correction)=pool.install(solve)?;
++                let left=||gather(w);
++                let right=||queries.product_values(&self.plan,a,b);
++                let ((w,sa,sb),prod)=match mode.as_str(){
++                    "main-gather"=>rayon::join(left,||pool.install(right)),
++                    "main-fft"=>rayon::join(||pool.install(left),right),
++                    _=>pool.install(||rayon::join(left,right)),
++                };
++                (w,sa,sb,prod,correction)
++            }else{pool.install(prepare)?}
++        }else{prepare()?};
+         // SAFETY: both branches converted every Fr in place to canonical limbs.
+         // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
+         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
