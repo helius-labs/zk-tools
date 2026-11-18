@@ -19,14 +19,14 @@ The core prover accounted for **94.2% of SDK time on 1×2** and **98.3% on merge
 
 | Shape | SDK witness call, ms | Before core, ms | Core prover, ms | Core share | After core, ms | Solver within core, ms | FFT within core, ms | G2 raw symbol, ms |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1x2 | 0.078 | 0.084 | 8.357 | 94.2% | 0.410 | 52 | 0.487 | 5.935 |
-| 2x2 | 0.142 | 0.151 | 11.198 | 94.9% | 0.454 | 156 | 1.143 | 4.021 |
-| 4x2 | 0.206 | 0.219 | 16.212 | 95.7% | 0.518 | 211 | 2.328 | — |
-| 8x2 | 0.332 | 0.348 | 25.763 | 96.7% | 0.545 | 356 | 4.582 | — |
-| 12x2 | 0.489 | 0.512 | 37.845 | 97.3% | 0.509 | 518 | 9.778 | — |
-| 16x2 | 0.578 | 0.601 | 45.104 | 97.6% | 0.516 | 592 | 10.251 | — |
-| 24x2 | 0.808 | 0.838 | 74.785 | 98.2% | 0.507 | 966 | 23.669 | — |
-| merge-24x1 | 0.684 | 0.710 | 73.552 | 98.3% | 0.549 | 864 | 23.919 | — |
+| 1x2 | 0.078 | 0.084 | 8.357 | 94.2% | 0.410 | 1.005 | 0.487 | 5.935 |
+| 2x2 | 0.142 | 0.151 | 11.198 | 94.9% | 0.454 | 1.568 | 1.143 | 4.021 |
+| 4x2 | 0.206 | 0.219 | 16.212 | 95.7% | 0.518 | 1.982 | 2.328 | — |
+| 8x2 | 0.332 | 0.348 | 25.763 | 96.7% | 0.545 | 3.007 | 4.582 | — |
+| 12x2 | 0.489 | 0.512 | 37.845 | 97.3% | 0.509 | 3.585 | 9.778 | — |
+| 16x2 | 0.578 | 0.601 | 45.104 | 97.6% | 0.516 | 4.754 | 10.251 | — |
+| 24x2 | 0.808 | 0.838 | 74.785 | 98.2% | 0.507 | 7.111 | 23.669 | — |
+| merge-24x1 | 0.684 | 0.710 | 73.552 | 98.3% | 0.549 | 8.099 | 23.919 | — |
 
 Before core includes request parsing, constructing the ordered witness, and encoding. Core prover covers the call to solve_rerandomized. After core includes decoding, verifying and serializing the resulting proof. The solver and FFT columns are intervals measured inside the core call. The G2 column identifies the raw_exclusive implementation when present; a dash indicates another route. Columns use medians of three process-level means. Individual nested stages cannot be added to the inclusive core time. The calibration limit was ±5% for each shape.
 
