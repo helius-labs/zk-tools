@@ -1,0 +1,118 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1134,8 +1134,15 @@
+                 }
+             }
+         }
++        let team = None;
++        #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++        let team = if std::env::var("ZOPRO_BENCH_INTERPRETER_TEAM").as_deref() == Ok("1") {
++            self.frontend_pool.as_deref()
++        } else {
++            team
++        };
+         let solver::Solution { mut w, a, b, c } =
+-            plan.solve_in_with_slots(&frs(witness), self.domain, slots, materialize_c)?;
++            plan.solve_with_team(&frs(witness), self.domain, slots, materialize_c, team)?;
+         if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
+         let started = trace("solve", started);
+         use rayon::prelude::*;
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -1209,6 +1209,10 @@
+     }
+ 
+     pub(crate) fn solve_in_with_slots(&self, witness: &[Fr], domain: usize, slots: &[usize], materialize_c: bool) -> Result<Solution, String> {
++        self.solve_with_team(witness, domain, slots, materialize_c, None)
++    }
++
++    pub(crate) fn solve_with_team(&self, witness: &[Fr], domain: usize, slots: &[usize], materialize_c: bool, team: Option<&rayon::ThreadPool>) -> Result<Solution, String> {
+         if witness.len() != self.n_inputs - 1 {
+             return Err("invalid witness size".into());
+         }
+@@ -1239,41 +1243,51 @@
+             b: b.as_mut_ptr(),
+             c: if materialize_c { c.as_mut_ptr() } else { core::ptr::null_mut() },
+         };
+-        let epochs = solve_epochs();
+-        if epochs == 0 || self.ops.len() < 4096 {
+-            for op in &self.ops {
+-                // SAFETY: one thread, in program order.
+-                unsafe { self.run(op, view)? };
+-            }
++        let execute = || -> Result<(), String> {
++            static ROUTE: std::sync::Once = std::sync::Once::new();
++            ROUTE.call_once(|| println!("SOLVER_TEAM {}", rayon::current_num_threads()));
++            let epochs = solve_epochs();
++            if epochs == 0 || self.ops.len() < 4096 {
++                for op in &self.ops {
++                    // SAFETY: one thread, in program order.
++                    unsafe { self.run(op, view)? };
++                }
++            } else {
++                use rayon::prelude::*;
++                let schedule = self.schedule.get_or_init(|| self.build_schedule(epochs));
++                if schedule.epochs.is_empty() {
++                    for op in &self.ops {
++                        // SAFETY: original program order with initialized inputs.
++                        unsafe { self.run(op, view)? };
++                    }
++                } else if schedule.refined.is_empty() {
++                    for epoch in &schedule.epochs {
++                        epoch.par_iter().try_for_each(|task| {
++                            #[cfg(zopro_resource_schedule)]
++                            if self.poseidon_task(task) {
++                                // SAFETY: only prepared, encoding-eligible leaves carry tags.
++                                return unsafe { self.run_poseidon_task(task, view) };
++                            }
++                            task.iter().try_for_each(|&op| {
++                                // SAFETY: untagged leaves retain their original raw indices.
++                                unsafe { self.run(&self.ops[op as usize], view) }
++                            })
++                        })?;
++                    }
++                } else {
++                    // SAFETY: both levels preserve the schedule's dependency
++                    // ordering and disjoint writes; all jobs join before return.
++                    unsafe {
++                        self.execute_schedule(schedule, view)?;
++                    }
++                }
++            }
++            Ok(())
++        };
++        if let Some(pool) = team {
++            pool.install(execute)?;
+         } else {
+-            use rayon::prelude::*;
+-            let schedule = self.schedule.get_or_init(|| self.build_schedule(epochs));
+-            if schedule.epochs.is_empty() {
+-                for op in &self.ops {
+-                    // SAFETY: original program order with initialized inputs.
+-                    unsafe { self.run(op, view)? };
+-                }
+-            } else if schedule.refined.is_empty() {
+-                for epoch in &schedule.epochs {
+-                    epoch.par_iter().try_for_each(|task| {
+-                        #[cfg(zopro_resource_schedule)]
+-                        if self.poseidon_task(task) {
+-                            // SAFETY: only prepared, encoding-eligible leaves carry tags.
+-                            return unsafe { self.run_poseidon_task(task, view) };
+-                        }
+-                        task.iter().try_for_each(|&op| {
+-                            // SAFETY: untagged leaves retain their original raw indices.
+-                            unsafe { self.run(&self.ops[op as usize], view) }
+-                        })
+-                    })?;
+-                }
+-            } else {
+-                // SAFETY: both levels preserve the schedule's dependency
+-                // ordering and disjoint writes; all jobs join before return.
+-                unsafe {
+-                    self.execute_schedule(schedule, view)?;
+-                }
+-            }
++            execute()?;
+         }
+         if uninitialized {
+             // SAFETY: the cached data-flow check establishes that all reads
