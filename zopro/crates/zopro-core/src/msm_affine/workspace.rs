@@ -190,7 +190,7 @@ where
     Some(p)
 }
 /// Extra positive growth over the ordinary raw H query at this worker count.
-pub(super) fn dense_h_extra<C: CurveConfig>(n: usize) -> Option<usize>
+pub(super) fn dense_h_extra<C: CurveConfig>(n: usize, ranges: usize) -> Option<usize>
 where
     C::Base: BatchInverse,
 {
@@ -201,7 +201,7 @@ where
         let profile = shape::<C>(
             1usize.checked_shl(bits as u32)?,
             1,
-            1,
+            ranges,
             batch_size(bits + 1).max(32),
         )?;
         held = add(held, profile.held)?;

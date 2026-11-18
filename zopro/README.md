@@ -149,6 +149,11 @@ least 262,144 points. The prover checks the additional scratch against its
 optional memory allowance and falls back to ordinary windows under pressure.
 The buckets live for one proof. This setting is opt-in.
 
+With that layout enabled, `ZOPRO_CPU_H_WINDOW_RANGES=2` splits each H window
+into two disjoint point ranges. Their buckets are combined before weighting.
+The prover accounts for both ranges when admitting the query. If this exceeds
+the optional memory allowance it tries the single-range layout.
+
 Final windows with at most 256 buckets use a parallel affine tree instead
 of the scalar collision fallback; `ZOPRO_CPU_TOP_TREE=0` disables it.
 Large IFMA MSMs use width-13 bucket tables to reduce cache pressure;

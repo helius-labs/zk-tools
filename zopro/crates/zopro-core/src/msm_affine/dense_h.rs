@@ -17,12 +17,20 @@ where
     {
         return None;
     }
-    let growth = super::workspace::dense_h_extra::<C>(bases.len());
+    if rayon::current_num_threads() > 1
+        && std::env::var("ZOPRO_CPU_H_WINDOW_RANGES").as_deref() == Ok("2")
+    {
+        let growth = super::workspace::dense_h_extra::<C>(bases.len(), 2);
+        if let Some(_reservation) = crate::preparation::Reservation::analysis(growth) {
+            return Some(sum::<C, true>(bases, words));
+        }
+    }
+    let growth = super::workspace::dense_h_extra::<C>(bases.len(), 1);
     let _reservation = crate::preparation::Reservation::analysis(growth)?;
-    Some(sum(bases, words))
+    Some(sum::<C, false>(bases, words))
 }
 
-fn sum<C: CurveConfig>(bases: &[Affine<C>], words: &[[u64; 4]]) -> Projective<C>
+fn sum<C: CurveConfig, const SPLIT: bool>(bases: &[Affine<C>], words: &[[u64; 4]]) -> Projective<C>
 where
     C::Base: BatchInverse,
 {
@@ -43,24 +51,38 @@ where
             let shift = offset % 64;
             let mask = (1u64 << bits) - 1;
             let batch = batch_size(bits + 1).max(32);
-            let buckets = if shift + bits <= 64 {
-                fill_window_impl::<C, false, true>(
-                    bases,
-                    words.iter().map(|v| ((v[lane] >> shift) & mask) as i16),
-                    bits + 1,
-                    batch,
-                )
-            } else {
-                fill_window_impl::<C, false, true>(
-                    bases,
-                    words.iter().map(|v| {
-                        (((v[lane] >> shift) | (v[lane + 1] << (64 - shift))) & mask) as i16
-                    }),
-                    bits + 1,
-                    batch,
-                )
+            let fill = |bases: &[Affine<C>], words: &[[u64; 4]]| {
+                let buckets = if shift + bits <= 64 {
+                    fill_window_impl::<C, false, true>(
+                        bases,
+                        words.iter().map(|v| ((v[lane] >> shift) & mask) as i16),
+                        bits + 1,
+                        batch,
+                    )
+                } else {
+                    fill_window_impl::<C, false, true>(
+                        bases,
+                        words.iter().map(|v| {
+                            (((v[lane] >> shift) | (v[lane + 1] << (64 - shift))) & mask) as i16
+                        }),
+                        bits + 1,
+                        batch,
+                    )
+                };
+                affine_buckets(buckets)
             };
-            crate::msm::weighted_affine(&affine_buckets(buckets))
+            let buckets = if SPLIT {
+                let mid = bases.len().div_ceil(2);
+                let (mut left, right) = rayon::join(
+                    || fill(&bases[..mid], &words[..mid]),
+                    || fill(&bases[mid..], &words[mid..]),
+                );
+                merge_buckets(&mut left, &right);
+                left
+            } else {
+                fill(bases, words)
+            };
+            crate::msm::weighted_affine(&buckets)
         })
         .collect();
     let mut result = *sums.last().unwrap();
@@ -98,11 +120,8 @@ mod tests {
             }
             words.push(value.to_canonical());
         }
-        {
-            assert_eq!(
-                sum::<G1Config>(&bases, &words).to_affine(),
-                (G1Affine::GENERATOR * expected).to_affine()
-            );
-        }
+        let oracle = (G1Affine::GENERATOR * expected).to_affine();
+        assert_eq!(sum::<G1Config, false>(&bases, &words).to_affine(), oracle);
+        assert_eq!(sum::<G1Config, true>(&bases, &words).to_affine(), oracle);
     }
 }
