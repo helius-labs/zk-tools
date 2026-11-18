@@ -12,3 +12,5 @@ Both timing and peak RSS include complete SDK proofs. The two small-shape config
 On 1×2 at 96 physical cores Aeglos measured 8.188 ms and 472 MiB peak. Zopro early measured 8.176 ms and 51 MiB. Early was +0.38% versus Aeglos in paired blocks, with 3/7 lower process means.
 
 [Protocol](artifacts/aws-protocol.md) · [Process samples](artifacts/aws.json.gz)
+
+[Independent 96-core confirmation](recheck.md)

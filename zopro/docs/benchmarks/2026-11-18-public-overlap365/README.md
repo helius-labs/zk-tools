@@ -13,3 +13,5 @@ Each request computes a fresh public-input pairing on an existing worker. Early 
 [Source](artifacts/source.patch.gz) · [Process timings](artifacts/local.json.gz) · [Protocol](artifacts/protocol.md)
 
 [Matched C7a results](aws.md)
+
+[Independent 96-core confirmation](recheck.md)
