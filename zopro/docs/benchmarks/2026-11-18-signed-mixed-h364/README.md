@@ -16,3 +16,5 @@ Signed-18 covers the 254-bit scalar and one zero sign bit with three 15-bit and 
 Both 16×2 zero-allowance processes returned verified proofs without entering the signed H kernel. [Protocol](artifacts/protocol.md) · [Source](artifacts/source.patch.gz) · [Measurements](artifacts/local.json.gz)
 
 [Matched C7a results](aws.md)
+
+[Fresh paired confirmation](confirmation.md)
