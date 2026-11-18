@@ -129,6 +129,14 @@ and the product FFT when it is smaller than the main Rayon pool. The same
 restores the main pool. Single-proof latency and concurrent throughput can
 favor different pool sizes.
 
+With native IFMA G2 Horner buckets and resource scheduling,
+`ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
+G2 queries of 1,024 through 65,535 points when the worker pool has at least
+32 threads and the extra scratch fits the optional memory allowance.
+The default is two ranges and 12-bit windows on this path. On a C7a 1×2
+proof, four ranges improved latency at 96 physical cores and increased it
+at 64 cores. The scratch is released after the query.
+
 On native IFMA builds with resource scheduling, `ZOPRO_CPU_DENSE_H_WINDOWS=19`
 uses mixed 13- and 14-bit windows for unsigned Montgomery H queries with at
 least 262,144 points. The prover checks the additional scratch against its

@@ -239,6 +239,11 @@ mod tests {
             .zip(&coefficients)
             .fold(Fr::ZERO, |a, (s, c)| a + *s * *c);
         let mut words: Vec<_> = scalars.iter().map(|s| s.to_canonical()).collect();
+        for (bits, parts) in [(12, 2), (11, 4)] {
+            let mut input = words.clone();
+            let check = super::super::g2_phi::hb_raw(&bases, &mut input, bits, parts);
+            assert_eq!(check.to_affine(), expected.to_affine());
+        }
         let actual = super::super::g2_phi::raw_exclusive(&bases, &mut words);
         assert_eq!(actual.to_affine(), expected.to_affine());
     }

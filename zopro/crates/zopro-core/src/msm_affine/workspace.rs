@@ -231,19 +231,36 @@ where
         )?,
     )?;
     p.leaf = p.leaf.max(t.leaf);
-    for bits in [12usize] {
-        let windows=127usize.div_ceil(bits);
-        let top_bits=126-(windows-1)*bits;
-        let mut q=shape::<C>(1<<(bits-1),windows,2,batch_size(bits).max(32))?;
-        let top=top::<C>(n.div_ceil(2),top_bits+1)?;
-        // Two sign classes and split-off negative sums. High component remains
-        // live while low is reduced; retain a conservative original scalar copy.
-        let extra=mul(vector::<Affine<C>>(1<<top_bits,false)?,3)?;
-        q.held=add(q.held,add(mul(add(top.held,extra)?,2)?,vector::<[u64;4]>(n,false)?)?)?;
-        q.leaf=q.leaf.max(top.leaf);p=p.maximum(q);
-    }
-    Some(p)
+    Some(p.maximum(hb_windows::<C>(n, 12, 2)?))
 }
+
+fn hb_windows<C: CurveConfig>(n: usize, bits: usize, parts: usize) -> Option<Profile>
+where
+    C::Base: BatchInverse,
+{
+    let windows = 127usize.div_ceil(bits);
+    let top_bits = 126 - (windows - 1) * bits;
+    let mut profile = shape::<C>(1 << (bits - 1), windows, parts, batch_size(bits).max(32))?;
+    let top = top::<C>(n.div_ceil(parts), top_bits + 1)?;
+    let sign_buckets = mul(vector::<Affine<C>>(1 << top_bits, false)?, 3)?;
+    let tops = mul(add(top.held, sign_buckets)?, parts)?;
+    profile.held = add(profile.held, add(tops, vector::<[u64; 4]>(n, false)?)?)?;
+    profile.leaf = profile.leaf.max(top.leaf);
+    Some(profile)
+}
+
+// The ordinary forecast already covers 12-bit windows split into two parts.
+// Reserve any additional parent state or per-worker leaf scratch for this call.
+#[cfg(zopro_g2_horner_buckets)]
+pub(super) fn four_range_growth(n: usize, workers: usize) -> Option<usize> {
+    let original = hb_windows::<G2Config>(n, 12, 2)?;
+    let proposed = hb_windows::<G2Config>(n, 11, 4)?;
+    add(
+        proposed.held.saturating_sub(original.held),
+        mul(proposed.leaf.saturating_sub(original.leaf), workers)?,
+    )
+}
+
 fn raw<C: CurveConfig>(n: usize, g2_query: bool) -> Option<Profile>
 where
     C::Base: BatchInverse,

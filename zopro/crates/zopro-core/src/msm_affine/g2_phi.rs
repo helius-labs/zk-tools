@@ -189,7 +189,7 @@ fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> V
     state.flush_queue();
     affine_buckets(state)
 }
-fn hb_raw(bases: &[G2Affine], short: &mut [[u64; 4]], bits: usize, parts: usize) -> G2Projective {
+pub(super) fn hb_raw(bases: &[G2Affine], short: &mut [[u64; 4]], bits: usize, parts: usize) -> G2Projective {
     assert_eq!(bases.len(), short.len());
     #[cfg(zopro_phi_grain)]
     short.par_iter_mut().with_min_len(128).for_each(|s| *s = phi_split(*s));
@@ -229,6 +229,15 @@ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Pro
     assert_eq!(bases.len(), words.len());
     if !(MIN_QUERY..MAX_QUERY).contains(&bases.len()) {
         return super::g2_horner::raw(bases, words);
+    }
+    #[cfg(zopro_resource_schedule)]
+    if rayon::current_num_threads() >= 32
+        && std::env::var("ZOPRO_CPU_G2_RANGES").as_deref() == Ok("4")
+    {
+        let growth = super::workspace::four_range_growth(bases.len(), rayon::current_num_threads());
+        if let Some(_reservation) = crate::preparation::Reservation::analysis(growth) {
+            return hb_raw(bases, words, 11, 4);
+        }
     }
     hb_raw(bases, words, 12, 2)
 }
