@@ -1,0 +1,135 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -211,7 +211,7 @@
+     let words =
+         unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
+     let result = match dense_h_bits(bases.len()) {
+-        Some(bits) => msm_unsigned_raw(bases, words, bits, 1),
++        Some(bits) => msm_unsigned_with_top(bases, words, bits, 1, true),
+         None => msm_raw(bases, words),
+     };
+     let inverse_r = Fr::from_montgomery([1, 0, 0, 0]);
+@@ -365,6 +365,15 @@
+ where
+     C::Base: BatchInverse,
+ {
++    msm_unsigned_with_top(bases, scalars, bits, parts, false)
++}
++
++fn msm_unsigned_with_top<C: CurveConfig>(
++    bases: &[Affine<C>], scalars: &[[u64; 4]], bits: usize, parts: usize, _dense_h: bool,
++) -> Projective<C>
++where
++    C::Base: BatchInverse,
++{
+     assert_eq!(bases.len(), scalars.len());
+     assert!((3..=15).contains(&bits));
+     let n = bases.len();
+@@ -380,6 +389,19 @@
+     let sums: Vec<_> = (0..windows)
+         .into_par_iter()
+         .map(|w| {
++            #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++            if _dense_h && w + 1 == windows {
++                let top_bits = Fr::MODULUS_BITS as usize - w * bits;
++                let groups = match std::env::var("ZOPRO_BENCH_H_TOP_GROUPS").as_deref() {
++                    Ok("4") => 4, Ok("8") => 8, _ => 1,
++                };
++                if groups > 1 && top_bits <= 8 && n / groups >= 1024 && crate::simd::cpu_option("ZOPRO_CPU_TOP_TREE") {
++                    let bytes = workspace::top_partition_growth::<C>(n, top_bits, groups);
++                    if let Some(_reservation) = crate::preparation::Reservation::analysis(bytes) {
++                        return partitioned_top(bases, scalars, w, bits, groups);
++                    }
++                }
++            }
+             if let Some(sum) = top_window::<C, false>(bases, scalars, w, bits) {
+                 return sum;
+             }
+@@ -697,6 +719,13 @@
+     if bits > 8 || !crate::simd::cpu_option("ZOPRO_CPU_TOP_TREE") {
+         return None;
+     }
++    Some(indexed_top_sum::<C, SIGNED>(bases, scalars, w, width, bits))
++}
++
++fn indexed_top_sum<C: CurveConfig, const SIGNED: bool>(
++    bases: &[Affine<C>], scalars: &[[u64; 4]], w: usize, width: usize, bits: usize,
++) -> Projective<C>
++where C::Base: BatchInverse {
+     let buckets = 1usize << bits;
+     let mut counts = vec![0usize; buckets];
+     for (base, s) in bases.iter().zip(scalars) {
+@@ -716,7 +745,7 @@
+         starts.push(starts.last().unwrap() + count);
+     }
+     if *starts.last().unwrap() == 0 {
+-        return Some(Projective::IDENTITY);
++        return Projective::IDENTITY;
+     }
+     let mut positions = starts[..buckets].to_vec();
+     let mut order = vec![0u32; *starts.last().unwrap()];
+@@ -733,7 +762,20 @@
+         }
+     }
+     let buckets = crate::msm::reduce_indexed_buckets(bases, &order, &starts);
+-    Some(crate::msm::weighted_affine(&buckets))
++    crate::msm::weighted_affine(&buckets)
++}
++
++#[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++fn partitioned_top<C: CurveConfig>(bases: &[Affine<C>], scalars: &[[u64; 4]], w: usize, bits: usize, groups: usize) -> Projective<C>
++where C::Base: BatchInverse {
++    (0..groups).into_par_iter().map(|part| {
++        // Divide the remainder evenly so that all eligible slices have at least 1024 points.
++        let len = bases.len() / groups;
++        let extra = bases.len() % groups;
++        let first = len * part + part.min(extra);
++        let end = first + len + usize::from(part < extra);
++        indexed_top_sum::<C, false>(&bases[first..end], &scalars[first..end], w, bits, Fr::MODULUS_BITS as usize - w * bits)
++    }).reduce(|| Projective::<C>::IDENTITY, |a,b| a+b)
+ }
+ 
+ /// Narrow windows: few buckets, so projective buckets without batching.
+@@ -1178,6 +1220,24 @@
+     use crate::testing::Seeded;
+     use zopro_bn254::{G1Config, G2Config};
+ 
++    #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++    #[test]
++    fn partitioned_top_matches_generator_for_partial_last_group() {
++        use zopro_bn254::{G1Config, G1Affine, G1Projective};
++        let mut points = vec![G1Affine::GENERATOR; 8201];
++        let mut words = Vec::with_capacity(points.len());
++        let mut total = 0u64;
++        for (i, p) in points.iter_mut().enumerate() {
++            let digit = (i % 97) as u64;
++            words.push([0, 0, 0, digit << 55]);
++            if i % 19 == 0 { *p = G1Affine::IDENTITY; } else { total += digit; }
++        }
++        let expected = G1Affine::GENERATOR * Fr::from(total);
++        for groups in [4,8] {
++            let result: G1Projective = partitioned_top::<G1Config>(&points,&words,19,13,groups);
++            assert_eq!(result.to_affine(),expected.to_affine());
++        }
++    }
+     #[test]
+     fn wide_h_windows_match_independent_generator_sum() {
+         use zopro_bn254::{Fr, G1Affine, G1Config, G1Projective};
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -169,6 +169,15 @@
+             .max(crate::msm::workspace_weighted::<C>(buckets.min(256))?),
+     })
+ }
++pub(super) fn top_partition_growth<C: CurveConfig>(n: usize, bits: usize, groups: usize) -> Option<usize>
++where C::Base: BatchInverse {
++    let one = top::<C>(n, bits)?;
++    let part = top::<C>(n.div_ceil(groups), bits)?;
++    let held = mul(part.held, groups)?.saturating_sub(one.held);
++    let leaf = mul(part.leaf.saturating_sub(one.leaf), rayon::current_num_threads())?;
++    add(add(held, leaf)?, vector::<Projective<C>>(groups, false)?)
++}
++
+ fn one<C: CurveConfig>(n: usize, bits: usize, parts: usize, signed: bool) -> Option<Profile>
+ where
+     C::Base: BatchInverse,
