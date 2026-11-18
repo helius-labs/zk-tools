@@ -244,6 +244,9 @@ mod tests {
             let check = super::super::g2_phi::hb_raw(&bases, &mut input, bits, parts);
             assert_eq!(check.to_affine(), expected.to_affine());
         }
+        let mut serial = words.clone();
+        let result = super::super::g2_phi::hb_raw_decomposition(&bases, &mut serial, 11, 4, true);
+        assert_eq!(result.to_affine(), expected.to_affine());
         let actual = super::super::g2_phi::raw_exclusive(&bases, &mut words);
         assert_eq!(actual.to_affine(), expected.to_affine());
     }

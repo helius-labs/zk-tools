@@ -190,11 +190,27 @@ fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> V
     affine_buckets(state)
 }
 pub(super) fn hb_raw(bases: &[G2Affine], short: &mut [[u64; 4]], bits: usize, parts: usize) -> G2Projective {
+    hb_raw_decomposition(bases, short, bits, parts, false)
+}
+
+pub(super) fn hb_raw_decomposition(
+    bases: &[G2Affine],
+    short: &mut [[u64; 4]],
+    bits: usize,
+    parts: usize,
+    serial: bool,
+) -> G2Projective {
     assert_eq!(bases.len(), short.len());
-    #[cfg(zopro_phi_grain)]
-    short.par_iter_mut().with_min_len(128).for_each(|s| *s = phi_split(*s));
-    #[cfg(not(zopro_phi_grain))]
-    short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+    if serial {
+        for word in short.iter_mut() {
+            *word = phi_split(*word);
+        }
+    } else {
+        #[cfg(zopro_phi_grain)]
+        short.par_iter_mut().with_min_len(128).for_each(|s| *s = phi_split(*s));
+        #[cfg(not(zopro_phi_grain))]
+        short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+    }
     let chunk = bases.len().div_ceil(parts);
     let windows = 127usize.div_ceil(bits);
     let sums: Vec<_> = (0..windows)
@@ -236,7 +252,8 @@ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Pro
     {
         let growth = super::workspace::four_range_growth(bases.len(), rayon::current_num_threads());
         if let Some(_reservation) = crate::preparation::Reservation::analysis(growth) {
-            return hb_raw(bases, words, 11, 4);
+            let serial = std::env::var("ZOPRO_CPU_G2_DECOMPOSITION").as_deref() == Ok("serial");
+            return hb_raw_decomposition(bases, words, 11, 4, serial);
         }
     }
     hb_raw(bases, words, 12, 2)
