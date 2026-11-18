@@ -21,7 +21,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: zopro
-      - run: cargo test --workspace --release
+      - run: cargo test --workspace --release --features zopro-spr/disk-cache
   metal:
     runs-on: macos-latest
     steps:
@@ -31,5 +31,5 @@ jobs:
         with:
           workspaces: zopro
       # GPU tests skip without a GPU; the kernels still compile.
-      - run: cargo test --workspace --release
+      - run: cargo test --workspace --release --features zopro-spr/disk-cache
       - run: cargo test --release -p zopro-core --features metal

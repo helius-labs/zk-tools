@@ -9,7 +9,7 @@ use zopro_bn254::Fr;
 use crate::{
     Assignment, Circuit,
     request::{Error, element, elements, is_zero, object},
-    transfer::{assign_tree_slots, check_tree_slots, tree_slots},
+    transfer::{TreeSlot, assign_tree_slots, check_tree_slots, tree_slots},
 };
 
 const STATE_TREE_HEIGHT: usize = 32;
@@ -53,22 +53,52 @@ const INPUT_FIELDS: &[&str] = &[
 ];
 const OUTPUT_FIELDS: &[&str] = &["ringDataHash", "hash"];
 
-struct Input {
-    domain: Fr,
-    amount: Fr,
-    blinding: Fr,
-    ring_data_hash: Fr,
-    state_path: Vec<Fr>,
-    state_path_index: Fr,
-    nullifier_low_value: Fr,
-    nullifier_next_value: Fr,
-    nullifier_low_path: Vec<Fr>,
-    nullifier_low_path_index: Fr,
-    tree_slot: Fr,
-    nullifier: Fr,
+pub struct MergeInput {
+    pub domain: Fr,
+    pub amount: Fr,
+    pub blinding: Fr,
+    pub ring_data_hash: Fr,
+    pub state_path: Vec<Fr>,
+    pub state_path_index: Fr,
+    pub nullifier_low_value: Fr,
+    pub nullifier_next_value: Fr,
+    pub nullifier_low_path: Vec<Fr>,
+    pub nullifier_low_path_index: Fr,
+    pub tree_slot: Fr,
+    pub nullifier: Fr,
 }
 
-pub fn assign(json: &Value, circuit: Circuit, key_inputs: u32) -> Result<Assignment, Error> {
+/// The assembled merge fields. The confidential circuit has a ciphertext
+/// salt, and the ring circuit supplies its own ring data and program.
+pub struct MergeInputs {
+    pub inputs: Vec<MergeInput>,
+    pub output_ring_data_hash: Fr,
+    pub output_hash: Fr,
+    pub tree_slots: Vec<TreeSlot>,
+    pub output_tree_id: Fr,
+    pub mint_chunks: Vec<Fr>,
+    pub output_ciphertext_salt: Option<Fr>,
+    pub owner_pk_hash: Fr,
+    pub user_nullifier_pk: Fr,
+    pub user_nullifier_secret: Fr,
+    pub external_data_hash: Fr,
+    pub private_tx_hash: Fr,
+    pub public_input_hash: Fr,
+    pub allow_dummy_inputs: Fr,
+    pub published_output_ring_data_hash: Fr,
+    pub ring_program_id: Fr,
+}
+
+impl MergeInputs {
+    pub(crate) fn circuit(&self) -> Circuit {
+        if self.output_ciphertext_salt.is_some() {
+            Circuit::Merge
+        } else {
+            Circuit::MergeRing
+        }
+    }
+}
+pub(crate) fn decode(json: &Value, circuit: Circuit) -> Result<MergeInputs, Error> {
     // The default merge requires the ciphertext's salt; a ring merge, which
     // has no ciphertext, omits it.
     let ring = circuit == Circuit::MergeRing;
@@ -78,13 +108,13 @@ pub fn assign(json: &Value, circuit: Circuit, key_inputs: u32) -> Result<Assignm
         .chain((!ring).then_some(SALT_FIELD))
         .collect();
     let map = object(json, &fields)?;
-    let inputs: Vec<Input> = map["inputs"]
+    let inputs: Vec<MergeInput> = map["inputs"]
         .as_array()
         .ok_or(Error::Request)?
         .iter()
         .map(|input| {
             let map = object(input, INPUT_FIELDS)?;
-            Ok::<_, Error>(Input {
+            Ok::<_, Error>(MergeInput {
                 domain: element(&map["domain"])?,
                 amount: element(&map["amount"])?,
                 blinding: element(&map["blinding"])?,
@@ -106,9 +136,6 @@ pub fn assign(json: &Value, circuit: Circuit, key_inputs: u32) -> Result<Assignm
     let slots = tree_slots(&map["treeSlots"])?;
     let output_tree_id = element(&map["outputTreeId"])?;
     let mint_chunks = elements(&map["mintChunks"])?;
-    if mint_chunks.len() != MINT_CHUNKS {
-        return Err(Error::Request);
-    }
     let salt = if ring {
         None
     } else {
@@ -118,9 +145,6 @@ pub fn assign(json: &Value, circuit: Circuit, key_inputs: u32) -> Result<Assignm
     let user_nullifier_pk = element(&map["userNullifierPk"])?;
     // Required and non-zero: it seeds the private tx and output blindings.
     let user_nullifier_secret = element(&map["userNullifierSecret"])?;
-    if is_zero(&user_nullifier_secret) {
-        return Err(Error::Request);
-    }
     let external_data_hash = element(&map["externalDataHash"])?;
     let private_tx_hash = element(&map["privateTxHash"])?;
     let public_input_hash = element(&map["publicInputHash"])?;
@@ -128,6 +152,48 @@ pub fn assign(json: &Value, circuit: Circuit, key_inputs: u32) -> Result<Assignm
     let top_ring_data_hash = element(&map["outputRingDataHash"])?;
     let ring_program_id = element(&map["ringProgramId"])?;
 
+    Ok(MergeInputs {
+        inputs,
+        output_ring_data_hash,
+        output_hash,
+        tree_slots: slots,
+        output_tree_id,
+        mint_chunks,
+        output_ciphertext_salt: salt,
+        owner_pk_hash,
+        user_nullifier_pk,
+        user_nullifier_secret,
+        external_data_hash,
+        private_tx_hash,
+        public_input_hash,
+        allow_dummy_inputs,
+        published_output_ring_data_hash: top_ring_data_hash,
+        ring_program_id,
+    })
+}
+
+pub(crate) fn assign(input: &MergeInputs, key_inputs: u32) -> Result<Assignment, Error> {
+    let MergeInputs {
+        ref inputs,
+        output_ring_data_hash,
+        output_hash,
+        tree_slots: ref slots,
+        output_tree_id,
+        ref mint_chunks,
+        output_ciphertext_salt: salt,
+        owner_pk_hash,
+        user_nullifier_pk,
+        user_nullifier_secret,
+        external_data_hash,
+        private_tx_hash,
+        public_input_hash,
+        allow_dummy_inputs,
+        published_output_ring_data_hash: top_ring_data_hash,
+        ring_program_id,
+    } = *input;
+    if mint_chunks.len() != MINT_CHUNKS || is_zero(&user_nullifier_secret) {
+        return Err(Error::Request);
+    }
     // ValidateShape.
     if !SUPPORTED_INPUTS.contains(&inputs.len()) {
         return Err(Error::Request);
@@ -139,7 +205,7 @@ pub fn assign(json: &Value, circuit: Circuit, key_inputs: u32) -> Result<Assignm
         return Err(Error::Request);
     }
     let input_slots: Vec<Fr> = inputs.iter().map(|i| i.tree_slot).collect();
-    check_tree_slots(&slots, &input_slots, |_| true)?;
+    check_tree_slots(slots, &input_slots, |_| true)?;
     if inputs.len() != key_inputs as usize {
         return Err(Error::Shape);
     }
@@ -170,7 +236,7 @@ pub fn assign(json: &Value, circuit: Circuit, key_inputs: u32) -> Result<Assignm
         a.set(format!("Nullifiers_{i}"), input.nullifier);
     }
     a.set("Output_RingDataHash".into(), output_ring_data_hash);
-    a.set_all("MintChunks", &mint_chunks);
+    a.set_all("MintChunks", mint_chunks);
     a.set("OwnerPkHash".into(), owner_pk_hash);
     a.set("UserNullifierPk".into(), user_nullifier_pk);
     a.set("UserNullifierSecret".into(), user_nullifier_secret);
@@ -179,7 +245,7 @@ pub fn assign(json: &Value, circuit: Circuit, key_inputs: u32) -> Result<Assignm
     a.set("PrivateTxHash".into(), private_tx_hash);
     a.set("ExternalDataHash".into(), external_data_hash);
     a.set("AllowDummyInputs".into(), allow_dummy_inputs);
-    assign_tree_slots(&mut a, "TreeSlots", &slots);
+    assign_tree_slots(&mut a, "TreeSlots", slots);
     a.set("OutputTreeID".into(), output_tree_id);
     match salt {
         None => {

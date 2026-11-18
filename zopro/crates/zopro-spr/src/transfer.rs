@@ -9,7 +9,7 @@ use zopro_bn254::Fr;
 
 use crate::{
     Assignment, Circuit,
-    request::{self, Error, count, element, elements, is_zero, object, small},
+    request::{Error, count, element, elements, is_zero, object, small},
 };
 
 const INPUT_TREES: usize = 5;
@@ -70,39 +70,39 @@ const INPUT_FIELDS: &[&str] = &[
 const OUTPUT_FIELDS: &[&str] = &["utxo", "isDummy", "hash", "ownerPkHash", "nullifierPk"];
 pub(crate) const TREE_SLOT_FIELDS: &[&str] = &["id", "utxoRoot", "nullifierRoot"];
 
-struct Utxo {
-    domain: Fr,
-    owner: Fr,
-    asset: Fr,
-    amount: Fr,
-    blinding: Fr,
-    data_hash: Fr,
-    ring_data_hash: Fr,
-    ring_program_id: Fr,
+pub struct Utxo {
+    pub domain: Fr,
+    pub owner: Fr,
+    pub asset: Fr,
+    pub amount: Fr,
+    pub blinding: Fr,
+    pub data_hash: Fr,
+    pub ring_data_hash: Fr,
+    pub ring_program_id: Fr,
 }
 
-struct Input {
-    utxo: Utxo,
-    state_path: Vec<Fr>,
-    state_path_index: Fr,
-    nullifier_low_value: Fr,
-    nullifier_next_value: Fr,
-    nullifier_low_path: Vec<Fr>,
-    nullifier_low_path_index: Fr,
-    tree_slot: Fr,
-    nullifier: Fr,
-    owner_pk_hash: Fr,
-    nullifier_secret: Fr,
+pub struct TransferInput {
+    pub utxo: Utxo,
+    pub state_path: Vec<Fr>,
+    pub state_path_index: Fr,
+    pub nullifier_low_value: Fr,
+    pub nullifier_next_value: Fr,
+    pub nullifier_low_path: Vec<Fr>,
+    pub nullifier_low_path_index: Fr,
+    pub tree_slot: Fr,
+    pub nullifier: Fr,
+    pub owner_pk_hash: Fr,
+    pub nullifier_secret: Fr,
 }
 
-struct Output {
-    utxo: Utxo,
-    hash: Fr,
-    owner_pk_hash: Fr,
-    nullifier_pk: Fr,
+pub struct TransferOutput {
+    pub utxo: Utxo,
+    pub hash: Fr,
+    pub owner_pk_hash: Fr,
+    pub nullifier_pk: Fr,
 }
 
-pub(crate) struct TreeSlot {
+pub struct TreeSlot {
     pub id: Fr,
     pub utxo_root: Fr,
     pub nullifier_root: Fr,
@@ -197,15 +197,15 @@ fn check_input_flags(flags: &Fr, slots: &[Fr]) -> Result<(), Error> {
 }
 
 /// The cache selection: which inputs read a cached UTXO instead of a tree.
-struct Cache {
-    tree_id: Fr,
-    read_hash_chain: Fr,
-    read_hashes: Vec<Fr>,
-    is_cached: Vec<Fr>,
-    read_index: Vec<Fr>,
+pub struct CacheInputs {
+    pub tree_id: Fr,
+    pub read_hash_chain: Fr,
+    pub read_hashes: Vec<Fr>,
+    pub is_cached: Vec<Fr>,
+    pub read_index: Vec<Fr>,
 }
 
-impl Cache {
+impl CacheInputs {
     fn entry(values: &[Fr], i: usize) -> Fr {
         values.get(i).copied().unwrap_or_else(|| Fr::from(0u64))
     }
@@ -259,26 +259,63 @@ impl Cache {
     }
 }
 
-/// The request's values on the circuit's inputs, checked as the Go prover
-/// checked them. `names` are the key's input names: the signer vector's
-/// width comes from them.
-pub fn assign(
-    json: &Value,
-    circuit: Circuit,
-    key_inputs: u32,
-    key_outputs: u32,
-    names: &[String],
-) -> Result<Assignment, Error> {
+/// The transfer circuit and its assembled inputs in native field values.
+pub struct TransferInputs {
+    pub kind: TransferKind,
+    pub inputs: Vec<TransferInput>,
+    pub outputs: Vec<TransferOutput>,
+    pub tree_slots: Vec<TreeSlot>,
+    pub output_tree_id: Fr,
+    pub external_data_hash: Fr,
+    pub private_tx_hash: Fr,
+    pub blinding_seed: Fr,
+    pub public_assets: Vec<Fr>,
+    pub public_amounts: Vec<Fr>,
+    pub ring_program_id: Fr,
+    pub signer_pk_hashes: Vec<Fr>,
+    pub input_flags: Fr,
+    pub published_output_owner_pk_hashes: Vec<Fr>,
+    pub cache: CacheInputs,
+    pub public_input_hash: Fr,
+}
+
+#[derive(Clone, Copy)]
+pub enum TransferKind {
+    Confidential,
+    Ring,
+    RingAuthority,
+}
+
+impl TransferKind {
+    pub(crate) fn from_circuit(circuit: Circuit) -> Result<Self, Error> {
+        match circuit {
+            Circuit::TransferConfidential => Ok(Self::Confidential),
+            Circuit::TransferRing => Ok(Self::Ring),
+            Circuit::TransferRingAuthority => Ok(Self::RingAuthority),
+            _ => Err(Error::Unsupported),
+        }
+    }
+
+    pub(crate) fn circuit(self) -> Circuit {
+        match self {
+            Self::Confidential => Circuit::TransferConfidential,
+            Self::Ring => Circuit::TransferRing,
+            Self::RingAuthority => Circuit::TransferRingAuthority,
+        }
+    }
+}
+
+pub(crate) fn decode(json: &Value, kind: TransferKind) -> Result<TransferInputs, Error> {
     let map = object(json, REQUEST_FIELDS)?;
     let (n_inputs, n_outputs) = (count(&map["nInputs"])?, count(&map["nOutputs"])?);
-    let inputs: Vec<Input> = map["inputs"]
+    let inputs: Vec<TransferInput> = map["inputs"]
         .as_array()
         .ok_or(Error::Request)?
         .iter()
         .map(|input| {
             let map = object(input, INPUT_FIELDS)?;
             element(&map["isDummy"])?;
-            Ok::<_, Error>(Input {
+            Ok::<_, Error>(TransferInput {
                 utxo: utxo(&map["utxo"])?,
                 state_path: elements(&map["statePathElements"])?,
                 state_path_index: element(&map["statePathIndex"])?,
@@ -293,14 +330,14 @@ pub fn assign(
             })
         })
         .collect::<Result<_, _>>()?;
-    let outputs: Vec<Output> = map["outputs"]
+    let outputs: Vec<TransferOutput> = map["outputs"]
         .as_array()
         .ok_or(Error::Request)?
         .iter()
         .map(|output| {
             let map = object(output, OUTPUT_FIELDS)?;
             element(&map["isDummy"])?;
-            Ok::<_, Error>(Output {
+            Ok::<_, Error>(TransferOutput {
                 utxo: utxo(&map["utxo"])?,
                 hash: element(&map["hash"])?,
                 owner_pk_hash: element(&map["ownerPkHash"])?,
@@ -312,21 +349,14 @@ pub fn assign(
     let output_tree_id = element(&map["outputTreeId"])?;
     let external_data_hash = element(&map["externalDataHash"])?;
     let private_tx_hash = element(&map["privateTxHash"])?;
-    // Required and non-zero: the circuit derives every blinding from it.
     let blinding_seed = element(&map["blindingSeed"])?;
-    if is_zero(&blinding_seed) {
-        return Err(Error::Request);
-    }
     let public_assets = elements(&map["publicAssets"])?;
     let public_amounts = elements(&map["publicAmounts"])?;
-    if public_assets.len() != PUBLIC_SLOTS || public_amounts.len() != PUBLIC_SLOTS {
-        return Err(Error::Request);
-    }
     let ring_program_id = element(&map["ringProgramId"])?;
     let signer_pk_hashes = elements(&map["signerPkHashes"])?;
     let input_flags = element(&map["inputFlags"])?;
     let published_owners = elements(&map["publishedOutputOwnerPkHashes"])?;
-    let cache = Cache {
+    let cache = CacheInputs {
         tree_id: element(&map["cacheTreeId"])?,
         read_hash_chain: element(&map["cacheReadHashChain"])?,
         read_hashes: elements(&map["cacheReadHashes"])?,
@@ -335,8 +365,59 @@ pub fn assign(
     };
     let public_input_hash = element(&map["publicInputHash"])?;
 
-    // ValidateShape.
     if inputs.len() != n_inputs as usize || outputs.len() != n_outputs as usize {
+        return Err(Error::Request);
+    }
+    Ok(TransferInputs {
+        kind,
+        inputs,
+        outputs,
+        tree_slots: slots,
+        output_tree_id,
+        external_data_hash,
+        private_tx_hash,
+        blinding_seed,
+        public_assets,
+        public_amounts,
+        ring_program_id,
+        signer_pk_hashes,
+        input_flags,
+        published_output_owner_pk_hashes: published_owners,
+        cache,
+        public_input_hash,
+    })
+}
+
+/// The native and JSON entry points share validation and witness assignment.
+pub(crate) fn assign(
+    input: &TransferInputs,
+    key_inputs: u32,
+    key_outputs: u32,
+    names: &[String],
+) -> Result<Assignment, Error> {
+    let TransferInputs {
+        kind,
+        ref inputs,
+        ref outputs,
+        tree_slots: ref slots,
+        output_tree_id,
+        external_data_hash,
+        private_tx_hash,
+        blinding_seed,
+        ref public_assets,
+        ref public_amounts,
+        ring_program_id,
+        ref signer_pk_hashes,
+        input_flags,
+        published_output_owner_pk_hashes: ref published_owners,
+        ref cache,
+        public_input_hash,
+    } = *input;
+    let circuit = kind.circuit();
+    if is_zero(&blinding_seed)
+        || public_assets.len() != PUBLIC_SLOTS
+        || public_amounts.len() != PUBLIC_SLOTS
+    {
         return Err(Error::Request);
     }
     if inputs.iter().any(|i| {
@@ -347,15 +428,15 @@ pub fn assign(
     }
     let input_slots: Vec<Fr> = inputs.iter().map(|i| i.tree_slot).collect();
     let authority = circuit == Circuit::TransferRingAuthority;
-    check_tree_slots(&slots, &input_slots, |i| {
+    check_tree_slots(slots, &input_slots, |i| {
         authority
             || (small(&inputs[i].utxo.domain) == Some(UTXO_DOMAIN)
-                && is_zero(&Cache::entry(&cache.is_cached, i)))
+                && is_zero(&CacheInputs::entry(&cache.is_cached, i)))
     })?;
     check_input_flags(&input_flags, &input_slots)?;
     cache.validate(inputs.len())?;
     // The key's shape, before the names decide.
-    if n_inputs != key_inputs || n_outputs != key_outputs {
+    if inputs.len() != key_inputs as usize || outputs.len() != key_outputs as usize {
         return Err(Error::Shape);
     }
     // CreateWitness: the signer vector is as wide as the key's.
@@ -384,22 +465,20 @@ pub fn assign(
         "Public_OutputHashes",
         &outputs.iter().map(|o| o.hash).collect::<Vec<_>>(),
     );
-    assign_tree_slots(&mut a, "Public_TreeSlots", &slots);
+    assign_tree_slots(&mut a, "Public_TreeSlots", slots);
     a.set("Public_OutputTreeID".into(), output_tree_id);
     a.set("Public_PrivateTxHash".into(), private_tx_hash);
     a.set("Public_ExternalDataHash".into(), external_data_hash);
-    a.set_all("Public_PublicAssets", &public_assets);
-    a.set_all("Public_PublicAmounts", &public_amounts);
+    a.set_all("Public_PublicAssets", public_assets);
+    a.set_all("Public_PublicAmounts", public_amounts);
     if circuit != Circuit::TransferConfidential {
         a.set("Public_RingProgramID".into(), ring_program_id);
     }
     a.set("Public_InputFlags".into(), input_flags);
-    a.set_all("Public_SignerPkHashes", &signer_pk_hashes);
+    a.set_all("Public_SignerPkHashes", signer_pk_hashes);
     match circuit {
-        Circuit::TransferConfidential => a.set_all("Public_OutputOwnerPkHashes", &published_owners),
-        Circuit::TransferRing => {
-            a.set_all("Public_PublishedOutputOwnerPkHashes", &published_owners)
-        }
+        Circuit::TransferConfidential => a.set_all("Public_OutputOwnerPkHashes", published_owners),
+        Circuit::TransferRing => a.set_all("Public_PublishedOutputOwnerPkHashes", published_owners),
         _ => {}
     }
     a.set("Public_PublicInputHash".into(), public_input_hash);
@@ -452,7 +531,6 @@ pub fn assign(
         }
     }
     a.set("Private_BlindingSeed".into(), blinding_seed);
-    let _ = request::parse;
     Ok(a)
 }
 

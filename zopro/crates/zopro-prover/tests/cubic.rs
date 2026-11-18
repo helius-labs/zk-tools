@@ -94,13 +94,39 @@ fn proves_from_its_image_in_place() {
     let (prover, source) = Prover::load_cacheable(&key).expect("load");
     let mut image = Vec::new();
     Prover::write_image(&key, &mut image).expect("write");
-    assert_eq!(image, source.expect("a key file's raw source").export(&prover), "the raw form");
+    assert_eq!(
+        image,
+        source.expect("a key file's raw source").export(&prover),
+        "the raw form"
+    );
     let image: zopro_prover::zopro_core::Image = std::sync::Arc::new(image);
     let mut again = Prover::load_image(image.clone()).expect("load the image");
     let witness = again.witness(&assignment(3, 35)).expect("witness");
     assert!(again.prove(&witness).is_ok());
     let truncated = (*image).as_ref()[..(*image).as_ref().len() - 1].to_vec();
     assert!(Prover::load_image(std::sync::Arc::new(truncated)).is_err());
+}
+
+#[cfg(all(feature = "disk-cache", not(target_arch = "wasm32")))]
+#[test]
+fn replaces_a_stale_image_and_keeps_an_open_snapshot() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("key.zopro");
+    std::fs::write(&path, key()).unwrap();
+    let mut original = Prover::load_cached(&path).unwrap();
+
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/cubic");
+    let mut dump = Dump::read(&fixtures).unwrap();
+    dump.metadata = b"replacement".to_vec();
+    std::fs::write(&path, pack(&dump.parts("replacement")).unwrap()).unwrap();
+    let replacement = Prover::load_cached(&path).unwrap();
+    assert_eq!(replacement.name(), "replacement");
+    assert_eq!(replacement.metadata(), b"replacement");
+
+    let image = zopro_prover::disk::image_path(&path);
+    std::fs::write(&image, []).unwrap();
+    let witness = original.witness(&assignment(3, 35)).unwrap();
+    assert!(original.prove(&witness).is_ok());
 }
 
 /// A prover whose GPU is let go proves on the CPU (a GPU that fails, or

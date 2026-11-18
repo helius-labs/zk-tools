@@ -18,7 +18,12 @@ js-sys = "0.3"
 wasm-bindgen = "=0.2.128"
 wasm-bindgen-futures = "0.4"
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+memmap2 = { version = "0.9", optional = true }
+tempfile = { version = "3", optional = true }
+
 [features]
+disk-cache = ["dep:memmap2", "dep:tempfile"]
 metal = ["zopro-core/metal"]
 wgpu = ["zopro-core/wgpu"]
 trace = ["zopro-core/trace"]
