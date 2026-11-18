@@ -189,6 +189,22 @@ correctness and resource requirements still apply to any candidate being adopted
 
 ### Current execution queue
 
+Current production is paired weighted233/adopted236, source188; canonical export
+inventory is62191. The [current C7a package239](benchmarks/2026-11-18-adopted-c7a239/README.md)
+is ready with four verified functional exports, but AWS SSO remains expired.
+Its cloud measurements are unrun. Keep completed local measurements and the
+separate frozen local/remote roots; do not replay smokes for bookkeeping.
+
+The [final-only G1 endomorphism screen240](benchmarks/2026-11-18-late-phi-kh240/README.md)
+tests a distinct execution plan:20 independent component/span reductions and
+one final phi, rather than the old175 bucket transforms/point partitions.
+Primary32 query latency regresses9.28%,0/3wins, with10.58% more paired CPU.
+All388 query outputs match the independent real-input oracle; threaded RSS
+guards pass. Close this exact plan without a GLV window/partition sweep or SDK
+follow-up. No current adopted gain is invalidated. The next meaningful AWS
+comparison reuses239 after valid credentials; further local exploration needs a
+different work/dependency hypothesis. Entries below retain historical scopes.
+
 The [compact G2 prefix record](benchmarks/2026-11-17-g2-compact-prefix202/README.md)
 reduces record payload640->512bytes using existing field packing, but primary32
 query latency regresses2.34%,0/3wins. It fails both local SDK progression and the

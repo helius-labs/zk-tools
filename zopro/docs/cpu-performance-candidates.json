@@ -647,6 +647,30 @@
         "wins_grouped32": 0,
         "wins_primary32": 0
       }
+    },
+    {
+      "id": "late-phi-kh240",
+      "parent_id": "paired-weighted233",
+      "change": "Independent signed GLV K/H component reductions with one final G1 endomorphism; no point-range or bucket-array merges",
+      "correctness": {
+        "status": "two new native test functions passed; independent Arkworks full K/H oracle, 1021 scalar relations, 12 generator queries; generic core compile",
+        "evidence": "benchmarks/2026-11-18-late-phi-kh240/README.md"
+      },
+      "performance": {
+        "status": "complete_query_screen_failed",
+        "primary32_paired_ratio": 1.092820502146801,
+        "primary32_wins_of_3": 0,
+        "CPU32_paired_ratio": 1.1057760948153574,
+        "evidence": "benchmarks/2026-11-18-late-phi-kh240/artifacts/assessment.json"
+      },
+      "resources_and_compatibility": {
+        "status": "threaded RSS guards passed; new route test-only, no production admission or universal memory qualification"
+      },
+      "adoption": {
+        "status": "not_adopted_no_SDK_followup",
+        "invalidates_parent": false,
+        "reason": "Primary32 progression failed; preserve the exact negative screen without GLV window/partition rescue."
+      }
     }
   ],
   "historical_followups": [
