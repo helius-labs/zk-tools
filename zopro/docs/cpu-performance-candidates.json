@@ -586,7 +586,7 @@
     {
       "adoption": {
         "invalidates_parent": false,
-        "status": "pending_all_shape_resource_and_current_diagnostics"
+        "status": "pending_current_diagnostics_and_final_review"
       },
       "change": "Pair independent original weighted trees in one affine batch at each level; existing requested-capacity forecast retained",
       "correctness": {
@@ -596,11 +596,10 @@
       "evidence": "benchmarks/2026-11-18-paired-weighted233/README.md",
       "id": "paired-weighted233",
       "performance": {
-        "evidence": "benchmarks/2026-11-18-paired-weighted233/artifacts/assessment.json",
-        "primary16_ON_REF": 0.9905698098297822,
-        "primary32_ON_REF": 0.988529757340789,
-        "status": "positive_exploratory_primary_signal",
-        "wins_both_controls_each_primary": "3/3"
+        "checks_passed": 70,
+        "checks_required": 70,
+        "evidence": "benchmarks/2026-11-18-paired-weighted-all234/README.md",
+        "status": "all_shape_qualification_passed"
       },
       "sdk_sha256": "d523f49e8548620c4373a1ab4be2712d705709fdd7a590c5ed73e9aff97424e3"
     }
@@ -738,7 +737,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "233paired weighted trees passes primary shortscreen at16/32 vsbothcontrols,3/3wins each;0.94%/1.15%lowerlatency,~2%lessCPU.2x2/merge54 descriptivepenalties retained. Exact233SDK/source188 needs all-shape/resource and currentCPUdiagnostics beforeadoption. Accepted227b70/source186 unchanged. CanonicalNOW61221 paired-weighted233/proof-sha256-after-main.json;do not seed61182again. NoAWS/push;smallqualifiedgainscount. Fullall8CPU10x active/unmet0/8;acceptedCPU-Metal228 unchanged.",
+  "next_action": "Exact233 paired weighted trees all-shape234 qualification=true,checks70/70. CanonicalNOW62151 at paired-weighted-all234/proof-sha256-after-main.json SHAa757f8aba5e1a4192b5e486a1b18cb3eab0fc10b991a05e35a266c410e336a63. Accepted227b70/source186 unchanged. Run prepared235 current CPU diagnostics, finalsource/resource review beforeadoption. Fullall8CPU10xactive/unmet0/8. NoAWS/push;smallqualifiedgainscount.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",
