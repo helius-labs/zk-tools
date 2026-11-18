@@ -219,17 +219,11 @@ impl Prover {
         Self::new(zopro_prover::Prover::load(bytes)?)
     }
 
-    /// Load an immutable key and cache its solver image and GPU pipelines
-    /// beside it. See [`zopro_prover::Prover::load_cached`].
-    ///
-    /// # Safety
-    ///
-    /// The key and cache directory must be trusted, and no mapped file may be
-    /// modified in place or truncated while it is mapped.
+    /// Load a trusted key and reuse its disk-backed solver image. Stale or
+    /// invalid images are rebuilt after checking the SPR metadata.
     #[cfg(all(feature = "disk-cache", not(target_arch = "wasm32")))]
-    pub unsafe fn load_cached(path: &std::path::Path) -> Result<Self, String> {
-        // SAFETY: the caller guarantees the mapped files remain immutable.
-        Self::new(unsafe { zopro_prover::Prover::load_cached(path) }?)
+    pub fn load_cached(path: &std::path::Path) -> Result<Self, String> {
+        zopro_prover::disk::load(path, Self::new)
     }
 
     /// From a parsed key, as `zopro_prover::Prover::from_artifact`.

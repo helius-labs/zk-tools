@@ -131,6 +131,17 @@ fn padding(at: usize) -> usize {
     at.next_multiple_of(ALIGN) - at
 }
 
+/// The original key's header, stored without alteration in a solver image.
+#[cfg(all(feature = "disk-cache", not(target_arch = "wasm32")))]
+pub(crate) fn source_header(raw: &[u8]) -> Option<&[u8]> {
+    if !raw.starts_with(MAGIC) {
+        return None;
+    }
+    let mut reader = Reader { raw, at: 16 };
+    let len = reader.length()?;
+    reader.take(len)
+}
+
 /// The raw form's key head, its vectors' byte ranges and its solver image,
 /// when it is whole.
 fn parse(raw: &[u8]) -> Option<(Artifact<'_>, [(usize, usize); 5], &[u8])> {

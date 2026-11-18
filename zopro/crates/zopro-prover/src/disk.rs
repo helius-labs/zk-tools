@@ -1,7 +1,7 @@
-//! A native cache for a versioned key on disk.
+//! Native loading with a versioned, disk-backed solver cache.
 use std::{
     fs::File,
-    io::{BufWriter, Write},
+    io::{self, BufWriter, Read, Seek, Write},
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -22,69 +22,139 @@ pub fn image_path(key: &Path) -> PathBuf {
 }
 
 impl Prover {
-    /// Load an immutable key, keeping its solver image and GPU pipelines beside it.
-    /// If the image cannot be created or opened, load directly from the key file.
-    ///
-    /// # Safety
-    ///
-    /// The key and cache directory must be trusted. Nobody may modify or
-    /// truncate a mapped file while it is mapped, including after this
-    /// function returns. Publish updated files by atomic rename. Use a
-    /// versioned key path or remove the old image when replacing a key.
-    pub unsafe fn load_cached(key: &Path) -> Result<Self, String> {
-        zopro_core::set_gpu_pipeline_cache(&key.with_file_name("zopro-gpu.cache"));
-        let image = image_path(key);
-        if image.is_file() {
-            // SAFETY: the caller guarantees the mapped file is immutable.
-            match unsafe { load_image(&image) } {
+    /// Load a trusted key, reusing its on-disk solver image when possible.
+    /// The prover's mapping is backed by its own anonymous file.
+    pub fn load_cached(key: &Path) -> Result<Self, String> {
+        load(key, Ok)
+    }
+}
+
+/// Load using the cache, with protocol-specific validation on every path.
+/// Rejected images are rebuilt from the source key.
+pub fn load<T>(key: &Path, validate: impl Fn(Prover) -> Result<T, String>) -> Result<T, String> {
+    let parent = key
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let mut source = File::open(key).map_err(io_error)?;
+    zopro_core::set_gpu_pipeline_cache(&key.with_file_name("zopro-gpu.cache"));
+    let image = image_path(key);
+    match File::open(&image) {
+        Ok(mut cached) => {
+            let hit = (|| {
+                let snapshot = snapshot(&mut cached, parent).map_err(io_error)?;
+                let mapped = map_owned(&snapshot).map_err(io_error)?;
+                let header = raw::source_header(&mapped).ok_or("invalid solver image header")?;
+                match_header(&mut source, header).map_err(io_error)?;
+                validate(Prover::load_image(Arc::new(mapped))?)
+            })();
+            match hit {
                 Ok(prover) => return Ok(prover),
                 Err(error) => log::warn!("zopro: {}: {error}; regenerating image", image.display()),
             }
         }
-        // SAFETY: the caller guarantees the key file is immutable.
-        let source = unsafe { map(key) }?;
-        let cached = write_image(&source, &image).and_then(|()| {
-            // SAFETY: the caller guarantees the mapped file is immutable.
-            unsafe { load_image(&image) }
-        });
-        match cached {
-            Ok(prover) => Ok(prover),
-            Err(error) => {
-                log::warn!(
-                    "zopro: {}: {error}; loading the key directly",
-                    image.display()
-                );
-                Self::load(&source)
-            }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => log::warn!("zopro: {}: {error}", image.display()),
+    }
+
+    source.rewind().map_err(io_error)?;
+    let key = match snapshot(&mut source, parent).and_then(|file| map_owned(&file)) {
+        Ok(mapped) => KeyBytes::Mapped(mapped),
+        Err(error) => {
+            log::warn!("zopro: {}: {error}; reading key into memory", key.display());
+            let mut bytes = Vec::new();
+            source.rewind().map_err(io_error)?;
+            source.read_to_end(&mut bytes).map_err(io_error)?;
+            KeyBytes::Owned(bytes)
+        }
+    };
+
+    let rebuilt = (|| {
+        let mut snapshot = anonymous_file(parent).map_err(io_error)?;
+        {
+            let mut out = BufWriter::new(&mut snapshot);
+            Prover::write_image(key.as_ref(), &mut out)?;
+            out.flush().map_err(io_error)?;
+        }
+        let mapped = map_owned(&snapshot).map_err(io_error)?;
+        let prover = validate(Prover::load_image(Arc::new(mapped))?)?;
+        if let Err(error) = publish(&mut snapshot, &image, parent) {
+            log::warn!(
+                "zopro: {}: {error}; using the private image",
+                image.display()
+            );
+        }
+        Ok::<_, String>(prover)
+    })();
+    match rebuilt {
+        Ok(prover) => Ok(prover),
+        Err(error) => {
+            log::warn!(
+                "zopro: {}: {error}; loading the key directly",
+                image.display()
+            );
+            validate(Prover::load(key.as_ref())?)
         }
     }
 }
 
-unsafe fn map(path: &Path) -> Result<Mmap, String> {
-    let file = File::open(path).map_err(|error| error.to_string())?;
-    // SAFETY: the caller guarantees the mapped file is immutable.
-    unsafe { Mmap::map(&file) }.map_err(|error| error.to_string())
+enum KeyBytes {
+    Mapped(Mmap),
+    Owned(Vec<u8>),
 }
 
-unsafe fn load_image(path: &Path) -> Result<Prover, String> {
-    // SAFETY: the caller guarantees the mapped file is immutable.
-    Prover::load_image(Arc::new(unsafe { map(path) }?))
+impl AsRef<[u8]> for KeyBytes {
+    fn as_ref(&self) -> &[u8] {
+        match self {
+            Self::Mapped(bytes) => bytes,
+            Self::Owned(bytes) => bytes,
+        }
+    }
 }
 
-fn write_image(key: &[u8], image: &Path) -> Result<(), String> {
-    let parent = image
-        .parent()
-        .filter(|path| !path.as_os_str().is_empty())
-        .unwrap_or_else(|| Path::new("."));
-    let io = |error: std::io::Error| error.to_string();
-    // Each writer gets its own file. No writer can truncate an image already mapped
-    // by a reader, and a process that fails here leaves the previous image intact.
-    let mut file = tempfile::NamedTempFile::new_in(parent).map_err(io)?;
-    let mut out = BufWriter::new(file.as_file_mut());
-    Prover::write_image(key, &mut out)?;
-    out.flush().map_err(io)?;
-    drop(out);
-    file.as_file().sync_all().map_err(io)?;
-    file.persist(image).map_err(|error| error.to_string())?;
+fn io_error(error: io::Error) -> String {
+    error.to_string()
+}
+
+fn anonymous_file(parent: &Path) -> io::Result<File> {
+    // Android's process temp directory is not always writable; the key's
+    // directory is normally available there. tempfile unlinks before returning.
+    tempfile::tempfile_in(parent).or_else(|_| tempfile::tempfile())
+}
+
+fn snapshot(source: &mut File, parent: &Path) -> io::Result<File> {
+    let mut copy = anonymous_file(parent)?;
+    io::copy(source, &mut copy)?;
+    Ok(copy)
+}
+
+fn map_owned(file: &File) -> io::Result<Mmap> {
+    // SAFETY: only freshly written anonymous files from this module are mapped.
+    // The module never exposes their descriptors or changes their contents
+    // after mapping. The original key and on-disk cache can be replaced or
+    // truncated independently of the mapping.
+    unsafe { Mmap::map(file) }
+}
+
+fn match_header(source: &mut File, header: &[u8]) -> io::Result<()> {
+    let mut buffer = [0; 8192];
+    for chunk in header.chunks(buffer.len()) {
+        source.read_exact(&mut buffer[..chunk.len()])?;
+        if chunk != &buffer[..chunk.len()] {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "cached image belongs to a different key",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn publish(source: &mut File, image: &Path, parent: &Path) -> io::Result<()> {
+    source.rewind()?;
+    let mut staged = tempfile::NamedTempFile::new_in(parent)?;
+    io::copy(source, staged.as_file_mut())?;
+    staged.as_file().sync_all()?;
+    staged.persist(image)?;
     Ok(())
 }

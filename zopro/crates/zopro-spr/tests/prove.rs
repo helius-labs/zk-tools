@@ -81,9 +81,7 @@ fn typed_transfer_loads_and_reuses_the_cached_image() {
     let request = include_str!("fixtures/transfer-2x2.request.json");
     let mut input = ProvingInput::from_json(request).unwrap();
 
-    // SAFETY: the files are confined to the private temp directory and each
-    // mapped prover is dropped before we replace or remove its image.
-    let mut prover = unsafe { Prover::load_cached(&key) }.unwrap();
+    let mut prover = Prover::load_cached(&key).unwrap();
     assert_eq!(
         prover.witness_input(&input).unwrap(),
         prover.witness(request).unwrap()
@@ -101,9 +99,33 @@ fn typed_transfer_loads_and_reuses_the_cached_image() {
 
     let path = image_path(&key);
     assert!(path.is_file());
-    // A hit can be opened without reading the original compressed key.
-    std::fs::remove_file(key.clone()).unwrap();
-    // SAFETY: the image is still in the private directory and is immutable.
-    let cached = unsafe { Prover::load_cached(&key) }.unwrap();
+    let mut image = std::fs::read(&path).unwrap();
+    let field = b"\"keySha256\":\"";
+    let offset = image
+        .windows(field.len())
+        .position(|part| part == field)
+        .unwrap()
+        + field.len();
+    image[offset] = b'g';
+    std::fs::write(&path, &image).unwrap();
+    let repaired = Prover::load_cached(&key).unwrap();
+    assert_eq!(repaired.witness(request).unwrap(), witness);
+    assert_ne!(std::fs::read(&path).unwrap()[offset], b'g');
+    drop(repaired);
+
+    let modified = std::fs::metadata(&path).unwrap().modified().unwrap();
+    let mut cached = Prover::load_cached(&key).unwrap();
+    assert_eq!(
+        std::fs::metadata(&path).unwrap().modified().unwrap(),
+        modified
+    );
+    // Both paths can change while the prover uses its anonymous image.
+    std::fs::write(&path, []).unwrap();
+    std::fs::write(&key, []).unwrap();
     assert_eq!(cached.witness(request).unwrap(), witness);
+    assert!(
+        cached
+            .prove_input(&ProvingInput::from_json(request).unwrap())
+            .is_ok()
+    );
 }
