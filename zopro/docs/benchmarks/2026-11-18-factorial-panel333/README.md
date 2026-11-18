@@ -13,6 +13,8 @@ Each cell has seven randomized process means. Every 1×2 process timed 101 SDK r
 | 24x2 | 64 | release-h19 | 51.368 | 1226 | 528 / 176 | 10.28× / 3.43× | 7/7 |
 | merge-24x1 | 64 | release-h19 | 53.512 | 1155 | 507 / 175 | 9.47× / 3.27× | 0/7 |
 
+[64- and 96-core comparison with Aeglos](same-host.md) · [Phase timing and aggregate CPU cost](scaling.md)
+
 ## Width and partition effects on 1×2
 
 Both parameters are changed within the same executable. The old executable provides independent controls for the 12-bit/two-part and 11-bit/four-part diagonals. Negative changes indicate lower latency.
@@ -104,7 +106,7 @@ Both parameters are changed within the same executable. The old executable provi
 
 ## Where slow 1×2 requests spend time
 
-The supplementary panel ran after the primary measurements, with the same experimental executable. Three processes per setting each timed 51 requests. Uprobes bracket the canonical core, the product FFT and the G2 query. The G2 interval includes time its thread may spend on other Rayon tasks. Intervals describe elapsed time and cannot identify the cause of a worker stall.
+The supplementary panel ran after the primary measurements, with the same experimental executable. Three processes per setting each timed 51 requests. Uprobes bracket the canonical core, the product FFT and the G2 scalar multiplication kernel. The probe on `g2_phi::raw_exclusive` includes time its thread may spend on other Rayon tasks. Intervals describe elapsed time and cannot identify the cause of a worker stall.
 
 | Cores | G2 ranges | Plain p50 / p95 ms | Paired trace overhead | Traced fast / slow requests | Fast / slow G2 ms | Fast / slow FFT ms | Fast / slow time after G2 ms |
 |---:|---|---:|---:|---:|---:|---:|---:|
