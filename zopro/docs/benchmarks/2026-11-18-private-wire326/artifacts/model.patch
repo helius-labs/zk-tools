@@ -1,0 +1,63 @@
+--- a/model.rs
++++ b/model.rs
+@@ -277,18 +277,48 @@
+     check(r.at == data.len(), "trailing bytes")?;
+     check(rows.iter().all(|&v| v) && seen_sums.iter().all(|&v| v), "incomplete constraint/sum coverage")?;
+     check(state.iter().all(Option::is_some), "unwritten values")?;
+-    let ranks=queries.iter().zip(["A","B"]).map(|(q,k)|(k,query_rank(q,&state,&relations))).collect::<BTreeMap<_,_>>();
+-    let semantic_queries=queries.iter().zip(["A","B"]).map(|(q,name)|(name,query_classes(q,&state))).collect::<BTreeMap<_,_>>();
+-    let folding=queries.iter().zip(["A","B"]).map(|(q,name)|(name,folding_classes(q,&state))).collect::<BTreeMap<_,_>>();
+-    let mut query_results = BTreeMap::new();
+-    for (q, name) in queries.iter().zip(["A", "B"]) {
+-        let candidate_rows: Vec<_> = q.iter().copied().filter(|w| candidates.contains(w)).collect();
+-        let constant_rows = candidate_rows.iter().filter(|&&w| state[w].as_ref().unwrap().value().is_some()).count();
+-        let nonconstant = candidate_rows.len() - constant_rows;
+-        let atom_terms: usize = candidate_rows.iter().map(|&w| state[w].as_ref().unwrap().terms.len()).sum();
+-        query_results.insert(name, json!({"points":q.len(),"noninput_candidate_rows":candidate_rows.len(),"constant_rows":constant_rows,"affine_nonconstant_rows":nonconstant,"expanded_atom_terms":atom_terms}));
+-    }
+-    Ok(json!({"complete":true,"image_version":2,"bytes":data.len(),"wires":nw,"inputs":ni,"public":np,"constraints":constraints,"hints":hints,"ops":nops,"sum_records":ns,"stored_slots":nslots,"assignments":assignments,"assignment_sides":sides,"syntactic_linear_assignments":syntactic_assignments,"expanded_affine_assignments":affine_writes,"expanded_constant_assignments":constant_writes,"opaque_nonlinear_assignments":opaque_writes,"constant_hint_outputs":hint_constants,"constant_stored_slots":slot_constants,"constant_expression_sides":expanded_constant_sides,"hidden_constant_expression_sides":hidden_constant_sides,"maximum_form_terms":max_terms,"analysis_form_terms":state.iter().map(|f|f.as_ref().unwrap().terms.len()).sum::<usize>(),"queries":query_results,"rank":ranks,"folding_certificate":folding,"semantic_query_classes":semantic_queries,"semantic_engine":engine.summary(),"production_changed":false,"new_proofs":0,"new_witness_solves":0,"new_latency_samples":0}))
++    // Private K rows correspond to these original solver wires. Additional folded
++    // K slots remain outside the census. Inputs, hints and nonlinear nodes retain
++    // their original semantic meanings.
++    let k = &state[np..nw];
++    Ok(json!({"wires":nw, "public":np, "private_wires":k.len(),
++              "tiles":[private_tile(k,256),private_tile(k,1024),private_tile(k,4096),private_tile(k,k.len().max(1))]}))
++
++}
++
++// Keep one single-symbol anchor per symbol within each tile. A proposed deletion
++// can reference only surviving anchors in that same tile, so deletions never
++// form chains. Coefficients are checked by reconstructing the exact affine form.
++fn private_tile(wires: &[Option<Form>], tile: usize) -> Value {
++    let mut single=0; let mut multi=0; let mut multi_zero_correction=0;
++    let mut constants=0; let mut rewrites=0; let mut max_anchors=0;
++    for slab in wires.chunks(tile) {
++        let mut anchors=BTreeMap::new();
++        for (i,row) in slab.iter().enumerate() {
++            let row=row.as_ref().unwrap();
++            if row.terms.len()==1 {
++                let (&atom,&c)=row.terms.first_key_value().unwrap();
++                anchors.entry(atom).or_insert_with(|| (i,c.inverse().unwrap()));
++            }
++        }
++        max_anchors=max_anchors.max(anchors.len());
++        for (i,row) in slab.iter().enumerate() {
++            let row=row.as_ref().unwrap();
++            if row.terms.is_empty() {constants+=1;continue;}
++            if row.terms.len()>4 || !row.terms.keys().all(|k| anchors.contains_key(k)) {continue;}
++            if row.terms.len()==1 && anchors[row.terms.first_key_value().unwrap().0].0==i {continue;}
++            let mut restored=Form::constant(Fr::ZERO);
++            for (atom,&weight) in &row.terms {
++                let (j,inv)=anchors[atom];
++                restored=restored.plus(&slab[j].as_ref().unwrap().scale(weight*inv));
++            }
++            let correction=row.constant-restored.constant;
++            restored=restored.plus(&Form::constant(correction));assert_eq!(&restored,row);
++            if row.terms.len()==1 {single+=1;} else {multi+=1;if correction==Fr::ZERO {multi_zero_correction+=1;}}
++            rewrites+=row.terms.len();
++        }
++    }
++    json!({"tile":tile,"retained_anchor_map_max":max_anchors,"constants":constants,"single_symbol_aliases":single,"two_to_four_terms":multi,"multi_zero_constant":multi_zero_correction,"point_updates":rewrites,"removable_rows":constants+single+multi})
+ }
+ 
+ #[cfg(test)]
