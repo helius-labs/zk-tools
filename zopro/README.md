@@ -154,7 +154,15 @@ least 262,144 points. The prover checks the additional scratch against its
 optional memory allowance and falls back to ordinary windows under pressure.
 The buckets live for one proof. This setting is opt-in.
 
-With that layout enabled, `ZOPRO_CPU_H_WINDOW_RANGES=2` splits each H window
+Two signed layouts are also available through the same setting. `18s` uses
+18 overlapping Booth windows and `17s` uses 17. Both extract signed digits
+directly from scalar words. They use the same per-proof memory admission as
+the unsigned layout. On C7a with 96 cores, `18s` reduced 16×2 latency from
+36.108 to 35.841 ms in the same build. At 64 cores the unsigned layout
+was faster on that shape. The 17-window layout used more bucket space and
+gave mixed timing results. [Measured comparisons](docs/benchmarks/2026-11-18-signed-h-release366/aws.md)
+
+With a mixed-width layout enabled, `ZOPRO_CPU_H_WINDOW_RANGES=2` splits each H window
 into two disjoint point ranges. Their buckets are combined before weighting.
 The prover accounts for both ranges when admitting the query. If this exceeds
 the optional memory allowance it tries the single-range layout.
