@@ -27,3 +27,16 @@ An additional thread-ID trace used the exact frontend-pool candidate, with and w
 | merge-24x1 | no | caller | caller |
 
 Each pool-placement cell exported a verified proof after three observed requests. The alternative frontend pool was used for 1×2 and 2×2. The six larger shapes executed the general solver and product FFT with their caller as the entry thread even with an attached pool. Experiment 321 tests attaching the smaller pool to those general phases.
+
+## Where time goes on the same proofs
+
+Intervals are disjoint and use the timed SDK call on the exact 16-core integrated binary. Each column is the median of 33 request intervals. The first interval includes SDK witness work, solving and scalar gathering. The curve span starts at the first observed raw query and ends at the last observed return. Concurrent query durations are counted once.
+
+| Shape | SDK entry to product FFT ms | Product FFT ms | FFT return to first curve ms | Concurrent curve span ms | Last curve to SDK return ms |
+|---|---:|---:|---:|---:|---:|
+| 2x2 | 1.955 | 1.150 | 0.005 | 8.288 | 0.654 |
+| 4x2 | 2.649 | 2.368 | 0.127 | 11.233 | 0.726 |
+| 8x2 | 4.069 | 4.532 | 0.210 | 17.338 | 0.728 |
+| 12x2 | 5.047 | 9.707 | 0.023 | 23.027 | 0.726 |
+
+These intervals describe local traces. The AWS frontend and curve split can differ as worker count and the last query change.
