@@ -22,3 +22,16 @@ The G2 implementation splits canonical scalars into two signed components before
 Each wall-time entry is the median of three uninstrumented process means. The 96-core candidate reaches 3.66× the supplied M5 CPU speed and 2.38× Metal on 1×2. The eight-shape 10× CPU goal remains open. [Earlier nine-shape panel](../2026-11-18-early-diversity257/README.md)
 
 The first AWS preflight (261) registered probes at two locked counter increments. The timed certificate counters advanced at both core counts, but the two probe sites emitted no events on the AWS instance. All six completed exports passed independent host Gnark verification and entered the ledger. The revised observer (262) traced the containing scalar-check callback and passed a local smoke before launch. Each timed trace had one complete call per named stage and 22 complete G2 fills, checked by worker/thread and paired in SDK request order. The full run verified all 24 exported proofs on both hosts. Together with the revised local smoke the cumulative ledger reached 65,164. Both AWS instances terminated, with tagged EBS queries empty and temporary buckets removed. [Protocol](artifacts/protocol.md) · [Trace reader](artifacts/trace.rs) · [Verification](artifacts/verification.json)
+
+## The extra time usually concentrates in a single interval
+
+The class means spread the extra time across several intervals. Looking at each slow proof tells a different story. For each of the eleven disjoint intervals, we subtracted the median duration of that interval among fast proofs in the same block. **115 of 116 slow proofs had exactly one interval more than 1 ms above its baseline.** At thresholds of 1.5 and 2 ms, the corresponding counts were 113 and 112. This is an exploratory analysis of the existing trace.
+
+| Interval with the largest excess | Slow proofs | Median excess in that interval |
+|---|---:|---:|
+| G2 entry to first fill | 51 | 3.24 ms |
+| Last fill to G2 return | 38 | 3.12 ms |
+| G2 return to canonical return | 21 | 3.35 ms |
+| First fill start to last fill return | 6 | 2.23 ms |
+
+A local optimization before the first fill could remove work or could move the long interval elsewhere. Compare the full latency distribution after any change. A further diagnostic would trace the fused K/H query alongside G2, retaining worker IDs and per-thread nesting to distinguish a worker executing another query during a join from an off-CPU delay. The current trace supports neither mechanism exclusively. [Threshold sensitivity and counts](artifacts/excess.json) · [Analysis](artifacts/excess.jq)
