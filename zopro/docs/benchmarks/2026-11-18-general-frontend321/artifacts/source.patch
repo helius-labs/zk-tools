@@ -1,0 +1,71 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1133,16 +1133,24 @@
+                 }
+             }
+         }
+-        let solver::Solution { mut w, a, b, c } =
+-            plan.solve_in_with_slots(&frs(witness), self.domain, slots, materialize_c)?;
+-        if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
+-        let started = trace("solve", started);
+-        use rayon::prelude::*;
+-        let (mut sa, mut sb): (Vec<_>, Vec<_>) = rayon::join(
+-            || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
+-            || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
+-        );
+-        trace("extract-scalars", started);
++        let prepare = || -> Result<_, String> {
++            let solver::Solution { mut w, a, b, c } =
++                plan.solve_in_with_slots(&frs(witness), self.domain, slots, materialize_c)?;
++            if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
++            let started = trace("solve", started);
++            use rayon::prelude::*;
++            let (sa, sb): (Vec<_>, Vec<_>) = rayon::join(
++                || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
++                || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
++            );
++            trace("extract-scalars", started);
++            Ok((w, a, b, c, sa, sb))
++        };
++        #[cfg(all(target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",feature="ifma8",not(no_ifma)))]
++        let prepared = self.run_general_preparation("solver", prepare);
++        #[cfg(not(all(target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",feature="ifma8",not(no_ifma))))]
++        let prepared = prepare();
++        let (mut w, a, b, c, mut sa, mut sb) = prepared?;
+         let (public, private) = w.split_at_mut(plan.n_public);
+         self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
+     }
+@@ -1818,7 +1826,11 @@
+             if let (Some(folded), Some(public)) = (&queries.folded, public) {
+                 drop(c);
+                 let started = crate::time::Instant::now();
+-                let mut product = queries.product_values(&self.plan,a,b);
++                let product = || queries.product_values(&self.plan,a,b);
++                #[cfg(all(target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",feature="ifma8",not(no_ifma)))]
++                let mut product = self.run_general_preparation("fft", product);
++                #[cfg(not(all(target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",feature="ifma8",not(no_ifma))))]
++                let mut product = product();
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+@@ -2424,3 +2436,20 @@
+         self.frontend_pool = pool;
+     }
+ }
++
++#[cfg(all(target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",feature="ifma8",not(no_ifma)))]
++impl Key {
++    fn run_general_preparation<T: Send>(&self, phase: &str, work: impl FnOnce() -> T + Send) -> T {
++        if let Some(pool) = self.frontend_pool.as_ref() {
++            let mode = std::env::var("ZOPRO_BENCH_GENERAL_FRONTEND").unwrap_or_default();
++            if (mode == phase || mode == "both")
++                && pool.current_num_threads() < rayon::current_num_threads()
++                && !self.has_gpu()
++                && self.lagrange.as_ref().is_some_and(|q| q.folded.is_some())
++            {
++                return pool.install(work);
++            }
++        }
++        work()
++    }
++}
