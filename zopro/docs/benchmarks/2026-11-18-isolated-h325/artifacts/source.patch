@@ -1,0 +1,139 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -200,6 +200,13 @@
+     // SAFETY: Fr is repr(transparent) over its four initialized limbs.
+     let words =
+         unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
++    #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++    let result = if bases.len() >= 1 << 18 && std::env::var("ZOPRO_CPU_DENSE_H_WINDOWS").as_deref() == Ok("19") {
++        if let Some(_scratch) = crate::preparation::Reservation::analysis(workspace::dense_h_extra::<C>(bases.len())) {
++            dense_h::sum(bases, words)
++        } else { msm_raw(bases, words) }
++    } else { msm_raw(bases, words) };
++    #[cfg(not(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma))))]
+     let result = msm_raw(bases, words);
+     let inverse_r = Fr::from_montgomery([1, 0, 0, 0]);
+     result.mul(&inverse_r)
+@@ -1795,3 +1802,6 @@
+ 
+ #[cfg(all(zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+ mod g2_borrowed;
++
++#[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++mod dense_h;
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -188,6 +188,20 @@
+         p.leaf = p.leaf.max(t.leaf);
+     }
+     Some(p)
++}
++/// Extra positive growth over the ordinary raw H query at this worker count.
++pub(super) fn dense_h_extra<C: CurveConfig>(n: usize) -> Option<usize>
++where C::Base: BatchInverse {
++    let ordinary = raw::<C>(n, false)?;
++    let mut held = 0;
++    let mut leaf = 0;
++    for &bits in dense_h::WIDTHS {
++        let profile = shape::<C>(1usize.checked_shl(bits as u32)?, 1, 1, batch_size(bits + 1).max(32))?;
++        held = add(held, profile.held)?;
++        leaf = leaf.max(profile.leaf);
++    }
++    add(held.saturating_sub(ordinary.held),
++        mul(leaf.saturating_sub(ordinary.leaf), rayon::current_num_threads())?)
+ }
+ fn hb<C: CurveConfig>(n: usize) -> Option<Profile>
+ where
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/dense_h.rs
+@@ -0,0 +1,90 @@
++use super::*;
++
++// Consecutive little-endian bit fields covering the 254 scalar bits.
++pub(super) const WIDTHS: &[usize] = &[
++    14, 13, 14, 13, 13, 14, 13, 13, 14, 13, 13, 14, 13, 13, 14, 13, 13, 14, 13,
++];
++pub(super) fn sum<C: CurveConfig>(bases: &[Affine<C>], words: &[[u64; 4]]) -> Projective<C>
++where
++    C::Base: BatchInverse,
++{
++    assert_eq!(bases.len(), words.len());
++    let widths = WIDTHS;
++    let mut offsets = [0usize; 19];
++    let mut end = 0;
++    for (slot, &bits) in offsets.iter_mut().zip(widths) {
++        *slot = end;
++        end += bits;
++    }
++    assert_eq!(end, Fr::MODULUS_BITS as usize);
++    let sums: Vec<_> = widths
++        .par_iter()
++        .zip(&offsets[..widths.len()])
++        .map(|(&bits, &offset)| {
++            let lane = offset / 64;
++            let shift = offset % 64;
++            let mask = (1u64 << bits) - 1;
++            let batch = batch_size(bits + 1).max(32);
++            let buckets = if shift + bits <= 64 {
++                fill_window_impl::<C, false, true>(
++                    bases,
++                    words.iter().map(|v| ((v[lane] >> shift) & mask) as i16),
++                    bits + 1,
++                    batch,
++                )
++            } else {
++                fill_window_impl::<C, false, true>(
++                    bases,
++                    words.iter().map(|v| {
++                        (((v[lane] >> shift) | (v[lane + 1] << (64 - shift))) & mask) as i16
++                    }),
++                    bits + 1,
++                    batch,
++                )
++            };
++            crate::msm::weighted_affine(&affine_buckets(buckets))
++        })
++        .collect();
++    let mut result = *sums.last().unwrap();
++    for j in (0..sums.len() - 1).rev() {
++        for _ in 0..widths[j] {
++            result = result.double();
++        }
++        result += sums[j];
++    }
++    result
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use zopro_bn254::{G1Affine, G1Config};
++    #[test]
++    fn mixed_windows_reconstruct_generator_sum() {
++        let mut bases = vec![G1Affine::GENERATOR; 1031];
++        let mut words = Vec::new();
++        let mut expected = Fr::ZERO;
++        for (i, p) in bases.iter_mut().enumerate() {
++            let value = match i % 31 {
++                0 => Fr::ZERO,
++                1 => -Fr::ONE,
++                _ => Fr::from((i + 1) as u64).pow(&[47]),
++            };
++            if i % 7 == 0 {
++                *p = G1Affine::IDENTITY;
++            } else if i % 3 == 0 {
++                *p = -*p;
++                expected -= value;
++            } else {
++                expected += value;
++            }
++            words.push(value.to_canonical());
++        }
++        {
++            assert_eq!(
++                sum::<G1Config>(&bases, &words).to_affine(),
++                (G1Affine::GENERATOR * expected).to_affine()
++            );
++        }
++    }
++}
