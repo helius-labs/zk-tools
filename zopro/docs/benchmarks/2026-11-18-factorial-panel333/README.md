@@ -101,3 +101,20 @@ Both parameters are changed within the same executable. The old executable provi
 | merge-24x1 | 64 | release-ordinary | 55.539 | 2483 | 1127 |
 
 [Protocol](artifacts/protocol.md) · [Configuration](artifacts/settings.json) · [Process and request data](artifacts/processes.json.gz) · [Verification](artifacts/verification.json)
+
+## Where slow 1×2 requests spend time
+
+The supplementary panel ran after the primary measurements, with the same experimental executable. Three processes per setting each timed 51 requests. Uprobes bracket the canonical core, the product FFT and the G2 query. The G2 interval includes time its thread may spend on other Rayon tasks. Intervals describe elapsed time and cannot identify the cause of a worker stall.
+
+| Cores | G2 ranges | Plain p50 / p95 ms | Paired trace overhead | Traced fast / slow requests | Fast / slow G2 ms | Fast / slow FFT ms | Fast / slow time after G2 ms |
+|---:|---|---:|---:|---:|---:|---:|---:|
+| 64 | 2 | 8.444 / 8.677 | +2.28% | 149 / 4 | 3.991 / 5.592 | 0.804 / 0.835 | 0.018 / 0.016 |
+| 64 | 4 | 9.554 / 9.972 | +1.99% | 136 / 17 | 4.912 / 5.416 | 0.817 / 0.817 | 0.018 / 0.018 |
+| 72 | 2 | 8.438 / 11.845 | +0.88% | 146 / 7 | 3.930 / 7.214 | 0.811 / 0.809 | 0.018 / 0.015 |
+| 72 | 4 | 8.913 / 9.235 | +1.73% | 151 / 2 | 4.421 / 6.063 | 0.816 / 0.827 | 0.018 / 0.025 |
+| 96 | 2 | 9.019 / 12.280 | -1.50% | 82 / 71 | 4.096 / 7.252 | 0.828 / 0.832 | 0.020 / 0.025 |
+| 96 | 4 | 8.611 / 11.082 | +1.24% | 129 / 24 | 3.374 / 6.379 | 0.826 / 0.831 | 0.388 / 0.019 |
+
+Slow is defined as at least 10 ms. A subgroup with few requests provides weak evidence. Observer shifts larger than 5% warrant treating the traced distributions as descriptive. All 36 supplementary exports passed independent verification.
+
+[Request intervals](artifacts/tail-requests.json.gz) · [Supplementary verification](artifacts/tail-verification.json)
