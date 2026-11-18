@@ -62,3 +62,24 @@ This post hoc check selects slow requests whose last-fill-to-last-weight interva
 A window can still be waiting for a partition join or bucket merge before entering its weighted reduction. The marker alone cannot distinguish that wait from time inside the reduction. [Per-request window completions](artifacts/window-completions.json.gz)
 
 All 24 AWS exports passed Gnark verification on the instance and after retrieval. One additional local probe smoke proof also verified. The instance terminated, its volume query was empty, and the temporary bucket was removed. [Verification](artifacts/verification.json)
+
+## Why the extra cores help Aeglos on this input
+
+Aeglos reports times for its own witness, FFT, MSM and assembly phases. Each timing below is the median of three process means. The Zopro trace resolves intervals on the request timeline. Stage definitions differ across engines, so the change from 64 to 96 cores is shown within each engine.
+
+| Engine | Interval | 64 cores, ms | 96 cores, ms | 96 minus 64, ms |
+|---|---|---:|---:|---:|
+| aeglos | witness_ms | 1.438 | 1.559 | +0.121 |
+| aeglos | fft_ms | 0.803 | 0.879 | +0.075 |
+| aeglos | msm_ms | 5.041 | 3.863 | -1.178 |
+| aeglos | assembly_ms | 0.276 | 0.297 | +0.021 |
+| aeglos | full | 8.664 | 7.787 | -0.878 |
+| trace | solve | 1.978 | 2.075 | +0.097 |
+| trace | fft_check | 0.877 | 0.942 | +0.065 |
+| trace | to_fill | 0.424 | 0.617 | +0.193 |
+| trace | fill_span | 3.269 | 3.478 | +0.208 |
+| trace | fill_to_weight | 0.737 | 0.586 | -0.151 |
+| trace | weight_to_collect | 0.119 | 0.083 | -0.036 |
+| trace | collect_to_raw | 0.068 | 0.071 | +0.003 |
+| trace | after_g2 | 0.284 | 0.318 | +0.034 |
+| trace | full | 9.608 | 10.376 | +0.768 |
