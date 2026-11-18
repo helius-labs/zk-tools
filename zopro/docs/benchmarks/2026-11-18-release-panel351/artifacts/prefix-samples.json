@@ -1,0 +1,1664 @@
+[
+  {
+    "w": 64,
+    "m": "two",
+    "phase": "whole",
+    "wall": 8.775945000024876,
+    "count": 20187,
+    "cpu_ms_per_request": 263.88235294117646,
+    "crossbeam_cpu_ms_per_request": 55.69934640522876,
+    "rayon_worker_cpu_ms_per_request": 5.869281045751634,
+    "families": {
+      "Prover code": 13692,
+      "Other": 1044,
+      "Other Rayon": 741,
+      "Crossbeam": 4261,
+      "Rayon worker coordination": 449
+    },
+    "top": [
+      [
+        "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        3814
+      ],
+      [
+        "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        3060
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        2347
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        1574
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        841
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+        789
+      ],
+      [
+        "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+        732
+      ],
+      [
+        "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        732
+      ],
+      [
+        "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+        515
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+        455
+      ],
+      [
+        "[unknown]",
+        402
+      ],
+      [
+        "__sched_yield",
+        399
+      ]
+    ]
+  },
+  {
+    "w": 64,
+    "m": "two",
+    "phase": "before_core",
+    "wall": 0.34402100004626845,
+    "count": 35,
+    "cpu_ms_per_request": 0.45751633986928103,
+    "crossbeam_cpu_ms_per_request": 0.24836601307189543,
+    "rayon_worker_cpu_ms_per_request": 0.013071895424836602,
+    "families": {
+      "Crossbeam": 19,
+      "Prover code": 4,
+      "Other": 11,
+      "Rayon worker coordination": 1
+    },
+    "top": [
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        14
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        5
+      ],
+      [
+        "__sched_yield",
+        3
+      ],
+      [
+        "[unknown]",
+        2
+      ],
+      [
+        "zopro_zolana::request::hex_element",
+        1
+      ],
+      [
+        "<alloc::string::String as core::fmt::Write>::write_str",
+        1
+      ],
+      [
+        "<zopro_prover::witness::Assignment>::set_all",
+        1
+      ],
+      [
+        "malloc",
+        1
+      ],
+      [
+        "<alloc::vec::Vec<&str> as alloc::vec::spec_from_iter_nested::SpecFromIterNested<&str, core::str::iter::SplitWhitespace>>::from_iter",
+        1
+      ],
+      [
+        "<zopro_prover::witness::Assignment>::set",
+        1
+      ],
+      [
+        "<zopro_zolana::Prover>::prove",
+        1
+      ],
+      [
+        "<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::string::String>",
+        1
+      ]
+    ]
+  },
+  {
+    "w": 64,
+    "m": "two",
+    "phase": "core_to_fft_end",
+    "wall": 2.8772319999461615,
+    "count": 1708,
+    "cpu_ms_per_request": 22.326797385620914,
+    "crossbeam_cpu_ms_per_request": 2.69281045751634,
+    "rayon_worker_cpu_ms_per_request": 0.6143790849673203,
+    "families": {
+      "Prover code": 978,
+      "Other": 297,
+      "Other Rayon": 180,
+      "Rayon worker coordination": 47,
+      "Crossbeam": 206
+    },
+    "top": [
+      [
+        "[unknown]",
+        184
+      ],
+      [
+        "<zopro_core::solver::Plan>::run",
+        181
+      ],
+      [
+        "zopro_core::fft::pair::leaf::dit_serial",
+        127
+      ],
+      [
+        "zopro_core::fft::pair::leaf::dif_serial",
+        125
+      ],
+      [
+        "zopro_core::fused_canonical_gather::fill",
+        124
+      ],
+      [
+        "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+        107
+      ],
+      [
+        "__sched_yield",
+        103
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        97
+      ],
+      [
+        "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+        96
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        62
+      ],
+      [
+        "<zopro_core::solver::Plan>::emit_poseidon",
+        53
+      ],
+      [
+        "<zopro_core::solver::Plan>::run_poseidon_task",
+        52
+      ]
+    ]
+  },
+  {
+    "w": 64,
+    "m": "two",
+    "phase": "fft_end_to_core_end",
+    "wall": 4.604626999991979,
+    "count": 18233,
+    "cpu_ms_per_request": 238.33986928104576,
+    "crossbeam_cpu_ms_per_request": 51.568627450980394,
+    "rayon_worker_cpu_ms_per_request": 5.163398692810458,
+    "families": {
+      "Other Rayon": 560,
+      "Prover code": 12614,
+      "Other": 719,
+      "Crossbeam": 3945,
+      "Rayon worker coordination": 395
+    },
+    "top": [
+      [
+        "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        3814
+      ],
+      [
+        "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        3060
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        2258
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        1400
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        841
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+        789
+      ],
+      [
+        "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+        732
+      ],
+      [
+        "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        731
+      ],
+      [
+        "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+        515
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+        452
+      ],
+      [
+        "<&zopro_core::msm_affine::g2_phi::hb_raw_decomposition::{closure#1}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+        299
+      ],
+      [
+        "__sched_yield",
+        278
+      ]
+    ]
+  },
+  {
+    "w": 64,
+    "m": "two",
+    "phase": "after_core",
+    "wall": 0.8864730000368581,
+    "count": 211,
+    "cpu_ms_per_request": 2.758169934640523,
+    "crossbeam_cpu_ms_per_request": 1.1895424836601307,
+    "rayon_worker_cpu_ms_per_request": 0.0784313725490196,
+    "families": {
+      "Crossbeam": 91,
+      "Prover code": 96,
+      "Other": 17,
+      "Rayon worker coordination": 6,
+      "Other Rayon": 1
+    },
+    "top": [
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        63
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6 as core::ops::arith::Mul>::mul",
+        23
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        22
+      ],
+      [
+        "__sched_yield",
+        15
+      ],
+      [
+        "<zopro_bn254::fq12::Fq12>::cyclotomic_square::fp4_square",
+        11
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+        10
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double",
+        8
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+        7
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        6
+      ],
+      [
+        "zopro_bn254::pairing::multi_miller_loop",
+        5
+      ],
+      [
+        "zopro_bn254::pairing::ell",
+        5
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6>::mul_by_nonresidue",
+        4
+      ]
+    ]
+  },
+  {
+    "w": 80,
+    "m": "serial",
+    "phase": "whole",
+    "wall": 9.136430000012297,
+    "count": 24125,
+    "cpu_ms_per_request": 315.359477124183,
+    "crossbeam_cpu_ms_per_request": 91.11111111111111,
+    "rayon_worker_cpu_ms_per_request": 7.019607843137255,
+    "families": {
+      "Prover code": 14648,
+      "Other Rayon": 749,
+      "Crossbeam": 6970,
+      "Rayon worker coordination": 537,
+      "Other": 1221
+    },
+    "top": [
+      [
+        "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        3917
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        3661
+      ],
+      [
+        "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        3598
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        2860
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        884
+      ],
+      [
+        "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        840
+      ],
+      [
+        "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+        699
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+        638
+      ],
+      [
+        "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+        544
+      ],
+      [
+        "[unknown]",
+        484
+      ],
+      [
+        "__sched_yield",
+        446
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        438
+      ]
+    ]
+  },
+  {
+    "w": 80,
+    "m": "serial",
+    "phase": "before_core",
+    "wall": 0.35478200004490645,
+    "count": 33,
+    "cpu_ms_per_request": 0.43137254901960786,
+    "crossbeam_cpu_ms_per_request": 0.20915032679738563,
+    "rayon_worker_cpu_ms_per_request": 0.013071895424836602,
+    "families": {
+      "Prover code": 5,
+      "Crossbeam": 16,
+      "Other": 11,
+      "Rayon worker coordination": 1
+    },
+    "top": [
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        6
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        6
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        4
+      ],
+      [
+        "[unknown]",
+        4
+      ],
+      [
+        "__sched_yield",
+        3
+      ],
+      [
+        "<zopro_zolana::Prover>::witness",
+        2
+      ],
+      [
+        "open64",
+        2
+      ],
+      [
+        "<zopro_prover::witness::Assignment>::set",
+        1
+      ],
+      [
+        "zopro_zolana::request::hex_element",
+        1
+      ],
+      [
+        "malloc",
+        1
+      ],
+      [
+        "<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::string::String>",
+        1
+      ],
+      [
+        "<rayon_core::registry::WorkerThread>::wait_until_cold",
+        1
+      ]
+    ]
+  },
+  {
+    "w": 80,
+    "m": "serial",
+    "phase": "core_to_fft_end",
+    "wall": 2.9159530000129052,
+    "count": 1792,
+    "cpu_ms_per_request": 23.424836601307188,
+    "crossbeam_cpu_ms_per_request": 3.3333333333333335,
+    "rayon_worker_cpu_ms_per_request": 0.5882352941176471,
+    "families": {
+      "Prover code": 1004,
+      "Other Rayon": 187,
+      "Crossbeam": 255,
+      "Other": 301,
+      "Rayon worker coordination": 45
+    },
+    "top": [
+      [
+        "[unknown]",
+        198
+      ],
+      [
+        "<zopro_core::solver::Plan>::run",
+        176
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        143
+      ],
+      [
+        "zopro_core::fft::pair::leaf::dit_serial",
+        141
+      ],
+      [
+        "zopro_core::fft::pair::leaf::dif_serial",
+        139
+      ],
+      [
+        "zopro_core::fused_canonical_gather::fill",
+        132
+      ],
+      [
+        "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+        117
+      ],
+      [
+        "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+        94
+      ],
+      [
+        "__sched_yield",
+        84
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        71
+      ],
+      [
+        "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+        49
+      ],
+      [
+        "<zopro_core::solver::Plan>::emit_poseidon",
+        48
+      ]
+    ]
+  },
+  {
+    "w": 80,
+    "m": "serial",
+    "phase": "fft_end_to_core_end",
+    "wall": 4.894149999927322,
+    "count": 22060,
+    "cpu_ms_per_request": 288.36601307189545,
+    "crossbeam_cpu_ms_per_request": 85.81699346405229,
+    "rayon_worker_cpu_ms_per_request": 6.352941176470588,
+    "families": {
+      "Prover code": 13553,
+      "Other Rayon": 560,
+      "Crossbeam": 6565,
+      "Rayon worker coordination": 486,
+      "Other": 896
+    },
+    "top": [
+      [
+        "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        3917
+      ],
+      [
+        "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        3598
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        3555
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        2614
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        884
+      ],
+      [
+        "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        838
+      ],
+      [
+        "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+        699
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+        638
+      ],
+      [
+        "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+        544
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+        433
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        387
+      ],
+      [
+        "__sched_yield",
+        347
+      ]
+    ]
+  },
+  {
+    "w": 80,
+    "m": "serial",
+    "phase": "after_core",
+    "wall": 0.9173440000154187,
+    "count": 240,
+    "cpu_ms_per_request": 3.1372549019607843,
+    "crossbeam_cpu_ms_per_request": 1.7516339869281046,
+    "rayon_worker_cpu_ms_per_request": 0.06535947712418301,
+    "families": {
+      "Prover code": 86,
+      "Other": 13,
+      "Crossbeam": 134,
+      "Other Rayon": 2,
+      "Rayon worker coordination": 5
+    },
+    "top": [
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        97
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        29
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6 as core::ops::arith::Mul>::mul",
+        20
+      ],
+      [
+        "__sched_yield",
+        12
+      ],
+      [
+        "<zopro_bn254::fq12::Fq12>::cyclotomic_square::fp4_square",
+        11
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+        10
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double",
+        8
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6>::mul_by_01",
+        8
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        8
+      ],
+      [
+        "zopro_bn254::pairing::ell",
+        5
+      ],
+      [
+        "<rayon_core::registry::WorkerThread>::wait_until_cold",
+        5
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6>::mul_by_fp2",
+        4
+      ]
+    ]
+  },
+  {
+    "w": 88,
+    "m": "serial",
+    "phase": "whole",
+    "wall": 8.85204500002601,
+    "count": 25672,
+    "cpu_ms_per_request": 335.58169934640523,
+    "crossbeam_cpu_ms_per_request": 106.05228758169935,
+    "rayon_worker_cpu_ms_per_request": 7.647058823529412,
+    "families": {
+      "Prover code": 14921,
+      "Rayon worker coordination": 585,
+      "Crossbeam": 8113,
+      "Other Rayon": 756,
+      "Other": 1297
+    },
+    "top": [
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        4200
+      ],
+      [
+        "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        3805
+      ],
+      [
+        "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        3570
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        3402
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        905
+      ],
+      [
+        "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        812
+      ],
+      [
+        "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+        774
+      ],
+      [
+        "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+        692
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+        691
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        504
+      ],
+      [
+        "__sched_yield",
+        495
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+        487
+      ]
+    ]
+  },
+  {
+    "w": 88,
+    "m": "serial",
+    "phase": "before_core",
+    "wall": 0.36710199992739945,
+    "count": 42,
+    "cpu_ms_per_request": 0.5490196078431373,
+    "crossbeam_cpu_ms_per_request": 0.3790849673202614,
+    "rayon_worker_cpu_ms_per_request": 0.013071895424836602,
+    "families": {
+      "Crossbeam": 29,
+      "Other": 9,
+      "Prover code": 3,
+      "Rayon worker coordination": 1
+    },
+    "top": [
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        24
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        4
+      ],
+      [
+        "[unknown]",
+        3
+      ],
+      [
+        "zopro_zolana::request::hex_element",
+        3
+      ],
+      [
+        "__sched_yield",
+        2
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        1
+      ],
+      [
+        "read",
+        1
+      ],
+      [
+        "<alloc::raw_vec::RawVecInner<_>>::reserve::do_reserve_and_handle::<alloc::alloc::Global>",
+        1
+      ],
+      [
+        "open64",
+        1
+      ],
+      [
+        "<rayon_core::registry::WorkerThread>::wait_until_cold",
+        1
+      ],
+      [
+        "<std::path::Components as core::iter::traits::iterator::Iterator>::next",
+        1
+      ]
+    ]
+  },
+  {
+    "w": 88,
+    "m": "serial",
+    "phase": "core_to_fft_end",
+    "wall": 2.9799420000244936,
+    "count": 1847,
+    "cpu_ms_per_request": 24.143790849673202,
+    "crossbeam_cpu_ms_per_request": 3.477124183006536,
+    "rayon_worker_cpu_ms_per_request": 0.6013071895424836,
+    "families": {
+      "Prover code": 1048,
+      "Other": 279,
+      "Crossbeam": 266,
+      "Other Rayon": 208,
+      "Rayon worker coordination": 46
+    },
+    "top": [
+      [
+        "<zopro_core::solver::Plan>::run",
+        181
+      ],
+      [
+        "[unknown]",
+        171
+      ],
+      [
+        "zopro_core::fused_canonical_gather::fill",
+        166
+      ],
+      [
+        "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+        140
+      ],
+      [
+        "zopro_core::fft::pair::leaf::dit_serial",
+        138
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        136
+      ],
+      [
+        "zopro_core::fft::pair::leaf::dif_serial",
+        114
+      ],
+      [
+        "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+        99
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        93
+      ],
+      [
+        "__sched_yield",
+        83
+      ],
+      [
+        "<zopro_core::solver::Plan>::emit_poseidon",
+        59
+      ],
+      [
+        "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+        46
+      ]
+    ]
+  },
+  {
+    "w": 88,
+    "m": "serial",
+    "phase": "fft_end_to_core_end",
+    "wall": 4.51769799997237,
+    "count": 23417,
+    "cpu_ms_per_request": 306.1045751633987,
+    "crossbeam_cpu_ms_per_request": 99.2156862745098,
+    "rayon_worker_cpu_ms_per_request": 6.915032679738562,
+    "families": {
+      "Rayon worker coordination": 529,
+      "Prover code": 13768,
+      "Crossbeam": 7590,
+      "Other Rayon": 545,
+      "Other": 985
+    },
+    "top": [
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        4033
+      ],
+      [
+        "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        3805
+      ],
+      [
+        "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        3570
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        3097
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        905
+      ],
+      [
+        "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        811
+      ],
+      [
+        "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+        774
+      ],
+      [
+        "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+        692
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+        691
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+        484
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        453
+      ],
+      [
+        "__sched_yield",
+        388
+      ]
+    ]
+  },
+  {
+    "w": 88,
+    "m": "serial",
+    "phase": "after_core",
+    "wall": 0.9317939999391456,
+    "count": 366,
+    "cpu_ms_per_request": 4.784313725490196,
+    "crossbeam_cpu_ms_per_request": 2.980392156862745,
+    "rayon_worker_cpu_ms_per_request": 0.11764705882352941,
+    "families": {
+      "Prover code": 102,
+      "Crossbeam": 228,
+      "Other": 24,
+      "Rayon worker coordination": 9,
+      "Other Rayon": 3
+    },
+    "top": [
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        145
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        70
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6 as core::ops::arith::Mul>::mul",
+        31
+      ],
+      [
+        "__sched_yield",
+        22
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6>::mul_by_01",
+        14
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        13
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6>::mul_by_fp2",
+        9
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double",
+        9
+      ],
+      [
+        "<rayon_core::registry::WorkerThread>::wait_until_cold",
+        9
+      ],
+      [
+        "<zopro_bn254::fq12::Fq12>::cyclotomic_square::fp4_square",
+        7
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+        6
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+        4
+      ]
+    ]
+  },
+  {
+    "w": 96,
+    "m": "serial",
+    "phase": "whole",
+    "wall": 8.83773900000051,
+    "count": 28037,
+    "cpu_ms_per_request": 366.4967320261438,
+    "crossbeam_cpu_ms_per_request": 134.62745098039215,
+    "rayon_worker_cpu_ms_per_request": 8.84967320261438,
+    "families": {
+      "Other": 1264,
+      "Other Rayon": 797,
+      "Prover code": 15000,
+      "Crossbeam": 10299,
+      "Rayon worker coordination": 677
+    },
+    "top": [
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        5205
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        4511
+      ],
+      [
+        "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        3810
+      ],
+      [
+        "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        3583
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        914
+      ],
+      [
+        "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        906
+      ],
+      [
+        "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+        758
+      ],
+      [
+        "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+        691
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+        675
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        570
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+        481
+      ],
+      [
+        "[unknown]",
+        478
+      ]
+    ]
+  },
+  {
+    "w": 96,
+    "m": "serial",
+    "phase": "before_core",
+    "wall": 0.3724510000893133,
+    "count": 50,
+    "cpu_ms_per_request": 0.6535947712418301,
+    "crossbeam_cpu_ms_per_request": 0.49673202614379086,
+    "rayon_worker_cpu_ms_per_request": 0.0,
+    "families": {
+      "Crossbeam": 38,
+      "Other": 8,
+      "Prover code": 4
+    },
+    "top": [
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        28
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        7
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        3
+      ],
+      [
+        "[unknown]",
+        3
+      ],
+      [
+        "__sched_yield",
+        2
+      ],
+      [
+        "<hashbrown::raw::RawTable<(alloc::string::String, zopro_bn254::fp::Fp<zopro_bn254::FrConfig>)>>::reserve_rehash::<hashbrown::map::make_hasher<alloc::string::String, zopro_bn254::fp::Fp<zopro_bn254::FrConfig>, std::hash::random::RandomState>::{closure#0}>",
+        2
+      ],
+      [
+        "<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write",
+        1
+      ],
+      [
+        "<std::path::Components as core::iter::traits::iterator::Iterator>::next",
+        1
+      ],
+      [
+        "zopro_core::frs",
+        1
+      ],
+      [
+        "zopro_zolana::request::hex_element",
+        1
+      ],
+      [
+        "<serde_json::value::Value as serde_core::de::Deserialize>::deserialize::<&mut serde_json::de::Deserializer<serde_json::read::StrRead>>",
+        1
+      ]
+    ]
+  },
+  {
+    "w": 96,
+    "m": "serial",
+    "phase": "core_to_fft_end",
+    "wall": 3.034051999975418,
+    "count": 1831,
+    "cpu_ms_per_request": 23.934640522875817,
+    "crossbeam_cpu_ms_per_request": 3.4379084967320264,
+    "rayon_worker_cpu_ms_per_request": 0.7581699346405228,
+    "families": {
+      "Other": 291,
+      "Other Rayon": 199,
+      "Prover code": 1020,
+      "Crossbeam": 263,
+      "Rayon worker coordination": 58
+    },
+    "top": [
+      [
+        "<zopro_core::solver::Plan>::run",
+        207
+      ],
+      [
+        "[unknown]",
+        179
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        162
+      ],
+      [
+        "zopro_core::fft::pair::leaf::dit_serial",
+        135
+      ],
+      [
+        "zopro_core::fft::pair::leaf::dif_serial",
+        132
+      ],
+      [
+        "zopro_core::fused_canonical_gather::fill",
+        130
+      ],
+      [
+        "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+        103
+      ],
+      [
+        "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+        97
+      ],
+      [
+        "__sched_yield",
+        94
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        61
+      ],
+      [
+        "<zopro_core::solver::Plan>::emit_poseidon",
+        50
+      ],
+      [
+        "<rayon_core::registry::WorkerThread>::wait_until_cold",
+        47
+      ]
+    ]
+  },
+  {
+    "w": 96,
+    "m": "serial",
+    "phase": "fft_end_to_core_end",
+    "wall": 4.470279999964077,
+    "count": 25639,
+    "cpu_ms_per_request": 335.1503267973856,
+    "crossbeam_cpu_ms_per_request": 125.68627450980392,
+    "rayon_worker_cpu_ms_per_request": 7.947712418300654,
+    "families": {
+      "Prover code": 13878,
+      "Crossbeam": 9615,
+      "Other Rayon": 596,
+      "Other": 942,
+      "Rayon worker coordination": 608
+    },
+    "top": [
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        4994
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        4101
+      ],
+      [
+        "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        3810
+      ],
+      [
+        "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        3583
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        914
+      ],
+      [
+        "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        905
+      ],
+      [
+        "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+        758
+      ],
+      [
+        "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+        691
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+        675
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        510
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+        477
+      ],
+      [
+        "<rayon_core::sleep::Sleep>::wake_specific_thread",
+        400
+      ]
+    ]
+  },
+  {
+    "w": 96,
+    "m": "serial",
+    "phase": "after_core",
+    "wall": 0.9549929999366213,
+    "count": 517,
+    "cpu_ms_per_request": 6.758169934640523,
+    "crossbeam_cpu_ms_per_request": 5.006535947712418,
+    "rayon_worker_cpu_ms_per_request": 0.1437908496732026,
+    "families": {
+      "Prover code": 98,
+      "Crossbeam": 383,
+      "Rayon worker coordination": 11,
+      "Other": 23,
+      "Other Rayon": 2
+    },
+    "top": [
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        220
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        143
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6 as core::ops::arith::Mul>::mul",
+        22
+      ],
+      [
+        "__sched_yield",
+        21
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        19
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6>::mul_by_01",
+        17
+      ],
+      [
+        "<rayon_core::registry::WorkerThread>::wait_until_cold",
+        10
+      ],
+      [
+        "<zopro_bn254::fq12::Fq12>::cyclotomic_square::fp4_square",
+        9
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double",
+        7
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+        6
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::add_affine",
+        6
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+        4
+      ]
+    ]
+  },
+  {
+    "w": 96,
+    "m": "two",
+    "phase": "whole",
+    "wall": 10.314661000052183,
+    "count": 29836,
+    "cpu_ms_per_request": 390.01307189542484,
+    "crossbeam_cpu_ms_per_request": 161.3986928104575,
+    "rayon_worker_cpu_ms_per_request": 11.764705882352942,
+    "families": {
+      "Prover code": 14206,
+      "Other": 1501,
+      "Rayon worker coordination": 900,
+      "Crossbeam": 12347,
+      "Other Rayon": 882
+    },
+    "top": [
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        6452
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        5190
+      ],
+      [
+        "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        3885
+      ],
+      [
+        "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        3222
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        923
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+        811
+      ],
+      [
+        "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        691
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        688
+      ],
+      [
+        "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+        680
+      ],
+      [
+        "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+        642
+      ],
+      [
+        "<rayon_core::sleep::Sleep>::wake_specific_thread",
+        589
+      ],
+      [
+        "__sched_yield",
+        561
+      ]
+    ]
+  },
+  {
+    "w": 96,
+    "m": "two",
+    "phase": "before_core",
+    "wall": 0.3577510000241091,
+    "count": 42,
+    "cpu_ms_per_request": 0.5490196078431373,
+    "crossbeam_cpu_ms_per_request": 0.27450980392156865,
+    "rayon_worker_cpu_ms_per_request": 0.0392156862745098,
+    "families": {
+      "Other": 13,
+      "Crossbeam": 21,
+      "Rayon worker coordination": 3,
+      "Prover code": 4,
+      "Other Rayon": 1
+    },
+    "top": [
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        13
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        7
+      ],
+      [
+        "__sched_yield",
+        4
+      ],
+      [
+        "<rayon_core::registry::WorkerThread>::wait_until_cold",
+        3
+      ],
+      [
+        "[unknown]",
+        3
+      ],
+      [
+        "read",
+        3
+      ],
+      [
+        "zopro_zolana::request::hex_element",
+        2
+      ],
+      [
+        "<core::hash::sip::Hasher<core::hash::sip::Sip13Rounds> as core::hash::Hasher>::write",
+        1
+      ],
+      [
+        "<rayon_core::registry::Registry>::inject",
+        1
+      ],
+      [
+        "<std::hash::random::RandomState as core::hash::BuildHasher>::hash_one::<&alloc::string::String>",
+        1
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        1
+      ],
+      [
+        "<serde_json::read::SliceRead>::skip_to_escape",
+        1
+      ]
+    ]
+  },
+  {
+    "w": 96,
+    "m": "two",
+    "phase": "core_to_fft_end",
+    "wall": 2.9693520000364515,
+    "count": 1811,
+    "cpu_ms_per_request": 23.673202614379086,
+    "crossbeam_cpu_ms_per_request": 3.3594771241830066,
+    "rayon_worker_cpu_ms_per_request": 0.5620915032679739,
+    "families": {
+      "Prover code": 1053,
+      "Other": 303,
+      "Crossbeam": 257,
+      "Other Rayon": 155,
+      "Rayon worker coordination": 43
+    },
+    "top": [
+      [
+        "<zopro_core::solver::Plan>::run",
+        192
+      ],
+      [
+        "[unknown]",
+        175
+      ],
+      [
+        "zopro_core::fused_canonical_gather::fill",
+        154
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        150
+      ],
+      [
+        "zopro_core::fft::pair::leaf::dif_serial",
+        138
+      ],
+      [
+        "zopro_core::fft::pair::leaf::dit_serial",
+        134
+      ],
+      [
+        "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, true>",
+        121
+      ],
+      [
+        "zopro_core::fft::pair::stored_column_leaf::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+        114
+      ],
+      [
+        "__sched_yield",
+        107
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        64
+      ],
+      [
+        "<zopro_core::solver::Plan>::emit_poseidon",
+        55
+      ],
+      [
+        "zopro_core::fft::pair::stored_transform_inner::<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>, false>",
+        49
+      ]
+    ]
+  },
+  {
+    "w": 96,
+    "m": "two",
+    "phase": "fft_end_to_core_end",
+    "wall": 5.792593000023771,
+    "count": 27469,
+    "cpu_ms_per_request": 359.0718954248366,
+    "crossbeam_cpu_ms_per_request": 152.66666666666666,
+    "rayon_worker_cpu_ms_per_request": 11.084967320261438,
+    "families": {
+      "Prover code": 13060,
+      "Other": 1157,
+      "Rayon worker coordination": 848,
+      "Crossbeam": 11679,
+      "Other Rayon": 725
+    },
+    "top": [
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        6239
+      ],
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        4806
+      ],
+      [
+        "zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        3885
+      ],
+      [
+        "zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        3222
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        923
+      ],
+      [
+        "zopro_core::msm::reduce_layer::<zopro_bn254::curve::G2Config>",
+        811
+      ],
+      [
+        "zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        691
+      ],
+      [
+        "zopro_core::msm_affine::borrowed_pending::balanced::feed::<zopro_bn254::curve::G1Config>",
+        680
+      ],
+      [
+        "<zopro_core::msm_affine::g2_borrowed::Window>::feed",
+        642
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        620
+      ],
+      [
+        "<rayon_core::sleep::Sleep>::wake_specific_thread",
+        586
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::add_affine",
+        471
+      ]
+    ]
+  },
+  {
+    "w": 96,
+    "m": "two",
+    "phase": "after_core",
+    "wall": 0.9159240000826685,
+    "count": 514,
+    "cpu_ms_per_request": 6.718954248366013,
+    "crossbeam_cpu_ms_per_request": 5.098039215686274,
+    "rayon_worker_cpu_ms_per_request": 0.0784313725490196,
+    "families": {
+      "Crossbeam": 390,
+      "Other": 28,
+      "Rayon worker coordination": 6,
+      "Prover code": 89,
+      "Other Rayon": 1
+    },
+    "top": [
+      [
+        "<crossbeam_epoch::internal::Global>::try_advance",
+        221
+      ],
+      [
+        "crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        142
+      ],
+      [
+        "__sched_yield",
+        27
+      ],
+      [
+        "<crossbeam_deque::deque::Stealer<rayon_core::job::JobRef>>::steal",
+        25
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6 as core::ops::arith::Mul>::mul",
+        21
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6>::mul_by_01",
+        18
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G1Config>>::double",
+        9
+      ],
+      [
+        "<zopro_bn254::fq12::Fq12>::cyclotomic_square::fp4_square",
+        7
+      ],
+      [
+        "<zopro_bn254::curve::Projective<zopro_bn254::curve::G2Config>>::double",
+        6
+      ],
+      [
+        "<zopro_bn254::fq6::Fq6>::mul_by_nonresidue",
+        6
+      ],
+      [
+        "<rayon_core::registry::WorkerThread>::wait_until_cold",
+        5
+      ],
+      [
+        "zopro_bn254::pairing::ell",
+        5
+      ]
+    ]
+  }
+]
