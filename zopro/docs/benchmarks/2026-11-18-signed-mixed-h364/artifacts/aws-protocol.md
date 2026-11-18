@@ -1,0 +1,1 @@
+Run signed-17/18 against the exact production release and the new disabled executable at matching worker widths and epochs. Seven blocks of 21 requests for 16×2 at 64, five elsewhere. Run only after all local SDK routes, independent proof verification and zero-allowance fallback pass. Use the existing C7a with no other concurrent measurements and the same pinned key images.
