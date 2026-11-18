@@ -2,6 +2,8 @@
 
 On 96 physical cores the integrated production source took 10.689 ms with the grouping check enabled and 12.259 ms disabled, a paired change of -12.11% with 7/7 wins. The previously measured enabled binary took 10.656 ms. The integration screen passed.
 
+On 64 physical cores, the experimental frontend pool reached the 9 ms 1×2 milestone on this host. Sixteen frontend workers took **8.492 ms and 53 MiB**, with all seven process means at or below 9 ms. Thirty-two frontend workers took 8.561 ms, also seven of seven. The same executable with the extra pool disabled took 9.412 ms. Aeglos measured 8.072 ms with 96 cores. The frontend workers share the 64-core affinity mask with the main pool. These figures measure one sequential client.
+
 The small shape uses 101 sequential requests per process and the large shapes use 21. All seven randomized blocks have three warmups per process. Each export passed external verification on the instance and after retrieval. The independent frontend pool is an experimental host configuration. The integrated grouping option builds no additional pool.
 
 | Shape | Physical cores | Setting | Median ms | Median CPU ms | Peak RSS MiB | M5 CPU / Metal speedup | Blocks ≤10× CPU target | 1×2 blocks ≤9 ms |
