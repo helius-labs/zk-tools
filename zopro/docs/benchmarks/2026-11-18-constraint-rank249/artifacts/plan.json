@@ -1,0 +1,93 @@
+{
+  "source_pins": "/home/ubuntu/src/zopro-perf-work/constraint-rank249/pins.json",
+  "steps": [
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=znver4",
+        "-C",
+        "overflow-checks=yes",
+        "/home/ubuntu/src/zopro-perf-work/constraint-rank249/census.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/certified-proof194/target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/certified-proof194/target/release/deps/libzopro_bn254-e663404b4ec27589.rlib",
+        "--extern",
+        "memmap2=/home/ubuntu/src/zopro-perf-work/certified-proof194/target/release/deps/libmemmap2-85cca426d2072c27.rlib",
+        "--test",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/constraint-rank249/tests"
+      ],
+      "kind": "command",
+      "name": "compile-tests",
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "dense-oracle",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/constraint-rank249/tests",
+        "model::rank_tests::sparse_matches_dense_quotient_in_both_orders",
+        "--exact"
+      ],
+      "timeout_seconds": 60
+    },
+    {
+      "argv": [
+        "/home/ubuntu/.rustup/toolchains/1.98.1-x86_64-unknown-linux-gnu/bin/rustc",
+        "--edition=2021",
+        "-O",
+        "-C",
+        "target-cpu=znver4",
+        "-C",
+        "overflow-checks=yes",
+        "/home/ubuntu/src/zopro-perf-work/constraint-rank249/census.rs",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps",
+        "-L",
+        "dependency=/home/ubuntu/src/zopro-perf-work/certified-proof194/target/release/deps",
+        "--extern",
+        "serde_json=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libserde_json-cdebb9338c2784ad.rlib",
+        "--extern",
+        "sha2=/home/ubuntu/src/zopro-perf-work/tool-target/release/deps/libsha2-16b8f2c03bdf5faa.rlib",
+        "--extern",
+        "zopro_bn254=/home/ubuntu/src/zopro-perf-work/certified-proof194/target/release/deps/libzopro_bn254-e663404b4ec27589.rlib",
+        "--extern",
+        "memmap2=/home/ubuntu/src/zopro-perf-work/certified-proof194/target/release/deps/libmemmap2-85cca426d2072c27.rlib",
+        "-o",
+        "/home/ubuntu/src/zopro-perf-work/constraint-rank249/census"
+      ],
+      "kind": "command",
+      "name": "compile-converter",
+      "timeout_seconds": 600
+    },
+    {
+      "kind": "command",
+      "name": "rank-1x2",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/constraint-rank249/census",
+        "/home/ubuntu/src/zopro-perf-work/wire-readiness175/1x2.solver"
+      ],
+      "timeout_seconds": 300
+    },
+    {
+      "kind": "command",
+      "name": "rank-2x2",
+      "argv": [
+        "/home/ubuntu/src/zopro-perf-work/constraint-rank249/census",
+        "/home/ubuntu/src/zopro-perf-work/wire-readiness175/2x2.solver"
+      ],
+      "timeout_seconds": 300
+    }
+  ],
+  "version": 1
+}
