@@ -1,0 +1,129 @@
+--- a/crates/zopro-core/src/msm_affine/h_layout.rs
++++ b/crates/zopro-core/src/msm_affine/h_layout.rs
+@@ -12,6 +12,58 @@
+     }
+ }
+ 
++#[derive(Clone, Copy)]
++enum SignedWindows { AllLower, WideOnly }
++
++fn signed_window(shape: SignedWindows, widths: &[usize], i: usize) -> bool {
++    i + 1 < widths.len() && (matches!(shape, SignedWindows::AllLower) || widths[i] == 14)
++}
++
++#[inline(always)]
++fn field_at(words: &[u64; 4], offset: usize, bits: usize) -> u32 {
++    let lane = offset / 64;
++    let shift = offset % 64;
++    let mut field = words[lane] >> shift;
++    if shift + bits > 64 { field |= words[lane + 1] << (64 - shift); }
++    (field & ((1 << bits) - 1)) as u32
++}
++
++#[inline(always)]
++fn hybrid_digit<const SIGNED: bool>(words: &[u64; 4], offset: usize, bits: usize, carry_in: bool) -> i16 {
++    let (raw, carry) = if carry_in {
++        let adjacent = field_at(words, offset - 1, bits + 1);
++        (adjacent >> 1, (adjacent & 1) as i32)
++    } else {
++        (field_at(words, offset, bits), 0)
++    };
++    let sign = 1u32 << (bits - 1);
++    let value = if SIGNED { (raw ^ sign) as i32 - sign as i32 } else { raw as i32 };
++    (value + carry) as i16
++}
++
++#[inline(never)]
++fn hybrid_sum<C: CurveConfig>(bases: &[Affine<C>], words: &[[u64;4]], widths: &[usize], offsets: &[usize], mode: SignedWindows) -> Projective<C>
++where C::Base: BatchInverse {
++    let sums: Vec<_> = (0..widths.len()).into_par_iter().map(|i| {
++        let bits = widths[i];
++        let carry_in = i > 0 && signed_window(mode, widths, i - 1);
++        let buckets = if signed_window(mode, widths, i) {
++            let digits = words.iter().map(|s| hybrid_digit::<true>(s, offsets[i], bits, carry_in));
++            fill_window_impl::<C,false,false>(bases,digits,bits,batch_size(bits).max(32))
++        } else {
++            let digits = words.iter().map(|s| hybrid_digit::<false>(s, offsets[i], bits, carry_in));
++            fill_window_impl::<C,false,true>(bases,digits,bits + 1,batch_size(bits + 1).max(32))
++        };
++        crate::msm::weighted_affine(&affine_buckets(buckets))
++    }).collect();
++    let mut result = *sums.last().unwrap();
++    for i in (0..sums.len()-1).rev() {
++        for _ in 0..widths[i] { result = result.double(); }
++        result += sums[i];
++    }
++    result
++}
++
+ pub(super) fn sum<C: CurveConfig>(bases: &[Affine<C>], words: &[[u64; 4]], widths: &[usize]) -> Projective<C>
+ where C::Base: BatchInverse {
+     assert_eq!(bases.len(), words.len());
+@@ -22,6 +74,16 @@
+         end+=bits;
+     }
+     assert_eq!(end,Fr::MODULUS_BITS as usize);
++    if widths == NINETEEN {
++        let mode = match std::env::var("ZOPRO_BENCH_H_SIGN_LAYOUT").as_deref() {
++            Ok("all-lower") => Some(SignedWindows::AllLower),
++            Ok("wide-only") => Some(SignedWindows::WideOnly),
++            _ => None,
++        };
++        if let Some(mode) = mode {
++            return hybrid_sum(bases, words, widths, &offsets[..widths.len()], mode);
++        }
++    }
+     let sums: Vec<_> = widths.par_iter().zip(&offsets[..widths.len()]).map(|(&bits, &offset)| {
+         let lane=offset/64;
+         let shift=offset%64;
+@@ -47,6 +109,39 @@
+     use super::*;
+     use zopro_bn254::{G1Config,G1Affine};
+     #[test]
++    fn hybrid_windows_carries_and_generator_oracle() {
++        for value in 0..4096u64 {
++            for mask in 0..4 {
++                let words=[value,0,0,0];
++                let mut reconstructed=0i64;
++                for i in 0..3 {
++                    let carry=i>0 && mask & (1 << (i-1)) != 0;
++                    let digit=if i<2 && mask & (1 << i) != 0 {
++                        hybrid_digit::<true>(&words,4*i,4,carry)
++                    } else { hybrid_digit::<false>(&words,4*i,4,carry) };
++                    reconstructed += (digit as i64) << (4*i);
++                }
++                assert_eq!(reconstructed, value as i64);
++            }
++        }
++        let mut offsets=Vec::new();
++        let mut bit=0;
++        for &bits in NINETEEN { offsets.push(bit); bit+=bits; }
++        let mut points=vec![G1Affine::GENERATOR;1027];
++        let mut words=Vec::new();
++        let mut total=Fr::ZERO;
++        for (i,p) in points.iter_mut().enumerate() {
++            let v=match i%9 {0=>-Fr::ONE,1=>Fr::ZERO,_=>Fr::from((i+1)as u64).pow(&[59])};
++            if i%17==0 { *p=G1Affine::IDENTITY; }
++            else if i%3==0 { *p=-*p;total-=v; } else { total+=v; }
++            words.push(v.to_canonical());
++        }
++        for mode in [SignedWindows::AllLower,SignedWindows::WideOnly] {
++            assert_eq!(hybrid_sum::<G1Config>(&points,&words,NINETEEN,&offsets,mode).to_affine(),(G1Affine::GENERATOR*total).to_affine());
++        }
++    }
++
++    #[test]
+     fn mixed_windows_reconstruct_generator_sum() {
+         let mut bases=vec![G1Affine::GENERATOR;1031];
+         let mut words=Vec::new();
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -175,7 +175,7 @@
+     let mut held=0;
+     let mut leaf=0;
+     for &bits in widths {
+-        let p=shape::<C>(1usize.checked_shl(bits as u32)?,1,1,batch_size(bits+1).max(32))?;
++        let p=shape::<C>(1usize.checked_shl(bits as u32)?,1,1,batch_size(bits+1).max(batch_size(bits)).max(32))?;
+         held=add(held,p.held)?;
+         leaf=leaf.max(p.leaf);
+     }
