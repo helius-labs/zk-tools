@@ -53,3 +53,22 @@ The prespecified sign reversal across 64 and 96 cores replicated. Intermediate w
 | merge-24x1 | 64 | pool0 | 55.909 | 2476 | 1143 | 9.07× / 3.13× |
 
 [Measurement protocol](artifacts/protocol.md) · [Process and request data](artifacts/processes.json.gz) · [Proof verification](artifacts/verification.json)
+
+## Current comparison with the supplied M5 timings
+
+The table gives the integrated 64-core configuration for 1×2, the isolated H candidate at 64 cores for its three qualifying large shapes, and prior C7a measurements for shapes absent from this run. It combines named benchmark cells from different hosts. RSS is the maximum process high-water mark in that cell. Each median comes from seven fresh processes.
+
+| Shape | C7a experiment, cores, setting | Zopro ms | Peak MiB | M5 CPU / Metal ms | Speedup vs CPU / Metal | 10× CPU threshold ms |
+|---|---|---:|---:|---:|---:|---:|
+| 1x2 | 327, 64, integrated frontend | 8.453 | 54 | 37.0 / 24.0 | 4.38× / 2.84× | 3.7 |
+| 2x2 | 322, 48, integrated frontend | 14.089 | 101 | 59.0 / 30.0 | 4.19× / 2.13× | 5.9 |
+| 4x2 | 316, 48, retained frontend | 17.851 | 265 | 109.0 / 48.0 | 6.11× / 2.69× | 10.9 |
+| 8x2 | 316, 48, retained frontend | 24.363 | 465 | 189.0 / 74.0 | 7.76× / 3.04× | 18.9 |
+| 12x2 | 316, 48, ordinary frontend | 32.336 | 658 | 284.0 / 101.0 | 8.78× / 3.12× | 28.4 |
+| 16x2 | 327, 64, isolated H19 | 36.723 | 777 | 335.0 / 124.0 | 9.12× / 3.38× | 33.5 |
+| 24x2 | 327, 64, isolated H19 | 50.624 | 1240 | 528.0 / 176.0 | 10.43× / 3.48× | 52.8 |
+| merge-24x1 | 327, 64, isolated H19 | 53.826 | 1143 | 507.0 / 175.0 | 9.42× / 3.25× | 50.7 |
+
+At 64 cores the isolated H19 candidate reduced paired latency by 3.89% on merge24 (6/7 wins), 3.45% on 24×2 (7/7) and 2.34% on 16×2 (7/7). On 48 cores its paired reductions were 1.73%, 1.71% and 2.29% respectively. The only independently confirmed 10× M5 CPU crossing remains 24×2. The eight-shape target uses the supplied M5 CPU reference for each circuit. Metal ratios are reported separately.
+
+[Earlier full panel](../2026-11-18-frontend-confirm316/README.md) · [Matched-worker comparison](../2026-11-18-worker-match322/README.md)
