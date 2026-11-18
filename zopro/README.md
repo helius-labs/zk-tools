@@ -142,6 +142,13 @@ instructions on the attached smaller pool. Witness allocation, scalar gathering,
 FFT and curve operations keep their existing worker placement. This option
 creates no pool or per-key table. On C7a its effect depends on the circuit.
 
+On native targets, `ZOPRO_SOLVE_TASK_CLAIMS=1` lets workers take successive
+ready tasks from a shared counter within each solver dependency band. The
+option uses the existing Rayon pool and task storage. It defaults off. On a
+Ryzen 9950X it reduced 1×2 proof latency with 16 and 32 workers. The
+[benchmark report](docs/benchmarks/2026-11-18-wave-claims-release379/README.md)
+includes the other circuit shapes and memory measurements.
+
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
 G2 queries of 1,024 through 65,535 points when the worker pool has at least
