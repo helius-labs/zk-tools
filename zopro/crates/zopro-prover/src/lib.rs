@@ -25,6 +25,8 @@ use zopro_core::{
     verify::{Proof, VerifyingKey, public_witness},
 };
 
+#[cfg(all(feature = "disk-cache", not(target_arch = "wasm32")))]
+pub mod disk;
 pub mod raw;
 pub mod witness;
 

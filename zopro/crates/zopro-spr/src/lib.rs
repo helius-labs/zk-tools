@@ -1,6 +1,6 @@
-//! Zolana's proof requests on zopro: the SDKs' `/prove` request (the JSON
-//! gnark's Go prover took) and a zopro key built from Zolana's gnark key
-//! give the proof the prover server returns, verified before it leaves.
+//! Prove assembled SPR transfer and merge inputs with zopro. The proof is
+//! verified before returning. JSON entry points support the existing wire
+//! format for fixture and Wasm consumers.
 //!
 //! **Experimental.** New and unaudited: checked against gnark and arkworks
 //! on the devices we have, every proof verified before it is returned, no
@@ -12,7 +12,7 @@
 //! solves, proves and verifies. A Zolana key's metadata (`Metadata`) gives
 //! its shape and the sha256 of the gnark key it was built from, which proofs
 //! report and the SDKs check against their pins.
-use zopro_bn254::Fr;
+pub use zopro_bn254::Fr;
 use zopro_prover::{
     Assignment,
     zopro_core::{
@@ -27,7 +27,11 @@ pub mod proof_json;
 pub mod request;
 mod transfer;
 
+pub use merge::{MergeInput, MergeInputs};
 pub use request::Error;
+pub use transfer::{
+    CacheInputs, TransferInput, TransferInputs, TransferKind, TransferOutput, TreeSlot, Utxo,
+};
 /// The generic prover and the kernel, for hosts that read key files and
 /// cache solver images.
 pub use zopro_prover::{self, zopro_core};
@@ -35,8 +39,30 @@ pub use zopro_prover::{self, zopro_core};
 /// The circuits' assignments, for tests against the Go prover's witnesses.
 #[doc(hidden)]
 pub mod test_support {
-    pub use crate::merge::assign as merge;
-    pub use crate::transfer::assign as transfer;
+    use crate::{Assignment, Circuit, Error, TransferKind};
+
+    pub fn transfer(
+        json: &serde_json::Value,
+        circuit: Circuit,
+        inputs: u32,
+        outputs: u32,
+        names: &[String],
+    ) -> Result<Assignment, Error> {
+        crate::transfer::assign(
+            &crate::transfer::decode(json, TransferKind::from_circuit(circuit)?)?,
+            inputs,
+            outputs,
+            names,
+        )
+    }
+
+    pub fn merge(
+        json: &serde_json::Value,
+        circuit: Circuit,
+        inputs: u32,
+    ) -> Result<Assignment, Error> {
+        crate::merge::assign(&crate::merge::decode(json, circuit)?, inputs)
+    }
 }
 
 /// The circuits the SDKs prove with, by the request's `circuitType` and
@@ -78,6 +104,42 @@ impl Circuit {
         } else {
             return None;
         })
+    }
+}
+
+/// A circuit's assembled native inputs. These fields can contain secrets.
+pub enum ProvingInput {
+    Transfer(TransferInputs),
+    Merge(MergeInputs),
+}
+
+impl ProvingInput {
+    /// Decode the existing wire format at an HTTP, Wasm, or fixture boundary.
+    pub fn from_json(request: &str) -> Result<Self, Error> {
+        let json = request::parse(request)?;
+        Self::decode(&json, Self::json_circuit(&json)?)
+    }
+
+    fn json_circuit(json: &serde_json::Value) -> Result<Circuit, Error> {
+        let kind = json["circuitType"].as_str().ok_or(Error::Request)?;
+        Circuit::from_type(kind).ok_or(Error::Unsupported)
+    }
+
+    fn decode(json: &serde_json::Value, circuit: Circuit) -> Result<Self, Error> {
+        match circuit {
+            Circuit::Merge | Circuit::MergeRing => Ok(Self::Merge(merge::decode(json, circuit)?)),
+            _ => Ok(Self::Transfer(transfer::decode(
+                json,
+                TransferKind::from_circuit(circuit)?,
+            )?)),
+        }
+    }
+
+    pub fn circuit(&self) -> Circuit {
+        match self {
+            Self::Transfer(input) => input.kind.circuit(),
+            Self::Merge(input) => input.circuit(),
+        }
     }
 }
 
@@ -157,6 +219,19 @@ impl Prover {
         Self::new(zopro_prover::Prover::load(bytes)?)
     }
 
+    /// Load an immutable key and cache its solver image and GPU pipelines
+    /// beside it. See [`zopro_prover::Prover::load_cached`].
+    ///
+    /// # Safety
+    ///
+    /// The key and cache directory must be trusted, and no mapped file may be
+    /// modified in place or truncated while it is mapped.
+    #[cfg(all(feature = "disk-cache", not(target_arch = "wasm32")))]
+    pub unsafe fn load_cached(path: &std::path::Path) -> Result<Self, String> {
+        // SAFETY: the caller guarantees the mapped files remain immutable.
+        Self::new(unsafe { zopro_prover::Prover::load_cached(path) }?)
+    }
+
     /// From a parsed key, as `zopro_prover::Prover::from_artifact`.
     pub fn from_artifact(
         artifact: &Artifact,
@@ -213,35 +288,49 @@ impl Prover {
         &mut self.prover
     }
 
-    /// The witness the request assigns, in the key's order.
+    /// Compatibility entry point for a request in the wire format.
     pub fn witness(&self, request: &str) -> Result<Vec<Fr>, Error> {
         let json = request::parse(request)?;
-        let circuit_type = json["circuitType"].as_str().ok_or(Error::Request)?;
-        let circuit = Circuit::from_type(circuit_type).ok_or(Error::Unsupported)?;
+        let circuit = ProvingInput::json_circuit(&json)?;
         if circuit != self.circuit {
             return Err(Error::Shape);
         }
+        self.witness_input(&ProvingInput::decode(&json, circuit)?)
+    }
+
+    /// The witness for assembled native inputs, in the loaded key's order.
+    pub fn witness_input(&self, input: &ProvingInput) -> Result<Vec<Fr>, Error> {
+        if input.circuit() != self.circuit {
+            return Err(Error::Shape);
+        }
         let (inputs, outputs) = self.shape();
-        let assignment: Assignment = match circuit {
-            Circuit::TransferConfidential
-            | Circuit::TransferRing
-            | Circuit::TransferRingAuthority => {
-                transfer::assign(&json, circuit, inputs, outputs, self.prover.names())?
+        let assignment = match input {
+            ProvingInput::Transfer(input) => {
+                transfer::assign(input, inputs, outputs, self.prover.names())?
             }
-            Circuit::Merge | Circuit::MergeRing => merge::assign(&json, circuit, inputs)?,
+            ProvingInput::Merge(input) => merge::assign(input, inputs)?,
         };
         self.prover.witness(&assignment).map_err(|_| Error::Shape)
     }
 
-    /// Proves `request`: the proof is verified before it is returned, a GPU
-    /// proof that fails is proved again on the CPU.
+    /// Compatibility entry point for a request in the wire format.
     pub fn prove(&mut self, request: &str) -> Result<ProofResult, Error> {
         let started = zopro_prover::zopro_core::time::Instant::now();
         let witness = self.witness(request)?;
-        let witness_ms = started.elapsed().as_millis() as u64;
+        self.prove_witness(&witness, started.elapsed().as_millis() as u64)
+    }
+
+    /// Prove assembled native inputs and verify the proof before returning it.
+    pub fn prove_input(&mut self, input: &ProvingInput) -> Result<ProofResult, Error> {
+        let started = zopro_prover::zopro_core::time::Instant::now();
+        let witness = self.witness_input(input)?;
+        self.prove_witness(&witness, started.elapsed().as_millis() as u64)
+    }
+
+    fn prove_witness(&mut self, witness: &[Fr], witness_ms: u64) -> Result<ProofResult, Error> {
         let proved = self
             .prover
-            .prove(&witness)
+            .prove(witness)
             .map_err(|e| Error::Prove(e.to_string()))?;
         Ok(self.result(proved, witness_ms))
     }

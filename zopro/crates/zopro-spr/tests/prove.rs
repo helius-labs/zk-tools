@@ -66,3 +66,44 @@ fn merge_24x1() {
         include_str!("fixtures/merge-24x1.request.json"),
     );
 }
+
+/// A deployed key can be staged independently of the gnark dump.
+#[cfg(all(feature = "disk-cache", not(target_arch = "wasm32")))]
+#[test]
+#[ignore = "needs ZOPRO_TEST_KEY"]
+fn typed_transfer_loads_and_reuses_the_cached_image() {
+    use zopro_spr::{Error, Fr, ProvingInput, zopro_prover::disk::image_path};
+
+    let source = std::env::var_os("ZOPRO_TEST_KEY").expect("path to a 2→2 zopro key");
+    let directory = tempfile::tempdir().unwrap();
+    let key = directory.path().join("transfer_confidential_2_2.zopro");
+    std::fs::copy(source, &key).unwrap();
+    let request = include_str!("fixtures/transfer-2x2.request.json");
+    let mut input = ProvingInput::from_json(request).unwrap();
+
+    // SAFETY: the files are confined to the private temp directory and each
+    // mapped prover is dropped before we replace or remove its image.
+    let mut prover = unsafe { Prover::load_cached(&key) }.unwrap();
+    assert_eq!(
+        prover.witness_input(&input).unwrap(),
+        prover.witness(request).unwrap()
+    );
+    let result = prover.prove_input(&input).unwrap();
+    let proof = proof_json::from_json(&result.proof_json).unwrap();
+    let witness = prover.witness_input(&input).unwrap();
+    assert!(prover.verify(&proof, &witness[..1]));
+    let ProvingInput::Transfer(transfer) = &mut input else {
+        panic!("expected transfer");
+    };
+    transfer.blinding_seed = Fr::from(0);
+    assert_eq!(prover.witness_input(&input), Err(Error::Request));
+    drop(prover);
+
+    let path = image_path(&key);
+    assert!(path.is_file());
+    // A hit can be opened without reading the original compressed key.
+    std::fs::remove_file(key.clone()).unwrap();
+    // SAFETY: the image is still in the private directory and is immutable.
+    let cached = unsafe { Prover::load_cached(&key) }.unwrap();
+    assert_eq!(cached.witness(request).unwrap(), witness);
+}
