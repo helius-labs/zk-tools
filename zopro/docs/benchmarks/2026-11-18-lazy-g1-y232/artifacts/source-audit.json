@@ -1,0 +1,36 @@
+{
+  "baseline_files": 186,
+  "changed_parent_edits": {
+    "crates/zopro-bn254/src/ifma8.rs": {
+      "suffix": "\n#[cfg(zopro_g1_lazy_y)]\ninclude!(\"lazy_g1.rs\");\n"
+    },
+    "crates/zopro-core/src/msm.rs": {
+      "suffix": "\n#[cfg(all(zopro_g1_lazy_y,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\nmod lazy_g1_y;\n"
+    },
+    "crates/zopro-core/src/msm_affine.rs": {
+      "new": "#[cfg(not(all(zopro_g1_lazy_y,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma))))]\npub(super) mod borrowed_pending;\n#[cfg(all(zopro_g1_lazy_y,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\n#[path=\"msm_affine/lazy_g1_window.rs\"]\npub(super) mod borrowed_pending;",
+      "old": "pub(super) mod borrowed_pending;"
+    },
+    "crates/zopro-core/src/simd.rs": {
+      "suffix": "\n#[cfg(all(zopro_g1_lazy_y,feature=\"ifma8\",target_arch=\"x86_64\",target_feature=\"avx512ifma\",target_feature=\"avx512vl\",target_feature=\"avx512dq\",not(no_ifma)))]\ninclude!(\"simd_lazy_g1.rs\");\n"
+    }
+  },
+  "initial_setup_failure": "binary member read_to_string failed before builds; see preparation-repair.md",
+  "inverse_edits_recover_all186": true,
+  "key_copy_or_lookup_table": false,
+  "legacy_raw_prefix_change": "only qualification constructor cfg renamed to test",
+  "legacy_raw_prefix_sha256": "a89103b7baa2e6e46e5df24477db6fce3843577a46fe8ec012489a97b04a668e",
+  "legacy_raw_prefix_source": "/home/ubuntu/src/zopro-perf-work/g2-lazy-y176/lazy_y.rs",
+  "new_bucket_bytes": 64,
+  "new_children": [
+    "crates/zopro-bn254/src/lazy_g1.rs",
+    "crates/zopro-bn254/src/lazy_g1_tests.rs",
+    "crates/zopro-core/src/simd_lazy_g1.rs",
+    "crates/zopro-core/src/msm/lazy_g1_y.rs",
+    "crates/zopro-core/src/msm_affine/lazy_g1_window.rs",
+    "crates/zopro-core/src/msm_affine/lazy_g1_tests.rs"
+  ],
+  "new_record_bytes": 1600,
+  "production_changed": false,
+  "source_files": 192
+}

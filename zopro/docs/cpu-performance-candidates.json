@@ -560,6 +560,28 @@
         "reason": "Close exact complete pair-cache recipe for poor memory/work tradeoff;no runtime table allocated or source changed;no arbitrary gain floor/RAM admission cap"
       },
       "evidence": "benchmarks/2026-11-17-chunk-pair-count231/README.md"
+    },
+    {
+      "id": "lazy-g1-y232",
+      "parent_id": "scaled-prefix-current227",
+      "change": "Typed compact G1 lazy Y across borrowed bucket updates;canonical X,current R260 scaled numerator,64B buckets/1600B records;no key table or copy",
+      "sdk_sha256": "9b2f92e54a866d455151821445d137815c30fac8657c3ad8aaa35e4c55e479c8",
+      "correctness": {
+        "status": "passed_tested_scope",
+        "scope": "41nativefield/141nativecore/3additionalmode/12genericfield test executions plusgenericcorecompile;39freshGnark/5160SDKcalls. Initial binaryUTF8 preparer and core adapter compile failures retained;field success inherited,no unchanged replay.",
+        "evidence": "benchmarks/2026-11-18-lazy-g1-y232/artifacts/build-review.json"
+      },
+      "performance": {
+        "status": "no_primary_signal_closed",
+        "scope": "3blocks/4contexts/REF-OFF-ON;primary16/32 ON/REF1.017817185/1.004003825,wins0/3 and1/3;ON/OFFboth0wins. Merge54 descriptivepositive0.977593773 REF/0.986564891 OFF retained,not subsetpromotion. Calibration/RSS guards allpass;no gainfloor.",
+        "evidence": "benchmarks/2026-11-18-lazy-g1-y232/artifacts/assessment.json"
+      },
+      "adoption": {
+        "status": "not_adopted",
+        "invalidates_parent": false,
+        "reason": "Both primary counts fail the fixed useful-signal rule;close exact composition without layout/curve/shape/parameter rescue or unchanged reroll"
+      },
+      "evidence": "benchmarks/2026-11-18-lazy-g1-y232/README.md"
     }
   ],
   "historical_followups": [
@@ -695,7 +717,7 @@
     }
   ],
   "maintenance": "Manual register; xtask does not enforce these states",
-  "next_action": "Accepted baseline stays exact b70 scaled-prefix-current227/source186,b0a41f30de,qualified228/229.230 negative closed,231 complete chunk-pair cache model closed without native build: primaryG2 161.61MiB for0.0211% prepared-fill work,20.20GiB for7.0397%;three new tests/64 independently checked rows,8receipts16streams. No proofs/source/cloud;canonical61143 remains unscaled-mixed230/proof-sha256-after-main.json SHAab290bf3ef3d535745621f21aa914423ff5d578abfb30f44ed80f2f6998104f8. Simple recursive linear-wire elimination alreadyclosed by affine-closure176;static proportional folding205 remains unadopted. Need distinct substantial work removal;do not reroll complete tables/scalarformula/queues. Small qualified gains remain eligible and227 alreadyadopted. No232 created. All8CPU10x active/unmet0/8;CPU/Metal comparison inherited228. Local commits,no push;exactb70 noC7a result.",
+  "next_action": "Accepted baseline remains exact b70 scaled-prefix-current227/source186,b0a41f30de after228/229.232 compactlazyG1Y correct but no primary signal:16/32 ON/REF1.017817/1.004004,0/3 and1/3wins;merge54positive shortscreen retained.197testexecutions/genericcorecompile/39freshGnark pass;initialpreparer/corecompile errors disclosed,successfulfield inherited. CanonicalNOW61182 at lazy-g1-y232/proof-sha256-after-main.json SHAb13f8652c75305401c54c2240014100aea4e9e33c4da60b86fc56fdeefdb2090. No233created. Need distinct substantial main-path work removal;do not retry unchanged lazycoords/completepaircache/scalarformula/queues. All8CPU10x active/unmet0/8;allshapeCPU-Metal comparison228 unchanged. Small qualifiedgains remaineligible. Localcommits,no push;exactb70stillnoC7a result.",
   "previous_baseline": {
     "activation": "explicit opt-in; absent selector uses previous path",
     "aws_evidence": "benchmarks/2026-11-17-fused-preparation-c7a182/README.md",
