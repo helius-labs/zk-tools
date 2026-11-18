@@ -52,3 +52,17 @@ These separate unprofiled processes used the same C7a instance and fixtures, 51 
 All 105 process exports passed pinned Gnark verification on the instance and after retrieval. The instance terminated, the EBS check found no matching volume, and the temporary S3 bucket was removed.
 
 [Protocol](artifacts/protocol.md) · [Sample counts and receipts](artifacts/analysis.json.gz) · [Per-proof classes](artifacts/requests.json.gz)
+
+## When the epoch samples accumulate
+
+Every traced SDK interval lasted more than 8 ms, so the first four two-millisecond bins have the same exposure per proof in both classes. The last bin ends at each proof’s own return. The sample counts below are pooled class means from the same 1,057 requests.
+
+| Time from SDK entry, ms | Fast epoch samples / proof | Slow epoch samples / proof | Slow minus fast |
+|---|---:|---:|---:|
+| 0–2 | 2.92 | 3.03 | +0.11 |
+| 2–4 | 3.57 | 3.45 | -0.12 |
+| 4–6 | 11.12 | 11.93 | +0.81 |
+| 6–8 | 8.62 | 12.00 | +3.38 |
+| 8 to return | 6.81 | 17.57 | +10.76 |
+
+By 8 ms the mean difference was +4.18 samples per proof. From 8 ms to return it was +10.76. Fast proofs averaged 9.51 ms and slow proofs 12.71 ms. The later bin includes time after fast proofs have returned. The counts do not establish that sampling an epoch instruction delayed the proof. [Block and interval counts](artifacts/sample-time.json)
