@@ -1,0 +1,30 @@
+--- a/driver.rs
++++ b/driver.rs
+@@ -20,12 +20,16 @@
+     let front = frontend_width();
+     let cpus = placement_affinity()?;
+     let frontend = if front > 0 {
+-        let ids = cpus.clone();
++        let offset: usize = std::env::var("ZOPRO_BENCH_FRONT_OFFSET")
++            .unwrap_or_else(|_| "0".to_owned()).parse()?;
++        let frontend_cpus = cpus.get(offset..offset.checked_add(front).ok_or("invalid frontend width")?)
++            .ok_or("frontend CPU range outside process affinity")?;
++        let ids = frontend_cpus.to_vec();
+         let pool = Arc::new(rayon::ThreadPoolBuilder::new().num_threads(front)
+             .start_handler(move |i| placement_pin(ids[i]).expect("frontend worker affinity")).build()?);
+         let pins = pool.broadcast(|ctx| {
+             let allowed = placement_affinity().unwrap();
+-            assert_eq!(allowed, vec![cpus[ctx.index()]]);
++            assert_eq!(allowed, vec![frontend_cpus[ctx.index()]]);
+             (ctx.index(), allowed[0])
+         });
+         println!("FRONT {}", serde_json::to_string(&pins)?);
+@@ -100,7 +104,7 @@
+     if mode!="unbound"&&mode!="fixed"{return Err("placement must be unbound or fixed".into());}
+     let workers:usize=std::env::var("RAYON_NUM_THREADS")?.parse()?;
+     let allowed=placement_affinity()?;
+-    if workers!=allowed.len(){return Err("one worker per inherited logical CPU is required".into());}
++    if workers>allowed.len(){return Err("worker count exceeds inherited logical CPUs".into());}
+     let start_allowed=allowed.clone();let fixed=mode=="fixed";
+     rayon::ThreadPoolBuilder::new().num_threads(workers).start_handler(move|i|{
+         if fixed {placement_pin(start_allowed[i]).expect("worker affinity");}
