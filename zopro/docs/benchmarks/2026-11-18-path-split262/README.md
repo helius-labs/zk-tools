@@ -35,3 +35,9 @@ The class means spread the extra time across several intervals. Looking at each 
 | First fill start to last fill return | 6 | 2.23 ms |
 
 A local optimization before the first fill could remove work or could move the long interval elsewhere. Compare the full latency distribution after any change. A further diagnostic would trace the fused K/H query alongside G2, retaining worker IDs and per-thread nesting to distinguish a worker executing another query during a join from an off-CPU delay. The current trace supports neither mechanism exclusively. [Threshold sensitivity and counts](artifacts/excess.json) · [Analysis](artifacts/excess.jq)
+
+## G2 bucket concurrency on already-fast proofs
+
+On the 327 fast proofs, the 22 G2 bucket callbacks started within 12–16 microseconds of each other, using the mean start spread in each of the three blocks. The span from first entry to last return averaged 3.46–3.48 ms. For 2.78–2.80 ms of that span at least 16 callbacks were open. Only 0.26–0.28 ms elapsed with three or fewer open. Optimizing just the last few callbacks leaves most of the measured span untouched.
+
+The offline calculation paired callback entries and returns by thread in each SDK call. It accumulated elapsed nanoseconds at each concurrency level. For every proof the histogram sums to the previously published fill span, and its concurrency-weighted sum equals the sum of all 22 callback durations. An open callback can be off CPU or performing nested work. The traces measure callback overlap and provide no direct measurement of utilization. [Block means](artifacts/open-fills.json) · [Per-proof concurrency histograms](artifacts/open-fill-histograms.json.gz)
