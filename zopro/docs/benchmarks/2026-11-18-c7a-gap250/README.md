@@ -43,3 +43,17 @@ In that earlier Zopro build, solver, preparation and FFT together became 1.94 ms
 The [new solver comparison](../2026-11-18-counted-ready-c7a248/README.md) lowered 96-core 1×2 latency by a paired 1.80% against its same-binary control and raised CPU time 3.80%. Its corrected construction reservation has a clear memory-accounting benefit. An improvement of that size leaves the primary MSM scaling gap open.
 
 [Per-shape and per-stage figures](artifacts/analysis.json.gz) · [Reader](artifacts/analyze.rs)
+
+## Three hot instruction addresses
+
+Mapping the stored samples to the exact executable narrows the epoch observation. In each 96-core recording, 46–48% of **all** cycle samples landed on three instructions. In each 32-core recording the same three accounted for approximately 7–8%. The 32-core profiler exceeded its observer tolerance, so this contrast is descriptive. Each independently backed executable had the same hash. The reader checks each decoded stream hash, its executable mapping and the ELF segment offset.
+
+|Instruction address|What precedes it in the executable|96-core share of all cycle samples across the three blocks|
+|---|---|---:|
+|0x114c81|A locked compare-and-exchange publishes the current participant’s pinned epoch|19.5–20.4%|
+|0x108a67|The epoch-advance traversal loads a participant’s epoch|14.1–14.8%|
+|0x114c72|The pin path loads the current global epoch|12.2–12.8%|
+
+These are sampled instruction pointers. Imprecise PMU sampling can place a sample after the instruction that incurred a stall. The clustering identifies participant publication, global-epoch reading and participant scanning as sites to investigate. It does not identify a cache level, prove false sharing, or quantify latency recoverable by changing reclamation.
+
+[Address counts](artifacts/ips.json) · [ELF and sample reader](artifacts/epoch_ips.rs) · [Pin disassembly](artifacts/pin.disasm) · [Advance disassembly](artifacts/advance.disasm)
