@@ -1,10 +1,10 @@
 # Independent C7a frontend pool replication and full circuit panel
 
-On 1×2 with 64 physical cores, the retained 16-worker frontend pool took 8.444 ms versus 9.470 ms disabled, with 7/7 paired wins and 7/7 process means at or below 9 ms. The independent replication passed. The previous host measured 8.492 ms. Aeglos ran in 9.004 ms at 64 cores and 7.960 ms at 96 cores on this host.
+On 1×2 with 64 physical cores, the retained 16-worker frontend pool took 8.444 ms versus 9.470 ms disabled, with 7/7 paired wins and 7/7 process means at or below 9 ms. The independent replication passed. The previous host measured 8.492 ms. Aeglos ran in 9.004 ms under a 64-core affinity mask and 7.960 ms under a 96-core mask. Both Aeglos cells used 96 configured native workers and GOMAXPROCS=96. A separate 64-worker run is needed to compare that configuration.
 
 ## Comparison across all eight M5 reference shapes
 
-The Zopro column uses the fastest observed median in this panel for each shape. That selection is exploratory except for the prespecified 64-core 1×2 frontend comparison. Aeglos used 96 physical cores in this table; its separate matched 64-core 1×2 result appears above. Peak RSS is the largest reported process high-water mark in each cell.
+The Zopro column uses the fastest observed median in this panel for each shape. That selection is exploratory except for the prespecified 64-core 1×2 frontend comparison. Aeglos used 96 physical cores in this table; its separate 64-core affinity result appears above. Peak RSS is the largest reported process high-water mark in each cell.
 
 | Shape | Zopro cores / setting | Zopro ms | M5 CPU / Metal ms | M5 CPU / Metal speedup | Aeglos ms | Peak MiB Zopro / Aeglos | 10× CPU target ms |
 |---|---|---:|---:|---:|---:|---:|---:|
