@@ -1,0 +1,25 @@
+#!/bin/bash
+set -euo pipefail
+root=$1
+registry=/sys/kernel/tracing/uprobe_events
+for b in "${@:3}"; do
+  group=zp256b$b
+  while read -r label offset; do
+    for tag in enter exit; do
+      event="${group}/${label}_${tag}"
+      if [[ $2 == remove ]]; then
+        if grep -Fq ":$event " "$registry"; then echo "-:$event" >> "$registry"; fi
+        continue
+      fi
+      kind=r; args=
+      if [[ $tag == enter ]]; then
+        kind=p
+        case $label in
+          window) args=' win=%dx:u64';;
+          part) args=' part=%dx:u64 win=+0(+40(%si)):u64';;
+        esac
+      fi
+      echo "$kind:$event $root/output/sdk$b:0x$offset$args" >> "$registry"
+    done
+  done < "$root/config/targets.tsv"
+done
