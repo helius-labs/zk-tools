@@ -22,4 +22,4 @@ A 500 Hz userspace CPU-clock sample represents roughly two aggregate CPU-ms. The
 
 On the tuned 96-core run, 74.1 of the 78.9 extra sampled Crossbeam CPU-ms per request occurred between FFT return and canonical core return. Over that same interval median elapsed time fell from 4.605 to 4.470 ms. The busiest sampled Crossbeam instructions included epoch pinning and advancement. This locates the CPU cost while preserving the separate wall-time comparison.
 
-[Trace and sampling protocol](artifacts/prefix-protocol.md) · [Per-request marker timings](artifacts/prefix-traces.json.gz) · [CPU samples by stage](artifacts/prefix-samples.json) · [Proof verification](artifacts/prefix-verification.json)
+[Early samples versus remaining latency](early-samples.md) · [Trace and sampling protocol](artifacts/prefix-protocol.md) · [Per-request marker timings](artifacts/prefix-traces.json.gz) · [CPU samples by stage](artifacts/prefix-samples.json) · [Proof verification](artifacts/prefix-verification.json)
