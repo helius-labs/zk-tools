@@ -1209,6 +1209,17 @@ impl Plan {
     }
 
     pub(crate) fn solve_in_with_slots(&self, witness: &[Fr], domain: usize, slots: &[usize], materialize_c: bool) -> Result<Solution, String> {
+        self.solve_with_pool(witness, domain, slots, materialize_c, None)
+    }
+
+    pub(crate) fn solve_with_pool(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        materialize_c: bool,
+        pool: Option<&rayon::ThreadPool>,
+    ) -> Result<Solution, String> {
         if witness.len() != self.n_inputs - 1 {
             return Err("invalid witness size".into());
         }
@@ -1239,6 +1250,36 @@ impl Plan {
             b: b.as_mut_ptr(),
             c: if materialize_c { c.as_mut_ptr() } else { core::ptr::null_mut() },
         };
+        // The instruction executor joins every worker before these buffers are used again.
+        let execute = || unsafe { self.execute_instructions(view) };
+        match pool {
+            Some(pool) => pool.install(execute)?,
+            None => execute()?,
+        }
+        if uninitialized {
+            // SAFETY: the cached data-flow check establishes that all reads
+            // follow initialization and every slot/row has exactly one writer.
+            // On an error above, vector lengths remain zero and no uninitialized
+            // field can be observed or dropped. All scheduled writes completed.
+            unsafe {
+                w.set_len(self.n_wires + self.n_slots);
+                a.set_len(self.n_constraints);
+                b.set_len(self.n_constraints);
+                if materialize_c { c.set_len(self.n_constraints); }
+            }
+        }
+        // Retain this proof's allocation until its MSMs finish instead of
+        // copying the wires into another allocation.
+        let started = crate::trace("solve-execute", started);
+        let selected: Vec<_> = slots.iter().map(|&slot| w[slot]).collect();
+        w.truncate(self.n_wires);
+        w.extend(selected);
+        crate::trace("solve-copy", started);
+        Ok(Solution { w, a, b, c })
+    }
+
+    /// The caller owns all four buffers until the instruction workers have joined.
+    unsafe fn execute_instructions(&self, view: View) -> Result<(), String> {
         let epochs = solve_epochs();
         if epochs == 0 || self.ops.len() < 4096 {
             for op in &self.ops {
@@ -1275,26 +1316,7 @@ impl Plan {
                 }
             }
         }
-        if uninitialized {
-            // SAFETY: the cached data-flow check establishes that all reads
-            // follow initialization and every slot/row has exactly one writer.
-            // On an error above, vector lengths remain zero and no uninitialized
-            // field can be observed or dropped. All scheduled writes completed.
-            unsafe {
-                w.set_len(self.n_wires + self.n_slots);
-                a.set_len(self.n_constraints);
-                b.set_len(self.n_constraints);
-                if materialize_c { c.set_len(self.n_constraints); }
-            }
-        }
-        // Retain this proof's allocation until its MSMs finish instead of
-        // copying the wires into another allocation.
-        let started = crate::trace("solve-execute", started);
-        let selected: Vec<_> = slots.iter().map(|&slot| w[slot]).collect();
-        w.truncate(self.n_wires);
-        w.extend(selected);
-        crate::trace("solve-copy", started);
-        Ok(Solution { w, a, b, c })
+        Ok(())
     }
 
     /// Conservative peak for optional linear-C/equality/scheduling metadata.
@@ -2534,6 +2556,29 @@ mod tests {
                 schedule.epochs.len()
             );
         }
+    }
+
+    #[test]
+    fn shared_instruction_pool_preserves_concurrent_witnesses_and_errors() {
+        let (words, coefficients) = small();
+        let plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
+        std::thread::scope(|scope| {
+            for value in [3u64, 7, 11, 13] {
+                let plan = &plan;
+                let pool = &pool;
+                scope.spawn(move || {
+                    let x = Fr::from(value);
+                    let witness = [x * x, x];
+                    let solve = |inputs: &[Fr]| plan.solve_with_pool(inputs, 4, &[], true, Some(pool));
+                    assert_eq!(solve(&[Fr::ZERO, x]).err().unwrap(), "constraint #0 is not satisfied");
+                    let actual = solve(&witness).unwrap();
+                    let expected = plan.solve_in(&witness, 4).unwrap();
+                    assert_eq!((actual.w, actual.a, actual.b, actual.c),
+                               (expected.w, expected.a, expected.b, expected.c));
+                });
+            }
+        });
     }
 
     #[test]

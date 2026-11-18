@@ -129,6 +129,11 @@ and the product FFT when it is smaller than the main Rayon pool. The same
 restores the main pool. Single-proof latency and concurrent throughput can
 favor different pool sizes.
 
+On a general CPU solve, `ZOPRO_CPU_SOLVER_FRONTEND=1` also runs the witness
+instructions on the attached smaller pool. Witness allocation, scalar gathering,
+FFT and curve operations keep their existing worker placement. This option
+creates no pool or per-key table. On C7a its effect depends on the circuit.
+
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
 G2 queries of 1,024 through 65,535 points when the worker pool has at least

@@ -1134,8 +1134,17 @@ impl Key {
                 }
             }
         }
-        let solver::Solution { mut w, a, b, c } =
-            plan.solve_in_with_slots(&frs(witness), self.domain, slots, materialize_c)?;
+        #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+        let instruction_pool = self.frontend_pool.as_deref().filter(|pool| {
+            !self.has_gpu()
+                && pool.current_num_threads() < rayon::current_num_threads()
+                && std::env::var("ZOPRO_CPU_SOLVER_FRONTEND").as_deref() == Ok("1")
+        });
+        #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+        let instruction_pool = None;
+        let solver::Solution { mut w, a, b, c } = plan.solve_with_pool(
+            &frs(witness), self.domain, slots, materialize_c, instruction_pool,
+        )?;
         if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
         let started = trace("solve", started);
         use rayon::prelude::*;
@@ -2426,7 +2435,8 @@ impl Key {
 impl Key {
     /// Use a shared pool for the native IFMA canonical witness and FFT stages.
     /// The pool is used when it has fewer workers than the current Rayon pool.
-    /// Passing `None` restores execution in the current pool.
+    /// With `ZOPRO_CPU_SOLVER_FRONTEND=1`, the general CPU witness interpreter
+    /// also uses this pool. Passing `None` restores execution in the current pool.
     pub fn set_frontend_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
         self.frontend_pool = pool;
     }
