@@ -14,3 +14,15 @@ The table compares allocating packed output inside product evaluation with alloc
 | 24x2 | 103 | auxiliary | 59.356 / 57.154 | -3.70% (5/5) | 19,234 / 2,784 | 917.5 / 924.9 | — |
 
 All 104 exports verified independently. [Protocol](protocol.md) · [Per-process timings, allocation receipts and frozen controls](artifacts/samples.json.gz) · [Source](artifacts/source.patch) · [Fault profile](../2026-11-19-product-faults609/README.md)
+
+
+## Comparison with ordinary main-pool proving
+
+Each paired latency change compares caller allocation plus auxiliary product workers with the ordinary main-pool control. Process RSS and system CPU columns show main pool, ordinary auxiliary dispatch, then caller allocation with auxiliary dispatch. All arms share the same main CPUs within a block.
+
+| Shape | Request | Caller auxiliary vs ordinary main | Peak RSS, MiB | System CPU-ms per proof |
+|---|---|---:|---:|---:|
+| 12x2 | Original | +0.69% (0/5) | 589.8 / 458.8 / 454.0 | 16.6 / 14.3 / 16.4 |
+| 12x2 | 57 | +0.49% (2/5) | 579.4 / 456.1 / 458.7 | 16.6 / 18.0 / 15.6 |
+| 24x2 | Original | +1.19% (2/5) | 1097.3 / 922.3 / 944.1 | 40.6 / 90.1 / 31.7 |
+| 24x2 | 103 | -1.96% (4/5) | 1087.4 / 917.5 / 924.9 | 34.6 / 79.1 / 32.7 |
