@@ -49,6 +49,10 @@ A sample at the bit test cannot distinguish a cache miss on the preceding load, 
 
 [Address reader](artifacts/check_collector.py) · [Relocated sample addresses](artifacts/collector-pcs.json.gz) · [Instructions and ELF digest](artifacts/atomic-loops.json)
 
+## Which atomic operation appears in the two gather closures?
+
+Both closures store a Rayon stack job into a worker deque and then test bit 32 of the same counter layout. The conditional path can set that bit with compare-exchange. Both closures subsequently test the low sixteen bits for sleepers, inspect the next sixteen bits for inactive workers and can call the named function `Sleep::wake_any_threads(1)`. These instructions match the job-availability notification in Rayon Core 1.13.0. Its worker push calls `new_internal_jobs`, which checks the pool's job event counter after publishing each job. This attribution narrows the bounded-task experiment to a specific scheduler operation. The archived samples cannot quantify actual wakeups, unsuccessful retries or time recoverable by changing task count. [Instructions and package identity](artifacts/job-notification.json)
+
 ## Does the previous proof's late G2 work predict the next solver duration?
 
 Within a recording, requests 2 through 10 serve as the nine solver observations. Each observation is classified three ways using either the prior, current or next request's distribution of sampled G2 prefix work. “Late” means most prefix samples occurred after H returned. Every comparison uses the same nine target requests. The table shows how much longer the median solver lasted in the late group for each individual process. A future label cannot cause the earlier solver. Each group can contain very few requests, so the process contrasts are descriptive.
