@@ -1,0 +1,7 @@
+# A smaller FFT pool on the indexed 12×2 transfer
+
+Run the frozen indexed SDK from study 628 on its 30-worker experimental 12×2 route. Cross ordinary and tiled derivative output with the main pool and a 24-worker product pool. That auxiliary pool spans all 16 physical cores and uses four extra SMT threads on each CCD. Earlier measurements selected 24 workers on a different executable. This study tests the combination on the indexed executable without caller-allocated storage. Each arm uses the same request, sidecars, indexed MSM and main affinity. The four reference configurations run in 12 balanced blocks. Three other witnesses use four blocks each. Every process warms three proofs and times fifteen complete SDK calls. A separate profiled process per arm and request also exports a proof. Verify every export with the original verification key. Two additional diagnostic processes must confirm product-pool width and tiled dispatch.
+
+Compare each arm with the ordinary main-pool baseline using paired process means and peak RSS. Report counts under the 28.4 ms reference cutoff and both supplied M5 ratios. Treat meeting the cutoff on the reference as provisional until fresh confirmation. Only the reference has supplied M5 timings.
+
+[Earlier pool width comparison](../2026-11-19-product-pool607/README.md) · [Earlier indexed output comparison](../2026-11-19-indexed-output628/README.md) · [Pinned configurations](artifacts/configs.json.gz)
