@@ -2,7 +2,7 @@
 
 Each process times fifteen warm proofs. Latency is the median of process means and peak RSS is the highest observed process peak. Paired percentages use within-block changes. Parentheses give faster blocks or, in the last column, blocks meeting the supplied M5 CPU threshold. All 162 native core tests passed with the halves mode. Both Euler transform equivalence tests also passed in fused mode. All 148 independent proof exports verified.
 
-On the original 12×2, fused reached 28.519 ms and beat the same-binary ordinary path in five of twelve pairs. On 24×2, processing independent halves took 56.148 ms, winning six of eight pairs against disabled and five of eight against frozen. Peak RSS reached 908.5 MiB versus 935.0 and 941.9 MiB, respectively. The 24×2 result is being checked on three further witnesses. [Confirmation protocol](../2026-11-19-large-leaf654/protocol.md)
+On the original 12×2, fused reached 28.519 ms and beat the same-binary ordinary path in five of twelve pairs. On 24×2, processing independent halves took 56.148 ms, winning six of eight pairs against disabled and five of eight against frozen. Peak RSS reached 908.5 MiB versus 935.0 and 941.9 MiB, respectively. The independent confirmation measured a 0.45% paired gain over disabled on the original and mixed results on three further witnesses. [Independent confirmation](../2026-11-19-large-leaf654/README.md)
 
 | Input | Leaf | Latency ms | Paired vs disabled | Paired vs frozen | Peak MiB | M5 CPU / Metal and 10× CPU blocks |
 |---|---|---:|---:|---:|---:|---:|
