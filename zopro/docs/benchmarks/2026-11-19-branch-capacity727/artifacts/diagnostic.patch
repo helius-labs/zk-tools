@@ -1,0 +1,36 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2298,12 +2298,30 @@
+             if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
+                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+             }
++            // Diagnostic for a single fixed public fixture per benchmark process.
++            // The first request computes each selected result in full.
++            use std::sync::OnceLock;
++            static FIXTURE: OnceLock<(usize, Vec<Fr>)> = OnceLock::new();
++            static A: OnceLock<G1Projective> = OnceLock::new();
++            static KH: OnceLock<G1Projective> = OnceLock::new();
++            static B2: OnceLock<zopro_bn254::G2Projective> = OnceLock::new();
++            let mask: u8 = std::env::var("ZOPRO_BENCH_FIXED_QUERY_MASK").unwrap().parse().unwrap();
++            assert!(mask <= 7);
++            let fixture = FIXTURE.get_or_init(|| (self as *const Self as usize, witness.to_vec()));
++            assert_eq!(fixture.0, self as *const Self as usize);
++            assert_eq!(fixture.1.as_slice(), witness);
+             let ((ar,kh),bs2)=rayon::join(
+-                || rayon::join(|| msm(&self.a[..],sa),
+-                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
++                || rayon::join(|| {
++                    let compute = || msm(&self.a[..], sa);
++                    if mask & 1 == 0 { compute() } else { *A.get_or_init(compute) }
++                }, || {
++                    let mut compute = || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13);
++                    if mask & 2 == 0 { compute() } else { *KH.get_or_init(compute) }
++                }),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+-                        msm_affine::g2_query_exclusive(&self.b2,sb)
++                        let mut compute = || msm_affine::g2_query_exclusive(&self.b2,sb);
++                        if mask & 4 == 0 { compute() } else { *B2.get_or_init(compute) }
+                     } else {
+                         let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(||scalar_groups(sb)).flatten();
