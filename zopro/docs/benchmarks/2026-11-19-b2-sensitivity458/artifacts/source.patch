@@ -1,0 +1,93 @@
+--- /dev/null
++++ b/crates/zopro-core/src/public_b2_offset.rs
+@@ -0,0 +1,42 @@
++use super::*;
++use std::sync::OnceLock;
++
++const PUBLIC_FIXTURE: &[u8] = include_bytes!("public_b2_sensitivity.bin");
++
++pub(super) struct Correction {
++    prefix: usize,
++    suffix_sum: G2Projective,
++}
++
++impl Key {
++    pub(super) fn b2_with_public_offset(&self, words: &mut [[u64;4]]) -> G2Projective {
++        let prefix = match std::env::var("ZOPRO_BENCH_SENSITIVITY").as_deref() {
++            Ok("half") => words.len() / 2,
++            Ok("quarter") => words.len() / 4,
++            Ok("none") => 0,
++            _ => return msm_affine::g2_query_exclusive(&self.b2, words),
++        };
++        if self.b2.len() * 32 != PUBLIC_FIXTURE.len() {
++            return msm_affine::g2_query_exclusive(&self.b2, words);
++        }
++        let (head, tail) = words.split_at_mut(prefix);
++        // This diagnostic binary runs on little-endian x86. A byte slice can
++        // view all initialized scalar limbs without alignment or padding.
++        let bytes = unsafe { std::slice::from_raw_parts(tail.as_ptr().cast::<u8>(), std::mem::size_of_val(tail)) };
++        let trace = std::env::var_os("ZOPRO_BENCH_SENSITIVITY_TRACE").is_some();
++        if bytes != &PUBLIC_FIXTURE[prefix * 32..] {
++            if trace { eprintln!("SENSITIVITY_MISS"); }
++            return msm_affine::g2_query_exclusive(&self.b2, words);
++        }
++        let slot: &OnceLock<Option<Correction>> = &self.public_b2_offset;
++        let state = slot.get_or_init(|| {
++            if trace { eprintln!("SENSITIVITY_INIT"); }
++            Some(Correction {prefix, suffix_sum: msm_affine::g2_query_exclusive(&self.b2[prefix..], tail)})
++        }).as_ref().unwrap();
++        assert_eq!(state.prefix, prefix);
++        if trace { eprintln!("SENSITIVITY_APPLY {prefix}"); }
++        if head.is_empty() { state.suffix_sum } else {
++            msm_affine::g2_query_exclusive(&self.b2[..prefix], head) + state.suffix_sum
++        }
++    }
++}
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -222,6 +222,9 @@
+     output_fq(out, p.y.c1);
+ }
+
++#[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++mod public_b2_offset;
++
+ // The version of the solver images Key::solver_image writes and
+ // Key::set_solver_image reads, for a host to tell its images apart.
+ #[wasm_bindgen]
+@@ -827,6 +830,8 @@
+     /// Shared, for a browser's CPU share of the G2 MSM on the pool while
+     /// the proof's future awaits the GPU.
+     b2: std::sync::Arc<Store<G2Affine>>,
++    #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++    public_b2_offset: std::sync::OnceLock<Option<public_b2_offset::Correction>>,
+     generated_g2: generated_proof::G2InputCertificate,
+     #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+     canonical_wires: bool,
+@@ -1511,6 +1516,8 @@
+             k,
+             z,
+             b2: std::sync::Arc::new(b2),
++            #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++            public_b2_offset: Default::default(),
+             generated_g2: Default::default(),
+             #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+             canonical_wires: !cfg!(target_arch="wasm32") && lengths.iter().copied().max().unwrap_or(0)<(1<<16) && std::env::var("ZOPRO_CPU_CANONICAL_WIRES").as_deref()==Ok("1"),
+@@ -2267,7 +2274,7 @@
+                     || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+-                        msm_affine::g2_query_exclusive(&self.b2,sb)
++                        { #[cfg(zopro_resource_schedule)] { self.b2_with_public_offset(sb) } #[cfg(not(zopro_resource_schedule))] { msm_affine::g2_query_exclusive(&self.b2,sb) } }
+                     } else {
+                         let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(||scalar_groups(sb)).flatten();
+@@ -2297,7 +2304,7 @@
+                     },
+                     || {
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
++                            return (G1Projective::IDENTITY,{ #[cfg(zopro_resource_schedule)] { self.b2_with_public_offset(sb) } #[cfg(not(zopro_resource_schedule))] { msm_affine::g2_query_exclusive(&self.b2,sb) } });
+                         }
+                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(|| scalar_groups(sb))
