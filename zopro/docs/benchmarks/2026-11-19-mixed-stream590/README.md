@@ -39,3 +39,16 @@ The mixed sequence permits a comparison at the same destination request after tw
 | grouped-early | 143 | 19 / 6 | 4/5 | -0.622 | -1.258 to +0.432 |
 
 [Per-call predecessor and duration](artifacts/transitions.json.gz)
+
+## M5 reference result
+
+The original has a 284 ms M5 CPU reference and a 101 ms Metal reference. Each process contributes the mean of all five timed occurrences of the original. The five process means have equal weight. Peak memory covers the whole five-input process.
+
+| Configuration | Order | Original means per block, ms | CPU / Metal speedup | Processes at 28.4 ms | Individual calls at 28.4 ms | Maximum peak MiB |
+|---|---|---|---:|---:|---:|---:|
+| grouped-flat | mixed | 28.402 / 28.859 / 28.904 / 29.417 / 28.722 | 9.84× / 3.50× | 0/5 | 9/25 | 983.6 |
+| grouped-flat | consecutive | 28.541 / 28.192 / 28.210 / 28.342 / 28.087 | 10.07× / 3.58× | 4/5 | 17/25 | 993.0 |
+| grouped-early | mixed | 28.523 / 27.916 / 27.740 / 27.862 / 27.945 | 10.17× / 3.62× | 4/5 | 23/25 | 934.4 |
+| grouped-early | consecutive | 28.228 / 28.055 / 28.360 / 28.084 / 27.754 | 10.11× / 3.60× | 5/5 | 19/25 | 994.8 |
+
+The early setting crossed the 10× CPU threshold on this reference in both request orders. The preceding original-only SDK run measured 28.495 ms across seven processes. These workloads differ in request history, calls per process and output retention. [Original-only comparison](../2026-11-19-early-blocks588/README.md) · [Independent confirmation protocol](../2026-11-19-reference-recheck592/protocol.md)
