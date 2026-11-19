@@ -1,0 +1,181 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -536,9 +536,16 @@
+ }
+ fn fill_window_deferred<C:CurveConfig,const MASKED:bool,const POSITIVE:bool>(bases:&[Affine<C>],digits:impl Iterator<Item=i16>,width:usize,size:usize,defer:bool)->Window<C>
+ where C::Base:BatchInverse {
++    fill_window_pairs::<C,MASKED,POSITIVE>(bases.iter().zip(digits),width,size,defer)
++}
++
++#[inline]
++fn fill_window_pairs<'a,C:CurveConfig+'a,const MASKED:bool,const POSITIVE:bool>(
++    pairs: impl Iterator<Item=(&'a Affine<C>,i16)>, width:usize, size:usize, defer:bool,
++) -> Window<C> where C::Base:BatchInverse {
+     let mut w = Window::<C>::new(1usize << (width - 1), size);
+     w.defer_sign=defer;
+-    for (base, digit) in bases.iter().zip(digits) {
++    for (base, digit) in pairs {
+         if digit == 0 || base.is_identity() {
+             continue;
+         }
+--- a/crates/zopro-core/src/msm_affine/dense_h.rs
++++ b/crates/zopro-core/src/msm_affine/dense_h.rs
+@@ -1,4 +1,5 @@
+ use super::*;
++mod sparse;
+ 
+ // Consecutive little-endian bit fields covering the 254 scalar bits.
+ const WIDTHS: [usize; 19] = [
+@@ -65,6 +66,12 @@
+ where
+     C::Base: BatchInverse,
+ {
++    let masks = sparse::Masks::new(words);
++    sum_occupied::<C,SPLIT>(bases, words, masks.as_ref().map(|m|m.blocks.as_slice()))
++}
++
++fn sum_occupied<C:CurveConfig,const SPLIT:bool>(bases:&[Affine<C>],words:&[[u64;4]],present:Option<&[u64]>) -> Projective<C>
++where C::Base:BatchInverse {
+     assert_eq!(bases.len(), words.len());
+     let widths = &WIDTHS;
+     let mut offsets = [0usize; WIDTHS.len()];
+@@ -82,7 +89,18 @@
+             let shift = offset % 64;
+             let mask = (1u64 << bits) - 1;
+             let batch = batch_size(bits + 1).max(32);
+-            let fill = |bases: &[Affine<C>], words: &[[u64; 4]]| {
++            let fill = |bases: &[Affine<C>], words: &[[u64; 4]], start: usize| {
++                if let Some(present)=present {
++                    let live=sparse::positions(present,start,words.len());
++                    let buckets=if shift+bits<=64 {
++                        fill_window_pairs::<C,false,true>(live.map(|i|(&bases[i],((words[i][lane]>>shift)&mask) as i16)),bits+1,batch,false)
++                    } else {
++                        fill_window_pairs::<C,false,true>(live.map(|i|{
++                            let w=&words[i]; (&bases[i],(((w[lane]>>shift)|(w[lane+1]<<(64-shift)))&mask) as i16)
++                        }),bits+1,batch,false)
++                    };
++                    return affine_buckets(buckets);
++                }
+                 let buckets = if shift + bits <= 64 {
+                     fill_window_impl::<C, false, true>(
+                         bases,
+@@ -105,13 +123,13 @@
+             let buckets = if SPLIT {
+                 let mid = bases.len().div_ceil(2);
+                 let (mut left, right) = rayon::join(
+-                    || fill(&bases[..mid], &words[..mid]),
+-                    || fill(&bases[mid..], &words[mid..]),
++                    || fill(&bases[..mid], &words[..mid], 0),
++                    || fill(&bases[mid..], &words[mid..], mid),
+                 );
+                 merge_buckets(&mut left, &right);
+                 left
+             } else {
+-                fill(bases, words)
++                fill(bases, words, 0)
+             };
+             crate::msm::weighted_affine(&buckets)
+         })
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/dense_h/sparse.rs
+@@ -0,0 +1,100 @@
++use rayon::prelude::*;
++
++pub(super) struct Masks {
++    pub(super) blocks: Vec<u64>,
++    _charge: crate::preparation::Reservation,
++}
++
++fn blocks(words: &[[u64;4]]) -> Vec<u64> {
++    words.par_chunks(64).with_min_len(64).map(|chunk| {
++        chunk.iter().enumerate().fold(0, |bits,(i,w)| bits | (u64::from(*w != [0;4])<<i))
++    }).collect()
++}
++
++pub(super) fn positions(blocks:&[u64],start:usize,len:usize)->impl Iterator<Item=usize> + '_ {
++    let end=start+len;
++    let first=start/64;
++    let last=end.div_ceil(64);
++    blocks[first..last].iter().enumerate().flat_map(move |(index,mask)|{
++        let base=(first+index)*64;
++        let lo=start.saturating_sub(base);
++        let hi=(end-base).min(64);
++        let top=if hi==64 { u64::MAX } else { (1u64<<hi)-1 };
++        let mut live=*mask & top & (u64::MAX<<lo);
++        std::iter::from_fn(move || {
++            if live==0 { return None; }
++            let offset=live.trailing_zeros() as usize;
++            live&=live-1;
++            Some(base+offset-start)
++        })
++    })
++}
++
++impl Masks {
++    pub(super) fn new(words:&[[u64;4]])->Option<Self>{
++        let setting=std::env::var("ZOPRO_TRIAL_H_OCCUPANCY").ok()?;
++        if setting!="1" && setting!="trace" {return None;}
++        let stride=words.len().div_ceil(1024).max(1);
++        let count=words.len().div_ceil(stride);
++        let zero=words.iter().step_by(stride).filter(|w| **w==[0;4]).count();
++        if zero*4<count {
++            if setting=="trace"{eprintln!("H_OCCUPANCY_SKIP {} {} {}",words.len(),zero,count);}
++            return None;
++        }
++        let bytes=words.len().div_ceil(64).checked_mul(8)?;
++        let charge=crate::preparation::Reservation::analysis(Some(bytes))?;
++        let blocks=blocks(words);
++        if setting=="trace"{
++            let live:usize=blocks.iter().map(|x| x.count_ones() as usize).sum();
++            eprintln!("H_OCCUPANCY {} {} {}",words.len(),live,bytes);
++        }
++        Some(Self{blocks,_charge:charge})
++    }
++
++}
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn partial_half_ranges_cover_every_nonzero_scalar_once() {
++        use zopro_bn254::{Fr,G1Affine,G1Projective};
++        let n=193usize;
++        let mut base=G1Projective::IDENTITY;
++        let points:Vec<_>=(0..n).map(|i|{
++            base+=G1Affine::GENERATOR;
++            if i%13==0 {G1Projective::IDENTITY} else {base}
++        }).collect();
++        let points=G1Projective::batch_to_affine(&points);
++        let words:Vec<_>=(0..n).map(|i|{
++            if i%5==0 || i>127 { [0;4] } else {
++                let v=i as u64;
++                [v.wrapping_mul(0xa91728d135489771),v.rotate_left(53),
++                 v.wrapping_mul(0xdb940a011338a7c7),v.rotate_left(47) | (1<<60)]
++            }
++        }).collect();
++        let scalar=words.iter().enumerate().filter(|(i,_)|i%13!=0).fold(Fr::ZERO,|acc,(i,w)|
++            acc+Fr::from((i+1) as u64)*Fr::from_canonical(*w).unwrap());
++        let expected=(G1Affine::GENERATOR*scalar).to_affine();
++        let mask=blocks(&words);
++        assert_eq!(super::super::sum_occupied::<_,false>(&points,&words,Some(&mask)).to_affine(),expected);
++        assert_eq!(super::super::sum_occupied::<_,true>(&points,&words,Some(&mask)).to_affine(),expected);
++        assert_eq!(super::super::sum_occupied::<_,true>(&points,&words,None).to_affine(),expected);
++
++        for n in [0usize,1,2,61,63,64,65,127,129,997] {
++            for pattern in [0,1,3,7] {
++                let words:Vec<_>=(0..n).map(|i|{
++                    let mut w=[0;4];
++                    if pattern!=0 && i%pattern==0 {w[i%4]=1+(i as u64);}
++                    w
++                }).collect();
++                let masks=blocks(&words);
++                for start in [0,n/4,n/2,n.saturating_sub(1),n]{
++                    for end in [start,(start+n)/2,n]{
++                        let expected:Vec<_>=words[start..end].iter().enumerate().filter_map(|(i,w)|(*w!=[0;4]).then_some(i)).collect();
++                        assert_eq!(positions(&masks,start,end-start).collect::<Vec<_>>(),expected);
++                    }
++                }
++            }
++        }
++    }
++}
