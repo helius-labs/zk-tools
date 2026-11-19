@@ -1,0 +1,11 @@
+# Same-width L3 placement test for the C7a pilot
+
+This extension to the staged 663 pilot compares ordinary Zopro and prepared Aeglos on 1×16 and 5×16. On 5×16 it also includes the integrated grouped G2 and packed FFT configuration. The proposed same-instance run covers 32 physical cores packed into four L3 domains, 32 spread across twelve domains, and the full 96 cores. The Rust wrapper discovers the inherited mask, physical siblings and actual Linux L3 sharing lists and emits them with each command. The reported four and twelve domains correspond to a 96-core host with twelve eight-core L3 domains. The saved topology on the new host determines the actual count.
+
+Six independently shuffled blocks each contain all fifteen shape, engine and placement combinations. Within each three-block rotation, each core appears once in each 32-core policy. Every process warms three requests, times eleven, and exports a proof for independent Gnark verification. Compare per-block latency, CPU time, memory and Aeglos MSM time. Evaluate the twofold target against same-instance ordinary latency. The main 663 workflow supplies the broader 32/96 comparison and the 1×2 and merge54 controls.
+
+On Ryzen the complete fifteen-combination smoke used eight or sixteen physical cores and two timed proofs per process. The reported masks matched the intended L3 count. All fifteen proof exports verified and each timed Aeglos request reported a cache hit. Two unit tests covered full rotation on a twelve-domain layout, uneven domains and invalid widths. No C7a timing was collected.
+
+The staged supplement at `/home/ubuntu/src/zopro-perf-work/c7a-placement674/addon` contains the Rust mask executable and both placement JSON files. Overlay those three files on the existing `/opt/zopro-wide663` payload on the same instance. From that directory, `bin/xtask workflow placement-workflow.json placement-results` runs the dedicated comparison. The original pilot manifest and workflow retain their existing identities.
+
+[Ryzen fixed-width experiment](../2026-11-19-fixed-width671/README.md) · [Original pilot](../2026-11-19-aws-wide663/README.md) · [Rust launcher and tests](artifacts/cache-mask.rs) · [Cloud workflow](artifacts/workflow.json.gz) · [Input pins](artifacts/pins.json) · [Smoke runs](artifacts/smoke.json) · [Verification](artifacts/verification.json)
