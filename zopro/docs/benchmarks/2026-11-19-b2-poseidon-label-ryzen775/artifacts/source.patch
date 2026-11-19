@@ -1,0 +1,449 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2106,7 +2106,19 @@
+                         { false }
+                     };
+                     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+-                    let groups = if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
++                    let ordinary = || if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
++                    #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                    let groups = if omit_b && (65_536..262_144).contains(&sb.len())
++                        && std::env::var_os("ZOPRO_TRIAL_B2_ORIGINS").is_some()
++                    {
++                        self.solver.as_ref().and_then(solver::Plan::b2_origins)
++                            .and_then(|origins| msm_affine::group_witness_b2_origins(sb, origins, serial))
++                            .or_else(ordinary)
++                    } else {
++                        ordinary()
++                    };
++                    #[cfg(all(not(zopro_resource_schedule), target_os = "linux", target_arch = "x86_64"))]
++                    let groups = ordinary();
+                     #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                     let groups = { let _ = serial; group_witness(sb) };
+                     if let Some(groups) = groups {
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -396,6 +396,8 @@
+     fuse_sums: u8,
+     /// The ops in epochs of parallel tasks, built at the first solve.
+     schedule: std::sync::OnceLock<Schedule>,
++    #[cfg(zopro_resource_schedule)]
++    b2_origins: std::sync::OnceLock<Option<B2Origins>>,
+     definite: std::sync::OnceLock<bool>,
+ }
+ 
+@@ -907,6 +909,8 @@
+             ops,
+             fuse_sums: fused_sums_mode(),
+             schedule: std::sync::OnceLock::new(),
++            #[cfg(zopro_resource_schedule)]
++            b2_origins: std::sync::OnceLock::new(),
+             definite: std::sync::OnceLock::new(),
+         };
+         plan.compact_coefficients();
+@@ -1219,6 +1223,8 @@
+             ops,
+             fuse_sums: fused_sums_mode(),
+             schedule: std::sync::OnceLock::new(),
++            #[cfg(zopro_resource_schedule)]
++            b2_origins: std::sync::OnceLock::new(),
+             definite: std::sync::OnceLock::new(),
+         };
+         plan.compact_coefficients();
+@@ -2430,6 +2436,8 @@
+                 ops,
+                 fuse_sums: 2,
+                 schedule: std::sync::OnceLock::new(),
++            #[cfg(zopro_resource_schedule)]
++            b2_origins: std::sync::OnceLock::new(),
+                 definite: std::sync::OnceLock::new(),
+             }
+         }
+@@ -3163,3 +3171,6 @@
+ }
+ 
+ #[cfg(zopro_resource_schedule)] mod sparse_poseidon;
++
++#[cfg(zopro_resource_schedule)]
++pub(crate) use sparse_poseidon::{B2Origins, RuntimeAliases};
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -3,6 +3,8 @@
+ //! Returned groups own scalar values and stable input-index lists. The
+ //! reservation outlives every owned buffer and all point-reduction consumers.
+ use super::grouping_cost;
++#[cfg(zopro_resource_schedule)]
++use crate::solver::{B2Origins, RuntimeAliases};
+ use rayon::prelude::*;
+ use zopro_bn254::Fr;
+ 
+@@ -18,14 +20,28 @@
+ /// Group before converting representations, so only distinct witness
+ /// scalars need Montgomery reduction. The grouping is fresh per proof.
+ pub(crate) fn group_witness(scalars: &[Fr]) -> Option<ScalarGroups> {
+-    group_witness_inner::<false>(scalars)
++    group_witness_inner::<false>(scalars, None)
+ }
+ 
+ pub(crate) fn group_witness_serial_b2(scalars: &[Fr]) -> Option<ScalarGroups> {
+-    group_witness_inner::<true>(scalars)
+-}
+-
+-fn group_witness_inner<const SERIAL_B2: bool>(scalars: &[Fr]) -> Option<ScalarGroups> {
++    group_witness_inner::<true>(scalars, None)
++}
++
++#[cfg(zopro_resource_schedule)]
++pub(crate) fn group_witness_b2_origins(scalars: &[Fr], origins: &B2Origins, serial: bool) -> Option<ScalarGroups> {
++    if serial {
++        group_witness_inner::<true>(scalars, Some(origins))
++    } else {
++        group_witness_inner::<false>(scalars, Some(origins))
++    }
++}
++
++#[cfg(zopro_resource_schedule)]
++type Origins<'a> = Option<&'a B2Origins>;
++#[cfg(not(zopro_resource_schedule))]
++type Origins<'a> = Option<&'a ()>;
++
++fn group_witness_inner<const SERIAL_B2: bool>(scalars: &[Fr], origins: Origins<'_>) -> Option<ScalarGroups> {
+     if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
+         return None;
+     }
+@@ -34,7 +50,7 @@
+     let words =
+         unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
+     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+-    let mut groups = group_with_gate::<false, SERIAL_B2>(words, zero_aware)?;
++    let mut groups = group_with_gate::<false, SERIAL_B2>(words, zero_aware, origins)?;
+     let convert = |value: &mut [u64; 4]| {
+         *value = Fr::from_montgomery(*value).to_canonical();
+     };
+@@ -56,7 +72,7 @@
+ mod diversity;
+ pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+-    group_with_gate::<true, false>(scalars, zero_aware)
++    group_with_gate::<true, false>(scalars, zero_aware, None)
+ }
+ 
+ type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
+@@ -115,10 +131,10 @@
+ }
+ 
+ fn scalar_groups_policy(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
+-    group_with_gate::<false, false>(scalars, zero_aware)
+-}
+-
+-fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
++    group_with_gate::<false, false>(scalars, zero_aware, None)
++}
++
++fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(scalars: &[[u64; 4]], zero_aware: bool, origins: Origins<'_>) -> Option<ScalarGroups> {
+     if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
+         return None;
+     }
+@@ -129,7 +145,15 @@
+     {
+         return None;
+     }
+-    let reservation = grouping_cost::reserve(scalars.len(), percent)?;
++    #[cfg(zopro_resource_schedule)]
++    let reservation = match origins {
++        Some(plan) => crate::preparation::Reservation::analysis(
++            grouping_cost::add(grouping_cost::peak(scalars.len(), percent)?, plan.scratch_bytes()?),
++        )?,
++        None => grouping_cost::reserve(scalars.len(), percent)?,
++    };
++    #[cfg(not(zopro_resource_schedule))]
++    let reservation = { let _ = origins; grouping_cost::reserve(scalars.len(), percent)? };
+     // Bound the initial allocation by the sample and by the grouping
+     // cutoff. Small high-diversity inputs otherwise grow and rehash the
+     // entire table several times before either succeeding or declining.
+@@ -143,6 +167,15 @@
+         0
+     };
+     let mut classes = vec![u32::MAX; scalars.len()];
++    #[cfg(zopro_resource_schedule)]
++    let (values, counts) = if let Some(plan) = origins {
++        let room = capacity.min(plan.residual().div_ceil(3));
++        let aliases = plan.aliases(scalars)?;
++        classify_nonzero_origins(scalars, &mut classes, room, ahash::RandomState::new(), aliases)
++    } else {
++        classify_nonzero(scalars, &mut classes, capacity, ahash::RandomState::new())
++    };
++    #[cfg(not(zopro_resource_schedule))]
+     let (values, counts) = classify_nonzero(scalars, &mut classes, capacity, ahash::RandomState::new());
+     if values.len() * 100 > scalars.len() * percent {
+         return None;
+@@ -239,3 +272,61 @@
+     let serial = groups(group_witness_serial_b2(&scalars).unwrap());
+     assert_eq!(control, serial);
+ }
++
++
++#[cfg(zopro_resource_schedule)]
++fn classify_nonzero_origins(
++    scalars: &[[u64; 4]],
++    classes: &mut [u32],
++    capacity: usize,
++    state: impl std::hash::BuildHasher,
++    mut aliases: RuntimeAliases<'_>,
++) -> (Vec<[u64; 4]>, Vec<usize>) {
++    use hashbrown::{hash_table::Entry, HashTable};
++    let mut table = HashTable::<u32>::with_capacity(capacity);
++    let mut values = Vec::new();
++    let mut counts = Vec::new();
++    let mut hits = 0usize;
++    let mut first = 0usize;
++    let mut mismatches = 0usize;
++    for (i, (scalar, class)) in scalars.iter().zip(classes).enumerate() {
++        if *scalar == [0; 4] { continue; }
++        if let Some(slot) = aliases.slot(i) {
++            if *slot == u32::MAX {
++                *slot = values.len() as u32;
++                *class = *slot;
++                values.push(*scalar);
++                counts.push(1);
++                first += 1;
++                continue;
++            }
++            if values[*slot as usize] == *scalar {
++                *class = *slot;
++                counts[*slot as usize] += 1;
++                hits += 1;
++                continue;
++            }
++            mismatches += 1;
++        }
++        let index = match table.entry(
++            state.hash_one(scalar),
++            |&j| values[j as usize] == *scalar,
++            |&j| state.hash_one(&values[j as usize]),
++        ) {
++            Entry::Occupied(e) => *e.get(),
++            Entry::Vacant(e) => {
++                let j = values.len() as u32;
++                values.push(*scalar);
++                counts.push(0);
++                e.insert(j);
++                j
++            }
++        };
++        *class = index;
++        counts[index as usize] += 1;
++    }
++    if std::env::var_os("ZOPRO_TRIAL_B2_ORIGINS_TRACE").is_some() {
++        eprintln!("B2_ORIGINS {} {first} {hits} {mismatches} {}", scalars.len(), values.len());
++    }
++    (values, counts)
++}
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -14,6 +14,8 @@
+ pub(super) mod borrowed_pending;
+ mod grouping;
+ pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
++#[cfg(zopro_resource_schedule)]
++pub(super) use grouping::group_witness_b2_origins;
+ #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+ pub(super) use grouping::group_witness_serial_b2;
+ 
+--- a/crates/zopro-core/src/solver/sparse_poseidon.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon.rs
+@@ -543,3 +543,6 @@
+ 
+ #[cfg(test)]
+ mod tests;
++
++mod aliases;
++pub(crate) use aliases::{B2Origins, RuntimeAliases};
+--- /dev/null
++++ b/crates/zopro-core/src/solver/sparse_poseidon/aliases.rs
+@@ -0,0 +1,185 @@
++use super::*;
++use crate::preparation::Reservation;
++use hashbrown::{hash_table::Entry, HashTable};
++use std::hash::BuildHasher;
++
++const STRIDE: u32 = 4 * MAX_N as u32;
++
++#[derive(Clone, Copy)]
++struct State {
++    positions: [u32; 13],
++    width: u8,
++}
++
++impl State {
++    fn positions(&self) -> &[u32] {
++        &self.positions[..self.width as usize]
++    }
++
++    fn hash(&self, words: &[[u64; 4]], state: &impl BuildHasher) -> u64 {
++        let mut values = [[0; 4]; 13];
++        for (out, &pos) in values.iter_mut().zip(self.positions()) {
++            *out = words[pos as usize];
++        }
++        state.hash_one(&values[..self.width as usize])
++    }
++
++    fn matches(&self, other: &Self, words: &[[u64; 4]]) -> bool {
++        self.width == other.width
++            && self.positions().iter().zip(other.positions())
++                .all(|(&a, &b)| words[a as usize] == words[b as usize])
++    }
++}
++
++pub(crate) struct B2Origins {
++    order: Vec<u32>,
++    states: Vec<State>,
++    covered: usize,
++    _memory: Reservation,
++}
++
++pub(crate) struct RuntimeAliases<'a> {
++    order: &'a [u32],
++    tags: Vec<u32>,
++    classes: Vec<u32>,
++}
++
++impl RuntimeAliases<'_> {
++    pub(crate) fn slot(&mut self, position: usize) -> Option<&mut u32> {
++        let origin = self.order[position];
++        if origin == u32::MAX {
++            return None;
++        }
++        let tag = self.tags[(origin / STRIDE) as usize];
++        self.classes.get_mut((tag * STRIDE + origin % STRIDE) as usize)
++    }
++}
++
++impl B2Origins {
++    pub(crate) fn residual(&self) -> usize { self.order.len() - self.covered }
++
++    pub(crate) fn scratch_bytes(&self) -> Option<usize> {
++        self.states.len().checked_mul((STRIDE as usize).checked_mul(4)?.checked_add(64)?)
++            .and_then(|n| n.checked_add(256))
++    }
++
++    pub(crate) fn aliases<'a>(&'a self, words: &[[u64; 4]]) -> Option<RuntimeAliases<'a>> {
++        if words.len() != self.order.len() { return None; }
++        let mut table = HashTable::<u32>::with_capacity(self.states.len());
++        let state = ahash::RandomState::new();
++        let mut tags = Vec::with_capacity(self.states.len());
++        let mut classes = 0u32;
++        for (i, span) in self.states.iter().enumerate() {
++            let tag = match table.entry(
++                span.hash(words, &state),
++                |&j| span.matches(&self.states[j as usize], words),
++                |&j| self.states[j as usize].hash(words, &state),
++            ) {
++                Entry::Occupied(e) => tags[*e.get() as usize],
++                Entry::Vacant(e) => {
++                    e.insert(i as u32);
++                    let tag = classes;
++                    classes += 1;
++                    tag
++                }
++            };
++            tags.push(tag);
++        }
++        Some(RuntimeAliases { order: &self.order, tags, classes: vec![u32::MAX; (classes * STRIDE) as usize] })
++    }
++}
++
++impl Plan {
++    pub(crate) fn b2_origins(&self) -> Option<&B2Origins> {
++        if !(65_536..262_144).contains(&self.b_indices.len()) {
++            return None;
++        }
++        self.b2_origins.get_or_init(|| self.build_b2_origins()).as_ref()
++    }
++
++    fn build_b2_origins(&self) -> Option<B2Origins> {
++        let schedule = self.schedule.get()?;
++        let wire_count = self.n_wires.checked_add(self.n_slots)?;
++        let estimate = wire_count.checked_mul(4)?.checked_add(self.b_indices.len().checked_mul(4)?)?
++            .checked_add(self.ops.len().checked_mul(4)?)?;
++        let memory = Reservation::analysis(Some(estimate))?;
++        let mut index = vec![u32::MAX; wire_count];
++        for (j, &i) in self.b_indices.iter().enumerate() {
++            let slot = index.get_mut(i as usize)?;
++            if *slot != u32::MAX {
++                return None;
++            }
++            *slot = j as u32;
++        }
++        let mut states = Vec::new();
++        let mut order = vec![u32::MAX; self.b_indices.len()];
++        let mut covered = 0;
++        let mut visit = |task: &[u32]| -> Option<()> {
++            if !self.poseidon_task(task) {
++                return Some(());
++            }
++            let mut pos = 0;
++            while pos < task.len() {
++                let width = (task[pos] >> 28) as usize;
++                if width == 0 {
++                    pos += 1;
++                    continue;
++                }
++                let (partial, _) = parameters(width);
++                let n = 7 * width + partial;
++                let leaf = &task[pos..pos + 3 * n];
++                let mut s = State { positions: [u32::MAX; 13], width: width as u8 };
++                for (out, &i) in s.positions.iter_mut().zip(&leaf[2 * width..3 * width]) {
++                    *out = index[step(self, i)?.assignment.as_ref()?.wire()];
++                }
++                pos += 3 * n;
++                if s.positions().contains(&u32::MAX) {
++                    continue;
++                }
++                let code = (states.len() as u32).checked_mul(STRIDE)?;
++                states.push(s);
++                for k in width..n {
++                    let [f, m, l] = positions(width, partial, k);
++                    let (x, wires) = if leaf[f] & EMIT_MARK != 0 {
++                        ((leaf[f] & !(EMIT_MARK | EMIT_NORMAL)) as usize, unpack_three(leaf[l]))
++                    } else {
++                        let [a, b, c] = [f, m, l].map(|i| step(self, leaf[i]));
++                        let (a, b, c) = (a?, b?, c?);
++                        (self.n_wires + a.first_slot(), [a, b, c].map(|s| s.assignment.as_ref().unwrap().wire()))
++                    };
++                    for (coordinate, wire) in [x, wires[0], wires[1], wires[2]].into_iter().enumerate() {
++                        let i = index[wire];
++                        if i == u32::MAX {
++                            continue;
++                        }
++                        let slot = &mut order[i as usize];
++                        if *slot != u32::MAX {
++                            return None;
++                        }
++                        *slot = code + (4 * k + coordinate) as u32;
++                        covered += 1;
++                    }
++                }
++            }
++            Some(())
++        };
++        for task in schedule.epochs.iter().flatten() {
++            if let Some(waves) = schedule.refined.get(&(task[0] as usize)) {
++                for leaf in waves.iter().flatten() { visit(leaf)?; }
++            } else {
++                visit(task)?;
++            }
++        }
++        drop(index);
++        if covered < order.len() / 8 {
++            return None;
++        }
++        #[cfg(zopro_live_preparation_charge)]
++        let memory = memory.retain(
++            states.capacity().checked_mul(core::mem::size_of::<State>())?
++                .checked_add(order.capacity().checked_mul(4)?)
++                .and_then(|n| n.checked_add(256)),
++        );
++        Some(B2Origins { order, states, covered, _memory: memory })
++    }
++}
