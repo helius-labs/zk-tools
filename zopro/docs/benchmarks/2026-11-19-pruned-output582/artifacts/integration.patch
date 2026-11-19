@@ -1,0 +1,24 @@
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -1,5 +1,6 @@
+ //! Apply both local transforms and the Euler weights in one expanded leaf.
+ use super::*;
++mod output_mask;
+ 
+ // Leave the adjacent sum and difference lanes together between the two transforms.
+ // Their natural coefficient indices differ by N/2 in bit-reversed DIF order.
+@@ -97,7 +98,13 @@
+         .for_each(|(i, part)| {
+             transform(plan, part, 5, i * width);
+         });
+-    columns::<true>(&mut values, &plan.roots, 0);
++    match std::env::var("ZOPRO_TRIAL_OUTPUT_SUPPORT").as_deref() {
++        Ok(mode @ ("on" | "trace")) => {
++            output_mask::finish(&mut values,&plan.roots,a,b);
++            if mode=="trace" {output_mask::report(a,b,width);}
++        }
++        _ => columns::<true>(&mut values, &plan.roots, 0),
++    }
+     values
+ }
+ 
