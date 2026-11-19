@@ -1,6 +1,8 @@
 # Affine batch capacity at curve-window completion
 
-The reference and three other request/width combinations each have ten balanced blocks per arm, with a separate CPU profile for each. The frozen release is an additional build control. Each latency is the median of process means. The paired columns compare with both changes disabled in the candidate executable. All 156 native core tests passed with both changes enabled, and all 280 exported proofs independently verified.
+On the original 1×2 request, the final batch took 166 of 415 queued G1 points and 254 of 921 queued G2 points per proof. These counts were identical at 16 and 32 workers. With both changes enabled the paired median change against the same binary with both disabled was +0.06% at 32 workers and −0.29% at 16. Enabling G1 alone gave the fastest 32-worker reference median (6.935 ms), but it lost eight of ten pairs at 16 workers. Keep the release path. The smaller memory peaks on some inputs and larger peaks on others give no consistent memory advantage.
+
+The five request and worker combinations each have ten balanced blocks per arm, with a separate CPU profile for each. The frozen release is an additional build control. Each latency is the median of process means. The paired columns compare with both changes disabled in the candidate executable. All 156 native core tests passed with both changes enabled, and all 280 exported proofs independently verified.
 
 | Input and workers | Release / disabled / G1 / G2 / both ms | G1 / G2 / both vs disabled | Peaks in the same order, MiB | Both vs M5 CPU / Metal |
 |---|---:|---:|---:|---:|
