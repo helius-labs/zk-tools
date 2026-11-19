@@ -1,0 +1,5 @@
+# Ordinary SDK release comparison on the other 32 catalog requests
+
+The previous release qualification covered nine original shapes. Measure the other 32 catalog keys against the same parent SDK to identify any regressions hidden by the comparison with Aeglos. The only difference within a pair is the executable, with digests carried forward from the original qualification. Both arms use the shared server configuration and all 32 Ryzen hardware threads. Each process primes three proofs and times seven complete SDK requests. Shape order is shuffled in each of four blocks and each SDK runs first twice per shape. The original verifier checks the last exported proof from every process. Report the paired median change, paired wins and maximum whole-process RSS on every shape. Four blocks provide directional evidence. Consistent slowdowns on all four blocks warrant a fresh confirmation before changing the runtime.
+
+[Original nine-shape comparison](../2026-11-19-checked-release630/README.md) · [Comparison against Aeglos](../2026-11-19-ryzen-catalog631/README.md) · [Workflow](artifacts/workflow.json.gz)
