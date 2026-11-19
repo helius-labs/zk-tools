@@ -1,0 +1,42 @@
+set pagination off
+set confirm off
+set debuginfod enabled off
+starti
+set language c
+python
+import gdb, json
+seen={}
+class Census(gdb.Breakpoint):
+ def stop(self):
+  n=int(gdb.parse_and_eval('$rdx'))
+  if not 256 <= n <= 2000000: raise ValueError(n)
+  f=gdb.newest_frame().older()
+  site=(n, f.name() or 'unknown', str(int(f.pc())-int(gdb.lookup_global_symbol('main').value().address)) if False else '')
+  if site in seen:
+   seen[site]['hits']+=1
+   return False
+  a=int(gdb.parse_and_eval('$rsi'))
+  raw=bytes(gdb.selected_inferior().read_memory(a,n*32))
+  ss=[raw[i:i+32] for i in range(0,len(raw),32)]
+  zero=bytes(32); unique=set(ss); distinct=len(unique-{zero})
+  bits=min(1<<18,1<<(8*n-1).bit_length());shift=64-(bits.bit_length()-1)
+  marks={((int.from_bytes(s[:8],'little')*0x9e3779b97f4a7c15)&((1<<64)-1)) >> shift for s in unique if any(s[:8])}
+  mixed=[(int.from_bytes(s[:8],'little')*0x9e3779b97f4a7c15)&((1<<64)-1) for s in ss if any(s[:8])]
+  split=len({x>>(shift-1) for x in mixed})
+  bank_count=bits//128; bank_shift=64-(bank_count.bit_length()-1)
+  banks=[set() for _ in range(bank_count)]
+  for x in mixed:
+   bank=banks[x>>bank_shift]
+   tag=max(1,(x>>(bank_shift-8))&255)
+   if len(bank)<16: bank.add(tag)
+  tag_count=sum(map(len,banks))
+  assert max(len(marks),tag_count)<=distinct and len(marks)<=split<=distinct
+  sample=ss[::((n+min(n,2048)-1)//min(n,2048))][:2048]
+  seen[site]=dict(n=n,caller=site[1],hits=1,distinct=distinct,occupied=len(marks),split=split,tag_count=tag_count,table_bytes=bits//8,sample=len(sample),sample_unique=len(set(sample)),sample_zero=sample.count(zero))
+  return False
+Census("*'zopro_core::msm_affine::grouping::groups_with_diversity_check'",internal=True)
+end
+run
+python
+with open('RESULT_PATH','w') as fp: json.dump(list(seen.values()),fp,indent=2)
+end
