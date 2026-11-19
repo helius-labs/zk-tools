@@ -1,5 +1,8 @@
 """Measure signed-window insertions and suffix sums for public BN254 coefficients."""
-from collections import Counter
+from pathlib import Path
+import json
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "2026-11-19-trained-digits541/artifacts"))
 from functools import lru_cache
 from zp_glv513 import P, LAMBDA, split, signed_digits
 
@@ -68,3 +71,6 @@ def run(blob):
         data['component-'+label]=cost([k for k,_ in low+high],lw+hw)
     tiny={str(bits):sum((b-a).bit_length()<=bits for a,b in zip(scalars,scalars[1:])) for bits in [1,16,64,126,224]}
     return dict(original_rows=len(xs),distinct_signed=len(scalars),adjacent_short=tiny,schemes=data)
+
+if __name__ == "__main__":
+    print(json.dumps(run(Path(sys.argv[1]).read_bytes()), indent=2))

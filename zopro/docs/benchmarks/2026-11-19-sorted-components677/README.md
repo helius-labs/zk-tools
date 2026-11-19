@@ -26,4 +26,6 @@ The last columns select the lowest operation count across block sizes 2, 8, 32 a
 | 2x2 | 39 | 29,213 | 19 | 621,091 | +2.35% (2) | -0.43% (8) |
 | 2x2 | 40 | 29,197 | 18 | 620,757 | +2.34% (2) | -0.42% (8) |
 
+Sorting whole scalars increased modeled work by 2.34–2.37% even with a choice of block size on each input. Sorting separate GLV components saved 0.36–0.44% before charging the sorts or their memory traffic. The original 1×2 input had just three adjacent gaps of at most 126 bits among 26,139 signed-magnitude classes. This leaves little incentive to build this ordering into the prover. More general window-digit clustering can exploit relationships outside this order. Hrabar evaluates such techniques by operation count. [University of Waterloo thesis](https://uwspace.uwaterloo.ca/items/43cc12b9-cb03-42bd-a01c-4b0ed5e12403)
+
 [Scalar decomposition and Booth digits](../2026-11-19-trained-digits541/artifacts/zp_glv513.py) · [Scanner](artifacts/screen.py) · [Per-witness work counts and proof hashes](artifacts/counts.json) · [Fixed-order difference study](../2026-10-26-local-difference-basis/README.md)
