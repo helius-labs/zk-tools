@@ -27,3 +27,5 @@ For each input count with multiple output widths, compare its largest output wid
 | 24 | 2, 4 | 2 / 0 / 0 | +1.73% | 7/9 |
 
 The reader reconstructs both endpoint ratios of each published interval and the median for all 82 comparisons from 1,476 timed processes. It checks complete process means against the separately aggregated stage data. Key dimensions come from the 41 original Euler key headers. Each header digest and the image identity pinned by the archived runner are in the results. This analysis uses previously verified proofs and adds no new AWS timing. [Reader](artifacts/crossover.py) · [Per-shape data](artifacts/results.json) · [Full catalog](../2026-11-18-full-catalog-c7a244/README.md)
+
+A separate full-file SHA-256 pass on all 41 local images matched the archived catalog configuration. The 5×16 and 6×2 requests also produced different numbers of distinct scalars in the same curve-query code. [Verified group counts](../2026-11-19-crossover-groups603/README.md)
