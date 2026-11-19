@@ -1,0 +1,113 @@
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1736,7 +1736,17 @@
+     q: usize,
+     column: usize,
+ ) {
+-    for order in 0..5 {
++    column_kernel_from::<CACHED,FORWARD,0>(local,roots,level,q,column)
++}
++#[inline(always)]
++fn column_kernel_from<const CACHED: bool, const FORWARD: bool, const FIRST: usize>(
++    local: &mut [Pair; 32],
++    roots: &Twiddles,
++    level: usize,
++    q: usize,
++    column: usize,
++) {
++    for order in FIRST..5 {
+         let stage = if FORWARD { 4 - order } else { order };
+         let gap = 16 >> stage;
+         for block in (0..32).step_by(2 * gap) {
+--- a/crates/zopro-core/src/fft/pair/input_columns.rs
++++ b/crates/zopro-core/src/fft/pair/input_columns.rs
+@@ -6,7 +6,7 @@
+ 
+ // Construct the first inverse radix-32 columns directly from the two input
+ // polynomials. Each invocation owns the same column range in all 32 stripes.
+-fn pack_inverse_columns<const CACHED: bool>(
++fn pack_inverse_columns<const CACHED: bool, const FOLD: bool>(
+     mut stripes: [&mut [MaybeUninit<PackedPair>]; 32],
+     a: &[Fr],
+     b: &[Fr],
+@@ -24,25 +24,45 @@
+             left
+         });
+         rayon::join(
+-            || pack_inverse_columns::<CACHED>(left, a, b, roots, q, start),
+-            || pack_inverse_columns::<CACHED>(stripes, a, b, roots, q, start + mid),
++            || pack_inverse_columns::<CACHED,FOLD>(left, a, b, roots, q, start),
++            || pack_inverse_columns::<CACHED,FOLD>(stripes, a, b, roots, q, start + mid),
+         );
+         return;
+     }
+     let count = a.len().max(b.len());
+     let zero = Pair::new(&[Fr::ZERO; 8]);
+     for column in 0..columns {
+-        let mut local = core::array::from_fn(|row| {
+-            let i = 4 * (row * q + start + column);
+-            if i >= count {
+-                return zero;
+-            }
++        let position = start + column;
++        let load = |row: usize| {
++            let i = 4 * (row * q + position);
++            if i >= count {return zero;}
+             Pair::new(&core::array::from_fn(|lane| {
+                 let values = if lane < 4 { a } else { b };
+                 values.get(i + lane % 4).copied().unwrap_or(Fr::ZERO)
+             }))
+-        });
+-        column_kernel::<CACHED, false>(&mut local, roots, 0, q, start + column);
++        };
++        let mut local;
++        if FOLD {
++            local = [zero;32];
++            for row in 0..16 {
++                if 4 * (row*q + position) >= count {break;}
++                let low=load(row);
++                let root=if CACHED { broadcast(&roots.columns[0][31*position+row]) }
++                    else { broadcast(&roots.layers[0][row*q+position]) };
++                if 4 * ((row+16)*q+position) >= count {
++                    local[row]=low;
++                    local[row+16]=low.mul(&root);
++                } else {
++                    let high=load(row+16);
++                    local[row]=low.add(&high);
++                    local[row+16]=low.sub(&high).mul(&root);
++                }
++            }
++            column_kernel_from::<CACHED,false,1>(&mut local,roots,0,q,position);
++        } else {
++            local=core::array::from_fn(load);
++            column_kernel::<CACHED,false>(&mut local,roots,0,q,position);
++        }
+         for (stripe, value) in stripes.iter_mut().zip(local) {
+             stripe[column].write(PackedPair::store(value));
+         }
+@@ -58,10 +78,12 @@
+     let mut values = Vec::with_capacity(n);
+     let mut chunks = values.spare_capacity_mut()[..n].chunks_exact_mut(q);
+     let stripes = core::array::from_fn(|_| chunks.next().unwrap());
+-    if roots.columns.is_empty() {
+-        pack_inverse_columns::<false>(stripes, a, b, roots, q, 0);
+-    } else {
+-        pack_inverse_columns::<true>(stripes, a, b, roots, q, 0);
++    let fold=std::env::var_os("ZOPRO_FOLD_ZERO_STRIPES").is_some();
++    match (roots.columns.is_empty(),fold) {
++        (true,false)=>pack_inverse_columns::<false,false>(stripes,a,b,roots,q,0),
++        (true,true)=>pack_inverse_columns::<false,true>(stripes,a,b,roots,q,0),
++        (false,false)=>pack_inverse_columns::<true,false>(stripes,a,b,roots,q,0),
++        (false,true)=>pack_inverse_columns::<true,true>(stripes,a,b,roots,q,0),
+     }
+     // SAFETY: the 32 disjoint stripes cover exactly n slots. Both branches
+     // join every producer and write each slot before this call.
+@@ -95,7 +117,7 @@
+             if cache {
+                 plan.inverse_roots.prepare_columns();
+             }
+-            for (na, nb) in [(0, 0), (3, 129), (4097, 4102), (n, n - 1)] {
++            for (na, nb) in [(0, 0), (3, 129), (4095, 4096), (4097, 4102), (n / 2 + 337, n / 2), (n - 3, 0), (n, n - 1)] {
+                 let make = |len, seed| {
+                     (0..len)
+                         .map(|i| Fr::from(i as u64 + seed))
