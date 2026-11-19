@@ -9,3 +9,13 @@ Five randomized blocks use 32 pinned Ryzen workers and measure 21 single verifie
 | 156 | 24.262 / 24.844 / 24.704 / 85.717 / 23.355 / 22.892 | +0.39% (2/5) | -5.29% (5/5) | 569.2 / 2336.1 | — |
 
 All 91 exports verified. [Samples](artifacts/samples.json.gz) · [Pins](artifacts/pins.json) · [Verification](artifacts/verification.json)
+
+## Measurements after the concurrent release build
+
+A local release build finished at 10:20:14 UTC. Excluding the entire randomized blocks that could have overlapped it leaves blocks 1, 2, 3, 4 (zero-based). Each entry is the median of the retained process means in milliseconds.
+
+| Request | Release | Ordinary | Blocked | Aeglos | Grouped | Combined |
+|---|---:|---:|---:|---:|---:|---:|
+| Original | 23.965 | 24.000 | 23.761 | 85.101 | 22.946 | 22.848 |
+| 153 | 24.163 | 24.523 | 24.177 | 85.808 | 23.270 | 23.088 |
+| 156 | 24.183 | 24.740 | 24.499 | 85.811 | 23.233 | 22.860 |
