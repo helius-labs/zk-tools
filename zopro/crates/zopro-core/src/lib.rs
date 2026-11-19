@@ -811,6 +811,9 @@ pub struct Key {
     frontend_pool: Option<std::sync::Arc<FrontendThreadPool>>,
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     grouped_g2_on_frontend: bool,
+    exclusive_g2_grouping: bool,
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    raw_g1_a_on_frontend: bool,
     basis_only: bool,
     // Audited native workspace, or conservative prompt release when unknown.
     proof_workspace: Option<usize>,
@@ -1518,6 +1521,9 @@ impl Key {
             frontend_pool: None,
             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
             grouped_g2_on_frontend: false,
+            exclusive_g2_grouping: true,
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            raw_g1_a_on_frontend: false,
             basis_only,
             #[cfg(gpu_any)]
             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
@@ -2002,7 +2008,7 @@ impl Key {
                     },
                     || {
                         if omit_b && (1024..65536).contains(&self.b2.len()) {
-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
+                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping));
                         }
                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
                             .then(|| scalar_groups(sb))
@@ -2043,7 +2049,7 @@ impl Key {
                 || {
                     if omit_b && (1024..65536).contains(&self.b2.len()) {
                         let words=msm_affine::canonical_exclusive(sb);
-                        return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
+                        return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
                     }
                     if let Some(groups) = group_witness(sb) {
                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
@@ -2315,12 +2321,26 @@ impl Key {
             if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
             }
+            let a = || {
+                #[cfg(zopro_resource_schedule)]
+                if self.raw_g1_a_on_frontend {
+                    if let Some(pool) = self.frontend_pool.as_ref().filter(|pool| {
+                        pool.current_num_threads() < rayon::current_num_threads()
+                    }) {
+                        if let Some(_scratch) = crate::preparation::Reservation::analysis(
+                            msm_affine::workspace::frontend_a_bytes(sa.len(), pool.current_num_threads()),
+                        ) {
+                            return pool.install(|| msm_raw(&self.a[..], sa));
+                        }
+                    }
+                }
+                msm(&self.a[..], sa)
+            };
             let ((ar,kh),bs2)=rayon::join(
-                || rayon::join(|| msm(&self.a[..],sa),
-                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                || rayon::join(a, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
                 || {
                     if (1024..65536).contains(&self.b2.len()) {
-                        msm_affine::g2_query_exclusive(&self.b2,sb)
+                        msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping)
                     } else {
                         let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
                             .then(||scalar_groups(sb)).flatten();
@@ -2352,7 +2372,7 @@ impl Key {
                     },
                     || {
                         if omit_b && (1024..65536).contains(&self.b2.len()) {
-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
+                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping));
                         }
                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
                             .then(|| scalar_groups(sb))
@@ -2482,7 +2502,7 @@ pub mod coalesce_query_probe{
  static ENTRIES:AtomicUsize=AtomicUsize::new(0);static CHARGE:AtomicUsize=AtomicUsize::new(0);
  pub(crate)fn record(charge:usize){ENTRIES.fetch_add(1,Ordering::Relaxed);CHARGE.fetch_max(charge,Ordering::Relaxed);}
  pub fn a(bases:&[G1Affine],words:&[[u64;4]])->(G1Projective,Metadata){(crate::msm_affine::msm_canonical(bases,words),Metadata::default())}
- pub fn b(bases:&[G2Affine],words:&mut[[u64;4]])->(G2Projective,Metadata){ENTRIES.store(0,Ordering::Relaxed);CHARGE.store(0,Ordering::Relaxed);let p=crate::msm_affine::g2_query_exclusive(bases,words);let entries=ENTRIES.load(Ordering::Relaxed);(p,Metadata{route:if entries>0{314}else{0},classes:entries,skips:0,payload:CHARGE.load(Ordering::Relaxed)})}
+ pub fn b(bases:&[G2Affine],words:&mut[[u64;4]])->(G2Projective,Metadata){ENTRIES.store(0,Ordering::Relaxed);CHARGE.store(0,Ordering::Relaxed);let p=crate::msm_affine::g2_query_exclusive(bases,words,true);let entries=ENTRIES.load(Ordering::Relaxed);(p,Metadata{route:if entries>0{314}else{0},classes:entries,skips:0,payload:CHARGE.load(Ordering::Relaxed)})}
  pub fn snapshot()->(usize,usize){(ENTRIES.load(Ordering::Relaxed),CHARGE.load(Ordering::Relaxed))}
 }
 
@@ -2519,6 +2539,19 @@ impl Key {
     /// additional proof workspace. Disabled by default.
     pub fn set_grouped_g2_on_frontend(&mut self, enabled: bool) {
         self.grouped_g2_on_frontend = enabled;
+    }
+
+    /// Run the native fused K/H path's G1 A query directly on the attached
+    /// frontend pool when it is smaller and extra scratch is admitted.
+    /// Disabled by default.
+    pub fn set_raw_g1_a_on_frontend(&mut self, enabled: bool) {
+        self.raw_g1_a_on_frontend = enabled;
+    }
+
+    /// Control scalar grouping for the native exclusive G2 evaluator.
+    /// Grouping is enabled by default.
+    pub fn set_exclusive_g2_grouping(&mut self, enabled: bool) {
+        self.exclusive_g2_grouping = enabled;
     }
 }
 

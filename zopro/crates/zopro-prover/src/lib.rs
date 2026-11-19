@@ -110,6 +110,21 @@ impl Prover {
         self.key.set_grouped_g2_on_frontend(enabled);
     }
 
+    /// Run the native IFMA fused K/H path's raw G1 A query on a smaller
+    /// caller-attached frontend pool when additional scratch is available.
+    /// Disabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_raw_g1_a_on_frontend(&mut self, enabled: bool) {
+        self.key.set_raw_g1_a_on_frontend(enabled);
+    }
+
+    /// Control scalar grouping for the native exclusive G2 evaluator.
+    /// Grouping is enabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_exclusive_g2_grouping(&mut self, enabled: bool) {
+        self.key.set_exclusive_g2_grouping(enabled);
+    }
+
     /// Compute the public-input pairing alongside CPU proof generation for
     /// keys with up to sixteen public inputs. Uses the existing Rayon pool.
     /// The default is sequential verification after generation.

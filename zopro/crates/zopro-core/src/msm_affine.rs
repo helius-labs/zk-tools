@@ -1724,9 +1724,10 @@ pub(super) fn owned_grouped_phi(
 pub(super) fn g2_query_exclusive(
     bases: &[zopro_bn254::G2Affine],
     words: &mut [[u64; 4]],
+    grouping: bool,
 ) -> zopro_bn254::G2Projective {
     assert_eq!(bases.len(), words.len());
-    let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+    let groups = (grouping && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
         .then(|| grouping::groups_with_diversity_check(words))
         .flatten();
     #[cfg(all(
@@ -1814,12 +1815,14 @@ mod exclusive_g2_tests {
                     })
                     .collect();
                 let want = (G2Affine::GENERATOR * expected).to_affine();
-                let mut input = words.clone();
-                assert_eq!(
-                    g2_query_exclusive(&points, &mut input).to_affine(),
-                    want,
-                    "n={n}kind={kind}"
-                );
+                for grouping in [false, true] {
+                    let mut input = words.clone();
+                    assert_eq!(
+                        g2_query_exclusive(&points, &mut input, grouping).to_affine(),
+                        want,
+                        "n={n}kind={kind}"
+                    );
+                }
             }
         }
     }

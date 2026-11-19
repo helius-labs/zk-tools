@@ -421,6 +421,11 @@ pub(crate) struct Forecast {
     pub msms: usize,
     pub total: usize,
 }
+pub(crate) fn frontend_a_bytes(points: usize, workers: usize) -> Option<usize> {
+    let profile = envelope::<G1Config>(points, false, false)?;
+    add(profile.held, mul(profile.leaf, workers)?)
+}
+
 pub(crate) fn forecast(g: Geometry) -> Option<Forecast> {
     if !cfg!(zopro_g2_horner_buckets) {
         return None;

@@ -36,6 +36,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok("0") | Err(std::env::VarError::NotPresent) => {}
             _ => return Err("grouped G2 frontend must be 0 or 1".into()),
         }
+        match std::env::var("ZOPRO_BENCH_RAW_G1_A_FRONTEND").as_deref() {
+            Ok("1") => prover.set_raw_g1_a_on_frontend(true),
+            Ok("0") | Err(std::env::VarError::NotPresent) => {}
+            _ => return Err("raw G1 A frontend must be 0 or 1".into()),
+        }
+        match std::env::var("ZOPRO_BENCH_EXCLUSIVE_G2_GROUPING").as_deref() {
+            Ok("0") => prover.set_exclusive_g2_grouping(false),
+            Ok("1") | Err(std::env::VarError::NotPresent) => {}
+            _ => return Err("exclusive G2 grouping must be 0 or 1".into()),
+        }
         match std::env::var("ZOPRO_BENCH_PUBLIC_OVERLAP").as_deref() {
             Ok("early") => prover.set_overlap_verification(true),
             Ok("off") => prover.set_overlap_verification(false),
