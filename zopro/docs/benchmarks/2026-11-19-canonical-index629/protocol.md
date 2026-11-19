@@ -1,0 +1,7 @@
+# Can the existing diversity check recover small-proof latency with indexing?
+
+On the 1×2 reference the ordinary SDK admits one 21,006-scalar construction, and indexing lost both counterbalanced orders. An earlier census found the canonical A query exceeded the final grouping cutoff on nine 1×2 witnesses. Route the canonical MSM through the same bounded check already used for G2, retaining the current environment selection, input-length range, preparation reservation and fallback. An occupied bitmap entry gives a lower bound on distinct nonzero scalars. It can only preempt a dictionary that would have been discarded. A previous 16-core check on the older ordinary map had mixed latency results. This trial evaluates the changed indexed SDK at 32 workers.
+
+Use three binaries in six counterbalanced blocks on 1×2 original and two separate inputs, plus original 2×2 and 4×2. Cross the candidate with a same-binary disabled check on 1×2 in a separate diagnostic export, and require the existing 1×2 reference construction to be absent when enabled. For each of the three measured arms, run eleven requests after three warmups and independently verify every process export. Two separate profile blocks per input complement the timing. Report the candidate versus the deployed parent and the unconditional indexed executable.
+
+[Release comparison](../2026-11-19-balanced-index626/README.md) · [Observed admission counts](../2026-11-19-release-group-trace627/README.md) · [Earlier canonical trial](../2026-11-18-canonical-group314/README.md)

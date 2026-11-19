@@ -1,0 +1,31 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -141,7 +141,7 @@
+     C::Base: BatchInverse,
+ {
+     if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
+-        if let Some(groups) = scalar_groups(canonical) {
++        if let Some(groups) = grouping::groups_with_diversity_check(canonical) {
+             return msm_grouped(bases, &groups);
+         }
+     }
+@@ -1695,7 +1695,7 @@
+ ) -> zopro_bn254::G2Projective {
+     assert_eq!(bases.len(), words.len());
+     let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+-        .then(|| grouping::exclusive_groups(words))
++        .then(|| grouping::groups_with_diversity_check(words))
+         .flatten();
+     #[cfg(all(
+         zopro_g2_horner_buckets,
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -40,7 +40,7 @@
+ }
+ 
+ mod diversity;
+-pub(super) fn exclusive_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
++pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+     group_with_gate::<true>(scalars, zero_aware)
+ }
