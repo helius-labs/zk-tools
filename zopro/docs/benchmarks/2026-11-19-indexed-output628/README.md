@@ -1,5 +1,9 @@
 # Joint indexed grouping and tiled FFT paths on two transfer sizes
 
+For experimental 24×2 on this Ryzen host, the indexed dictionary with tiled output on the smaller pool won **20/20 pairs versus ordinary** and **16/20 versus the existing tiled, pooled path**. On the original input its median was 56.639 ms versus 57.477 ms for the existing path. Peak RSS fell from 960.1 to 925.4 MiB. The original remained 3.839 ms above the 10× M5 CPU cutoff. The selected experimental latency profile uses all three changes. On input 99 the paired latency change against the existing path was +0.13%. On input 97 peak RSS rose by 19.9 MiB.
+
+On 12×2 the combined path reduced maximum RSS on all four inputs. The original took 28.785 ms versus 28.523 ms for tiled output alone. On the scattered request the combined path improved latency in every pair, from 45.203 to 43.424 ms, and reduced peak RSS from 970.5 to 714.1 MiB. This panel did not produce a new 10× reference result.
+
 The enhanced path uses tiled output on 12×2 and adds a caller-allocated smaller product pool on 24×2. Each reported latency is the median process mean, with within-block changes for both enhancements versus the frozen enhanced executable. RSS covers the full process.
 
 | Shape | Request | Ordinary / indexed / enhanced / both ms | Both vs enhanced | Peaks in same order, MiB | Both vs M5 CPU / Metal (10× CPU blocks) |
