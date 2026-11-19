@@ -21,6 +21,19 @@ The twelve archived C7a processes contain eleven sequential proofs apiece. The r
 | Merge-24×1 | Other intervals | 0.334 | 0.346 | +0.012 | +0.004 / +0.018 / +0.014 |
 | Merge-24×1 | Whole proof | 50.620 | 52.696 | +2.077 | +3.041 / +2.869 / +0.321 |
 
+## CPU samples between solver return and FFT entry
+
+For the exact interval in each request, the reader counts every userspace CPU-clock sample from all threads. Indexed collection matches symbols naming the solver's parallel collection of field elements from 32-bit wire indices. This category can include scheduling instructions in the same inlined function. Percentages describe sampled CPU activity across the whole pool and cannot be interpreted as percentages of elapsed time.
+
+| Shape | Cores | Samples | Indexed field collection / Crossbeam / sleep, wait or futex / other |
+|---|---:|---:|---:|
+| 16 | 64 | 835 | 41.8% / 40.4% / 13.2% / 4.7% |
+| 16 | 96 | 1810 | 39.0% / 45.9% / 12.4% / 2.8% |
+| merge | 64 | 801 | 58.2% / 25.6% / 11.0% / 5.2% |
+| merge | 96 | 1654 | 51.7% / 31.1% / 14.2% / 3.0% |
+
+[Per-request counts](artifacts/gap-samples.json) · [Full symbol counts](artifacts/gap-symbols.json.gz)
+
 ## Does the previous proof's late G2 work predict the next solver duration?
 
 Within a recording, requests 2 through 10 serve as the nine solver observations. Each observation is classified three ways using either the prior, current or next request's distribution of sampled G2 prefix work. “Late” means most prefix samples occurred after H returned. Every comparison uses the same nine target requests. The table shows how much longer the median solver lasted in the late group for each individual process. A future label cannot cause the earlier solver. Each group can contain very few requests, so the process contrasts are descriptive.
