@@ -1,0 +1,91 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1854,11 +1854,43 @@
+             if let (Some(folded), Some(public)) = (&queries.folded, public) {
+                 drop(c);
+                 let started = crate::time::Instant::now();
++                let mut early = None;
++                #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++                let mut product = {
++                    use zopro_bn254::{FrConfig, ifma8::{Ifma8, PackedIfma8}};
++                    let mode = std::env::var("ZOPRO_GROUP_FFT_ORDER").unwrap_or_default();
++                    let configured = self.trial_groups.as_ref().filter(|_| {
++                        omit_b && self.b2.len() >= 65536 && queries.euler && affine_msm()
++                            && self.equal_witness.is_none() && matches!(mode.as_str(), "fft-first" | "group-first")
++                    });
++                    let charge = || -> Option<usize> {
++                        let n = self.domain / 4;
++                        let inputs = a.capacity().checked_add(b.capacity())?
++                            .checked_add(a.len().max(b.len()).checked_mul(2)?)?.checked_mul(std::mem::size_of::<Fr>())?;
++                        let pairs = std::mem::size_of::<Ifma8<FrConfig>>() + std::mem::size_of::<PackedIfma8<FrConfig>>();
++                        n.checked_mul(pairs)?.checked_add(inputs)?.checked_add(n)?.checked_add(64 << 10)
++                    };
++                    let credit = configured.and_then(|_| crate::preparation::Reservation::analysis(charge()));
++                    let product = || queries.product_values(&self.plan, a, b);
++                    if let (Some(group), Some(_credit)) = (configured, credit) {
++                        let evaluate = || group.query(&self.b2, sb);
++                        let (values, result) = if mode == "fft-first" {
++                            rayon::join(product, evaluate)
++                        } else {
++                            let (p, v) = rayon::join(evaluate, product);
++                            (v, p)
++                        };
++                        if std::env::var_os("ZOPRO_GROUP_FFT_PROBE").is_some() { eprintln!("GROUP_FFT {} {}", mode, result.is_some()); }
++                        early = Some(result);
++                        values
++                    } else { product() }
++                };
++                #[cfg(not(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma))))]
+                 let mut product = queries.product_values(&self.plan,a,b);
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+-                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
++                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b, early),
+                     || folded.public_term(public),
+                 );
+                 #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -1880,7 +1912,7 @@
+             let mut product = queries.product_values(&self.plan,a,b);
+             let started = trace("quotient-product", started);
+             let (((ar, bs1), (kr, (positive, bs2))), negative) = rayon::join(
+-                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b),
++                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b, None),
+                 || msm_g1(&queries.constraints[..c.len()], &c),
+             );
+             trace("msms", started);
+@@ -1901,7 +1933,7 @@
+         let trace_scalars = std::env::var("ZOPRO_TRACE_MSMS")
+             .is_ok_and(|v| v == "1")
+             .then(|| (sa.to_vec(), sb.to_vec(), sk.to_vec(), h.to_vec()));
+-        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b);
++        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b, None);
+         trace("msms", started);
+         // Each MSM alone, on the whole pool, for its own share: this adds
+         // to the proof time, so only with ZOPRO_TRACE_MSMS=1.
+@@ -1945,6 +1977,7 @@
+         k: &[G1Affine],
+         folded_k: bool,
+         omit_b: bool,
++        early: Option<Option<G2Projective>>,
+     ) -> (
+         (G1Projective, G1Projective),
+         (G1Projective, (G1Projective, G2Projective)),
+@@ -2046,7 +2079,7 @@
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
+                     }
+                     if omit_b {
+-                        if let Some(result)=self.trial_groups.as_ref().and_then(|g|g.query(&self.b2,sb)) {
++                        if let Some(result)=early.unwrap_or_else(|| self.trial_groups.as_ref().and_then(|g|g.query(&self.b2,sb))) {
+                             return (G1Projective::IDENTITY,result);
+                         }
+                     }
+@@ -2463,7 +2496,7 @@
+             let c_coset=self.plan.coset_product(c,vec![Fr::ONE;self.domain]);
+             product.par_iter_mut().zip(c_coset.par_iter()).for_each(|(p,c)|*p-=*c);product
+         };
+-        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b);
++        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b,None);
+         let mut out=Vec::with_capacity(384);for p in [ar,bs1,kr+correction,q.finish_product(hz)]{output_g1(&mut out,p);}output_g2(&mut out,bs2);Ok(out)
+     }
+ }
