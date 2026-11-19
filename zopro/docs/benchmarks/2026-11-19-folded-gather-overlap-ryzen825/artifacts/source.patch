@@ -1,0 +1,95 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1170,10 +1170,54 @@
+         if let Some(offsets) = offsets {
+             offsets.apply(&mut w);
+         }
+-        let (mut sa, mut sb): (Vec<_>, Vec<_>) = rayon::join(
++        let gather = || -> (Vec<Fr>, Vec<Fr>) { rayon::join(
+             || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
+             || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
+-        );
++        ) };
++        let (mut a, mut b) = (a, b);
++        #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++        let trial = {
++            static MODE: std::sync::OnceLock<Option<bool>> = std::sync::OnceLock::new();
++            let mode = *MODE.get_or_init(|| match std::env::var("ZOPRO_TRIAL_GATHER_OVERLAP").as_deref() {
++                Ok("front") => Some(true),
++                Ok("main") => Some(false),
++                _ => None,
++            });
++            mode.filter(|_| omit_b && !self.has_gpu() && affine_msm()
++                && self.equal_witness.is_none() && (65_536..262_144).contains(&self.b2.len()))
++                .and_then(|frontend| {
++                    let queries = self.lagrange.as_ref().filter(|q| q.euler && q.folded.is_some())?;
++                    let pool = self.frontend_pool.as_deref()
++                        .filter(|pool| pool.current_num_threads() < rayon::current_num_threads())?;
++                    let scratch = crate::preparation::Reservation::analysis(
++                        self.plan.size().checked_mul(2 * core::mem::size_of::<Fr>()),
++                    );
++                    if std::env::var_os("ZOPRO_TRIAL_GATHER_OVERLAP_TRACE").is_some() {
++                        eprintln!("GATHER_OVERLAP {} {} {frontend} {}", self.b2.len(),
++                                  pool.current_num_threads(), scratch.is_some());
++                    }
++                    Some((queries, frontend.then_some(pool), scratch?))
++                })
++        };
++        #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
++        let trial: Option<()> = None;
++
++        #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++        let ((mut sa, mut sb), folded_product) = if let Some((queries, pool, _scratch)) = trial {
++            let (fft_a, fft_b) = (std::mem::take(&mut a), std::mem::take(&mut b));
++            let (scalars, product) = rayon::join(
++                || match pool {
++                    Some(pool) => pool.install(gather),
++                    None => gather(),
++                },
++                || queries.product_values(&self.plan, fft_a, fft_b, None),
++            );
++            (scalars, Some(product))
++        } else {
++            (gather(), None)
++        };
++        #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
++        let ((mut sa, mut sb), folded_product) = { let _ = trial; (gather(), None) };
+         trace("extract-scalars", started);
+         let (public, private) = w.split_at_mut(plan.n_public);
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -1181,7 +1225,7 @@
+             // The folded public term still needs the original public values.
+             offsets.restore_public(public);
+         }
+-        self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
++        self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b, folded_product)
+     }
+     pub fn commitment(
+         &self,
+@@ -1224,7 +1268,7 @@
+         }
+         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
+         let (mut sa, mut sb, mut sk) = (frs(sa), frs(sb), frs(sk));
+-        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false)
++        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false, None)
+             .map_err(|e| JsError::new(&e))
+     }
+ }
+@@ -1605,6 +1649,7 @@
+         c: Vec<Fr>,
+         public: Option<&[Fr]>,
+         omit_b: bool,
++        folded_product: Option<Vec<Fr>>,
+     ) -> Result<Vec<u8>, String> {
+         #[cfg(gpu)]
+         if let Some(gpu) = &self.gpu {
+@@ -1875,7 +1920,8 @@
+                 });
+                 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                 let pool = None;
+-                let mut product = queries.product_values(&self.plan, a, b, pool);
++                let mut product = folded_product
++                    .unwrap_or_else(|| queries.product_values(&self.plan, a, b, pool));
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
