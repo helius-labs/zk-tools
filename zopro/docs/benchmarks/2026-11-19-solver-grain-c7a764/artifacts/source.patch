@@ -1,0 +1,99 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -462,11 +462,34 @@
+     let workers = rayon::current_num_threads().min(jobs.len());
+     let claimants = work.div_ceil(longest).saturating_mul(2).clamp(1, workers);
+     let next = AtomicUsize::new(0);
++    static CHUNK: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
++    let chunk = *CHUNK.get_or_init(|| {
++        match std::env::var("ZOPRO_TRIAL_SOLVER_CLAIM_CHUNK").as_deref() {
++            Ok("2") => 2,
++            Ok("4") => 4,
++            Ok("8") => 8,
++            _ => 1,
++        }
++    });
++    if chunk == 1 {
++        return (0..claimants).into_par_iter().with_max_len(1).try_for_each(|_| {
++            while let Some(job) = jobs.get(next.fetch_add(1, Ordering::Relaxed)) {
++                run(job)?;
++            }
++            Ok(())
++        });
++    }
+     (0..claimants).into_par_iter().with_max_len(1).try_for_each(|_| {
+-        while let Some(job) = jobs.get(next.fetch_add(1, Ordering::Relaxed)) {
+-            run(job)?;
+-        }
+-        Ok(())
++        loop {
++            let first = next.fetch_add(chunk, Ordering::Relaxed);
++            let end = (first + chunk).min(jobs.len());
++            if first >= end {
++                return Ok(());
++            }
++            for task in &jobs[first..end] {
++                run(task)?;
++            }
++        }
+     })
+ }
+ 
+--- a/crates/zopro-core/src/solver/bounded.rs
++++ b/crates/zopro-core/src/solver/bounded.rs
+@@ -159,7 +159,7 @@
+         indices: Option<&[u32]>,
+         bands: usize,
+         reservation: &mut Reservation,
+-        pack_tasks: bool,
++        task_limit: Option<usize>,
+     ) -> Option<Vec<Vec<Vec<u32>>>> {
+         let n = indices.map_or(plan.ops.len(), <[u32]>::len);
+         if n == 0 {
+@@ -183,7 +183,7 @@
+         }
+         let deepest = self.depth[..n].iter().copied().max().unwrap_or(0) as usize + 1;
+         let bands = bands.max(1).min(deepest);
+-        let balance = pack_tasks && indices.is_none();
++        let balance = task_limit.is_some() && indices.is_none();
+         if balance {
+             balance_depths(&mut self.depth[..n], &mut self.parent[..deepest], bands);
+         }
+@@ -213,8 +213,8 @@
+             self.order[i] = i as u32;
+         }
+         self.order[..n].sort_unstable_by_key(|&i| (band(i as usize), self.parent[i as usize], i));
+-        if pack_tasks {
+-            pack_ready_components(&self.order[..n], &mut self.parent[..n], band, 128);
++        if let Some(limit) = task_limit {
++            pack_ready_components(&self.order[..n], &mut self.parent[..n], band, limit);
+         }
+         let same_component = |a: u32, b: u32| self.parent[a as usize] == self.parent[b as usize];
+         let mut components = 1;
+@@ -312,8 +312,15 @@
+         order: vec![0; n],
+         reads: Vec::with_capacity(max_reads),
+     };
+-    let pack_tasks = std::env::var("ZOPRO_SOLVE_PACK_TASKS").as_deref() == Ok("1");
+-    let epochs = scratch.bands(plan, None, epochs, &mut reservation, pack_tasks)?;
++    let task_limit = (std::env::var("ZOPRO_SOLVE_PACK_TASKS").as_deref() == Ok("1")).then(|| {
++        match std::env::var("ZOPRO_TRIAL_SOLVER_PACK_LIMIT").as_deref() {
++            Ok("64") => 64,
++            Ok("256") => 256,
++            Ok("512") => 512,
++            _ => 128,
++        }
++    });
++    let epochs = scratch.bands(plan, None, epochs, &mut reservation, task_limit)?;
+     let eligible = if local == 0 {
+         0
+     } else {
+@@ -341,7 +348,7 @@
+         .flatten()
+         .filter(|t| local > 0 && t.len() >= minimum)
+     {
+-        let waves = scratch.bands(plan, Some(task), local, &mut reservation, pack_tasks)?;
++        let waves = scratch.bands(plan, Some(task), local, &mut reservation, task_limit)?;
+         refined.insert(task[0] as usize, waves);
+     }
+     let peak_charge = reservation.bytes();
