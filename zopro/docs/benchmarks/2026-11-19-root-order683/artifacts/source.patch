@@ -1,0 +1,83 @@
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1729,8 +1729,80 @@
+         && crate::simd::cpu_option("ZOPRO_CPU_FFT_FUSED_OUTPUT")
+ }
+ 
++// Each stage uses the same twiddle in every block at a given position.
++#[inline(always)]
++fn root_major_stage<const CACHED: bool, const FORWARD: bool>(
++    local: &mut [Pair; 32], roots: &Twiddles, level: usize, q: usize,
++    column: usize, stage: usize, gap: usize,
++) {
++    for j in 0..gap {
++        let root = if CACHED {
++            broadcast(&roots.columns[level][31 * column + 32 - 2 * gap + j])
++        } else {
++            broadcast(&roots.layers[level + stage][j * q + column])
++        };
++        for block in local.chunks_exact_mut(2 * gap) {
++            let (lo, hi) = block.split_at_mut(gap);
++            let (a, b) = (lo[j], hi[j]);
++            if FORWARD {
++                let product = b.mul(&root);
++                lo[j] = a.add(&product);
++                hi[j] = a.sub(&product);
++            } else {
++                lo[j] = a.add(&b);
++                hi[j] = a.sub(&b).mul(&root);
++            }
++        }
++    }
++}
++
+ #[inline(always)]
+ fn column_kernel<const CACHED: bool, const FORWARD: bool>(
++    local: &mut [Pair; 32],
++    roots: &Twiddles,
++    level: usize,
++    q: usize,
++    column: usize,
++) {
++    static POLICY: std::sync::OnceLock<u8> = std::sync::OnceLock::new();
++    let policy = *POLICY.get_or_init(|| {
++        let mode = match std::env::var("ZOPRO_TRIAL_COLUMN_ORDER").as_deref() {
++            Ok("root") => 1,
++            Ok("fixed") => 2,
++            _ => 0,
++        };
++        if std::env::var_os("ZOPRO_REPORT_COLUMN_ORDER").is_some() {
++            eprintln!("COLUMN_ORDER {mode}");
++        }
++        mode
++    });
++    if policy == 0 {
++        return block_major_column::<CACHED, FORWARD>(local, roots, level, q, column);
++    }
++    if policy == 1 {
++        for order in 0..5 {
++            let stage = if FORWARD { 4 - order } else { order };
++            root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, stage, 16 >> stage);
++        }
++        return;
++    }
++    if FORWARD {
++        root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, 4, 1);
++        root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, 3, 2);
++        root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, 2, 4);
++        root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, 1, 8);
++        root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, 0, 16);
++    } else {
++        root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, 0, 16);
++        root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, 1, 8);
++        root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, 2, 4);
++        root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, 3, 2);
++        root_major_stage::<CACHED, FORWARD>(local, roots, level, q, column, 4, 1);
++    }
++}
++
++#[inline(always)]
++fn block_major_column<const CACHED: bool, const FORWARD: bool>(
+     local: &mut [Pair; 32],
+     roots: &Twiddles,
+     level: usize,
