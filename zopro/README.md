@@ -238,6 +238,11 @@ paired warm latency by 2.90% across eight held-out requests. The file uses
 The 16×2 profile at 32 Ryzen workers also qualified, with a 2.17% median
 paired improvement across eight held-out requests and a 976,800-byte file.
 [16×2 results and coefficients](docs/benchmarks/2026-11-19-sixteen-wire472/README.md)
+On the 32-worker Ryzen profile for 24×2 and merge-24×1, set both
+`ZOPRO_CPU_FFT_INPUT_COLUMNS=1` and `ZOPRO_CPU_FFT_LOCAL_EULER=1`.
+Local Euler weighting reduced median paired latency by 2.02% and 3.21% across
+eight varied requests per shape.
+[FFT qualification and current scorecard](docs/benchmarks/2026-11-19-larger-varied473/README.md)
 
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
