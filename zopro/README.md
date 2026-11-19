@@ -366,6 +366,14 @@ Device Farm (release builds, against gnark on the same phone): proofs 23 to
 49 % faster on Android's CPUs (Galaxy A16, A56), 21 to 58 % on a Galaxy
 S25, and 43 to 76 % on iPhones 12, 15 and 17 Pro with Metal.
 
+On the native IFMA CPU build, `ZOPRO_CPU_GROUPED_G2_PHI=1` enables
+endomorphism decomposition for a large G2 query when B1 is omitted and the
+query groups to 1,024–65,535 nonzero coefficients. The operation reuses the
+proof's coefficient buffer. On a 32-thread Ryzen 9950X, the 5×16 transfer
+benefited from combining it with `ZOPRO_CPU_FFT_INPUT_COLUMNS=1` and
+`ZOPRO_CPU_FFT_LOCAL_EULER=1`. The catalog witness used about 19 MiB
+more peak RSS with that configuration. [Release measurements](docs/benchmarks/2026-11-19-owned-phi661/README.md)
+
 ## Building
 
 Native: `cargo build --release`. Browser: `CARGO_PROFILE_RELEASE_LTO=false

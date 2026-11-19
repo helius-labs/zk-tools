@@ -1687,6 +1687,27 @@ pub(super) fn canonical_exclusive(scalars: &mut [Fr]) -> &mut [[u64; 4]] {
     }
 }
 
+#[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+#[inline(never)]
+pub(super) fn owned_grouped_phi(
+    bases: &[zopro_bn254::G2Affine],
+    groups: ScalarGroups,
+) -> zopro_bn254::G2Projective {
+    use rayon::prelude::*;
+    if !(1024..65536).contains(&groups.values.len()) {
+        return crate::msm_grouped_b2(bases, &groups);
+    }
+    let ScalarGroups { len, mut values, starts, order, counts, _reservation } = groups;
+    assert_eq!(bases.len(), len);
+    // B1 is omitted. The B2 query owns its canonical coefficients.
+    let (points, ()) = rayon::join(
+        move || crate::msm::group_affine(bases, &order, &starts, &counts),
+        || values.par_iter_mut().with_min_len(128).for_each(|s| *s = g2_phi::phi_split(*s)),
+    );
+    // Group index vectors have dropped. Keep the reservation through the MSM.
+    g2_phi::from_split(&points, &values, 12, 2)
+}
+
 // The four-query CPU prover gives up these proof-local scalar words.
 // The ordinary five-part path continues to share immutable scalars with B1.
 pub(super) fn g2_query_exclusive(

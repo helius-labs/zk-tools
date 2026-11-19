@@ -211,6 +211,16 @@ pub(super) fn hb_raw_decomposition(
         #[cfg(not(zopro_phi_grain))]
         short.par_iter_mut().for_each(|s| *s = phi_split(*s));
     }
+    from_split(bases, short, bits, parts)
+}
+
+pub(super) fn from_split(
+    bases: &[G2Affine],
+    short: &[[u64; 4]],
+    bits: usize,
+    parts: usize,
+) -> G2Projective {
+    assert_eq!(bases.len(), short.len());
     let chunk = bases.len().div_ceil(parts);
     let windows = 127usize.div_ceil(bits);
     let sums: Vec<_> = (0..windows)

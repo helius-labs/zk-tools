@@ -752,6 +752,45 @@
         "status": "adopted",
         "evidence": "benchmarks/2026-11-19-checked-release630/README.md"
       }
+    },
+    {
+      "id": "owned-grouped-g2-661",
+      "change": "Decompose proof-owned G2 coefficients in parallel with reduction of their grouped points.",
+      "correctness": {
+        "status": "passed",
+        "native_core_tests": 157,
+        "generator_oracle_classes": [
+          1023,
+          1024
+        ],
+        "independently_verified_release_exports": 148,
+        "generic_x86_64": "release compile check",
+        "source_identities": "benchmarks/2026-11-19-owned-phi661/artifacts/integrated.json"
+      },
+      "resources": {
+        "original_5x16_peak_mib": {
+          "previous": 413.25,
+          "candidate": 432.5
+        },
+        "persistent_key_table": false
+      },
+      "performance": {
+        "machine": "Ryzen 9 9950X, 32 hardware threads",
+        "input_family": "5x16, four witnesses",
+        "catalog_ms": {
+          "previous": 23.964957181818182,
+          "candidate": 23.200096636363636
+        },
+        "pairs": 26,
+        "prior_wins": 21,
+        "release_wins": 25,
+        "off_wins": 19
+      },
+      "adoption": {
+        "status": "adopted_opt_in",
+        "setting": "ZOPRO_CPU_GROUPED_G2_PHI=1",
+        "evidence": "benchmarks/2026-11-19-owned-phi661/README.md"
+      }
     }
   ],
   "historical_followups": [

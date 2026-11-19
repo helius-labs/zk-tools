@@ -293,6 +293,41 @@ mod tests {
         }
     }
     #[test]
+    fn owned_grouped_query_matches_generator_at_admission_boundary() {
+        const POINTS: usize = 65_537;
+        let generator = G2Affine::GENERATOR;
+        let bases: Vec<_> = (0..POINTS)
+            .map(|i| match i % 5 {
+                0 => G2Affine::IDENTITY,
+                1 | 2 => -generator,
+                _ => generator,
+            })
+            .collect();
+
+        for classes in [MIN_QUERY - 1, MIN_QUERY] {
+            let scalars: Vec<_> = (0..classes)
+                .map(|i| -Fr::from((i + 1) as u64))
+                .collect();
+            let mut expected = Fr::ZERO;
+            let words: Vec<_> = (0..POINTS)
+                .map(|i| {
+                    let scalar = if i % 7 == 0 { Fr::ZERO } else { scalars[i % classes] };
+                    match i % 5 {
+                        0 => {}
+                        1 | 2 => expected -= scalar,
+                        _ => expected += scalar,
+                    }
+                    scalar.to_canonical()
+                })
+                .collect();
+            let groups = super::super::scalar_groups(&words).unwrap();
+            assert_eq!(groups.values.len(), classes);
+            let sum = super::super::owned_grouped_phi(&bases, groups);
+            assert_eq!(sum.to_affine(), (generator * expected).to_affine());
+        }
+    }
+
+    #[test]
     fn query_horner_preserves_shared_group_values() {
         let (bases, weights) = bases(4096);
         let values: Vec<_> = (0..bases.len())

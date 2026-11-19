@@ -2042,6 +2042,14 @@ impl Key {
                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
                     }
                     if let Some(groups) = group_witness(sb) {
+                        #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+                        if omit_b
+                            && self.b2.len() >= 65_536
+                            && std::env::var("ZOPRO_CPU_GROUPED_G2_PHI").as_deref() == Ok("1")
+                        {
+                            let sum = msm_affine::owned_grouped_phi(&self.b2, groups);
+                            return (G1Projective::IDENTITY, sum);
+                        }
                         rayon::join(
                             || if omit_b { G1Projective::IDENTITY } else { msm_grouped(&self.b[..], &groups) },
                             || msm_grouped_b2(&self.b2[..], &groups),
