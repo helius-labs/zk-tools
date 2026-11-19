@@ -1,0 +1,5 @@
+# Worker placement for product evaluation on grouped transfers
+
+The curve queries and witness solver keep the full main pool on each shape. Only the folded product computation, including any row centering performed inside that call, can use the auxiliary Rayon pool. The main pool has 30 logical workers for 12×2 and 32 for 16×2 and 24×2. Physical cores span both L3 caches. Wider auxiliary pools add an equal number of SMT siblings from each L3. All arms in a block share the same main affinity.
+
+Three randomized screening blocks compare the main pool with 16, 24 and 28 product workers. For each shape, select the auxiliary width with the lowest median paired ratio to the main pool. Five fresh confirmation blocks compare that width with the same executable using the main pool, an attached idle auxiliary pool, and the frozen prior executable. Each process primes three requests and times eleven verified calls. Separate probes must confirm the product pool is entered on each shape. Peak RSS covers setup and the full proof. Report paired latency differences, process wins and the supplied M5 CPU and Metal ratios.

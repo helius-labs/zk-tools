@@ -1,0 +1,35 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1868,9 +1868,29 @@
+             if let (Some(folded), Some(public)) = (&queries.folded, public) {
+                 drop(c);
+                 let started = crate::time::Instant::now();
+-                let mut product = if centered {
+-                    self.plan.euler_product_values(a,b)
+-                } else {queries.product_values(&self.plan,a,b)};
++                let product_values = || {
++                    if centered {
++                        self.plan.euler_product_values(a, b)
++                    } else {
++                        queries.product_values(&self.plan, a, b)
++                    }
++                };
++                #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++                let product_values = || {
++                    if let Some(pool) = self.frontend_pool.as_deref().filter(|_| {
++                        std::env::var_os("ZOPRO_TRIAL_PRODUCT_POOL").is_some()
++                    }) {
++                        pool.install(|| {
++                            if std::env::var_os("ZOPRO_TRIAL_PRODUCT_PROBE").is_some() {
++                                eprintln!("PRODUCT_WORKERS {}", rayon::current_num_threads());
++                            }
++                            product_values()
++                        })
++                    } else {
++                        product_values()
++                    }
++                };
++                let mut product = product_values();
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
