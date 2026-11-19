@@ -1,0 +1,108 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2016,35 +2016,53 @@
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
++            let probe = B2ReadyProbe::new();
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
+                     rayon::join(
+-                        || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+-                        || {
++                        || rayon::join(|| probe.span(0, 1, || msm(&self.a[..], sa)), || probe.span(2, 3, || msm(k, sk))),
++                        || probe.span(4, 5, || {
+                             if montgomery_h {
+                                 msm_affine::msm_montgomery(z, h)
+                             } else {
+                                 msm(z, h)
+                             }
+-                        },
++                        }),
+                     )
+                 },
+                 || {
++                    probe.stamp(6);
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
+                     }
+                     if let Some(groups) = group_witness(sb) {
+-                        rayon::join(
+-                            || if omit_b { G1Projective::IDENTITY } else { msm_grouped(&self.b[..], &groups) },
+-                            || msm_grouped_b2(&self.b2[..], &groups),
+-                        )
++                        probe.stamp(7);
++                        let b2 = || probe.span(8, 9, || msm_grouped_b2(&self.b2, &groups));
++                        if omit_b && probe.direct {
++                            (G1Projective::IDENTITY, b2())
++                        } else {
++                            rayon::join(
++                                || if omit_b { G1Projective::IDENTITY } else { msm_grouped(&self.b, &groups) },
++                                b2,
++                            )
++                        }
+                     } else {
+                         let sb = canonical(sb);
+-                        rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
++                        probe.stamp(7);
++                        let b2 = || probe.span(8, 9, || msm_raw_b2(&self.b2, sb));
++                        if omit_b && probe.direct {
++                            (G1Projective::IDENTITY, b2())
++                        } else {
++                            rayon::join(
++                                || if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b, sb) },
++                                b2,
++                            )
++                        }
+                     }
+                 },
+             );
++            probe.report();
+             return ((ar, bs1), (kr, (hz, bs2)));
+         }
+         rayon::join(
+@@ -2504,3 +2522,43 @@
+         { let _ = bytes; Ok(false) }
+     }
+ }
++
++#[cfg(not(target_arch = "wasm32"))]
++struct B2ReadyProbe {
++    start: Option<std::time::Instant>,
++    ticks: [std::sync::atomic::AtomicU64; 10],
++    direct: bool,
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl B2ReadyProbe {
++    fn new() -> Self {
++        static OPTIONS: std::sync::OnceLock<(bool, bool)> = std::sync::OnceLock::new();
++        let &(timed, direct) = OPTIONS.get_or_init(|| (
++            std::env::var("ZOPRO_TRIAL_B2_TIMES").as_deref() == Ok("1"),
++            std::env::var("ZOPRO_TRIAL_B2_DIRECT").as_deref() == Ok("1"),
++        ));
++        Self { start: timed.then(std::time::Instant::now), ticks: Default::default(), direct }
++    }
++
++    fn stamp(&self, slot: usize) {
++        if let Some(start) = self.start {
++            self.ticks[slot].store(start.elapsed().as_nanos() as u64, std::sync::atomic::Ordering::Relaxed);
++        }
++    }
++
++    fn span<T>(&self, begin: usize, end: usize, f: impl FnOnce() -> T) -> T {
++        self.stamp(begin);
++        let result = f();
++        self.stamp(end);
++        result
++    }
++
++    fn report(&self) {
++        if let Some(start) = self.start {
++            let joined = start.elapsed().as_nanos();
++            let ticks = self.ticks.each_ref().map(|tick| tick.load(std::sync::atomic::Ordering::Relaxed));
++            eprintln!("B2_READY {:?} {}", ticks, joined);
++        }
++    }
++}
