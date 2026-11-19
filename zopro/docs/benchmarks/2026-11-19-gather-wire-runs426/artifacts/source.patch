@@ -1,0 +1,82 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1150,7 +1150,13 @@
+         use rayon::prelude::*;
+         let (mut sa, mut sb): (Vec<_>, Vec<_>) = rayon::join(
+             || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
+-            || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
++            || {
++                if std::env::var("ZOPRO_BENCH_GATHER_B_RUNS").as_deref() == Ok("1") {
++                    gather_runs::gather(&w, &plan.b_indices)
++                } else {
++                    plan.b_indices.par_iter().map(|&i| w[i as usize]).collect()
++                }
++            },
+         );
+         trace("extract-scalars", started);
+         let (public, private) = w.split_at_mut(plan.n_public);
+@@ -2203,6 +2209,8 @@
+     }
+ }
+
++mod gather_runs;
++
+ #[cfg(zopro_bounded_gather)]
+ mod bounded_gather;
+
+--- /dev/null
++++ b/crates/zopro-core/src/gather_runs.rs
+@@ -0,0 +1,53 @@
++//! Copy scalar query outputs in runs when the validated wire indices allow it.
++use rayon::prelude::*;
++use std::mem::MaybeUninit;
++
++fn copy_runs<T: Copy>(values: &[T], indices: &[u32], out: &mut [MaybeUninit<T>]) {
++    debug_assert_eq!(indices.len(), out.len());
++    let first = indices[0] as usize;
++    let last = indices[indices.len() - 1] as usize;
++    // Both solver-plan readers check that query indices are strictly increasing.
++    // Equal input and output spans therefore imply no gaps anywhere in the run.
++    if last - first == indices.len() - 1 {
++        out.write_copy_of_slice(&values[first..=last]);
++    } else if indices.len() <= 16 {
++        for (to, &index) in out.iter_mut().zip(indices) {
++            to.write(values[index as usize]);
++        }
++    } else {
++        let half = indices.len() / 2;
++        let (lo, hi) = out.split_at_mut(half);
++        copy_runs(values, &indices[..half], lo);
++        copy_runs(values, &indices[half..], hi);
++    }
++}
++
++#[inline(never)]
++pub(super) fn gather<T: Copy + Send + Sync>(values: &[T], indices: &[u32]) -> Vec<T> {
++    let mut out = Vec::with_capacity(indices.len());
++    out.spare_capacity_mut()[..indices.len()]
++        .par_chunks_mut(512)
++        .zip(indices.par_chunks(512))
++        .for_each(|(to, from)| copy_runs(values, from, to));
++    // SAFETY: the completed parallel traversal initialized every requested slot.
++    unsafe { out.set_len(indices.len()) }
++    out
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn dense_sparse_and_boundary_runs_preserve_wire_values() {
++        let w: Vec<_> = (0..8192u64).map(|v| [v, v.rotate_left(5), !v, v*19]).collect();
++        for n in [0,1,15,16,17,511,512,513,2047,8192] {
++            for keep in [0,1,2,3] {
++                let indices: Vec<_> = (0..n as u32).filter(|v| match keep {
++                    0 => true, 1 => v%997 != 0, 2 => v%2 == 0, _ => v%511!=0 && v%513!=0,
++                }).collect();
++                let expected: Vec<_> = indices.iter().map(|&i| w[i as usize]).collect();
++                assert_eq!(gather(&w,&indices),expected);
++            }
++        }
++    }
++}
