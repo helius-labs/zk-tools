@@ -1,0 +1,7 @@
+# Merge two G2 bucket ranges and weight each ready 512-bucket tile
+
+In the ordinary G2 scalar decomposition, a window merges its two range outputs and then starts a second parallel iteration to weight the buckets. Try running the existing point merge and paired weighted trees consecutively on each 512-bucket tile. Preserve the global weighted sum and ordering. The tile drops its merge temporaries before allocating tree scratch. Partial tiles, unequal ranges and unsupported paired-tree configurations use the ordinary route. A staged same-source control uses the same per-tile allocations but preserves the barrier.
+
+Compare the integrated release, the candidate with the switch disabled, and its staged and fused modes. Test reference 1×2 at 16 and 32 workers, independent 1×2 inputs 29 and 32, and original 2×2 at 32 workers. Use eight balanced process blocks per case and a separate CPU profile per arm. Each process warms three proofs and times fifteen. Trace the staged and fused paths separately on the reference and on 2×2. Check fresh exports with the original verification key, and check the new G2 routine directly against a generator oracle on zeros, cancellations, doublings, partial-shape fallback and multiple full tiles. Interpret dispatch and control measurements before attributing any speed change.
+
+[Earlier H tile fusion](../2026-11-18-merge-weight362/README.md) · [Current G2 profile](../2026-11-19-tag-certificate638/README.md) · [Source](artifacts/source.patch)

@@ -1,0 +1,152 @@
+--- a/crates/zopro-core/src/msm.rs
++++ b/crates/zopro-core/src/msm.rs
+@@ -2377,4 +2377,4 @@
+ #[cfg(zopro_indexed_tile_bundles)]mod indexed_tiles;
+ 
+ #[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+-mod paired_weighted;
++pub(crate) mod paired_weighted;
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -603,22 +603,27 @@
+     assert_eq!(left.len(), right.len());
+     left.par_chunks_mut(512)
+         .zip(right.par_chunks(512))
+-        .for_each(|(left, right)| {
+-            let mut pairs = Vec::with_capacity(left.len());
+-            for (i, (a, &b)) in left.iter_mut().zip(right).enumerate() {
+-                if a.is_identity() {
+-                    *a = b;
+-                } else if b.is_identity() {
+-                } else if a.x == b.x {
+-                    *a = (*a + b).to_affine();
+-                } else {
+-                    pairs.push((i as u32, b));
+-                }
+-            }
+-            if !pairs.is_empty() {
+-                BatchAdd::<C>::default().apply(left, &pairs);
+-            }
+-        });
++        .for_each(|(left, right)| merge_bucket_block(left, right));
++}
++
++pub(crate) fn merge_bucket_block<C: CurveConfig>(left: &mut [Affine<C>], right: &[Affine<C>])
++where
++    C::Base: BatchInverse,
++{
++    let mut pairs = Vec::with_capacity(left.len());
++    for (i, (a, &b)) in left.iter_mut().zip(right).enumerate() {
++        if a.is_identity() {
++            *a = b;
++        } else if b.is_identity() {
++        } else if a.x == b.x {
++            *a = (*a + b).to_affine();
++        } else {
++            pairs.push((i as u32, b));
++        }
++    }
++    if !pairs.is_empty() {
++        BatchAdd::<C>::default().apply(left, &pairs);
++    }
+ }
+ 
+ fn merge_split<C: CurveConfig>(
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -224,6 +224,20 @@
+                     hb_window(&bases[start..end], &short[start..end], w, bits)
+                 })
+                 .collect();
++            #[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++            if let [left, right] = buckets.as_mut_slice() {
++                if let Ok(mode) = std::env::var("ZOPRO_TRIAL_G2_MERGE_WEIGHT") {
++                    let fused = mode == "fused";
++                    if fused || mode == "staged" {
++                        if let Some(sum) = crate::msm::paired_weighted::merge_then_weight(left, right, fused) {
++                            if std::env::var_os("ZOPRO_TRIAL_G2_MERGE_TRACE").is_some() {
++                                eprintln!("MERGED_WEIGHT {mode} {w} {}", left.len());
++                            }
++                            return sum;
++                        }
++                    }
++                }
++            }
+             let mut combined = buckets.swap_remove(0);
+             for b in buckets {
+                 merge_buckets(&mut combined, &b);
+--- a/crates/zopro-core/src/msm/paired_weighted.rs
++++ b/crates/zopro-core/src/msm/paired_weighted.rs
+@@ -45,6 +45,40 @@
+ }
+ fn run<C:CurveConfig>(buckets:&[Affine<C>])->Projective<C>where C::Base:BatchInverse{
+  let partials:Vec<_>=buckets.par_chunks(2*GROUP).map_init(||(Vec::new(),scratch::<C>()),|(tree,s),b|forest::<C>(b,tree,s)).collect();
++ combine(partials)
++}
++
++// Both modes allocate the forest only after a tile's merge temporaries are gone.
++pub(crate) fn merge_then_weight<C: CurveConfig>(
++    left: &mut [Affine<C>],
++    right: &[Affine<C>],
++    fused: bool,
++) -> Option<Projective<C>>
++where
++    C::Base: BatchInverse,
++{
++    let needed = workspace::<C>(left.len())?;
++    if left.len() != right.len() || needed > workspace_weighted::<C>(left.len())? {
++        return None;
++    }
++    if !fused {
++        left.par_chunks_mut(2 * GROUP)
++            .zip(right.par_chunks(2 * GROUP))
++            .for_each(|(a, b)| crate::msm_affine::merge_bucket_block(a, b));
++    }
++    let partials = left.par_chunks_mut(2 * GROUP)
++        .zip(right.par_chunks(2 * GROUP))
++        .map(|(a, b)| {
++            if fused {
++                crate::msm_affine::merge_bucket_block(a, b);
++            }
++            forest(a, &mut Vec::new(), &mut scratch::<C>())
++        })
++        .collect();
++    Some(combine(partials))
++}
++
++fn combine<C: CurveConfig>(partials: Vec<[(Projective<C>, Affine<C>); 2]>) -> Projective<C> {
+  let(mut sum,mut offset,mut running)=(Projective::<C>::IDENTITY,Projective::<C>::IDENTITY,Projective::<C>::IDENTITY);
+  for pair in partials.into_iter().rev(){for(weighted,total)in pair.into_iter().rev(){sum+=weighted;offset+=running;running+=total;}}
+  for _ in 0..GROUP.ilog2(){offset=offset.double();}sum+offset
+--- a/crates/zopro-core/src/msm/paired_weighted_tests.rs
++++ b/crates/zopro-core/src/msm/paired_weighted_tests.rs
+@@ -25,3 +25,29 @@
+  let(p2,w2)=fixture::<G2Config>(512,0);let expected2=(zopro_bn254::G2Projective::generator()*w2.iter().enumerate().fold(Fr::ZERO,|a,(i,b)|a+*b*Fr::from((i+1)as u64))).to_affine();
+  for workers in[1,4,16,32]{let pool=rayon::ThreadPoolBuilder::new().num_threads(workers).stack_size(512*1024).build().unwrap();pool.broadcast(|_|{assert_eq!(try_weighted::<G1Config>(&points).unwrap().to_affine(),expected);assert_eq!(try_weighted::<G2Config>(&p2).unwrap().to_affine(),expected2);});}
+ }
++
++#[test]
++fn merged_g2_ranges_match_weighted_generator_for_exceptions_and_multiple_tiles() {
++    for n in [512usize, 2048] {
++        let (left, weights) = fixture::<G2Config>(n, 0);
++        let mut right = left.clone();
++        let mut coefficients = weights.clone();
++        for i in 0..n {
++            match i % 4 {
++                0 => { right[i] = -left[i]; coefficients[i] = -weights[i]; }
++                1 => { right[i] = Affine::IDENTITY; coefficients[i] = Fr::ZERO; }
++                2 => { let j = (i + 1) % n; right[i] = left[j]; coefficients[i] = weights[j]; }
++                _ => (),
++            }
++        }
++        let total = weights.iter().zip(&coefficients).enumerate().fold(Fr::ZERO,
++            |s, (i, (l, r))| s + (*l + *r) * Fr::from((i + 1) as u64));
++        let expected = (Projective::<G2Config>::generator() * total).to_affine();
++        for fused in [false, true] {
++            let mut out = left.clone();
++            assert!(merge_then_weight(&mut out[..n-1], &right[..n-1], fused).is_none());
++            assert_eq!(out, left);
++            assert_eq!(merge_then_weight(&mut out, &right, fused).unwrap().to_affine(), expected);
++        }
++    }
++}
