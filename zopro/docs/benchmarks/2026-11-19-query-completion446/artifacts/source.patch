@@ -1,0 +1,124 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1919,6 +1919,25 @@
+         let _ = folded_k;
+         #[cfg(not(target_arch = "wasm32"))]
+         if affine_msm() {
++            use std::sync::atomic::{AtomicU64, Ordering};
++            let clock = (std::env::var_os("ZOPRO_QUERY_COMPLETION_TRACE").is_some()).then(std::time::Instant::now);
++            let times: [AtomicU64; 4] = std::array::from_fn(|_| AtomicU64::new(0));
++            macro_rules! finish {
++                ($index:expr, $body:expr) => {{
++                    let result = $body;
++                    if let Some(start) = clock {
++                        times[$index].store(start.elapsed().as_nanos() as u64, Ordering::Relaxed);
++                    }
++                    result
++                }};
++            }
++            let report = || {
++                if let Some(start) = clock {
++                    let joined = start.elapsed().as_nanos();
++                    let completed = times.each_ref().map(|t| t.load(Ordering::Relaxed));
++                    eprintln!("QUERY_COMPLETION {} {} {} {} {}", completed[0], completed[1], completed[2], completed[3], joined);
++                }
++            };
+             let montgomery_h =
+                 h.len() >= (1 << 18) && crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
+             if let Some(prepared) = &self.equal_witness {
+@@ -1927,22 +1946,23 @@
+                         rayon::join(
+                             || {
+                                 rayon::join(
+-                                    || prepared.msm_a(&self.a, sa),
+-                                    || prepared.msm_k(k, sk, folded_k),
++                                    || finish!(0, prepared.msm_a(&self.a, sa)),
++                                    || finish!(1, prepared.msm_k(k, sk, folded_k)),
+                                 )
+                             },
+                             || {
+                                 if montgomery_h {
+-                                    msm_affine::msm_montgomery(z, h)
++                                    finish!(2, msm_affine::msm_montgomery(z, h))
+                                 } else {
+-                                    msm_affine::msm_in_place(z, h)
++                                    finish!(2, msm_affine::msm_in_place(z, h))
+                                 }
+                             },
+                         )
+                     },
+-                    || if omit_b { (G1Projective::IDENTITY, msm_affine::msm_in_place(&self.b2, sb)) } else { prepared.msms_b(&self.b, &self.b2, sb) },
++                    || finish!(3, if omit_b { (G1Projective::IDENTITY, msm_affine::msm_in_place(&self.b2, sb)) } else { prepared.msms_b(&self.b, &self.b2, sb) }),
+                 );
+-                return ((ar, bs1), (kr, (hz, bs2)));
++                report();
++            return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             if sa.len().max(sb.len()).max(sk.len()) < (1 << 16)
+                 || !crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+@@ -1954,17 +1974,17 @@
+                 let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                     || {
+                         rayon::join(
+-                            || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
++                            || rayon::join(|| finish!(0, msm(&self.a[..], sa)), || finish!(1, msm(k, sk))),
+                             || {
+                                 if montgomery_h {
+-                                    msm_affine::msm_montgomery(z, h)
++                                    finish!(2, msm_affine::msm_montgomery(z, h))
+                                 } else {
+-                                    msm(z, canonical(h))
++                                    finish!(2, msm(z, canonical(h)))
+                                 }
+                             },
+                         )
+                     },
+-                    || {
++                    || finish!(3, (|| {
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+                             return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
+                         }
+@@ -1986,25 +2006,26 @@
+                                 )
+                             },
+                         )
+-                    },
++                    })()),
+                 );
+-                return ((ar, bs1), (kr, (hz, bs2)));
++                report();
++            return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
+                     rayon::join(
+-                        || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
++                        || rayon::join(|| finish!(0, msm(&self.a[..], sa)), || finish!(1, msm(k, sk))),
+                         || {
+                             if montgomery_h {
+-                                msm_affine::msm_montgomery(z, h)
++                                finish!(2, msm_affine::msm_montgomery(z, h))
+                             } else {
+-                                msm(z, h)
++                                finish!(2, msm(z, h))
+                             }
+                         },
+                     )
+                 },
+-                || {
++                || finish!(3, (|| {
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
+@@ -2018,8 +2039,9 @@
+                         let sb = canonical(sb);
+                         rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
+                     }
+-                },
++                })()),
+             );
++            report();
+             return ((ar, bs1), (kr, (hz, bs2)));
+         }
+         rayon::join(
