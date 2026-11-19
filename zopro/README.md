@@ -168,6 +168,15 @@ workers, enabling compact output addresses with the ordinary H query reduced
 12×2 latency from 33.412 to 33.002 ms in seven fresh matched blocks.
 [12×2 configuration measurements](docs/benchmarks/2026-11-19-medium-h-ryzen406/README.md)
 
+On Ryzen 9950X with one worker on each of 16 physical cores, 12×2 also
+benefits from `ZOPRO_CPU_DENSE_H_WINDOWS=18s` and
+`ZOPRO_CPU_H_WINDOW_RANGES=1`. With compact Poseidon outputs enabled,
+the median paired latency fell 3.43% against ordinary H across eight
+distinct transfer witnesses. The 32-worker comparison favored ordinary H
+in four of seven blocks.
+[16-core witness comparison](docs/benchmarks/2026-11-19-varied-h413/README.md) ·
+[16- and 32-worker comparison](docs/benchmarks/2026-11-19-single-range-h411/README.md)
+
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
 G2 queries of 1,024 through 65,535 points when the worker pool has at least
