@@ -1,0 +1,160 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -1306,6 +1306,10 @@
+         // Retain this proof's allocation until its MSMs finish instead of
+         // copying the wires into another allocation.
+         let started = crate::trace("solve-execute", started);
++        #[cfg(zopro_resource_schedule)]
++        if std::env::var_os("ZOPRO_TRIAL_B2_POSEIDON_CENSUS").is_some() {
++            self.probe_b2_poseidon_classes(&w);
++        }
+         let selected: Vec<_> = slots.iter().map(|&slot| w[slot]).collect();
+         w.truncate(self.n_wires);
+         w.extend(selected);
+--- a/crates/zopro-core/src/solver/sparse_poseidon.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon.rs
+@@ -543,3 +543,144 @@
+ 
+ #[cfg(test)]
+ mod tests;
++
++impl Plan {
++    pub(super) fn probe_b2_poseidon_classes(&self, w: &[Fr]) {
++        use std::collections::{HashMap, HashSet};
++        use std::sync::atomic::{AtomicBool, Ordering};
++
++        static EMITTED: AtomicBool = AtomicBool::new(false);
++        if EMITTED.swap(true, Ordering::Relaxed) {
++            return;
++        }
++        let Some(schedule) = self.schedule.get() else {
++            return;
++        };
++        let Some(_memory) = crate::preparation::Reservation::analysis(
++            w.len().checked_mul(16).and_then(|v| v.checked_add(self.b_indices.len().checked_mul(256)?)),
++        ) else {
++            return;
++        };
++
++        let mut b_positions = vec![false; w.len()];
++        for &i in &self.b_indices {
++            b_positions[i as usize] = true;
++        }
++
++        let mut all_labels = vec![0u32; w.len()];
++        let mut b_labels = vec![0u32; w.len()];
++        let mut by_state = HashMap::<Vec<[u64; 4]>, (u32, bool)>::new();
++        let mut b_states = HashMap::<Vec<[u64; 4]>, (u32, bool)>::new();
++        let mut spans = 0usize;
++        let mut repeats = 0usize;
++        let mut spans_b = 0usize;
++        let mut repeats_b = 0usize;
++        let stride = 4 * MAX_N as u32;
++        let mut visit = |task: &[u32]| {
++            if !self.poseidon_task(task) {
++                return;
++            }
++            let mut pos = 0;
++            while pos < task.len() {
++                let width = (task[pos] >> 28) as usize;
++                if width == 0 {
++                    pos += 1;
++                    continue;
++                }
++                let (partial, _) = parameters(width);
++                let n = 7 * width + partial;
++                let leaf = &task[pos..pos + 3 * n];
++                let state_wires: Vec<_> = leaf[2 * width..3 * width].iter().map(|&i| {
++                    step(self, i).unwrap().assignment.as_ref().unwrap().wire()
++                }).collect();
++                let signature: Vec<_> = state_wires.iter().map(|&i| w[i].to_canonical()).collect();
++                let b_supported = state_wires.iter().all(|&i| b_positions[i]);
++                let next = by_state.len() as u32 + 1;
++                let tag = by_state.entry(signature.clone()).or_insert((next, false));
++                repeats += usize::from(tag.1);
++                tag.1 = true;
++                spans += 1;
++                let tag_b = b_supported.then(|| {
++                    let next = b_states.len() as u32 + 1;
++                    let tag = b_states.entry(signature).or_insert((next, false));
++                    repeats_b += usize::from(tag.1);
++                    tag.1 = true;
++                    spans_b += 1;
++                    tag.0
++                });
++                for k in width..n {
++                    let [f, m, l] = positions(width, partial, k);
++                    let (slot, wires) = if leaf[f] & EMIT_MARK != 0 {
++                        ((leaf[f] & !(EMIT_MARK | EMIT_NORMAL)) as usize, unpack_three(leaf[l]))
++                    } else {
++                        let steps = [f, m, l].map(|i| step(self, leaf[i]).unwrap());
++                        let slot = self.n_wires + steps[0].first_slot();
++                        (slot, steps.map(|s| s.assignment.as_ref().unwrap().wire()))
++                    };
++                    for (coordinate, i) in [slot, wires[0], wires[1], wires[2]].into_iter().enumerate() {
++                        let j = (4 * k + coordinate) as u32;
++                        assert_eq!(all_labels[i], 0, "schedule must give each value one source");
++                        all_labels[i] = tag.0 * stride + j;
++                        if let Some(tag_b) = tag_b {
++                            b_labels[i] = tag_b * stride + j;
++                        }
++                    }
++                }
++                pos += 3 * n;
++            }
++        };
++        for task in schedule.epochs.iter().flatten() {
++            if let Some(waves) = schedule.refined.get(&(task[0] as usize)) {
++                for leaf in waves.iter().flatten() {
++                    visit(leaf);
++                }
++            } else {
++                visit(task);
++            }
++        }
++        let mut raw = HashSet::new();
++        let mut total = 0usize;
++        let mut flags = 0usize;
++        for &i in &self.b_indices {
++            let v = w[i as usize];
++            if v == Fr::ONE {
++                flags += 1;
++            }
++            if v != Fr::ZERO {
++                total += 1;
++                raw.insert(v.to_canonical());
++            }
++        }
++        let model = |labels: &[u32]| {
++            let mut known = HashMap::new();
++            let mut residual = HashSet::new();
++            let mut covered = 0usize;
++            let mut covered_nonzero = 0usize;
++            let mut modeled_conflicts = 0usize;
++            for &i in &self.b_indices {
++                let i = i as usize;
++                let v = w[i].to_canonical();
++                let label = labels[i];
++                covered += usize::from(label != 0);
++                if v == [0; 4] {
++                    continue;
++                }
++                if label == 0 {
++                    residual.insert(v);
++                } else {
++                    if let Some(old) = known.insert(label, v) {
++                        modeled_conflicts += usize::from(old != v);
++                    }
++                    covered_nonzero += 1;
++                }
++            }
++            (covered, covered_nonzero, known.len(), residual.len(), modeled_conflicts)
++        };
++        let (covered, covered_nonzero, classes, residual, conflicts) = model(&all_labels);
++        let (covered_b, covered_nonzero_b, classes_b, residual_b, conflicts_b) = model(&b_labels);
++        eprintln!(
++            "B2_POSEIDON {} {total} {flags} {} {spans} {repeats} {covered} {covered_nonzero} {classes} {residual} {conflicts} {spans_b} {repeats_b} {covered_b} {covered_nonzero_b} {classes_b} {residual_b} {conflicts_b}",
++            self.b_indices.len(), raw.len(),
++        );
++    }
++}
