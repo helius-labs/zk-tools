@@ -1,0 +1,74 @@
+--- a/crates/zopro-core/src/preparation.rs
++++ b/crates/zopro-core/src/preparation.rs
+@@ -251,24 +251,19 @@
+                 } else {
+                     ("memory.limit_in_bytes", "memory.usage_in_bytes")
+                 };
+-                if let (Ok(limit), Ok(current)) = (
+-                    std::fs::read_to_string(directory.join(limit_file)),
+-                    std::fs::read_to_string(directory.join(current_file)),
+-                ) {
+-                    let limit = limit.trim().parse::<usize>().ok();
+-                    let high = v2
+-                        .then(|| {
+-                            std::fs::read_to_string(directory.join("memory.high"))
+-                                .ok()
+-                                .and_then(|s| s.trim().parse::<usize>().ok())
+-                        })
+-                        .flatten();
+-                    if let (Some(limit), Ok(current)) = (
+-                        limit.into_iter().chain(high).min(),
+-                        current.trim().parse::<usize>(),
+-                    ) {
+-                        let remaining = limit.saturating_sub(current);
+-                        available = Some(available.map_or(remaining, |n: usize| n.min(remaining)));
++                let read = |name| std::fs::read_to_string(directory.join(name)).ok();
++                if let Some(raw_max) = read(limit_file) {
++                    let maximum = raw_max.trim().parse::<usize>().ok();
++                    let high = if v2 {
++                        read("memory.high").and_then(|s| s.trim().parse::<usize>().ok())
++                    } else {
++                        None
++                    };
++                    if let Some(limit) = maximum.into_iter().chain(high).min() {
++                        if let Some(current) = read(current_file).and_then(|s| s.trim().parse::<usize>().ok()) {
++                            let remaining = limit.saturating_sub(current);
++                            available = Some(available.map_or(remaining, |n: usize| n.min(remaining)));
++                        }
+                     }
+                 }
+                 if directory == mount || !directory.pop() {
+@@ -291,6 +286,33 @@
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    #[cfg(target_os = "linux")]
++    #[test]
++    fn finite_ancestor_limits_and_live_usage() {
++        use std::fs;
++        let root = std::env::temp_dir().join(format!("zopro-cgroup-limits-{}",std::process::id()));
++        let group = root.join("child");
++        fs::create_dir_all(&group).unwrap();
++        let mounts = format!("12 1 0:44 / {} rw - cgroup2 cgroup rw",root.display());
++        let groups = "0::/child";
++        let write = |dir:&std::path::Path, key:&str, v:&str|fs::write(dir.join(key),v).unwrap();
++        for dir in [&root,&group] {
++            write(dir,"memory.max","max");write(dir,"memory.high","max");
++        }
++        assert_eq!(cgroup_headroom(groups,&mounts),None);
++        write(&root,"memory.high","4096");write(&root,"memory.current","512");
++        assert_eq!(cgroup_headroom(groups,&mounts),Some(3584));
++        write(&group,"memory.max","1000");write(&group,"memory.high","1100");write(&group,"memory.current","777");
++        assert_eq!(cgroup_headroom(groups,&mounts),Some(223));
++        write(&group,"memory.current","1001");assert_eq!(cgroup_headroom(groups,&mounts),Some(0));
++        write(&group,"memory.max","max");write(&group,"memory.high","max");
++        write(&root,"memory.current","1500");assert_eq!(cgroup_headroom(groups,&mounts),Some(2596));
++        let mounts = format!("13 1 0:49 / {} rw - cgroup cgroup rw,memory",root.display());
++        write(&group,"memory.limit_in_bytes","555");write(&group,"memory.usage_in_bytes","151");
++        assert_eq!(cgroup_headroom("7:memory:/child",&mounts),Some(404));
++        fs::remove_dir_all(root).unwrap();
++    }
++
+     #[test]
+     fn reservations_are_atomic_and_overflow_safe() {
+         let used = AtomicUsize::new(0);
