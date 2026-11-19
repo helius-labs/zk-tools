@@ -1,0 +1,64 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1711,14 +1711,19 @@
+         p.current_num_threads() < rayon::current_num_threads()
+             && std::env::var_os("ZOPRO_TRIAL_GROUP_FRONTEND").is_some()
+     }) {
+-        let bytes = workspace::grouped_auxiliary_window_bytes(values.len(), pool.current_num_threads());
++        let (bits, parts) = match std::env::var("ZOPRO_TRIAL_GROUP_POOL_GEOMETRY").as_deref() {
++            Ok("11x4") => (11, 4),
++            Ok("10x8") => (10, 8),
++            _ => (12, 2),
++        };
++        let bytes = workspace::grouped_auxiliary_window_bytes(values.len(), pool.current_num_threads(), bits, parts);
+         if let Some(_scratch) = crate::preparation::Reservation::analysis(bytes) {
+             return pool.install(|| {
+                 if std::env::var_os("ZOPRO_TRIAL_GROUP_FRONTEND_PROBE").is_some() {
+-                    eprintln!("GROUP_FRONTEND {} {} {} {}", len, values.len(),
+-                        rayon::current_num_threads(), bytes.unwrap_or(0));
++                    eprintln!("GROUP_POOL_GEOMETRY {} {} {} {} {} {}", len, values.len(),
++                        rayon::current_num_threads(), bits, parts, bytes.unwrap_or(0));
+                 }
+-                g2_phi::from_split(&points, &values, 12, 2)
++                g2_phi::from_split(&points, &values, bits, parts)
+             });
+         }
+     }
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -253,11 +253,11 @@
+ 
+ // The auxiliary pool owns a separate set of active window leaves. Charge
+ // their parent state and every worker before crossing pool boundaries.
+-pub(super) fn grouped_auxiliary_window_bytes(unique: usize, workers: usize) -> Option<usize> {
+-    if !(1024..65536).contains(&unique) || workers == 0 {
++pub(super) fn grouped_auxiliary_window_bytes(unique: usize, workers: usize, bits: usize, parts: usize) -> Option<usize> {
++    if !(1024..65536).contains(&unique) || workers == 0 || !matches!((bits, parts), (12, 2) | (11, 4) | (10, 8)) {
+         return None;
+     }
+-    let shape = hb_windows::<G2Config>(unique, 12, 2)?;
++    let shape = hb_windows::<G2Config>(unique, bits, parts)?;
+     add(shape.held, mul(shape.leaf, workers)?)
+ }
+ 
+@@ -533,3 +533,20 @@
+         }
+     }
+ }
++
++#[cfg(test)]
++mod dedicated_window_estimates {
++    #[test]
++    fn selected_geometry_covers_every_auxiliary_leaf() {
++        for (bits, parts) in [(12,2),(11,4),(10,8)] {
++            for workers in [1, 6, 40, 64] {
++                let p=super::hb_windows::<super::G2Config>(1049, bits, parts).unwrap();
++                assert_eq!(super::grouped_auxiliary_window_bytes(1049,workers,bits,parts),Some(p.held+p.leaf*workers));
++            }
++        }
++        assert_eq!(super::grouped_auxiliary_window_bytes(1023,40,11,4),None);
++        assert_eq!(super::grouped_auxiliary_window_bytes(65536,40,11,4),None);
++        assert_eq!(super::grouped_auxiliary_window_bytes(1049,0,11,4),None);
++        assert_eq!(super::grouped_auxiliary_window_bytes(1049,40,8,18),None);
++    }
++}
