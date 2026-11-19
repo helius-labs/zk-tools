@@ -26,6 +26,16 @@ pub(super) struct Offsets {
 }
 
 impl Offsets {
+    pub fn restore_public(&self, public: &mut [Fr]) {
+        for row in &self.rows {
+            let Some(value) = public.get_mut(row.wire) else {
+                // The solver plan orders B2 indices by wire.
+                break;
+            };
+            *value += row.scalar;
+        }
+    }
+
     pub fn apply(&self, wires: &mut [Fr]) {
         for row in &self.rows {
             wires[row.wire] -= row.scalar;
@@ -148,7 +158,8 @@ pub(super) fn prepare(key: &Key, data: &[u8]) -> Result<Option<Offsets>, &'stati
     let Some(folded) = key.lagrange.as_ref().and_then(|q| q.folded.as_ref()) else {
         return Ok(None);
     };
-    if !key.canonical_wires
+    if !super::affine_msm()
+        || key.equal_witness.is_some()
         || key.has_gpu()
         || key.a.len() != plan.a_indices.len()
         || key.b2.len() != plan.b_indices.len()

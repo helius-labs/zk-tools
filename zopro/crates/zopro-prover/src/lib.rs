@@ -107,7 +107,7 @@ impl Prover {
         self.overlap_verification = enabled;
     }
 
-    /// Use optional public wire offsets with canonical CPU proofs for this key.
+    /// Use optional public wire offsets with folded CPU proof queries for this key.
     ///
     /// The little-endian file starts with `ZPWO0001`, the SHA-256 of its B2
     /// points (x.c0, x.c1, y.c0, y.c1 as Montgomery limbs), a u32 B2 count,

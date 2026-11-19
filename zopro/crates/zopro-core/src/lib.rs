@@ -1153,12 +1153,23 @@ impl Key {
         if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
         let started = trace("solve", started);
         use rayon::prelude::*;
+        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+        let offsets = self.wire_offsets.as_deref().filter(|_| omit_b && !self.canonical_wires);
+        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+        if let Some(offsets) = offsets {
+            offsets.apply(&mut w);
+        }
         let (mut sa, mut sb): (Vec<_>, Vec<_>) = rayon::join(
             || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
             || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
         );
         trace("extract-scalars", started);
         let (public, private) = w.split_at_mut(plan.n_public);
+        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+        if let Some(offsets) = offsets {
+            // The folded public term still needs the original public values.
+            offsets.restore_public(public);
+        }
         self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
     }
     pub fn commitment(
@@ -1842,6 +1853,13 @@ impl Key {
                     || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
                     || folded.public_term(public),
                 );
+                #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+                let (ar, kr, bs2) = match self.wire_offsets.as_deref() {
+                    Some(offsets) if omit_b && !self.canonical_wires => {
+                        (ar + offsets.a, kr + offsets.k, bs2 + offsets.b2)
+                    }
+                    _ => (ar, kr, bs2),
+                };
                 trace("msms", started);
                 let mut out = Vec::with_capacity(384);
                 for point in [ar, bs1, kr + correction, queries.finish_product(hz)] {
