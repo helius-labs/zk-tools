@@ -1,0 +1,329 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1875,13 +1875,81 @@
+                 });
+                 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                 let pool = None;
+-                let mut product = queries.product_values(&self.plan, a, b, pool);
+-                let started = trace("quotient-product", started);
+-                let product_points=&queries.product[..product.len()];
+-                let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+-                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
+-                    || folded.public_term(public),
+-                );
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                let trial = {
++                    static MODE: std::sync::OnceLock<Option<bool>> = std::sync::OnceLock::new();
++                    let mode = *MODE.get_or_init(|| match std::env::var("ZOPRO_TRIAL_FOLDED_OVERLAP").as_deref() {
++                        Ok("b2") => Some(false),
++                        Ok("ab2") => Some(true),
++                        _ => None,
++                    });
++                    mode.filter(|_| omit_b && queries.euler && self.equal_witness.is_none()
++                        && affine_msm() && crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++                        && (65_536..262_144).contains(&sb.len()))
++                        .and_then(|early_a| {
++                            let worker_pool = self.frontend_pool.as_deref()
++                                .filter(|pool| pool.current_num_threads() < rayon::current_num_threads())?;
++                            // The FFT already has an ordinary workspace. Reserve
++                            // separate space for overlap with the curve query.
++                            let scratch = crate::preparation::Reservation::analysis(
++                                self.plan.size().checked_mul(2 * core::mem::size_of::<Fr>()),
++                            );
++                            if std::env::var_os("ZOPRO_TRIAL_FOLDED_OVERLAP_TRACE").is_some() {
++                                eprintln!("FOLDED_OVERLAP {} {} {} {}", sb.len(), worker_pool.current_num_threads(),
++                                          early_a, scratch.is_some());
++                            }
++                            Some((early_a, worker_pool, scratch?))
++                        })
++                };
++                #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
++                let trial: Option<(bool, &rayon::ThreadPool, crate::preparation::Reservation)> = None;
++
++                let mut curve_started = started;
++                let (((ar, bs1), (kr, (hz, bs2))), correction) = if let Some((early_a, worker_pool, _scratch)) = trial {
++                    let quotient = || worker_pool.install(|| queries.product_values(&self.plan, a, b, None));
++                    let h_query = |mut product: Vec<Fr>| {
++                        let z = &queries.product[..product.len()];
++                        let montgomery = product.len() >= (1 << 18)
++                            && crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
++                        Self::cpu_large_h(z, &mut product, montgomery)
++                    };
++                    let b_query = || self.cpu_large_b(sb, true).1;
++                    let a_query = || msm_affine::msm_in_place(&self.a, sa);
++                    let k_query = || self.cpu_large_k(&folded.private, sk);
++                    rayon::join(
++                        || {
++                            let (ar, kr, hz, bs2) = if early_a {
++                                let ((ar, bs2), (kr, hz)) = rayon::join(
++                                    || rayon::join(a_query, b_query),
++                                    || {
++                                        let product = quotient();
++                                        rayon::join(k_query, || h_query(product))
++                                    },
++                                );
++                                (ar, kr, hz, bs2)
++                            } else {
++                                let (bs2, ((ar, kr), hz)) = rayon::join(
++                                    b_query,
++                                    || {
++                                        let product = quotient();
++                                        rayon::join(|| rayon::join(a_query, k_query), || h_query(product))
++                                    },
++                                );
++                                (ar, kr, hz, bs2)
++                            };
++                            ((ar, G1Projective::IDENTITY), (kr, (hz, bs2)))
++                        },
++                        || folded.public_term(public),
++                    )
++                } else {
++                    let mut product = queries.product_values(&self.plan, a, b, pool);
++                    curve_started = trace("quotient-product", started);
++                    let product_points = &queries.product[..product.len()];
++                    rayon::join(
++                        || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
++                        || folded.public_term(public),
++                    )
++                };
+                 #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+                 let (ar, kr, bs2) = match self.wire_offsets.as_deref() {
+                     Some(offsets) if omit_b && !self.canonical_wires => {
+@@ -1889,7 +1957,7 @@
+                     }
+                     _ => (ar, kr, bs2),
+                 };
+-                trace("msms", started);
++                trace("msms", curve_started);
+                 let mut out = Vec::with_capacity(384);
+                 for point in [ar, bs1, kr + correction, queries.finish_product(hz)] {
+                     output_g1(&mut out, point);
+@@ -1952,6 +2020,111 @@
+     fn quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
+         self.plan.quotient(a, b, c)
+     }
++    #[cfg(not(target_arch = "wasm32"))]
++    fn cpu_large_h(z: &[G1Affine], h: &mut [Fr], montgomery_h: bool) -> G1Projective {
++        if montgomery_h {
++            msm_affine::msm_montgomery(z, h)
++        } else {
++            msm_affine::msm_in_place(z, h)
++        }
++    }
++
++    #[cfg(not(target_arch = "wasm32"))]
++    fn cpu_large_k(&self, k: &[G1Affine], sk: &mut [Fr]) -> G1Projective {
++        use msm_affine::msm_in_place as msm;
++        #[cfg(all(
++            zopro_resource_schedule,
++            feature = "ifma8",
++            target_arch = "x86_64",
++            target_os = "linux",
++            target_feature = "avx512ifma",
++            target_feature = "avx512vl",
++            target_feature = "avx512dq",
++            not(no_ifma)
++        ))]
++        if self.g1_k_on_frontend {
++            if let Some(pool) = self.frontend_pool.as_ref().filter(|pool| {
++                pool.current_num_threads() < rayon::current_num_threads()
++            }) {
++                let result = pool.install(|| {
++                    let workers = rayon::current_num_threads();
++                    let _scratch = crate::preparation::Reservation::analysis(
++                        msm_affine::workspace::frontend_g1_bytes(sk.len(), workers, true),
++                    )?;
++                    if std::env::var_os("ZOPRO_K_FRONTEND_TRACE").is_some() {
++                        eprintln!("K_FRONTEND {} {workers}", sk.len());
++                    }
++                    Some(msm(k, &mut *sk))
++                });
++                if let Some(result) = result {
++                    return result;
++                }
++            }
++        }
++        msm(k, sk)
++    }
++
++    #[cfg(not(target_arch = "wasm32"))]
++    fn cpu_large_b(&self, sb: &mut [Fr], omit_b: bool) -> (G1Projective, G2Projective) {
++        use msm_affine::{canonical, group_witness, msm_grouped, msm_raw};
++        if omit_b && (1024..65536).contains(&self.b2.len()) {
++            let words=msm_affine::canonical_exclusive(sb);
++            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
++        }
++        let serial = {
++            #[cfg(all(
++                target_os = "linux", target_arch = "x86_64", feature = "ifma8",
++                target_feature = "avx512ifma", target_feature = "avx512vl",
++                target_feature = "avx512dq", not(no_ifma),
++            ))]
++            { self.grouped_b2_serial_preparation && omit_b && (65_536..262_144).contains(&sb.len()) }
++            #[cfg(not(all(
++                target_os = "linux", target_arch = "x86_64", feature = "ifma8",
++                target_feature = "avx512ifma", target_feature = "avx512vl",
++                target_feature = "avx512dq", not(no_ifma),
++            )))]
++            { false }
++        };
++        #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++        let ordinary = || if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
++        #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++        let groups = if omit_b && (65_536..262_144).contains(&sb.len())
++            && self.grouped_b2_poseidon_origins
++        {
++            self.solver.as_ref().and_then(solver::Plan::b2_origins)
++                .and_then(|origins| msm_affine::group_witness_b2_origins(sb, origins, serial))
++                .or_else(ordinary)
++        } else {
++            ordinary()
++        };
++        #[cfg(all(not(zopro_resource_schedule), target_os = "linux", target_arch = "x86_64"))]
++        let groups = ordinary();
++        #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
++        let groups = { let _ = serial; group_witness(sb) };
++        if let Some(groups) = groups {
++            #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
++            if omit_b
++                && self.b2.len() >= 65_536
++                && std::env::var("ZOPRO_CPU_GROUPED_G2_PHI").as_deref() == Ok("1")
++            {
++                #[cfg(target_os = "linux")]
++                let pool = self.frontend_pool.as_deref()
++                    .filter(|_| self.grouped_g2_on_frontend);
++                #[cfg(not(target_os = "linux"))]
++                let pool = None;
++                let sum = msm_affine::owned_grouped_phi(&self.b2, groups, pool);
++                return (G1Projective::IDENTITY, sum);
++            }
++            rayon::join(
++                || if omit_b { G1Projective::IDENTITY } else { msm_grouped(&self.b[..], &groups) },
++                || msm_grouped_b2(&self.b2[..], &groups),
++            )
++        } else {
++            let sb = canonical(sb);
++            rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
++        }
++    }
++
+     /// The CPU's five MSMs at once. Natively the batch-affine ones take the
+     /// scalars as canonical limbs, converted in place: a proof holds no
+     /// copy of them and no digits (63 MB at 16 -> 2).
+@@ -2044,110 +2217,17 @@
+                 );
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+-            use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
+-            let compute_k = || {
+-                #[cfg(all(
+-                    zopro_resource_schedule,
+-                    feature = "ifma8",
+-                    target_arch = "x86_64",
+-                    target_os = "linux",
+-                    target_feature = "avx512ifma",
+-                    target_feature = "avx512vl",
+-                    target_feature = "avx512dq",
+-                    not(no_ifma)
+-                ))]
+-                if self.g1_k_on_frontend {
+-                    if let Some(pool) = self.frontend_pool.as_ref().filter(|pool| {
+-                        pool.current_num_threads() < rayon::current_num_threads()
+-                    }) {
+-                        let result = pool.install(|| {
+-                            let workers = rayon::current_num_threads();
+-                            let _scratch = crate::preparation::Reservation::analysis(
+-                                msm_affine::workspace::frontend_g1_bytes(sk.len(), workers, true),
+-                            )?;
+-                            if std::env::var_os("ZOPRO_K_FRONTEND_TRACE").is_some() {
+-                                eprintln!("K_FRONTEND {} {workers}", sk.len());
+-                            }
+-                            Some(msm(k, &mut *sk))
+-                        });
+-                        if let Some(result) = result {
+-                            return result;
+-                        }
+-                    }
+-                }
+-                msm(k, sk)
+-            };
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
+                     rayon::join(
+-                        || rayon::join(|| msm(&self.a[..], sa), compute_k),
+-                        || {
+-                            if montgomery_h {
+-                                msm_affine::msm_montgomery(z, h)
+-                            } else {
+-                                msm(z, h)
+-                            }
+-                        },
++                        || rayon::join(
++                            || msm_affine::msm_in_place(&self.a, sa),
++                            || self.cpu_large_k(k, sk),
++                        ),
++                        || Self::cpu_large_h(z, h, montgomery_h),
+                     )
+                 },
+-                || {
+-                    if omit_b && (1024..65536).contains(&self.b2.len()) {
+-                        let words=msm_affine::canonical_exclusive(sb);
+-                        return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
+-                    }
+-                    let serial = {
+-                        #[cfg(all(
+-                            target_os = "linux", target_arch = "x86_64", feature = "ifma8",
+-                            target_feature = "avx512ifma", target_feature = "avx512vl",
+-                            target_feature = "avx512dq", not(no_ifma),
+-                        ))]
+-                        { self.grouped_b2_serial_preparation && omit_b && (65_536..262_144).contains(&sb.len()) }
+-                        #[cfg(not(all(
+-                            target_os = "linux", target_arch = "x86_64", feature = "ifma8",
+-                            target_feature = "avx512ifma", target_feature = "avx512vl",
+-                            target_feature = "avx512dq", not(no_ifma),
+-                        )))]
+-                        { false }
+-                    };
+-                    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+-                    let ordinary = || if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
+-                    #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+-                    let groups = if omit_b && (65_536..262_144).contains(&sb.len())
+-                        && self.grouped_b2_poseidon_origins
+-                    {
+-                        self.solver.as_ref().and_then(solver::Plan::b2_origins)
+-                            .and_then(|origins| msm_affine::group_witness_b2_origins(sb, origins, serial))
+-                            .or_else(ordinary)
+-                    } else {
+-                        ordinary()
+-                    };
+-                    #[cfg(all(not(zopro_resource_schedule), target_os = "linux", target_arch = "x86_64"))]
+-                    let groups = ordinary();
+-                    #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+-                    let groups = { let _ = serial; group_witness(sb) };
+-                    if let Some(groups) = groups {
+-                        #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+-                        if omit_b
+-                            && self.b2.len() >= 65_536
+-                            && std::env::var("ZOPRO_CPU_GROUPED_G2_PHI").as_deref() == Ok("1")
+-                        {
+-                            #[cfg(target_os = "linux")]
+-                            let pool = self.frontend_pool.as_deref()
+-                                .filter(|_| self.grouped_g2_on_frontend);
+-                            #[cfg(not(target_os = "linux"))]
+-                            let pool = None;
+-                            let sum = msm_affine::owned_grouped_phi(&self.b2, groups, pool);
+-                            return (G1Projective::IDENTITY, sum);
+-                        }
+-                        rayon::join(
+-                            || if omit_b { G1Projective::IDENTITY } else { msm_grouped(&self.b[..], &groups) },
+-                            || msm_grouped_b2(&self.b2[..], &groups),
+-                        )
+-                    } else {
+-                        let sb = canonical(sb);
+-                        rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
+-                    }
+-                },
++                || self.cpu_large_b(sb, omit_b),
+             );
+             return ((ar, bs1), (kr, (hz, bs2)));
+         }
