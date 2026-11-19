@@ -49,6 +49,36 @@ def compare():
                            pairs=rows))
     return result
 
+def width_comparison(cells):
+    """Use the other eight blocks for width selection and the ninth for evaluation."""
+    by_shape = defaultdict(dict)
+    for cell in cells:
+        by_shape[cell["shape"]][cell["arm"]] = {
+            row["block"]: row for row in cell["pairs"]
+        }
+
+    comparison = {}
+    for shape, engines in sorted(by_shape.items()):
+        zopro, aeglos = engines["ON"], engines["AEGLOS"]
+        assert set(zopro) == set(aeglos) == set(range(9))
+        folds = []
+        for block, row in sorted(zopro.items()):
+            delta = median(other["delta"]["ms"] for key, other in zopro.items() if key != block)
+            width = "low" if delta >= 0 else "high"
+            reference = aeglos[block]["high"]["ms"]
+            best = min(row["low"]["ms"], row["high"]["ms"])
+            folds.append(dict(block=block, selected_workers=32 if width == "low" else 96,
+                              selected_gap_ms=row[width]["ms"] - reference,
+                              best_observed_gap_ms=best - reference))
+        comparison[shape] = dict(
+            selected_gap_ms=median(f["selected_gap_ms"] for f in folds),
+            best_observed_gap_ms=median(f["best_observed_gap_ms"] for f in folds),
+            both_widths_slower_blocks=sum(f["best_observed_gap_ms"] > 0 for f in folds),
+            selected_32_blocks=sum(f["selected_workers"] == 32 for f in folds),
+            folds=folds,
+        )
+    return comparison
+
 if __name__=="__main__":
     result=compare()
     out=REPORT / "artifacts/results.json"
@@ -57,3 +87,7 @@ if __name__=="__main__":
     for arm in ["ON","AEGLOS"]:
         cells=[r for r in result if r["arm"]==arm]
         print(arm,Counter((r["summary"]["delta"]["ms"]>0,r["summary"]["delta"]["faults"]>0) for r in cells))
+
+    (REPORT / "artifacts/width-comparison.json").write_text(
+        json.dumps(width_comparison(result), indent=2) + "\n"
+    )

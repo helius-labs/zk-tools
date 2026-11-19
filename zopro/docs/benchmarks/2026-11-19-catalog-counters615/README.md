@@ -19,3 +19,20 @@ Each change is the median of the nine within-block differences at 96 minus 32 co
 | merge-54x1 | -16.85 | 40,262 / 28,875 | +2,874 | +3,787 | -174.63 | 4,141 / 4,890 |
 
 No new cloud instance or proof was needed. These are the archived builds and requests. The newer 96-core 1×2 run measured 8.060 ms for Zopro and 7.943 ms for Aeglos. Local observations about recurring packed FFT mappings apply only to the measured Ryzen setup. [Archived recordings and proof verification](../2026-11-18-full-catalog-c7a244/README.md) · [Newer 1×2 result](../2026-11-18-overlap-c7a369/README.md) · [Local fault attribution](../2026-11-19-product-faults609/README.md) · [All block pairs](artifacts/results.json) · [Reader](artifacts/compare.py)
+
+## How much of the historical gap could worker count explain?
+
+Aeglos at 96 workers finished ahead of **both** measured Zopro widths in all nine blocks on 16 shapes. On two more shapes it finished ahead of both in six blocks (5×16) and eight blocks (5×2). On the other 23 shapes at least one measured Zopro width finished ahead of Aeglos in every block. For the 16 consistent gaps, selecting between the observed 32- and 96-worker executions could never have reversed a single block.
+
+The table reports the median paired latency difference in milliseconds from Aeglos at 96 workers. A positive value favors Aeglos. For each held-out block, the width selection uses the median paired difference across the other eight blocks on the same shape. The best observed result uses the faster Zopro execution in the held-out block itself. Across all 41 shapes, both methods left 18 positive median gaps.
+
+| Shape | Eight-block selection, ms | Best observed, ms | Blocks with both Zopro widths slower |
+|---|---:|---:|---:|
+| 1×2 | +2.596 | +2.596 | 9/9 |
+| 1×16 | +5.651 | +5.651 | 9/9 |
+| 4×2 | +1.343 | +1.343 | 9/9 |
+| 5×16 | +0.159 | +0.159 | 6/9 |
+| 6×2 | −2.821 | −2.821 | 0/9 |
+| Merge-54×1 | −47.722 | −47.722 | 0/9 |
+
+These comparisons reuse the same host, request and historical builds in every fold. They cover two whole-process widths. Intermediate widths, per-stage scheduling and later runtime changes require their own measurements. On the newer 96-core 1×2 run, the observed median gap between the two provers was 0.117 ms. [All 369 held-out comparisons](artifacts/width-comparison.json) · [Reader](artifacts/compare.py) · [Newer 1×2 measurement](../2026-11-18-overlap-c7a369/README.md)
