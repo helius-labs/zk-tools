@@ -1,0 +1,115 @@
+--- a/src/registry.rs
++++ b/src/registry.rs
+@@ -125,7 +125,57 @@
+     }
+ }
+ 
++struct VictimDomains {
++    workers: Vec<usize>,
++    ranges: Vec<std::ops::Range<usize>>,
++}
++
++impl VictimDomains {
++    fn from_labels(labels: &[usize]) -> Self {
++        let mut workers: Vec<_> = (0..labels.len()).collect();
++        workers.sort_unstable_by_key(|&worker| (labels[worker], worker));
++        let mut ranges = vec![0..0; workers.len()];
++        let mut lo = 0;
++        while lo < workers.len() {
++            let hi = lo + workers[lo..].partition_point(|&w| labels[w] == labels[workers[lo]]);
++            for &worker in &workers[lo..hi] {
++                ranges[worker] = lo..hi;
++            }
++            lo = hi;
++        }
++        Self { workers, ranges }
++    }
++
++    fn configured(threads: usize) -> Option<Self> {
++        let raw = std::env::var("ZOPRO_TRIAL_VICTIM_DOMAINS").ok()?;
++        let ids: Vec<usize> = raw.split(',').map(str::parse).collect::<Result<_, _>>().ok()?;
++        if ids.len() != threads || ids.iter().all(|&id| id == ids[0]) {
++            return None;
++        }
++        if std::env::var_os("ZOPRO_REPORT_VICTIM_DOMAINS").is_some() { eprintln!("VICTIM_DOMAINS {threads} {raw}"); }
++        Some(Self::from_labels(&ids))
++    }
++
++    fn visit<T>(&self, worker: usize, local_start: usize, remote_start: usize, mut probe: impl FnMut(usize) -> Option<T>) -> Option<T> {
++        let range = &self.ranges[worker];
++        let local = &self.workers[range.clone()];
++        let n_remote = self.workers.len() - local.len();
++        let local_start = local_start % local.len();
++        if let Some(job) = local[local_start..].iter().chain(&local[..local_start])
++            .copied().filter(|&id| id != worker).find_map(&mut probe) {
++            return Some(job);
++        }
++        if n_remote == 0 { return None; }
++        let remote_start = remote_start % n_remote;
++        (remote_start..n_remote).chain(0..remote_start).find_map(|i| {
++            let slot = if i < range.start { i } else { i + local.len() };
++            probe(self.workers[slot])
++        })
++    }
++}
++
+ pub(super) struct Registry {
++    victim_domains: Option<VictimDomains>,
+     thread_infos: Vec<ThreadInfo>,
+     sleep: Sleep,
+     injected_jobs: Injector<JobRef>,
+@@ -269,6 +319,7 @@
+             .unzip();
+ 
+         let registry = Arc::new(Registry {
++            victim_domains: VictimDomains::configured(n_threads),
+             thread_infos: stealers.into_iter().map(ThreadInfo::new).collect(),
+             sleep: Sleep::new(n_threads),
+             injected_jobs: Injector::new(),
+@@ -881,6 +932,19 @@
+             return None;
+         }
+ 
++        if let Some(domains) = &self.registry.victim_domains {
++            loop {
++                let mut retry = false;
++                let job = domains.visit(self.index, self.rng.next() as usize, self.rng.next() as usize, |victim| {
++                    match thread_infos[victim].stealer.steal() {
++                        Steal::Success(job) => Some(job),
++                        Steal::Empty => None,
++                        Steal::Retry => { retry = true; None }
++                    }
++                });
++                if job.is_some() || !retry { return job; }
++            }
++        }
+         loop {
+             let mut retry = false;
+             let start = self.rng.next_usize(num_threads);
+@@ -1000,3 +1064,26 @@
+         (self.next() % n as u64) as usize
+     }
+ }
++
++
++#[cfg(test)]
++mod victim_domain_tests {
++    use super::VictimDomains;
++    #[test]
++    fn every_other_worker_is_probed_once_after_its_local_peers() {
++        for labels in [vec![0], vec![0, 1], vec![0, 0, 1, 2, 1, 0, 2], vec![7; 17]] {
++            let domains = VictimDomains::from_labels(&labels);
++            for worker in 0..labels.len() {
++                for start in 0..labels.len()+1 {
++                    let mut order = Vec::new();
++                    let result: Option<()> = domains.visit(worker, start, start+3, |w| { order.push(w); None });
++                    assert!(result.is_none());
++                    let boundary = order.iter().position(|&w| labels[w] != labels[worker]).unwrap_or(order.len());
++                    assert!(order[boundary..].iter().all(|&w| labels[w] != labels[worker]));
++                    order.sort_unstable();
++                    assert_eq!(order, (0..labels.len()).filter(|&w| w != worker).collect::<Vec<_>>());
++                }
++            }
++        }
++    }
++}
