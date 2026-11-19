@@ -1,0 +1,5 @@
+# Product worker count after moving FFT allocation to the caller
+
+Use the frozen caller-allocation SDK on two transfer shapes. The main pool always has 30 logical workers on 12×2 or 32 on 24×2. Three randomized screening blocks compare the main pool and caller-allocated auxiliary widths of 16, 24 and 28 workers; also test 30 on 24×2. Screen on the reference and one previously studied input per shape. Select the lowest median paired latency ratio across both inputs among auxiliary widths whose peak RSS is below the main-pool peak on both inputs. If none qualify, use the previous width and disclose it.
+
+Five fresh confirmation blocks compare the selected caller width against ordinary main-pool evaluation and the previous auxiliary dispatch with in-pool allocation (24 on 12×2 and 28 on 24×2). Include the reference, plus three inputs per shape that were excluded from this screening. The scattered 12×2 input tests a different grouping workload. Each process runs three warmups and eleven complete proofs. Recheck each exported proof against the original image and expected public values. Report paired changes, peak RSS, warm faults and both M5 ratios on the originals.
