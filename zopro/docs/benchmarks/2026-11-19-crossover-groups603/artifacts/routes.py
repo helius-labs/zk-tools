@@ -17,12 +17,15 @@ spec = importlib.util.spec_from_file_location("phase_profile", profile_path)
 prof = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prof)
 
-def capture(bundle, out, workers, cardinality):
+def capture(bundle, out, workers, cardinality, cases=None, modes=("default","disabled")):
     out.mkdir(parents=True,exist_ok=True)
     config = prof.read(bundle/"config/config.json")
     pins = prof.read(bundle/"payload-pins.json")
     for f in ("bin/sdk","bin/verify"):
         assert prof.sha(bundle/f)==pins[f]
+    assert pins["bin/sdk"]=="d523f49e8548620c4373a1ab4be2712d705709fdd7a590c5ed73e9aff97424e3"
+    if cases is None:
+        cases={shape:config["cases"][shape] for shape in ("5x16","6x2","4x2","8x2")}
     group = f"zp603_{os.getpid()}"
     probe = out/"routes-sdk"
     shutil.copy2(bundle/"bin/sdk",probe)
@@ -50,10 +53,9 @@ def capture(bundle, out, workers, cardinality):
                     args = " bases=%dx:u64 distinct=+16(%cx):u64 nonzero=+40(%cx):u64 starts=+64(%cx):u64 classes=+88(%cx):u64 original=+96(%cx):u64"
                 prof.register(f"{kind}:{group}/{tag} {probe}:{offset}{args}")
                 attached.append(tag)
-        for shape in ("5x16","6x2","4x2","8x2"):
-            c=config["cases"][shape]
+        for shape,c in cases.items():
             assert prof.sha(bundle/c["request"])==c["request_sha256"]
-            for mode in ("default","disabled"):
+            for mode in modes:
                 q=out/f"{shape}-{mode}";q.mkdir(exist_ok=True)
                 e=config["environment"]|dict(RAYON_NUM_THREADS=str(workers),ZOPRO_BASIS_KEY_DIR=str(bundle/"images"),
                   ZOPRO_CPU_LAGRANGE_DIR=str(out/"cache"),ZOPRO_BENCH_MSM_PHASES="0",LD_LIBRARY_PATH=str(bundle/"lib"))
@@ -101,7 +103,7 @@ def capture(bundle, out, workers, cardinality):
                 prof.save(out/"rows.json",rows)
     finally:
         for tag in reversed(attached):prof.register(f"-:{group}/{tag}")
-    assert len({r["proof"] for r in rows})==len(rows)==8
+    assert len({r["proof"] for r in rows})==len(rows)==len(cases)*len(modes)
     prof.save(out/"complete.json", dict(exports=len(rows),workers=workers))
 
 if __name__=="__main__":
