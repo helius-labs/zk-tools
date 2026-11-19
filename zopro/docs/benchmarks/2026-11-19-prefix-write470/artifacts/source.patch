@@ -1,0 +1,107 @@
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -87,6 +87,62 @@
+     columns::<true>(values, &plan.roots, level);
+ }
+
++// Derivatives past the last constraint have no consumer. Keep the existing
++// packed workspace, then write only the required columns of the final stage.
++fn prefix_columns<const CACHED: bool>(
++    mut stripes: [&mut [PackedPair]; 32], roots: &Twiddles, width: usize,
++    start: usize, needed: usize,
++) {
++    let len=stripes[0].len();
++    if len>64 {
++        let mid=len/2;
++        let left=core::array::from_fn(|i|{
++            let (left,right)=core::mem::take(&mut stripes[i]).split_at_mut(mid);
++            stripes[i]=right;
++            left
++        });
++        rayon::join(||prefix_columns::<CACHED>(left,roots,width,start,needed),
++                    ||prefix_columns::<CACHED>(stripes,roots,width,start+mid,needed));
++        return;
++    }
++    for j in 0..len {
++        let column=start+j;
++        let mut values:[Pair;32]=core::array::from_fn(|i|stripes[i][j].load());
++        for order in 0..4 {
++            let gap=1<<order;
++            for block in (0..32).step_by(2*gap) {
++                for k in 0..gap {
++                    let root=if CACHED {broadcast(&roots.columns[0][31*column+32-2*gap+k])}
++                             else {broadcast(&roots.layers[4-order][k*width+column])};
++                    let low=block+k;let high=low+gap;
++                    let a=values[low];let b=values[high].mul(&root);
++                    values[low]=a.add(&b);values[high]=a.sub(&b);
++                }
++            }
++        }
++        for k in 0..16 {
++            if k*width+column>=needed {break;}
++            let root=if CACHED {broadcast(&roots.columns[0][31*column+k])}
++                     else {broadcast(&roots.layers[0][k*width+column])};
++            let a=values[k];let b=values[k+16].mul(&root);
++            stripes[k][j]=PackedPair::store(a.add(&b));
++            if (k+16)*width+column<needed {stripes[k+16][j]=PackedPair::store(a.sub(&b));}
++        }
++    }
++}
++
++fn prefix_pairs(count:usize)->usize {
++    // The pointwise consumer loads two packed pairs for its final eight lanes.
++    2*count.div_ceil(8)
++}
++
++fn finish_prefix(plan:&Plan, values:&mut [PackedPair], needed:usize){
++    let width=values.len()/32;
++    let mut iter=values.chunks_exact_mut(width);
++    let stripes=core::array::from_fn(|_|iter.next().unwrap());
++    if plan.roots.columns.is_empty(){prefix_columns::<false>(stripes,&plan.roots,width,0,needed)}
++    else{prefix_columns::<true>(stripes,&plan.roots,width,0,needed)}
++}
+ #[inline(never)]
+ pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+     let mut values = input_columns::first_layer(plan, a, b);
+@@ -97,13 +153,40 @@
+         .for_each(|(i, part)| {
+             transform(plan, part, 5, i * width);
+         });
+-    columns::<true>(&mut values, &plan.roots, 0);
++    if std::env::var_os("ZP_EULER_PREFIX_WRITE").is_some() {
++        let needed=prefix_pairs(a.len().max(b.len()));
++        finish_prefix(plan,&mut values,needed);
++        values.truncate(needed);
++    } else {columns::<true>(&mut values, &plan.roots, 0);}
+     values
+ }
+
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    #[test]
++    fn prefix_columns_match_full_final_pass() {
++        for n in [8192usize,32768] {
++            let coset=Fr::from(5u64);
++            let mut plan=Plan::new(n,Fr::root_of_unity(n).unwrap(),coset,denominator(n,coset).unwrap());
++            let input:Vec<_>=(0..n/4).map(|i|PackedPair::store(Pair::new(&core::array::from_fn(|j|Fr::from((1+8*i+j)as u64).pow(&[17]))))).collect();
++            for cached in [false,true] {
++                if cached {plan.roots.prepare_columns();}
++                let mut full=input.clone();columns::<true>(&mut full,&plan.roots,0);
++                for need in [0,1,n/8-1,n/8,n/8+1,n/4-1,n/4] {
++                    let mut prefix=input.clone();finish_prefix(&plan,&mut prefix,need);
++                    for (a,b) in prefix[..need].iter().zip(&full){assert_eq!(a.load().get(),b.load().get());}
++                }
++                for count in [0,1,4,5,8,9,n/2+2,n-1] {
++                    let b=vec![Fr::from(7u64);count];let mut actual=vec![Fr::from(9u64);count];
++                    let mut expected=actual.clone();euler_combine_products(&mut expected,&b,&full);
++                    let mut prefix=input.clone();let need=prefix_pairs(count);
++                    finish_prefix(&plan,&mut prefix,need);prefix.truncate(need);
++                    euler_combine_products(&mut actual,&b,&prefix);assert_eq!(actual,expected);
++                }
++            }
++        }
++    }
+     #[test]
+     fn column_center_matches_separate_transforms() {
+         for n in [8192usize, 32768, 262144] {
