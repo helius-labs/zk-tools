@@ -8,3 +8,7 @@ Five fresh randomized blocks compare the accepted release, the frozen candidate 
 
 
 The first Zen 4 core test run used Rust's parallel test harness. Four tests failed while sharing process-wide allocator guard counts or FFT settings. The identical test executable passed all 159 tests with RUST_TEST_THREADS=1, matching the original repository benchmark build procedure. Both target builds use serialized core tests for the comparison. These tests precede timed proofs.
+
+## Binary identity check
+
+Both builds passed 159 serialized core tests. The Cargo fingerprints record the requested CPU targets and the resulting core archives differ. A byte comparison of the final SDK executables found all three experimental programs identical, including the frozen build. Every timing contrast between those three labels measures repeatability of one executable. Release and prepared Aeglos remain distinct comparison programs. The original process order and all samples are retained. [Build checks](artifacts/build-checks.json)
