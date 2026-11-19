@@ -1,0 +1,72 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -1306,6 +1306,9 @@
+         // Retain this proof's allocation until its MSMs finish instead of
+         // copying the wires into another allocation.
+         let started = crate::trace("solve-execute", started);
++        if std::env::var_os("ZOPRO_TRIAL_EULER_PAIR_SUPPORT").is_some() {
++            probe_euler_pair_support(&a, &b, domain);
++        }
+         let selected: Vec<_> = slots.iter().map(|&slot| w[slot]).collect();
+         w.truncate(self.n_wires);
+         w.extend(selected);
+@@ -3163,3 +3166,59 @@
+ }
+ 
+ #[cfg(zopro_resource_schedule)] mod sparse_poseidon;
++
++
++fn probe_euler_pair_support(a: &[Fr], b: &[Fr], domain: usize) {
++    use std::sync::atomic::{AtomicBool, Ordering};
++    static EMITTED: AtomicBool = AtomicBool::new(false);
++    if EMITTED.swap(true, Ordering::Relaxed) || !domain.is_power_of_two()
++        || a.len() != b.len() || a.len() > domain
++    {
++        return;
++    }
++    let Some(_memory) = crate::preparation::Reservation::analysis(domain.checked_mul(10)) else {
++        return;
++    };
++    let mut aa = vec![false; domain];
++    let mut bb = vec![false; domain];
++    let mut plus = vec![false; domain];
++    let mut minus = vec![false; domain];
++    let mut same_nonzero = 0;
++    for (i, (&x, &y)) in a.iter().zip(b).enumerate() {
++        aa[i] = x != Fr::ZERO;
++        bb[i] = y != Fr::ZERO;
++        plus[i] = x != -y;
++        minus[i] = x != y;
++        same_nonzero += usize::from(aa[i] && !minus[i]);
++    }
++
++    fn frontier(mut support: Vec<bool>) -> Vec<[usize; 3]> {
++        let n = support.len();
++        let mut stages = Vec::new();
++        let mut distance = n / 2;
++        while distance != 0 {
++            let mut pairs = [0; 3];
++            for tile in support.chunks_exact_mut(2 * distance) {
++                let (low, high) = tile.split_at_mut(distance);
++                for (x, y) in low.iter_mut().zip(high) {
++                    let count = usize::from(*x) + usize::from(*y);
++                    pairs[count] += 1;
++                    *x = count != 0;
++                    *y = count != 0;
++                }
++            }
++            stages.push(pairs);
++            distance /= 2;
++        }
++        stages
++    }
++
++    eprintln!("EULER_PAIR_ROWS {} {domain} {same_nonzero}", a.len());
++    for (name, mask) in [("a", aa), ("b", bb), ("sum", plus), ("difference", minus)] {
++        let nonzero = mask.iter().filter(|&&v| v).count();
++        eprintln!("EULER_PAIR_NZ {name} {nonzero}");
++        for (i, [empty, single, full]) in frontier(mask).into_iter().enumerate() {
++            eprintln!("EULER_PAIR_STAGE {name} {i} {empty} {single} {full}");
++        }
++    }
++}
