@@ -1,0 +1,231 @@
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/b2_repeat_probe.rs
+@@ -0,0 +1,149 @@
++// Used by the fixed-request benchmark to isolate B2 preparation cost.
++use super::{ScalarGroups, msm_grouped, msm_raw};
++use crate::preparation::Reservation;
++use std::sync::OnceLock;
++use zopro_bn254::{Fr, G2Affine, G2Projective};
++
++#[derive(Clone, Copy)]
++enum Replay {
++    Classes,
++    Affine,
++    Result,
++}
++impl Replay {
++    fn name(self) -> &'static str {
++        match self {
++            Self::Classes => "classes",
++            Self::Affine => "affine",
++            Self::Result => "result",
++        }
++    }
++}
++struct Prepared {
++    base_address: usize,
++    scalar_words: Vec<Fr>,
++    groups: ScalarGroups,
++    points: Option<Vec<G2Affine>>,
++    sum: Option<G2Projective>,
++    _scratch: Reservation,
++}
++
++fn trace(mode: Replay, count: usize, event: &str) {
++    static TRACE: OnceLock<bool> = OnceLock::new();
++    if *TRACE.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_B2_REPLAY_TRACE").is_some()) {
++        eprintln!("B2_REPLAY {} {count} {event}", mode.name());
++    }
++}
++
++pub(crate) fn measure(
++    bases: &[G2Affine],
++    witness: &[Fr],
++    build: impl FnOnce() -> Option<ScalarGroups>,
++) -> Option<G2Projective> {
++    static MODE: OnceLock<Option<Replay>> = OnceLock::new();
++    static DATA: OnceLock<Option<Prepared>> = OnceLock::new();
++    let mode = (*MODE.get_or_init(|| match std::env::var("ZOPRO_TRIAL_B2_REPLAY").as_deref() {
++        Ok("classes") => Some(Replay::Classes),
++        Ok("affine") => Some(Replay::Affine),
++        Ok("result") => Some(Replay::Result),
++        _ => None,
++    }))?;
++    let count = witness.len();
++    let address = bases.as_ptr() as usize;
++    let mut initialized = false;
++    let cached = DATA
++        .get_or_init(|| {
++            let groups = build()?;
++            if !(1_024..262_144).contains(&groups.values.len()) {
++                return None;
++            }
++            let bytes = std::mem::size_of_val(witness).checked_add(match mode {
++                Replay::Classes | Replay::Result => 0,
++                Replay::Affine => groups
++                    .values
++                    .len()
++                    .checked_mul(std::mem::size_of::<G2Affine>())?,
++            })?;
++            let scratch = Reservation::analysis(Some(bytes))?;
++            let points = match mode {
++                Replay::Classes | Replay::Result => None,
++                Replay::Affine => Some(crate::msm::group_affine(
++                    bases,
++                    &groups.order,
++                    &groups.starts,
++                    &groups.counts,
++                )),
++            };
++            let sum = matches!(mode, Replay::Result).then(|| msm_grouped(bases, &groups));
++            initialized = true;
++            Some(Prepared {
++                base_address: address,
++                scalar_words: witness.to_vec(),
++                groups,
++                points,
++                sum,
++                _scratch: scratch,
++            })
++        })
++        .as_ref()?;
++    // The SDK runner holds one immutable mapped proving key for its lifetime.
++    // Compare full witness coefficients before every use of its cached groups.
++    if cached.base_address != address || cached.scalar_words != witness {
++        trace(mode, count, "miss");
++        return None;
++    }
++    trace(mode, count, if initialized { "prime" } else { "hit" });
++    if let Some(sum) = cached.sum {
++        return Some(sum);
++    }
++    Some(match &cached.points {
++        None => msm_grouped(bases, &cached.groups),
++        Some(points) => msm_raw(points, &cached.groups.values),
++    })
++}
++
++struct Exclusive {
++    address: usize,
++    words: Vec<[u64; 4]>,
++    sum: G2Projective,
++    _scratch: Reservation,
++}
++
++pub(super) fn exclusive(
++    bases: &[G2Affine],
++    words: &mut [[u64; 4]],
++    solve: impl FnOnce(&mut [[u64; 4]]) -> G2Projective,
++) -> Option<G2Projective> {
++    static ENABLED: OnceLock<bool> = OnceLock::new();
++    static DATA: OnceLock<Option<Exclusive>> = OnceLock::new();
++    if !*ENABLED.get_or_init(|| std::env::var("ZOPRO_TRIAL_B2_REPLAY").as_deref() == Ok("result")) {
++        return None;
++    }
++    let address = bases.as_ptr() as usize;
++    let count = words.len();
++    let mut initialized = false;
++    let item = DATA
++        .get_or_init(|| {
++            let memory = Reservation::analysis(Some(std::mem::size_of_val(words)))?;
++            let original = words.to_vec();
++            let sum = solve(words);
++            initialized = true;
++            Some(Exclusive {
++                address,
++                words: original,
++                sum,
++                _scratch: memory,
++            })
++        })
++        .as_ref()?;
++    if item.address != address || (!initialized && item.words != words) {
++        trace(Replay::Result, count, "miss");
++        return None;
++    }
++    trace(
++        Replay::Result,
++        count,
++        if initialized { "prime" } else { "hit" },
++    );
++    Some(item.sum)
++}
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -21,6 +21,8 @@
+ 
+ #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ mod g2_horner;
++#[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
++pub(super) mod b2_repeat_probe;
+ 
+ #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ #[inline]
+@@ -1730,6 +1732,20 @@
+     words: &mut [[u64; 4]],
+     grouping: bool,
+ ) -> zopro_bn254::G2Projective {
++#[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
++    if let Some(sum) = b2_repeat_probe::exclusive(bases, words, |scalars| {
++        g2_query_exclusive_once(bases, scalars, grouping)
++    }) {
++        return sum;
++    }
++    g2_query_exclusive_once(bases, words, grouping)
++}
++
++fn g2_query_exclusive_once(
++    bases: &[zopro_bn254::G2Affine],
++    words: &mut [[u64; 4]],
++    grouping: bool,
++) -> zopro_bn254::G2Projective {
+     assert_eq!(bases.len(), words.len());
+     let groups = (grouping && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
+         .then(|| grouping::groups_with_diversity_check(words))
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2112,7 +2112,7 @@
+                     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                     let ordinary = || if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
+                     #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+-                    let groups = if omit_b && (65_536..262_144).contains(&sb.len())
++                    let classify = || if omit_b && (65_536..262_144).contains(&sb.len())
+                         && self.grouped_b2_poseidon_origins
+                     {
+                         self.solver.as_ref().and_then(solver::Plan::b2_origins)
+@@ -2122,9 +2122,18 @@
+                         ordinary()
+                     };
+                     #[cfg(all(not(zopro_resource_schedule), target_os = "linux", target_arch = "x86_64"))]
+-                    let groups = ordinary();
++                    let classify = ordinary;
+                     #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+-                    let groups = { let _ = serial; group_witness(sb) };
++                    let classify = || { let _ = serial; group_witness(sb) };
++                    #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
++                    if omit_b && (65_536..262_144).contains(&sb.len())
++                        && std::env::var("ZOPRO_CPU_GROUPED_G2_PHI").as_deref() != Ok("1")
++                    {
++                        if let Some(sum) = msm_affine::b2_repeat_probe::measure(&self.b2, sb, classify) {
++                            return (G1Projective::IDENTITY, sum);
++                        }
++                    }
++                    let groups = classify();
+                     if let Some(groups) = groups {
+                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+                         if omit_b
+--- a/crates/zopro-bench/examples/cpu-sdk.rs
++++ b/crates/zopro-bench/examples/cpu-sdk.rs
+@@ -80,8 +80,11 @@
+     }
+     let mut sdk = zopro_zolana::Prover::new(prover)?;
+     let request = fs::read_to_string(&args[2])?;
++    let prime = std::env::var_os("ZOPRO_TRIAL_B2_PRIME_REQUEST")
++        .map(fs::read_to_string)
++        .transpose()?;
+     for _ in 0..3 {
+-        std::hint::black_box(sdk.prove(&request)?);
++        std::hint::black_box(sdk.prove(prime.as_deref().unwrap_or(&request))?);
+     }
+     let mut samples = Vec::with_capacity(rounds);
+     let mut last = None;
