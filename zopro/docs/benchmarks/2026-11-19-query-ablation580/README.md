@@ -32,3 +32,29 @@ Five shuffled blocks on 32 Ryzen workers test the original input and two other p
 | 32 | A + K+H + B2 | 7.027 / 7.710 / 1.732 | +5.978 (5/5) | +9.12% |
 
 The 1×2 target is 3.7 ms for fresh 1×2 proofs. The diagnostic rows do not count toward that target. All 136 exported proofs verified against the original key. [Samples](artifacts/samples.json.gz) · [Branch counters and witness guard](artifacts/ablation.rs) · [Integration change](artifacts/integration.patch) · [Verification](artifacts/verification.json)
+
+## Which reductions survive overlap?
+
+The first table gives median complete diagnostic proof latency. Substituting a previously computed point preserves the other concurrent branches and can change the number of workers available to them. Only the original input has a supplied M5 reference, with a 3.7 ms fresh-proof target.
+
+| Request | Ordinary / only A substituted / only K+H / only B2 / all three, ms |
+|---|---:|
+| Original | 7.771 / 7.245 / 5.519 / 4.889 / 1.727 |
+| 29 | 7.666 / 7.124 / 5.384 / 4.787 / 1.758 |
+| 32 | 7.710 / 7.130 / 5.393 / 4.744 / 1.732 |
+
+For each randomized block, the next table computes the reduction when substituting a branch first, when substituting it after the other two, and its average marginal reduction across all six orders (Shapley allocation). The three allocations sum to the full intervention's time saving within each block. Table entries are the medians across blocks and do not have to sum exactly. These measured conditional effects include schedule changes; they do not predict the exact benefit of faster arithmetic on new requests.
+
+| Request | Query | First / last / average-order ms saved |
+|---|---|---:|
+| Original | A | +0.502 / +1.383 / +0.789 |
+| Original | K+H | +2.261 / +2.671 / +2.306 |
+| Original | B2 | +2.905 / +3.246 / +2.917 |
+| 29 | A | +0.511 / +1.242 / +0.748 |
+| 29 | K+H | +2.300 / +2.512 / +2.274 |
+| 29 | B2 | +2.833 / +3.207 / +2.952 |
+| 32 | A | +0.582 / +1.284 / +0.765 |
+| 32 | K+H | +2.266 / +2.563 / +2.275 |
+| 32 | B2 | +2.946 / +3.244 / +2.933 |
+
+[All paired intervention times and allocations](artifacts/conditional-effects.json)
