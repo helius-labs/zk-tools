@@ -1,0 +1,114 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -809,6 +809,8 @@
+ pub struct Key {
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     frontend_pool: Option<std::sync::Arc<FrontendThreadPool>>,
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    phase_pool: Option<std::sync::Arc<FrontendThreadPool>>,
+     #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_os="linux", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+     frontend_g2_bytes: Option<usize>,
+     basis_only: bool,
+@@ -1142,7 +1144,7 @@
+             }
+         }
+         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+-        let instruction_pool = self.frontend_pool.as_deref().filter(|pool| {
++        let instruction_pool = self.phase_pool.as_deref().or(self.frontend_pool.as_deref()).filter(|pool| {
+             !self.has_gpu()
+                 && pool.current_num_threads() < rayon::current_num_threads()
+                 && std::env::var("ZOPRO_CPU_SOLVER_FRONTEND").as_deref() == Ok("1")
+@@ -1516,6 +1518,8 @@
+         let mut key = Self {
+             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+             frontend_pool: None,
++            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++            phase_pool: None,
+             #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_os="linux", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             frontend_g2_bytes: None,
+             basis_only,
+@@ -1851,7 +1855,7 @@
+                 drop(c);
+                 let started = crate::time::Instant::now();
+                 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+-                let pool = self.frontend_pool.as_deref().filter(|pool| {
++                let pool = self.phase_pool.as_deref().or(self.frontend_pool.as_deref()).filter(|pool| {
+                     pool.current_num_threads() < rayon::current_num_threads()
+                         && std::env::var("ZOPRO_CPU_FFT_PRODUCT_FRONTEND").as_deref() == Ok("1")
+                 });
+@@ -2280,9 +2284,7 @@
+             Ok((w, sa_vec, sb_vec, product, correction))
+         };
+         let (w, sa_vec, mut sb_vec, mut product, correction) =
+-            if let Some(pool) = self
+-                .frontend_pool
+-                .as_ref()
++            if let Some(pool) = self.phase_pool.as_ref().or(self.frontend_pool.as_ref())
+                 .filter(|p| p.current_num_threads() < rayon::current_num_threads())
+             {
+                 pool.install(prepare)?
+@@ -2505,6 +2507,10 @@
+     /// folded packed Euler product to this pool on native IFMA builds. The
+     /// caller allocates its temporary output before dispatch. Passing `None`
+     /// restores execution in the current pool.
++    pub fn set_phase_pool(&mut self, pool: std::sync::Arc<FrontendThreadPool>) {
++        self.phase_pool = Some(pool);
++    }
++
+     pub fn set_frontend_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
+         #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_os="linux", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         {
+--- a/crates/zopro-prover/src/lib.rs
++++ b/crates/zopro-prover/src/lib.rs
+@@ -100,6 +100,11 @@
+         pool: Option<std::sync::Arc<zopro_core::FrontendThreadPool>>,
+     ) {
+         self.key.set_frontend_pool(pool);
++    }
++
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    pub fn set_phase_pool(&mut self, pool: std::sync::Arc<zopro_core::FrontendThreadPool>) {
++        self.key.set_phase_pool(pool);
+     }
+ 
+     /// Compute the public-input pairing alongside CPU proof generation for
+--- a/crates/zopro-bench/examples/support/placement.rs
++++ b/crates/zopro-bench/examples/support/placement.rs
+@@ -55,6 +55,16 @@
+     !ids.is_empty() && allowed.get(..main).is_some_and(|main_cpus| {
+         ids.iter().all(|cpu| allowed.contains(cpu) && !main_cpus.contains(cpu))
+     })
++}
++
++pub(super) fn phase_pool() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std::error::Error>> {
++    let Some(list) = env::var_os("ZOPRO_TRIAL_PHASE_CPUS") else { return Ok(None) };
++    let cpus = frontend_cpus(list.to_str().ok_or("phase CPU list must be UTF-8")?, &allowed_cpus()?)?;
++    if cpus.len() >= rayon::current_num_threads() { return Err("phase pool must be smaller".into()); }
++    let pool = rayon::ThreadPoolBuilder::new().num_threads(cpus.len()).build()?;
++    let bound = pool.broadcast(|ctx| pin(cpus[ctx.index()])).into_iter().collect::<io::Result<Vec<_>>>()?;
++    println!("PHASE_CPUS {}", serde_json::to_string(&bound)?);
++    Ok(Some(Arc::new(pool)))
+ }
+ 
+ pub(super) fn configure() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std::error::Error>> {
+--- a/crates/zopro-bench/examples/cpu-sdk.rs
++++ b/crates/zopro-bench/examples/cpu-sdk.rs
+@@ -22,6 +22,8 @@
+     let mut profile = perf::Control::from_env()?;
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     let frontend = placement::configure()?;
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    let phase = placement::phase_pool()?;
+     let file = fs::File::open(&args[1])?;
+     // SAFETY: the caller keeps this trusted key image unchanged for the run.
+     let image = unsafe { memmap2::Mmap::map(&file)? };
+@@ -31,6 +33,9 @@
+     let prover = {
+         let mut prover = prover;
+         prover.set_frontend_pool(frontend);
++        if std::env::var_os("ZOPRO_TRIAL_PHASE_IDLE").is_none() {
++            if let Some(pool) = phase.as_ref() { prover.set_phase_pool(Arc::clone(pool)); }
++        }
+         match std::env::var("ZOPRO_BENCH_PUBLIC_OVERLAP").as_deref() {
+             Ok("early") => prover.set_overlap_verification(true),
+             Ok("off") => prover.set_overlap_verification(false),
