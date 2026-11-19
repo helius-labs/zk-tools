@@ -99,7 +99,7 @@
 +#[cfg(test)]
 +#[test]
 +fn ready_range_orders_match_independent_scalar_sum() {
-+    let n = 513;
++    let n = 513usize;
 +    let g = G2Projective::generator();
 +    let weights: Vec<_> = (0..n).map(|i| Fr::from((i % 29) as u64)).collect();
 +    let bases = G2Projective::batch_to_affine(&weights.iter().map(|k| g * *k).collect::<Vec<_>>());
