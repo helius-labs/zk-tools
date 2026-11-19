@@ -1,0 +1,586 @@
+--- a/crates/zopro-core/src/fft.rs
++++ b/crates/zopro-core/src/fft.rs
+@@ -1305,6 +1305,9 @@
+ 
+ 
+ impl Plan {
++    pub(crate) fn origin_roots(&self) -> (Vec<Fr>,Vec<Fr>) {
++        (Direct::powers(self.params.0, self.n/2), Direct::powers(self.params.0.inverse().unwrap(), self.n/2))
++    }
+     pub(crate) fn prepare_euler_basis(&mut self) {
+         assert!(!self.released && self.n >= 8);
+         self.twisted = None;
+--- a/crates/zopro-core/src/lagrange.rs
++++ b/crates/zopro-core/src/lagrange.rs
+@@ -7,7 +7,9 @@
+ 
+ const MAGIC: &[u8; 16] = b"zopro-qap-v1\0\0\0\0";
+ 
++mod origin;
+ pub(super) struct Queries {
++    origin: Option<origin::Origin>,
+     pub product: Store<G1Affine>,
+     pub product_scale: Fr,
+     pub basis: Option<[u8;32]>,
+@@ -265,7 +267,7 @@
+         );
+         Self {
+             reservation: None,
+-            euler: false, fused_product: false,
++            origin: None, euler: false, fused_product: false,
+             product: Store::Owned(product),
+             product_scale: Fr::ONE, basis: None,
+             constraints,
+@@ -304,7 +306,7 @@
+         if file.read(&mut [0]).ok()? != 0 || hash.finalize().as_slice() != &header[48..80] {
+             return None;
+         }
+-        Some(Self { reservation: None, euler: false, fused_product: false, folded: None, product: Store::Owned(product), product_scale:Fr::ONE, basis:None, constraints })
++        Some(Self { reservation: None, origin: None, euler: false, fused_product: false, folded: None, product: Store::Owned(product), product_scale:Fr::ONE, basis:None, constraints })
+     }
+ 
+     fn save(&self, path: &Path, fingerprint: [u8; 32]) -> std::io::Result<()> {
+@@ -371,7 +373,7 @@
+         let queries = Queries {
+             product: Store::Owned(vec![G1Affine::GENERATOR; n]), product_scale:Fr::ONE,basis:None,
+             constraints: vec![G1Affine::IDENTITY; n],
+-            euler: false, fused_product: false, folded: None, reservation: None,
++            origin: None, euler: false, fused_product: false, folded: None, reservation: None,
+         };
+         let fingerprint = [37; 32];
+         let path = std::env::temp_dir().join(format!("zopro-cache-stream-{}.bin", std::process::id()));
+@@ -500,7 +502,7 @@
+         let public=Store::<G1Affine>::mapped(image,public.0,public.1)?;
+         let mut folded=Folded{private,slots,public,windows:Vec::new(),public_window:None,reservation:None};
+         folded.prepare_public_window();
+-        Ok(Self{product,product_scale:scale,basis:Some(digest),euler: false, fused_product: false,constraints:Vec::new(),folded:Some(folded),reservation:None})
++        Ok(Self{product,product_scale:scale,basis:Some(digest),origin: None, euler: false, fused_product: false,constraints:Vec::new(),folded:Some(folded),reservation:None})
+     }
+ }
+ 
+@@ -601,7 +603,10 @@
+     pub(super) fn product_values(&self,plan:&fft::Plan,a:Vec<Fr>,b:Vec<Fr>)->Vec<Fr> {
+         if self.euler {
+             if std::env::var_os("ZOPRO_EULER_TRACE").is_some(){eprintln!("EULER_PRODUCT rows={} domain={}",a.len().max(b.len()),plan.size());}
+-            plan.euler_product_values(a,b)
++            match &self.origin {
++                Some(origin) => origin.product(plan, a, b),
++                None => plan.euler_product_values(a,b),
++            }
+         } else {plan.coset_product_ordered(a,b,self.fused_product)}
+     }
+ }
+--- /dev/null
++++ b/crates/zopro-core/src/lagrange/origin.rs
+@@ -0,0 +1,223 @@
++// Experimental offline construction for generated public test origins.
++use super::{point_fft, Queries};
++use crate::{fft, solver, Fr, G1Affine, G1Projective, Store};
++use rayon::prelude::*;
++use std::io::{BufReader, Read};
++use std::path::Path;
++
++pub(super) struct Origin {
++    count: usize,
++    width: usize,
++    pairs: Vec<(Fr, Fr)>,
++    indices: Vec<u8>,
++}
++
++impl Origin {
++    fn read(path: &Path, n: usize) -> Result<Self, String> {
++        let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
++        let size = file.metadata().map_err(|e| e.to_string())?.len();
++        Self::decode(BufReader::new(file),size,n)
++    }
++
++    fn decode(mut input: impl Read,size:u64,n:usize) -> Result<Self,String> {
++        let mut header=[0;24];
++        input.read_exact(&mut header).map_err(|e|e.to_string())?;
++        if &header[..4] != b"EUL2" || header[6..8] != [0,0] { return Err("invalid dictionary header".into()); }
++        let field_width=usize::from(header[4]); let row_width=usize::from(header[5]);
++        let count=usize::try_from(u64::from_le_bytes(header[8..16].try_into().unwrap())).map_err(|_|"row count")?;
++        let fields=u32::from_le_bytes(header[16..20].try_into().unwrap()) as usize;
++        let npairs=u32::from_le_bytes(header[20..24].try_into().unwrap()) as usize;
++        if count>n || !matches!(field_width,1|2|4) || !matches!(row_width,1|2|4) || fields==0 || npairs==0 {
++            return Err("invalid dictionary dimensions".into());
++        }
++        let expected=24u128 + fields as u128*32 + npairs as u128*2*field_width as u128 + count as u128*row_width as u128;
++        if expected!=u128::from(size) {return Err("invalid dictionary file length".into());}
++        let mut scalars=Vec::with_capacity(fields);
++        for _ in 0..fields {
++            let mut bytes=[0;32];input.read_exact(&mut bytes).map_err(|e|e.to_string())?;
++            scalars.push(Fr::from_be_bytes(&bytes).ok_or("noncanonical dictionary field")?);
++        }
++        let mut index=|| -> Result<usize,String>{
++            let mut raw=[0;4]; input.read_exact(&mut raw[..field_width]).map_err(|e|e.to_string())?;
++            Ok(u32::from_le_bytes(raw) as usize)
++        };
++        let mut pairs=Vec::with_capacity(npairs);
++        for _ in 0..npairs{
++            pairs.push((*scalars.get(index()?).ok_or("field index")?,*scalars.get(index()?).ok_or("field index")?));
++        }
++        if pairs[0]!=(Fr::ZERO,Fr::ZERO){return Err("entry zero must be the zero pair".into());}
++        let mut indices=vec![0;count*row_width];input.read_exact(&mut indices).map_err(|e|e.to_string())?;
++        let result=Self{count,width:row_width,pairs,indices};
++        if (0..count).any(|i|result.id(i)>=npairs){return Err("unknown row pair".into());}
++        Ok(result)
++    }
++    fn id(&self,i:usize)->usize{
++        let j=i*self.width;
++        match self.width{
++            1=>self.indices[j] as usize,
++            2=>u16::from_le_bytes(self.indices[j..j+2].try_into().unwrap()) as usize,
++            4=>u32::from_le_bytes(self.indices[j..j+4].try_into().unwrap()) as usize,
++            _=>unreachable!(),
++        }
++    }
++
++    fn pair(&self, i: usize) -> (Fr, Fr) { self.pairs[self.id(i)] }
++
++    pub(super) fn product(&self, plan: &fft::Plan, mut a: Vec<Fr>, mut b: Vec<Fr>) -> Vec<Fr> {
++        assert_eq!(a.len().max(b.len()), self.count);
++        a.resize(self.count, Fr::ZERO);
++        b.resize(self.count, Fr::ZERO);
++        a.par_iter_mut().zip(b.par_iter_mut()).enumerate().for_each(|(i,(a,b))| {
++            let id = self.id(i);
++            if id != 0 {
++                let (u,v) = self.pairs[id];
++                *a -= u;
++                *b -= v;
++            }
++        });
++        plan.euler_product_values(a,b)
++    }
++}
++
++fn transform(points: &mut [G1Projective], roots: &[Fr]) {
++    let shift = usize::BITS - points.len().trailing_zeros();
++    for i in 0..points.len() {
++        let j = i.reverse_bits() >> shift;
++        if i < j { points.swap(i, j); }
++    }
++    point_fft(points, roots);
++}
++
++fn scaled(point: G1Affine, scalar: Fr) -> G1Projective {
++    if scalar == Fr::ZERO { G1Projective::IDENTITY }
++    else if scalar == Fr::ONE { point.to_projective() }
++    else if scalar == -Fr::ONE { -point.to_projective() }
++    else { point * scalar }
++}
++
++fn linear_points(plan: &fft::Plan, key: &[G1Affine], origin: &[Fr],
++                 forward: &[Fr], inverse: &[Fr]) -> Vec<G1Affine> {
++    let n = key.len();
++    let mut points: Vec<_> = key.par_iter().enumerate().map(|(i, &point)|
++        scaled(point, origin.get(i).copied().unwrap_or(Fr::ZERO))).collect();
++    // The transpose reverses the order of the two symmetric DFT matrices.
++    transform(&mut points, forward);
++    points.par_iter_mut().enumerate().for_each(|(i, p)| *p = *p * Fr::from(i as u64));
++    transform(&mut points, inverse);
++    let derivative = plan.euler_product_values(origin.to_vec(), vec![Fr::ONE; n]);
++    points.par_iter_mut().zip(key).zip(derivative).for_each(|((p, &base), value)|
++        *p += scaled(base, value));
++    G1Projective::batch_to_affine(&points)
++}
++
++impl Queries {
++    pub(crate) fn has_origin(&self)->bool { self.origin.is_some() }
++
++    pub(crate) fn attach_origin(&mut self, bytes:&[u8]) -> Result<(),String> {
++        let origin=Origin::decode(bytes,bytes.len() as u64,self.product.len())?;
++        eprintln!("ORIGIN_MAPPED {} {}",origin.count,bytes.len());
++        self.origin=Some(origin);
++        Ok(())
++    }
++
++    pub(crate) fn write_origin_image(&self, image:&crate::Image, private:(usize,usize), public:(usize,usize),
++                                     origin:&Path, output:&Path)->Result<(),String> {
++        use std::io::{BufWriter,Write};
++        let orig=(*image).as_ref().as_ref();
++        if !orig.starts_with(b"zopro-euler-v2\0\0"){return Err("converter requires an ordinary v2 Euler key".into());}
++        let f=self.folded.as_ref().ok_or("missing folded queries")?;
++        let (priv_blob,pub_blob)=(super::point_bytes(&f.private),super::point_bytes(&f.public));
++        if priv_blob.len()!=private.1 || pub_blob.len()!=public.1{return Err("replacement query changes key size".into());}
++        let mut reference=std::fs::File::open(origin).map_err(|e|e.to_string())?;
++        let reference_size=reference.metadata().map_err(|e|e.to_string())?.len();
++        let file=std::fs::File::create_new(output).map_err(|e|e.to_string())?;
++        let mut w=BufWriter::new(file);
++        let result=(|| -> std::io::Result<()> {
++            for bytes in [b"zopro-origin-v01".as_slice(),&orig[16..private.0],priv_blob,
++                          &orig[private.0+private.1..public.0],pub_blob,&orig[public.0+public.1..]] {
++                w.write_all(bytes)?;
++            }
++            w.write_all(&reference_size.to_le_bytes())?;
++            std::io::copy(&mut reference,&mut w)?;
++            w.flush()?;
++            w.get_ref().sync_all()
++        })();
++        if let Err(error)=result { drop(w);let _=std::fs::remove_file(output);return Err(error.to_string()); }
++        Ok(())
++    }
++
++    pub(crate) fn fold_origin(&mut self, fft: &fft::Plan, solver: &solver::Plan,
++                              path: &Path) -> Result<(),String> {
++        let started = std::time::Instant::now();
++        let n = self.product.len();
++        let origin = Origin::read(path, n)?;
++        let (forward, inverse) = fft.origin_roots();
++        let (left, right): (Vec<_>,Vec<_>) = (0..origin.count).map(|i|origin.pair(i)).unzip();
++        let mut adjustment = vec![G1Projective::IDENTITY; solver.value_count()];
++        for (side, offset) in [(0, &right), (1, &left)] {
++            let rows = linear_points(fft, &self.product, offset, &forward, &inverse);
++            solver.for_each_side(side, |row, wire, coeff| adjustment[wire] += scaled(rows[row], coeff));
++        }
++        let constant = fft.euler_product_values(left, right);
++        adjustment[0] -= crate::msm_g1(&self.product[..constant.len()], &constant);
++        if self.product_scale != Fr::ONE {
++            adjustment.par_iter_mut().for_each(|p| *p = *p * self.product_scale);
++        }
++        let folded = self.folded.as_mut().ok_or("missing folded key")?;
++        let nw = solver.basis_wires();
++        let np = solver.n_public;
++        if std::env::var_os("ZOPRO_TRIAL_FOLD_PREFIX_SLOTS").is_some() {
++            solver.fold_unqueried_slots(&mut adjustment, &folded.slots);
++        }
++        let added: Vec<_> = (nw..adjustment.len())
++            .filter(|&i| !adjustment[i].is_identity() && folded.slots.binary_search(&i).is_err())
++            .collect();
++        let mut slots = folded.slots.clone();
++        slots.extend_from_slice(&added);
++        slots.sort_unstable();
++        let public: Vec<_> = (0..np).map(|i| adjustment[i] + folded.public[i]).collect();
++        let private: Vec<_> = (np..nw).chain(slots.iter().copied()).map(|i| {
++            if i < nw { adjustment[i] + folded.private[i-np] }
++            else if let Ok(pos) = folded.slots.binary_search(&i) { adjustment[i] + folded.private[nw-np+pos] }
++            else { adjustment[i] }
++        }).collect();
++        folded.public = Store::Owned(G1Projective::batch_to_affine(&public));
++        folded.private = Store::Owned(G1Projective::batch_to_affine(&private));
++        folded.slots = slots;
++        folded.windows.clear();
++        folded.public_window = None;
++        folded.reservation = None;
++        folded.prepare_public_window();
++        self.origin = Some(origin);
++        eprintln!("ORIGIN_KEY {} {} {} {}", n, added.len(), folded.private.len(), started.elapsed().as_millis());
++        Ok(())
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn transpose_gives_the_native_euler_pairing_with_padded_rows() {
++        for n in [8, 16, 32] {
++            for root_power in [1, 3] {
++                let root = Fr::root_of_unity(n).unwrap().pow(&[root_power]);
++                let coset = Fr::from(5u64);
++                let mut fft = fft::Plan::new(n, root, coset, fft::denominator(n, coset).unwrap());
++                fft.prepare_euler_basis();
++                let (fw, inv, _, _) = fft.tables().unwrap();
++                let points: Vec<_> = (0..n).map(|i|
++                    (G1Affine::GENERATOR * Fr::from((7*i + 1) as u64)).to_affine()).collect();
++                for len in [n - 3, n] {
++                    let origin: Vec<_> = (0..len).map(|i| Fr::from((i*i+9) as u64)).collect();
++                    let a: Vec<_> = (0..len).map(|i| Fr::from((3*i*i*i+2) as u64)).collect();
++                    let rows = linear_points(&fft, &points, &origin, &fw, &inv);
++                    let f = fft.euler_product_values(a.clone(), origin);
++                    assert_eq!(crate::msm_g1(&rows[..len], &a).to_affine(),
++                               crate::msm_g1(&points[..len], &f).to_affine());
++                }
++            }
++        }
++    }
++}
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -1377,7 +1377,49 @@
+ 
+     /// C rows are linear in wires and retained expression-prefix slots.
+     /// Include the unknown term removed from a C-side assignment.
+-    pub(crate) fn for_each_c(&self, mut visit: impl FnMut(usize,usize,Fr)) {
++    // Pull coefficients of otherwise-unqueried prefix sums back through their
++    // defining linear forms. Existing K slots can consume their weights directly.
++    pub(crate) fn fold_unqueried_slots(&self, weights: &mut [crate::G1Projective], retained: &[usize]) {
++        use crate::G1Projective as Point;
++        assert_eq!(weights.len(), self.value_count());
++        let mut keep = vec![false; self.n_slots];
++        for &slot in retained { keep[slot - self.n_wires] = true; }
++        for op in self.ops.iter().rev() {
++            let Op::Constraint(step) = op else { continue };
++            let mut end = self.n_wires + step.first_slot() + self.stored(step);
++            let mut chain = Point::IDENTITY;
++            for sum in self.sums[step.sums()].iter().rev() {
++                if sum.stored() {
++                    end -= 1;
++                    if !keep[end - self.n_wires] {
++                        chain += std::mem::replace(&mut weights[end], Point::IDENTITY);
++                    }
++                }
++                if chain.is_identity() { continue; }
++                let coeff = self.coefficients[sum.term.coefficient()];
++                let delta = if coeff == Fr::ONE { chain }
++                    else if coeff == -Fr::ONE { -chain }
++                    else if coeff == Fr::from(2u64) { chain.double() }
++                    else { chain * coeff };
++                weights[sum.term.wire()] += delta;
++                match sum.previous() {
++                    Previous::Chain => (),
++                    Previous::None => chain = Point::IDENTITY,
++                    Previous::Slot(slot) => {
++                        weights[slot] += chain;
++                        chain = Point::IDENTITY;
++                    }
++                }
++            }
++            assert_eq!(end, self.n_wires + step.first_slot());
++            assert!(chain.is_identity());
++        }
++        assert!(weights[self.n_wires..].iter().zip(keep).all(|(p,k)|k || p.is_identity()));
++    }
++    pub(crate) fn for_each_c(&self, visit: impl FnMut(usize,usize,Fr)) {
++        self.for_each_side(2, visit)
++    }
++    pub(crate) fn for_each_side(&self, side: usize, mut visit: impl FnMut(usize,usize,Fr)) {
+         for op in &self.ops {
+             let Op::Constraint(step) = op else { continue };
+             let mut emit = |wire, coefficient| {
+@@ -1385,7 +1427,7 @@
+                     visit(step.constraint(), wire, coefficient);
+                 }
+             };
+-            match &step.expressions[2] {
++            match &step.expressions[side] {
+                 Expression::Zero => (),
+                 Expression::Wire(wire) => emit(*wire as usize, Fr::ONE),
+                 Expression::Constant(coefficient) => emit(0, self.coefficients[*coefficient as usize]),
+@@ -1400,7 +1442,7 @@
+                 }
+             }
+             if let Some(assignment) = &step.assignment {
+-                if assignment.side() == 2 {
++                if assignment.side() == side {
+                     emit(assignment.wire(), self.coefficients[assignment.coefficient()]);
+                 }
+             }
+@@ -2994,6 +3036,20 @@
+                     c[term.row] += term.coefficient * solution.w[term.wire];
+                 }
+                 assert_eq!(c, solution.c);
++                for (side, expected) in [(0,&solution.a), (1,&solution.b)] {
++                    let mut rebuilt = vec![Fr::ZERO; plan.n_constraints];
++                    plan.for_each_side(side, |row,wire,coeff| rebuilt[row] += solution.w[wire] * coeff);
++                    assert_eq!(&rebuilt, expected);
++                }
++                for keep in [Vec::new(), slots.iter().step_by(2).copied().collect(), slots.clone()] {
++                    let mut points: Vec<_> = (0..plan.value_count()).map(|i|
++                        crate::G1Affine::GENERATOR * Fr::from((i*i+3*i+13) as u64)).collect();
++                    let evaluate = |p: &[crate::G1Projective]| p.iter().zip(&solution.w)
++                        .fold(crate::G1Projective::IDENTITY, |acc,(p,k)|acc + *p * *k).to_affine();
++                    let expected = evaluate(&points);
++                    plan.fold_unqueried_slots(&mut points, &keep);
++                    assert_eq!(evaluate(&points), expected);
++                }
+                 let without_c = plan.solve_in_with_slots(&witness, plan.n_constraints, &slots, false).unwrap();
+                 assert_eq!(solution.w, without_c.w);
+                 assert_eq!(solution.a, without_c.a);
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2404,9 +2404,10 @@
+ }
+ #[cfg(all(not(target_arch="wasm32"),target_endian="little"))]
+ impl Key {
+-    pub fn build_cpu_basis(points:Points,domain_params:&[u8],image:&Image,product:(usize,usize),private:(usize,usize),public:(usize,usize),slots:Vec<usize>,stored_scale:Fr,digest:[u8;32],solver_image:&[u8])->Result<Self,String>{Self::build_cpu_basis_kind(points,domain_params,image,product,private,public,slots,stored_scale,digest,solver_image,false)}
+-    pub fn build_cpu_euler_basis(points:Points,domain_params:&[u8],image:&Image,product:(usize,usize),private:(usize,usize),public:(usize,usize),slots:Vec<usize>,stored_scale:Fr,digest:[u8;32],solver_image:&[u8])->Result<Self,String>{Self::build_cpu_basis_kind(points,domain_params,image,product,private,public,slots,stored_scale,digest,solver_image,true)}
+-    fn build_cpu_basis_kind(points:Points,domain_params:&[u8],image:&Image,product:(usize,usize),private:(usize,usize),public:(usize,usize),slots:Vec<usize>,stored_scale:Fr,digest:[u8;32],solver_image:&[u8],euler:bool)->Result<Self,String>{
++    pub fn build_cpu_basis(points:Points,domain_params:&[u8],image:&Image,product:(usize,usize),private:(usize,usize),public:(usize,usize),slots:Vec<usize>,stored_scale:Fr,digest:[u8;32],solver_image:&[u8])->Result<Self,String>{Self::build_cpu_basis_kind(points,domain_params,image,product,private,public,slots,stored_scale,digest,solver_image,false,None)}
++    pub fn build_cpu_euler_basis(points:Points,domain_params:&[u8],image:&Image,product:(usize,usize),private:(usize,usize),public:(usize,usize),slots:Vec<usize>,stored_scale:Fr,digest:[u8;32],solver_image:&[u8])->Result<Self,String>{Self::build_cpu_basis_kind(points,domain_params,image,product,private,public,slots,stored_scale,digest,solver_image,true,None)}
++    pub fn build_cpu_origin_basis(points:Points,domain_params:&[u8],image:&Image,product:(usize,usize),private:(usize,usize),public:(usize,usize),slots:Vec<usize>,stored_scale:Fr,digest:[u8;32],solver_image:&[u8],origin:&[u8])->Result<Self,String>{Self::build_cpu_basis_kind(points,domain_params,image,product,private,public,slots,stored_scale,digest,solver_image,true,Some(origin))}
++    fn build_cpu_basis_kind(points:Points,domain_params:&[u8],image:&Image,product:(usize,usize),private:(usize,usize),public:(usize,usize),slots:Vec<usize>,stored_scale:Fr,digest:[u8;32],solver_image:&[u8],euler:bool,embedded:Option<&[u8]>)->Result<Self,String>{
+         let mut key=Self::build_impl(points,domain_params,true)?;
+         if stored_scale.is_zero()||key.domain<8{return Err("invalid CPU basis scale/domain".into());}
+         if euler{key.plan.prepare_euler_basis();}
+@@ -2424,6 +2425,15 @@
+         let mut selected=std::collections::BTreeSet::new();
+         plan.for_each_c(|_,wire,_|{if wire>=plan.basis_wires(){selected.insert(wire);}});
+         if !selected.into_iter().eq(folded.slots.iter().copied()){return Err("CPU basis selected slots mismatch".into());}
++        if let Some(bytes) = embedded {
++            queries.attach_origin(bytes)?;
++        } else if let Some(path) = std::env::var_os("ZOPRO_TRIAL_EULER_KEY_ORIGIN") {
++            if !euler { return Err("origin requires Euler key".into()); }
++            queries.fold_origin(&key.plan, &plan, std::path::Path::new(&path))?;
++            if let Some(output) = std::env::var_os("ZOPRO_TRIAL_WRITE_ORIGIN_IMAGE") {
++                queries.write_origin_image(image, private, public, std::path::Path::new(&path),std::path::Path::new(&output))?;
++            }
++        }
+         key.k=Store::Owned(Vec::new());key.z=Store::Owned(Vec::new());
+         key.lagrange=Some(queries);key.prepare_plan(&plan);key.solver=Some(plan);
+         Ok(key)
+@@ -2433,6 +2443,7 @@
+         let plan=self.solver.as_ref().or(self.basis_fallback.as_deref()).ok_or("CPU basis requires its C metadata")?;
+         let q=self.lagrange.as_ref().ok_or("missing CPU basis queries")?;
+         let f=q.folded.as_ref().ok_or("missing folded query")?;
++        if q.has_origin() {return Err("experimental origin image requires the original solver witness".into());}
+         // The arbitrary-parts API does not promise that C is the solver's C.
+         // Restore K and H independently; do not assume a satisfied witness.
+         let cp=plan.basis_c_private(sk);
+--- a/crates/zopro-prover/src/cpu_basis.rs
++++ b/crates/zopro-prover/src/cpu_basis.rs
+@@ -5,10 +5,11 @@
+ 
+ pub const FORMAT: &str = "zopro-basis-v2";
+ pub(super) fn is_image(bytes: &[u8]) -> bool {
+-    [BASIS_MAGIC, EULER_MAGIC, LEGACY_BASIS_MAGIC, LEGACY_EULER_MAGIC]
++    [BASIS_MAGIC, EULER_MAGIC, LEGACY_BASIS_MAGIC, LEGACY_EULER_MAGIC, ORIGIN_MAGIC]
+         .iter().any(|magic| bytes.starts_with(*magic))
+ }
+ 
++const ORIGIN_MAGIC: &[u8;16] = b"zopro-origin-v01";
+ const EULER_MAGIC: &[u8; 16] = b"zopro-euler-v2\0\0";
+ const BASIS_MAGIC: &[u8; 16] = b"zopro-basis-v2\0\0";
+ const LEGACY_EULER_MAGIC: &[u8; 16] = b"zopro-euler-v1\0\0";
+@@ -22,8 +23,9 @@
+     pub fn load_cpu_basis_image(image: Image) -> Result<Self, String> {
+         use zopro_core::{groth16::PreparedFixedPoints, Key};
+         let raw = (*image).as_ref();
+-        let euler = raw.starts_with(EULER_MAGIC) || raw.starts_with(LEGACY_EULER_MAGIC);
+-        let wide = raw.starts_with(BASIS_MAGIC) || raw.starts_with(EULER_MAGIC);
++        let origin_key = raw.starts_with(ORIGIN_MAGIC);
++        let euler = origin_key || raw.starts_with(EULER_MAGIC) || raw.starts_with(LEGACY_EULER_MAGIC);
++        let wide = origin_key || raw.starts_with(BASIS_MAGIC) || raw.starts_with(EULER_MAGIC);
+         if !is_image(raw) {
+             return Err("not a CPU basis image".into());
+         }
+@@ -90,12 +92,19 @@
+         }
+         let len = reader.length(wide).ok_or("basis solver length")?;
+         let solver = reader.take(len).ok_or("basis solver")?;
++        let origin = if origin_key {
++            let size = reader.length(true).ok_or("origin length")?;
++            Some(reader.take(size).ok_or("truncated public origin")?)
++        } else { None };
+         if reader.at != raw.len() {
+             return Err("basis trailing bytes".into());
+         }
+         let points = Points::Mapped(&image, [ar, br, (kr.0, k * 64), (pr.0, z * 64), b2r]);
+         let build = if euler {Key::build_cpu_euler_basis} else {Key::build_cpu_basis};
+-        let key = build(
++        let key = if let Some(origin) = origin {
++            Key::build_cpu_origin_basis(points,artifact.domain,&image,pr,kr,public,slots,scale,digest,solver,origin)?
++        } else {
++        build(
+             points,
+             artifact.domain,
+             &image,
+@@ -106,7 +115,8 @@
+             scale,
+             digest,
+             solver,
+-        )?;
++        )?
++        };
+         let names: Vec<String> = artifact
+             .input_names()
+             .iter()
+--- /dev/null
++++ b/crates/zopro-bench/examples/cpu-origin-requests.rs
+@@ -0,0 +1,95 @@
++//! Measure verified SDK requests against an existing CPU key image.
++use std::{fs, path::Path, sync::Arc, time::Instant};
++#[path = "support/perf.rs"]
++mod perf;
++#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++#[path = "support/placement.rs"]
++mod placement;
++
++#[global_allocator]
++static ALLOCATOR: zopro_prover::zopro_core::alloc::Allocator =
++    zopro_prover::zopro_core::alloc::Allocator;
++
++fn main() -> Result<(), Box<dyn std::error::Error>> {
++    let args: Vec<_> = std::env::args_os().collect();
++    if !(4..=5).contains(&args.len()) {
++        return Err("usage: cpu-sdk IMAGE REQUEST_JSON ROUNDS [PROOF_DIRECTORY]".into());
++    }
++    let rounds: usize = args[3].to_str().ok_or("rounds must be UTF-8")?.parse()?;
++    if rounds == 0 {
++        return Err("rounds must be positive".into());
++    }
++    let mut profile = perf::Control::from_env()?;
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    let frontend = placement::configure()?;
++    let file = fs::File::open(&args[1])?;
++    // SAFETY: the caller keeps this trusted key image unchanged for the run.
++    let image = unsafe { memmap2::Mmap::map(&file)? };
++    drop(file);
++    let prover = zopro_prover::Prover::load_image(Arc::new(image))?;
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    let prover = {
++        let mut prover = prover;
++        prover.set_frontend_pool(frontend);
++        match std::env::var("ZOPRO_BENCH_PUBLIC_OVERLAP").as_deref() {
++            Ok("early") => prover.set_overlap_verification(true),
++            Ok("off") => prover.set_overlap_verification(false),
++            Err(std::env::VarError::NotPresent) => {}
++            _ => return Err("public verification overlap must be early or off".into()),
++        }
++        prover
++    };
++    let mut prover = prover;
++    if let Some(path) = std::env::var_os("ZOPRO_BENCH_WIRE_FILE") {
++        let file = fs::File::open(path)?;
++        // The benchmark owns the immutable input during preparation.
++        let bytes = unsafe { memmap2::Mmap::map(&file)? };
++        let start = Instant::now();
++        let enabled = prover.prepare_public_wire_offsets(&bytes)?;
++        println!("WIRE_FILE {} {}", enabled, start.elapsed().as_nanos());
++    }
++    let mut sdk = zopro_zolana::Prover::new(prover)?;
++    let requests: Vec<String> = serde_json::from_reader(fs::File::open(&args[2])?)?;
++    for (index, path) in requests.iter().enumerate() {
++    let request = fs::read_to_string(path)?;
++    for _ in 0..3 {
++        std::hint::black_box(sdk.prove(&request)?);
++    }
++    let mut samples = Vec::with_capacity(rounds);
++    let mut last = None;
++    if let Some(control) = profile.as_mut() {
++        control.enable()?;
++    }
++    let before = perf::Usage::now()?;
++    let loop_started = Instant::now();
++    for _ in 0..rounds {
++        let started = Instant::now();
++        let proof = sdk.prove(&request)?;
++        samples.push(started.elapsed().as_secs_f64() * 1000.0);
++        last = Some(proof);
++    }
++    let loop_wall_ms = loop_started.elapsed().as_secs_f64() * 1000.;
++    let after = perf::Usage::now()?;
++    if let Some(control) = profile.as_mut() {
++        control.disable()?;
++    }
++    if let Some(directory) = args.get(4) {
++        let directory = Path::new(directory);
++        fs::create_dir_all(directory)?;
++        let proof = last.as_ref().unwrap();
++        fs::write(directory.join(format!("{index}.proof")), &proof.proof)?;
++        fs::write(directory.join(format!("{index}.public")), &proof.public_inputs)?;
++    }
++    for (round, ms) in samples.into_iter().enumerate() {
++        println!("SAMPLE {}", serde_json::json!({"input": index, "round": round, "ms": ms}));
++    }
++    let mut summary = after.difference(&before);
++    summary["rounds"] = rounds.into();
++    summary["priming"] = 3.into();
++    summary["workers"] = rayon::current_num_threads().into();
++    summary["loop_wall_ms"] = loop_wall_ms.into();
++    summary["input"] = index.into();
++    println!("SUMMARY {summary}");
++    }
++    Ok(())
++}
