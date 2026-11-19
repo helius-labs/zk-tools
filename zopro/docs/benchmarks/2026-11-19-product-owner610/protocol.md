@@ -1,0 +1,5 @@
+# Stable worker ownership of the folded product task
+
+The 24×2 fault profile located most auxiliary-pool page faults in the first inverse FFT packing pass. The input-packing output vector is allocated at the top of that computation, then written by many Rayon jobs. This trial sends the complete product closure to worker zero of the existing pool on every request. A Rayon broadcast dispatches it exactly once, and nested transform jobs can still use the pool. The assigned worker may also execute other jobs. The candidate retains no request data or dedicated output buffer between proofs.
+
+Five fresh shuffled blocks compare four arms on the 12×2 and 24×2 originals and one held input each. The previous and current ordinary dispatch arms use the same 24 or 28 product workers respectively. The other arms use the main pool or the new fixed dispatch. All timed processes prime three proofs and measure eleven, with equal main affinity within a block. Separate probes check the selected worker and width. Report warm minor faults per proof, maximum process RSS, end-to-end latency and both original M5 ratios.

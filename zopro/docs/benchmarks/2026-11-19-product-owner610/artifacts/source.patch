@@ -1,0 +1,27 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1880,6 +1880,24 @@
+                     if let Some(pool) = self.frontend_pool.as_deref().filter(|_| {
+                         std::env::var_os("ZOPRO_TRIAL_PRODUCT_POOL").is_some()
+                     }) {
++                        if std::env::var_os("ZOPRO_TRIAL_PRODUCT_OWNER").is_some() {
++                            // Anchor the allocating task on one worker across requests.
++                            // Its nested Rayon jobs still use the complete product pool.
++                            let task = std::sync::Mutex::new(Some(product_values));
++                            let result = std::sync::Mutex::new(None);
++                            pool.broadcast(|worker| {
++                                if worker.index() == 0 {
++                                    let compute = task.lock().unwrap().take().unwrap();
++                                    if std::env::var_os("ZOPRO_TRIAL_PRODUCT_PROBE").is_some() {
++                                        eprintln!("PRODUCT_OWNER {} {}", worker.index(),
++                                                  rayon::current_num_threads());
++                                    }
++                                    let product = compute();
++                                    *result.lock().unwrap() = Some(product);
++                                }
++                            });
++                            return result.into_inner().unwrap().unwrap();
++                        }
+                         pool.install(|| {
+                             if std::env::var_os("ZOPRO_TRIAL_PRODUCT_PROBE").is_some() {
+                                 eprintln!("PRODUCT_WORKERS {}", rayon::current_num_threads());
