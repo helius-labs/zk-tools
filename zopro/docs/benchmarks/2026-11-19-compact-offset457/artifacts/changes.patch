@@ -1,0 +1,52 @@
+--- a/crates/zopro-core/src/public_b2_offset.rs
++++ b/crates/zopro-core/src/public_b2_offset.rs
+@@ -46 +46,4 @@
+-    let point = if batch {
++    let compact = std::env::var_os("ZOPRO_BENCH_COMPACT_OFFSET").is_some();
++    let point = if compact {
++        compact_correction(points)?
++    } else if batch {
+@@ -64,0 +68,6 @@
++    if std::env::var_os("ZOPRO_BENCH_AUDIT_CORRECTION").is_some() {
++        let mut expected = G2Projective::IDENTITY;
++        for_each_offset(|i,k| expected += points[i] * Fr::from_canonical(k).unwrap());
++        assert_eq!(point, expected);
++        eprintln!("OFFSET_ORACLE_MATCH");
++    }
+@@ -66,0 +76,36 @@
++
++fn compact_correction(points: &[G2Affine]) -> Option<G2Projective> {
++    use rayon::prelude::*;
++    const WINDOWS: usize = 64;
++    const BUCKETS: usize = 15;
++    // Each leaf is sequential and does not fork while its buckets are live.
++    let leaf_count = rayon::current_num_threads().min(WINDOWS);
++    let charge = (WINDOWS + 8 + leaf_count * (BUCKETS + 8))
++        * std::mem::size_of::<G2Projective>();
++    let _scratch = Reservation::analysis(Some(charge))?;
++    let mut windows = [G2Projective::IDENTITY; WINDOWS];
++    windows.par_iter_mut().enumerate().for_each(|(window, sum)| {
++        let mut buckets = [G2Projective::IDENTITY; BUCKETS];
++        for row in OFFSETS.chunks_exact(36) {
++            let digit = (row[4 + window / 2] >> (4 * (window % 2))) & 15;
++            if digit != 0 {
++                let index = u32::from_le_bytes(row[..4].try_into().unwrap()) as usize;
++                buckets[usize::from(digit) - 1] += points[index];
++            }
++        }
++        let mut running = G2Projective::IDENTITY;
++        for bucket in buckets.iter().rev() {
++            running += *bucket;
++            *sum += running;
++        }
++    });
++    let mut total = G2Projective::IDENTITY;
++    for sum in windows.iter().rev() {
++        for _ in 0..4 { total = total.double(); }
++        total += *sum;
++    }
++    if std::env::var_os("ZOPRO_BENCH_OFFSET_TRACE").is_some() {
++        eprintln!("OFFSET_COMPACT_BYTES {charge}");
++    }
++    Some(total)
++}
