@@ -1,0 +1,95 @@
+--- a/crates/zopro-core/src/preparation.rs
++++ b/crates/zopro-core/src/preparation.rs
+@@ -213,20 +213,20 @@
+         let Some((before, after)) = line.split_once(" - ") else {
+             continue;
+         };
+-        let parts: Vec<_> = before.split_whitespace().collect();
+-        let info: Vec<_> = after.split_whitespace().collect();
+-        if parts.len() < 5 || info.len() < 3 {
++        let mut fs = after.split_whitespace();
++        let (Some(kind), Some(_device), Some(options)) = (fs.next(), fs.next(), fs.next()) else {
+             continue;
+-        }
+-        let (v2, memory) = (
+-            info[0] == "cgroup2",
+-            info[2].split(',').any(|s| s == "memory"),
+-        );
+-        if !v2 && !(info[0] == "cgroup" && memory) {
++        };
++        let v2 = kind == "cgroup2";
++        if !v2 && !(kind == "cgroup" && options.split(',').any(|s| s == "memory")) {
+             continue;
+         }
+-        let root = unescape(parts[3]);
+-        let mount = PathBuf::from(unescape(parts[4]));
++        let mut fields = before.split_whitespace().skip(3);
++        let (Some(root), Some(mount)) = (fields.next(), fields.next()) else {
++            continue;
++        };
++        let root = unescape(root);
++        let mount = PathBuf::from(unescape(mount));
+         for group in groups.lines() {
+             let mut fields = group.splitn(3, ':');
+             let (Some(_), Some(controllers), Some(path)) =
+@@ -246,30 +246,8 @@
+             };
+             let mut directory = mount.join(relative);
+             while directory.starts_with(&mount) {
+-                let (limit_file, current_file) = if v2 {
+-                    ("memory.max", "memory.current")
+-                } else {
+-                    ("memory.limit_in_bytes", "memory.usage_in_bytes")
+-                };
+-                if let (Ok(limit), Ok(current)) = (
+-                    std::fs::read_to_string(directory.join(limit_file)),
+-                    std::fs::read_to_string(directory.join(current_file)),
+-                ) {
+-                    let limit = limit.trim().parse::<usize>().ok();
+-                    let high = v2
+-                        .then(|| {
+-                            std::fs::read_to_string(directory.join("memory.high"))
+-                                .ok()
+-                                .and_then(|s| s.trim().parse::<usize>().ok())
+-                        })
+-                        .flatten();
+-                    if let (Some(limit), Ok(current)) = (
+-                        limit.into_iter().chain(high).min(),
+-                        current.trim().parse::<usize>(),
+-                    ) {
+-                        let remaining = limit.saturating_sub(current);
+-                        available = Some(available.map_or(remaining, |n: usize| n.min(remaining)));
+-                    }
++                if let Some(remaining) = cgroup_directory_headroom(&directory, v2) {
++                    available = Some(available.map_or(remaining, |n: usize| n.min(remaining)));
+                 }
+                 if directory == mount || !directory.pop() {
+                     break;
+@@ -278,6 +256,27 @@
+         }
+     }
+     available
++}
++
++#[cfg(any(target_os = "linux", target_os = "android"))]
++fn cgroup_directory_headroom(directory: &std::path::Path, v2: bool) -> Option<usize> {
++    let (limit_file, current_file) = if v2 {
++        ("memory.max", "memory.current")
++    } else {
++        ("memory.limit_in_bytes", "memory.usage_in_bytes")
++    };
++    let maximum = std::fs::read_to_string(directory.join(limit_file)).ok()?;
++    let maximum = maximum.trim().parse::<usize>().ok();
++    let high = if v2 {
++        std::fs::read_to_string(directory.join("memory.high"))
++            .ok()
++            .and_then(|text| text.trim().parse::<usize>().ok())
++    } else {
++        None
++    };
++    let limit = maximum.into_iter().chain(high).min()?;
++    let current = std::fs::read_to_string(directory.join(current_file)).ok()?;
++    Some(limit.saturating_sub(current.trim().parse::<usize>().ok()?))
+ }
+ 
+ #[cfg(any(target_os = "linux", target_os = "android"))]
