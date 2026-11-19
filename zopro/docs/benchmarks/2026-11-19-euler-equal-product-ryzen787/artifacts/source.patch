@@ -1,0 +1,108 @@
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -117,6 +117,19 @@
+     b: &[Fr],
+     storage: Vec<PackedPair>,
+ ) {
++    if std::env::var_os("ZOPRO_TRIAL_EULER_EQUAL_PRODUCT").is_some() {
++        emit_products_mode::<true>(plan, a, b, storage);
++    } else {
++        emit_products_mode::<false>(plan, a, b, storage);
++    }
++}
++
++fn emit_products_mode<const EQUAL: bool>(
++    plan: &Plan,
++    a: &mut [Fr],
++    b: &[Fr],
++    storage: Vec<PackedPair>,
++) {
+     let values = prepare_columns(plan, a, b, storage);
+     let width = values.len() / 32;
+     let mut stripes = values.chunks_exact(width);
+@@ -130,10 +143,10 @@
+     });
+     debug_assert!(remaining.is_empty());
+     let cutoff = width.div_ceil(2 * rayon::current_num_threads()).max(8).next_power_of_two();
+-    emit_range(&plan.roots, width, 0, inputs, outputs, b, cutoff);
+-}
+-
+-fn emit_range(
++    emit_range::<EQUAL>(&plan.roots, width, 0, inputs, outputs, b, cutoff);
++}
++
++fn emit_range<const EQUAL: bool>(
+     roots: &Twiddles,
+     width: usize,
+     start: usize,
+@@ -144,7 +157,7 @@
+ ) {
+     let count = inputs[0].len();
+     if count <= cutoff {
+-        return emit_leaf(roots, width, start, inputs, outputs, b);
++        return emit_leaf::<EQUAL>(roots, width, start, inputs, outputs, b);
+     }
+ 
+     let mid = count / 2;
+@@ -160,13 +173,13 @@
+     });
+     let right_outputs = right_outputs.map(Option::unwrap);
+     rayon::join(
+-        || emit_range(roots, width, start, left_inputs, left_outputs, b, cutoff),
+-        || emit_range(roots, width, start + mid, right_inputs, right_outputs, b, cutoff),
++        || emit_range::<EQUAL>(roots, width, start, left_inputs, left_outputs, b, cutoff),
++        || emit_range::<EQUAL>(roots, width, start + mid, right_inputs, right_outputs, b, cutoff),
+     );
+ }
+ 
+ #[inline(never)]
+-fn emit_leaf(
++fn emit_leaf<const EQUAL: bool>(
+     roots: &Twiddles,
+     width: usize,
+     start: usize,
+@@ -199,9 +212,14 @@
+             let (da1, db1) = second[i].halves();
+             let da = Pair::from_halves(&da0, &da1);
+             let db = Pair::from_halves(&db0, &db1);
+-            let aa = Pair::new(&core::array::from_fn(|k| out.get(k).copied().unwrap_or(Fr::ZERO)));
+-            let bb = Pair::new(&core::array::from_fn(|k| b.get(b_start + k).copied().unwrap_or(Fr::ZERO)));
+-            out.copy_from_slice(&da.sum2(&bb, &aa, &db).get()[..n]);
++            let aa = core::array::from_fn(|k| out.get(k).copied().unwrap_or(Fr::ZERO));
++            let bb = core::array::from_fn(|k| b.get(b_start + k).copied().unwrap_or(Fr::ZERO));
++            let output = if EQUAL && aa == bb {
++                da.add(&db).mul(&Pair::new(&aa)).get()
++            } else {
++                da.sum2(&Pair::new(&bb), &Pair::new(&aa), &db).get()
++            };
++            out.copy_from_slice(&output[..n]);
+         }
+     }
+ }
+@@ -310,3 +328,26 @@
+         v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, roots, level,
+     );
+ }
++
++
++#[cfg(test)]
++#[test]
++fn equal_row_fusion_matches_ordinary_product_on_mixed_and_partial_rows() {
++    let n = 8192usize;
++    let root = Fr::root_of_unity(n).unwrap();
++    let coset = Fr::from(5u64);
++    let mut plan = Plan::new(n, root, coset, denominator(n, coset).unwrap());
++    plan.prepare_euler_basis();
++    for len in [n - 9, n] {
++        let mut actual: Vec<_> = (0..len)
++            .map(|i| if i / 8 % 3 == 2 { Fr::ZERO } else { Fr::from((i + 4) as u64).square() })
++            .collect();
++        let right: Vec<_> = actual.iter().take(len - 5).enumerate()
++            .map(|(i, &x)| if i / 8 % 3 == 1 { x + Fr::from((i + 1) as u64) } else { x })
++            .collect();
++        let mut expected = actual.clone();
++        emit_products_mode::<false>(&plan, &mut expected, &right, Vec::with_capacity(n / 4));
++        emit_products_mode::<true>(&plan, &mut actual, &right, Vec::with_capacity(n / 4));
++        assert_eq!(actual, expected);
++    }
++}
