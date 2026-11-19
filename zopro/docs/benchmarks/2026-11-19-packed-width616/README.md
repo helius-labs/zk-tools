@@ -1,5 +1,7 @@
 # Confirming a lower-memory FFT placement on additional witnesses
 
+On 24×2, the 30-worker caller-allocated product reduced peak process RSS on all four inputs and improved paired median latency against the main pool by 0.07% to 3.52%. It won 15 of the 20 block pairs. On the reference it took 58.840 ms with a 968.7 MiB peak. A main-pool proof took 59.549 ms with a 1,149.0 MiB peak. Input 99 ran faster even though its minor faults rose. At 12×2 the selected width also reduced peak RSS on every input. Its latency improved only on the scattered witness. The 24×2 configuration is the selected experimental Ryzen server profile for the release-source comparison. [Release integration trial](../2026-11-19-release-pool621/protocol.md)
+
 The selected worker count is fixed per shape before these five confirmation blocks. The three non-reference requests in each shape were excluded from width selection. The paired percentages compare the selected configuration with ordinary main and earlier auxiliary dispatch.
 
 | Shape | Request | Product workers | Main / previous dispatch / selected ms | Selected vs main / previous | Peak main / selected MiB | Minor faults/proof main / selected | Selected vs M5 CPU / Metal |

@@ -1,5 +1,7 @@
 # Scalar composition at equal grouped point counts
 
+The split and natural G2 layouts at 51,707 terms differ by only six nonzero canonical digits out of 1.13 million. Their ordering differs substantially. The split has 368,674 consecutive arrivals at the same absolute bucket versus 15,821 naturally. A stride-32 traversal of the exact split terms reduces that count to 15,868. This points to a direct experiment that preserves both points and scalars while changing their order. [Paired proof protocol](../2026-11-19-striped-classes620/protocol.md)
+
 The same 6×2 witness and 5×16 witness used in the full-proof intervention supplied these canonical scalar arrays. Each of the six queries repeated identically over three priming proofs and one measured proof. All class sizes were positive and their sums matched the independently recorded nonzero point counts. The 6×2 split reconstructs the exact extra multiplicity from the published intervention. Both new exports verified.
 
 | Shape | Query by base count | Layout | Terms | Values over 128 bits, with multiplicity | Most copies of one value | Nonzero digits, canonical / GLV | Same next bucket, canonical ordinary / striped / expected shuffled |

@@ -1,5 +1,7 @@
 # Increasing the surviving point count on one fixed witness
 
+Increasing the 6×2 G2 term count by 16,384 added 11.455 ms against its copy control. Widening both G1 queries added 6.625 ms. Applying both changes added 16.904 ms. Each change slowed all seven paired blocks. The two natural copy controls differed by just 2.932 ms in matched blocks. The intervention reproduces term counts while repeating equal scalars next to each other. Its timing overstates the natural shape difference. [Scalar composition and bucket arrivals](../2026-11-19-class-weights619/README.md)
+
 The split modes divide existing scalar classes into more point sums. The copy mode reconstructs all three layouts at their original sizes. Every timing comparison uses seven block pairs and full verified proofs. Positive differences mean that splitting took longer than the matching copy.
 
 | Shape | Setting | Median ms | Paired change vs copy, ms | Paired % and faster blocks | Peak MiB |

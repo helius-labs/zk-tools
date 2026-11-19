@@ -1,5 +1,7 @@
 # Store a class index in each proof-local hash-table entry
 
+On 4×2, an indexed entry reduced paired latency by 4.96% against the ordinary dictionary and 1.68% against the frozen SDK. It also lowered observed peak RSS against both. The 5×16 and 6×2 requests had lower paired latency against both controls. Each had higher peak RSS than the frozen binary. The 1×2 and 2×2 results against the frozen binary were mixed. These timings use one input per shape.
+
 The indexed dictionary borrows the existing class values for equality checks. Its table storage column sums the final allocation of each table constructed during one diagnostic proof. Process peak RSS is measured separately in the timing arms.
 
 | Transfer | Indexed table bytes/proof | Prior / ordinary / indexed ms | Indexed vs ordinary / prior | Peak prior / ordinary / indexed MiB | Indexed vs M5 CPU / Metal |
