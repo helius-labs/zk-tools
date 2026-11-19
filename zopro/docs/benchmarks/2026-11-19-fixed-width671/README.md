@@ -17,4 +17,16 @@ Aeglos on 5×16 and 6×2 reduced paired latency by 11.00% and 11.49% with eight 
 
 Both domains reside in the same NUMA node. This intervention cannot separate the extra L3 capacity, inter-domain communication, boost clocks or memory-channel behavior. The 96-physical-core C7a measurements require a separate same-host test.
 
+Aeglos also reports elapsed stage times inside each plain request. The table gives spread minus compact in milliseconds, taking the arithmetic mean of the four within-block differences. Negative values favor spread. Using a common averaging rule here lets the change in each observed stage be compared with the full elapsed change. These values are separate from the median paired percentages above.
+
+| Shape | Full proof | Request | Witness | FFT | MSM | Assembly |
+|---|---:|---:|---:|---:|---:|---:|
+| 1x16 | +2.940 | +0.001 | +0.329 | +0.448 | +2.157 | +0.002 |
+| 5x16 | -12.996 | +0.004 | +0.959 | +1.929 | -15.906 | -0.006 |
+| 6x2 | -8.977 | -0.005 | +2.216 | +2.783 | -14.019 | -0.007 |
+
+On 5×16, spreading saved 15.91 ms in MSM and 13.00 ms in the whole request as witness solving and FFT both took longer. On 6×2 the corresponding savings were 14.02 and 8.98 ms. On 1×16 the MSM itself took 2.16 ms longer when spread. The phase accounting localizes the placement effect within the measured Aeglos runs.
+
+[Per-block stage changes](artifacts/aeglos-stage-changes.json)
+
 [Topology and masks](artifacts/topology.json) · [Exact xtask workflow](artifacts/workflow.json.gz) · [Input pins](artifacts/pins.json.gz) · [Per-process samples and counters](artifacts/rows.json.gz) · [Verification](artifacts/verification.json)
