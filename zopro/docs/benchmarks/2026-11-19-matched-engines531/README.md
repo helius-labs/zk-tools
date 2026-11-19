@@ -58,3 +58,23 @@ Each number is total process CPU time divided by elapsed loop time, summarized b
 | merge-54x1 | 14.2 | 27.5 | 15.7 | 31.3 | 30.7 | 85.9 |
 
 [CPU-ms, elapsed loop time and CPU occupancy](artifacts/cpu-time.json)
+
+## Native memory and scheduling across hosts
+
+For all nine circuits, the warm Aeglos native-byte counter was byte-identical on the 32-worker Ryzen and the 32-core C7a. Every process reported a 24 GiB native limit and a cache hit on each timed call. The counter measures memory tracked by the native backend. Matching byte counts do not establish the same physical memory behavior. The process RSS figures above also include allocations outside that counter.
+
+Each scheduling or fault cell below gives the Ryzen 32, C7a 32, and C7a 96 results in that order. The first column of numeric data gives the native memory at 32 workers on either host, then at 96 on C7a. Involuntary switches are normalized by aggregate process CPU-seconds. Minor faults and system CPU time are per timed proof. Cells use medians of five local or nine AWS process observations.
+
+| Shape | Native MiB at 32 / 96 | Involuntary switches per CPU-second | Minor faults per proof | System CPU-ms per proof |
+|---|---:|---:|---:|---:|
+| 1x2 | 254.6 / 254.6 | 667.1 / 906.7 / 3796.6 | 119.3 / 199.7 / 486.0 | 2.9 / 7.1 / 22.5 |
+| 2x2 | 445.5 / 445.5 | 478.2 / 713.3 / 2067.1 | 275.9 / 299.3 / 508.0 | 4.6 / 8.4 / 22.8 |
+| 4x2 | 802.9 / 802.8 | 314.9 / 255.5 / 273.1 | 443.0 / 532.6 / 596.1 | 7.2 / 9.0 / 30.5 |
+| 8x2 | 1431.2 / 1431.1 | 188.0 / 190.2 / 406.4 | 818.9 / 672.3 / 1354.3 | 17.4 / 20.2 / 35.1 |
+| 12x2 | 2237.0 / 2236.8 | 78.0 / 125.6 / 152.2 | 983.1 / 897.0 / 2057.6 | 32.7 / 35.8 / 49.8 |
+| 16x2 | 2727.3 / 2727.1 | 212.0 / 100.2 / 96.0 | 1400.6 / 889.3 / 2317.9 | 60.3 / 41.7 / 50.3 |
+| 24x2 | 4170.9 / 4170.5 | 374.9 / 65.9 / 52.7 | 2353.1 / 1955.9 / 2555.1 | 122.8 / 57.1 / 65.1 |
+| merge-24x1 | 4028.8 / 4028.4 | 270.6 / 61.7 / 51.4 | 2015.3 / 1724.3 / 2605.4 | 137.3 / 54.9 / 58.8 |
+| merge-54x1 | 8205.1 / 8217.1 | 177.1 / 19.1 / 29.4 | 3915.1 / 4140.9 / 4889.7 | 202.3 / 101.2 / 83.2 |
+
+The same-width host timing gap persists with matching native-byte accounting. On merge-54×1 the Ryzen run had more involuntary switches per CPU-second than the 32-core C7a, while minor faults per proof were lower. These whole-loop counters cannot attribute the MSM wall-time difference to context switching, cache traffic, or memory bandwidth. [Per-process counters and proof identities](artifacts/memory-and-switches.json)
