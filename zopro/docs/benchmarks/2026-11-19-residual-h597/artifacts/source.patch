@@ -1,0 +1,39 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2353,7 +2353,23 @@
+                                 if montgomery_h {
+                                     msm_affine::msm_montgomery(z, h)
+                                 } else {
+-                                    msm(z, canonical(h))
++                                    let words = canonical(h);
++                                    match std::env::var("ZOPRO_TRIAL_H_ROUTE").as_deref() {
++                                        Ok("raw") => msm_affine::msm_raw(z, words),
++                                        Ok("observe") => {
++                                            let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++                                                .then(|| scalar_groups(words)).flatten();
++                                            let nonzero = words.iter().filter(|s| **s != [0; 4]).count();
++                                            let distinct = groups.as_ref().map(|g| g.distinct_count());
++                                            eprintln!("H_ROUTE {} {} {:?}", words.len(), nonzero, distinct);
++                                            if let Some(g) = groups {
++                                                msm_grouped(z, &g)
++                                            } else {
++                                                msm_affine::msm_raw(z, words)
++                                            }
++                                        },
++                                        _ => msm(z, words),
++                                    }
+                                 }
+                             },
+                         )
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -14,6 +14,9 @@
+     pub(super) counts: Vec<usize>,
+     // Drop the charge after all owned buffers.
+     pub(super) _reservation: crate::preparation::Reservation,
++}
++impl ScalarGroups {
++    pub(crate) fn distinct_count(&self) -> usize { self.values.len() }
+ }
+ /// Group before converting representations, so only distinct witness
+ /// scalars need Montgomery reduction. The grouping is fresh per proof.
