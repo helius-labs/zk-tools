@@ -1,0 +1,42 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1705,6 +1705,22 @@
+         || values.par_iter_mut().with_min_len(128).for_each(|s| *s = g2_phi::phi_split(*s)),
+     );
+     // Group index vectors have dropped. Keep the reservation through the MSM.
++    if let Ok(mode) = std::env::var("ZOPRO_TRIAL_GROUPED_G2_GEOMETRY") {
++        let requested = match mode.as_str() {
++            "11x4" => Some((11, 4)),
++            "10x8" => Some((10, 8)),
++            _ => None,
++        };
++        if let Some((bits, parts)) = requested {
++            let extra = workspace::grouped_range_growth(values.len(), rayon::current_num_threads(), bits, parts);
++            if let Some(_growth) = crate::preparation::Reservation::analysis(extra) {
++                if std::env::var_os("ZOPRO_TRIAL_GROUPED_G2_PROBE").is_some() {
++                    eprintln!("G2_GROUP_GEOMETRY {} {} {} {}", bases.len(), values.len(), bits, parts);
++                }
++                return g2_phi::from_split(&points, &values, bits, parts);
++            }
++        }
++    }
+     g2_phi::from_split(&points, &values, 12, 2)
+ }
+ 
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -255,8 +255,13 @@
+ // Reserve any additional parent state or per-worker leaf scratch for this call.
+ #[cfg(zopro_g2_horner_buckets)]
+ pub(super) fn four_range_growth(n: usize, workers: usize) -> Option<usize> {
++    grouped_range_growth(n, workers, 11, 4)
++}
++
++#[cfg(zopro_g2_horner_buckets)]
++pub(super) fn grouped_range_growth(n: usize, workers: usize, bits: usize, parts: usize) -> Option<usize> {
+     let original = hb_windows::<G2Config>(n, 12, 2)?;
+-    let proposed = hb_windows::<G2Config>(n, 11, 4)?;
++    let proposed = hb_windows::<G2Config>(n, bits, parts)?;
+     add(
+         proposed.held.saturating_sub(original.held),
+         mul(proposed.leaf.saturating_sub(original.leaf), workers)?,
