@@ -270,6 +270,68 @@ impl Pattern {
         count
     }
 }
+const EMIT_MARK: u32 = 1 << 31;
+const EMIT_NORMAL: u32 = 1 << 30;
+const EMIT_BASE: u32 = (1 << 24) - 1;
+
+// Store a first address and two forward displacements. Larger or decreasing
+// addresses keep their original operation indices.
+fn pack_three([first, second, third]: [usize; 3]) -> Option<u32> {
+    let next = second.checked_sub(first)?;
+    let last = third.checked_sub(second)?;
+    if first > EMIT_BASE as usize || next > 15 || last > 15 {
+        return None;
+    }
+    Some(first as u32 | (next as u32) << 24 | (last as u32) << 28)
+}
+
+#[inline(always)]
+fn unpack_three(word: u32) -> [usize; 3] {
+    let first = (word & EMIT_BASE) as usize;
+    let second = first + ((word >> 24) & 15) as usize;
+    [first, second, second + (word >> 28) as usize]
+}
+
+// Run only after all original coefficient and shape checks have tagged the
+// spans. The first round still executes its original operations. Every later
+// S-box has three distinct words that belong exclusively to that S-box.
+fn compile_emits(plan: &Plan, task: &mut [u32]) -> usize {
+    if !plan.poseidon_task(task) {
+        return 0;
+    }
+    let mut compiled = 0;
+    let mut pos = 0;
+    while pos < task.len() {
+        let width = (task[pos] >> 28) as usize;
+        if width == 0 {
+            pos += 1;
+            continue;
+        }
+        let (partial, _) = parameters(width);
+        let rounds = 7 * width + partial;
+        for k in width..rounds {
+            let [f, m, l] = positions(width, partial, k).map(|i| i + pos);
+            let [first, middle, last] = [f, m, l].map(|i| step(plan, task[i]).unwrap());
+            let slot = plan.n_wires + first.first_slot();
+            if slot >= EMIT_NORMAL as usize {
+                continue;
+            }
+            let steps = [first, middle, last];
+            let Some(rows) = pack_three(steps.map(Step::constraint)) else { continue };
+            let Some(wires) = pack_three(steps.map(|s| s.assignment.as_ref().unwrap().wire())) else {
+                continue;
+            };
+            let orientation = if wire(&last.expressions[0]) == Some(slot) { EMIT_NORMAL } else { 0 };
+            task[f] = EMIT_MARK | orientation | slot as u32;
+            task[m] = rows;
+            task[l] = wires;
+            compiled += 1;
+        }
+        pos += 3 * rounds;
+    }
+    compiled
+}
+
 impl Plan {
     pub(super) fn tag_poseidon(&self, s: &mut Schedule) {
         if self.ops.len() > INDEX as usize
@@ -294,6 +356,16 @@ impl Plan {
             }
             for task in s.refined.values_mut().flatten().flatten() {
                 counts[t] += pattern.tag(self, task);
+            }
+        }
+        if std::env::var("ZOPRO_CPU_POSEIDON_EMIT").as_deref() == Ok("1") {
+            for task in s.epochs.iter_mut().flatten() {
+                if !s.refined.contains_key(&((task[0] & INDEX) as usize)) {
+                    compile_emits(self, task);
+                }
+            }
+            for task in s.refined.values_mut().flatten().flatten() {
+                compile_emits(self, task);
             }
         }
         if std::env::var("ZOPRO_CPU_POSEIDON_TRACE").as_deref() == Ok("1") {
@@ -342,29 +414,42 @@ impl Plan {
         v: View,
     ) -> Fr {
         let [f, m, l] = positions(t, partial, k);
-        let a = step(self, task[f]).unwrap();
-        let b = step(self, task[m]).unwrap();
-        let c = step(self, task[l]).unwrap();
+        let (slot, rows, wires, normal) = if task[f] & EMIT_MARK != 0 {
+            (
+                (task[f] & !(EMIT_MARK | EMIT_NORMAL)) as usize,
+                unpack_three(task[m]),
+                unpack_three(task[l]),
+                task[f] & EMIT_NORMAL != 0,
+            )
+        } else {
+            let steps = [f, m, l].map(|i| step(self, task[i]).unwrap());
+            let slot = self.n_wires + steps[0].first_slot();
+            (
+                slot,
+                steps.map(Step::constraint),
+                steps.map(|s| s.assignment.as_ref().unwrap().wire()),
+                wire(&steps[2].expressions[0]) == Some(slot),
+            )
+        };
         let square = x.square();
         let fourth = square.square();
         let fifth = fourth * x;
         // Exact recognition proves these are precisely the original writes.
         unsafe {
-            *v.w.add(self.n_wires + a.first_slot()) = x;
-            *v.w.add(a.assignment.as_ref().unwrap().wire()) = square;
-            *v.w.add(b.assignment.as_ref().unwrap().wire()) = fourth;
-            *v.w.add(c.assignment.as_ref().unwrap().wire()) = fifth;
-            *v.a.add(a.constraint()) = x;
-            *v.b.add(a.constraint()) = x;
-            *v.a.add(b.constraint()) = square;
-            *v.b.add(b.constraint()) = square;
-            let normal = wire(&c.expressions[0]) == Some(self.n_wires + a.first_slot());
-            *v.a.add(c.constraint()) = if normal { x } else { fourth };
-            *v.b.add(c.constraint()) = if normal { fourth } else { x };
+            *v.w.add(slot) = x;
+            *v.w.add(wires[0]) = square;
+            *v.w.add(wires[1]) = fourth;
+            *v.w.add(wires[2]) = fifth;
+            *v.a.add(rows[0]) = x;
+            *v.b.add(rows[0]) = x;
+            *v.a.add(rows[1]) = square;
+            *v.b.add(rows[1]) = square;
+            *v.a.add(rows[2]) = if normal { x } else { fourth };
+            *v.b.add(rows[2]) = if normal { fourth } else { x };
             if !v.c.is_null() {
-                *v.c.add(a.constraint()) = square;
-                *v.c.add(b.constraint()) = fourth;
-                *v.c.add(c.constraint()) = fifth;
+                *v.c.add(rows[0]) = square;
+                *v.c.add(rows[1]) = fourth;
+                *v.c.add(rows[2]) = fifth;
             }
         }
         fifth

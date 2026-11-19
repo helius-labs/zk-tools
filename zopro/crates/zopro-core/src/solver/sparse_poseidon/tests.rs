@@ -193,6 +193,8 @@ fn every_width_exact_rows_and_adversarial_rejection() {
             let image = plan.image();
             let mut task: Vec<u32> = (0..plan.ops.len() as u32).collect();
             assert_eq!(pattern.tag(&plan, &mut task), 1, "width {t}");
+            let mut compiled = task.clone();
+            assert_eq!(compile_emits(&plan, &mut compiled), n - t);
             assert_eq!(plan.image(), image);
             for seed in 0..8 {
                 for c in [false, true] {
@@ -203,9 +205,27 @@ fn every_width_exact_rows_and_adversarial_rejection() {
                         reference,
                         "width {t}, reverse {reverse}, seed {seed}, C {c}"
                     );
+                    assert_eq!(execute(&plan, Some(&compiled), seed, c), reference);
                     comparisons += 1;
                 }
             }
+            // A valid row permutation breaks one compact address triple.
+            // The fallback for this S-box coexists with compiled neighbors.
+            let mut mixed = fixture(t, n, &forms, reverse);
+            let [first, _, last] = positions(t, partial, t);
+            if let Op::Constraint(s) = &mut mixed.ops[first] {
+                s.constraint = last as u32;
+            }
+            if let Op::Constraint(s) = &mut mixed.ops[last] {
+                s.constraint = first as u32;
+            }
+            let mut ids: Vec<u32> = (0..mixed.ops.len() as u32).collect();
+            assert_eq!(pattern.tag(&mixed, &mut ids), 1);
+            assert_eq!(compile_emits(&mixed, &mut ids), n - t - 1);
+            assert_eq!(
+                execute(&mixed, Some(&ids), 3, true),
+                execute(&mixed, None, 3, true)
+            );
             // Unmatched operations after the span must still run and reject.
             let mut bad = fixture(t, n, &forms, reverse);
             let row = bad.n_constraints;
@@ -279,5 +299,26 @@ fn raw_operation_indices_above_tag_limit_fall_back() {
         // Reinterpret the same bits as a raw operation in a larger plan.
         let count = (encoded as usize).saturating_add(1);
         assert!(!tagged_task(count, Some(encoded)));
+    }
+}
+
+#[test]
+fn emit_addresses_roundtrip_or_preserve_the_fallback() {
+    for a in [0usize, 1, 234, EMIT_BASE as usize] {
+        for ab in 0..16 {
+            for bc in 0..16 {
+                let v = [a, a + ab, a + ab + bc];
+                assert_eq!(unpack_three(pack_three(v).unwrap()), v);
+            }
+        }
+    }
+    for v in [
+        [2, 1, 4],
+        [2, 3, 1],
+        [0, 16, 16],
+        [0, 2, 18],
+        [1 << 24, 1 << 24, 1 << 24],
+    ] {
+        assert_eq!(pack_three(v), None);
     }
 }

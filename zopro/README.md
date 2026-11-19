@@ -149,6 +149,14 @@ Ryzen 9950X it reduced 1×2 proof latency with 16 and 32 workers. The
 [benchmark report](docs/benchmarks/2026-11-18-wave-claims-release379/README.md)
 includes the other circuit shapes and memory measurements.
 
+For prepared sparse Poseidon tasks, `ZOPRO_CPU_POSEIDON_EMIT=1` stores the
+wire and constraint-row addresses for an eligible S-box in its existing three
+schedule words. The prover applies the option after it recognizes the field
+coefficients. A layout whose addresses do not fit keeps the original
+operation indices. The option defaults off. The
+[full-proof measurements](docs/benchmarks/2026-11-19-poseidon-emit-release388/README.md)
+compare its effect across eight circuits on Ryzen.
+
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
 G2 queries of 1,024 through 65,535 points when the worker pool has at least
