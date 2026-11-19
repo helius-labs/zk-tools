@@ -27,3 +27,5 @@ The SDK measured process CPU time and minor page faults over the eleven warmed c
 | 24x2 | 1682.0 / 1692.2 | 28.2 / 26.2 | 5,773 / 5,723 |
 
 On 24×2, sharing increased elapsed time while summed CPU time changed by less than one percent and minor faults fell slightly. These counters do not identify time spent waiting for the shared selection. [Per-process counters](artifacts/counters.json.gz)
+
+Three additional 12×2 exports verified with the original plans, with every A and K group reversed, and with a zero optional budget. Reversing the member order made every A and K group ineligible for sharing. Denying optional memory disabled all prepared groups. [Fallback results](artifacts/fallbacks.json) · [Verification](artifacts/fallback-verification.json)
