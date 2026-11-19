@@ -20,3 +20,5 @@ Five randomized blocks use 32 Ryzen workers, three warmups and eleven timed call
 | 24x2 | 103 | Grouped | 58.619 / 62.215 / 76.942 / 68.856 | +6.98% (0/5) / +31.06% (0/5) / +19.32% (0/5) | 1095 / 903 / 834 / 934 | tuned — |
 
 All 240 process exports verified independently. [Timings, minor faults and CPU use](artifacts/samples.json.gz) · [Allocator identities](artifacts/bindings.json) · [Verification](artifacts/verification.json)
+
+[Warm page faults and kernel CPU time by allocator](faults.md)
