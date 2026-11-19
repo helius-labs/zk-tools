@@ -1,0 +1,60 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1921,6 +1921,10 @@
+         if affine_msm() {
+             let montgomery_h =
+                 h.len() >= (1 << 18) && crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
++            if std::env::var_os("ZOPRO_BENCH_PREPARED_B2_TRACE").is_some() {
++                let layout = self.equal_witness.as_ref().is_some_and(|w| w.has_b2_layout());
++                eprintln!("PREPARED_B2_ROUTE {} {} {}", omit_b, self.equal_witness.is_some(), layout);
++            }
+             if let Some(prepared) = &self.equal_witness {
+                 let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                     || {
+@@ -1940,7 +1944,14 @@
+                             },
+                         )
+                     },
+-                    || if omit_b { (G1Projective::IDENTITY, msm_affine::msm_in_place(&self.b2, sb)) } else { prepared.msms_b(&self.b, &self.b2, sb) },
++                    || if omit_b { {
++                        let result = if std::env::var("ZOPRO_BENCH_PREPARED_B2_ONLY").as_deref() == Ok("1") {
++                            prepared.try_b2_only(&self.b2, sb)
++                        } else {
++                            None
++                        };
++                        (G1Projective::IDENTITY, result.unwrap_or_else(|| msm_affine::msm_in_place(&self.b2, sb)))
++                    } } else { prepared.msms_b(&self.b, &self.b2, sb) },
+                 );
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1144,6 +1144,28 @@
+         }
+         msm_in_place(bases, scalars)
+     }
++    pub(super) fn has_b2_layout(&self) -> bool {
++        self.b.is_some()
++    }
++
++    pub(super) fn try_b2_only(
++        &self,
++        bases: &[zopro_bn254::G2Affine],
++        scalars: &[Fr],
++    ) -> Option<zopro_bn254::G2Projective> {
++        let (layout, _, sums) = self.b.as_ref()?;
++        let scratch = grouping_cost::vector::<Fr>(layout.n, false)?
++            .checked_add(grouping_cost::vector::<u32>(layout.n, false)?)?;
++        let charge = crate::preparation::Reservation::analysis(Some(scratch))?;
++        let groups = layout.source_groups(scalars)?;
++        // source_groups has destroyed its two temporary input vectors by this point.
++        drop(charge);
++        if std::env::var_os("ZOPRO_BENCH_PREPARED_B2_TRACE").is_some() {
++            eprintln!("PREPARED_B2_APPLIED {} {} {}", layout.n, layout.groups.len(), groups.values.len());
++        }
++        Some(msm_grouped_prepared(bases, sums, &groups))
++    }
++
+     pub(super) fn msms_b(
+         &self,
+         bases: &[zopro_bn254::G1Affine],
