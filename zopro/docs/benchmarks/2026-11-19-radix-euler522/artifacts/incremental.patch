@@ -1,0 +1,321 @@
+--- a/crates/zopro-bn254/src/ifma8.rs
++++ b/crates/zopro-bn254/src/ifma8.rs
+@@ -1537,3 +1537,17 @@
+ #[path = "linear_carry.rs"]
+ mod linear_carry;
+ pub use linear_carry::UncarriedSum8;
++
++impl Ifma8<crate::FrConfig> {
++    /// Import R256 limbs unchanged. Their value at radix R260 is x/16.
++    #[inline(always)]
++    pub fn import_div16(values: &[crate::Fr;8]) -> Self {
++        Self::raw(&values.map(|v| v.0))
++    }
++
++    /// Normalize the unchanged limbs at radix R256, returning 16*x.
++    #[inline(always)]
++    pub fn export_times16(&self) -> [crate::Fr;8] {
++        Ifma8::<crate::FrConfig,true>(self.0,PhantomData).get()
++    }
++}
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1767,7 +1767,27 @@
+ // Euler derivative product used by the evaluation-basis prover.
+ // Unnormalized inverse FFT means the returned prefix is
+ // n * (E(A) * B + A * E(B)), where E(f) = X f'.
+-pub(super) fn euler_product_study(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
++#[inline(always)]
++fn euler_import<const RAW:bool>(values:&[Fr;8])->Pair {
++    if RAW {Pair::import_div16(values)} else {Pair::new(values)}
++}
++
++pub(super) fn euler_product_study(plan: &Plan, a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
++    if cfg!(zopro_euler_pointwise8) {
++        match std::env::var("ZOPRO_EULER_RADIX").as_deref() {
++            Ok("derivative")=>return euler_scaled::<true,false,false>(plan,a,b),
++            Ok("product")=>return euler_scaled::<false,true,false>(plan,a,b),
++            Ok("both") if cfg!(zopro_euler_leading_weights) && plan.n<=1<<24 =>
++                return euler_scaled::<true,true,true>(plan,a,b),
++            _=>{}
++        }
++    }
++    euler_scaled::<false,false,false>(plan,a,b)
++}
++
++fn euler_scaled<const INPUT:bool,const PRODUCT:bool,const RESTORE:bool>(
++    plan:&Plan,mut a:Vec<Fr>,b:Vec<Fr>
++)->Vec<Fr> {
+     assert!(plan.n >= 8 && a.len() <= plan.n && b.len() <= plan.n);
+     assert!(!plan.released && plan.twisted.is_none());
+     let count = a.len().max(b.len());
+@@ -1778,12 +1798,12 @@
+     if packed_inputs && plan.n <= (1 << 28) && plan.roots.single.is_none()
+         && std::env::var("ZOPRO_CPU_FFT_LOCAL_EULER").as_deref() == Ok("1")
+     {
+-        let values = euler_center::from_inputs(plan, &a, &b);
+-        euler_combine_products(&mut a, &b, &values);
++        let values = euler_center::from_inputs::<INPUT,RESTORE>(plan, &a, &b);
++        euler_combine_products::<INPUT,PRODUCT>(&mut a, &b, &values);
+         return a;
+     }
+     let mut values = if packed_inputs {
+-        input_columns::inverse(plan, &a, &b)
++        input_columns::inverse::<INPUT>(plan, &a, &b)
+     } else {
+         let mut values: Vec<PackedPair> = (0..plan.n / 4).into_par_iter().map(|i| {
+             let mut lanes = [Fr::ZERO; 8];
+@@ -1791,7 +1811,7 @@
+                 lanes[j] = a.get(4*i+j).copied().unwrap_or(Fr::ZERO);
+                 lanes[4+j] = b.get(4*i+j).copied().unwrap_or(Fr::ZERO);
+             }
+-            PackedPair::store(Pair::new(&lanes))
++            PackedPair::store(euler_import::<INPUT>(&lanes))
+         }).collect();
+         stored_transform::<PackedPair, false>(&mut values, &plan.inverse_roots, 0);
+         values
+@@ -1804,7 +1824,7 @@
+         values.par_chunks_mut(lows.len()).enumerate().for_each(|(i,chunk)| {
+             let high=bit_reverse(i,log-low) as u64;
+             for (value,low) in chunk.iter_mut().zip(&lows) {
+-                let factors=core::array::from_fn(|j|low[j%4]+high);
++                let factors=core::array::from_fn(|j|(low[j%4]+high) << if RESTORE {4} else {0});
+                 *value=PackedPair::store(value.load().mul_u28(&factors));
+             }
+         });
+@@ -1828,23 +1848,24 @@
+     drop(lows);
+     }
+     stored_transform::<PackedPair, true>(&mut values, &plan.roots, 0);
+-    euler_combine_products(&mut a, &b, &values);
++    euler_combine_products::<INPUT,PRODUCT>(&mut a, &b, &values);
+     a
+ }
+ 
+ // Rejoin two packed pairs into eight independent derivative rows before
+ // the existing fused field product. No extra allocation or retained state.
+ #[inline]
+-fn euler_combine_products(a: &mut [Fr], b: &[Fr], values: &[PackedPair]) {
++fn euler_combine_products<const INPUT:bool,const PRODUCT:bool>(a: &mut [Fr], b: &[Fr], values: &[PackedPair]) {
+     if cfg!(zopro_euler_pointwise8) {
+         a.par_chunks_mut(8).zip(values.par_chunks(2)).enumerate().for_each(|(i,(out,values))| {
+             let (da0,db0) = values[0].load().halves();
+             let (da1,db1) = values[1].load().halves();
+             let da = Pair::from_halves(&da0,&da1);
+             let db = Pair::from_halves(&db0,&db1);
+-            let aa = Pair::new(&core::array::from_fn(|j| out.get(j).copied().unwrap_or(Fr::ZERO)));
+-            let bb = Pair::new(&core::array::from_fn(|j| b.get(8*i+j).copied().unwrap_or(Fr::ZERO)));
+-            let product = da.sum2(&bb,&aa,&db).get();
++            let aa = euler_import::<PRODUCT>(&core::array::from_fn(|j| out.get(j).copied().unwrap_or(Fr::ZERO)));
++            let bb = euler_import::<PRODUCT>(&core::array::from_fn(|j| b.get(8*i+j).copied().unwrap_or(Fr::ZERO)));
++            let combined=da.sum2(&bb,&aa,&db);
++            let product=if INPUT || PRODUCT {combined.export_times16()} else {combined.get()};
+             out.copy_from_slice(&product[..out.len()]);
+         });
+     } else {
+@@ -1883,7 +1904,7 @@
+                 PackedPair::store(Pair::new(&core::array::from_fn(|j|chunk[j%4][if j<4 {2}else{3}])))
+             }).collect();
+             let expected:Vec<_>=(0..n).map(|i|rows[i][2]*b.get(i).copied().unwrap_or(Fr::ZERO)+a[i]*rows[i][3]).collect();
+-            euler_combine_products(&mut a,&b,&values);
++            euler_combine_products::<false,false>(&mut a,&b,&values);
+             assert_eq!(a,expected,"n={n} nb={nb} pattern={pattern}");
+             checked+=n;
+         }}}
+@@ -1892,3 +1913,29 @@
+ }
+ 
+ mod leaf;
++
++#[cfg(all(test,zopro_euler_leading_weights,zopro_euler_pointwise8))]
++mod radix522_tests {
++    use super::*;
++
++    #[test]
++    fn scaled_euler_matches_full_product_across_lengths() {
++        for n in [256usize,8192,32768] {
++            let root=Fr::root_of_unity(n).unwrap().pow(&[3]);
++            let coset=Fr::from(5u64);
++            let mut plan=Plan::new(n,root,coset,denominator(n,coset).unwrap());
++            plan.prepare_euler_basis();
++            let sequence=|len,seed|{
++                let mut x= -Fr::from(seed);
++                (0..len).map(|i|{x=x.square()+Fr::from(i as u64+1); if i%19==0 {Fr::ZERO} else {x}}).collect::<Vec<_>>()
++            };
++            for (na,nb) in [(0,0),(1,0),(0,7),(n/2+3,n-11),(n,n)] {
++                let a=sequence(na,9u64);let b=sequence(nb,13u64);
++                let original=euler_scaled::<false,false,false>(&plan,a.clone(),b.clone());
++                assert_eq!(original,euler_scaled::<true,false,false>(&plan,a.clone(),b.clone()));
++                assert_eq!(original,euler_scaled::<false,true,false>(&plan,a.clone(),b.clone()));
++                assert_eq!(original,euler_scaled::<true,true,true>(&plan,a,b));
++            }
++        }
++    }
++}
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -3,7 +3,7 @@
+ 
+ // Leave the adjacent sum and difference lanes together between the two transforms.
+ // Their natural coefficient indices differ by N/2 in bit-reversed DIF order.
+-fn center(a: &mut Pair, b: &mut Pair, inv: &Pair, fwd: &Pair, first: usize, log: usize) {
++fn center<const RESTORE:bool>(a: &mut Pair, b: &mut Pair, inv: &Pair, fwd: &Pair, first: usize, log: usize) {
+     let lo = Pair::shuffle_pair::<0, 1, 4, 5>(a, b);
+     let hi = Pair::shuffle_pair::<2, 3, 6, 7>(a, b);
+     let sum = lo.add(&hi);
+@@ -26,6 +26,8 @@
+         r + quarter,
+     ];
+     let odd = even.map(|x| x + 2 * quarter);
++    let even=if RESTORE {even.map(|x|x<<4)} else {even};
++    let odd=if RESTORE {odd.map(|x|x<<4)} else {odd};
+     let s = lo.add(&hi).mul_u28(&even);
+     let d = lo.sub(&hi).mul_u28(&odd);
+     let sum = s.add(&d);
+@@ -40,7 +42,7 @@
+     *b = Pair::shuffle_pair::<2, 3, 6, 7>(&sum, &diff);
+ }
+ 
+-fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++fn leaf<const RESTORE:bool>(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+     // The ordinary transform expands the same bounded leaf separately in each direction.
+     let mut expanded: Vec<_> = values.iter().map(PairStorage::load).collect();
+     let mut gap = expanded.len() / 2;
+@@ -56,7 +58,7 @@
+     let inv = broadcast(&plan.inverse_roots.pair);
+     let fwd = broadcast(&plan.roots.pair);
+     for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
+-        center(a, b, &inv, &fwd, first + 2 * i, plan.n.ilog2() as usize);
++        center::<RESTORE>(a, b, &inv, &fwd, first + 2 * i, plan.n.ilog2() as usize);
+     }
+     gap = 1;
+     while gap < expanded.len() {
+@@ -72,9 +74,9 @@
+     }
+ }
+ 
+-fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++fn transform<const RESTORE:bool>(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+     if values.len() <= 1024 {
+-        return leaf(plan, values, level, first);
++        return leaf::<RESTORE>(plan, values, level, first);
+     }
+     columns::<false>(values, &plan.inverse_roots, level);
+     let size = values.len() / 32;
+@@ -82,20 +84,20 @@
+         .par_chunks_exact_mut(size)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, level + 5, first + i * size);
++            transform::<RESTORE>(plan, part, level + 5, first + i * size);
+         });
+     columns::<true>(values, &plan.roots, level);
+ }
+ 
+ #[inline(never)]
+-pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+-    let mut values = input_columns::first_layer(plan, a, b);
++pub(super) fn from_inputs<const RAW:bool,const RESTORE:bool>(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
++    let mut values = input_columns::first_layer::<RAW>(plan, a, b);
+     let width = values.len() / 32;
+     values
+         .par_chunks_exact_mut(width)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, 5, i * width);
++            transform::<RESTORE>(plan, part, 5, i * width);
+         });
+     columns::<true>(&mut values, &plan.roots, 0);
+     values
+@@ -115,8 +117,8 @@
+             let b: Vec<_> = (0..n - 1)
+                 .map(|i| Fr::from((i + 1) as u64).square())
+                 .collect();
+-            let got = from_inputs(&plan, &a, &b);
+-            let mut expected = input_columns::inverse(&plan, &a, &b);
++            let got = from_inputs::<false,false>(&plan, &a, &b);
++            let mut expected = input_columns::inverse::<false>(&plan, &a, &b);
+             for (i, value) in expected.iter_mut().enumerate() {
+                 let factors =
+                     core::array::from_fn(|j| bit_reverse(4 * i + j % 4, n.ilog2() as usize) as u64);
+@@ -157,7 +159,7 @@
+                     *v = PackedPair::store(v.load().mul_u28(&factors));
+                 }
+                 stored_transform::<PackedPair, true>(&mut expect, &plan.roots, 0);
+-                transform(&plan, &mut got, 0, 0);
++                transform::<false>(&plan, &mut got, 0, 0);
+                 for (a, b) in got.iter().zip(&expect) {
+                     assert_eq!(a.load().get(), b.load().get());
+                 }
+--- a/crates/zopro-core/src/fft/pair/input_columns.rs
++++ b/crates/zopro-core/src/fft/pair/input_columns.rs
+@@ -6,7 +6,7 @@
+ 
+ // Construct the first inverse radix-32 columns directly from the two input
+ // polynomials. Each invocation owns the same column range in all 32 stripes.
+-fn pack_inverse_columns<const CACHED: bool>(
++fn pack_inverse_columns<const CACHED: bool, const RAW: bool>(
+     mut stripes: [&mut [MaybeUninit<PackedPair>]; 32],
+     a: &[Fr],
+     b: &[Fr],
+@@ -24,8 +24,8 @@
+             left
+         });
+         rayon::join(
+-            || pack_inverse_columns::<CACHED>(left, a, b, roots, q, start),
+-            || pack_inverse_columns::<CACHED>(stripes, a, b, roots, q, start + mid),
++            || pack_inverse_columns::<CACHED,RAW>(left, a, b, roots, q, start),
++            || pack_inverse_columns::<CACHED,RAW>(stripes, a, b, roots, q, start + mid),
+         );
+         return;
+     }
+@@ -37,7 +37,7 @@
+             if i >= count {
+                 return zero;
+             }
+-            Pair::new(&core::array::from_fn(|lane| {
++            euler_import::<RAW>(&core::array::from_fn(|lane| {
+                 let values = if lane < 4 { a } else { b };
+                 values.get(i + lane % 4).copied().unwrap_or(Fr::ZERO)
+             }))
+@@ -50,7 +50,7 @@
+ }
+ 
+ #[inline(never)]
+-pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
++pub(super) fn first_layer<const RAW:bool>(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+     let n = plan.n / 4;
+     let q = n / 32;
+     assert!(n >= 2048 && n.is_power_of_two());
+@@ -59,9 +59,9 @@
+     let mut chunks = values.spare_capacity_mut()[..n].chunks_exact_mut(q);
+     let stripes = core::array::from_fn(|_| chunks.next().unwrap());
+     if roots.columns.is_empty() {
+-        pack_inverse_columns::<false>(stripes, a, b, roots, q, 0);
++        pack_inverse_columns::<false,RAW>(stripes, a, b, roots, q, 0);
+     } else {
+-        pack_inverse_columns::<true>(stripes, a, b, roots, q, 0);
++        pack_inverse_columns::<true,RAW>(stripes, a, b, roots, q, 0);
+     }
+     // SAFETY: the 32 disjoint stripes cover exactly n slots. Both branches
+     // join every producer and write each slot before this call.
+@@ -69,8 +69,8 @@
+     values
+ }
+ 
+-pub(super) fn inverse(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+-    let mut values = first_layer(plan, a, b);
++pub(super) fn inverse<const RAW:bool>(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
++    let mut values = first_layer::<RAW>(plan, a, b);
+     let n = values.len();
+     let q = n / 32;
+     let roots = &plan.inverse_roots;
+@@ -114,7 +114,7 @@
+                     })
+                     .collect();
+                 stored_transform::<PackedPair, false>(&mut expected, &plan.inverse_roots, 0);
+-                let got = inverse(&plan, &a, &b);
++                let got = inverse::<false>(&plan, &a, &b);
+                 for (x, y) in got.iter().zip(&expected) {
+                     assert_eq!(x.load().get(), y.load().get());
+                 }
