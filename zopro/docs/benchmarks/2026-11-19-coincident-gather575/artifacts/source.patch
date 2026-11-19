@@ -1,0 +1,117 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1159,10 +1159,19 @@
+         if let Some(offsets) = offsets {
+             offsets.apply(&mut w);
+         }
+-        let (mut sa, mut sb): (Vec<_>, Vec<_>) = rayon::join(
++        let gather_start=std::env::var_os("ZOPRO_TRIAL_TRACE_GATHER").map(|_|std::time::Instant::now());
++        let (mut sa,mut sb)=match std::env::var("ZOPRO_TRIAL_SHARED_GATHER").as_deref() {
++            Ok("separate16") => shared_gather::separate(&w,&plan.a_indices,&plan.b_indices,16),
++            Ok("shared16") => shared_gather::queries(&w,&plan.a_indices,&plan.b_indices,16),
++            Ok("shared32") => shared_gather::queries(&w,&plan.a_indices,&plan.b_indices,32),
++            _ => rayon::join(
+             || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
+             || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
+-        );
++        ),
++        };
++        if let Some(t)=gather_start {
++            eprintln!("GATHER_RUN {} {} {}",sa.len(),sb.len(),t.elapsed().as_nanos());
++        }
+         trace("extract-scalars", started);
+         let (public, private) = w.split_at_mut(plan.n_public);
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -2504,3 +2513,5 @@
+         { let _ = bytes; Ok(false) }
+     }
+ }
++
++mod shared_gather;
+--- /dev/null
++++ b/crates/zopro-core/src/shared_gather.rs
+@@ -0,0 +1,84 @@
++//! Gather both sorted query index lists from one local portion of the solved wires.
++use crate::Fr;
++use std::mem::MaybeUninit;
++
++fn write(wires:&[Fr],indices:&[u32],out:&mut [MaybeUninit<Fr>]){
++    for (&i,dst) in indices.iter().zip(out){dst.write(wires[i as usize]);}
++}
++
++fn divide(wires:&[Fr], a:&[u32], b:&[u32], x:&mut [MaybeUninit<Fr>],
++          y:&mut [MaybeUninit<Fr>], jobs:usize) {
++    if jobs<=1 || a.len().max(b.len())<=256 {
++        write(wires,a,x);
++        write(wires,b,y);
++        return;
++    }
++    // The median of the longer sorted query makes progress even if the other
++    // query has no wires in this half. Both outputs preserve their original order.
++    let (i,j)=if a.len()>=b.len(){
++        let i=a.len()/2; (i,b.partition_point(|v|*v<a[i]))
++    }else {
++        let j=b.len()/2; (a.partition_point(|v|*v<b[j]),j)
++    };
++    let (xl,xr)=x.split_at_mut(i);
++    let (yl,yr)=y.split_at_mut(j);
++    rayon::join(||divide(wires,&a[..i],&b[..j],xl,yl,jobs/2),
++                ||divide(wires,&a[i..],&b[j..],xr,yr,jobs-jobs/2));
++}
++
++pub(super) fn queries(wires:&[Fr],a:&[u32],b:&[u32],jobs:usize)->(Vec<Fr>,Vec<Fr>){
++    assert!(jobs>0);
++    let mut x=Vec::with_capacity(a.len());
++    let mut y=Vec::with_capacity(b.len());
++    divide(wires,a,b,&mut x.spare_capacity_mut()[..a.len()],
++           &mut y.spare_capacity_mut()[..b.len()],jobs);
++    // Every leaf writes exactly one initialized field per corresponding output
++    // index. Both halves join before the lengths are exposed. On a bounds panic
++    // the vectors still have zero length and Fr has no destructor.
++    unsafe{x.set_len(a.len());y.set_len(b.len());}
++    (x,y)
++}
++
++// Give the two independent collectors the same total number of potential
++// leaves as the combined variant, without sharing wire partitions.
++pub(super) fn separate(wires:&[Fr],a:&[u32],b:&[u32],jobs:usize)->(Vec<Fr>,Vec<Fr>){
++    assert!(jobs>0);
++    let mut x=Vec::with_capacity(a.len());
++    let mut y=Vec::with_capacity(b.len());
++    let fill=|indices:&[u32],out:&mut [MaybeUninit<Fr>],budget:usize|{
++        divide(wires,indices,&[],out,&mut [],budget.max(1));
++    };
++    if jobs==1 {
++        fill(a,&mut x.spare_capacity_mut()[..a.len()],1);
++        fill(b,&mut y.spare_capacity_mut()[..b.len()],1);
++    }else{
++        let l=jobs/2;
++        rayon::join(||fill(a,&mut x.spare_capacity_mut()[..a.len()],l),
++                    ||fill(b,&mut y.spare_capacity_mut()[..b.len()],jobs-l));
++    }
++    // Each indexed reader initializes its entire disjoint destination.
++    unsafe{x.set_len(a.len());y.set_len(b.len());}
++    (x,y)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn sorted_queries_match_two_separate_indexed_reads() {
++        let w:Vec<_>=(0..8193u64).map(|i|Fr::from(i*i+103)).collect();
++        let all:Vec<u32>=(0..8193).collect();
++        let odd:Vec<_>=all.iter().copied().filter(|v|*v%2==1).collect();
++        let holes:Vec<_>=all.iter().copied().filter(|v|*v%17<6||*v>7782).collect();
++        let none:&[u32]=&[];
++        for (a,b) in [(none,none),(&all[..],none),(none,&all[..]),(&all[..],&all[..]),
++                      (&odd[..],&holes[..]),(&holes[..],&odd[..]),(&all[..1000],&all[3000..])]{ 
++            let expected=(a.iter().map(|&i|w[i as usize]).collect::<Vec<_>>(),
++                          b.iter().map(|&i|w[i as usize]).collect::<Vec<_>>());
++            for jobs in [1,7,16,32,64] {
++                assert_eq!(queries(&w,a,b,jobs),expected);
++                assert_eq!(separate(&w,a,b,jobs),expected);
++            }
++        }
++    }
++}
