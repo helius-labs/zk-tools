@@ -1,5 +1,9 @@
 # Ordinary SDK grouped MSM with both execution orders
 
+Indexing improved complete proof latency on all four 4×2 inputs, winning 22 of 24 pairs. On original 24×2 it won all six pairs, with a median of 62.615 ms and a peak of 990.7 MiB versus 63.911 ms and 1,048.0 MiB for the parent. On scattered 12×2 the corresponding figures were 45.363 ms and 757.6 MiB versus 47.872 ms and 999.6 MiB. Merge-54×1 improved by 3.11% in the paired median and won all six pairs.
+
+The 1×2 parent remained faster in all six blocks, including both process orders. It took 6.985 ms versus 7.063 ms with indexing. Effects on 2×2, 8×2 and 16×2 were mixed. The unconditional replacement remains experimental. [Which grouping tables these proofs constructed](../2026-11-19-release-group-trace627/README.md) · [Test on the fastest experimental large-transfer paths](../2026-11-19-indexed-output628/protocol.md)
+
 Each latency contrast has three parent-first and three indexed-first blocks. Individual process means cover eleven full SDK calls. Peak RSS is the maximum over the six latency processes of each variant and input. Percentages are within-block latency changes from the parent.
 
 | Shape | Request | Parent / indexed ms | Paired change | Parent first / indexed first | Peak parent / indexed MiB | Indexed vs M5 CPU / Metal |

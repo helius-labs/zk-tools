@@ -1,5 +1,7 @@
 # Grouping admission on the ordinary SDK path
 
+The 1×2 reference constructed one dictionary for 21,006 scalars. A previous inspection of the same-sized A query found 17,454 distinct nonzero scalars against a retention cutoff of 16,804. That historical dictionary was discarded after construction. All larger reference shapes here constructed three dictionaries per proof. The earlier 16-core test of early exact rejection on the canonical path recorded a small, mixed latency effect. This trace identifies the work reached on the present SDK. It does not measure the latency saved by skipping it. [A-query census](../2026-11-18-a-group-census313/README.md) · [Prior 16-core comparison](../2026-11-18-canonical-group314/README.md)
+
 The two release binaries had identical per-proof trace counts and admission decisions on each of nine original inputs. The input lengths are scalar counts before full grouping and can include zero values. A successful admission reaches the dictionary construction loop. Sampling can also stop a call before the trace is emitted.
 
 | Shape | Zero-aware sample traces per proof | Admitted builds per proof | Input length × calls |
