@@ -1,0 +1,448 @@
+--- /dev/null
++++ b/crates/zopro-core/src/groups482.rs
+@@ -0,0 +1,177 @@
++use super::{msm_affine, preparation::Reservation, Fr, G2Affine, G2Projective};
++use rayon::prelude::*;
++
++pub(super) struct Groups {
++    upper: Option<Box<Groups>>,
++    ids: Vec<u32>,
++    ends: Vec<usize>,
++    sums: Vec<G2Affine>,
++    sources: Vec<u32>,
++    _held: Reservation,
++}
++
++fn u32at(bytes: &[u8], offset: usize) -> u32 {
++    u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap())
++}
++
++impl Groups {
++    pub fn prepare(bases: &[G2Affine], data: &[u8]) -> Result<Option<Self>, &'static str> {
++        if data.starts_with(b"ZPNEST17") {
++            let size_bytes = data.get(8..16).ok_or("missing nested group size")?;
++            let size = usize::try_from(u64::from_le_bytes(size_bytes.try_into().unwrap())).map_err(|_|"nested group size overflow")?;
++            let (lower, upper) = data[16..].split_at_checked(size).ok_or("truncated nested group plan")?;
++            if !lower.starts_with(b"ZPGR0482") || !upper.starts_with(b"ZPGR0482") {return Err("invalid nested group levels");}
++            let Some(mut first) = Self::prepare_flat(bases,lower)? else {return Ok(None);};
++            first.upper=Self::prepare_flat(&first.sums,upper)?.map(Box::new);
++            return Ok(Some(first));
++        }
++        Self::prepare_flat(bases,data)
++    }
++
++    fn prepare_flat(bases: &[G2Affine], data: &[u8]) -> Result<Option<Self>, &'static str> {
++        if data.len() < 16 || &data[..8] != b"ZPGR0482" || u32at(data, 8) as usize != bases.len() {
++            return Err("invalid group dimensions");
++        }
++        let n = bases.len();
++        let count = u32at(data, 12) as usize;
++        if count == 0 || count > n / 2 || data.len() % 4 != 0 { return Err("invalid group count"); }
++        let members = (data.len() - 16) / 4;
++        let members = members.checked_sub(count).filter(|m| *m <= n && *m >= 2*count).ok_or("invalid member count")?;
++        // All member and remaining indices together occupy four bytes per key point.
++        let Some(held) = Reservation::analysis(n.checked_mul(4).and_then(|b| b.checked_add((count+n-members)*132 + count*8 + 512))) else { return Ok(None) };
++        let Some(_scratch) = Reservation::analysis(n.checked_add(data.len()).and_then(|x|x.checked_add(128 * rayon::current_num_threads() * 1024))) else {return Ok(None)};
++        let mut seen = vec![false; n];
++        let mut ids = Vec::with_capacity(members);
++        let mut ends = Vec::with_capacity(count);
++        let mut at = 16;
++        for _ in 0..count {
++            if at+4 > data.len() { return Err("missing group"); }
++            let len = u32at(data, at) as usize; at += 4;
++            if len < 2 || len > (data.len()-at)/4 { return Err("invalid group size"); }
++            for _ in 0..len {
++                let id=u32at(data, at); at += 4;
++                let flag = seen.get_mut(id as usize).ok_or("invalid B2 index")?;
++                if *flag {return Err("duplicate B2 index");}
++                *flag=true; ids.push(id);
++            }
++            ends.push(ids.len());
++        }
++        if at != data.len() {return Err("trailing group records");}
++        let mut sources=Vec::with_capacity(count+n-members);
++        for g in 0..count {
++            let start=if g==0 {0} else {ends[g-1]};
++            sources.push(ids[start]);
++        }
++        sources.extend((0..n).filter(|i| !seen[*i]).map(|i|i as u32));
++        let mut sums=vec![G2Affine::IDENTITY;sources.len()];
++        sums[..count].par_chunks_mut(128).enumerate().for_each(|(block,out)| {
++            let projective: Vec<_> = (block*128..block*128+out.len()).map(|g| {
++                let start=if g==0 {0} else {ends[g-1]};
++                let mut sum=G2Projective::IDENTITY;
++                for &i in &ids[start..ends[g]] {sum+=bases[i as usize];}
++                sum
++            }).collect();
++            out.copy_from_slice(&G2Projective::batch_to_affine(&projective));
++        });
++        sums[count..].par_iter_mut().zip(&sources[count..]).for_each(|(p,&i)|*p=bases[i as usize]);
++        Ok(Some(Self {upper:None, ids, ends, sources, sums, _held:held}))
++    }
++
++    fn members(&self, g:usize) -> &[u32] {
++        let start=if g==0 {0} else {self.ends[g-1]};
++        &self.ids[start..self.ends[g]]
++    }
++
++    fn choose(&self, rows: &[u32], scalars: &[Fr], adaptive: bool) -> (u32, u32) {
++        let first = rows[0];
++        let initial = scalars[first as usize];
++        let differences = rows[1..].iter().filter(|&&i| scalars[i as usize] != initial).count();
++        if !adaptive || differences * 2 <= rows.len() {
++            return (first, differences as u32);
++        }
++
++        let mut representative = first;
++        let mut balance = 0;
++        for &index in rows {
++            if balance == 0 {
++                representative = index;
++                balance = 1;
++            } else if scalars[index as usize] == scalars[representative as usize] {
++                balance += 1;
++            } else {
++                balance -= 1;
++            }
++        }
++        let alternative = scalars[representative as usize];
++        if balance > 0 && alternative != initial {
++            let count = rows.iter().filter(|&&i| scalars[i as usize] != alternative).count();
++            if count < differences {
++                return (representative, count as u32);
++            }
++        }
++        (first, differences as u32)
++    }
++
++    pub fn query(&self, bases:&[G2Affine], scalars:&[Fr]) -> Option<G2Projective> {
++        if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
++            let samples=self.ends.len().min(32);
++            let mut mismatches=0;
++            let mut members=0;
++            for bucket in 0..samples {
++                let g=(2*bucket+1)*self.ends.len()/(2*samples);
++                let rows=self.members(g);
++                let representative=scalars[rows[0] as usize];
++                members+=rows.len()-1;
++                mismatches+=rows[1..].iter().filter(|&&i|scalars[i as usize]!=representative).count();
++            }
++            if mismatches*4>members {
++                if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {eprintln!("GROUP_SKIP {} {} {}",scalars.len(),mismatches,members);}
++                return None;
++            }
++        }
++        let adaptive = std::env::var_os("ZOPRO_ADAPTIVE_CORRECTIONS").is_some();
++        let _flags=Reservation::analysis(self.ends.len().checked_mul(8)?.checked_add(256))?;
++        let choices: Vec<(u32,u32)> = (0..self.ends.len()).into_par_iter()
++            .map(|g| self.choose(self.members(g), scalars, adaptive)).collect();
++        let count:usize=choices.iter().map(|&(_,count)|count as usize).sum();
++        if count>self.ids.len()/16 { return None; }
++        let _scratch=Reservation::analysis(count.checked_mul(160)?.checked_add(self.sources.len()*32+512))?;
++        if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
++            eprintln!("GROUP_QUERY {} {} {}",scalars.len(),self.sources.len(),count);
++        }
++        let (main,extra)=rayon::join(|| {
++            if let Some(upper)=&self.upper {
++                let mut representatives:Vec<Fr>=self.sources.par_iter().enumerate().map(|(g,&source)| {
++                    let index=choices.get(g).map_or(source,|c|c.0);
++                    scalars[index as usize]
++                }).collect();
++                if let Some(result)=upper.query(&self.sums,&representatives) {
++                    if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() { eprintln!("NESTED_UPPER_COMPACT {}",self.sums.len()); }
++                    return result;
++                }
++                if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() { eprintln!("NESTED_UPPER_DENSE {}",self.sums.len()); }
++                return msm_affine::g2_query_exclusive(&self.sums,msm_affine::canonical_exclusive(&mut representatives));
++            }
++            let mut words:Vec<_>=self.sources.par_iter().enumerate().map(|(g,&source)| {
++                let index = choices.get(g).map_or(source, |c| c.0);
++                scalars[index as usize].to_canonical()
++            }).collect();
++            msm_affine::g2_query_exclusive(&self.sums,&mut words)
++        },|| {
++            if count==0 {return G2Projective::IDENTITY;}
++            let mut points=Vec::with_capacity(count);
++            let mut words=Vec::with_capacity(count);
++            for (g,&(selected,diff)) in choices.iter().enumerate() {
++                if diff==0 {continue;}
++                let members=self.members(g);
++                let rep=scalars[selected as usize];
++                for &i in members {
++                    let s=scalars[i as usize];
++                    if s!=rep {points.push(bases[i as usize]);words.push((s-rep).to_canonical());}
++                }
++            }
++            if adaptive && count>=256 {msm_affine::g2_query_exclusive(&points,&mut words)} else {super::msm_raw_b2(&points,&words)}
++        });
++        Some(main+extra)
++    }
++}
+--- /dev/null
++++ b/crates/zopro-core/src/groups_g1_trial.rs
+@@ -0,0 +1,151 @@
++use super::{msm_affine, preparation::Reservation, Fr, G1Affine, G1Projective};
++use rayon::prelude::*;
++
++pub(super) struct Groups {
++    ids: Vec<u32>,
++    ends: Vec<usize>,
++    sums: Vec<G1Affine>,
++    sources: Vec<u32>,
++    _held: Reservation,
++}
++
++fn u32at(bytes: &[u8], offset: usize) -> u32 {
++    u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap())
++}
++
++impl Groups {
++    pub fn prepare(bases: &[G1Affine], data: &[u8]) -> Result<Option<Self>, &'static str> {
++        if data.len() < 16 || &data[..8] != b"ZPGR0482" || u32at(data, 8) as usize != bases.len() {
++            return Err("invalid group dimensions");
++        }
++        let n = bases.len();
++        let count = u32at(data, 12) as usize;
++        if count == 0 || count > n / 2 || data.len() % 4 != 0 { return Err("invalid group count"); }
++        let members = (data.len() - 16) / 4;
++        let members = members.checked_sub(count).filter(|m| *m <= n && *m >= 2*count).ok_or("invalid member count")?;
++        // All member and remaining indices together occupy four bytes per key point.
++        let Some(held) = Reservation::analysis(n.checked_mul(4).and_then(|b| b.checked_add((count+n-members)*68 + count*8 + 512))) else { return Ok(None) };
++        let Some(_scratch) = Reservation::analysis(n.checked_add(data.len()).and_then(|x|x.checked_add(128 * rayon::current_num_threads() * 1024))) else {return Ok(None)};
++        let mut seen = vec![false; n];
++        let mut ids = Vec::with_capacity(members);
++        let mut ends = Vec::with_capacity(count);
++        let mut at = 16;
++        for _ in 0..count {
++            if at+4 > data.len() { return Err("missing group"); }
++            let len = u32at(data, at) as usize; at += 4;
++            if len < 2 || len > (data.len()-at)/4 { return Err("invalid group size"); }
++            for _ in 0..len {
++                let id=u32at(data, at); at += 4;
++                let flag = seen.get_mut(id as usize).ok_or("invalid B2 index")?;
++                if *flag {return Err("duplicate B2 index");}
++                *flag=true; ids.push(id);
++            }
++            ends.push(ids.len());
++        }
++        if at != data.len() {return Err("trailing group records");}
++        let mut sources=Vec::with_capacity(count+n-members);
++        for g in 0..count {
++            let start=if g==0 {0} else {ends[g-1]};
++            sources.push(ids[start]);
++        }
++        sources.extend((0..n).filter(|i| !seen[*i]).map(|i|i as u32));
++        let mut sums=vec![G1Affine::IDENTITY;sources.len()];
++        sums[..count].par_chunks_mut(128).enumerate().for_each(|(block,out)| {
++            let projective: Vec<_> = (block*128..block*128+out.len()).map(|g| {
++                let start=if g==0 {0} else {ends[g-1]};
++                let mut sum=G1Projective::IDENTITY;
++                for &i in &ids[start..ends[g]] {sum+=bases[i as usize];}
++                sum
++            }).collect();
++            out.copy_from_slice(&G1Projective::batch_to_affine(&projective));
++        });
++        sums[count..].par_iter_mut().zip(&sources[count..]).for_each(|(p,&i)|*p=bases[i as usize]);
++        Ok(Some(Self {ids, ends, sources, sums, _held:held}))
++    }
++
++    fn members(&self, g:usize) -> &[u32] {
++        let start=if g==0 {0} else {self.ends[g-1]};
++        &self.ids[start..self.ends[g]]
++    }
++
++    fn choose(&self, rows: &[u32], scalars: &[Fr], adaptive: bool) -> (u32, u32) {
++        let first = rows[0];
++        let initial = scalars[first as usize];
++        let differences = rows[1..].iter().filter(|&&i| scalars[i as usize] != initial).count();
++        if !adaptive || differences * 2 <= rows.len() {
++            return (first, differences as u32);
++        }
++
++        let mut representative = first;
++        let mut balance = 0;
++        for &index in rows {
++            if balance == 0 {
++                representative = index;
++                balance = 1;
++            } else if scalars[index as usize] == scalars[representative as usize] {
++                balance += 1;
++            } else {
++                balance -= 1;
++            }
++        }
++        let alternative = scalars[representative as usize];
++        if balance > 0 && alternative != initial {
++            let count = rows.iter().filter(|&&i| scalars[i as usize] != alternative).count();
++            if count < differences {
++                return (representative, count as u32);
++            }
++        }
++        (first, differences as u32)
++    }
++
++    pub fn query(&self, bases:&[G1Affine], scalars:&[Fr]) -> Option<G1Projective> {
++        if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
++            let samples=self.ends.len().min(32);
++            let mut mismatches=0;
++            let mut members=0;
++            for bucket in 0..samples {
++                let g=(2*bucket+1)*self.ends.len()/(2*samples);
++                let rows=self.members(g);
++                let representative=scalars[rows[0] as usize];
++                members+=rows.len()-1;
++                mismatches+=rows[1..].iter().filter(|&&i|scalars[i as usize]!=representative).count();
++            }
++            if mismatches*4>members {
++                if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {eprintln!("GROUP_SKIP {} {} {}",scalars.len(),mismatches,members);}
++                return None;
++            }
++        }
++        let adaptive = std::env::var_os("ZOPRO_ADAPTIVE_CORRECTIONS").is_some();
++        let _flags=Reservation::analysis(self.ends.len().checked_mul(8)?.checked_add(256))?;
++        let choices: Vec<(u32,u32)> = (0..self.ends.len()).into_par_iter()
++            .map(|g| self.choose(self.members(g), scalars, adaptive)).collect();
++        let count:usize=choices.iter().map(|&(_,count)|count as usize).sum();
++        if count>self.ids.len()/16 { return None; }
++        let _scratch=Reservation::analysis(count.checked_mul(96)?.checked_add(self.sources.len()*32+512))?;
++        if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
++            eprintln!("GROUP_G1 {} {} {}",scalars.len(),self.sources.len(),count);
++        }
++        let (main,extra)=rayon::join(|| {
++            let mut words:Vec<_>=self.sources.par_iter().enumerate().map(|(g,&source)| {
++                let index = choices.get(g).map_or(source, |c| c.0);
++                scalars[index as usize].to_canonical()
++            }).collect();
++            msm_affine::msm_canonical(&self.sums,&words)
++        },|| {
++            if count==0 {return G1Projective::IDENTITY;}
++            let mut points=Vec::with_capacity(count);
++            let mut words=Vec::with_capacity(count);
++            for (g,&(selected,diff)) in choices.iter().enumerate() {
++                if diff==0 {continue;}
++                let members=self.members(g);
++                let rep=scalars[selected as usize];
++                for &i in members {
++                    let s=scalars[i as usize];
++                    if s!=rep {points.push(bases[i as usize]);words.push((s-rep).to_canonical());}
++                }
++            }
++            if adaptive && count>=256 {msm_affine::msm_canonical(&points,&words)} else {msm_affine::msm_raw(&points,&words)}
++        });
++        Some(main+extra)
++    }
++}
+--- a/crates/zopro-bench/examples/cpu-sdk.rs
++++ b/crates/zopro-bench/examples/cpu-sdk.rs
+@@ -48,6 +48,17 @@
+         let enabled = prover.prepare_public_wire_offsets(&bytes)?;
+         println!("WIRE_FILE {} {}", enabled, start.elapsed().as_nanos());
+     }
++    if let Some(file) = std::env::var_os("ZOPRO_TRIAL_GROUPS") {
++        let data=fs::read(file)?; let start=Instant::now();
++        let enabled=prover.prepare_group_trial(&data)?;
++        println!("GROUP_FILE {} {}",enabled,start.elapsed().as_nanos());
++    }
++    if let Some(dir)=std::env::var_os("ZOPRO_LINEAR_GROUPS"){
++        let dir=std::path::Path::new(&dir);
++        let a=fs::read(dir.join("a.bin"))?;let k=fs::read(dir.join("k.bin"))?;
++        let start=Instant::now();let ready=prover.prepare_linear_trials(&a,&k)?;
++        println!("LINEAR_FILE {} {}",ready,start.elapsed().as_nanos());
++    }
+     let mut sdk = zopro_zolana::Prover::new(prover)?;
+     let request = fs::read_to_string(&args[2])?;
+     for _ in 0..3 {
+--- a/crates/zopro-prover/src/lib.rs
++++ b/crates/zopro-prover/src/lib.rs
+@@ -117,6 +117,9 @@
+     /// Preparation derives correction points from the loaded proving key. The
+     /// caller can release the input bytes after this call. Unsupported routes
+     /// and insufficient optional memory return `Ok(false)`.
++    pub fn prepare_linear_trials(&mut self,a:&[u8],k:&[u8])->Result<bool,&'static str>{self.key.prepare_linear_trials(a,k)}
++    pub fn prepare_group_trial(&mut self,bytes:&[u8])->Result<bool,&'static str>{self.key.prepare_group_trial(bytes)}
++
+     pub fn prepare_public_wire_offsets(&mut self, bytes: &[u8]) -> Result<bool, &'static str> {
+         self.key.prepare_public_wire_offsets(bytes)
+     }
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -224,6 +224,8 @@
+ 
+ #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+ mod public_wire_offsets;
++mod groups482;
++mod groups_g1_trial;
+ 
+ // The version of the solver images Key::solver_image writes and
+ // Key::set_solver_image reads, for a host to tell its images apart.
+@@ -807,6 +809,9 @@
+ 
+ #[wasm_bindgen]
+ pub struct Key {
++    trial_groups: Option<groups482::Groups>,
++    trial_a: Option<groups_g1_trial::Groups>,
++    trial_k: Option<groups_g1_trial::Groups>,
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     frontend_pool: Option<std::sync::Arc<FrontendThreadPool>>,
+     basis_only: bool,
+@@ -1529,6 +1534,9 @@
+             b2: std::sync::Arc::new(b2),
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             wire_offsets: None,
++            trial_groups: None,
++            trial_a: None,
++            trial_k: None,
+             generated_g2: Default::default(),
+             #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+             canonical_wires: !cfg!(target_arch="wasm32") && lengths.iter().copied().max().unwrap_or(0)<(1<<16) && std::env::var("ZOPRO_CPU_CANONICAL_WIRES").as_deref()==Ok("1"),
+@@ -2019,7 +2027,10 @@
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
+                     rayon::join(
+-                        || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
++                        || rayon::join(
++                            || if omit_b && folded_k {self.trial_a.as_ref().and_then(|q|q.query(&self.a,sa)).unwrap_or_else(||msm(&self.a,sa))} else {msm(&self.a,sa)},
++                            || if omit_b && folded_k {self.trial_k.as_ref().and_then(|q|q.query(k,sk)).unwrap_or_else(||msm(k,sk))} else {msm(k,sk)}
++                        ),
+                         || {
+                             if montgomery_h {
+                                 msm_affine::msm_montgomery(z, h)
+@@ -2033,6 +2044,11 @@
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
++                    }
++                    if omit_b {
++                        if let Some(result)=self.trial_groups.as_ref().and_then(|g|g.query(&self.b2,sb)) {
++                            return (G1Projective::IDENTITY,result);
++                        }
+                     }
+                     if let Some(groups) = group_witness(sb) {
+                         rayon::join(
+@@ -2385,6 +2401,7 @@
+ 
+ impl Key {
+     fn invalidate_solver(&mut self) {
++        self.trial_groups=None;self.trial_a=None;self.trial_k=None;
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         { self.wire_offsets = None; }
+         self.proof_workspace = None;
+@@ -2503,6 +2520,18 @@
+     /// Prepare corrections from public offsets for this CPU key.
+     /// An unsupported key or insufficient preparation budget disables the
+     /// option and returns `Ok(false)`. An invalid file returns an error.
++    pub fn prepare_linear_trials(&mut self,a:&[u8],k:&[u8])->Result<bool,&'static str>{
++        let folded=self.lagrange.as_ref().and_then(|q|q.folded.as_ref()).ok_or("missing folded basis")?;
++        let plan_a=groups_g1_trial::Groups::prepare(&self.a,a)?;
++        let plan_k=groups_g1_trial::Groups::prepare(&folded.private,k)?;
++        if plan_a.is_none() || plan_k.is_none(){return Ok(false)}
++        self.trial_a=plan_a;self.trial_k=plan_k;Ok(true)
++    }
++    pub fn prepare_group_trial(&mut self, bytes:&[u8])->Result<bool,&'static str>{
++        self.trial_groups=groups482::Groups::prepare(&self.b2,bytes)?;
++        Ok(self.trial_groups.is_some())
++    }
++
+     pub fn prepare_public_wire_offsets(&mut self, bytes: &[u8]) -> Result<bool, &'static str> {
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         {
