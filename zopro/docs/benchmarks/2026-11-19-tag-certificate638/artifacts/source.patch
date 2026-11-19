@@ -1,0 +1,94 @@
+--- a/crates/zopro-core/src/msm_affine/grouping/diversity.rs
++++ b/crates/zopro-core/src/msm_affine/grouping/diversity.rs
+@@ -4,7 +4,51 @@
+     let Some(_reservation) = crate::preparation::Reservation::analysis(Some(bits / 8 + 64)) else {
+         return false;
+     };
+-    occupied_exceeds(scalars, bits, cutoff)
++    let bytes = bits / 8;
++    if cutoff >= bytes {
++        return occupied_exceeds(scalars, bits, cutoff);
++    }
++    tagged_exceeds(scalars, bytes / 16, cutoff)
++}
++
++// A bank contains sixteen nonzero fingerprints. A collision or a full bank
++// may lose evidence, but the same scalar can never increase the count twice.
++fn tagged_exceeds(scalars: &[[u64; 4]], bank_count: usize, cutoff: usize) -> bool {
++    const ONES: u128 = u128::MAX / 255;
++    const HIGH: u128 = ONES << 7;
++    fn zero_bytes(word: u128) -> u128 {
++        word.wrapping_sub(ONES) & !word & HIGH
++    }
++    let mut banks = Vec::new();
++    if banks.try_reserve_exact(bank_count).is_err() {
++        return false;
++    }
++    banks.resize(bank_count, 0u128);
++    let shift = u64::BITS - bank_count.ilog2();
++    let mut occupied = 0;
++    for scalar in scalars {
++        if scalar[0] == 0 {
++            continue;
++        }
++        let hash = scalar[0].wrapping_mul(0x9e3779b97f4a7c15);
++        let bank = &mut banks[(hash >> shift) as usize];
++        let tag = ((hash >> (shift - 8)) as u8).max(1) as u128;
++        if zero_bytes(*bank ^ (tag * ONES)) != 0 {
++            continue;
++        }
++        let free = zero_bytes(*bank);
++        if free != 0 {
++            // Subtraction can also flag a byte after a zero through borrow.
++            // The least significant flagged byte is always an actual zero.
++            let slot_shift = free.trailing_zeros() & !7;
++            *bank |= tag << slot_shift;
++            occupied += 1;
++            if occupied > cutoff {
++                return true;
++            }
++        }
++    }
++    false
+ }
+ 
+ fn occupied_exceeds(scalars: &[[u64; 4]], bits: usize, cutoff: usize) -> bool {
+@@ -29,6 +73,38 @@
+ mod tests {
+     use super::*;
+     use std::collections::BTreeSet;
++    #[test]
++    fn single_pass_tags_match_a_byte_oracle_across_saturation_and_repeated_tags() {
++        use std::collections::BTreeSet;
++        let mut stream = Vec::new();
++        let mut rng = 79u64;
++        for i in 0..2048 {
++            rng ^= rng << 13;
++            rng ^= rng >> 7;
++            rng ^= rng << 17;
++            stream.push([if i % 7 == 0 { 0 } else { rng }, i, 0, 0]);
++            if i % 3 == 0 {
++                stream.push(*stream.last().unwrap());
++            }
++        }
++        for bank_count in [2usize, 8, 64, 128] {
++            let shift = 64 - bank_count.ilog2();
++            let mut banks = vec![BTreeSet::new(); bank_count];
++            for s in &stream {
++                if s[0] != 0 {
++                    let hash = s[0].wrapping_mul(0x9e3779b97f4a7c15);
++                    let bank = &mut banks[(hash >> shift) as usize];
++                    if bank.len() < 16 {
++                        bank.insert(((hash >> (shift - 8)) as u8).max(1));
++                    }
++                }
++            }
++            let exact: usize = banks.iter().map(BTreeSet::len).sum();
++            assert!(tagged_exceeds(&stream, bank_count, exact - 1));
++            assert!(!tagged_exceeds(&stream, bank_count, exact));
++            assert!(!tagged_exceeds(&[[0; 4]], bank_count, 0));
++        }
++    }
+     #[test]
+     fn certificate_is_conservative_under_collisions_zeros_and_thresholds() {
+         let mut rng = 8191u64;
