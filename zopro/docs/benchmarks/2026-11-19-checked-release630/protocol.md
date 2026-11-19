@@ -1,0 +1,7 @@
+# Release comparison for the exact checked, indexed SDK
+
+The first trials of the indexed-only build improved larger inputs but consistently slowed the 1×2 reference. The follow-up build reuses the existing bounded diversity test on canonical queries. Its 1×2 probe failed to skip the reference dictionary and did skip it on two different inputs. Compare that exact executable against the deployed SDK on all nine original keys, plus the scattered 12×2 transfer. Include additional 1×2 and 2×2 runs with the diversity option removed from both environments, leaving all other settings identical. Also compile the exact candidate for generic x86-64. The two small-input configurations isolate the selection variable and retain the rest of the tuned server profile.
+
+Each input and configuration uses six same-block comparisons, split equally between both execution orders. Each process primes three times and measures eleven complete proofs, followed by two separate CPU profile blocks with the same independent verification. Compare latencies, paired wins, maximum RSS and all eight M5 CPU and Metal references. Preserve the primary probe failure when interpreting speed on the 1×2 reference. No table-admission change can explain that timing in isolation.
+
+[Current witness census and first comparison](../2026-11-19-canonical-index629/protocol.md) · [Parent and indexed-only comparison](../2026-11-19-balanced-index626/README.md)
