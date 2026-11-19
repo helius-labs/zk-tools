@@ -1,0 +1,266 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -18,6 +18,8 @@
+ pub(super) use grouping::group_witness_b2_origins;
+ #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+ pub(super) use grouping::group_witness_serial_b2;
++#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++pub(super) use grouping::sharded::group_witness_sharded;
+ 
+ #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ mod g2_horner;
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -321,3 +321,6 @@
+     }
+     (values, counts)
+ }
++
++#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++pub(super) mod sharded;
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/grouping/sharded.rs
+@@ -0,0 +1,213 @@
++use super::{grouping_cost, grouping_sample, ScalarGroups};
++use hashbrown::{hash_table::Entry, HashTable};
++use rayon::prelude::*;
++use zopro_bn254::Fr;
++
++type Word = [u64; 4];
++
++struct Shard {
++    values: Vec<Word>,
++    counts: Vec<usize>,
++    order: Vec<u32>,
++}
++
++pub(crate) fn group_witness_sharded(
++    scalars: &[Fr],
++    serial_conversion: bool,
++) -> Option<ScalarGroups> {
++    static SHARDS: std::sync::OnceLock<Option<usize>> = std::sync::OnceLock::new();
++    let shards = (*SHARDS.get_or_init(|| {
++        std::env::var("ZOPRO_TRIAL_B2_SHARDS")
++            .ok()?
++            .parse::<usize>()
++            .ok()
++            .filter(|n| [4, 8, 16].contains(n))
++    }))?;
++    if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") || rayon::current_num_threads() < shards {
++        return None;
++    }
++
++    // SAFETY: Fr is repr(transparent) over the word array. Classification
++    // reads and compares its existing Montgomery representation.
++    let words =
++        unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<Word>(), scalars.len()) };
++    let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
++    let (_, percent) = grouping_sample(words, zero_aware)?;
++    let reservation = grouping_cost::reserve(words.len(), percent);
++    // The standard reservation includes final metadata, consumers, and the
++    // serial construction cost. Charge transient shard buffers separately.
++    let scratch = crate::preparation::Reservation::analysis(
++        words.len().checked_mul(72)?.checked_add(shards * 4096),
++    );
++    if std::env::var_os("ZOPRO_TRIAL_B2_SHARDS_TRACE").is_some() {
++        eprintln!(
++            "B2_SHARDS {} {shards} {}",
++            words.len(),
++            reservation.is_some() && scratch.is_some()
++        );
++    }
++    let (reservation, _scratch) = (reservation?, scratch?);
++    let partition = classify(words, shards);
++    let distinct = partition
++        .iter()
++        .map(|shard| shard.values.len())
++        .sum::<usize>();
++    if distinct * 100 > words.len() * percent {
++        return None;
++    }
++    let total_points = partition.iter().map(|shard| shard.order.len()).sum();
++    let mut values = Vec::with_capacity(distinct);
++    let mut counts = Vec::with_capacity(distinct);
++    let mut starts = Vec::with_capacity(distinct + 1);
++    let mut order = Vec::with_capacity(total_points);
++    starts.push(0);
++    for mut shard in partition {
++        for &count in &shard.counts {
++            starts.push(starts.last().unwrap() + count);
++        }
++        values.append(&mut shard.values);
++        counts.append(&mut shard.counts);
++        order.append(&mut shard.order);
++    }
++    let convert = |value: &mut Word| *value = Fr::from_montgomery(*value).to_canonical();
++    if serial_conversion {
++        values.iter_mut().for_each(convert);
++    } else {
++        values.par_iter_mut().for_each(convert);
++    }
++    Some(ScalarGroups {
++        len: words.len(),
++        values,
++        order,
++        starts,
++        counts,
++        _reservation: reservation,
++    })
++}
++
++fn classify(words: &[Word], shards: usize) -> Vec<Shard> {
++    let mut indices = (0..shards)
++        .map(|_| Vec::with_capacity(words.len().div_ceil(shards)))
++        .collect::<Vec<Vec<u32>>>();
++    let mut ones = Vec::new();
++    for (i, word) in words.iter().enumerate() {
++        if *word == Fr::ZERO.0 {
++            continue;
++        }
++        if *word == Fr::ONE.0 {
++            ones.push(i as u32);
++            continue;
++        }
++        // Low-cost partition only. The local table hashes and compares all
++        // limbs, so a partition collision affects work and not grouping.
++        let hash = word[0] ^ word[1] ^ word[2] ^ word[3];
++        indices[(hash as usize) & (shards - 1)].push(i as u32);
++    }
++
++    let mut groups = indices
++        .into_par_iter()
++        .map(|indices| classify_shard(words, indices))
++        .collect::<Vec<_>>();
++    if !ones.is_empty() {
++        groups.push(Shard {
++            values: vec![Fr::ONE.0],
++            counts: vec![ones.len()],
++            order: ones,
++        });
++    }
++    groups
++}
++
++fn classify_shard(words: &[Word], indices: Vec<u32>) -> Shard {
++    use std::hash::BuildHasher as _;
++    let state = ahash::RandomState::new();
++    let mut table = HashTable::<u32>::with_capacity(indices.len().div_ceil(3));
++    let mut values = Vec::new();
++    let mut counts = Vec::new();
++    let mut classes = Vec::with_capacity(indices.len());
++    for &index in &indices {
++        let word = &words[index as usize];
++        let class = match table.entry(
++            state.hash_one(word),
++            |&class| values[class as usize] == *word,
++            |&class| state.hash_one(&values[class as usize]),
++        ) {
++            Entry::Occupied(entry) => *entry.get(),
++            Entry::Vacant(entry) => {
++                let class = values.len() as u32;
++                values.push(*word);
++                counts.push(0);
++                entry.insert(class);
++                class
++            }
++        };
++        classes.push(class);
++        counts[class as usize] += 1;
++    }
++    drop(table);
++    let mut start = 0usize;
++    let mut offsets: Vec<_> = counts
++        .iter()
++        .map(|count| {
++            let offset = start;
++            start += count;
++            offset
++        })
++        .collect();
++    let mut order = vec![0u32; indices.len()];
++    for (index, class) in indices.into_iter().zip(classes) {
++        let cursor = &mut offsets[class as usize];
++        order[*cursor] = index;
++        *cursor += 1;
++    }
++    Shard {
++        values,
++        counts,
++        order,
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::collections::BTreeMap;
++
++    #[test]
++    fn sharded_b2_groups_match_full_words() {
++        for kind in 0..4 {
++            let scalars: Vec<_> = (0..184_237)
++                .map(|i| match kind {
++                    0 => Fr::ZERO.0,
++                    1 => Fr::ONE.0,
++                    2 => [1, 7, 3, i % 8011],
++                    _ => match i % 11 {
++                        0 | 1 => Fr::ZERO.0,
++                        2..=6 => Fr::ONE.0,
++                        _ => Fr::from(i % 39_617 + 2).0,
++                    },
++                })
++                .collect();
++            let mut want = BTreeMap::<_, Vec<u32>>::new();
++            for (i, &scalar) in scalars.iter().enumerate() {
++                if scalar != Fr::ZERO.0 {
++                    want.entry(scalar).or_default().push(i as u32);
++                }
++            }
++            for shards in [4, 8, 16] {
++                let groups = classify(&scalars, shards);
++                let mut got = BTreeMap::new();
++                for shard in groups {
++                    let mut start = 0;
++                    for (value, count) in shard.values.into_iter().zip(shard.counts) {
++                        assert!(got
++                            .insert(value, shard.order[start..start + count].to_vec())
++                            .is_none());
++                        start += count;
++                    }
++                    assert_eq!(start, shard.order.len());
++                }
++                assert_eq!(got, want, "kind={kind} shards={shards}");
++            }
++        }
++    }
++}
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2112,15 +2112,18 @@
+                     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                     let ordinary = || if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
+                     #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+-                    let groups = if omit_b && (65_536..262_144).contains(&sb.len())
+-                        && self.grouped_b2_poseidon_origins
+-                    {
+-                        self.solver.as_ref().and_then(solver::Plan::b2_origins)
+-                            .and_then(|origins| msm_affine::group_witness_b2_origins(sb, origins, serial))
+-                            .or_else(ordinary)
+-                    } else {
+-                        ordinary()
+-                    };
++                    let groups = (omit_b && (65_536..262_144).contains(&sb.len()))
++                        .then(|| msm_affine::group_witness_sharded(sb, serial))
++                        .flatten()
++                        .or_else(|| {
++                            if omit_b && (65_536..262_144).contains(&sb.len()) && self.grouped_b2_poseidon_origins {
++                                self.solver.as_ref().and_then(solver::Plan::b2_origins)
++                                    .and_then(|origins| msm_affine::group_witness_b2_origins(sb, origins, serial))
++                                    .or_else(ordinary)
++                            } else {
++                                ordinary()
++                            }
++                        });
+                     #[cfg(all(not(zopro_resource_schedule), target_os = "linux", target_arch = "x86_64"))]
+                     let groups = ordinary();
+                     #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
