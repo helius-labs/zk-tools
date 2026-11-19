@@ -13,7 +13,7 @@ The measured executables are the ordinary reference from the staged AWS pilot an
 | 6x2 | zopro | 35.173 / 35.661 | +1.59% (1/4) | 263.0 / 266.9 | 2883.8 / 2885.4 | 2.197 / 2.148 | +0.3% / +0.1% | 245.5 / 238.0 |
 | 6x2 | aeglos | 115.555 / 102.299 | -11.49% (3/4) | 917.3 / 784.3 | 8168.8 / 8175.5 | 1.748 / 2.019 | -0.2% / -1.7% | 1888.6 / 1879.8 |
 
-Aeglos on 5×16 and 6×2 gained 11.00% and 11.49% in paired latency from spreading the same eight cores across both cache domains. Retired instructions per proof varied by less than 0.1% between those placements on both keys. CPU-ms fell and instructions per cycle increased. On 1×16, Aeglos instead took 6.20% longer when spread and lost all four pairs. Zopro had higher paired latency when spread on all three shapes. These results favor testing a locality-aware worker policy for Zopro and show why giving both engines the same thread count alone does not characterize the hardware comparison.
+Aeglos on 5×16 and 6×2 reduced paired latency by 11.00% and 11.49% with eight cores split across both cache domains. Retired instructions per proof varied by less than 0.12% between those placements on both keys. CPU-ms fell and instructions per cycle increased. On 1×16, Aeglos instead took 6.20% longer when spread and lost all four pairs. Zopro had higher paired latency when spread on all three shapes. These results favor testing a locality-aware worker policy for Zopro and show why giving both engines the same thread count alone does not characterize the hardware comparison.
 
 Both domains reside in the same NUMA node. This intervention cannot separate the extra L3 capacity, inter-domain communication, boost clocks or memory-channel behavior. The 96-physical-core C7a measurements require a separate same-host test.
 
