@@ -1,0 +1,67 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2026,7 +2026,10 @@
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
+                     rayon::join(
+-                        || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
++                        || rayon::join(
++                            || self.dispatch_grouped_g1("a", self.a.len(), || msm(&self.a[..], sa)),
++                            || self.dispatch_grouped_g1("k", k.len(), || msm(k, sk)),
++                        ),
+                         || {
+                             if montgomery_h {
+                                 msm_affine::msm_montgomery(z, h)
+@@ -2522,3 +2525,37 @@
+         { let _ = bytes; Ok(false) }
+     }
+ }
++
++#[cfg(not(target_arch = "wasm32"))]
++impl Key {
++    fn dispatch_grouped_g1<F>(&self, query: &str, terms: usize, work: F) -> G1Projective
++    where
++        F: FnOnce() -> G1Projective + Send,
++    {
++        #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_os = "linux",
++            target_arch = "x86_64", target_feature = "avx512ifma",
++            target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++        if std::env::var("ZOPRO_TRIAL_G1_FRONTEND").as_deref() == Ok(query) {
++            if let Some(pool) = self.frontend_pool.as_ref()
++                .filter(|pool| pool.current_num_threads() < rayon::current_num_threads())
++            {
++                // The helper returns an uncalled closure if memory admission fails.
++                let charged = pool.install(|| {
++                    let bytes = msm_affine::workspace::grouped_g1_pool_bytes(terms);
++                    match preparation::Reservation::analysis(bytes) {
++                        Some(_scratch) => {
++                            if std::env::var_os("ZOPRO_TRIAL_G1_FRONTEND_PROBE").is_some() {
++                                eprintln!("GROUP_G1_POOL {query} {terms} {} {}",
++                                    rayon::current_num_threads(), bytes.unwrap_or(0));
++                            }
++                            Ok(work())
++                        }
++                        None => Err(work),
++                    }
++                });
++                return match charged { Ok(sum) => sum, Err(unused) => unused() };
++            }
++        }
++        work()
++    }
++}
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -389,6 +389,12 @@
+         held: original.held.max(build).max(grouped.held),
+         leaf: original.leaf.max(grouped.leaf),
+     })
++}
++
++/// Keep optional G1 point and reduction scratch inside the live proof budget.
++pub(crate) fn grouped_g1_pool_bytes(n: usize) -> Option<usize> {
++    let p = envelope::<G1Config>(n, true, false)?;
++    add(p.held, mul(p.leaf, rayon::current_num_threads())?)
+ }
+ 
+ #[derive(Clone, Copy, Debug)]
