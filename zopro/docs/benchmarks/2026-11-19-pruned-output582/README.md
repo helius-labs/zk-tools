@@ -14,3 +14,5 @@ The native oracle checks every necessary derivative pack and the complete pointw
 | mapped | 109 | 27.04% / 33.89% | 64.219 / 63.837 / 62.968 | -1.36% (5/5) | -1.46% (5/5) | — |
 
 All 96 exports verified with the original key. [Native kernel](artifacts/output_mask.rs) · [Integration](artifacts/integration.patch) · [Process samples and support](artifacts/samples.json.gz) · [Verification](artifacts/verification.json)
+
+The original mapped request skipped 15.69% of these butterflies and won two of five comparisons with pruning disabled. Request 109 skipped 27.04% and won all five. Requests 122 and 124 skipped less than 9% and lost most pairs. The earlier 40.06% estimate used leave-one-out references within a different fixture set. Across these five timed mapped inputs, the results do not support turning on this kernel by default.
