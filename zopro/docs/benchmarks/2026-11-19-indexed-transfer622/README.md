@@ -1,5 +1,9 @@
 # Indexed grouping across reference and held-out transfers
 
+The index-only dictionary reduced paired median 4×2 latency on all four inputs, winning 25 of 28 blocks against the ordinary dictionary and 24 of 28 against the frozen executable. Peak process RSS also fell on every 4×2 input. This selects indexed grouping for the measured experimental 4×2 server profile. A separate ordinary SDK build is being qualified across the catalog. [Ordinary SDK comparison](../2026-11-19-release-index625/protocol.md)
+
+On 12×2 the largest gain was on the scattered request, where peak RSS fell from 1,169.3 to 839.3 MiB and latency improved in seven of seven pairs. The 12×2 reference median was 28.672 ms, above the 28.4 ms target. One of seven processes crossed that target. The two adjacent-input requests had slightly higher paired median latency with indexing.
+
 Seven randomized blocks use the same binaries and public requests across settings. Every comparison uses full proof latency. Peaks cover startup, priming and all timed proofs.
 
 | Shape | Input | Prior / ordinary / indexed ms | Indexed vs ordinary / prior | Peak prior / ordinary / indexed MiB | Indexed vs M5 CPU / Metal (10× CPU blocks) |
