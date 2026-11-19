@@ -1,0 +1,250 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -120,16 +120,62 @@
+ 
+ /// `scalars` in place as their canonical limbs, for msm_canonical: a
+ /// proof's scalars, which it needs no more after its MSMs.
++pub(crate) fn canonical_reduction_enabled() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(|| std::env::var("ZOPRO_TRIAL_CANONICAL_REDUCTION").as_deref() == Ok("1"))
++}
++
++#[inline(always)]
++pub(crate) fn convert_word<const REDUCTION: bool>(wire: &Fr) -> [u64; 4] {
++    if REDUCTION { wire.to_canonical_reduced() } else { wire.to_canonical() }
++}
++
++#[cfg(all(feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++pub(crate) fn canonical_vector_enabled() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(|| std::env::var("ZOPRO_TRIAL_VECTOR_DECODE").as_deref() == Ok("1"))
++}
++
++#[cfg(not(all(feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma))))]
++pub(crate) fn canonical_vector_enabled() -> bool {
++    false
++}
++
++pub(crate) fn convert_slice<const REDUCTION: bool, const VECTOR: bool>(scalars: &mut [Fr]) {
++    #[cfg(all(feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++    if VECTOR {
++        use zopro_bn254::{FrConfig, ifma8::Ifma8};
++        type Batch = Ifma8<FrConfig, true>;
++        let integer_one = Batch::new(&[Fr::from_montgomery([1, 0, 0, 0]); 8]);
++        let (full, tail) = scalars.as_chunks_mut::<8>();
++        for batch in full {
++            *batch = Batch::new(batch).mul(&integer_one).get();
++        }
++        for word in tail {
++            *word = Fr::from_montgomery(word.to_canonical_reduced());
++        }
++        return;
++    }
++    for word in scalars {
++        *word = Fr::from_montgomery(convert_word::<REDUCTION>(word));
++    }
++}
++
++fn convert_all<const REDUCTION: bool>(scalars: &mut [Fr]) {
++    let iter = scalars.par_iter_mut();
++    #[cfg(zopro_canonical_task_grain)]
++    let iter = iter.with_min_len(128);
++    iter.for_each(|s| *s = Fr::from_montgomery(convert_word::<REDUCTION>(s)));
++}
++
+ pub(super) fn canonical(scalars: &mut [Fr]) -> &[[u64; 4]] {
+-    #[cfg(zopro_canonical_task_grain)]
+-    scalars
+-        .par_iter_mut()
+-        .with_min_len(128)
+-        .for_each(|s| *s = Fr::from_montgomery(s.to_canonical()));
+-    #[cfg(not(zopro_canonical_task_grain))]
+-    scalars
+-        .par_iter_mut()
+-        .for_each(|s| *s = Fr::from_montgomery(s.to_canonical()));
++    if canonical_vector_enabled() {
++        scalars.par_chunks_mut(512).for_each(convert_slice::<true, true>);
++    } else if canonical_reduction_enabled() {
++        convert_all::<true>(scalars);
++    } else {
++        convert_all::<false>(scalars);
++    }
+     // SAFETY: Fr is repr(transparent) over its four limbs.
+     unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) }
+ }
+@@ -1848,3 +1894,24 @@
+ 
+ #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+ mod dense_h;
++
++#[cfg(all(test,all(feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma))))]
++mod decode_vector_tests {
++    use super::*;
++    #[test]
++    fn mixed_radix_decode_matches_native_reference() {
++        use crate::testing::Seeded;
++        let mut rnd=Seeded::new(0x7265646338);
++        for n in [0,1,7,8,9,15,16,17,127,128,129,1023,1024,1025,65539] {
++            let mut inputs: Vec<_>=(0..n).map(|i| match i % 9 {
++                0 => Fr::ZERO,
++                1 => Fr::ONE,
++                2 => -Fr::ONE,
++                _ => rnd.fr(),
++            }).collect();
++            let expected: Vec<_>=inputs.iter().map(Fr::to_canonical).collect();
++            convert_slice::<true,true>(&mut inputs);
++            assert_eq!(inputs.iter().map(|v|v.0).collect::<Vec<_>>(),expected);
++        }
++    }
++}
+--- a/crates/zopro-core/src/fused_canonical_gather.rs
++++ b/crates/zopro-core/src/fused_canonical_gather.rs
+@@ -5,7 +5,7 @@
+ type Words = [u64; 4];
+ const LEAF: usize = 1024;
+ 
+-fn fill(
++fn fill<const REDUCTION: bool, const VECTOR: bool>(
+     wires: &mut [Fr],
+     base: usize,
+     a_indices: &[u32],
+@@ -14,9 +14,7 @@
+     b: &mut [MaybeUninit<Words>],
+ ) {
+     if wires.len() <= LEAF {
+-        for wire in wires.iter_mut() {
+-            *wire = Fr::from_montgomery(wire.to_canonical());
+-        }
++        crate::msm_affine::convert_slice::<REDUCTION, VECTOR>(wires);
+         for (&i, out) in a_indices.iter().zip(a) {
+             // The stored limbs are canonical after the conversion above.
+             out.write(wires[i as usize - base].0);
+@@ -34,18 +32,30 @@
+     let (left_a, right_a) = a.split_at_mut(cut_a);
+     let (left_b, right_b) = b.split_at_mut(cut_b);
+     rayon::join(
+-        || fill(left_w, base, &a_indices[..cut_a], left_a, &b_indices[..cut_b], left_b),
+-        || fill(right_w, boundary, &a_indices[cut_a..], right_a, &b_indices[cut_b..], right_b),
++        || fill::<REDUCTION, VECTOR>(left_w, base, &a_indices[..cut_a], left_a, &b_indices[..cut_b], left_b),
++        || fill::<REDUCTION, VECTOR>(right_w, boundary, &a_indices[cut_a..], right_a, &b_indices[cut_b..], right_b),
+     );
+ }
+ 
+ pub(super) fn prepare(wires: &mut [Fr], a: &[u32], b: &[u32]) -> (Vec<Words>, Vec<Words>) {
+     let mut out_a = Vec::<Words>::with_capacity(a.len());
+     let mut out_b = Vec::<Words>::with_capacity(b.len());
+-    fill(
+-        wires, 0, a, &mut out_a.spare_capacity_mut()[..a.len()],
+-        b, &mut out_b.spare_capacity_mut()[..b.len()],
+-    );
++    if crate::msm_affine::canonical_vector_enabled() {
++        fill::<true, true>(
++            wires, 0, a, &mut out_a.spare_capacity_mut()[..a.len()],
++            b, &mut out_b.spare_capacity_mut()[..b.len()],
++        );
++    } else if crate::msm_affine::canonical_reduction_enabled() {
++        fill::<true, false>(
++            wires, 0, a, &mut out_a.spare_capacity_mut()[..a.len()],
++            b, &mut out_b.spare_capacity_mut()[..b.len()],
++        );
++    } else {
++        fill::<false, false>(
++            wires, 0, a, &mut out_a.spare_capacity_mut()[..a.len()],
++            b, &mut out_b.spare_capacity_mut()[..b.len()],
++        );
++    }
+     // SAFETY: matching index/output slices are split at identical boundaries.
+     // Every leaf writes each element exactly once. fill joins all descendants
+     // before returning. On panic neither length is increased; Words has no drop.
+--- a/crates/zopro-bn254/src/fp.rs
++++ b/crates/zopro-bn254/src/fp.rs
+@@ -67,6 +67,13 @@
+     #[inline]
+     pub fn to_canonical(&self) -> [u64; 4] {
+         backend::multiply(self.0, [1, 0, 0, 0], C::P, C::INV)
++    }
++
++    /// Canonical words using the standalone Montgomery reduction.
++    #[doc(hidden)]
++    #[inline]
++    pub fn to_canonical_reduced(&self) -> [u64; 4] {
++        portable::decode_montgomery(self.0, C::P, C::INV)
+     }
+ 
+     /// -self as a constant expression.
+@@ -352,3 +359,41 @@
+         out
+     }
+ }
++
++#[cfg(test)]
++mod decode_tests {
++    use super::*;
++    use crate::{FqConfig, FrConfig};
++
++    fn exact<C: FpConfig>() {
++        let max = [u64::MAX; 4];
++        let (below, _) = portable::sub4(C::P, [1, 0, 0, 0]);
++        let fixed = [[0; 4], [1, 0, 0, 0], C::R, C::R2, below, C::P, max,
++            [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]];
++        let mut state = 0x8bc17ad934e6a82du64;
++        let mut next = || {
++            state ^= state << 13;
++            state ^= state >> 7;
++            state ^= state << 17;
++            state
++        };
++        let check = |x| {
++            let el = Fp::<C>::from_montgomery(x);
++            let value = el.to_canonical_reduced();
++            assert_eq!(value, el.to_canonical());
++            assert_eq!(value, portable::multiply(x, [1, 0, 0, 0], C::P, C::INV));
++        };
++        for x in fixed {
++            check(x);
++        }
++        for _ in 0..65_536 {
++            check(core::array::from_fn(|_| next()));
++        }
++    }
++
++    #[test]
++    fn reduction_only_matches_generic() {
++        exact::<FrConfig>();
++        exact::<FqConfig>();
++    }
++}
+--- a/crates/zopro-bn254/src/portable.rs
++++ b/crates/zopro-bn254/src/portable.rs
+@@ -107,6 +107,31 @@
+     reduce_once([t[0], t[1], t[2], t[3]], p)
+ }
+ 
++/// Decode a four-limb Montgomery value without multiplying it by one.
++#[inline(always)]
++pub(crate) const fn decode_montgomery(
++    mut x: [u64; 4], p: [u64; 4], inv: u64,
++) -> [u64; 4] {
++    let mut round = 0;
++    while round < 4 {
++        let q = x[0].wrapping_mul(inv);
++        // q * p[0] cancels x[0] modulo 2^64. Their low halves
++        // produce a carry exactly when x[0] is nonzero.
++        let low = (q as u128) * (p[0] as u128);
++        let mut carry = (low >> 64) + (x[0] != 0) as u128;
++        let mut limb = 1;
++        while limb < 4 {
++            let column = (q as u128) * (p[limb] as u128) + x[limb] as u128 + carry;
++            x[limb - 1] = column as u64;
++            carry = column >> 64;
++            limb += 1;
++        }
++        x[3] = carry as u64;
++        round += 1;
++    }
++    reduce_once(x, p)
++}
++
+ /// a b + c d, as two products.
+ #[inline(always)]
+ #[allow(dead_code)]
