@@ -1,0 +1,249 @@
+--- a/crates/zopro-bn254/src/ifma8.rs
++++ b/crates/zopro-bn254/src/ifma8.rs
+@@ -123,6 +123,13 @@
+             let r1 = _mm512_loadu_si512(ptr.add(1));
+             let r2 = _mm512_loadu_si512(ptr.add(2));
+             let r3 = _mm512_loadu_si512(ptr.add(3));
++            Self::expand_raw(Self::transpose_words(r0, r1, r2, r3))
++        }
++    }
++
++    #[inline(always)]
++    fn transpose_words(r0: __m512i, r1: __m512i, r2: __m512i, r3: __m512i) -> [__m512i; 4] {
++        unsafe {
+             let a = _mm512_unpacklo_epi64(r0, r1);
+             let b = _mm512_unpackhi_epi64(r0, r1);
+             let c = _mm512_unpacklo_epi64(r2, r3);
+@@ -133,6 +140,13 @@
+             let w1 = _mm512_permutex2var_epi64(b, low, d);
+             let w2 = _mm512_permutex2var_epi64(a, high, c);
+             let w3 = _mm512_permutex2var_epi64(b, high, d);
++            [w0, w1, w2, w3]
++        }
++    }
++
++    #[inline(always)]
++    fn expand_raw([w0, w1, w2, w3]: [__m512i; 4]) -> Self {
++        unsafe {
+             let mask = Self::splat(MASK);
+             Self(
+                 [
+@@ -161,15 +175,20 @@
+     }
+     #[inline(always)]
+     pub fn new(x: &[Fp<C>; 8]) -> Self {
++        Self::import_raw(Self::raw(&x.map(|v| v.0)))
++    }
++
++    #[inline(always)]
++    fn import_raw(input: Self) -> Self {
+         if MIXED {
+-            return Self::raw(&x.map(|v| v.0));
++            return input;
+         }
+         // Multiply the raw R=2^256 representation by sixteen, then reduce
+         // with a one-digit Barrett quotient. No Montgomery product needed.
+         unsafe {
+             let zero = Self::splat(0);
+             let mask = Self::splat(MASK);
+-            let raw = Self::raw(&x.map(|v| v.0)).0;
++            let raw = input.0;
+             let mut t = [zero; 5];
+             t[0] = _mm512_and_si512(_mm512_slli_epi64::<4>(raw[0]), mask);
+             for j in 1..5 {
+@@ -181,6 +200,15 @@
+                     mask,
+                 );
+             }
++            Self::reduce_scaled(t)
++        }
++    }
++
++    #[inline(always)]
++    fn reduce_scaled(mut t: [__m512i; 5]) -> Self {
++        unsafe {
++            let zero = Self::splat(0);
++            let mask = Self::splat(MASK);
+             let q = _mm512_madd52hi_epu64(zero, t[4], Self::splat(Self::RECIPROCAL));
+             let p = split(C::P).map(Self::splat);
+             let mut carry = zero;
+@@ -193,6 +221,35 @@
+             Self::reduce(t, C::P)
+         }
+     }
++    /// Pack four contiguous field elements from each input polynomial.
++    /// FUSED places the factor sixteen directly into the radix-52 digit split.
++    #[inline(always)]
++    pub fn from_quads<const FUSED: bool>(a: &[Fp<C>; 4], b: &[Fp<C>; 4]) -> Self {
++        // SAFETY: Fp is transparent over four u64 words. Each array supplies
++        // exactly two unaligned 64-byte loads, all within that array.
++        unsafe {
++            let pa = a.as_ptr().cast::<__m512i>();
++            let pb = b.as_ptr().cast::<__m512i>();
++            let words = Self::transpose_words(
++                _mm512_loadu_si512(pa), _mm512_loadu_si512(pa.add(1)),
++                _mm512_loadu_si512(pb), _mm512_loadu_si512(pb.add(1)),
++            );
++            if MIXED || !FUSED {
++                return Self::import_raw(Self::expand_raw(words));
++            }
++            let [w0, w1, w2, w3] = words;
++            let mask = Self::splat(MASK);
++            let t = [
++                _mm512_and_si512(_mm512_slli_epi64::<4>(w0), mask),
++                _mm512_and_si512(_mm512_or_si512(_mm512_srli_epi64::<48>(w0), _mm512_slli_epi64::<16>(w1)), mask),
++                _mm512_and_si512(_mm512_or_si512(_mm512_srli_epi64::<36>(w1), _mm512_slli_epi64::<28>(w2)), mask),
++                _mm512_and_si512(_mm512_or_si512(_mm512_srli_epi64::<24>(w2), _mm512_slli_epi64::<40>(w3)), mask),
++                _mm512_srli_epi64::<12>(w3),
++            ];
++            Self::reduce_scaled(t)
++        }
++    }
++
+     #[inline(always)]
+     pub fn get(&self) -> [Fp<C>; 8] {
+         // Divide the raw representation by sixteen modulo p. Choose k<16
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1767,6 +1767,35 @@
+ // Euler derivative product used by the evaluation-basis prover.
+ // Unnormalized inverse FFT means the returned prefix is
+ // n * (E(A) * B + A * E(B)), where E(f) = X f'.
++fn pack_mode() -> u8 {
++    match std::env::var("ZOPRO_PACK_QUADS").as_deref() {
++        Ok("direct") => 1,
++        Ok("shifted") => 2,
++        _ => 0,
++    }
++}
++
++#[inline(always)]
++fn pack_row<const MODE: u8>(a: &[Fr], b: &[Fr], offset: usize) -> Pair {
++    if MODE != 0 {
++        if let (Some(lo), Some(hi)) = (a.get(offset..).and_then(|a| a.first_chunk::<4>()),
++                                      b.get(offset..).and_then(|b| b.first_chunk::<4>())) {
++            if MODE == 1 {return Pair::from_quads::<false>(lo, hi);}
++            return Pair::from_quads::<true>(lo, hi);
++        }
++    }
++    let mut lanes = [Fr::ZERO; 8];
++    for j in 0..4 {
++        lanes[j] = a.get(offset + j).copied().unwrap_or(Fr::ZERO);
++        lanes[4 + j] = b.get(offset + j).copied().unwrap_or(Fr::ZERO);
++    }
++    Pair::new(&lanes)
++}
++
++fn pack_rows<const MODE: u8>(n: usize, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
++    (0..n / 4).into_par_iter().map(|i| PackedPair::store(pack_row::<MODE>(a,b,4*i))).collect()
++}
++
+ pub(super) fn euler_product_study(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
+     assert!(plan.n >= 8 && a.len() <= plan.n && b.len() <= plan.n);
+     assert!(!plan.released && plan.twisted.is_none());
+@@ -1785,14 +1814,11 @@
+     let mut values = if packed_inputs {
+         input_columns::inverse(plan, &a, &b)
+     } else {
+-        let mut values: Vec<PackedPair> = (0..plan.n / 4).into_par_iter().map(|i| {
+-            let mut lanes = [Fr::ZERO; 8];
+-            for j in 0..4 {
+-                lanes[j] = a.get(4*i+j).copied().unwrap_or(Fr::ZERO);
+-                lanes[4+j] = b.get(4*i+j).copied().unwrap_or(Fr::ZERO);
+-            }
+-            PackedPair::store(Pair::new(&lanes))
+-        }).collect();
++        let mut values = match pack_mode() {
++            1 => pack_rows::<1>(plan.n,&a,&b),
++            2 => pack_rows::<2>(plan.n,&a,&b),
++            _ => pack_rows::<0>(plan.n,&a,&b),
++        };
+         stored_transform::<PackedPair, false>(&mut values, &plan.inverse_roots, 0);
+         values
+     };
+@@ -1892,3 +1918,26 @@
+ }
+ 
+ mod leaf;
++
++#[cfg(test)]
++mod direct_radix535 {
++    use super::*;
++    #[test]
++    fn partial_and_full_rows_preserve_all_lane_values() {
++        let mut state = -Fr::ONE;
++        let a:Vec<Fr>=(0..259).map(|i| {state=state.square()+Fr::from(i as u64+1);state}).collect();
++        let mut b=a.clone();
++        b.reverse();
++        for na in [0,1,2,3,4,5,7,19,254,259] {
++            for nb in [0,1,2,3,4,5,7,19,254,259] {
++                for offset in (0..264).step_by(4) {
++                    let expected:[Fr;8]=core::array::from_fn(|j|{
++                        (if j<4 {&a[..na]} else {&b[..nb]}).get(offset+j%4).copied().unwrap_or(Fr::ZERO)
++                    });
++                    assert_eq!(pack_row::<1>(&a[..na],&b[..nb],offset).get(),expected);
++                    assert_eq!(pack_row::<2>(&a[..na],&b[..nb],offset).get(),expected);
++                }
++            }
++        }
++    }
++}
+--- a/crates/zopro-core/src/fft/pair/input_columns.rs
++++ b/crates/zopro-core/src/fft/pair/input_columns.rs
+@@ -6,7 +6,7 @@
+ 
+ // Construct the first inverse radix-32 columns directly from the two input
+ // polynomials. Each invocation owns the same column range in all 32 stripes.
+-fn pack_inverse_columns<const CACHED: bool>(
++fn pack_inverse_columns<const CACHED: bool, const MODE: u8>(
+     mut stripes: [&mut [MaybeUninit<PackedPair>]; 32],
+     a: &[Fr],
+     b: &[Fr],
+@@ -24,8 +24,8 @@
+             left
+         });
+         rayon::join(
+-            || pack_inverse_columns::<CACHED>(left, a, b, roots, q, start),
+-            || pack_inverse_columns::<CACHED>(stripes, a, b, roots, q, start + mid),
++            || pack_inverse_columns::<CACHED, MODE>(left, a, b, roots, q, start),
++            || pack_inverse_columns::<CACHED, MODE>(stripes, a, b, roots, q, start + mid),
+         );
+         return;
+     }
+@@ -36,6 +36,9 @@
+             let i = 4 * (row * q + start + column);
+             if i >= count {
+                 return zero;
++            }
++            if MODE != 0 {
++                return pack_row::<MODE>(a, b, i);
+             }
+             Pair::new(&core::array::from_fn(|lane| {
+                 let values = if lane < 4 { a } else { b };
+@@ -51,6 +54,14 @@
+ 
+ #[inline(never)]
+ pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
++    match pack_mode() {
++        1 => first_layer_impl::<1>(plan, a, b),
++        2 => first_layer_impl::<2>(plan, a, b),
++        _ => first_layer_impl::<0>(plan, a, b),
++    }
++}
++
++fn first_layer_impl<const MODE: u8>(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+     let n = plan.n / 4;
+     let q = n / 32;
+     assert!(n >= 2048 && n.is_power_of_two());
+@@ -59,9 +70,9 @@
+     let mut chunks = values.spare_capacity_mut()[..n].chunks_exact_mut(q);
+     let stripes = core::array::from_fn(|_| chunks.next().unwrap());
+     if roots.columns.is_empty() {
+-        pack_inverse_columns::<false>(stripes, a, b, roots, q, 0);
++        pack_inverse_columns::<false, MODE>(stripes, a, b, roots, q, 0);
+     } else {
+-        pack_inverse_columns::<true>(stripes, a, b, roots, q, 0);
++        pack_inverse_columns::<true, MODE>(stripes, a, b, roots, q, 0);
+     }
+     // SAFETY: the 32 disjoint stripes cover exactly n slots. Both branches
+     // join every producer and write each slot before this call.
