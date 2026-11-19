@@ -186,6 +186,12 @@ the option lowered paired latency across eight witnesses by 1.04% at
 the option disabled. Both widths favored it on seven of eight witnesses.
 [FFT configuration measurements](docs/benchmarks/2026-11-19-varied-fft417/README.md)
 
+At 32 Ryzen 9950X workers, the same option also reduced paired latency on
+the original 16×2, 24×2 and merge-24×1 requests by 1.50%, 2.99% and 2.18%,
+respectively. Peak process RSS fell on all three. These settings were
+confirmed in seven fresh blocks for each shape.
+[Eight-shape FFT comparison](docs/benchmarks/2026-11-19-all-input-columns425/README.md)
+
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
 G2 queries of 1,024 through 65,535 points when the worker pool has at least
