@@ -1,0 +1,38 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2298,8 +2298,7 @@
+             if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
+                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+             }
+-            let ((ar,kh),bs2)=rayon::join(
+-                || {
++            let g1 = || {
+                     let a = || msm(&self.a[..], sa);
+                     let kh = || msm_affine::fused_kh::fused(k, sk, z, canonical(h), 13);
+                     if std::env::var_os("ZOPRO_TRIAL_KH_FIRST").is_some() {
+@@ -2308,8 +2307,8 @@
+                     } else {
+                         rayon::join(a, kh)
+                     }
+-                },
+-                || {
++            };
++            let mut g2 = || {
+                     if (1024..65536).contains(&self.b2.len()) {
+                         msm_affine::g2_query_exclusive(&self.b2,sb)
+                     } else {
+@@ -2318,7 +2317,13 @@
+                         groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),
+                             |g|msm_grouped_b2(&self.b2,g))
+                     }
+-                });
++            };
++            let ((ar, kh), bs2) = if std::env::var_os("ZOPRO_TRIAL_G2_FIRST").is_some() {
++                let (bs2, g1) = rayon::join(g2, g1);
++                (g1, bs2)
++            } else {
++                rayon::join(g1, g2)
++            };
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             let (ar,kh,bs2)=offsets.map_or((ar,kh,bs2), |o| (ar+o.a,kh+o.k,bs2+o.b2));
+             let mut out=Vec::with_capacity(384);
