@@ -16,3 +16,12 @@ The native oracle checks every necessary derivative pack and the complete pointw
 All 96 exports verified with the original key. [Native kernel](artifacts/output_mask.rs) · [Integration](artifacts/integration.patch) · [Process samples and support](artifacts/samples.json.gz) · [Verification](artifacts/verification.json)
 
 The original mapped request skipped 15.69% of these butterflies and won two of five comparisons with pruning disabled. Request 109 skipped 27.04% and won all five. Requests 122 and 124 skipped less than 9% and lost most pairs. The earlier 40.06% estimate used leave-one-out references within a different fixture set. Across these five timed mapped inputs, the results do not support turning on this kernel by default.
+
+## Process memory
+
+Each mapped-key process handled all five requests. The ordinary-key process handled the original request alone. The table compares pruning within each workload. Each entry gives the median whole-process peak across five fresh runs with its observed range, in MiB.
+
+| Workload | Disabled | Pruned |
+|---|---:|---:|
+| Ordinary key, one request | 1,015.5 (993.0–1,028.8) | 1,008.0 (1,001.7–1,037.2) |
+| Mapped key, five requests | 1,301.8 (1,183.1–1,364.4) | 1,320.5 (1,181.7–1,365.4) |
