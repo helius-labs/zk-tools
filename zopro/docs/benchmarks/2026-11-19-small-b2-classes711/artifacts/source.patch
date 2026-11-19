@@ -1,0 +1,141 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -41,6 +41,12 @@
+ 
+ mod diversity;
+ pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
++    #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++    if let Some(shards) = std::env::var("ZOPRO_TRIAL_SMALL_B2_SHARDS").ok().and_then(|s| match s.as_str() {
++        "8" => Some(8), "32" => Some(32), _ => None
++    }) {
++        if let Ok(result) = shard_b2::canonical(scalars, shards) { return result; }
++    }
+     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+     group_with_gate::<true>(scalars, zero_aware)
+ }
+--- a/crates/zopro-core/src/msm_affine/grouping/shard_b2.rs
++++ b/crates/zopro-core/src/msm_affine/grouping/shard_b2.rs
+@@ -17,7 +17,11 @@
+     (s[0] ^ s[1].rotate_left(19)) as usize & (shards - 1)
+ }
+ 
+-fn build_shard(input: &[[u64; 4]], ids: &[u32], state: &ahash::RandomState) -> Columns {
++fn build_shard<const MONT: bool>(
++    input: &[[u64; 4]],
++    ids: &[u32],
++    state: &ahash::RandomState,
++) -> Columns {
+     let mut map = HashTable::<u32>::with_capacity(ids.len());
+     let mut values = Vec::with_capacity(ids.len());
+     let mut counts = Vec::with_capacity(ids.len());
+@@ -57,8 +61,10 @@
+         order[*slot] = id;
+         *slot += 1;
+     }
+-    for word in &mut values {
+-        *word = Fr::from_montgomery(*word).to_canonical();
++    if MONT {
++        for word in &mut values {
++            *word = Fr::from_montgomery(*word).to_canonical();
++        }
+     }
+     Columns {
+         values,
+@@ -67,7 +73,7 @@
+     }
+ }
+ 
+-fn columns(input: &[[u64; 4]], shards: usize, cutoff: usize) -> Option<Columns> {
++fn columns<const MONT: bool>(input: &[[u64; 4]], shards: usize, cutoff: usize) -> Option<Columns> {
+     let mut counts = vec![0usize; shards];
+     for s in input.iter().filter(|s| **s != [0; 4]) {
+         counts[partition(s, shards)] += 1;
+@@ -81,7 +87,7 @@
+     let state = ahash::RandomState::new();
+     let parts: Vec<_> = ids
+         .into_par_iter()
+-        .map(|ids| build_shard(input, &ids, &state))
++        .map(|ids| build_shard::<MONT>(input, &ids, &state))
+         .collect();
+     let unique = parts.iter().map(|part| part.values.len()).sum::<usize>();
+     if unique > cutoff {
+@@ -109,6 +115,21 @@
+     // SAFETY: Fr is transparent over four limbs. Hashing and equality only
+     // borrow the stored Montgomery representative; output values are canonical.
+     let words = unsafe { std::slice::from_raw_parts(input.as_ptr().cast::<[u64; 4]>(), n) };
++    build_words::<true>(words, shards)
++}
++
++pub(super) fn canonical(words: &[[u64; 4]], shards: usize) -> Result<Option<ScalarGroups>, ()> {
++    if !(1024..65536).contains(&words.len()) {
++        return Err(());
++    }
++    build_words::<false>(words, shards)
++}
++
++fn build_words<const MONT: bool>(
++    words: &[[u64; 4]],
++    shards: usize,
++) -> Result<Option<ScalarGroups>, ()> {
++    let n = words.len();
+     let Some((sample, percent)) = grouping_sample(
+         words,
+         std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1"),
+@@ -116,6 +137,13 @@
+         return Ok(None);
+     };
+     drop(sample);
++    if !MONT
++        && std::env::var("ZOPRO_CPU_GROUP_DIVERSITY").as_deref() == Ok("1")
++        && super::diversity::declines(words, n * percent / 100)
++    {
++        return Ok(None);
++    }
++
+     let Some(reservation) = grouping_cost::reserve(n, percent) else {
+         return Err(());
+     };
+@@ -131,7 +159,7 @@
+         values,
+         counts,
+         order,
+-    }) = columns(words, shards, n * percent / 100)
++    }) = columns::<MONT>(words, shards, n * percent / 100)
+     else {
+         return Ok(None);
+     };
+@@ -179,7 +207,7 @@
+                 .push(i as u32);
+         }
+         for shards in [8, 32] {
+-            let p = columns(&input, shards, expected.len()).unwrap();
++            let p = columns::<true>(&input, shards, expected.len()).unwrap();
+             let mut offset = 0;
+             let mut got = BTreeMap::new();
+             for (s, n) in p.values.into_iter().zip(p.counts) {
+@@ -190,8 +218,20 @@
+             }
+             assert_eq!(offset, p.order.len());
+             assert_eq!(got, expected);
+-            assert!(columns(&input, shards, expected.len() - 1).is_none());
+-            assert!(columns(&[[0; 4]; 256], shards, 0).unwrap().order.is_empty());
+-        }
+-    }
+-}
++            let canon = columns::<false>(&input, shards, expected.len()).unwrap();
++            let mut offset = 0;
++            for (word, n) in canon.values.into_iter().zip(canon.counts) {
++                for &id in &canon.order[offset..offset + n] {
++                    assert_eq!(input[id as usize], word);
++                }
++                offset += n;
++            }
++            assert_eq!(offset, canon.order.len());
++            assert!(columns::<true>(&input, shards, expected.len() - 1).is_none());
++            assert!(columns::<true>(&[[0; 4]; 256], shards, 0)
++                .unwrap()
++                .order
++                .is_empty());
++        }
++    }
++}
