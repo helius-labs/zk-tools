@@ -1,0 +1,114 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -126,24 +126,34 @@
+     } else {
+         0
+     };
+-    let mut groups =
+-        std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());
+     let mut values = Vec::new();
+     let mut classes = vec![u32::MAX; scalars.len()];
+     let mut counts: Vec<usize> = Vec::new();
+-    for (scalar, class) in scalars.iter().zip(&mut classes) {
+-        if *scalar == [0; 4] {
+-            continue;
+-        }
+-        let index = *groups.entry(*scalar).or_insert_with(|| {
+-            values.push(*scalar);
+-            counts.push(0);
+-            (values.len() - 1) as u32
+-        });
+-        *class = index;
+-        counts[index as usize] += 1;
+-    }
+-    drop(groups);
++    static USE_DISTANCE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    // Use the original grouping on ABIs where the extra index changes the reservation.
++    type OrdinaryEntry = ([u64; 4], u32);
++    type DistanceEntry = ([u64; 4], (u32, u32));
++    const SAME_LAYOUT: bool = std::mem::size_of::<OrdinaryEntry>() == std::mem::size_of::<DistanceEntry>()
++        && std::mem::align_of::<OrdinaryEntry>() == std::mem::align_of::<DistanceEntry>();
++    if SAME_LAYOUT && *USE_DISTANCE.get_or_init(|| std::env::var("ZOPRO_TRIAL_GROUP_LAG").as_deref() == Ok("1")) {
++        classify_by_repeat_distance(scalars, capacity, &mut classes, &mut values, &mut counts);
++    } else {
++        let mut groups =
++            std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());
++        for (scalar, class) in scalars.iter().zip(&mut classes) {
++            if *scalar == [0; 4] {
++                continue;
++            }
++            let index = *groups.entry(*scalar).or_insert_with(|| {
++                values.push(*scalar);
++                counts.push(0);
++                (values.len() - 1) as u32
++            });
++            *class = index;
++            counts[index as usize] += 1;
++        }
++        drop(groups);
++    }
+     if values.len() * 100 > scalars.len() * percent {
+         return None;
+     }
+@@ -184,3 +194,61 @@
+ 
+ #[cfg(test)]
+ mod tests;
++
++/// Reuse an earlier class only after checking all four scalar limbs.
++fn classify_by_repeat_distance(
++    scalars: &[[u64; 4]],
++    capacity: usize,
++    classes: &mut [u32],
++    values: &mut Vec<[u64; 4]>,
++    counts: &mut Vec<usize>,
++) {
++    let mut groups = std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());
++    let mut lag = 0usize;
++    for (i, scalar) in scalars.iter().enumerate() {
++        if *scalar == [0; 4] { continue; }
++        let index = if lag != 0 && i >= lag && scalars[i - lag] == *scalar {
++            classes[i - lag]
++        } else {
++            let (index, previous) = groups.entry(*scalar).or_insert_with(|| {
++                let next = values.len() as u32;
++                values.push(*scalar);
++                counts.push(0);
++                (next, i as u32)
++            });
++            if *previous < i as u32 {
++                lag = i - *previous as usize;
++                *previous = i as u32;
++            }
++            *index
++        };
++        classes[i] = index;
++        counts[index as usize] += 1;
++    }
++}
++
++#[cfg(test)]
++#[test]
++fn repeat_distance_classes_match_first_occurrence() {
++    for pattern in [0u64,1,2,7,129] {
++        let scalars: Vec<[u64;4]> = (0..1024u64).map(|i| {
++            if i % 17 == 0 || pattern == 0 { [0;4] }
++            else if i % 23 == 0 { [i,1,2,3] }
++            else { [1+(i%pattern),2,3,(i/79)%2] }
++        }).collect();
++        let mut classes = vec![u32::MAX;scalars.len()];
++        let (mut values,mut counts) = (Vec::new(),Vec::new());
++        classify_by_repeat_distance(&scalars,0,&mut classes,&mut values,&mut counts);
++        let mut expected_values = Vec::new();
++        let mut expected_counts = Vec::new();
++        for (&class,scalar) in classes.iter().zip(&scalars) {
++            if *scalar == [0;4] { assert_eq!(class,u32::MAX); continue; }
++            let index = expected_values.iter().position(|v|v==scalar).unwrap_or_else(||{
++                expected_values.push(*scalar);expected_counts.push(0);expected_values.len()-1
++            });
++            expected_counts[index]+=1;
++            assert_eq!(class as usize,index);
++        }
++        assert_eq!(values,expected_values);assert_eq!(counts,expected_counts);
++    }
++}
