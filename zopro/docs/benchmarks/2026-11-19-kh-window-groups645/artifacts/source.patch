@@ -1,0 +1,48 @@
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
+@@ -68,16 +68,35 @@
+     sh: &[[u64; 4]],
+ ) -> Projective<C> {
+     let cover = spans();
+-    let sums: Vec<_> = cover
+-        .par_iter()
+-        .map(|&span| {
+-            let size = batch_size(span.width).max(32);
+-            let mut state = Window::new(1usize << (span.width - 1), size);
+-            feed(&mut state, k, sk, span, size);
+-            feed(&mut state, h, sh, span, size);
+-            crate::msm::weighted_affine(&state.finish())
+-        })
+-        .collect();
++    let compute = |span: Span| {
++        let size = batch_size(span.width).max(32);
++        let mut state = Window::new(1usize << (span.width - 1), size);
++        feed(&mut state, k, sk, span, size);
++        feed(&mut state, h, sh, span, size);
++        crate::msm::weighted_affine(&state.finish())
++    };
++    let jobs = std::env::var("ZOPRO_TRIAL_KH_WINDOW_JOBS").ok();
++    let sums: Vec<_> = match jobs.as_deref() {
++        Some(value @ ("12" | "16" | "20")) => {
++            let jobs = value.parse::<usize>().unwrap();
++            let pairs = COUNT - jobs;
++            let mut sums = vec![Projective::<C>::IDENTITY; COUNT];
++            let (paired, single) = sums.split_at_mut(2 * pairs);
++            paired.par_chunks_mut(2).chain(single.par_chunks_mut(1))
++                .enumerate()
++                .for_each(|(job, slots)| {
++                    let start = if job < pairs { 2 * job } else { job + pairs };
++                    for (slot, &span) in slots.iter_mut().zip(&cover[start..]) {
++                        *slot = compute(span);
++                    }
++                });
++            if std::env::var_os("ZOPRO_TRIAL_KH_JOB_TRACE").is_some() {
++                eprintln!("KH_WINDOW_JOBS {jobs} {pairs}");
++            }
++            sums
++        }
++        _ => cover.par_iter().copied().map(compute).collect(),
++    };
+     let mut result = Projective::<C>::IDENTITY;
+     for (span, sum) in cover.iter().zip(&sums).rev() {
+         for _ in 0..span.width {
