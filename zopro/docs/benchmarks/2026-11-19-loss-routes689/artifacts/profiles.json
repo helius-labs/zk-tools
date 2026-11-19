@@ -1,0 +1,699 @@
+{
+  "machine": "c7a.24xlarge",
+  "physical_cores": 96,
+  "smt": false,
+  "common_environment": {
+    "MALLOC_ARENA_MAX": "32",
+    "MALLOC_MMAP_THRESHOLD_": "1073741824",
+    "MALLOC_TRIM_THRESHOLD_": "-1",
+    "ZOPRO_BENCH_CERTIFIED_OUTPUT": "1",
+    "ZOPRO_BENCH_FUSED_PREPARATION": "1",
+    "ZOPRO_BENCH_WORKER_PLACEMENT": "fixed",
+    "ZOPRO_CPU_BOUNDED_SCHEDULE": "1",
+    "ZOPRO_CPU_CANONICAL_WIRES": "1",
+    "ZOPRO_CPU_DEFER_SIGNED_Y": "1",
+    "ZOPRO_CPU_DEFER_SIGN_PARTS": "1",
+    "ZOPRO_CPU_DEFER_SIGN_WIDTH": "12",
+    "ZOPRO_CPU_FFT_COLUMN_ROOTS": "1",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_INDEXED_TILE_BUNDLES": "1",
+    "ZOPRO_CPU_LAGRANGE": "1",
+    "ZOPRO_CPU_LAGRANGE_FOLD": "1",
+    "ZOPRO_CPU_PROOF_CONCURRENCY": "1",
+    "ZOPRO_CPU_RESOURCE_SCHEDULE": "1",
+    "ZOPRO_CPU_SMALL_CORE_ENTRY": "1",
+    "ZOPRO_CPU_ZERO_AWARE_GROUPS": "1",
+    "RAYON_NUM_THREADS": "96"
+  },
+  "profiles": {
+    "24x2": {
+      "selection": "release",
+      "image_sha256": "2d6d800139202c68002bf2e98c0f833037ae74474d838fdbfa857ccffd6aa8ef",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_SOLVE_EPOCHS": "8",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+        "ZOPRO_CPU_G2_RANGES": "2",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "off",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "19",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "2",
+        "ZOPRO_BENCH_DENSE_H_BITS": "13",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "0",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "off",
+        "ZOPRO_SOLVE_TASK_CLAIMS": "0",
+        "ZOPRO_SOLVE_PACK_TASKS": "0",
+        "ZOPRO_CPU_POSEIDON_EMIT": "0",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "1",
+        "ZOPRO_CPU_MEDIUM_KH": "0"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "acca8a178136a89400f2a8c1-24x2.wo",
+          "sha256": "acca8a178136a89400f2a8c12c21a16825d6082a1313b5fe127ec0caceaa9e7f"
+        }
+      }
+    },
+    "1x2": {
+      "selection": "pair-on",
+      "image_sha256": "16a3e2a686372d531879d4ff99e63eab0ca374d686f05a9d7343d2bf534dd041",
+      "sdk_sha256": "7d1191f5f4111dad1612443f6196bc218a885ef57407ebee6123db2fc7a4ac57",
+      "environment": {
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "off",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "1",
+        "ZOPRO_BENCH_DENSE_H_BITS": "off",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_SOLVE_TASK_CLAIMS": "1",
+        "ZOPRO_SOLVE_PACK_TASKS": "1",
+        "ZOPRO_CPU_POSEIDON_EMIT": "0",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "0",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "0",
+        "ZOPRO_CPU_MEDIUM_KH": "0",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_TRIAL_G2_PAIR_MERGE": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "1x2.wo",
+          "sha256": "a091a24a721b55eea5c86013f282dc75d731fc85761366c6546f753be7197043"
+        }
+      }
+    },
+    "4x2": {
+      "selection": "coeff",
+      "image_sha256": "47cfe0cf92649ed00c9bcd0fc7862c891f463acafa9c00c104ad7bbde58034ab",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "off",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "1",
+        "ZOPRO_BENCH_DENSE_H_BITS": "13",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_SOLVE_TASK_CLAIMS": "0",
+        "ZOPRO_SOLVE_PACK_TASKS": "0",
+        "ZOPRO_CPU_POSEIDON_EMIT": "0",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "0",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "0",
+        "ZOPRO_CPU_MEDIUM_KH": "0",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "4x2.wo",
+          "sha256": "b90d5e54e63668adffc5ce1729cfb7f8dd914aa2eac4e1ac8572025f4331141b"
+        }
+      }
+    },
+    "8x2": {
+      "selection": "release",
+      "image_sha256": "37268944fe16bb324d6844386bfcb8965afb43df5a34ad92d19bc32b28a5b2a4",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_SOLVE_EPOCHS": "8",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+        "ZOPRO_CPU_G2_RANGES": "2",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "off",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "off",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "1",
+        "ZOPRO_BENCH_DENSE_H_BITS": "13",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "0",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "off",
+        "ZOPRO_SOLVE_TASK_CLAIMS": "0",
+        "ZOPRO_SOLVE_PACK_TASKS": "0",
+        "ZOPRO_CPU_POSEIDON_EMIT": "0",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "0",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "0",
+        "ZOPRO_CPU_MEDIUM_KH": "0"
+      },
+      "assets": {}
+    },
+    "merge-24x1": {
+      "selection": "release",
+      "image_sha256": "a1cea4604949461ee55496f2f507df96bc4fff9a9ae74c550f96f6f81df27512",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_SOLVE_EPOCHS": "8",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+        "ZOPRO_CPU_G2_RANGES": "2",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "off",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "19",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "2",
+        "ZOPRO_BENCH_DENSE_H_BITS": "13",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "0",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "off",
+        "ZOPRO_SOLVE_TASK_CLAIMS": "0",
+        "ZOPRO_SOLVE_PACK_TASKS": "0",
+        "ZOPRO_CPU_POSEIDON_EMIT": "0",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "1",
+        "ZOPRO_CPU_MEDIUM_KH": "0"
+      },
+      "assets": {}
+    },
+    "16x2": {
+      "selection": "release",
+      "image_sha256": "b0bd744394729a620dc5c9b72f226e6f4f3e5927c9923138a62c41ae570a1d66",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_SOLVE_EPOCHS": "6",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+        "ZOPRO_CPU_G2_RANGES": "2",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "off",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "19",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "2",
+        "ZOPRO_BENCH_DENSE_H_BITS": "13",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "0",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "off",
+        "ZOPRO_SOLVE_TASK_CLAIMS": "0",
+        "ZOPRO_SOLVE_PACK_TASKS": "0",
+        "ZOPRO_CPU_POSEIDON_EMIT": "1",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "0",
+        "ZOPRO_CPU_MEDIUM_KH": "0"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "e780a2f64fe31e44ab10c771-16x2.wo",
+          "sha256": "e780a2f64fe31e44ab10c77107e3839fd0aea20a244eb2af972ac40ec05ed468"
+        }
+      }
+    },
+    "12x2": {
+      "selection": "release",
+      "image_sha256": "2c9fef20093f950b2d43648a917d0bd9ebfe5d72d9e83c21f160037b95dff464",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_SOLVE_EPOCHS": "8",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+        "ZOPRO_CPU_G2_RANGES": "2",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "off",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "off",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "1",
+        "ZOPRO_BENCH_DENSE_H_BITS": "13",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "0",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "off",
+        "ZOPRO_SOLVE_TASK_CLAIMS": "0",
+        "ZOPRO_SOLVE_PACK_TASKS": "0",
+        "ZOPRO_CPU_POSEIDON_EMIT": "1",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "1",
+        "ZOPRO_CPU_MEDIUM_KH": "0"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "efa220ba47dcd7e4c057db89-12x2.wo",
+          "sha256": "efa220ba47dcd7e4c057db89f1768f3d50fe13b182073688c30562204a268bac"
+        }
+      }
+    },
+    "2x2": {
+      "selection": "bands-tree2",
+      "image_sha256": "9fdd4d63ce0fe78a16a9aa450fc940fc0da83d251b48c4c8035789e58c3b2b4f",
+      "sdk_sha256": "49fbd10240302b76df70693d99ab68e7bfdde4e24ced17a764a11e571cd72b8d",
+      "environment": {
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+        "ZOPRO_CPU_G2_RANGES": "2",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "off",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "1",
+        "ZOPRO_BENCH_DENSE_H_BITS": "off",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_SOLVE_TASK_CLAIMS": "1",
+        "ZOPRO_SOLVE_PACK_TASKS": "1",
+        "ZOPRO_CPU_POSEIDON_EMIT": "0",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "0",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "0",
+        "ZOPRO_CPU_MEDIUM_KH": "0",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_GROUPED_G2_PHI": "0",
+        "ZOPRO_TRIAL_G2_BANDS": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "4a592b09876228b98fe9c9fa-2x2.wo",
+          "sha256": "4a592b09876228b98fe9c9fa0cf6de86ef321f1f945c693990564e1addac1eed"
+        }
+      }
+    },
+    "49x2": {
+      "selection": "release",
+      "image_sha256": "3266c8fdfbb612815bdaedd44e15139e5452a4c3a37ae8992b0d2860ae930304",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "48x2": {
+      "selection": "release",
+      "image_sha256": "84067cbfa94a50f1141386a42e0005b5137b4291d9ab07a8fc5aee5a0c149b1d",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "4x8": {
+      "selection": "front16",
+      "image_sha256": "f7c4139cd1dbf1cdfbad3312baf09ef06819a6288073fab90cd4b55a8438edbd",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "0",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "0",
+        "ZOPRO_CPU_GROUPED_G2_PHI": "0",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"
+      },
+      "assets": {}
+    },
+    "8x16": {
+      "selection": "release",
+      "image_sha256": "ca098a97b32f1cf9fad91d4b5809daae1efe4dca97086b017d45129199225ada",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "32x2": {
+      "selection": "release",
+      "image_sha256": "d09105d874c1ece83a10fec294ad5b76b109cf168bdca64a1202b4c088dc0354",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "3x4": {
+      "selection": "coeff",
+      "image_sha256": "b85b9afc00224dcd8aa2a02329f1f79351a13d61c283b6c9c2bbebf58d93f6fa",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "3x4.wo",
+          "sha256": "a1137dcfdb95f3043cbf9f63f30a14cf046252156d3fdfa23e912e4f18d804c1"
+        }
+      }
+    },
+    "6x8": {
+      "selection": "release",
+      "image_sha256": "9a781a2e0dbb66305d3b2a7a57d9cb8805797da0955ef5563af6390b372062e9",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "5x16": {
+      "selection": "coeff-packed",
+      "image_sha256": "8553c092137439277dd10f9a81340fcbf8887f77fc7b3a5e7872477587002a8f",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "5x16.wo",
+          "sha256": "62df64442848dcc79228b94f85db05c0ee11b50be46c977d631461d0e848858b"
+        }
+      }
+    },
+    "8x4": {
+      "selection": "release",
+      "image_sha256": "dd0ad5752840ee367ffdce9aeffe1b3eeb4b45c28f1228fbd7adbb5b5274cce6",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "12x8": {
+      "selection": "release",
+      "image_sha256": "07150638e76af8d95c6931bd4d6a7afde87c3d347dba56fc06f10fd1fa8546f0",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "4x16": {
+      "selection": "front16",
+      "image_sha256": "45c91e89c2bcf9611eb5cfa0adc3f73b25425b5f0936addff0e856514ed7af79",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "0",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "0",
+        "ZOPRO_CPU_GROUPED_G2_PHI": "0",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"
+      },
+      "assets": {}
+    },
+    "4x4": {
+      "selection": "coeff",
+      "image_sha256": "c1895d1dfe4df0cd6cc5b8cc54d3971f2c65889630ccd91917da21de0cc2bea1",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "4x4.wo",
+          "sha256": "be8092b04f07c83d2ab417b93914e58f630472a7dcf460976c7600c1a3407208"
+        }
+      }
+    },
+    "24x4": {
+      "selection": "release",
+      "image_sha256": "1d52b01d2a078c0c63c1c02346eab3b2df2c38e46c92d4c7cb93735710b5fa8b",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "2x4": {
+      "selection": "bands-tree2",
+      "image_sha256": "8c4498d9fbd3c603f91cfe4a0c2216ecc321671ce39c5cc1f9fe2efabda7bdc7",
+      "sdk_sha256": "49fbd10240302b76df70693d99ab68e7bfdde4e24ced17a764a11e571cd72b8d",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "2",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_TRIAL_G2_BANDS": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "2x4.wo",
+          "sha256": "50238b01041b229c4f4ba0739e3dd44cc3e2a1c545ef65d5fb8dc07d35f3ab97"
+        }
+      }
+    },
+    "5x2": {
+      "selection": "coeff",
+      "image_sha256": "e57e69e750d01d873d6924168150271d81270d47278c72772bcbfe7814bf95ee",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "5x2.wo",
+          "sha256": "b1f1efef30902dfe183bf7cfdb1962a00b5ed3a947648898502df00206245c2b"
+        }
+      }
+    },
+    "16x8": {
+      "selection": "release",
+      "image_sha256": "9cdcd958410955ad35f30645adcc7f48e93031b33575facbef0b1cf90453eb3f",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "8x8": {
+      "selection": "release",
+      "image_sha256": "8d95a43fa501cb50976345601e53ba6faa0ad9ee862d46150a67a0d8db6a4304",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "3x8": {
+      "selection": "runtime-off",
+      "image_sha256": "a6fbc7f796075611e26bbc578acc4dde3afaa86aa6eec132f386205aa5782e79",
+      "sdk_sha256": "4ed6f1ee4273efb64fc935e9c0693f1d7af3d95131134d36a1aa364e8f8bf268",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_REPORT_IDLE_ROUNDS": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "3x8.wo",
+          "sha256": "b533bd395fa6b9d6955b5621717d8dde35d45321c78e6518dc868b966ba1458e"
+        }
+      }
+    },
+    "12x4": {
+      "selection": "release",
+      "image_sha256": "53119ccc6638b8c456cb791cad87114a77970cce2b5986059a399a0d259f309a",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "1x16": {
+      "selection": "runtime-off",
+      "image_sha256": "864979f9a5eb78b6c4e839bb52a982bfd4563fc81fbd8fb8a5bbbe2b0f1371b6",
+      "sdk_sha256": "4ed6f1ee4273efb64fc935e9c0693f1d7af3d95131134d36a1aa364e8f8bf268",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_REPORT_IDLE_ROUNDS": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "1x16.wo",
+          "sha256": "4f94d5c0bcfb7461117d151e576b43a95cbbe9bd6bf4da32735bc3a895a2c3a8"
+        }
+      }
+    },
+    "1x4": {
+      "selection": "bands-tree2",
+      "image_sha256": "74e10acbe4b9d176c1998d1e73eb2f335840c3437a8fed24b8231c2bc7b17245",
+      "sdk_sha256": "49fbd10240302b76df70693d99ab68e7bfdde4e24ced17a764a11e571cd72b8d",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "2",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_TRIAL_G2_BANDS": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "1x4.wo",
+          "sha256": "c915a6a26907f0a6ce953fbf26e7b9d1db4995027361533847ce41372cd5e948"
+        }
+      }
+    },
+    "16x4": {
+      "selection": "release",
+      "image_sha256": "3ace329c2548dcd89b151bdf6ce464742848020138330d6f92d15c877c3f33b1",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "40x2": {
+      "selection": "release",
+      "image_sha256": "e2497c8d49bf6a7babb811884a0f7f2ae2d56194a533292b030b272e195ee94c",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "5x4": {
+      "selection": "coeff-packed",
+      "image_sha256": "771a7d4f0aecca9481a546a21130d10ab22e6e1214fc368b2b9df2a9ac2eb1e5",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "5x4.wo",
+          "sha256": "81beb2c4140212c2cadd3857ae97a176cce2e9868b40e5a12beb7ce4cb723b51"
+        }
+      }
+    },
+    "merge-8x1": {
+      "selection": "release",
+      "image_sha256": "a25cc4c158532953194ecf195fbb21ffd88b0a1b54cc8d75a587e2d7cdee14d8",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "6x4": {
+      "selection": "release",
+      "image_sha256": "c8509f5f281fb05ce3f3efc26cc38d70f618896ceffef23195d4a9701d9216a9",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "6x2": {
+      "selection": "release",
+      "image_sha256": "4fb3cac5d7ce6b553d4d90069ee6308ca00fb9af572e458af20bcd2e82e9889d",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "merge-54x1": {
+      "selection": "release",
+      "image_sha256": "5403943583ebfa035ea9d461d137d684a648579880b67fd351316e536d31cf54",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_SOLVE_EPOCHS": "8",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+        "ZOPRO_CPU_G2_RANGES": "2",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "off",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "19",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "2",
+        "ZOPRO_BENCH_DENSE_H_BITS": "13",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "0",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "off",
+        "ZOPRO_SOLVE_TASK_CLAIMS": "0",
+        "ZOPRO_SOLVE_PACK_TASKS": "0",
+        "ZOPRO_CPU_POSEIDON_EMIT": "0",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "1",
+        "ZOPRO_CPU_MEDIUM_KH": "0"
+      },
+      "assets": {}
+    },
+    "3x2": {
+      "selection": "runtime-off",
+      "image_sha256": "5dcec07143643b46d67095f2517baa741e31fa25aec5df7f475edeee37c367f7",
+      "sdk_sha256": "4ed6f1ee4273efb64fc935e9c0693f1d7af3d95131134d36a1aa364e8f8bf268",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_REPORT_IDLE_ROUNDS": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "3x2.wo",
+          "sha256": "990c0209f9ada6cd2fb17972c24df9bc6ded04973b33e549c6b0c4312e258a1c"
+        }
+      }
+    },
+    "5x8": {
+      "selection": "release",
+      "image_sha256": "8437c373086553016d50ea136cd58dda515756aa737ba0c3bec93672c16422a4",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {},
+      "assets": {}
+    },
+    "2x16": {
+      "selection": "coeff-packed",
+      "image_sha256": "4bed7261463a9c4f528a92b783edb5d272680b775aafaf32a05c637bf4dbfc89",
+      "sdk_sha256": "7370dec4c19d2fd700d07b8239da3b503468959bd80a21d5b284f811ff62a28c",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_SOLVE_EPOCHS": "4",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "1"
+      },
+      "assets": {
+        "ZOPRO_BENCH_WIRE_FILE": {
+          "name": "2x16.wo",
+          "sha256": "7057724c70fbb06ec6ec6a7b09808e3eecce02b50b24ac4acfa813c56992a71c"
+        }
+      }
+    },
+    "1x8": {
+      "selection": "wide32",
+      "image_sha256": "3a93c9c2e571f751f90bcd45e726f361dc05bca38009c008d0e15a355ed3bb5f",
+      "sdk_sha256": "9557acdc6bf498987b6f3ff838882f7105c9c4e9783b356da7934658f4fdf466",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_SOLVE_EPOCHS": "6",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "1",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+        "ZOPRO_CPU_GROUPED_G2_PHI": "1",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "19",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "2",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31"
+      },
+      "assets": {}
+    },
+    "2x8": {
+      "selection": "wide32",
+      "image_sha256": "500311594f77924a5638adb0a3e142c04b5a964a10dc9baefd0c1304ae2cd1f7",
+      "sdk_sha256": "9557acdc6bf498987b6f3ff838882f7105c9c4e9783b356da7934658f4fdf466",
+      "environment": {
+        "ZOPRO_CPU_G2_RANGES": "4",
+        "ZOPRO_CPU_G2_DECOMPOSITION": "serial",
+        "ZOPRO_SOLVE_EPOCHS": "6",
+        "ZOPRO_CPU_SOLVER_FRONTEND": "1",
+        "ZOPRO_CPU_GROUP_DIVERSITY": "1",
+        "ZOPRO_BENCH_PUBLIC_OVERLAP": "early",
+        "ZOPRO_CPU_FFT_LOCAL_EULER": "1",
+        "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+        "ZOPRO_CPU_GROUPED_G2_PHI": "1",
+        "ZOPRO_CPU_DENSE_H_WINDOWS": "19",
+        "ZOPRO_CPU_H_WINDOW_RANGES": "2",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31"
+      },
+      "assets": {}
+    }
+  }
+}
