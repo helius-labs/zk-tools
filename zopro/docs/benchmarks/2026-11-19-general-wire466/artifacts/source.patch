@@ -1,0 +1,56 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1153,12 +1153,18 @@
+         if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
+         let started = trace("solve", started);
+         use rayon::prelude::*;
++        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++        let offsets=self.wire_offsets.as_ref().filter(|_|omit_b && !self.canonical_wires);
++        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++        if let Some(o)=offsets {o.apply(&mut w);}
+         let (mut sa, mut sb): (Vec<_>, Vec<_>) = rayon::join(
+             || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
+             || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
+         );
+         trace("extract-scalars", started);
+         let (public, private) = w.split_at_mut(plan.n_public);
++        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++        if let Some(o)=offsets {o.restore_public(public);}
+         self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
+     }
+     pub fn commitment(
+@@ -1842,6 +1848,8 @@
+                     || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
+                     || folded.public_term(public),
+                 );
++                #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++                let (ar,kr,bs2)=self.wire_offsets.as_ref().filter(|_| omit_b && !self.canonical_wires).map_or((ar,kr,bs2),|o|(ar+o.a,kr+o.k,bs2+o.b2));
+                 trace("msms", started);
+                 let mut out = Vec::with_capacity(384);
+                 for point in [ar, bs1, kr + correction, queries.finish_product(hz)] {
+--- a/crates/zopro-core/src/public_wire_offsets.rs
++++ b/crates/zopro-core/src/public_wire_offsets.rs
+@@ -26,6 +26,13 @@
+ }
+
+ impl Offsets {
++    pub fn restore_public(&self, public: &mut [Fr]) {
++        for row in &self.rows {
++            if row.wire >= public.len() {break;}
++            public[row.wire] += row.scalar;
++        }
++    }
++
+     pub fn apply(&self, wires: &mut [Fr]) {
+         for row in &self.rows {
+             wires[row.wire] -= row.scalar;
+@@ -148,8 +155,7 @@
+     let Some(folded) = key.lagrange.as_ref().and_then(|q| q.folded.as_ref()) else {
+         return Ok(None);
+     };
+-    if !key.canonical_wires
+-        || key.has_gpu()
++    if !super::affine_msm() || key.equal_witness.is_some() || key.has_gpu()
+         || key.a.len() != plan.a_indices.len()
+         || key.b2.len() != plan.b_indices.len()
+     {
