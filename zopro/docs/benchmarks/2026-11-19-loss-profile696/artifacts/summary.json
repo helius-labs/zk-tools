@@ -1,0 +1,346 @@
+{
+  "1x16-aeglos": {
+    "top": [
+      [
+        "aeglos / aeglos::cpu::Pool::work(unsigned int)",
+        56930237473
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+        26181936232
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::invert_all(aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E*, unsigned long)",
+        23893094629
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+        22410712466
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+        20233381418
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+        15272006207
+      ]
+    ],
+    "total": 254643375730,
+    "plain": 12.290109096774193,
+    "profile": 12.880618483870968,
+    "minor_faults_per_plain_proof": 134.58064516129033,
+    "fault_symbols": {
+      "aeglos / std::vector<unsigned int, std::allocator<unsigned int> >::_M_fill_assign(unsigned long, unsigned int const&)": 0.4464414090582315,
+      "libc.so.6 / [unresolved]": 0.4104960460100647,
+      "aeglos / std::vector<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E, std::allocator<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E> >::_M_default_append(unsigned long)": 0.05895039539899353,
+      "aeglos / std::vector<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E, std::allocator<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E> >::_M_default_append(unsigned long)": 0.055355859094176854,
+      "aeglos / aeglos::cpu::ifma512::Projective<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E, aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E, aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E const&, aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E const&, aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E const&, aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E)": 0.0050323508267433505
+    },
+    "fault_profile_effect": [
+      1.0141806085230076,
+      1
+    ]
+  },
+  "1x16-runtime-off": {
+    "top": [
+      [
+        "runtime-sdk / crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        42620990462
+      ],
+      [
+        "runtime-sdk / <crossbeam_epoch::internal::Global>::try_advance",
+        32694706293
+      ],
+      [
+        "runtime-sdk / zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        30077309379
+      ],
+      [
+        "runtime-sdk / zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        24141609197
+      ],
+      [
+        "runtime-sdk / <&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+        7381621926
+      ],
+      [
+        "runtime-sdk / zopro_bn254::inverse::inverse::<zopro_bn254::FqConfig>",
+        6772742185
+      ]
+    ],
+    "total": 206577062510,
+    "plain": 16.84701612903226,
+    "profile": 18.012830322580644,
+    "minor_faults_per_plain_proof": 278.7741935483871,
+    "fault_symbols": {
+      "libc.so.6 / [unresolved]": 0.4065983058403923,
+      "runtime-sdk / zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>": 0.18680338831921534,
+      "runtime-sdk / rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#1}>>": 0.13419527418635754,
+      "runtime-sdk / rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>": 0.08738296923762817,
+      "runtime-sdk / zopro_core::msm_affine::grouping::classify_nonzero::<ahash::random_state::RandomState>": 0.07579135086937137
+    },
+    "fault_profile_effect": [
+      -0.1041103287171663,
+      2
+    ]
+  },
+  "2x16-aeglos": {
+    "top": [
+      [
+        "aeglos / aeglos::cpu::Pool::work(unsigned int)",
+        52302744508
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+        40337430667
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::invert_all(aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E*, unsigned long)",
+        33982889807
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+        33778108495
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+        27607406528
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+        20047556626
+      ]
+    ],
+    "total": 345347877760,
+    "plain": 16.961929967741934,
+    "profile": 17.367690741935483,
+    "minor_faults_per_plain_proof": 347.48387096774195,
+    "fault_symbols": {
+      "libc.so.6 / [unresolved]": 0.764928511354079,
+      "aeglos / std::vector<unsigned int, std::allocator<unsigned int> >::_M_fill_assign(unsigned long, unsigned int const&)": 0.16190075693860387,
+      "aeglos / std::vector<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E, std::allocator<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E> >::_M_default_append(unsigned long)": 0.031118587047939444,
+      "aeglos / std::vector<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E, std::allocator<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E> >::_M_default_append(unsigned long)": 0.02060555088309504,
+      "aeglos / std::vector<unsigned long, std::allocator<unsigned long> >::_M_fill_assign(unsigned long, unsigned long const&)": 0.007148864592094197
+    },
+    "fault_profile_effect": [
+      -2.874320168065503,
+      3
+    ]
+  },
+  "2x16-coeff-packed": {
+    "top": [
+      [
+        "release / crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        70518045793
+      ],
+      [
+        "release / <crossbeam_epoch::internal::Global>::try_advance",
+        54916213496
+      ],
+      [
+        "release / zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>",
+        26985726479
+      ],
+      [
+        "release / zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, false, zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        18690491766
+      ],
+      [
+        "release / zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        16867368285
+      ],
+      [
+        "release / rayon_core::join::join_context::<rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::grouping::group_witness::{closure#0}>>::{closure#0}, rayon::iter::plumbing::bridge_producer_consumer::helper<rayon::slice::IterMutProducer<[u64; 4]>, rayon::iter::for_each::ForEachConsumer<zopro_core::msm_affine::grouping::group_witness::{closure#0}>>::{closure#1},",
+        12013775730
+      ]
+    ],
+    "total": 331185493845,
+    "plain": 21.80579135483871,
+    "profile": 23.143511677419355,
+    "minor_faults_per_plain_proof": 1528.1290322580646,
+    "fault_symbols": {
+      "release / rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>": 0.43283216211799314,
+      "release / rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#1}>>": 0.20665141362967807,
+      "libc.so.6 / [unresolved]": 0.1569700931524759,
+      "release / zopro_core::msm_affine::grouping::classify_nonzero::<ahash::random_state::RandomState>": 0.11554175518875633,
+      "release / zopro_core::fft::pair::euler_center::transform": 0.01781336819741788
+    },
+    "fault_profile_effect": [
+      0.8927884224754878,
+      1
+    ]
+  },
+  "1x8-aeglos": {
+    "top": [
+      [
+        "aeglos / aeglos::cpu::Pool::work(unsigned int)",
+        51201620413
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+        20801231383
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::invert_all(aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E*, unsigned long)",
+        19433113600
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+        19090099684
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+        14489326758
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+        10797325499
+      ]
+    ],
+    "total": 213835447779,
+    "plain": 10.608488225806452,
+    "profile": 11.094034612903226,
+    "minor_faults_per_plain_proof": 209.58064516129033,
+    "fault_symbols": {
+      "libc.so.6 / [unresolved]": 0.40537164272329795,
+      "aeglos / std::vector<unsigned int, std::allocator<unsigned int> >::_M_fill_assign(unsigned long, unsigned int const&)": 0.40224859462835727,
+      "aeglos / std::vector<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E, std::allocator<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E> >::_M_default_append(unsigned long)": 0.08494690818238601,
+      "aeglos / std::vector<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E, std::allocator<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E> >::_M_default_append(unsigned long)": 0.04059962523422861,
+      "aeglos / runtime.memclrNoHeapPointers": 0.01561524047470331
+    },
+    "fault_profile_effect": [
+      1.9853666889293464,
+      1
+    ]
+  },
+  "1x8-wide32": {
+    "top": [
+      [
+        "owned / crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        39641183219
+      ],
+      [
+        "owned / <crossbeam_epoch::internal::Global>::try_advance",
+        35022135797
+      ],
+      [
+        "owned / zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        23471883419
+      ],
+      [
+        "owned / zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        19465022007
+      ],
+      [
+        "owned / <&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+        5643609419
+      ],
+      [
+        "owned / zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        5581543251
+      ]
+    ],
+    "total": 186263407421,
+    "plain": 13.385430741935483,
+    "profile": 14.424171645161291,
+    "minor_faults_per_plain_proof": 261.1290322580645,
+    "fault_symbols": {
+      "libc.so.6 / [unresolved]": 0.4096325719960278,
+      "owned / zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>": 0.17775571002979146,
+      "owned / rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G1Config, zopro_core::msm::group_affine<zopro_bn254::curve::G1Config>::{closure#0}>::{closure#1}>>": 0.12065541211519365,
+      "owned / rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>": 0.09731876861966236,
+      "owned / zopro_core::msm_affine::grouping::classify_nonzero::<ahash::random_state::RandomState>": 0.05163853028798411
+    },
+    "fault_profile_effect": [
+      0.49072028921706146,
+      1
+    ]
+  },
+  "1x4-aeglos": {
+    "top": [
+      [
+        "aeglos / aeglos::cpu::Pool::work(unsigned int)",
+        51006639520
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+        18580145503
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::invert_all(aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E*, unsigned long)",
+        16485138766
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane1<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+        16441737232
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(unsigned long const*, unsigned char*)",
+        11559402546
+      ],
+      [
+        "aeglos / aeglos::cpu::ifma512::PairBatch<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::load(unsigned long const*, unsigned long const*, unsigned long)",
+        9504299813
+      ]
+    ],
+    "total": 194259743623,
+    "plain": 9.430468548387097,
+    "profile": 9.846001354838709,
+    "minor_faults_per_plain_proof": 160.90322580645162,
+    "fault_symbols": {
+      "libc.so.6 / [unresolved]": 0.5214497041420119,
+      "aeglos / std::vector<unsigned int, std::allocator<unsigned int> >::_M_fill_assign(unsigned long, unsigned int const&)": 0.3039940828402367,
+      "aeglos / std::vector<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E, std::allocator<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E> >::_M_default_append(unsigned long)": 0.09097633136094675,
+      "aeglos / std::vector<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E, std::allocator<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams>::E> >::_M_default_append(unsigned long)": 0.04881656804733728,
+      "aeglos / aeglos::cpu::ifma512::Projective<aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> > >::finish(aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E, aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E, aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E const&, aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E const&, aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E const&, aeglos::cpu::ifma512::Lane2<aeglos::cpu::ifma512::VMont<aeglos::cpu::ifma512::Ifma<aeglos::cpu::ifma512::Zmm>, aeglos::cpu::ifma512::FpParams> >::E)": 0.009615384615384616
+    },
+    "fault_profile_effect": [
+      0.8530368248824471,
+      0
+    ]
+  },
+  "1x4-bands-tree2": {
+    "top": [
+      [
+        "band-sdk / crossbeam_epoch::default::with_handle::<crossbeam_epoch::default::pin::{closure#0}, crossbeam_epoch::guard::Guard>",
+        44986874037
+      ],
+      [
+        "band-sdk / <crossbeam_epoch::internal::Global>::try_advance",
+        27877209675
+      ],
+      [
+        "band-sdk / zopro_core::msm::stream_g1_impl::<zopro_bn254::curve::G1Config, true, true, &zopro_bn254::curve::Affine<zopro_bn254::curve::G1Config>>",
+        18230112703
+      ],
+      [
+        "band-sdk / zopro_core::msm::g2_borrowed::apply::<zopro_bn254::curve::G2Config, true>",
+        14594317082
+      ],
+      [
+        "band-sdk / zopro_core::msm::reduce_layer::<zopro_bn254::curve::G1Config>",
+        5607651251
+      ],
+      [
+        "band-sdk / <&zopro_core::msm_affine::borrowed_pending::msm<zopro_bn254::curve::G1Config>::{closure#0}::{closure#0} as core::ops::function::FnMut<(usize,)>>::call_mut",
+        4805479684
+      ]
+    ],
+    "total": 172992396253,
+    "plain": 11.789242451612903,
+    "profile": 12.802721387096774,
+    "minor_faults_per_plain_proof": 301.7096774193548,
+    "fault_symbols": {
+      "libc.so.6 / [unresolved]": 0.4482594182164998,
+      "band-sdk / zopro_core::msm_affine::g2_phi::staged_tree::append": 0.16547448736289938,
+      "band-sdk / rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<core::mem::maybe_uninit::MaybeUninit<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#0}, zopro_core::msm::group_affine_impl<zopro_bn254::curve::G2Config, zopro_core::msm::group_affine<zopro_bn254::curve::G2Config>::{closure#0}>::{closure#1}>>": 0.08774439675727229,
+      "band-sdk / rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::iter::enumerate::EnumerateProducer<rayon::slice::chunks::ChunksMutProducer<zopro_bn254::curve::Affine<zopro_bn254::curve::G2Config>>>, rayon::iter::map_with::MapInitConsumer<rayon::iter::noop::NoopConsumer, <zopro_core::msm_affine::g2_phi::staged_tree::State as core::default::Default>::default, zopro_core::msm_affine::g2_phi::staged_tree::window<12>::{closure#0}>>": 0.07200762994754412,
+      "band-sdk / rayon::iter::plumbing::bridge_producer_consumer::helper::<rayon::range::IterProducer<usize>, rayon::iter::map::MapConsumer<rayon::iter::collect::consumer::CollectConsumer<zopro_bn254::ifma8::PackedIfma8<zopro_bn254::FrConfig>>, zopro_core::fft::pair::euler_product_study::{closure#1}>>": 0.06866952789699571
+    },
+    "fault_profile_effect": [
+      0.39330030119970605,
+      1
+    ]
+  }
+}
