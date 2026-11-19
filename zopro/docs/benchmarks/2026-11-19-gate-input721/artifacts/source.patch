@@ -1,0 +1,18 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -105,6 +105,15 @@
+ }
+ 
+ fn group_with_gate<const EXCLUSIVE: bool>(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
++    let groups = group_without_probe::<EXCLUSIVE>(scalars, zero_aware);
++    let distinct: std::collections::HashSet<_> = scalars.iter().filter(|s| **s != [0; 4]).collect();
++    let zeros = scalars.iter().filter(|s| **s == [0; 4]).count();
++    eprintln!("GATE_INPUT {} {} {} {} {} {}", EXCLUSIVE, rayon::current_num_threads(),
++        scalars.len(), zeros, distinct.len(), groups.as_ref().map_or(0, |g| g.values.len()));
++    groups
++}
++
++fn group_without_probe<const EXCLUSIVE: bool>(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
+     if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
+         return None;
+     }
