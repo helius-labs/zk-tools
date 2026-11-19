@@ -1,0 +1,21 @@
+--- a/circuits/spp_merge/varied449_test.go
++++ b/circuits/spp_merge/varied449_test.go
+@@ -15,13 +15,13 @@
+ 	mp "zolana/prover/prover/merge"
+ )
+ 
+-func TestVariedMerge449(t *testing.T) {
+-	out := os.Getenv("MERGE449_INPUTS")
++func TestVariedMerge478(t *testing.T) {
++	out := os.Getenv("MERGE478_INPUTS")
+ 	if out == "" {
+-		t.Fatal("MERGE449_INPUTS required")
++		t.Fatal("MERGE478_INPUTS required")
+ 	}
+-	for id := int64(1); id <= 8; id++ {
+-		f := buildMergeFixture(t, mergeFixtureOptions{inputCount: 24, eddsa: true, variant: id, externalDataHash: big.NewInt(900 + id)})
++	for id := int64(105); id <= 120; id++ {
++		f := buildMergeFixture(t, mergeFixtureOptions{inputCount: 24, eddsa: true, variant: id, asset: new(big.Int).Lsh(big.NewInt(1), uint(80+id)), inputSlot: int(id % 3), externalDataHash: big.NewInt(900 + id)})
+ 		c := f.defaultCircuit()
+ 		v := spptest.AsBigInt
+ 		vs := spptest.ToBigInts

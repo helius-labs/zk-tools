@@ -1,0 +1,57 @@
+--- a/circuits/spp_merge/fixture_test.go
++++ b/circuits/spp_merge/fixture_test.go
+@@ -163,7 +163,7 @@
+ 			t.Fatal(err)
+ 		}
+ 	}
+-	nullifierSecret := big.NewInt(19)
++	nullifierSecret := big.NewInt(19 + options.variant*137)
+ 	userNullifierPk, err := protocol.NullifierPk(nullifierSecret)
+ 	if err != nil {
+ 		t.Fatal(err)
+@@ -177,10 +177,13 @@
+ 	if options.asset != nil {
+ 		asset = new(big.Int).Set(options.asset)
+ 	}
+-	const numReal = 2
+-	amounts := []*big.Int{big.NewInt(5 + 3*options.variant), big.NewInt(7 + 5*options.variant)}
+-	blindings := []*big.Int{big.NewInt(0x1111 + 13*options.variant), big.NewInt(0x2222 + 17*options.variant)}
+-	ringData := []*big.Int{big.NewInt(0), big.NewInt(0)}
++	numReal := []int{2, 3, 4, 8, 12, 16, 20, 24}[(options.variant-1)%8]
++	amounts, blindings, ringData := make([]*big.Int, numReal), make([]*big.Int, numReal), make([]*big.Int, numReal)
++	for i := 0; i < numReal; i++ {
++		amounts[i] = new(big.Int).Add(new(big.Int).Lsh(big.NewInt(1), uint(20+(options.variant+int64(i))%25)), big.NewInt(options.variant*101+int64(7*i)))
++		blindings[i] = new(big.Int).Add(new(big.Int).Lsh(big.NewInt(1), uint(110+(options.variant+int64(i))%70)), big.NewInt(options.variant*713+int64(i*31)))
++		ringData[i] = big.NewInt(0)
++	}
+ 	if options.inputRingData != nil {
+ 		if len(options.inputRingData) != numReal {
+ 			t.Fatalf("input ring data count: got %d want %d", len(options.inputRingData), numReal)
+@@ -205,10 +208,14 @@
+ 		t.Fatalf("input slot %d out of range", options.inputSlot)
+ 	}
+ 	treeIDs := fixtureSlotTreeIDs()
+-	inputSlots := []int{0, options.inputSlot}
++	inputSlots := make([]int, numReal)
++	inputSlots[1] = options.inputSlot
+ 	inUtxos := make([]protocol.Utxo, numReal)
+ 	inHashes := make([]*big.Int, numReal)
+ 	stateEntries := map[uint64]*big.Int{}
++	for i := 1; i <= int(options.variant%11)+2; i++ {
++		stateEntries[uint64(521*i)+uint64(options.variant)] = big.NewInt(int64(i) * options.variant * 7919)
++	}
+ 	for i := 0; i < numReal; i++ {
+ 		if options.duplicateFirstInput && i == 1 {
+ 			inUtxos[i] = inUtxos[0]
+@@ -297,7 +304,10 @@
+ 
+ 	// Merged output. The blinding is derived from the owner's nullifier secret
+ 	// and the first real nullifier, mirroring the in-circuit derivation.
+-	outAmount := new(big.Int).Add(amounts[0], amounts[1])
++	outAmount := new(big.Int)
++	for _, a := range amounts {
++		outAmount.Add(outAmount, a)
++	}
+ 	outBlinding, err := poseidon.Hash([]*big.Int{
+ 		big.NewInt(mergeshared.MergeOutputBlindingDomainV1), nullifierSecret, nullifiers[0],
+ 	})
