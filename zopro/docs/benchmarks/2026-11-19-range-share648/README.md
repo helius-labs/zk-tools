@@ -2,7 +2,7 @@
 
 Five arms use the ordinary release, the equal split in the candidate, and first partitions of 7/16, 9/16 or 10/16 of the points, rounded up. Each case has ten balanced process blocks and one separate profile per arm. The 157 native core tests passed and the ragged-input generator oracle passed at each unequal split. All 284 independent exports verified. Each dispatch probe ran three priming proofs and one measured proof. Every trace observed the requested two-way split.
 
-Giving the first partition 9/16 of the points beat 7/16 in all 40 pairs across the four 1×2 cases. The comparison with equal halves was much smaller. On the 32-thread original it split 5/10 pairs, and on the 16-core original it won 8/10 against equal and 9/10 against release. The 10/16 split slowed each 32-thread reference compared with release. The 16-core result is undergoing independent confirmation on three inputs. [Confirmation protocol](../2026-11-19-range16-confirm650/protocol.md)
+Giving the first partition 9/16 of the points beat 7/16 in all 40 pairs across the four 1×2 cases. The comparison with equal halves was much smaller. On the 32-thread original it split 5/10 pairs, and on the 16-core original it won 8/10 against equal and 9/10 against release. The 10/16 split slowed each 32-thread reference compared with release. An independent 16-core comparison repeated the gain on the original and found near parity against release on two additional inputs. [Confirmation results](../2026-11-19-range16-confirm650/README.md)
 
 | Input and workers | Release / equal / 7 / 9 / 10 sixteenths ms | 9 vs 7 / equal / release | 10 vs 7 / equal / release | Peaks in same order, MiB | 9/16 vs M5 CPU / Metal |
 |---|---:|---:|---:|---:|---:|
