@@ -1,0 +1,99 @@
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -40,7 +40,28 @@
+     *b = Pair::shuffle_pair::<2, 3, 6, 7>(&sum, &diff);
+ }
+ 
+-fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++/// Apply the inverse length-four DFT, coefficient index, and forward DFT
++/// as their single circulant operator. Each four-lane half is independent.
++#[inline(always)]
++fn circulant(x: &Pair, q: u64, n: u64, imaginary: &Pair) -> Pair {
++    let previous = Pair::shuffle_pair::<3, 0, 1, 2>(x, x);
++    let next = Pair::shuffle_pair::<1, 2, 3, 0>(x, x);
++    let opposite = Pair::shuffle_pair::<2, 3, 0, 1>(x, x);
++    let total = x.add(&opposite).add(&previous.add(&next));
++    let neighbors = previous.sub(&next).mul(imaginary);
++    let diagonal = x.mul_u28(&[4 * q + 2 * n; 8]);
++    diagonal.add(&neighbors.sub(&total).mul_u28(&[n / 2; 8]))
++}
++
++fn circulant_root(plan: &Plan) -> Option<Pair> {
++    if plan.n > (1 << 26) || std::env::var_os("ZOPRO_CIRCULANT_CENTER").is_none() {
++        return None;
++    }
++    let inv = broadcast(&plan.inverse_roots.pair);
++    Some(Pair::shuffle_pair::<1, 1, 1, 1>(&inv, &inv))
++}
++
++fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize, root: Option<&Pair>) {
+     // The ordinary transform expands the same bounded leaf separately in each direction.
+     let mut expanded: Vec<_> = values.iter().map(PairStorage::load).collect();
+     let mut gap = expanded.len() / 2;
+@@ -53,10 +74,18 @@
+         gap /= 2;
+         layer += 1;
+     }
++    let log = plan.n.ilog2() as usize;
++    if let Some(imaginary) = root {
++        for (i, value) in expanded.iter_mut().enumerate() {
++            let q = bit_reverse(first + i, log - 2) as u64;
++            *value = circulant(value, q, plan.n as u64, imaginary);
++        }
++    } else {
+     let inv = broadcast(&plan.inverse_roots.pair);
+     let fwd = broadcast(&plan.roots.pair);
+     for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
+         center(a, b, &inv, &fwd, first + 2 * i, plan.n.ilog2() as usize);
++    }
+     }
+     gap = 1;
+     while gap < expanded.len() {
+@@ -72,9 +101,9 @@
+     }
+ }
+ 
+-fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize, root: Option<&Pair>) {
+     if values.len() <= 1024 {
+-        return leaf(plan, values, level, first);
++        return leaf(plan, values, level, first, root);
+     }
+     columns::<false>(values, &plan.inverse_roots, level);
+     let size = values.len() / 32;
+@@ -82,7 +111,7 @@
+         .par_chunks_exact_mut(size)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, level + 5, first + i * size);
++            transform(plan, part, level + 5, first + i * size, root);
+         });
+     columns::<true>(values, &plan.roots, level);
+ }
+@@ -90,13 +119,16 @@
+ #[inline(never)]
+ pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+     let mut values = input_columns::first_layer(plan, a, b);
++    let timer = std::env::var_os("ZOPRO_CLOCK_CENTER").map(|_| std::time::Instant::now());
++    let root = circulant_root(plan);
+     let width = values.len() / 32;
+     values
+         .par_chunks_exact_mut(width)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, 5, i * width);
++            transform(plan, part, 5, i * width, root.as_ref());
+         });
++    if let Some(t) = timer { eprintln!("CENTER_NS {}", t.elapsed().as_nanos()); }
+     columns::<true>(&mut values, &plan.roots, 0);
+     values
+ }
+@@ -157,7 +189,7 @@
+                     *v = PackedPair::store(v.load().mul_u28(&factors));
+                 }
+                 stored_transform::<PackedPair, true>(&mut expect, &plan.roots, 0);
+-                transform(&plan, &mut got, 0, 0);
++                transform(&plan, &mut got, 0, 0, circulant_root(&plan).as_ref());
+                 for (a, b) in got.iter().zip(&expect) {
+                     assert_eq!(a.load().get(), b.load().get());
+                 }
