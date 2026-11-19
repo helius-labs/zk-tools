@@ -17,3 +17,5 @@ Four randomized blocks at 32 Ryzen workers compare the ordinary image, the ordin
 | 24x2 | 97 | 63.363 / 60.816 / 66.383 / 77.457 | +4.72% (0/4) | +8.82% (0/4) | 1067.9 / 1097.0 / 1016.6 |
 
 [Process timings](artifacts/processes.json.gz) · [Image sizes and identities](artifacts/images.json) · [Execution routes](artifacts/probes.json) · [Diagnostic source](artifacts/incremental.patch) · [Independent verification](artifacts/verification.json)
+
+The [offline packer](artifacts/pack_image.py) reproduced all three images byte for byte, including both offset files. The SDK rejected three independently corrupted 8×2 images before exporting a proof. [Validation results](artifacts/layout-checks.json)
