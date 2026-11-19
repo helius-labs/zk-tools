@@ -50,7 +50,7 @@ fn pack_inverse_columns<const CACHED: bool>(
 }
 
 #[inline(never)]
-pub(super) fn inverse(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
     let n = plan.n / 4;
     let q = n / 32;
     assert!(n >= 2048 && n.is_power_of_two());
@@ -66,6 +66,14 @@ pub(super) fn inverse(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
     // SAFETY: the 32 disjoint stripes cover exactly n slots. Both branches
     // join every producer and write each slot before this call.
     unsafe { values.set_len(n) };
+    values
+}
+
+pub(super) fn inverse(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+    let mut values = first_layer(plan, a, b);
+    let n = values.len();
+    let q = n / 32;
+    let roots = &plan.inverse_roots;
     let cutoff = leaf::cutoff(n, rayon::current_num_threads());
     values.par_chunks_mut(q).for_each(|part| {
         stored_transform_inner::<PackedPair, false>(part, roots, 5, cutoff);

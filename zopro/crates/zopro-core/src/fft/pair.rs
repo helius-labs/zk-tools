@@ -1,5 +1,6 @@
 //! Two independent transforms share the lower/upper four IFMA lanes.
 mod input_columns;
+mod euler_center;
 use super::*;
 use zopro_bn254::{ifma8::Ifma8, FrConfig};
 type Pair = Ifma8<FrConfig>;
@@ -1763,7 +1764,7 @@ fn column_kernel<const CACHED: bool, const FORWARD: bool>(
 
 
 
-// Isolated derivative component study; not used by proving entry points.
+// Euler derivative product used by the evaluation-basis prover.
 // Unnormalized inverse FFT means the returned prefix is
 // n * (E(A) * B + A * E(B)), where E(f) = X f'.
 pub(super) fn euler_product_study(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
@@ -1772,9 +1773,16 @@ pub(super) fn euler_product_study(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Ve
     let count = a.len().max(b.len());
     a.resize(count, Fr::ZERO);
     if count == 0 { return a; }
-    let mut values = if plan.n >= 8192
-        && std::env::var("ZOPRO_CPU_FFT_INPUT_COLUMNS").as_deref() == Ok("1")
+    let packed_inputs = plan.n >= 8192
+        && std::env::var("ZOPRO_CPU_FFT_INPUT_COLUMNS").as_deref() == Ok("1");
+    if packed_inputs && plan.n <= (1 << 28) && plan.roots.single.is_none()
+        && std::env::var("ZOPRO_CPU_FFT_LOCAL_EULER").as_deref() == Ok("1")
     {
+        let values = euler_center::from_inputs(plan, &a, &b);
+        euler_combine_products(&mut a, &b, &values);
+        return a;
+    }
+    let mut values = if packed_inputs {
         input_columns::inverse(plan, &a, &b)
     } else {
         let mut values: Vec<PackedPair> = (0..plan.n / 4).into_par_iter().map(|i| {

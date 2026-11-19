@@ -192,6 +192,13 @@ respectively. Peak process RSS fell on all three. These settings were
 confirmed in seven fresh blocks for each shape.
 [Eight-shape FFT comparison](docs/benchmarks/2026-11-19-all-input-columns425/README.md)
 
+With FFT input packing enabled, `ZOPRO_CPU_FFT_LOCAL_EULER=1` applies the
+Euler weights between the two local transforms while the expanded values
+are still in the same buffer. This opt-in IFMA path reuses the existing
+root tables on domains from 8,192 through 2²⁸ points. On Ryzen 9950X
+12×2, it reduced median paired latency against the same build by 0.88% at 16 workers (8/8 witnesses) and 2.03% at 32 workers (8/8 witnesses).
+[Varied-witness measurements](docs/benchmarks/2026-11-19-varied-column-center427/README.md)
+
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
 G2 queries of 1,024 through 65,535 points when the worker pool has at least
