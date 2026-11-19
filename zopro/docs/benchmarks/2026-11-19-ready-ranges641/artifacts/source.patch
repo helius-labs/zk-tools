@@ -1,0 +1,104 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -213,7 +213,15 @@
+     }
+     let chunk = bases.len().div_ceil(parts);
+     let windows = 127usize.div_ceil(bits);
+-    let sums: Vec<_> = (0..windows)
++    let order = if parts == 2 && !bases.is_empty() {
++        std::env::var("ZOPRO_TRIAL_G2_READY_RANGES").ok()
++    } else {
++        None
++    };
++    let sums: Vec<_> = if matches!(order.as_deref(), Some("window" | "range")) {
++        ready_ranges(bases, short, bits, windows, chunk, order.as_deref() == Some("range"))
++    } else {
++        (0..windows)
+         .into_par_iter()
+         .map(|w| {
+             let mut buckets: Vec<_> = (0..parts)
+@@ -230,7 +238,8 @@
+             }
+             crate::msm::weighted_affine(&combined)
+         })
+-        .collect();
++        .collect()
++    };
+     let mut result = G2Projective::IDENTITY;
+     for sum in sums.iter().rev() {
+         for _ in 0..bits {
+@@ -239,6 +248,74 @@
+         result += sum;
+     }
+     result
++}
++
++// Each task owns its range buckets. The first arrival leaves its vector in
++// the window slot. The second takes it, releases the lock and does the merge.
++fn ready_ranges(
++    bases: &[G2Affine], short: &[[u64; 4]], bits: usize, windows: usize,
++    chunk: usize, range_major: bool,
++) -> Vec<G2Projective> {
++    use std::sync::{Mutex, OnceLock};
++    let waiting: Vec<_> = (0..windows).map(|_| Mutex::new(None)).collect();
++    let sums: Vec<_> = (0..windows).map(|_| OnceLock::new()).collect();
++    let trace = std::env::var_os("ZOPRO_TRIAL_G2_READY_TRACE").is_some();
++    (0..2 * windows).into_par_iter().for_each(|task| {
++        let (w, part) = if range_major {
++            (task % windows, task / windows)
++        } else {
++            (task / 2, task % 2)
++        };
++        let start = part * chunk;
++        let end = (start + chunk).min(bases.len());
++        let own = hb_window(&bases[start..end], &short[start..end], w, bits);
++        let other = {
++            let mut slot = waiting[w].lock().unwrap();
++            match slot.take() {
++                Some(other) => other,
++                None => {
++                    *slot = Some(own);
++                    return;
++                }
++            }
++        };
++        let (mut left, right) = if part == 0 { (own, other) } else { (other, own) };
++        merge_buckets(&mut left, &right);
++        drop(right);
++        let sum = crate::msm::weighted_affine(&left);
++        assert!(sums[w].set(sum).is_ok());
++        if trace {
++            eprintln!("READY_RANGE {w} {part} {} {}", left.len(), usize::from(range_major));
++        }
++    });
++    sums.into_iter().map(|sum| sum.into_inner().unwrap()).collect()
++}
++
++#[cfg(test)]
++#[test]
++fn ready_range_orders_match_independent_scalar_sum() {
++    let n = 513;
++    let g = G2Projective::generator();
++    let weights: Vec<_> = (0..n).map(|i| Fr::from((i % 29) as u64)).collect();
++    let bases = G2Projective::batch_to_affine(&weights.iter().map(|k| g * *k).collect::<Vec<_>>());
++    let scalars: Vec<_> = (0..n).map(|i| {
++        let k = Fr::from((i + 3) as u64).pow(&[27]);
++        if i % 3 == 0 { -k } else { k }
++    }).collect();
++    let expected = weights.iter().zip(&scalars).fold(Fr::ZERO, |a, (l, r)| a + *l * *r);
++    let short: Vec<_> = scalars.iter().map(|s| phi_split(s.to_canonical())).collect();
++    for threads in [1, 4] {
++        let pool = rayon::ThreadPoolBuilder::new().num_threads(threads).build().unwrap();
++        for range_major in [false, true] {
++            let sums = pool.install(|| ready_ranges(&bases, &short, 12, 11, n.div_ceil(2), range_major));
++            let mut sum = G2Projective::IDENTITY;
++            for term in sums.into_iter().rev() {
++                for _ in 0..12 { sum = sum.double(); }
++                sum += term;
++            }
++            assert_eq!(sum.to_affine(), (g * expected).to_affine());
++        }
++    }
+ }
+ 
+ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Projective {
