@@ -13,3 +13,15 @@ Five diagnostic processes compare each admitted A result to a complete dense A M
 | 143 | fallback | 45.449 / 45.018 / 45.147 | +0.33% (3/7) / -0.34% (5/7) | 1168.5 / 1129.5 | — |
 
 [Samples and audits](artifacts/samples.json.gz) · [Source](artifacts/source.patch) · [Verification](artifacts/verification.json)
+
+## Reference threshold
+
+The 10× M5 CPU threshold is 28.4 ms. The table preserves the seven process means used for the result and the distribution across all 147 timed calls per setting.
+
+| Setting | Median process mean ms | Process means at target | Individual median ms | Calls at target |
+|---|---:|---:|---:|---:|
+| frozen | 28.648 | 0/7 | 28.523 | 66/147 |
+| control | 28.581 | 2/7 | 28.417 | 71/147 |
+| indexed | 29.239 | 0/7 | 29.077 | 27/147 |
+
+[All seven process means](artifacts/reference-distribution.json) · [Four-worker correctness check](four-workers.md) · [Combined verification record](artifacts/verification-with-audit.json)
