@@ -133,6 +133,14 @@ impl Prover {
         self.key.set_grouped_b2_serial_preparation(enabled);
     }
 
+    /// Reuse solver-derived Poseidon origins during native grouped B2 proofs.
+    /// The prover checks scalar equality before reusing any class.
+    /// Disabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_grouped_b2_poseidon_origins(&mut self, enabled: bool) {
+        self.key.set_grouped_b2_poseidon_origins(enabled);
+    }
+
     /// Control scalar grouping for the native exclusive G2 evaluator.
     /// Grouping is enabled by default.
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]

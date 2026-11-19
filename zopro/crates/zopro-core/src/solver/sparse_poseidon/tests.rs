@@ -104,6 +104,7 @@ fn fixture(t: usize, n: usize, forms: &[Vec<(usize, Fr)>], reverse: bool) -> Pla
         ops: ordered.into_iter().map(Option::unwrap).collect(),
         fuse_sums: 2,
         schedule: std::sync::OnceLock::new(),
+        b2_origins: std::sync::OnceLock::new(),
         definite: std::sync::OnceLock::new(),
     }
 }

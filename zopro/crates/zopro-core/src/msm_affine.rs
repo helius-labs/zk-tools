@@ -14,6 +14,8 @@ mod grouping_cost;
 pub(super) mod borrowed_pending;
 mod grouping;
 pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
+#[cfg(zopro_resource_schedule)]
+pub(super) use grouping::group_witness_b2_origins;
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 pub(super) use grouping::group_witness_serial_b2;
 

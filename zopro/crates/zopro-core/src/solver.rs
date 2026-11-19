@@ -396,6 +396,8 @@ pub(crate) struct Plan {
     fuse_sums: u8,
     /// The ops in epochs of parallel tasks, built at the first solve.
     schedule: std::sync::OnceLock<Schedule>,
+    #[cfg(zopro_resource_schedule)]
+    b2_origins: std::sync::OnceLock<Option<B2Origins>>,
     definite: std::sync::OnceLock<bool>,
 }
 
@@ -907,6 +909,8 @@ impl Plan {
             ops,
             fuse_sums: fused_sums_mode(),
             schedule: std::sync::OnceLock::new(),
+            #[cfg(zopro_resource_schedule)]
+            b2_origins: std::sync::OnceLock::new(),
             definite: std::sync::OnceLock::new(),
         };
         plan.compact_coefficients();
@@ -1219,6 +1223,8 @@ impl Plan {
             ops,
             fuse_sums: fused_sums_mode(),
             schedule: std::sync::OnceLock::new(),
+            #[cfg(zopro_resource_schedule)]
+            b2_origins: std::sync::OnceLock::new(),
             definite: std::sync::OnceLock::new(),
         };
         plan.compact_coefficients();
@@ -2430,6 +2436,8 @@ mod tests {
                 ops,
                 fuse_sums: 2,
                 schedule: std::sync::OnceLock::new(),
+                #[cfg(zopro_resource_schedule)]
+                b2_origins: std::sync::OnceLock::new(),
                 definite: std::sync::OnceLock::new(),
             }
         }
@@ -3163,3 +3171,6 @@ impl Plan {
 }
 
 #[cfg(zopro_resource_schedule)] mod sparse_poseidon;
+
+#[cfg(zopro_resource_schedule)]
+pub(crate) use sparse_poseidon::{B2Origins, RuntimeAliases};

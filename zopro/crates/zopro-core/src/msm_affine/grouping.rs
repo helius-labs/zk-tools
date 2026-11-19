@@ -3,6 +3,8 @@
 //! Returned groups own scalar values and stable input-index lists. The
 //! reservation outlives every owned buffer and all point-reduction consumers.
 use super::grouping_cost;
+#[cfg(zopro_resource_schedule)]
+use crate::solver::{B2Origins, RuntimeAliases};
 use rayon::prelude::*;
 use zopro_bn254::Fr;
 
@@ -18,14 +20,28 @@ pub(crate) struct ScalarGroups {
 /// Group before converting representations, so only distinct witness
 /// scalars need Montgomery reduction. The grouping is fresh per proof.
 pub(crate) fn group_witness(scalars: &[Fr]) -> Option<ScalarGroups> {
-    group_witness_inner::<false>(scalars)
+    group_witness_inner::<false>(scalars, None)
 }
 
 pub(crate) fn group_witness_serial_b2(scalars: &[Fr]) -> Option<ScalarGroups> {
-    group_witness_inner::<true>(scalars)
+    group_witness_inner::<true>(scalars, None)
 }
 
-fn group_witness_inner<const SERIAL_B2: bool>(scalars: &[Fr]) -> Option<ScalarGroups> {
+#[cfg(zopro_resource_schedule)]
+pub(crate) fn group_witness_b2_origins(scalars: &[Fr], origins: &B2Origins, serial: bool) -> Option<ScalarGroups> {
+    if serial {
+        group_witness_inner::<true>(scalars, Some(origins))
+    } else {
+        group_witness_inner::<false>(scalars, Some(origins))
+    }
+}
+
+#[cfg(zopro_resource_schedule)]
+type Origins<'a> = Option<&'a B2Origins>;
+#[cfg(not(zopro_resource_schedule))]
+type Origins<'a> = Option<&'a ()>;
+
+fn group_witness_inner<const SERIAL_B2: bool>(scalars: &[Fr], origins: Origins<'_>) -> Option<ScalarGroups> {
     if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
         return None;
     }
@@ -34,7 +50,7 @@ fn group_witness_inner<const SERIAL_B2: bool>(scalars: &[Fr]) -> Option<ScalarGr
     let words =
         unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
-    let mut groups = group_with_gate::<false, SERIAL_B2>(words, zero_aware)?;
+    let mut groups = group_with_gate::<false, SERIAL_B2>(words, zero_aware, origins)?;
     let convert = |value: &mut [u64; 4]| {
         *value = Fr::from_montgomery(*value).to_canonical();
     };
@@ -56,7 +72,7 @@ pub(crate) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
 mod diversity;
 pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
-    group_with_gate::<true, false>(scalars, zero_aware)
+    group_with_gate::<true, false>(scalars, zero_aware, None)
 }
 
 type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
@@ -115,10 +131,10 @@ fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSampl
 }
 
 fn scalar_groups_policy(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
-    group_with_gate::<false, false>(scalars, zero_aware)
+    group_with_gate::<false, false>(scalars, zero_aware, None)
 }
 
-fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
+fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(scalars: &[[u64; 4]], zero_aware: bool, origins: Origins<'_>) -> Option<ScalarGroups> {
     if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
         return None;
     }
@@ -129,7 +145,15 @@ fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(scalars: &[[u64
     {
         return None;
     }
-    let reservation = grouping_cost::reserve(scalars.len(), percent)?;
+    #[cfg(zopro_resource_schedule)]
+    let reservation = match origins {
+        Some(plan) => crate::preparation::Reservation::analysis(
+            grouping_cost::add(grouping_cost::peak(scalars.len(), percent)?, plan.scratch_bytes()?),
+        )?,
+        None => grouping_cost::reserve(scalars.len(), percent)?,
+    };
+    #[cfg(not(zopro_resource_schedule))]
+    let reservation = { let _ = origins; grouping_cost::reserve(scalars.len(), percent)? };
     // Bound the initial allocation by the sample and by the grouping
     // cutoff. Small high-diversity inputs otherwise grow and rehash the
     // entire table several times before either succeeding or declining.
@@ -143,6 +167,15 @@ fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(scalars: &[[u64
         0
     };
     let mut classes = vec![u32::MAX; scalars.len()];
+    #[cfg(zopro_resource_schedule)]
+    let (values, counts) = if let Some(plan) = origins {
+        let room = capacity.min(plan.residual().div_ceil(3));
+        let aliases = plan.aliases(scalars)?;
+        classify_nonzero_origins(scalars, &mut classes, room, ahash::RandomState::new(), aliases)
+    } else {
+        classify_nonzero(scalars, &mut classes, capacity, ahash::RandomState::new())
+    };
+    #[cfg(not(zopro_resource_schedule))]
     let (values, counts) = classify_nonzero(scalars, &mut classes, capacity, ahash::RandomState::new());
     if values.len() * 100 > scalars.len() * percent {
         return None;
@@ -238,4 +271,53 @@ fn serial_b2_scalar_preparation_preserves_groups() {
     let control = groups(group_witness(&scalars).unwrap());
     let serial = groups(group_witness_serial_b2(&scalars).unwrap());
     assert_eq!(control, serial);
+}
+
+
+#[cfg(zopro_resource_schedule)]
+fn classify_nonzero_origins(
+    scalars: &[[u64; 4]],
+    classes: &mut [u32],
+    capacity: usize,
+    state: impl std::hash::BuildHasher,
+    mut aliases: RuntimeAliases<'_>,
+) -> (Vec<[u64; 4]>, Vec<usize>) {
+    use hashbrown::{hash_table::Entry, HashTable};
+    let mut table = HashTable::<u32>::with_capacity(capacity);
+    let mut values = Vec::new();
+    let mut counts = Vec::new();
+    for (i, (scalar, class)) in scalars.iter().zip(classes).enumerate() {
+        if *scalar == [0; 4] { continue; }
+        if let Some(slot) = aliases.slot(i) {
+            if *slot == u32::MAX {
+                *slot = values.len() as u32;
+                *class = *slot;
+                values.push(*scalar);
+                counts.push(1);
+                continue;
+            }
+            if values[*slot as usize] == *scalar {
+                *class = *slot;
+                counts[*slot as usize] += 1;
+                continue;
+            }
+        }
+        let index = match table.entry(
+            state.hash_one(scalar),
+            |&j| values[j as usize] == *scalar,
+            |&j| state.hash_one(&values[j as usize]),
+        ) {
+            Entry::Occupied(e) => *e.get(),
+            Entry::Vacant(e) => {
+                let j = values.len() as u32;
+                values.push(*scalar);
+                counts.push(0);
+                e.insert(j);
+                j
+            }
+        };
+        *class = index;
+        counts[index as usize] += 1;
+    }
+    (values, counts)
 }

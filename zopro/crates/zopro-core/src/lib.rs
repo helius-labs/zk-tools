@@ -818,6 +818,8 @@ pub struct Key {
     g1_k_on_frontend: bool,
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     grouped_b2_serial_preparation: bool,
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    grouped_b2_poseidon_origins: bool,
     basis_only: bool,
     // Audited native workspace, or conservative prompt release when unknown.
     proof_workspace: Option<usize>,
@@ -1532,6 +1534,8 @@ impl Key {
             g1_k_on_frontend: false,
             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
             grouped_b2_serial_preparation: false,
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            grouped_b2_poseidon_origins: false,
             basis_only,
             #[cfg(gpu_any)]
             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
@@ -2106,7 +2110,19 @@ impl Key {
                         { false }
                     };
                     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-                    let groups = if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
+                    let ordinary = || if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
+                    #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+                    let groups = if omit_b && (65_536..262_144).contains(&sb.len())
+                        && self.grouped_b2_poseidon_origins
+                    {
+                        self.solver.as_ref().and_then(solver::Plan::b2_origins)
+                            .and_then(|origins| msm_affine::group_witness_b2_origins(sb, origins, serial))
+                            .or_else(ordinary)
+                    } else {
+                        ordinary()
+                    };
+                    #[cfg(all(not(zopro_resource_schedule), target_os = "linux", target_arch = "x86_64"))]
+                    let groups = ordinary();
                     #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
                     let groups = { let _ = serial; group_witness(sb) };
                     if let Some(groups) = groups {
@@ -2619,6 +2635,20 @@ impl Key {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     pub fn set_grouped_b2_serial_preparation(&mut self, enabled: bool) {
         self.grouped_b2_serial_preparation = enabled;
+    }
+
+    /// Use exact solver-derived Poseidon origins in medium native grouped B2.
+    /// Retains a bounded index plan under the workspace policy. Each proof
+    /// checks equality before reusing a scalar class. Disabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_grouped_b2_poseidon_origins(&mut self, enabled: bool) {
+        self.grouped_b2_poseidon_origins = enabled;
+        #[cfg(zopro_resource_schedule)]
+        if !enabled {
+            if let Some(plan) = self.solver.as_mut() {
+                plan.clear_b2_origins();
+            }
+        }
     }
 
     /// Control scalar grouping for the native exclusive G2 evaluator.
