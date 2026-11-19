@@ -2,6 +2,8 @@
 
 Each process loads one key and proves three distinct warmup requests followed by 25 measured calls. Each of five requests occurs five times. The mixed order changes request every call. The consecutive order presents five identical requests in a row. Both use the same three warmups within each block. Five blocks rotate CPU placement and shuffle the four processes. Timing encloses the full verified SDK call. Each process keeps its 25 outputs in memory until timing ends. All 500 proofs passed independent verification against the original key and their respective public outputs.
 
+The five request identities test order and reuse within a process. Scattered input 139 was one of the four public requests used earlier to refine the second grouping plan; scattered input 143 was held out from that training. The speed ratios below use the separate original M5 reference request. [Training and evaluation inputs](../2026-11-19-nested-groups517/README.md)
+
 Medians below summarize five process means. The last column gives the paired change in latency with mixed order and the count of blocks in which mixed order was faster. The all-input row weights the five inputs equally.
 
 | Key and solver | Request | Mixed ms | Consecutive ms | Paired mixed vs consecutive |
