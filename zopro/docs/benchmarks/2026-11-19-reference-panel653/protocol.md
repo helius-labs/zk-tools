@@ -1,0 +1,7 @@
+# Recheck all supplied M5 references on the same Ryzen
+
+Compare the current ordinary SDK, a selected experimental configuration and prepared Aeglos on the same input and CPU mask for each circuit. Include all eight supplied M5 CPU and Metal timings and merge 54×1. Use one active proof per process, three warmups and seven timed requests. Use all six orders of the three arms per shape, with shape order shuffled per block. Run the independent verifier with the original verification key after every engine process. Require prepared-key hits on every timed Aeglos proof. Measure whole-process peak RSS.
+
+Use the ordinary SDK as a same-binary repeat on 1×2 and merge 54×1. Use sampled H from 605 for 2×2, indexed groups from 622 for 4×2, previously measured group configurations from 613 for 8×2 and 16×2, the blocked key from 613 for merge 24×1 and the indexed, tiled, pooled configuration from 628 for 24×2. Select the 12×2 build by the pooled median from all eight masks in 652 and remeasure it on the same 30-thread mask as study 634. All others use 32 hardware threads. Preserve the deployment default. The selected arm describes a set of experimental configurations and includes different binaries. Report the ordinary arm separately on each row. A 10× result is evaluated per input using the median of process means.
+
+[Ordinary SDK catalog](../2026-11-19-ryzen-catalog631/README.md) · [Earlier experimental panel](../2026-11-19-zen5-score613/README.md)
