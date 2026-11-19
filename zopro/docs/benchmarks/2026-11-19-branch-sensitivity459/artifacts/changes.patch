@@ -1,0 +1,65 @@
+--- a/crates/zopro-core/src/public_b2_offset.rs
++++ b/crates/zopro-core/src/public_b2_offset.rs
+@@ -42,0 +43,33 @@
++
++#[derive(Default)]
++pub(super) struct G1Branches {
++    pub a: OnceLock<G1Term>,
++    pub kh: OnceLock<G1Term>,
++}
++
++pub(super) struct G1Term {
++    left: Vec<[u64; 4]>,
++    right: Vec<[u64; 4]>,
++    value: G1Projective,
++}
++
++pub(super) fn measure_term(
++    cache: &OnceLock<G1Term>, name: &str,
++    left: &[[u64; 4]], right: &[[u64; 4]], calculate: impl Fn() -> G1Projective,
++) -> G1Projective {
++    if !std::env::var("ZOPRO_BENCH_G1_TERMS").unwrap_or_default().split(',').any(|s| s == name) {
++        return calculate();
++    }
++    let trace = std::env::var_os("ZOPRO_BENCH_SENSITIVITY_TRACE").is_some();
++    let term = cache.get_or_init(|| {
++        if trace { eprintln!("G1_INIT {name}"); }
++        G1Term { left: left.to_vec(), right: right.to_vec(), value: calculate() }
++    });
++    if left == term.left && right == term.right {
++        if trace { eprintln!("G1_MATCH {name}"); }
++        term.value
++    } else {
++        if trace { eprintln!("G1_MISS {name}"); }
++        calculate()
++    }
++}
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -832,0 +833,2 @@
++    #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++    g1_branches: public_b2_offset::G1Branches,
+@@ -1518,0 +1521,2 @@
++            #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++            g1_branches: Default::default(),
+@@ -2273,2 +2277,8 @@
+-                || rayon::join(|| msm(&self.a[..],sa),
+-                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
++                || rayon::join(
++                    || public_b2_offset::measure_term(&self.g1_branches.a, "A", sa, &[],
++                        || msm(&self.a[..], sa)),
++                    || {
++                        let h_words = canonical(h);
++                        public_b2_offset::measure_term(&self.g1_branches.kh, "KH", sk, h_words,
++                            || msm_affine::fused_kh::fused(k,sk,z,h_words,13))
++                    }),
+--- a/crates/zopro-bench/examples/cpu-sdk.rs
++++ b/crates/zopro-bench/examples/cpu-sdk.rs
+@@ -43,0 +44,7 @@
++    if std::env::var_os("ZOPRO_BENCH_G1_TERMS").is_some() {
++        let fixed = include_str!("branch_v5.json");
++        if request != fixed {
++            assert_eq!(request, include_str!("branch_v6.json"));
++            std::hint::black_box(sdk.prove(fixed)?);
++        }
++    }
