@@ -22,4 +22,4 @@ For each function, add up the time its threads were inside its probes and schedu
 
 [Protocol](protocol.md) · [Symbols and binary pin](artifacts/symbols.json) · [Per-query analysis](artifacts/query-intervals.json.gz) · [Dispatch counts](artifacts/counts.json) · [Process samples](artifacts/runs.json.gz) · [Verifier receipts](artifacts/verification.json) · [Follow-up with phase probes](../2026-11-19-competing-feed644/README.md)
 
-The plain and traced arms used byte-identical files with different inodes. Their latency difference includes any executable backing effect. A separate three-arm comparison runs the very same copy with probes inactive and active. [Matched-copy protocol](../2026-11-19-probe-controls649/protocol.md)
+The plain and traced arms used byte-identical files with different inodes. Their latency difference includes any executable backing effect. A separate three-arm comparison runs the very same copy with probes inactive and active. [Matched-copy results](../2026-11-19-probe-controls649/README.md)

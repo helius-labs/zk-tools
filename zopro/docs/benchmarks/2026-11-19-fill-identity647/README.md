@@ -13,4 +13,4 @@ Partition one supplied the last finishing fill on 28/34 original 1×2 proofs and
 
 [Protocol](protocol.md) · [All per-proof range timings](artifacts/ranges.json.gz) · [Last finishing window counts](artifacts/last-windows.json) · [Ordinary binary symbols](artifacts/symbols.json) · [Verified runs](artifacts/runs.json.gz)
 
-The plain and traced arms used byte-identical files with different inodes. Their latency difference includes any executable backing effect. A separate three-arm comparison runs the very same copy with probes inactive and active. [Matched-copy protocol](../2026-11-19-probe-controls649/protocol.md)
+The plain and traced arms used byte-identical files with different inodes. Their latency difference includes any executable backing effect. A separate three-arm comparison runs the very same copy with probes inactive and active. [Matched-copy results](../2026-11-19-probe-controls649/README.md)
