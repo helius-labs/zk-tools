@@ -1,0 +1,228 @@
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -40,12 +40,113 @@
+     *b = Pair::shuffle_pair::<2, 3, 6, 7>(&sum, &diff);
+ }
+ 
+-fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++fn direct_center(a: &mut Pair, b: &mut Pair, inv: &Pair, fwd: &Pair, first: usize, log: usize) {
++    let lo = Pair::shuffle_pair::<0, 1, 4, 5>(a, b);
++    let hi = Pair::shuffle_pair::<2, 3, 6, 7>(a, b);
++    let sum = lo.add(&hi);
++    let diff = lo.sub(&hi).mul(inv);
++    let lo = Pair::shuffle_pair::<0, 4, 2, 6>(&sum, &diff);
++    let hi = Pair::shuffle_pair::<1, 5, 3, 7>(&sum, &diff);
++    let q = bit_reverse(first, log - 2) as u64;
++    let r = bit_reverse(first + 1, log - 2) as u64;
++    let quarter = 1u64 << (log - 2);
++    let even = [
++        q,
++        q + quarter,
++        r,
++        r + quarter,
++        q,
++        q + quarter,
++        r,
++        r + quarter,
++    ];
++    let odd = even.map(|x| x + 2 * quarter);
++    let s = lo.add(&hi).mul_u28(&even);
++    let d = lo.sub(&hi).mul_u28(&odd);
++    let sum = s.add(&d);
++    let diff = s.sub(&d);
++    let lo = Pair::shuffle_pair::<0, 4, 2, 6>(&sum, &diff);
++    let hi = Pair::shuffle_pair::<1, 5, 3, 7>(&sum, &diff).mul(fwd);
++    let sum = lo.add(&hi);
++    let diff = lo.sub(&hi);
++    *a = Pair::shuffle_pair::<0, 1, 4, 5>(&sum, &diff);
++    *b = Pair::shuffle_pair::<2, 3, 6, 7>(&sum, &diff);
++}
++
++// Transpose four independent quads within each polynomial half of the vector.
++#[inline(always)]
++fn transpose([a, b, c, d]: &[Pair; 4]) -> [Pair; 4] {
++    let ab0 = Pair::shuffle_pair::<0, 4, 1, 5>(a, b);
++    let ab1 = Pair::shuffle_pair::<2, 6, 3, 7>(a, b);
++    let cd0 = Pair::shuffle_pair::<0, 4, 1, 5>(c, d);
++    let cd1 = Pair::shuffle_pair::<2, 6, 3, 7>(c, d);
++    [
++        Pair::shuffle_pair::<0, 1, 4, 5>(&ab0, &cd0),
++        Pair::shuffle_pair::<2, 3, 6, 7>(&ab0, &cd0),
++        Pair::shuffle_pair::<0, 1, 4, 5>(&ab1, &cd1),
++        Pair::shuffle_pair::<2, 3, 6, 7>(&ab1, &cd1),
++    ]
++}
++
++fn four_center(values: &mut [Pair; 4], inv: &Pair, fwd: &Pair, first: usize, log: usize) {
++    let [x0, x1, x2, x3] = transpose(values);
++    let a = x0.add(&x2);
++    let b = x1.add(&x3);
++    let c = x0.sub(&x2);
++    let d = x1.sub(&x3).mul(inv);
++    let q: [u64; 8] = core::array::from_fn(|j| bit_reverse(first + j % 4, log - 2) as u64);
++    let quarter = 1u64 << (log - 2);
++    let y0 = a.add(&b).mul_u28(&q);
++    let y1 = a.sub(&b).mul_u28(&q.map(|k| k + 2 * quarter));
++    let y2 = c.add(&d).mul_u28(&q.map(|k| k + quarter));
++    let y3 = c.sub(&d).mul_u28(&q.map(|k| k + 3 * quarter));
++    let a = y0.add(&y1);
++    let b = y0.sub(&y1);
++    let c = y2.add(&y3);
++    let d = y2.sub(&y3).mul(fwd);
++    *values = transpose(&[a.add(&c), b.add(&d), a.sub(&c), b.sub(&d)]);
++}
++
++// One four-quad block covers the last two cross-quad layers and their return.
++#[inline(always)]
++fn butterfly<const FORWARD: bool>(lo: &mut Pair, hi: &mut Pair, root: &Pair) {
++    if FORWARD {
++        let t = hi.mul(root);
++        *hi = lo.sub(&t);
++        *lo = lo.add(&t);
++    } else {
++        let t = lo.sub(hi);
++        *lo = lo.add(hi);
++        *hi = t.mul(root);
++    }
++}
++
++fn tile16(values: &mut [Pair; 4], inv: &[Pair; 4], fwd: &[Pair; 4], first: usize, log: usize) {
++    let [a, b, c, d] = values;
++    butterfly::<false>(a, c, &inv[0]);
++    butterfly::<false>(b, d, &inv[1]);
++    butterfly::<false>(a, b, &inv[2]);
++    butterfly::<false>(c, d, &inv[2]);
++    four_center(values, &inv[3], &fwd[3], first, log);
++    let [a, b, c, d] = values;
++    butterfly::<true>(a, b, &fwd[2]);
++    butterfly::<true>(c, d, &fwd[2]);
++    butterfly::<true>(a, c, &fwd[0]);
++    butterfly::<true>(b, d, &fwd[1]);
++}
++
++fn local_roots(twiddles: &Twiddles, layer: usize, pair: &Pair) -> [Pair; 4] {
++    [broadcast(&twiddles.layers[layer][0]), broadcast(&twiddles.layers[layer][1]),
++     broadcast(&twiddles.layers[layer+1][0]), Pair::shuffle_pair::<1,1,1,1>(pair, pair)]
++}
++
++fn leaf<const MODE: u8>(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+     // The ordinary transform expands the same bounded leaf separately in each direction.
+     let mut expanded: Vec<_> = values.iter().map(PairStorage::load).collect();
+     let mut gap = expanded.len() / 2;
+     let mut layer = level;
+-    while gap != 0 {
++    let tiled = MODE == 3 && expanded.len() >= 4;
++    while gap > if tiled { 2 } else { 0 } {
+         for pair in expanded.chunks_exact_mut(gap * 2) {
+             let (lo, hi) = pair.split_at_mut(gap);
+             dif_quads(lo, hi, &plan.inverse_roots.layers[layer][..gap]);
+@@ -55,10 +156,34 @@
+     }
+     let inv = broadcast(&plan.inverse_roots.pair);
+     let fwd = broadcast(&plan.roots.pair);
+-    for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
+-        center(a, b, &inv, &fwd, first + 2 * i, plan.n.ilog2() as usize);
+-    }
+-    gap = 1;
++    let log = plan.n.ilog2() as usize;
++    let (tail, skipped) = if tiled {
++        let inv_roots = local_roots(&plan.inverse_roots, layer, &inv);
++        let fwd_roots = local_roots(&plan.roots, layer, &fwd);
++        let (quads, tail) = expanded.as_chunks_mut::<4>();
++        for (i, quad) in quads.iter_mut().enumerate() {
++            tile16(quad, &inv_roots, &fwd_roots, first + 4*i, log);
++        }
++        (tail, 4*quads.len())
++    } else if MODE == 2 {
++        let inv_odd = Pair::shuffle_pair::<1, 1, 1, 1>(&inv, &inv);
++        let fwd_odd = Pair::shuffle_pair::<1, 1, 1, 1>(&fwd, &fwd);
++        let (quads, tail) = expanded.as_chunks_mut::<4>();
++        for (i, quad) in quads.iter_mut().enumerate() {
++            four_center(quad, &inv_odd, &fwd_odd, first + 4 * i, log);
++        }
++        (tail, 4 * quads.len())
++    } else {
++        (&mut expanded[..], 0)
++    };
++    for (i, [a, b]) in tail.as_chunks_mut::<2>().0.iter_mut().enumerate() {
++        if MODE == 1 {
++            direct_center(a, b, &inv, &fwd, first + skipped + 2 * i, log);
++        } else {
++            center(a, b, &inv, &fwd, first + skipped + 2 * i, log);
++        }
++    }
++    gap = if tiled { 4 } else { 1 };
+     while gap < expanded.len() {
+         layer -= 1;
+         for pair in expanded.chunks_exact_mut(gap * 2) {
+@@ -72,9 +197,9 @@
+     }
+ }
+ 
+-fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++fn transform<const MODE: u8>(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+     if values.len() <= 1024 {
+-        return leaf(plan, values, level, first);
++        return leaf::<MODE>(plan, values, level, first);
+     }
+     columns::<false>(values, &plan.inverse_roots, level);
+     let size = values.len() / 32;
+@@ -82,7 +207,7 @@
+         .par_chunks_exact_mut(size)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, level + 5, first + i * size);
++            transform::<MODE>(plan, part, level + 5, first + i * size);
+         });
+     columns::<true>(values, &plan.roots, level);
+ }
+@@ -95,13 +220,21 @@
+ }
+ 
+ pub(super) fn interior(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
++    match std::env::var("ZOPRO_TRIAL_EULER_LANES").as_deref() {
++        Ok("four") => run::<2>(plan, a, b, storage),
++        Ok("tile") => run::<3>(plan, a, b, storage),
++        _ => run::<0>(plan, a, b, storage),
++    }
++}
++fn run<const MODE: u8>(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
++    if std::env::var_os("ZOPRO_REPORT_EULER_LANES").is_some() { eprintln!("EULER_LANES {MODE} {}", plan.n); }
+     let mut values = input_columns::first_layer(plan, a, b, storage);
+     let width = values.len() / 32;
+     values
+         .par_chunks_exact_mut(width)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, 5, i * width);
++            transform::<MODE>(plan, part, 5, i * width);
+         });
+     values
+ }
+@@ -153,7 +286,7 @@
+                         })))
+                     })
+                     .collect::<Vec<_>>();
+-                let mut got = expect.clone();
++                let original = expect.clone();
+                 stored_transform::<PackedPair, false>(&mut expect, &plan.inverse_roots, 0);
+                 for (i, v) in expect.iter_mut().enumerate() {
+                     let factors = core::array::from_fn(|j| {
+@@ -162,9 +295,16 @@
+                     *v = PackedPair::store(v.load().mul_u28(&factors));
+                 }
+                 stored_transform::<PackedPair, true>(&mut expect, &plan.roots, 0);
+-                transform(&plan, &mut got, 0, 0);
++                for mode in [0, 2, 3] {
++                    let mut got = original.clone();
++                    match mode {
++                        3 => transform::<3>(&plan, &mut got, 0, 0),
++                        2 => transform::<2>(&plan, &mut got, 0, 0),
++                        _ => transform::<0>(&plan, &mut got, 0, 0),
++                    }
+                 for (a, b) in got.iter().zip(&expect) {
+                     assert_eq!(a.load().get(), b.load().get());
++                }
+                 }
+             }
+         }
