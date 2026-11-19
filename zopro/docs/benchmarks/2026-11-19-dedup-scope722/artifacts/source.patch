@@ -1,0 +1,20 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -140,7 +140,7 @@
+ where
+     C::Base: BatchInverse,
+ {
+-    if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
++    if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") && std::env::var_os("ZOPRO_TRIAL_SKIP_CANONICAL_GROUP").is_none() {
+         if let Some(groups) = grouping::groups_with_diversity_check(canonical) {
+             return msm_grouped(bases, &groups);
+         }
+@@ -1694,7 +1694,7 @@
+     words: &mut [[u64; 4]],
+ ) -> zopro_bn254::G2Projective {
+     assert_eq!(bases.len(), words.len());
+-    let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++    let groups = (crate::simd::cpu_option("ZOPRO_CPU_DEDUP") && std::env::var_os("ZOPRO_TRIAL_SKIP_EXCLUSIVE_GROUP").is_none())
+         .then(|| grouping::groups_with_diversity_check(words))
+         .flatten();
+     #[cfg(all(
