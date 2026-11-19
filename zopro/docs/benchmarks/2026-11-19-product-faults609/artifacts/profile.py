@@ -1,28 +1,44 @@
-from zp_report_common import *
+"""Capture warmed product-pool fault stacks in a prepared benchmark workspace."""
+import argparse
 from collections import Counter
-import os,random,re,time,tempfile
-d=base/'product-faults609';out=d/'output';out.mkdir(parents=True,exist_ok=True)
-a=docs/'2026-11-19-product-faults609/artifacts';a.mkdir(parents=True,exist_ok=True)
+import gzip
+import hashlib
+import json
+import os
+from pathlib import Path
+import random
+import re
+from statistics import mean
+import subprocess
+import tempfile
+
+def rd(path):
+    return json.loads(path.read_bytes())
+
+def save(path, data):
+    path.write_text(json.dumps(data, indent=2) + "\n")
+
+def pack(path, data):
+    path.write_bytes(gzip.compress(json.dumps(data, separators=(",", ":")).encode(), mtime=0))
+
+def sha(path):
+    with path.open("rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("work_root", type=Path, help="directory containing product-pool607, matched-engines531 and the prepared group assets")
+parser.add_argument("output", type=Path, help="capture directory")
+args = parser.parse_args()
+base = args.work_root.resolve()
+d = args.output.resolve()
+out = d / "output"
+out.mkdir(parents=True, exist_ok=True)
 bundle=base/'matched-engines531/bundle';cfg=rd(bundle/'config.json')
 sdk=base/'product-pool607/target/x86_64-unknown-linux-gnu/release/examples/cpu-sdk'
 assert sha(sdk)==rd(base/'product-pool607/built.json')['sdk']
 cases=['12x2','24x2'];modes=['main','idle','product'];jobs=[]
 for k in range(3):
  cells=[(k,s,m) for s in cases for m in modes];random.Random(90609+k).shuffle(cells);jobs+=cells
-def commit(msg):
- subprocess.run(['git','add','--',a.parent],cwd=repo,check=True)
- subprocess.run(['git','commit','--only','-m',msg,'--',a.parent],cwd=repo,check=True)
-if not (a.parent/'protocol.md').exists():
- (a.parent/'protocol.md').write_text('''# Where warm product-pool proofs incur minor faults
-
-Profile the same three placements on the 12×2 and 24×2 public reference requests with the exact product-pool trial executable. Across three shuffled blocks use the frozen selected widths of 24 and 28 logical workers respectively. All arms share the same main affinity within each shape. Capture one user-space call stack every 127 minor faults per thread with Linux perf. The SDK enables collection after three warmups and disables it before writing the proof. Each process times eleven complete calls and exports one proof for independent verification.
-
-Report both the process-wide minor-fault count per proof and the leaf and caller symbols associated with sampled faults. Per-thread periods leave short-lived or low-count threads underrepresented. Profiled wall times are diagnostic. The earlier uninstrumented full-proof experiment supplies the latency comparison.
-''')
- save(a/'schedule.json',jobs);commit('Fix the warm minor-fault profile across main and auxiliary workers')
-while not (base/'group-cursors608/final.json').exists():
- if not any(l.endswith('python3 /tmp/zp_run608.py') for l in subprocess.check_output(['ps','-eo','args='],text=True).splitlines()):raise RuntimeError('608 stopped')
- time.sleep(3)
 def family(frames):
  # The first named prover frame in the user call chain identifies the operation.
  for name in frames:
@@ -67,17 +83,6 @@ for k,s,m in jobs:
  (q/'receipt').write_text(msg);pack(q/'stacks.json.gz',[dict(frames=list(f),samples=n) for f,n in stacks.items()])
  rows.append(dict(b=k,sh=s,m=m,summary=su,ms=mean(r['ms'] for r in xs),samples=xs,proof=dg,families=families,leaves=leaves,stacks=sum(families.values())));save(d/'rows.json',rows)
 assert len(rows)==18
-pack(a/'samples.json.gz',rows);save(a/'verification.json',extend(d,base/'group-cursors608/ledger.json',[r['proof'] for r in rows]))
-table=[]
-for s in cases:
- for m in modes:
-  g=[r for r in rows if r['sh']==s and r['m']==m];hist=sum((Counter(r['families']) for r in g),Counter());label,n=hist.most_common(1)[0];pct=100*n/hist.total()
-  table.append(f"| {s} | {m} | {median(r['summary']['minor_faults']/11 for r in g):,.0f} | {hist.total():,} | {label} ({pct:.1f}%) |")
-(a.parent/'README.md').write_text('''# Sampled minor faults during complete proofs
-
-Each cell includes three shuffled processes of eleven warm calls. The family column groups stacks by the nearest recognized prover operation. Stacks with no recognized operation are retained. The median process fault count and the number of sampled stacks have different denominators.
-
-| Transfer | Placement | Median minor faults per proof | Sampled stacks | Most frequent family |
-|---|---|---:|---:|---|
-'''+ '\n'.join(table)+'\n\nAll 18 exports verified. [Protocol](protocol.md) · [Per-process leaf and family counts](artifacts/samples.json.gz) · [Uninstrumented latency and peak memory](../2026-11-19-product-pool607/README.md)\n')
-shutil.copyfile(Path(__file__),a/'profile.py');commit('Locate warm page faults in grouped transfer proofs');save(d/'final.json',table)
+assert len({r['proof'] for r in rows}) == len(rows)
+pack(d/'captures.json.gz',rows)
+print(f"Verified {len(rows)} process exports; per-process stack files are under {out}")
