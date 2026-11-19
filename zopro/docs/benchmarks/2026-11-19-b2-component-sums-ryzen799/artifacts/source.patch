@@ -1,0 +1,188 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -1,6 +1,7 @@
+ //! Cube-root bucket-Horner MSM for subgroup-valid G2 key queries.
+ //! Consume exclusive proof-local scalar storage into two signed components.
+ //! No persistent point tables; bucket/tree workspace is charged by workspace.rs.
++pub(super) mod component_probe;
+ use super::{affine_buckets, batch_size, digit, fill_window_impl, merge_buckets};
+ use rayon::prelude::*;
+ #[cfg(test)]
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/g2_phi/component_probe.rs
+@@ -0,0 +1,145 @@
++use super::*;
++use std::sync::OnceLock;
++
++pub(crate) fn grouped(
++    bases: &[G2Affine],
++    groups: &super::super::ScalarGroups,
++) -> Option<G2Projective> {
++    static GEOMETRY: OnceLock<Option<(usize, usize)>> = OnceLock::new();
++    let (bits, ranges) = (*GEOMETRY.get_or_init(|| {
++        let text = std::env::var("ZOPRO_TRIAL_B2_COMPONENTS").ok()?;
++        let (bits, ranges) = text.split_once('x')?;
++        let bits = bits.parse().ok()?;
++        let ranges = ranges.parse().ok()?;
++        ((10..=13).contains(&bits) && (1..=3).contains(&ranges)).then_some((bits, ranges))
++    }))?;
++    if !(65_536..262_144).contains(&bases.len()) || !(1024..65536).contains(&groups.values.len()) {
++        return None;
++    }
++    let memory =
++        super::super::workspace::split_components_growth(groups.values.len(), bits, ranges);
++    let reservation = crate::preparation::Reservation::analysis(memory);
++    if std::env::var_os("ZOPRO_TRIAL_B2_COMPONENTS_TRACE").is_some() {
++        eprintln!(
++            "B2_PHI_COMPONENTS {} {bits}x{ranges} {}",
++            bases.len(),
++            reservation.is_some()
++        );
++    }
++    let _reservation = reservation?;
++    let (points, short): (_, Vec<_>) = rayon::join(
++        || crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts),
++        || {
++            groups
++                .values
++                .par_iter()
++                .with_min_len(256)
++                .map(|&word| phi_split(word))
++                .collect()
++        },
++    );
++    Some(sum_split(&points, &short, bits, ranges))
++}
++
++fn sum_split(bases: &[G2Affine], short: &[[u64; 4]], bits: usize, ranges: usize) -> G2Projective {
++    let (low, mut high) = rayon::join(
++        || component::<false>(bases, short, bits, ranges),
++        || component::<true>(bases, short, bits, ranges),
++    );
++    high.x = high.x.mul_by_fp(&BETA);
++    low + high
++}
++
++fn component<const HIGH: bool>(
++    bases: &[G2Affine],
++    short: &[[u64; 4]],
++    bits: usize,
++    ranges: usize,
++) -> G2Projective {
++    let windows = 127usize.div_ceil(bits);
++    let batch = batch_size(bits).max(32);
++    let part = bases.len().div_ceil(ranges);
++    let sums: Vec<_> = (0..windows)
++        .into_par_iter()
++        .map(|w| {
++            let leading = (w + 1 == windows)
++                .then(|| 126 - w * bits)
++                .filter(|&width| width <= 8);
++            let mut buckets: Vec<_> = bases
++                .par_chunks(part)
++                .zip(short.par_chunks(part))
++                .map(|(points, words)| {
++                    if let Some(top) = leading {
++                        return hb_top_component(points, words, HIGH, w, bits, top);
++                    }
++                    let digits = words.iter().map(|s| hb_digit(s, HIGH, w, bits));
++                    affine_buckets(super::super::fill_window(points, digits, bits, batch))
++                })
++                .collect();
++            let mut sum = buckets.swap_remove(0);
++            for other in buckets {
++                merge_buckets(&mut sum, &other);
++            }
++            crate::msm::weighted_affine(&sum)
++        })
++        .collect();
++    let mut sum = G2Projective::IDENTITY;
++    for part in sums.into_iter().rev() {
++        for _ in 0..bits {
++            sum = sum.double();
++        }
++        sum += part;
++    }
++    sum
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn split_components_matches_weighted_generator() {
++        let mut p = G2Projective::IDENTITY;
++        let mut w = Fr::from(79387166u64);
++        let mut points = Vec::new();
++        let mut short = Vec::new();
++        let mut expected = Fr::ZERO;
++        for i in 1..1301 {
++            p += G2Affine::GENERATOR;
++            w = w.square() + Fr::from(i);
++            let (mut point, mut weight) = (p.to_affine(), Fr::from(i));
++            if i % 19 == 0 {
++                point = G2Affine::IDENTITY;
++                weight = Fr::ZERO;
++            }
++            if i % 3 == 0 {
++                point = -point;
++                weight = -weight;
++            }
++            let s = if i % 7 == 0 {
++                Fr::ZERO
++            } else if i % 2 == 0 {
++                -w
++            } else {
++                w
++            };
++            expected += s * weight;
++            points.push(point);
++            short.push(phi_split(s.to_canonical()));
++        }
++        for workers in [1, 8] {
++            rayon::ThreadPoolBuilder::new()
++                .num_threads(workers)
++                .build()
++                .unwrap()
++                .install(|| {
++                    for (bits, ranges) in [(10, 1), (11, 2), (12, 3), (13, 2)] {
++                        assert_eq!(
++                            sum_split(&points, &short, bits, ranges).to_affine(),
++                            (G2Affine::GENERATOR * expected).to_affine()
++                        );
++                    }
++                });
++        }
++    }
++}
+--- a/crates/zopro-core/src/msm_affine/g2_horner.rs
++++ b/crates/zopro-core/src/msm_affine/g2_horner.rs
+@@ -232,6 +232,9 @@
+ #[inline]
+ pub(super) fn grouped(bases: &[G2Affine], groups: &ScalarGroups) -> G2Projective {
+     assert_eq!(bases.len(), groups.len);
++    if let Some(value) = super::g2_phi::component_probe::grouped(bases, groups) {
++        return value;
++    }
+     if !(MIN_QUERY..MAX_QUERY).contains(&bases.len())
+         || !(MIN_QUERY..MAX_QUERY).contains(&groups.values.len())
+     {
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -272,6 +272,15 @@
+         proposed.held.saturating_sub(original.held),
+         mul(proposed.leaf.saturating_sub(original.leaf), workers)?,
+     )
++}
++
++#[cfg(zopro_g2_horner_buckets)]
++pub(super) fn split_components_growth(n: usize, bits: usize, ranges: usize) -> Option<usize> {
++    let component = hb_windows::<G2Config>(n, bits, ranges)?;
++    let before = raw::<G2Config>(n, false)?;
++    let held = mul(component.held, 2)?.saturating_sub(before.held);
++    let leaf = component.leaf.saturating_sub(before.leaf);
++    add(held, mul(leaf, rayon::current_num_threads())?)
+ }
+ 
+ /// Workspace for streaming both private and H queries into the same buckets.
