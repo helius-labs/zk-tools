@@ -1,0 +1,73 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -157,21 +157,26 @@
+             counts,
+         });
+     }
+-    let mut starts = Vec::with_capacity(counts.len() + 1);
+-    starts.push(0);
+-    for &count in &counts {
+-        starts.push(starts.last().unwrap() + count);
+-    }
+-    let mut positions = starts[..counts.len()].to_vec();
+-    let mut order = vec![0u32; *starts.last().unwrap()];
+-    for (i, &class) in classes.iter().enumerate() {
+-        if class != u32::MAX {
+-            order[positions[class as usize]] = i as u32;
+-            positions[class as usize] += 1;
+-        }
+-    }
++    let (starts, order) = if std::env::var_os("ZOPRO_TRIAL_GROUP_CURSORS").is_some() {
++        scatter_with_end_cursors(&counts, &classes)
++    } else {
++        let mut starts = Vec::with_capacity(counts.len() + 1);
++        starts.push(0);
++        for &count in &counts {
++            starts.push(starts.last().unwrap() + count);
++        }
++        let mut positions = starts[..counts.len()].to_vec();
++        let mut order = vec![0u32; *starts.last().unwrap()];
++        for (i, &class) in classes.iter().enumerate() {
++            if class != u32::MAX {
++                order[positions[class as usize]] = i as u32;
++                positions[class as usize] += 1;
++            }
++        }
++        drop(positions);
++        (starts, order)
++    };
+     drop(classes);
+-    drop(positions);
+     Some(ScalarGroups {
+         _reservation: reservation,
+         len: scalars.len(),
+@@ -182,5 +187,29 @@
+     })
+ }
+ 
++/// Slot g+1 starts at the beginning of class g and finishes at its end.
++/// The finished cursors are exactly the offsets required by the curve queries.
++fn scatter_with_end_cursors(counts: &[usize], classes: &[u32]) -> (Vec<usize>, Vec<u32>) {
++    let mut starts = Vec::with_capacity(counts.len() + 1);
++    starts.push(0);
++    let mut total = 0;
++    for &count in counts {
++        starts.push(total);
++        total += count;
++    }
++    if std::env::var_os("ZOPRO_TRIAL_CURSOR_PROBE").is_some() {
++        eprintln!("CURSOR_CLASSES {}", counts.len());
++    }
++    let mut order = vec![0; total];
++    for (row, &class) in classes.iter().enumerate() {
++        if class != u32::MAX {
++            let cursor = &mut starts[class as usize + 1];
++            order[*cursor] = row as u32;
++            *cursor += 1;
++        }
++    }
++    (starts, order)
++}
++
+ #[cfg(test)]
+ mod tests;
