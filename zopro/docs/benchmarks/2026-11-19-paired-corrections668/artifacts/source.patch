@@ -1,0 +1,166 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -246,6 +246,61 @@
+     result
+ }
+ 
++// Both sparse lists use the same signed windows and independent scalar buffers.
++pub(crate) fn paired_corrections(
++    left: &[G2Affine], lw: &mut [[u64; 4]],
++    right: &[G2Affine], rw: &mut [[u64; 4]], bits: usize,
++) -> G2Projective {
++    assert_eq!(left.len(), lw.len());
++    assert_eq!(right.len(), rw.len());
++    assert!(bits == 8 || bits == 10);
++    rayon::join(
++        || lw.par_iter_mut().with_min_len(128).for_each(|v| *v = phi_split(*v)),
++        || rw.par_iter_mut().with_min_len(128).for_each(|v| *v = phi_split(*v)),
++    );
++    let windows = 127usize.div_ceil(bits);
++    let values: Vec<_> = (0..windows).into_par_iter().map(|window| {
++        let (mut a, b) = rayon::join(
++            || hb_window(left, lw, window, bits),
++            || hb_window(right, rw, window, bits),
++        );
++        merge_buckets(&mut a, &b);
++        crate::msm::weighted_affine(&a)
++    }).collect();
++    let mut result = G2Projective::IDENTITY;
++    for value in values.iter().rev() {
++        for _ in 0..bits { result = result.double(); }
++        result += value;
++    }
++    result
++}
++
++#[cfg(test)]
++#[test]
++fn paired_corrections_match_known_scalar_sum() {
++    let mut values = Vec::new();
++    let mut points = Vec::new();
++    let mut expected = Fr::ZERO;
++    for i in 0..617 {
++        let signed = if i % 3 == 0 { -Fr::from((i+1) as u64) } else { Fr::from((i+1) as u64).pow(&[41]) };
++        let (point, weight) = match i % 4 {
++            0 => (G2Affine::IDENTITY, Fr::ZERO),
++            1 => (-G2Affine::GENERATOR, -Fr::ONE),
++            _ => (G2Affine::GENERATOR, Fr::ONE),
++        };
++        expected += weight * signed;
++        values.push(signed.to_canonical()); points.push(point);
++    }
++    for bits in [8, 10] {
++        for boundary in [0, 271, 617] {
++            let mut words = values.clone();
++            let (a, b) = words.split_at_mut(boundary);
++            let result = paired_corrections(&points[..boundary], a, &points[boundary..], b, bits);
++            assert_eq!(result.to_affine(), (G2Affine::GENERATOR * expected).to_affine());
++        }
++    }
++}
++
+ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Projective {
+     assert_eq!(bases.len(), words.len());
+     if !(MIN_QUERY..MAX_QUERY).contains(&bases.len()) {
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1704,6 +1704,8 @@
+ }
+ 
+ #[cfg(all(zopro_g2_horner_buckets, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++pub(super) use g2_phi::paired_corrections;
++#[cfg(all(zopro_g2_horner_buckets, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+ pub(super) fn correction_phi(points: &[zopro_bn254::G2Affine], words: &mut [[u64; 4]], bits: usize) -> zopro_bn254::G2Projective {
+     assert!((8..=10).contains(&bits));
+     g2_phi::hb_raw(points, words, bits, 1)
+--- a/crates/zopro-core/src/groups482.rs
++++ b/crates/zopro-core/src/groups482.rs
+@@ -62,6 +62,14 @@
+     }
+     Some((std::borrow::Cow::Owned(indices), Some(charge)))
+ }
++
++struct Pending {
++    points: Vec<G2Affine>,
++    words: Vec<[u64; 4]>,
++    bits: usize,
++    _charge: Reservation,
++}
++type Corrections = std::sync::Mutex<Option<Pending>>;
+ 
+ impl Groups {
+     pub fn prepare(bases: &[G2Affine], data: &[u8]) -> Result<Option<Self>, &'static str> {
+@@ -162,10 +170,17 @@
+     }
+ 
+     pub fn query(&self, bases:&[G2Affine], scalars:&[Fr]) -> Option<G2Projective> {
+-        self.evaluate(bases, scalars, scalars.len(), Some(scalars))
+-    }
+-
+-    fn evaluate<S>(&self, bases: &[G2Affine], scalars: &S, length: usize, original: Option<&[Fr]>) -> Option<G2Projective>
++        let pending = (self.upper.is_some() && std::env::var_os("ZOPRO_MAPPED_JOIN_CORRECTIONS").is_some())
++            .then(|| Corrections::new(None));
++        let result = self.evaluate(bases, scalars, scalars.len(), Some(scalars), pending.as_ref())?;
++        #[cfg(all(zopro_g2_horner_buckets, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++        if let Some(mut last) = pending.and_then(|slot| slot.into_inner().unwrap()) {
++            return Some(result + msm_affine::correction_phi(&last.points, &mut last.words, last.bits));
++        }
++        Some(result)
++    }
++
++    fn evaluate<S>(&self, bases: &[G2Affine], scalars: &S, length: usize, original: Option<&[Fr]>, pending: Option<&Corrections>) -> Option<G2Projective>
+     where S: std::ops::Index<usize, Output = Fr> + Sync + ?Sized,
+     {
+         if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
+@@ -208,7 +223,7 @@
+                                 eprintln!("MAPPED_REPRESENTATIVES {} {}", self.sources.len(),
+                                           usize::from(matches!(indices, std::borrow::Cow::Owned(_))));
+                             }
+-                            if let Some(result) = upper.evaluate(&self.sums, &mapped, self.sums.len(), None) {
++                            if let Some(result) = upper.evaluate(&self.sums, &mapped, self.sums.len(), None, pending) {
+                                 return result;
+                             }
+                             let mut words: Vec<_> = (0..self.sums.len()).into_par_iter()
+@@ -217,7 +232,7 @@
+                         }
+                     }
+                     let view = Representatives {original: original.expect("first group level"), sources: &self.sources, choices: &choices};
+-                    if let Some(result) = upper.evaluate(&self.sums, &view, self.sums.len(), None) {
++                    if let Some(result) = upper.evaluate(&self.sums, &view, self.sums.len(), None, pending) {
+                         if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() { eprintln!("NESTED_UPPER_COMPACT {}", self.sums.len()); }
+                         return result;
+                     }
+@@ -229,7 +244,7 @@
+                     let index=choices.get(g).map_or(source,|c|c.0);
+                     scalars[index as usize]
+                 }).collect();
+-                if let Some(result)=upper.query(&self.sums,&representatives) {
++                if let Some(result)=upper.evaluate(&self.sums, &representatives[..], self.sums.len(), Some(&representatives), pending) {
+                     if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() { eprintln!("NESTED_UPPER_COMPACT {}",self.sums.len()); }
+                     return result;
+                 }
+@@ -263,6 +278,24 @@
+                     if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
+                         eprintln!("CORRECTION_PHI {} {}", count, bits);
+                     }
++                    if let Some(slot) = pending {
++                        // A list may survive its local reservation while the other level
++                        // finishes collecting exceptions. Charge its actual capacity.
++                        let bytes = points.capacity().checked_mul(std::mem::size_of::<G2Affine>())
++                            .and_then(|n| words.capacity().checked_mul(32)?.checked_add(n));
++                        if let Some(charge) = Reservation::analysis(bytes) {
++                            let mut guard = slot.lock().unwrap();
++                            if let Some(mut first) = guard.take() {
++                                drop(guard);
++                                if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
++                                    eprintln!("PAIRED_CORRECTIONS {} {} {}", first.words.len(), words.len(), bits);
++                                }
++                                return msm_affine::paired_corrections(&first.points, &mut first.words, &points, &mut words, bits);
++                            }
++                            *guard = Some(Pending { points, words, bits, _charge: charge });
++                            return G2Projective::IDENTITY;
++                        }
++                    }
+                     return msm_affine::correction_phi(&points, &mut words, bits);
+                 }
+             }
