@@ -1,0 +1,122 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -165,6 +165,8 @@
+ }
+ 
+ 
++mod split_classes;
++
+ pub(super) fn msm_grouped<C: CurveConfig>(
+     bases: &[Affine<C>],
+     groups: &ScalarGroups,
+@@ -173,6 +175,19 @@
+     C::Base: BatchInverse,
+ {
+     assert_eq!(bases.len(), groups.len, "validated MSM dimensions");
++    if let Ok(spec) = std::env::var("ZOPRO_TRIAL_SPLIT_CLASSES") {
++        if let Some(target) = split_classes::target(&spec, bases.len(), groups.values.len())
++            .filter(|&target| target <= bases.len() * 80 / 100) {
++            if let Some((layout, _charge)) = split_classes::build(&groups.values, &groups.counts, target) {
++                if std::env::var_os("ZOPRO_TRIAL_SPLIT_PROBE").is_some() {
++                    eprintln!("SPLIT_CLASSES {} {} {} {}", bases.len(), groups.values.len(),
++                              layout.values.len(), layout.wide_extras);
++                }
++                let points = crate::msm::group_affine(bases, &groups.order, &layout.starts, &layout.counts);
++                return msm_raw(&points, &layout.values);
++            }
++        }
++    }
+     let bases = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
+     msm_raw(&bases, &groups.values)
+ }
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/split_classes.rs
+@@ -0,0 +1,88 @@
++//! Counterfactual layout for measuring how many grouped points reach the raw MSM.
++//! Each original value is repeated across disjoint, contiguous member ranges.
++pub(super) struct Layout {
++    pub values: Vec<[u64; 4]>,
++    pub counts: Vec<usize>,
++    pub starts: Vec<usize>,
++    pub wide_extras: usize,
++}
++
++pub(super) fn target(spec: &str, bases: usize, original: usize) -> Option<usize> {
++    spec.split(',').filter_map(|entry| entry.split_once('=')).find_map(|(n, t)| {
++        if n.parse::<usize>().ok()? != bases { return None; }
++        if t == "copy" { Some(original) } else { t.parse().ok() }
++    })
++}
++
++pub(super) fn build(values: &[[u64; 4]], counts: &[usize], target: usize)
++    -> Option<(Layout, crate::preparation::Reservation)>
++{
++    if counts.len() != values.len() || values.is_empty() { return None; }
++    let total: usize = counts.iter().sum();
++    if target < values.len() || target > total { return None; }
++    // The caller enforces the original grouping reservation’s cardinality bound.
++    // Charge the extra live layout independently before allocating it.
++    let charge = crate::preparation::Reservation::analysis(
++        target.checked_mul(48)?.checked_add(512)
++    )?;
++    let extra = target - values.len();
++    let wide = |v: &[u64; 4]| v[2] != 0 || v[3] != 0;
++    let room = total - values.len();
++    let wide_room: usize = counts.iter().zip(values).filter(|(_,v)| wide(v))
++        .map(|(&n,_)| n - 1).sum();
++    let quota = [extra.saturating_sub(wide_room), extra.min(wide_room)];
++    let capacity = [room - wide_room, wide_room];
++    let mut used = [0usize; 2];
++    let mut split = [0usize; 2];
++    let mut layout = Layout { values: Vec::with_capacity(target), counts: Vec::with_capacity(target),
++        starts: Vec::with_capacity(target + 1), wide_extras: quota[1] };
++    layout.starts.push(0);
++    let mut position = 0;
++    for (&count, value) in counts.iter().zip(values) {
++        let kind = usize::from(wide(value));
++        used[kind] += count - 1;
++        let desired = if capacity[kind] == 0 { 0 } else {
++            (used[kind] as u128 * quota[kind] as u128 / capacity[kind] as u128) as usize
++        };
++        let parts = 1 + desired - split[kind];
++        split[kind] = desired;
++        for i in 0..parts {
++            let n = count / parts + usize::from(i < count % parts);
++            layout.values.push(*value);
++            layout.counts.push(n);
++            position += n;
++            layout.starts.push(position);
++        }
++    }
++    assert_eq!((position, layout.values.len()), (total, target));
++    Some((layout, charge))
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn splits_preserve_each_ordered_member_and_scalar() {
++        let values = [[1,0,0,0], [7,0,0,1], [4,0,0,9], [3,0,0,0]];
++        let counts = [5,1,4,2];
++        let expected: Vec<_> = values.iter().zip(counts).flat_map(|(v,n)| std::iter::repeat_n(*v,n)).collect();
++        for limit in values.len()..=expected.len() {
++            let (layout, _charge) = build(&values, &counts, limit).unwrap();
++            assert_eq!(layout.values.len(), limit);
++            assert_eq!(layout.wide_extras, (limit - values.len()).min(3));
++            assert_eq!(layout.starts.len(), limit + 1);
++            let mut actual = Vec::new();
++            for (i, value) in layout.values.iter().enumerate() {
++                let n = layout.starts[i+1] - layout.starts[i];
++                assert!(n > 0);
++                assert_eq!(layout.counts[i], n);
++                actual.extend(std::iter::repeat_n(*value, n));
++            }
++            assert_eq!(expected, actual);
++        }
++        assert!(build(&values, &counts, 13).is_none());
++        assert_eq!(target("12=copy,19=7",12,4),Some(4));
++        assert_eq!(target("12=copy,19=7",19,4),Some(7));
++        assert_eq!(target("12=copy,19=7",42,4),None);
++    }
++}
