@@ -1,0 +1,74 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2047,7 +2047,7 @@
+                             && self.b2.len() >= 65_536
+                             && std::env::var("ZOPRO_CPU_GROUPED_G2_PHI").as_deref() == Ok("1")
+                         {
+-                            let sum = msm_affine::owned_grouped_phi(&self.b2, groups);
++                            let sum = msm_affine::owned_grouped_phi(&self.b2, groups, self.frontend_pool.as_deref());
+                             return (G1Projective::IDENTITY, sum);
+                         }
+                         rayon::join(
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1692,6 +1692,7 @@
+ pub(super) fn owned_grouped_phi(
+     bases: &[zopro_bn254::G2Affine],
+     groups: ScalarGroups,
++    frontend: Option<&rayon::ThreadPool>,
+ ) -> zopro_bn254::G2Projective {
+     use rayon::prelude::*;
+     if !(1024..65536).contains(&groups.values.len()) {
+@@ -1705,6 +1706,22 @@
+         || values.par_iter_mut().with_min_len(128).for_each(|s| *s = g2_phi::phi_split(*s)),
+     );
+     // Group index vectors have dropped. Keep the reservation through the MSM.
++    #[cfg(all(zopro_resource_schedule, target_os = "linux"))]
++    if let Some(pool) = frontend.filter(|p| {
++        p.current_num_threads() < rayon::current_num_threads()
++            && std::env::var_os("ZOPRO_TRIAL_GROUP_FRONTEND").is_some()
++    }) {
++        let bytes = workspace::grouped_auxiliary_window_bytes(values.len(), pool.current_num_threads());
++        if let Some(_scratch) = crate::preparation::Reservation::analysis(bytes) {
++            return pool.install(|| {
++                if std::env::var_os("ZOPRO_TRIAL_GROUP_FRONTEND_PROBE").is_some() {
++                    eprintln!("GROUP_FRONTEND {} {} {} {}", len, values.len(),
++                        rayon::current_num_threads(), bytes.unwrap_or(0));
++                }
++                g2_phi::from_split(&points, &values, 12, 2)
++            });
++        }
++    }
+     g2_phi::from_split(&points, &values, 12, 2)
+ }
+ 
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -249,6 +249,16 @@
+     profile.held = add(profile.held, add(tops, vector::<[u64; 4]>(n, false)?)?)?;
+     profile.leaf = profile.leaf.max(top.leaf);
+     Some(profile)
++}
++
++// The auxiliary pool owns a separate set of active window leaves. Charge
++// their parent state and every worker before crossing pool boundaries.
++pub(super) fn grouped_auxiliary_window_bytes(unique: usize, workers: usize) -> Option<usize> {
++    if !(1024..65536).contains(&unique) || workers == 0 {
++        return None;
++    }
++    let shape = hb_windows::<G2Config>(unique, 12, 2)?;
++    add(shape.held, mul(shape.leaf, workers)?)
+ }
+ 
+ // The ordinary forecast already covers 12-bit windows split into two parts.
+--- a/crates/zopro-core/src/msm_affine/g2_horner.rs
++++ b/crates/zopro-core/src/msm_affine/g2_horner.rs
+@@ -322,7 +322,7 @@
+                 .collect();
+             let groups = super::super::scalar_groups(&words).unwrap();
+             assert_eq!(groups.values.len(), classes);
+-            let sum = super::super::owned_grouped_phi(&bases, groups);
++            let sum = super::super::owned_grouped_phi(&bases, groups, None);
+             assert_eq!(sum.to_affine(), (generator * expected).to_affine());
+         }
+     }
