@@ -1,0 +1,227 @@
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
+@@ -1,5 +1,6 @@
+ //! Twenty balanced signed windows covering255 bits; no recoded digit array.
+ use super::*;
++mod layout_probe;
+ const COUNT: usize = 20;
+ const BITS: usize = 255;
+ #[derive(Clone, Copy, Debug)]
+@@ -67,6 +68,9 @@
+     h: &[Affine<C>],
+     sh: &[[u64; 4]],
+ ) -> Projective<C> {
++    if let Some(result) = layout_probe::try_fused(k, sk, h, sh) {
++        return result;
++    }
+     let cover = spans();
+     let sums: Vec<_> = cover
+         .par_iter()
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending/balanced/layout_probe.rs
+@@ -0,0 +1,180 @@
++use super::*;
++use std::sync::OnceLock;
++
++#[derive(Copy, Clone)]
++pub(crate) enum Partition {
++    Shared,
++    Merge,
++    Separate,
++}
++
++pub(super) fn try_fused<C: CurveConfig<Base = Fq>>(
++    k: &[Affine<C>],
++    sk: &[[u64; 4]],
++    h: &[Affine<C>],
++    sh: &[[u64; 4]],
++) -> Option<Projective<C>> {
++    static LAYOUT: OnceLock<Option<(usize, Partition)>> = OnceLock::new();
++    let (count, partition) = (*LAYOUT.get_or_init(|| {
++        let text = std::env::var("ZOPRO_TRIAL_KH_LAYOUT").ok()?;
++        let (windows, mode) = text.split_once('-')?;
++        let count = windows.parse().ok()?;
++        if !(18..=24).contains(&count) {
++            return None;
++        }
++        let partition = match mode {
++            "shared" => Partition::Shared,
++            "merge" => Partition::Merge,
++            "separate" => Partition::Separate,
++            _ => return None,
++        };
++        Some((count, partition))
++    }))?;
++    let parts = if matches!(partition, Partition::Shared) {
++        1
++    } else {
++        2
++    };
++    let bytes = crate::msm_affine::workspace::fused_balanced_growth(count, parts);
++    let budget = crate::preparation::Reservation::analysis(bytes);
++    if std::env::var_os("ZOPRO_TRIAL_KH_LAYOUT_TRACE").is_some() {
++        let mode = match partition {
++            Partition::Shared => "shared",
++            Partition::Merge => "merge",
++            Partition::Separate => "separate",
++        };
++        eprintln!("KH_LAYOUT {count}-{mode} {}", budget.is_some());
++    }
++    let _budget = budget?;
++    Some(sum(k, sk, h, sh, count, partition))
++}
++
++fn sum<C: CurveConfig<Base = Fq>>(
++    k: &[Affine<C>],
++    sk: &[[u64; 4]],
++    h: &[Affine<C>],
++    sh: &[[u64; 4]],
++    windows: usize,
++    partition: Partition,
++) -> Projective<C> {
++    let cover: Vec<_> = (0..windows)
++        .map(|i| {
++            let start = i * BITS / windows;
++            Span {
++                start,
++                width: (i + 1) * BITS / windows - start,
++            }
++        })
++        .collect();
++    let fold = |sums: Vec<Projective<C>>| {
++        let mut result = Projective::<C>::IDENTITY;
++        for (span, sum) in cover.iter().zip(sums).rev() {
++            for _ in 0..span.width {
++                result = result.double();
++            }
++            result += sum;
++        }
++        result
++    };
++    let bucket = |points: &[Affine<C>], scalars: &[[u64; 4]], span: Span| {
++        let size = batch_size(span.width).max(32);
++        let mut state = Window::new(1 << (span.width - 1), size);
++        feed(&mut state, points, scalars, span, size);
++        state.finish()
++    };
++    if matches!(partition, Partition::Separate) {
++        let compute = |points, scalars| {
++            fold(
++                cover
++                    .par_iter()
++                    .map(|&span| crate::msm::weighted_affine(&bucket(points, scalars, span)))
++                    .collect(),
++            )
++        };
++        let (a, b) = rayon::join(|| compute(k, sk), || compute(h, sh));
++        return a + b;
++    }
++    let sums = cover
++        .par_iter()
++        .map(|&span| {
++            let out = match partition {
++                Partition::Shared => {
++                    let size = batch_size(span.width).max(32);
++                    let mut state = Window::new(1 << (span.width - 1), size);
++                    feed(&mut state, k, sk, span, size);
++                    feed(&mut state, h, sh, span, size);
++                    state.finish()
++                }
++                _ => {
++                    let (mut a, b) = rayon::join(|| bucket(k, sk, span), || bucket(h, sh, span));
++                    crate::msm_affine::merge_buckets(&mut a, &b);
++                    a
++                }
++            };
++            crate::msm::weighted_affine(&out)
++        })
++        .collect();
++    fold(sums)
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use zopro_bn254::{G1Affine, G1Projective};
++    #[test]
++    fn fused_layouts_match_generator_with_signed_coefficients() {
++        let mut expected = Fr::ZERO;
++        let mut point = G1Projective::IDENTITY;
++        let mut s = Fr::from(81u64);
++        let mut points = Vec::new();
++        let mut words = Vec::new();
++        for i in 1u64..2239 {
++            point += G1Affine::GENERATOR;
++            s = s.square() + Fr::from(i);
++            let (mut p, mut weight) = (point.to_affine(), Fr::from(i));
++            if i % 11 == 0 {
++                p = -p;
++                weight = -weight;
++            }
++            if i % 17 == 0 {
++                p = G1Affine::IDENTITY;
++                weight = Fr::ZERO;
++            }
++            let coefficient = if i % 7 == 0 {
++                Fr::ZERO
++            } else if i % 3 == 0 {
++                -s
++            } else {
++                s
++            };
++            expected += coefficient * weight;
++            points.push(p);
++            words.push(coefficient.to_canonical());
++        }
++        let want = (G1Affine::GENERATOR * expected).to_affine();
++        for n in [1, 8] {
++            rayon::ThreadPoolBuilder::new()
++                .num_threads(n)
++                .build()
++                .unwrap()
++                .install(|| {
++                    for (windows, mode) in [
++                        (18, Partition::Shared),
++                        (22, Partition::Shared),
++                        (20, Partition::Merge),
++                        (20, Partition::Separate),
++                    ] {
++                        let result = sum(
++                            &points[..1121],
++                            &words[..1121],
++                            &points[1121..],
++                            &words[1121..],
++                            windows,
++                            mode,
++                        );
++                        assert_eq!(result.to_affine(), want);
++                    }
++                });
++        }
++    }
++}
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -272,6 +272,22 @@
+         proposed.held.saturating_sub(original.held),
+         mul(proposed.leaf.saturating_sub(original.leaf), workers)?,
+     )
++}
++
++#[cfg(zopro_real_kh)]
++pub(super) fn fused_balanced_growth(count: usize, ranges: usize) -> Option<usize> {
++    let bound = shape::<G1Config>(1 << 12, 20, 1, batch_size(13).max(32))?;
++    let mut held = 0usize;
++    let mut leaf = 0usize;
++    for i in 0..count {
++        let bits = (i + 1) * 255 / count - i * 255 / count;
++        let span = shape::<G1Config>(1 << (bits - 1), 1, ranges, batch_size(bits).max(32))?;
++        held = add(held, span.held)?;
++        leaf = leaf.max(span.leaf);
++    }
++    let extra = add(held.saturating_sub(bound.held),
++                    mul(leaf.saturating_sub(bound.leaf), rayon::current_num_threads())?)?;
++    add(extra, vector::<[usize; 2]>(count, false)?)
+ }
+ 
+ /// Workspace for streaming both private and H queries into the same buckets.
