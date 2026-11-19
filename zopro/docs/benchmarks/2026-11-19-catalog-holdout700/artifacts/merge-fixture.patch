@@ -1,0 +1,21 @@
+--- a/circuits/spp_merge/fixture_test.go
++++ b/circuits/spp_merge/fixture_test.go
+@@ -38,6 +38,7 @@
+ const defaultFixtureInputs = 24
+ 
+ type mergeFixtureOptions struct {
++	variant           int64
+ 	inputCount        int
+ 	externalDataHash  *big.Int
+ 	rail              mergeFixtureRail
+@@ -177,8 +178,8 @@
+ 		asset = new(big.Int).Set(options.asset)
+ 	}
+ 	const numReal = 2
+-	amounts := []*big.Int{big.NewInt(5), big.NewInt(7)}
+-	blindings := []*big.Int{big.NewInt(0x1111), big.NewInt(0x2222)}
++	amounts := []*big.Int{big.NewInt(5 + 3*options.variant), big.NewInt(7 + 5*options.variant)}
++	blindings := []*big.Int{big.NewInt(0x1111 + 13*options.variant), big.NewInt(0x2222 + 17*options.variant)}
+ 	ringData := []*big.Int{big.NewInt(0), big.NewInt(0)}
+ 	if options.inputRingData != nil {
+ 		if len(options.inputRingData) != numReal {
