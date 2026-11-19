@@ -1,0 +1,221 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -3049,6 +3049,29 @@
+                     let expected = evaluate(&points);
+                     plan.fold_unqueried_slots(&mut points, &keep);
+                     assert_eq!(evaluate(&points), expected);
++                    let private:Vec<_>=(plan.n_public..plan.n_wires).map(|i|Fr::from((i*i+7) as u64)).collect();
++                    let slot_values=plan.origin_private_slots(&private,&keep);
++                    for side in [0,1] {
++                        let rows=plan.origin_private_rows(side,&private,&slot_values);
++                        let row_points:Vec<_>=(0..rows.len()).map(|i|
++                            crate::G1Affine::GENERATOR * Fr::from((i*i+7*i+29) as u64)).collect();
++                        let mut weights=vec![crate::G1Projective::IDENTITY;plan.value_count()];
++                        plan.for_each_side(side,|row,wire,coeff|weights[wire]+=row_points[row]*coeff);
++                        plan.fold_unqueried_slots(&mut weights,&keep);
++                        let direct=weights[plan.n_public..plan.n_wires].iter().zip(&private)
++                            .fold(crate::G1Projective::IDENTITY,|s,(point,scalar)|s+*point * *scalar);
++                        let projected=row_points.iter().zip(rows)
++                            .fold(crate::G1Projective::IDENTITY,|s,(point,scalar)|s+*point * scalar);
++                        assert_eq!(projected.to_affine(),direct.to_affine());
++                    }
++                    let mut other=reloaded(plan);
++                    assert_eq!(plan.origin_solver_digest(),other.origin_solver_digest());
++                    if let Some(index)=other.b_indices.first_mut() {
++                        *index ^= 1;
++                        assert_eq!(plan.basis_c_digest(),other.basis_c_digest());
++                        assert_ne!(plan.origin_solver_digest(),other.origin_solver_digest());
++                    }
++
+                 }
+                 let without_c = plan.solve_in_with_slots(&witness, plan.n_constraints, &slots, false).unwrap();
+                 assert_eq!(solution.w, without_c.w);
+@@ -3219,3 +3242,5 @@
+ }
+ 
+ #[cfg(zopro_resource_schedule)] mod sparse_poseidon;
++
++mod private_projection;
+--- /dev/null
++++ b/crates/zopro-core/src/solver/private_projection.rs
+@@ -0,0 +1,58 @@
++//! Project an independent private K query through the two Euler row forms.
++use super::{Fr, Op, Plan, Previous};
++
++impl Plan {
++    fn projected_value(&self, wire: usize, private: &[Fr], slots: &[Fr]) -> Fr {
++        if wire < self.n_public {
++            Fr::ZERO
++        } else if wire < self.n_wires {
++            private[wire - self.n_public]
++        } else {
++            slots[wire - self.n_wires]
++        }
++    }
++
++    pub(crate) fn origin_private_slots(&self, private: &[Fr], retained: &[usize]) -> Vec<Fr> {
++        assert_eq!(private.len(), self.n_wires - self.n_public);
++        let mut slots = vec![Fr::ZERO; self.n_slots];
++        // Retained K slots have independent coefficients. The parts API only
++        // supplies original private wires, so their scalar is zero. Other slots
++        // must propagate their defining expression, as in the offline transpose.
++        for op in &self.ops {
++            let Op::Constraint(step) = op else { continue };
++            let mut next = step.first_slot();
++            let mut chain = Fr::ZERO;
++            for sum in &self.sums[step.sums()] {
++                let prefix = match sum.previous() {
++                    Previous::None => Fr::ZERO,
++                    Previous::Chain => chain,
++                    Previous::Slot(wire) => slots[wire - self.n_wires],
++                };
++                let x = self.projected_value(sum.term.wire(), private, &slots);
++                chain = prefix + self.coefficients[sum.term.coefficient()] * x;
++                if sum.stored() {
++                    if retained.binary_search(&(self.n_wires + next)).is_err() {
++                        slots[next] = chain;
++                    }
++                    next += 1;
++                }
++            }
++        }
++        slots
++    }
++
++    pub(crate) fn origin_private_rows(&self, side: usize, private: &[Fr], slots: &[Fr]) -> Vec<Fr> {
++        let mut rows = vec![Fr::ZERO; self.n_constraints];
++        self.for_each_side(side, |row, wire, coefficient| {
++            rows[row] += coefficient * self.projected_value(wire, private, slots);
++        });
++        rows
++    }
++
++    pub(crate) fn origin_solver_digest(&self) -> [u8; 32] {
++        use sha2::{Digest, Sha256};
++        let mut digest = Sha256::new();
++        self.write_image(&mut digest).expect("a parsed plan has a canonical solver image");
++        digest.finalize().into()
++    }
++}
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2398,7 +2398,15 @@
+     }
+     fn basis_plan_matches(&self,plan:&solver::Plan)->bool {
+         #[cfg(all(not(target_arch="wasm32"),target_endian="little"))]
+-        if self.basis_only{return self.lagrange.as_ref().is_some_and(|q|q.basis==Some(plan.basis_c_digest()));}
++        if self.basis_only {
++            return self.lagrange.as_ref().is_some_and(|q| {
++                if q.has_origin() {
++                    return self.solver.as_ref().or(self.basis_fallback.as_deref())
++                        .is_some_and(|original| original.origin_solver_digest() == plan.origin_solver_digest());
++                }
++                q.basis == Some(plan.basis_c_digest())
++            });
++        }
+         let _=plan;!self.basis_only
+     }
+ }
+@@ -2443,11 +2451,12 @@
+         let plan=self.solver.as_ref().or(self.basis_fallback.as_deref()).ok_or("CPU basis requires its C metadata")?;
+         let q=self.lagrange.as_ref().ok_or("missing CPU basis queries")?;
+         let f=q.folded.as_ref().ok_or("missing folded query")?;
+-        if q.has_origin() {return Err("experimental origin image requires the original solver witness".into());}
++
+         // The arbitrary-parts API does not promise that C is the solver's C.
+         // Restore K and H independently; do not assume a satisfied witness.
+         let cp=plan.basis_c_private(sk);
+-        let correction_values=if q.euler{self.plan.euler_product_values(cp,vec![Fr::ONE;self.domain])}else{self.plan.coset_product(cp,vec![Fr::ONE;self.domain])};
++        let mut correction_values=if q.euler{self.plan.euler_product_values(cp,vec![Fr::ONE;self.domain])}else{self.plan.coset_product(cp,vec![Fr::ONE;self.domain])};
++        q.restore_independent_k(&self.plan,plan,sk,&f.slots,&mut correction_values);
+         let correction=q.finish_product(msm_g1(&q.product,&correction_values));
+         drop(correction_values);
+         let mut product=if q.euler {
+@@ -2515,3 +2524,29 @@
+         { let _ = bytes; Ok(false) }
+     }
+ }
++
++
++// Local experiment-only caller of the public arbitrary-parts API.
++impl Key {
++    pub fn origin_independent_parts_probe(&self, seed: usize) -> Result<Vec<u8>,String> {
++        let values = |length:usize, channel:usize| -> Vec<u8> {
++            let mut state=0x29ce_68d7_734b_e829u64 ^ ((channel as u64+1)<<32) ^ (seed as u64);
++            let mut buf=Vec::with_capacity(length*32);
++            for i in 0..length {
++                let mut canonical=[0;32];
++                for bytes in canonical.chunks_exact_mut(8) {
++                    state^=state<<13; state^=state>>7; state^=state<<17;
++                    bytes.copy_from_slice(&state.to_le_bytes());
++                }
++                let scalar=if seed==0 || (seed==1 && i%67!=0) {Fr::ZERO}
++                    else {Fr::from_be_bytes_mod_order(&canonical)};
++                for word in scalar.0 {buf.extend_from_slice(&word.to_le_bytes());}
++            }
++            buf
++        };
++        let n=[0,1,self.domain/2+3,self.domain][seed];
++        let (sa,sb,sk)=(values(self.lengths[0],0),values(self.lengths[1],1),values(self.lengths[2],2));
++        self.parts(&sa,&sb,&sk,&values(n,3),&values(n,4),&values(n,5))
++            .map_err(|_|"arbitrary parts returned an error".to_owned())
++    }
++}
+--- a/crates/zopro-core/src/lagrange/origin.rs
++++ b/crates/zopro-core/src/lagrange/origin.rs
+@@ -111,6 +111,24 @@
+ }
+ 
+ impl Queries {
++    pub(crate) fn restore_independent_k(&self, fft: &fft::Plan, plan: &solver::Plan,
++                                         private: &[Fr], retained: &[usize], correction: &mut [Fr]) {
++        let Some(origin) = self.origin.as_ref() else { return };
++        let slots = plan.origin_private_slots(private, retained);
++        // Undo the two cross terms added to the private key. The constant
++        // origin product belonged to public wire zero and has no private term.
++        for side in [0, 1] {
++            let rows = plan.origin_private_rows(side, private, &slots);
++            let fixed = (0..origin.count).map(|i| {
++                let (a,b) = origin.pair(i);
++                if side == 0 { b } else { a }
++            }).collect();
++            let delta = fft.euler_product_values(rows, fixed);
++            assert!(delta.len() <= correction.len());
++            for (value, delta) in correction.iter_mut().zip(delta) { *value -= delta; }
++        }
++    }
++
+     pub(crate) fn has_origin(&self)->bool { self.origin.is_some() }
+ 
+     pub(crate) fn attach_origin(&mut self, bytes:&[u8]) -> Result<(),String> {
+--- a/crates/zopro-prover/src/lib.rs
++++ b/crates/zopro-prover/src/lib.rs
+@@ -348,3 +348,9 @@
+ 
+ #[cfg(target_arch = "wasm32")]
+ pub mod web;
++
++impl Prover {
++    pub fn origin_independent_parts_probe(&self,seed:usize)->Result<Vec<u8>,String>{
++        self.key.origin_independent_parts_probe(seed)
++    }
++}
+--- /dev/null
++++ b/crates/zopro-bench/examples/origin-independent-parts.rs
+@@ -0,0 +1,16 @@
++//! Compare all five native arbitrary-parts outputs on one immutable image.
++use std::{fs::File, path::Path, sync::Arc};
++fn main() -> Result<(), Box<dyn std::error::Error>> {
++    let args: Vec<_> = std::env::args_os().collect();
++    assert_eq!(args.len(), 3);
++    let file = File::open(&args[1])?;
++    // The experimental harness owns the unchanged, hash-pinned image.
++    let bytes = unsafe { memmap2::Mmap::map(&file)? };
++    let prover = zopro_prover::Prover::load_image(Arc::new(bytes))?;
++    for seed in 0..4 {
++        let result = prover.origin_independent_parts_probe(seed)?;
++        assert_eq!(result.len(), 384);
++        std::fs::write(Path::new(&args[2]).join(format!("{seed}.parts")), result)?;
++    }
++    Ok(())
++}
