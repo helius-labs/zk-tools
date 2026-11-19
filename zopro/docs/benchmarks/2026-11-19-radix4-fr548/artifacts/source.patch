@@ -1,0 +1,139 @@
+--- a/crates/zopro-bn254/src/ifma8.rs
++++ b/crates/zopro-bn254/src/ifma8.rs
+@@ -934,10 +934,91 @@
+     }
+ }
+ 
++impl Ifma8<crate::FrConfig, false> {
++    /// Low halves of two adjacent inverse DIF layers, in the R260 representation.
++    /// All four inputs and the twiddle lie below 2p. The radix-52 pairwise
++    /// sums are retained per limb until the final sum and difference are formed.
++    #[inline(always)]
++    pub fn radix4_low(a: &Self, b: &Self, c: &Self, d: &Self, root: &Self) -> (Self, Self) {
++        let twice = const { crate::portable::add4(crate::FrConfig::P, crate::FrConfig::P).0 };
++        let four = const {
++            let two = crate::portable::add4(crate::FrConfig::P, crate::FrConfig::P).0;
++            crate::portable::add4(two, two).0
++        };
++        // a+b+c+d < 8p. Two conditional subtractions map it below 2p.
++        // 0 <= 4p+(a+b)-(c+d) < 8p. REDC with root < 2p gives
++        // less than p+16p²/R < 2p. Only the normalized outputs escape.
++        unsafe {
++            let mask = Self::splat(MASK);
++            let bias = split(four).map(Self::splat);
++            let mut sum = [Self::splat(0); 5];
++            let mut diff = sum;
++            let mut sum_carry = Self::splat(0);
++            let mut diff_carry = Self::splat(0);
++            for j in 0..5 {
++                let left = _mm512_add_epi64(a.0[j], b.0[j]);
++                let right = _mm512_add_epi64(c.0[j], d.0[j]);
++                let total = _mm512_add_epi64(_mm512_add_epi64(left, right), sum_carry);
++                let delta = _mm512_add_epi64(_mm512_add_epi64(_mm512_sub_epi64(left, right), bias[j]), diff_carry);
++                sum[j] = _mm512_and_si512(total, mask);
++                diff[j] = _mm512_and_si512(delta, mask);
++                sum_carry = _mm512_srli_epi64::<52>(total);
++                diff_carry = _mm512_srai_epi64::<52>(delta);
++            }
++            let low = Self::reduce(Self::reduce(sum, four).0, twice);
++            (low, Self(diff, PhantomData).mul(root))
++        }
++    }
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+     use crate::{FqConfig, FrConfig};
++    #[test]
++    fn radix4_low_matches_scalar_field_and_bounds() {
++        use crate::portable::{add4,less,sub4};
++        type V = Ifma8<FrConfig, false>;
++        let p = FrConfig::P;
++        let twice = add4(p,p).0;
++        let one = [1,0,0,0];
++        let mut values = vec![[0;4],one,sub4(p,one).0,p,add4(p,one).0,sub4(twice,one).0];
++        for bit in [51,52,63,64,103,104,127,128,155,156,191,192,207,208,253] {
++            let mut x = [0;4]; x[bit/64] = 1 << (bit%64);
++            values.extend([sub4(x,one).0,x,add4(x,one).0]);
++        }
++        let mut seed=0xae9102e51u64;
++        for _ in 0..96 {
++            let mut bytes=[0u8;64];
++            for w in bytes.chunks_exact_mut(8) {
++                seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17;
++                w.copy_from_slice(&seed.to_le_bytes());
++            }
++            let x=Fp::<FrConfig>::from_random_bytes(&bytes).0;
++            values.push(if seed&1 == 0 {x} else {add4(p,x).0});
++        }
++        for i in 0..values.len() {
++            for j in 0..values.len() {
++                let left=V::raw(&core::array::from_fn(|l|values[(i+l)%values.len()]));
++                let right=V::raw(&core::array::from_fn(|l|values[(j+2*l)%values.len()]));
++                let root=V::raw(&core::array::from_fn(|l|values[(i*7+j*3+l)%values.len()]));
++                let c=V::raw(&core::array::from_fn(|l|values[(j*3+l)%values.len()]));
++                let d=V::raw(&core::array::from_fn(|l|values[(i*5+2*l)%values.len()]));
++                let (sum,product)=V::radix4_low(&left,&right,&c,&d,&root);
++                let (x,y,z,t,w)=(left.get(),right.get(),c.get(),d.get(),root.get());
++                assert_eq!(sum.get(),core::array::from_fn(|k|x[k]+y[k]+z[k]+t[k]));
++                assert_eq!(product.get(),core::array::from_fn(|k|(x[k]+y[k]-z[k]-t[k])*w[k]));
++                for v in [sum,product] {
++                    let limbs:[[u64;8];5]=v.0.map(|word|unsafe {core::mem::transmute(word)});
++                    for k in 0..8 {
++                        assert!(limbs.iter().all(|t|t[k]<=MASK) && limbs[4][k] < 1<<48);
++                    }
++                    let packed:[[u64;8];4]=v.compact().0.map(|word|unsafe {core::mem::transmute(word)});
++                    for k in 0..8 {assert!(less(core::array::from_fn(|j|packed[j][k]),twice));}
++                }
++            }
++        }
++    }
+     #[test]
+     fn compact_storage_roundtrip() {
+         fn check<C: FpConfig, const MIXED: bool>() {
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1736,6 +1736,42 @@
+     q: usize,
+     column: usize,
+ ) {
++    if cfg!(zopro_radix4_low) && !FORWARD {
++        let root = |stage: usize, j: usize| {
++            let gap = 16 >> stage;
++            if CACHED {
++                broadcast(&roots.columns[level][31 * column + 32 - 2 * gap + j])
++            } else {
++                broadcast(&roots.layers[level + stage][j * q + column])
++            }
++        };
++        for stage in [0, 2] {
++            let gap = 16 >> stage;
++            let half = gap / 2;
++            for block in (0..32).step_by(2 * gap) {
++                for j in 0..half {
++                    let i = block + j;
++                    let (a, b) = (local[i], local[i + gap]);
++                    let (c, d) = (local[i + half], local[i + half + gap]);
++                    let second = root(stage + 1, j);
++                    let (low, high) = Pair::radix4_low(&a, &b, &c, &d, &second);
++                    let left = a.sub(&b).mul(&root(stage, j));
++                    let right = c.sub(&d).mul(&root(stage, j + half));
++                    local[i] = low;
++                    local[i + half] = high;
++                    local[i + gap] = left.add(&right);
++                    local[i + half + gap] = left.sub(&right).mul(&second);
++                }
++            }
++        }
++        let last = root(4, 0);
++        for pair in local.chunks_exact_mut(2) {
++            let (a, b) = (pair[0], pair[1]);
++            pair[0] = a.add(&b);
++            pair[1] = a.sub(&b).mul(&last);
++        }
++        return;
++    }
+     for order in 0..5 {
+         let stage = if FORWARD { 4 - order } else { order };
+         let gap = 16 >> stage;
