@@ -1,0 +1,137 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2338,11 +2338,13 @@
+                         }
+                     }
+                 }
+-                msm(&self.a[..], sa)
++                if std::env::var_os("ZOPRO_TRIAL_FIFO_SKIP_A_GROUP").is_some() {
++                    msm_raw(&self.a[..], sa)
++                } else {
++                    msm(&self.a[..], sa)
++                }
+             };
+-            let ((ar,kh),bs2)=rayon::join(
+-                || rayon::join(a, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+-                || {
++            let b2 = || {
+                     if (1024..65536).contains(&self.b2.len()) {
+                         msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping)
+                     } else {
+@@ -2351,7 +2353,19 @@
+                         groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),
+                             |g|msm_grouped_b2(&self.b2,g))
+                     }
+-                });
++                            };
++            let fifo = std::env::var("ZOPRO_TRIAL_FIFO_KH");
++            let ((ar, kh), bs2) = if matches!(fifo.as_deref(), Ok("kh" | "b2"))
++                && rayon::current_num_threads() >= 32
++                && msm_affine::borrowed_pending::ordinary_enabled()
++            {
++                if std::env::var_os("ZOPRO_TRIAL_FIFO_TRACE").is_some() {
++                    eprintln!("KH_FIFO {}", fifo.as_deref().unwrap());
++                }
++                msm_affine::borrowed_pending::fifo(k, sk, z, canonical(h), fifo.as_deref() == Ok("b2"), a, b2)
++            } else {
++                rayon::join(|| rayon::join(a, || msm_affine::fused_kh::fused(k, sk, z, canonical(h), 13)), b2)
++            };
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             let (ar,kh,bs2)=offsets.map_or((ar,kh,bs2), |o| (ar+o.a,kh+o.k,bs2+o.b2));
+             let mut out=Vec::with_capacity(384);
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending.rs
+@@ -5,6 +5,8 @@
+ use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fr, Projective};
+ 
+ mod balanced;
++
++pub(crate) use balanced::fifo;
+ 
+ pub(super) fn enabled() -> bool {
+     cfg!(all(
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
+@@ -70,22 +70,74 @@
+     let cover = spans();
+     let sums: Vec<_> = cover
+         .par_iter()
+-        .map(|&span| {
+-            let size = batch_size(span.width).max(32);
+-            let mut state = Window::new(1usize << (span.width - 1), size);
+-            feed(&mut state, k, sk, span, size);
+-            feed(&mut state, h, sh, span, size);
+-            crate::msm::weighted_affine(&state.finish())
+-        })
++        .map(|&span| window(k, sk, h, sh, span))
+         .collect();
++    combine(&cover, &sums)
++}
++
++fn window<C: CurveConfig<Base = Fq>>(
++    k: &[Affine<C>],
++    sk: &[[u64; 4]],
++    h: &[Affine<C>],
++    sh: &[[u64; 4]],
++    span: Span,
++) -> Projective<C> {
++    let size = batch_size(span.width).max(32);
++    let mut state = Window::new(1usize << (span.width - 1), size);
++    feed(&mut state, k, sk, span, size);
++    feed(&mut state, h, sh, span, size);
++    crate::msm::weighted_affine(&state.finish())
++}
++
++fn combine<C: CurveConfig<Base = Fq>>(cover: &[Span], sums: &[Projective<C>]) -> Projective<C> {
+     let mut result = Projective::<C>::IDENTITY;
+-    for (span, sum) in cover.iter().zip(&sums).rev() {
++    for (span, sum) in cover.iter().zip(sums).rev() {
+         for _ in 0..span.width {
+             result = result.double();
+         }
+         result += sum;
+     }
+     result
++}
++
++/// Publish K/H window jobs to the scope before A is available to steal.
++pub(crate) fn fifo<C, Fa, Fb, A, B>(
++    k: &[Affine<C>],
++    sk: &[[u64; 4]],
++    h: &[Affine<C>],
++    sh: &[[u64; 4]],
++    b2_first: bool,
++    compute_a: Fa,
++    compute_b: Fb,
++) -> ((A, Projective<C>), B)
++where
++    C: CurveConfig<Base = Fq>,
++    Fa: FnOnce() -> A + Send,
++    Fb: FnOnce() -> B + Send,
++    A: Send,
++    B: Send,
++{
++    let cover = spans();
++    let mut sums = [Projective::<C>::IDENTITY; COUNT];
++    let mut a = None;
++    let mut b = None;
++    let a_slot = &mut a;
++    let b_slot = &mut b;
++    rayon::scope_fifo(|scope| {
++        let mut b_job = Some((b_slot, compute_b));
++        if b2_first {
++            let (slot, compute) = b_job.take().expect("B2 submitted once");
++            scope.spawn_fifo(move |_| *slot = Some(compute()));
++        }
++        for (&span, sum) in cover.iter().zip(&mut sums) {
++            scope.spawn_fifo(move |_| *sum = window(k, sk, h, sh, span));
++        }
++        if let Some((slot, compute)) = b_job {
++            scope.spawn_fifo(move |_| *slot = Some(compute()));
++        }
++        scope.spawn_fifo(move |_| *a_slot = Some(compute_a()));
++    });
++    ((a.expect("A completed"), combine(&cover, &sums)), b.expect("B2 completed"))
+ }
+ 
+ #[cfg(test)]
