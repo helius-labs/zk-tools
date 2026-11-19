@@ -12,3 +12,16 @@ Five randomized blocks use 32 Ryzen workers, three warmups and eleven timed call
 | 24x2 | 103 | 58.574 / 59.700 / 64.662 / 64.886 | +10.08% (0/5) / +10.22% (0/5) / +8.89% (1/5) / +10.78% (1/5) | 1108 / 1091 / 1019 / 1014 |
 
 Original FFT-first speedup against M5 CPU and Metal was 12x2 9.02× / 3.21×, 24x2 7.98× / 2.66×. All 92 exports verified. [Samples](artifacts/samples.json.gz) · [Route probes](artifacts/routes.json.gz) · [Source](artifacts/source.patch) · [Verification](artifacts/verification.json)
+
+## CPU use during the timed proof loop
+
+User plus system CPU time divided by elapsed loop time gives the average number of busy logical CPUs for each process. The table takes medians over the five processes in each cell. Setup, priming and export are outside this interval.
+
+| Shape | Input | CPU-ms per proof ordinary / FFT-first / B2-first | Average busy logical CPUs in the same order |
+|---|---|---:|---:|
+| 12x2 | Original | 808.7 / 835.5 / 834.5 | 27.76 / 26.55 / 26.31 |
+| 12x2 | 142 | 1247.0 / 1240.7 / 1241.1 | 27.08 / 24.37 / 23.52 |
+| 24x2 | Original | 1675.8 / 1701.7 / 1707.4 | 28.05 / 25.72 / 25.24 |
+| 24x2 | 103 | 1662.8 / 1658.4 / 1657.8 | 27.88 / 25.65 / 25.54 |
+
+Both overlap orders lost all 20 matched blocks against ordinary execution. Average CPU occupancy also fell in every request and order. These counters locate a scheduling tradeoff without identifying a particular wait or hardware bottleneck. [CPU and wall-time summary](artifacts/occupancy.json)
