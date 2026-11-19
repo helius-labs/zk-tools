@@ -163,7 +163,10 @@ schedule words. The prover applies the option after it recognizes the field
 coefficients. A layout whose addresses do not fit keeps the original
 operation indices. The option defaults off. The
 [full-proof measurements](docs/benchmarks/2026-11-19-poseidon-emit-release388/README.md)
-compare its effect across eight circuits on Ryzen.
+compare its effect across eight circuits on Ryzen. On a Ryzen 9950X with 32
+workers, enabling compact output addresses with the ordinary H query reduced
+12×2 latency from 33.412 to 33.002 ms in seven fresh matched blocks.
+[12×2 configuration measurements](docs/benchmarks/2026-11-19-medium-h-ryzen406/README.md)
 
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
