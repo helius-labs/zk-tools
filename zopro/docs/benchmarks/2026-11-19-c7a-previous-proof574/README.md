@@ -47,7 +47,7 @@ The address reader relocates each sampled process against its pinned SDK ELF. At
 
 A sample at the bit test cannot distinguish a cache miss on the preceding load, a failed compare-exchange or sampling skid. The two loops are distinct from the loops that copy the field values into output memory. This supports testing fewer task publications while keeping the same scalar data and output buffers.
 
-[Relocated sample addresses](artifacts/collector-pcs.json.gz) · [Instructions and ELF digest](artifacts/atomic-loops.json)
+[Address reader](artifacts/check_collector.py) · [Relocated sample addresses](artifacts/collector-pcs.json.gz) · [Instructions and ELF digest](artifacts/atomic-loops.json)
 
 ## Does the previous proof's late G2 work predict the next solver duration?
 
