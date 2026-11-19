@@ -10,6 +10,10 @@ The offline conversion folds a fixed public reference into the K points, retains
 
 All 76 exports verified. [Complete process samples](artifacts/samples.json.gz) · [Conversion and key identities](artifacts/inputs.json) · [Verification](artifacts/verification.json)
 
+Against the release, grouping alone reduced the median paired latency by 7.91%, 10.14% and 8.85% on the original, 99 and 103 respectively. The combined setting reduced it by 8.61%, 9.49% and 8.36%. Both settings beat the release in every block on all three inputs. The combined setting beat grouping alone in two of five pairs on the original. On that request the 10× CPU target is 52.8 ms, still 6.038 ms below the combined median.
+
+The offline converter handled a domain of 1,048,576, retained all 544,587 private slots and added none. It reported 359.917 seconds for setup. Some development compilation and correctness checks shared the host during conversion. All timed comparisons began afterward. The flat image occupies 347,459,560 bytes and the block image 346,929,782 bytes.
+
 ## CPU consumption and stage timing
 
 The CPU figures cover the 11 verified calls in each timed loop. Effective CPUs divide user plus system CPU time by elapsed loop time. Peak RSS includes key preparation, and minor faults count process page faults during timing. The table reports the median of five processes per cell.
