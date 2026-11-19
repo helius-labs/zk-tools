@@ -10,3 +10,7 @@ Each row measures the reference request in the workload fixed before the run. Th
 | stream-flat-mixed | 28.388 | 28.575 / 29.859 / 28.388 / 28.317 / 28.684 / 28.336 / 28.131 | 4/7 | 33/49 | 10.00× / 3.56× |
 
 [Protocol](protocol.md) · [Samples](artifacts/samples.json.gz) · [Verification](artifacts/verification.json)
+
+The early setting crossed 28.4 ms again on the mixed stream. The ordinary repeated SDK calls crossed it in five of seven processes in this run. Two earlier seven-block measurements of this frozen build returned 28.495 and 28.648 ms. The observed reference latency is close enough to the threshold that a fresh run can land on either side. The flat mixed control also crossed in this run. Early vs flat reduced reference latency by a paired median of 0.14% and won four of seven mixed blocks. This comparison provides limited evidence for preferring the early layout.
+
+Maximum process peaks were 650.8 MiB on SDK repeats, 661.3 MiB on stream repeats, 1,046.0 MiB on early mixed streams and 1,036.2 MiB on flat mixed streams. Each mixed process handled both adjacent and scattered inputs with the same loaded key. [First mixed workload](../2026-11-19-mixed-stream590/README.md) · [Original-only overlap run](../2026-11-19-early-blocks588/README.md) · [Frozen control in the indexed A test](../2026-11-19-indexed-group591/README.md)
