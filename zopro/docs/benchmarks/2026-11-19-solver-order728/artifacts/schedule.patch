@@ -1,0 +1,55 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -140,10 +140,21 @@
+ where
+     C::Base: BatchInverse,
+ {
+-    if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
++    if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") && std::env::var_os("ZOPRO_TRIAL_SKIP_CANONICAL_GROUP").is_none() {
+         if let Some(groups) = grouping::groups_with_diversity_check(canonical) {
+             return msm_grouped(bases, &groups);
+         }
++    }
++    match std::env::var("ZOPRO_TRIAL_BEFORE_RAW_G1").as_deref() {
++        Ok("scan") => {
++            let mut lines = 0u64;
++            for scalar in canonical.iter().step_by(2) {
++                lines = lines.wrapping_add(scalar[0]);
++            }
++            std::hint::black_box(lines);
++        }
++        Ok("delay900") => std::thread::sleep(std::time::Duration::from_micros(900)),
++        _ => {}
+     }
+     msm_raw(bases, canonical)
+ }
+@@ -1694,7 +1705,7 @@
+     words: &mut [[u64; 4]],
+ ) -> zopro_bn254::G2Projective {
+     assert_eq!(bases.len(), words.len());
+-    let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++    let groups = (crate::simd::cpu_option("ZOPRO_CPU_DEDUP") && std::env::var_os("ZOPRO_TRIAL_SKIP_EXCLUSIVE_GROUP").is_none())
+         .then(|| grouping::groups_with_diversity_check(words))
+         .flatten();
+     #[cfg(all(
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2299,8 +2299,16 @@
+                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+             }
+             let ((ar,kh),bs2)=rayon::join(
+-                || rayon::join(|| msm(&self.a[..],sa),
+-                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
++                || {
++                    let a = || msm(&self.a[..], sa);
++                    let kh = || msm_affine::fused_kh::fused(k, sk, z, canonical(h), 13);
++                    if std::env::var_os("ZOPRO_TRIAL_KH_FIRST").is_some() {
++                        let (kh, a) = rayon::join(kh, a);
++                        (a, kh)
++                    } else {
++                        rayon::join(a, kh)
++                    }
++                },
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+                         msm_affine::g2_query_exclusive(&self.b2,sb)
