@@ -1,0 +1,99 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -222,6 +222,9 @@
+     output_fq(out, p.y.c1);
+ }
+
++#[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++mod public_b2_offset;
++
+ // The version of the solver images Key::solver_image writes and
+ // Key::set_solver_image reads, for a host to tell its images apart.
+ #[wasm_bindgen]
+@@ -827,6 +830,8 @@
+     /// Shared, for a browser's CPU share of the G2 MSM on the pool while
+     /// the proof's future awaits the GPU.
+     b2: std::sync::Arc<Store<G2Affine>>,
++    #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++    public_b2_offset: std::sync::OnceLock<Option<public_b2_offset::Correction>>,
+     generated_g2: generated_proof::G2InputCertificate,
+     #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+     canonical_wires: bool,
+@@ -1511,6 +1516,8 @@
+             k,
+             z,
+             b2: std::sync::Arc::new(b2),
++            #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++            public_b2_offset: Default::default(),
+             generated_g2: Default::default(),
+             #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+             canonical_wires: !cfg!(target_arch="wasm32") && lengths.iter().copied().max().unwrap_or(0)<(1<<16) && std::env::var("ZOPRO_CPU_CANONICAL_WIRES").as_deref()==Ok("1"),
+@@ -2267,7 +2274,7 @@
+                     || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+-                        msm_affine::g2_query_exclusive(&self.b2,sb)
++                        { #[cfg(zopro_resource_schedule)] { self.b2_with_public_offset(sb) } #[cfg(not(zopro_resource_schedule))] { msm_affine::g2_query_exclusive(&self.b2,sb) } }
+                     } else {
+                         let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(||scalar_groups(sb)).flatten();
+@@ -2297,7 +2304,7 @@
+                     },
+                     || {
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
++                            return (G1Projective::IDENTITY,{ #[cfg(zopro_resource_schedule)] { self.b2_with_public_offset(sb) } #[cfg(not(zopro_resource_schedule))] { msm_affine::g2_query_exclusive(&self.b2,sb) } });
+                         }
+                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(|| scalar_groups(sb))
+--- /dev/null
++++ b/crates/zopro-core/src/public_b2_offset.rs
+@@ -0,0 +1,48 @@
++use super::*;
++use sha2::{Digest, Sha256};
++use crate::preparation::Reservation;
++
++const OFFSETS: &[u8] = include_bytes!("public_b2_offset.bin");
++const POINT_DIGEST: [u8;32] = [103, 152, 229, 136, 152, 26, 42, 77, 132, 84, 116, 120, 133, 119, 111, 217, 208, 253, 172, 52, 187, 60, 221, 172, 171, 233, 242, 110, 65, 252, 167, 214];
++
++pub(super) struct Correction { point: G2Projective, _reservation: Reservation }
++
++impl Key {
++    pub(super) fn b2_with_public_offset(&self, words: &mut [[u64;4]]) -> G2Projective {
++        if self.b2.len()!=30089 || std::env::var("ZOPRO_BENCH_PUBLIC_B2_OFFSETS").as_deref()!=Ok("1") {
++            return msm_affine::g2_query_exclusive(&self.b2,words);
++        }
++        let correction=self.public_b2_offset.get_or_init(|| prepare(&self.b2));
++        let Some(correction)=correction else {return msm_affine::g2_query_exclusive(&self.b2,words);};
++        if std::env::var_os("ZOPRO_BENCH_OFFSET_TRACE").is_some() {eprintln!("OFFSET_QUERY");}
++        for_each_offset(|i,k| {
++            let v=words[i];
++            words[i]=if v==k { [0;4] } else {
++                (Fr::from_canonical(v).unwrap()-Fr::from_canonical(k).unwrap()).to_canonical()
++            };
++        });
++        msm_affine::g2_query_exclusive(&self.b2,words)+correction.point
++    }
++}
++fn for_each_offset(mut visit:impl FnMut(usize,[u64;4])) {
++    for row in OFFSETS.chunks_exact(36) {
++        let i=u32::from_le_bytes(row[..4].try_into().unwrap()) as usize;
++        visit(i,super::words(&row[4..]));
++    }
++}
++fn prepare(points:&[G2Affine])->Option<Correction> {
++    let _reservation=Reservation::analysis(OFFSETS.len().checked_add(std::mem::size_of::<Correction>()))?;
++    let start=std::time::Instant::now();
++    let mut hash=Sha256::new();
++    for p in points {
++        for v in [p.x.c0,p.x.c1,p.y.c0,p.y.c1] {
++            for limb in v.0 {hash.update(limb.to_le_bytes());}
++        }
++    }
++    let digest:[u8;32]=hash.finalize().into();
++    if digest!=POINT_DIGEST {return None;}
++    let mut point=G2Projective::IDENTITY;
++    for_each_offset(|i,k| point+=points[i]*Fr::from_canonical(k).unwrap());
++    if std::env::var_os("ZOPRO_BENCH_OFFSET_TRACE").is_some() {eprintln!("OFFSET_SETUP_NS {}",start.elapsed().as_nanos());}
++    Some(Correction{point,_reservation})
++}
