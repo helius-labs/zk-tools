@@ -1,0 +1,75 @@
+--- a/crates/zopro-core/src/fft.rs
++++ b/crates/zopro-core/src/fft.rs
+@@ -1317,7 +1317,15 @@
+         assert!(!self.released && self.n>=8 && self.twisted.is_none());
+         assert!(a.len()<=self.n && b.len()<=self.n);
+         #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+-        { return pair::euler_product_study(self,a,b); }
++        {
++            static FIRST: std::sync::atomic::AtomicBool=std::sync::atomic::AtomicBool::new(true);
++            if FIRST.swap(false,std::sync::atomic::Ordering::Relaxed) {
++                if let Some(file)=std::env::var_os("ZOPRO_BENCH_EULER_ORIGIN") {
++                    return origin_study::observe(self,a,b,std::path::Path::new(&file));
++                }
++            }
++            return pair::euler_product_study(self,a,b);
++        }
+         #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
+         {
+             let count=a.len().max(b.len());if count==0{return a;}
+@@ -1389,3 +1397,6 @@
+         assert_eq!(count,10);println!("EULER_GENERIC_H_IDENTITIES={count}");
+     }
+ }
++
++#[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++mod origin_study;
+--- /dev/null
++++ b/crates/zopro-core/src/fft/origin_study.rs
+@@ -0,0 +1,46 @@
++//! Diagnostic restricted by the external runner to generated public fixtures.
++use super::{pair, Fr, Plan};
++use std::io::{BufReader, BufWriter, Read, Write};
++use std::path::Path;
++
++fn word(f:&mut impl Read) -> Fr {
++    let mut bytes=[0;32];
++    f.read_exact(&mut bytes).unwrap();
++    Fr::from_be_bytes(&bytes).expect("noncanonical public origin")
++}
++pub(super) fn observe(plan:&Plan, a:Vec<Fr>, b:Vec<Fr>, path:&Path) -> Vec<Fr> {
++    let count=a.len().max(b.len());
++    let get=|v:&[Fr],i:usize|v.get(i).copied().unwrap_or(Fr::ZERO);
++    if std::env::var_os("ZOPRO_BENCH_WRITE_PUBLIC_ORIGIN").is_some() {
++        let mut file=BufWriter::new(std::fs::File::create_new(path).unwrap());
++        file.write_all(&(count as u64).to_le_bytes()).unwrap();
++        for i in 0..count {
++            file.write_all(&get(&a,i).to_be_bytes()).unwrap();
++            file.write_all(&get(&b,i).to_be_bytes()).unwrap();
++        }
++        file.flush().unwrap();
++        eprintln!("ORIGIN_WRITTEN {}",count);
++        return pair::euler_product_study(plan,a,b);
++    }
++    let mut file=BufReader::new(std::fs::File::open(path).unwrap());
++    let mut header=[0;8];file.read_exact(&mut header).unwrap();
++    assert_eq!(u64::from_le_bytes(header),count as u64);
++    let (mut x,mut y)=(Vec::with_capacity(count),Vec::with_capacity(count));
++    let (mut ordinary_zero_pair,mut residual_zero_pair)=(0usize,0usize);
++    for i in 0..count {
++        let (left,right)=(get(&a,i),get(&b,i));
++        ordinary_zero_pair+=usize::from(left==Fr::ZERO && right==Fr::ZERO);
++        let (u,v)=(left-word(&mut file),right-word(&mut file));
++        residual_zero_pair+=usize::from(u==Fr::ZERO && v==Fr::ZERO);
++        x.push(u);y.push(v);
++    }
++    assert_eq!(file.read(&mut [0;1]).unwrap(),0);
++    let ordinary=pair::euler_product_study(plan,a,b);
++    let residual=pair::euler_product_study(plan,x,y);
++    assert_eq!((ordinary.len(),residual.len()),(count,count));
++    let old=ordinary.iter().filter(|x|**x!=Fr::ZERO).count();
++    let new=residual.iter().filter(|x|**x!=Fr::ZERO).count();
++    assert!(old<=count-ordinary_zero_pair && new<=count-residual_zero_pair);
++    eprintln!("ORIGIN_COUNTS {} {} {} {} {}",count,old,new,ordinary_zero_pair,residual_zero_pair);
++    ordinary
++}
