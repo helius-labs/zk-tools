@@ -13,3 +13,13 @@ Five configurations use the same binary and 32 Ryzen workers. Ordinary uses the 
 | 24x2 | 103 | 63.961 / 62.177 / 58.148 / 60.530 / 58.467 | +0.55% (2/4) | -9.35% (4/4) | 1039.1 / 1085.3 / 1049.8 |
 
 All 150 exported proofs verified independently against the original key. [Process samples](artifacts/processes.json.gz) · [Execution routes](artifacts/probes.json) · [Incremental source](artifacts/incremental.patch) · [Verification](artifacts/verification.json)
+
+## Original requests against the supplied M5 references
+
+| Shape | Integrated Ryzen ms | M5 CPU speedup | M5 Metal speedup | Ryzen ms required for 10× CPU |
+|---|---:|---:|---:|---:|
+| 8x2 | 24.247 | 7.79× | 3.05× | 18.9 |
+| 12x2 | 34.507 | 8.23× | 2.93× | 28.4 |
+| 24x2 | 59.342 | 8.90× | 2.97× | 52.8 |
+
+The [qualified eight-shape comparison](../2026-11-19-merge-deep479/README.md) covers the production profiles. These three measurements use the experimental packed image.
