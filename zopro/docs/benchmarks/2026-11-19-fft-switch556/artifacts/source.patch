@@ -1,0 +1,47 @@
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1728,6 +1728,27 @@
+         && crate::simd::cpu_option("ZOPRO_CPU_FFT_FUSED_OUTPUT")
+ }
+ 
++fn four_input_columns() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(|| std::env::var("ZOPRO_TRIAL_PAIR_COLUMNS").as_deref() == Ok("1"))
++}
++
++struct EulerClock(Option<std::time::Instant>);
++impl EulerClock {
++    fn start() -> Self {
++        static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++        let enabled = ENABLED.get_or_init(|| std::env::var("ZOPRO_TRIAL_EULER_TIME").as_deref() == Ok("1"));
++        Self(enabled.then(std::time::Instant::now))
++    }
++}
++impl Drop for EulerClock {
++    fn drop(&mut self) {
++        if let Some(start) = self.0 {
++            eprintln!("EULER_NS {}", start.elapsed().as_nanos());
++        }
++    }
++}
++
+ #[inline(always)]
+ fn column_kernel<const CACHED: bool, const FORWARD: bool>(
+     local: &mut [Pair; 32],
+@@ -1736,7 +1757,7 @@
+     q: usize,
+     column: usize,
+ ) {
+-    if cfg!(zopro_radix4_low) && !FORWARD {
++    if !FORWARD && four_input_columns() {
+         let root = |stage: usize, j: usize| {
+             let gap = 16 >> stage;
+             if CACHED {
+@@ -1804,6 +1825,7 @@
+ // Unnormalized inverse FFT means the returned prefix is
+ // n * (E(A) * B + A * E(B)), where E(f) = X f'.
+ pub(super) fn euler_product_study(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
++    let _clock = EulerClock::start();
+     assert!(plan.n >= 8 && a.len() <= plan.n && b.len() <= plan.n);
+     assert!(!plan.released && plan.twisted.is_none());
+     let count = a.len().max(b.len());
