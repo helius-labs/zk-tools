@@ -36,17 +36,34 @@ fn pin(cpu: usize) -> io::Result<usize> {
     Ok(cpu)
 }
 
-fn frontend_cpus(list: &str, allowed: &[usize]) -> Result<Vec<usize>, String> {
+fn parse_cpus(list: &str, allowed: &[usize], pool: &str) -> Result<Vec<usize>, String> {
     let mut cpus = Vec::new();
     for field in list.split(',') {
         let cpu = field
             .trim()
             .parse()
-            .map_err(|_| format!("invalid frontend CPU {field:?}"))?;
+            .map_err(|_| format!("invalid {pool} CPU {field:?}"))?;
         if !allowed.contains(&cpu) || cpus.contains(&cpu) {
-            return Err(format!("frontend CPU {cpu} is unavailable or repeated"));
+            return Err(format!("{pool} CPU {cpu} is unavailable or repeated"));
         }
         cpus.push(cpu);
+    }
+    Ok(cpus)
+}
+
+fn main_cpus(list: Option<&str>, allowed: &[usize], workers: usize) -> Result<Vec<usize>, String> {
+    if workers > allowed.len() {
+        return Err("fixed placement requires one allowed CPU per main worker".into());
+    }
+    let Some(list) = list else {
+        return Ok(allowed[..workers].to_vec());
+    };
+    let cpus = parse_cpus(list, allowed, "main")?;
+    if cpus.len() != workers {
+        return Err(format!(
+            "main CPU list has {} entries for {workers} workers",
+            cpus.len()
+        ));
     }
     Ok(cpus)
 }
@@ -58,18 +75,27 @@ pub(super) fn configure() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std:
         _ => return Err("worker placement must be fixed or unbound".into()),
     };
     let list = env::var_os("ZOPRO_BENCH_FRONT_CPUS");
+    let main_list = match env::var("ZOPRO_BENCH_MAIN_CPUS") {
+        Ok(list) => Some(list),
+        Err(env::VarError::NotPresent) => None,
+        Err(error) => return Err(error.into()),
+    };
+    if !fixed && main_list.is_some() {
+        return Err("a main CPU list requires fixed placement".into());
+    }
     if list.is_none() && !fixed {
         return Ok(None);
     }
     let allowed = allowed_cpus()?;
     let main_width = rayon::current_num_threads();
-    if fixed && main_width > allowed.len() {
-        return Err("fixed placement requires one allowed CPU per main worker".into());
-    }
+    let main = fixed
+        .then(|| main_cpus(main_list.as_deref(), &allowed, main_width))
+        .transpose()?;
     let frontend = if let Some(list) = list {
-        let ids = frontend_cpus(
+        let ids = parse_cpus(
             list.to_str().ok_or("frontend CPU list must be UTF-8")?,
             &allowed,
+            "frontend",
         )?;
         if ids.len() >= main_width {
             return Err("the frontend pool must be smaller than the main pool".into());
@@ -86,8 +112,8 @@ pub(super) fn configure() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std:
     } else {
         None
     };
-    if fixed {
-        let cpus: io::Result<Vec<_>> = rayon::broadcast(|ctx| pin(allowed[ctx.index()]))
+    if let Some(main) = main {
+        let cpus: io::Result<Vec<_>> = rayon::broadcast(|ctx| pin(main[ctx.index()]))
             .into_iter()
             .collect();
         println!("MAIN_CPUS {}", serde_json::to_string(&cpus?)?);
@@ -102,9 +128,25 @@ mod tests {
     #[test]
     fn frontend_selection_respects_order_and_inherited_affinity() {
         let allowed = [3, 16, 2049];
-        assert_eq!(frontend_cpus("2049, 3", &allowed).unwrap(), [2049, 3]);
+        assert_eq!(
+            parse_cpus("2049, 3", &allowed, "frontend").unwrap(),
+            [2049, 3]
+        );
         for invalid in ["", "3,3", "16,", "0", "-1", "3,7"] {
-            assert!(frontend_cpus(invalid, &allowed).is_err());
+            assert!(parse_cpus(invalid, &allowed, "frontend").is_err());
+        }
+    }
+
+    #[test]
+    fn main_selection_matches_worker_count_and_affinity() {
+        let allowed = [3, 16, 23, 2049];
+        assert_eq!(main_cpus(None, &allowed, 3).unwrap(), [3, 16, 23]);
+        assert_eq!(
+            main_cpus(Some("2049,23,3"), &allowed, 3).unwrap(),
+            [2049, 23, 3]
+        );
+        for invalid in ["3,16", "3,3,16", "3,16,17", "3,16,23,2049"] {
+            assert!(main_cpus(Some(invalid), &allowed, 3).is_err());
         }
     }
 }
