@@ -1,0 +1,39 @@
+--- a/crates/zopro-core/src/packed_b2_trial.rs
++++ b/crates/zopro-core/src/packed_b2_trial.rs
+@@ -123,7 +123,12 @@
+         if trace {eprintln!("PACKED_SPARSE {} {differences}",self.prefix);}
+         let (main, extra)=rayon::join(|| {
+             let mut words:Vec<_>=(0..self.prefix).into_par_iter().map(|i|values[self.source(i)].to_canonical()).collect();
+-            msm_affine::g2_query_exclusive(&points[..self.prefix], &mut words, true)
++            let prefix = &points[..self.prefix];
++            if std::env::var_os("ZOPRO_TRIAL_PACKED_ORDINARY_KERNEL").is_some() {
++                msm_affine::g2_query_ordinary_grouped(prefix, &words)
++            } else {
++                msm_affine::g2_query_exclusive(prefix, &mut words, true)
++            }
+         },|| {
+             if differences==0 {return G2Projective::IDENTITY;}
+             let mut bases=Vec::with_capacity(differences);
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1756,6 +1756,20 @@
+         None => crate::msm_raw_b2(bases, words),
+     }
+ }
++/// Match the ordinary large B2 curve path on the compact prefix.
++pub(super) fn g2_query_ordinary_grouped(
++    bases: &[zopro_bn254::G2Affine], words: &[[u64; 4]],
++) -> zopro_bn254::G2Projective {
++    assert_eq!(bases.len(), words.len());
++    let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++        .then(|| grouping::groups_with_diversity_check(words))
++        .flatten();
++    match groups {
++        Some(groups) => msm_grouped(bases, &groups),
++        None => msm_raw(bases, words),
++    }
++}
++
+ #[cfg(test)]
+ mod exclusive_g2_tests {
+     use super::*;
