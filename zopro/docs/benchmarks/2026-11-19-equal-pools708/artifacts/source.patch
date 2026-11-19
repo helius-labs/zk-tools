@@ -1,0 +1,57 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2539,7 +2539,9 @@
+     fn small_g2(&self, words: &mut [[u64; 4]]) -> G2Projective {
+         #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_os="linux", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         if let (Some(pool), Some(credit)) = (&self.frontend_pool, self.frontend_g2_bytes) {
+-            if pool.current_num_threads() < rayon::current_num_threads() {
++            if pool.current_num_threads() < rayon::current_num_threads()
++                || std::env::var_os("ZOPRO_TRIAL_DEDICATED_G2").is_some()
++            {
+                 if let Some(_scratch) = preparation::Reservation::analysis(Some(credit)) {
+                     return pool.install(|| {
+                         if std::env::var_os("ZOPRO_TRIAL_G2_FRONTEND_PROBE").is_some() {
+--- a/crates/zopro-bench/examples/support/placement.rs
++++ b/crates/zopro-bench/examples/support/placement.rs
+@@ -51,6 +51,12 @@
+     Ok(cpus)
+ }
+ 
++fn dedicated_partition(main: usize, ids: &[usize], allowed: &[usize]) -> bool {
++    !ids.is_empty() && allowed.get(..main).is_some_and(|main_cpus| {
++        ids.iter().all(|cpu| allowed.contains(cpu) && !main_cpus.contains(cpu))
++    })
++}
++
+ pub(super) fn configure() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std::error::Error>> {
+     let fixed = match env::var("ZOPRO_BENCH_WORKER_PLACEMENT").as_deref() {
+         Ok("fixed") => true,
+@@ -71,7 +77,10 @@
+             list.to_str().ok_or("frontend CPU list must be UTF-8")?,
+             &allowed,
+         )?;
+-        if ids.len() >= main_width {
++        let dedicated = fixed
++            && env::var_os("ZOPRO_TRIAL_DEDICATED_G2").is_some()
++            && dedicated_partition(main_width, &ids, &allowed);
++        if ids.len() >= main_width && !dedicated {
+             return Err("the frontend pool must be smaller than the main pool".into());
+         }
+         let pool = rayon::ThreadPoolBuilder::new()
+@@ -100,6 +109,16 @@
+     use super::*;
+ 
+     #[test]
++    fn dedicated_pool_may_match_or_exceed_main_only_on_separate_allowed_cpus() {
++        let cpus = [2, 5, 9, 11];
++        assert!(dedicated_partition(2, &[9, 11], &cpus));
++        assert!(dedicated_partition(1, &[5, 9, 11], &cpus));
++        assert!(!dedicated_partition(2, &[5, 11], &cpus));
++        assert!(!dedicated_partition(2, &[9, 12], &cpus));
++        assert!(!dedicated_partition(5, &[11], &cpus));
++    }
++
++    #[test]
+     fn frontend_selection_respects_order_and_inherited_affinity() {
+         let allowed = [3, 16, 2049];
+         assert_eq!(frontend_cpus("2049, 3", &allowed).unwrap(), [2049, 3]);
