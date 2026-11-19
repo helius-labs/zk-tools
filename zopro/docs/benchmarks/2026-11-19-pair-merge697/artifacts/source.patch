@@ -1,0 +1,87 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -189,6 +189,23 @@
+     state.flush_queue();
+     affine_buckets(state)
+ }
++fn paired_window(bases: &[G2Affine], words: &[[u64; 4]], window: usize, bits: usize) -> Vec<G2Affine> {
++    let chunk = bases.len().div_ceil(4);
++    let fill = |part: usize| {
++        let start = (part * chunk).min(bases.len());
++        let end = (start + chunk).min(bases.len());
++        hb_window(&bases[start..end], &words[start..end], window, bits)
++    };
++    let pair = |first| {
++        let (mut left, right) = rayon::join(|| fill(first), || fill(first + 1));
++        merge_buckets(&mut left, &right);
++        left
++    };
++    let (mut left, right) = rayon::join(|| pair(0), || pair(2));
++    merge_buckets(&mut left, &right);
++    left
++}
++
+ pub(super) fn hb_raw(bases: &[G2Affine], short: &mut [[u64; 4]], bits: usize, parts: usize) -> G2Projective {
+     hb_raw_decomposition(bases, short, bits, parts, false)
+ }
+@@ -213,9 +230,16 @@
+     }
+     let chunk = bases.len().div_ceil(parts);
+     let windows = 127usize.div_ceil(bits);
++    let paired = parts == 4 && std::env::var_os("ZOPRO_TRIAL_G2_PAIR_MERGE").is_some();
++    if paired && std::env::var_os("ZOPRO_TRIAL_G2_PAIR_PROBE").is_some() {
++        eprintln!("G2_PAIR_MERGE {} {} {}", bases.len(), bits, windows);
++    }
+     let sums: Vec<_> = (0..windows)
+         .into_par_iter()
+         .map(|w| {
++            if paired {
++                return crate::msm::weighted_affine(&paired_window(bases, short, w, bits));
++            }
+             let mut buckets: Vec<_> = (0..parts)
+                 .into_par_iter()
+                 .map(|part| {
+@@ -263,6 +287,43 @@
+ mod tests {
+     use super::*;
+     #[test]
++    fn paired_window_reduction_matches_full_scalar_g2() {
++        let mut bases = Vec::new();
++        let mut words = Vec::new();
++        let mut expected = G2Projective::IDENTITY;
++        let mut value = -Fr::from(81731u64);
++        for i in 0..67 {
++            value = value.square() + Fr::from(i as u64 + 1);
++            let base = match i % 4 {
++                0 => G2Projective::IDENTITY.to_affine(),
++                1 => -G2Affine::GENERATOR,
++                _ => G2Affine::GENERATOR,
++            };
++            let scalar = match i % 7 {
++                0 => Fr::ZERO,
++                1 => Fr::ONE,
++                2 => -Fr::ONE,
++                _ => value,
++            };
++            bases.push(base);
++            words.push(phi_split(scalar.to_canonical()));
++            expected += base * scalar;
++        }
++        for workers in [1, 4, 16] {
++            let pool = rayon::ThreadPoolBuilder::new().num_threads(workers).build().unwrap();
++            let sum = pool.install(|| {
++                let mut acc = G2Projective::IDENTITY;
++                for w in (0..127usize.div_ceil(11)).rev() {
++                    for _ in 0..11 { acc = acc.double(); }
++                    acc += crate::msm::weighted_affine(&paired_window(&bases, &words, w, 11));
++                }
++                acc
++            });
++            assert_eq!(sum.to_affine(), expected.to_affine());
++        }
++    }
++
++    #[test]
+     fn decomposition_and_endomorphism_match_independent_field_oracles() {
+         let lambda = Fr::from_decimal("4407920970296243842393367215006156084916469457145843978461");
+         let mut values = vec![
