@@ -1,0 +1,311 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -256,41 +256,7 @@
+     // useful for reference checks, but small production MSMs keep their
+     // existing shared-window path.
+     if n >= 256 && crate::simd::cpu_option("ZOPRO_CPU_UNSIGNED") {
+-        let delta = std::env::var("ZOPRO_CPU_UNSIGNED_DELTA")
+-            .ok()
+-            .and_then(|v| v.parse::<isize>().ok())
+-            .unwrap_or(0)
+-            .clamp(-4, 4);
+-        let explicit_bits = std::env::var("ZOPRO_CPU_UNSIGNED_WIDTH")
+-            .ok()
+-            .and_then(|v| v.parse::<usize>().ok());
+-        let mut bits = explicit_bits
+-            .unwrap_or_else(|| width(n).saturating_add_signed(delta))
+-            .clamp(3, 15);
+-        if explicit_bits.is_none() && crate::simd::cpu_option("ZOPRO_CPU_UNSIGNED_CACHE") {
+-            let point = core::mem::size_of::<Affine<C>>();
+-            while bits > 3 {
+-                let working =
+-                    (1usize << bits) * (point + 4) + batch_size(bits + 1) * (point * 7 / 2 + 48);
+-                if working <= 400 * 1024 {
+-                    break;
+-                }
+-                bits -= 1;
+-            }
+-        }
+-        let default_parts = if (1024..(1 << 18)).contains(&n)
+-            && rayon::current_num_threads() >= 16
+-            && crate::simd::cpu_option("ZOPRO_CPU_MERGE_SPLIT")
+-        {
+-            2
+-        } else {
+-            1
+-        };
+-        let parts = std::env::var("ZOPRO_CPU_UNSIGNED_PARTS")
+-            .ok()
+-            .and_then(|v| v.parse::<usize>().ok())
+-            .unwrap_or(default_parts)
+-            .clamp(1, 32);
++        let (bits, parts) = unsigned_layout::<C>(n);
+         return msm_unsigned_raw(bases, canonical, bits, parts);
+     }
+     // Small MSMs benefit from shorter streaming tasks on a wide pool.
+@@ -344,6 +310,73 @@
+     result
+ }
+ 
++fn unsigned_layout<C: CurveConfig>(n: usize) -> (usize, usize) {
++    let delta = std::env::var("ZOPRO_CPU_UNSIGNED_DELTA")
++        .ok()
++        .and_then(|v| v.parse::<isize>().ok())
++        .unwrap_or(0)
++        .clamp(-4, 4);
++    let explicit_bits = std::env::var("ZOPRO_CPU_UNSIGNED_WIDTH")
++        .ok()
++        .and_then(|v| v.parse::<usize>().ok());
++    let mut bits = explicit_bits
++        .unwrap_or_else(|| width(n).saturating_add_signed(delta))
++        .clamp(3, 15);
++    if explicit_bits.is_none() && crate::simd::cpu_option("ZOPRO_CPU_UNSIGNED_CACHE") {
++        let point = core::mem::size_of::<Affine<C>>();
++        while bits > 3 {
++            let working =
++                (1usize << bits) * (point + 4) + batch_size(bits + 1) * (point * 7 / 2 + 48);
++            if working <= 400 * 1024 {
++                break;
++            }
++            bits -= 1;
++        }
++    }
++    let default_parts = if (1024..(1 << 18)).contains(&n)
++        && rayon::current_num_threads() >= 16
++        && crate::simd::cpu_option("ZOPRO_CPU_MERGE_SPLIT")
++    {
++        2
++    } else {
++        1
++    };
++    let parts = std::env::var("ZOPRO_CPU_UNSIGNED_PARTS")
++        .ok()
++        .and_then(|v| v.parse::<usize>().ok())
++        .unwrap_or(default_parts)
++        .clamp(1, 32);
++    (bits, parts)
++}
++
++#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++pub(super) fn grouped_b2_split(
++    bases: &[zopro_bn254::G2Affine], groups: &ScalarGroups, frontend: &rayon::ThreadPool,
++) -> Option<zopro_bn254::G2Projective> {
++    static WINDOWS: std::sync::OnceLock<Option<usize>> = std::sync::OnceLock::new();
++    let windows = (*WINDOWS.get_or_init(|| std::env::var("ZOPRO_TRIAL_B2_FRONT_WINDOWS").ok()?.parse().ok()))?;
++    if !(65_536..262_144).contains(&bases.len()) || !(1024..65_536).contains(&groups.values.len())
++        || !crate::simd::cpu_option("ZOPRO_CPU_UNSIGNED")
++    {
++        return None;
++    }
++    assert_eq!(bases.len(), groups.len);
++    let workers=frontend.current_num_threads();
++    let (bits,parts)=unsigned_layout::<zopro_bn254::G2Config>(groups.values.len());
++    let count=(Fr::MODULUS_BITS as usize).div_ceil(bits);
++    if windows==0 || windows>=count || workers>=rayon::current_num_threads() {
++        return None;
++    }
++    let bytes = workspace::unsigned_b2_frontend_bytes(groups.values.len(),bits,parts,workers);
++    let budget = crate::preparation::Reservation::analysis(bytes);
++    if std::env::var_os("ZOPRO_TRIAL_B2_FRONT_TRACE").is_some() {
++        eprintln!("B2_FRONT_WINDOWS {} {windows} {workers} {}",bases.len(),budget.is_some());
++    }
++    let _budget=budget?;
++    let points = crate::msm::group_affine(bases,&groups.order,&groups.starts,&groups.counts);
++    Some(msm_unsigned_on(&points,&groups.values,bits,parts,Some((frontend,windows))))
++}
++
+ /// Positive radix digits use an extra bucket bit in exchange for no
+ /// carry propagation and no conditional negation of point coordinates.
+ /// Scalar words are canonical Fr values, hence have at most 254 bits.
+@@ -367,6 +400,16 @@
+ where
+     C::Base: BatchInverse,
+ {
++    msm_unsigned_on(bases, scalars, bits, parts, None)
++}
++
++fn msm_unsigned_on<C: CurveConfig>(
++    bases: &[Affine<C>], scalars: &[[u64; 4]], bits: usize, parts: usize,
++    frontend: Option<(&rayon::ThreadPool, usize)>,
++) -> Projective<C>
++where
++    C::Base: BatchInverse,
++{
+     assert_eq!(bases.len(), scalars.len());
+     assert!((3..=15).contains(&bits));
+     let n = bases.len();
+@@ -379,48 +422,57 @@
+     // The final bucket is unused padding. A power-of-two table preserves
+     // the existing affine tree's bucket-group layout and weights.
+     let size = batch_size(bits + 1).max(32);
+-    let sums: Vec<_> = (0..windows)
+-        .into_par_iter()
+-        .map(|w| {
+-            if let Some(sum) = top_window::<C, false>(bases, scalars, w, bits) {
+-                return sum;
+-            }
+-            if parts == 1 {
+-                return crate::msm::weighted_affine(&affine_buckets(fill_window_impl::<
+-                    C,
+-                    false,
+-                    true,
+-                >(
+-                    bases,
+-                    scalars.iter().map(|s| unsigned_digit(s, w, bits)),
+-                    bits + 1,
+-                    size,
+-                )));
+-            }
+-            let mut buckets: Vec<_> = (0..parts)
+-                .into_par_iter()
+-                .filter_map(|p| {
+-                    let first = p * part;
+-                    let end = ((p + 1) * part).min(n);
+-                    (first < end).then(|| {
+-                        affine_buckets(fill_window_impl::<C, false, true>(
+-                            &bases[first..end],
+-                            scalars[first..end]
+-                                .iter()
+-                                .map(|s| unsigned_digit(s, w, bits)),
+-                            bits + 1,
+-                            size,
+-                        ))
+-                    })
++    let evaluate = |w| {
++        if let Some(sum) = top_window::<C, false>(bases, scalars, w, bits) {
++            return sum;
++        }
++        if parts == 1 {
++            return crate::msm::weighted_affine(&affine_buckets(fill_window_impl::<
++                C,
++                false,
++                true,
++            >(
++                bases,
++                scalars.iter().map(|s| unsigned_digit(s, w, bits)),
++                bits + 1,
++                size,
++            )));
++        }
++        let mut buckets: Vec<_> = (0..parts)
++            .into_par_iter()
++            .filter_map(|p| {
++                let first = p * part;
++                let end = ((p + 1) * part).min(n);
++                (first < end).then(|| {
++                    affine_buckets(fill_window_impl::<C, false, true>(
++                        &bases[first..end],
++                        scalars[first..end]
++                            .iter()
++                            .map(|s| unsigned_digit(s, w, bits)),
++                        bits + 1,
++                        size,
++                    ))
+                 })
+-                .collect();
+-            let mut combined = buckets.swap_remove(0);
+-            for other in buckets {
+-                merge_buckets(&mut combined, &other);
+-            }
+-            crate::msm::weighted_affine(&combined)
+-        })
+-        .collect();
++            })
++            .collect();
++        let mut combined = buckets.swap_remove(0);
++        for other in buckets {
++            merge_buckets(&mut combined, &other);
++        }
++        crate::msm::weighted_affine(&combined)
++    };
++    let sums: Vec<_> = match frontend {
++        None => (0..windows).into_par_iter().map(evaluate).collect(),
++        Some((pool, count)) => {
++            let first = windows - count;
++            let (mut low, high): (Vec<_>, Vec<_>) = rayon::join(
++                || (0..first).into_par_iter().map(evaluate).collect(),
++                || pool.install(|| (first..windows).into_par_iter().map(evaluate).collect()),
++            );
++            low.extend(high);
++            low
++        }
++    };
+     let mut result = Projective::<C>::IDENTITY;
+     for sum in sums.iter().rev() {
+         for _ in 0..bits {
+@@ -1848,3 +1900,41 @@
+ 
+ #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+ mod dense_h;
++
++#[cfg(test)]
++mod unsigned_split_tests {
++    use super::*;
++    use zopro_bn254::{G2Affine,G2Projective};
++    use crate::testing::Seeded;
++    #[test]
++    fn split_unsigned_windows_match_generator() {
++        let parent = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
++        let front = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
++        let mut r=Seeded::new(0x2377d03ee);
++        let mut expected=Fr::ZERO;
++        let mut point=G2Projective::IDENTITY;
++        let mut points=Vec::new();
++        let mut words=Vec::new();
++        for i in 1u64..2011 {
++            point+=G2Affine::GENERATOR;
++            let (mut p,mut weight)=(point.to_affine(),Fr::from(i));
++            if i%13==0 {p=-p;weight=-weight;}
++            if i%17==0 {p=G2Affine::IDENTITY;weight=Fr::ZERO;}
++            let s=if i%7==0 {Fr::ZERO} else {r.fr()};
++            expected+=s*weight;
++            points.push(p);
++            words.push(s.to_canonical());
++        }
++        let want=(G2Affine::GENERATOR*expected).to_affine();
++        parent.install(|| {
++            for (bits,parts) in [(10,1),(11,2),(12,3)] {
++                let ordinary=msm_unsigned_on(&points,&words,bits,parts,None);
++                assert_eq!(ordinary.to_affine(),want);
++                for n in [1,4,12] {
++                    let split=msm_unsigned_on(&points,&words,bits,parts,Some((&front,n)));
++                    assert_eq!(split.to_affine(),want);
++                }
++            }
++        });
++    }
++}
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -189,6 +189,14 @@
+     }
+     Some(p)
+ }
++#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++pub(super) fn unsigned_b2_frontend_bytes(
++    n: usize, bits: usize, parts: usize, workers: usize,
++) -> Option<usize> {
++    let profile=one::<G2Config>(n,bits,parts,false)?;
++    add(mul(profile.leaf,workers)?,4096)
++}
++
+ /// Extra positive growth over the ordinary raw H query at this worker count.
+ pub(super) fn dense_h_layout_extra<C: CurveConfig>(
+     n: usize, ranges: usize, widths: &[usize], signed: bool,
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2139,6 +2139,14 @@
+                             let sum = msm_affine::owned_grouped_phi(&self.b2, groups, pool);
+                             return (G1Projective::IDENTITY, sum);
+                         }
++                        #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                        if omit_b {
++                            if let Some(pool) = self.frontend_pool.as_deref() {
++                                if let Some(sum) = msm_affine::grouped_b2_split(&self.b2, &groups, pool) {
++                                    return (G1Projective::IDENTITY, sum);
++                                }
++                            }
++                        }
+                         rayon::join(
+                             || if omit_b { G1Projective::IDENTITY } else { msm_grouped(&self.b[..], &groups) },
+                             || msm_grouped_b2(&self.b2[..], &groups),
