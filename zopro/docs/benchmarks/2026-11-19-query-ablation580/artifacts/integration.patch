@@ -1,0 +1,48 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -833,6 +833,7 @@
+     #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+     wire_offsets: Option<Box<public_wire_offsets::Offsets>>,
+     generated_g2: generated_proof::G2InputCertificate,
++    ablation: ablation::Probe,
+     #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+     canonical_wires: bool,
+     /// The FFT domain's size.
+@@ -1530,6 +1531,7 @@
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             wire_offsets: None,
+             generated_g2: Default::default(),
++            ablation: Default::default(),
+             #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+             canonical_wires: !cfg!(target_arch="wasm32") && lengths.iter().copied().max().unwrap_or(0)<(1<<16) && std::env::var("ZOPRO_CPU_CANONICAL_WIRES").as_deref()==Ok("1"),
+             domain,
+@@ -2291,10 +2293,11 @@
+             if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
+                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+             }
++            let mask = self.ablation.enter(witness)?;
+             let ((ar,kh),bs2)=rayon::join(
+-                || rayon::join(|| msm(&self.a[..],sa),
+-                    || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+-                || {
++                || rayon::join(|| self.ablation.a.measure(mask & 1 != 0, || msm(&self.a[..],sa)),
++                    || self.ablation.kh.measure(mask & 2 != 0, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13))),
++                || self.ablation.b2.measure(mask & 4 != 0, || {
+                     if (1024..65536).contains(&self.b2.len()) {
+                         msm_affine::g2_query_exclusive(&self.b2,sb)
+                     } else {
+@@ -2303,7 +2306,7 @@
+                         groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),
+                             |g|msm_grouped_b2(&self.b2,g))
+                     }
+-                });
++                }));
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             let (ar,kh,bs2)=offsets.map_or((ar,kh,bs2), |o| (ar+o.a,kh+o.k,bs2+o.b2));
+             let mut out=Vec::with_capacity(384);
+@@ -2515,3 +2518,5 @@
+         { let _ = bytes; Ok(false) }
+     }
+ }
++
++mod ablation;
