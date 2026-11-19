@@ -149,6 +149,14 @@ Ryzen 9950X it reduced 1×2 proof latency with 16 and 32 workers. The
 [benchmark report](docs/benchmarks/2026-11-18-wave-claims-release379/README.md)
 includes the other circuit shapes and memory measurements.
 
+For native bounded witness schedules, `ZOPRO_SOLVE_PACK_TASKS=1` groups
+adjacent independent components into jobs of up to 128 operations. A larger
+component keeps its own job. Outer dependency bands account for both depth
+and operation count. Preparation reuses the existing schedule scratch.
+Packing defaults off and can be used independently of task claiming.
+[Measurements across transfer requests](docs/benchmarks/2026-11-19-packing-varied396/README.md)
+compare the two options on a Ryzen 9950X.
+
 For prepared sparse Poseidon tasks, `ZOPRO_CPU_POSEIDON_EMIT=1` stores the
 wire and constraint-row addresses for an eligible S-box in its existing three
 schedule words. The prover applies the option after it recognizes the field

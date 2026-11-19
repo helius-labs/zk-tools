@@ -90,6 +90,66 @@ fn retained_bytes(bands: &Vec<Vec<Vec<u32>>>) -> Option<usize> {
     }
     Some(bytes)
 }
+// Remap dependency depths to a monotone band index. The parent array
+// is dead until the union-find pass; borrow it as a depth histogram.
+fn balance_depths(depths: &mut [u32], histogram: &mut [u32], bands: usize) {
+    histogram.fill(0);
+    for &depth in depths.iter() {
+        histogram[depth as usize] += 1;
+    }
+    let total = depths.len() as u128;
+    let levels = histogram.len() as u128;
+    let bands = bands as u128;
+    let mut seen = 0u128;
+    for (level, cell) in histogram.iter_mut().enumerate() {
+        let count = u128::from(*cell);
+        let middle = 2 * seen + count;
+        // Average the normalized dependency depth and cumulative work.
+        let band = bands * (2 * total * level as u128 + middle * levels)
+            / (4 * total * levels);
+        *cell = band.min(bands - 1) as u32;
+        seen += count;
+    }
+    for depth in depths {
+        *depth = histogram[*depth as usize];
+    }
+}
+
+// Merge adjacent small independent components before allocating task
+// vectors. Every component already appears in program order in this slice.
+fn pack_ready_components(
+    order: &[u32],
+    parent: &mut [u32],
+    band: impl Fn(usize) -> usize,
+    limit: usize,
+) {
+    let mut begin = 0;
+    let mut used = limit;
+    let mut destination = 0;
+    let mut last_band = usize::MAX;
+    while begin < order.len() {
+        let first = order[begin] as usize;
+        let root = parent[first];
+        let current_band = band(first);
+        let mut end = begin + 1;
+        while end < order.len() && parent[order[end] as usize] == root {
+            end += 1;
+        }
+        let size = end - begin;
+        if current_band != last_band || limit.saturating_sub(used) < size {
+            destination = root;
+            last_band = current_band;
+            used = 0;
+        } else {
+            for &index in &order[begin..end] {
+                parent[index as usize] = destination;
+            }
+        }
+        used += size;
+        begin = end;
+    }
+}
+
 impl Scratch {
     // Reused by outer grouping and every local refinement. All arrays have
     // their maximum capacity before grouping; no per-op writes allocation.
@@ -99,6 +159,7 @@ impl Scratch {
         indices: Option<&[u32]>,
         bands: usize,
         reservation: &mut Reservation,
+        pack_tasks: bool,
     ) -> Option<Vec<Vec<Vec<u32>>>> {
         let n = indices.map_or(plan.ops.len(), <[u32]>::len);
         if n == 0 {
@@ -122,7 +183,17 @@ impl Scratch {
         }
         let deepest = self.depth[..n].iter().copied().max().unwrap_or(0) as usize + 1;
         let bands = bands.max(1).min(deepest);
-        let band = |i: usize| self.depth[i] as usize * bands / deepest;
+        let balance = pack_tasks && indices.is_none();
+        if balance {
+            balance_depths(&mut self.depth[..n], &mut self.parent[..deepest], bands);
+        }
+        let band = |i: usize| {
+            if balance {
+                self.depth[i] as usize
+            } else {
+                self.depth[i] as usize * bands / deepest
+            }
+        };
         for i in 0..n {
             self.parent[i] = i as u32;
         }
@@ -142,6 +213,9 @@ impl Scratch {
             self.order[i] = i as u32;
         }
         self.order[..n].sort_unstable_by_key(|&i| (band(i as usize), self.parent[i as usize], i));
+        if pack_tasks {
+            pack_ready_components(&self.order[..n], &mut self.parent[..n], band, 128);
+        }
         let same_component = |a: u32, b: u32| self.parent[a as usize] == self.parent[b as usize];
         let mut components = 1;
         let mut used_bands = 1;
@@ -238,7 +312,8 @@ pub(super) fn build_with_workspace(
         order: vec![0; n],
         reads: Vec::with_capacity(max_reads),
     };
-    let epochs = scratch.bands(plan, None, epochs, &mut reservation)?;
+    let pack_tasks = std::env::var("ZOPRO_SOLVE_PACK_TASKS").as_deref() == Ok("1");
+    let epochs = scratch.bands(plan, None, epochs, &mut reservation, pack_tasks)?;
     let eligible = if local == 0 {
         0
     } else {
@@ -266,7 +341,7 @@ pub(super) fn build_with_workspace(
         .flatten()
         .filter(|t| local > 0 && t.len() >= minimum)
     {
-        let waves = scratch.bands(plan, Some(task), local, &mut reservation)?;
+        let waves = scratch.bands(plan, Some(task), local, &mut reservation, pack_tasks)?;
         refined.insert(task[0] as usize, waves);
     }
     let peak_charge = reservation.bytes();
@@ -316,5 +391,49 @@ fn proof_workspace(plan: &Plan) -> Option<usize> {
             correction: domain,
         })
         .map(|v| v.total)
+    }
+}
+
+#[cfg(test)]
+mod balance_tests {
+    use super::balance_depths;
+
+    #[test]
+    fn equal_depth_keeps_one_band_and_dependencies_stay_ordered() {
+        let input = [0, 1, 4, 1, 2, 2, 2, 2, 2, 3, 7, 5];
+        for bands in 1..=8 {
+            let mut depths = input;
+            let mut histogram = [u32::MAX; 8];
+            balance_depths(&mut depths, &mut histogram, bands);
+            for (i, &depth) in input.iter().enumerate() {
+                assert!((depths[i] as usize) < bands);
+                for (j, &other) in input.iter().enumerate() {
+                    if depth == other {
+                        assert_eq!(depths[i], depths[j]);
+                    }
+                    if depth < other {
+                        assert!(depths[i] <= depths[j]);
+                    }
+                }
+            }
+        }
+        let mut uniform = [0, 1, 2, 3, 4, 5, 6, 7];
+        balance_depths(&mut uniform, &mut [0; 8], 4);
+        assert_eq!(uniform, [0, 0, 1, 1, 2, 2, 3, 3]);
+    }
+}
+
+#[cfg(test)]
+mod packing_tests {
+    use super::pack_ready_components;
+    #[test]
+    fn packing_respects_bands_component_order_and_large_tasks() {
+        let order = [2, 4, 0, 1, 3, 5, 6, 8, 7, 9, 10, 11];
+        let mut roots = [0, 1, 2, 1, 2, 5, 5, 5, 5, 9, 10, 11];
+        pack_ready_components(&order, &mut roots, |i| usize::from(i >= 9), 3);
+        assert_eq!(
+            order.map(|i| roots[i as usize]),
+            [2, 2, 2, 1, 1, 5, 5, 5, 5, 9, 9, 9]
+        );
     }
 }
