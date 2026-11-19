@@ -1,6 +1,6 @@
 # Prepared groups on four- and eight-input transfers
 
-Each shape uses eight distinct public training requests with adjacent state leaves. Groups of three or more B2 positions agree on a varying wide scalar across all eight requests. The same wires map into A and private K. Four held-out inputs per shape cover private transfer, deposit, withdrawal and a data-bearing output. All requests were generated with independent expected public witnesses. The two production configurations use the original settings on 32 Ryzen workers. Four randomized blocks compare the accepted release, the experimental build with no groups, and that build with sampled groups. Each timing process used three primes and seventeen measured calls.
+Each shape uses eight distinct public training requests with adjacent state leaves. Groups of three or more B2 positions agree on a varying wide scalar across all eight requests. The same wires map into A and private K. Four held-out inputs per shape cover private transfer, deposit, withdrawal and a data-bearing output. All requests were generated with independent expected public witnesses. All three configurations use the same 32 Ryzen workers and the original solver and FFT settings for each shape. Four randomized blocks compare the accepted release, the experimental build with no groups, and that build with sampled groups. Each timing process used three primes and seventeen measured calls.
 
 | Shape | Request | Release / off / grouped, ms | Grouped vs release | Grouped vs off | Peak MiB release / grouped |
 |---|---:|---:|---:|---:|---:|
