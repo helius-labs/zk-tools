@@ -129,6 +129,17 @@ and the product FFT when it is smaller than the main Rayon pool. The same
 restores the main pool. Single-proof latency and concurrent throughput can
 favor different pool sizes.
 
+The Linux x86-64 `cpu-sdk` benchmark accepts a comma-separated list of
+logical CPU IDs in `ZOPRO_BENCH_FRONT_CPUS`, one per frontend worker.
+`ZOPRO_BENCH_WORKER_PLACEMENT=fixed` pins main workers in ascending order
+within the process affinity mask. The benchmark prints the resulting CPU
+IDs in worker order. On a Ryzen 9950X with 32 main workers, 2×2 used eight
+physical cores sharing one L3 and four of their SMT siblings for the
+frontend. This reduced median paired latency by 1.86% across eight
+witnesses compared with using the same eight cores alone. Use
+`lscpu -e=CPU,CORE,CACHE` to identify the corresponding CPUs on the host.
+[Ryzen placement measurements](docs/benchmarks/2026-11-19-varied-smt440/README.md)
+
 Linux x86-64 servers can call `Prover::set_overlap_verification(true)` on a
 loaded prover to compute the public-input pairing during CPU proof generation.
 This setting uses the existing Rayon pool and applies to keys with at most

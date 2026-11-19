@@ -2,6 +2,9 @@
 use std::{fs, path::Path, sync::Arc, time::Instant};
 #[path = "support/perf.rs"]
 mod perf;
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+#[path = "support/placement.rs"]
+mod placement;
 
 #[global_allocator]
 static ALLOCATOR: zopro_prover::zopro_core::alloc::Allocator =
@@ -17,11 +20,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("rounds must be positive".into());
     }
     let mut profile = perf::Control::from_env()?;
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    let frontend = placement::configure()?;
     let file = fs::File::open(&args[1])?;
     // SAFETY: the caller keeps this trusted key image unchanged for the run.
     let image = unsafe { memmap2::Mmap::map(&file)? };
     drop(file);
     let prover = zopro_prover::Prover::load_image(Arc::new(image))?;
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    let prover = {
+        let mut prover = prover;
+        prover.set_frontend_pool(frontend);
+        prover
+    };
     let mut sdk = zopro_zolana::Prover::new(prover)?;
     let request = fs::read_to_string(&args[2])?;
     for _ in 0..3 {
