@@ -1,0 +1,73 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2395,7 +2395,31 @@
+             if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
+                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+             }
++            #[cfg(zopro_resource_schedule)]
++            let kh_frontend = {
++                static MODE: std::sync::OnceLock<Option<bool>> = std::sync::OnceLock::new();
++                let mode = *MODE.get_or_init(|| match std::env::var("ZOPRO_TRIAL_SMALL_KH_FRONT").as_deref() {
++                    Ok("split") => Some(false),
++                    Ok("shared") => Some(true),
++                    _ => None,
++                });
++                mode.and_then(|shared| {
++                    let pool = self.frontend_pool.as_deref()
++                        .filter(|pool| pool.current_num_threads() < rayon::current_num_threads())?;
++                    let scratch = crate::preparation::Reservation::analysis(
++                        msm_affine::workspace::medium_kh_bytes_for(k.len(), z.len(), pool.current_num_threads()),
++                    );
++                    if std::env::var_os("ZOPRO_TRIAL_SMALL_KH_FRONT_TRACE").is_some() {
++                        eprintln!("SMALL_KH_FRONT {} {} {shared} {}", self.b2.len(), pool.current_num_threads(), scratch.is_some());
++                    }
++                    Some((pool, shared, scratch?))
++                })
++            };
+             let a = || {
++                #[cfg(zopro_resource_schedule)]
++                if matches!(&kh_frontend, Some((_, false, _))) && self.raw_g1_a_on_frontend {
++                    return msm_raw(&self.a[..], sa);
++                }
+                 #[cfg(zopro_resource_schedule)]
+                 if self.raw_g1_a_on_frontend {
+                     if let Some(pool) = self.frontend_pool.as_ref().filter(|pool| {
+@@ -2410,8 +2434,16 @@
+                 }
+                 msm(&self.a[..], sa)
+             };
++            let kh = || {
++                let mut compute = || msm_affine::fused_kh::fused(k, sk, z, canonical(h), 13);
++                #[cfg(zopro_resource_schedule)]
++                if let Some((pool, _, _scratch)) = &kh_frontend {
++                    return pool.install(compute);
++                }
++                compute()
++            };
+             let ((ar,kh),bs2)=rayon::join(
+-                || rayon::join(a, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
++                || rayon::join(a, kh),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+                         msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping)
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -277,13 +277,17 @@
+ /// Workspace for streaming both private and H queries into the same buckets.
+ #[cfg(zopro_real_kh)]
+ pub(crate) fn medium_kh_bytes(k: usize, h: usize) -> Option<usize> {
++    medium_kh_bytes_for(k, h, rayon::current_num_threads())
++}
++
++pub(crate) fn medium_kh_bytes_for(k: usize, h: usize, workers: usize) -> Option<usize> {
+     let mut budget = shape::<G1Config>(1 << 12, 255usize.div_ceil(13), 1, batch_size(13).max(32))?;
+     for count in [k, h] {
+         let segment = top::<G1Config>(count, 7)?;
+         budget.held = add(budget.held, segment.held)?;
+         budget.leaf = budget.leaf.max(segment.leaf);
+     }
+-    add(budget.held, mul(budget.leaf, rayon::current_num_threads())?)
++    add(budget.held, mul(budget.leaf, workers)?)
+ }
+ 
+ fn raw<C: CurveConfig>(n: usize, g2_query: bool) -> Option<Profile>
