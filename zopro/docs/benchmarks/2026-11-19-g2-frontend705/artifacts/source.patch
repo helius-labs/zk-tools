@@ -1,0 +1,111 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -809,6 +809,8 @@
+ pub struct Key {
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     frontend_pool: Option<std::sync::Arc<FrontendThreadPool>>,
++    #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_os="linux", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++    frontend_g2_bytes: Option<usize>,
+     basis_only: bool,
+     // Audited native workspace, or conservative prompt release when unknown.
+     proof_workspace: Option<usize>,
+@@ -1514,6 +1516,8 @@
+         let mut key = Self {
+             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+             frontend_pool: None,
++            #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_os="linux", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++            frontend_g2_bytes: None,
+             basis_only,
+             #[cfg(gpu_any)]
+             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
+@@ -1998,7 +2002,7 @@
+                     },
+                     || {
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
++                            return (G1Projective::IDENTITY,self.small_g2(sb));
+                         }
+                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(|| scalar_groups(sb))
+@@ -2039,7 +2043,7 @@
+                 || {
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+-                        return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
++                        return (G1Projective::IDENTITY,self.small_g2(words));
+                     }
+                     if let Some(groups) = group_witness(sb) {
+                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+@@ -2311,7 +2315,7 @@
+                     || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+-                        msm_affine::g2_query_exclusive(&self.b2,sb)
++                        self.small_g2(sb)
+                     } else {
+                         let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(||scalar_groups(sb)).flatten();
+@@ -2343,7 +2347,7 @@
+                     },
+                     || {
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
++                            return (G1Projective::IDENTITY,self.small_g2(sb));
+                         }
+                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(|| scalar_groups(sb))
+@@ -2502,6 +2506,13 @@
+     /// caller allocates its temporary output before dispatch. Passing `None`
+     /// restores execution in the current pool.
+     pub fn set_frontend_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
++        #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_os="linux", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++        {
++            let n = self.b2.len();
++            self.frontend_g2_bytes = pool.as_ref()
++                .filter(|_| std::env::var_os("ZOPRO_TRIAL_G2_FRONTEND").is_some())
++                .and_then(|p| p.install(|| msm_affine::workspace::auxiliary_g2(n, rayon::current_num_threads())));
++        }
+         self.frontend_pool = pool;
+     }
+ }
+@@ -2522,3 +2533,23 @@
+         { let _ = bytes; Ok(false) }
+     }
+ }
++
++#[cfg(not(target_arch = "wasm32"))]
++impl Key {
++    fn small_g2(&self, words: &mut [[u64; 4]]) -> G2Projective {
++        #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_os="linux", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++        if let (Some(pool), Some(credit)) = (&self.frontend_pool, self.frontend_g2_bytes) {
++            if pool.current_num_threads() < rayon::current_num_threads() {
++                if let Some(_scratch) = preparation::Reservation::analysis(Some(credit)) {
++                    return pool.install(|| {
++                        if std::env::var_os("ZOPRO_TRIAL_G2_FRONTEND_PROBE").is_some() {
++                            eprintln!("G2_FRONTEND {} {} {}", words.len(), rayon::current_num_threads(), credit);
++                        }
++                        msm_affine::g2_query_exclusive(&self.b2, words)
++                    });
++                }
++            }
++        }
++        msm_affine::g2_query_exclusive(&self.b2, words)
++    }
++}
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -389,6 +389,14 @@
+         held: original.held.max(build).max(grouped.held),
+         leaf: original.leaf.max(grouped.leaf),
+     })
++}
++
++/// Optional extra workspace when B2 runs on an existing auxiliary pool. The
++/// original proof forecast still covers all work remaining on the main pool.
++pub(crate) fn auxiliary_g2(n: usize, workers: usize) -> Option<usize> {
++    if !(1024..65536).contains(&n) || workers == 0 { return None; }
++    let p = envelope::<G2Config>(n, true, true)?;
++    add(p.held, mul(p.leaf, workers)?)
+ }
+ 
+ #[derive(Clone, Copy, Debug)]
