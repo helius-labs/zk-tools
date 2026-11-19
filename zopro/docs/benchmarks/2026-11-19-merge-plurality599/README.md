@@ -11,3 +11,5 @@ Each SDK process makes fifteen timed, verified proofs after three warmups. Seven
 | 128 | 70.091 / 71.074 / 71.594 | +0.55% (3/7) | +1.63% (0/7) | 1222.9 / 1275.2 | — |
 
 The single plurality dictionary adds 2,606,554 bytes on disk and retains 3,799,486 bytes of decoded pair and row data. The converter reported 363043 ms and 1131.0 MiB whole-process peak RSS. It added zero private slots. All 106 exports passed. [Schedule](protocol.md) · [Samples](artifacts/samples.json.gz) · [Key and conversion records](artifacts/keys.json) · [Verification](artifacts/verification.json)
+
+The offline conversion overlapped a concurrent local compilation, an image hash audit and short route probes. Its elapsed setup time includes that interference. These activities all finished before the first timed comparison.
