@@ -1,0 +1,222 @@
+--- a/crates/zopro-core/src/msm_affine/g2_horner.rs
++++ b/crates/zopro-core/src/msm_affine/g2_horner.rs
+@@ -6,8 +6,8 @@
+     ScalarGroups,
+ };
+ use rayon::prelude::*;
+-#[cfg(test)]
+ use zopro_bn254::Fr;
++mod layout_probe;
+ const MIN_QUERY: usize = 1024;
+ const MAX_QUERY: usize = 1 << 16;
+ const FROB_MU: u128 = 147946756881789318990833708069417712966;
+@@ -232,6 +232,9 @@
+ #[inline]
+ pub(super) fn grouped(bases: &[G2Affine], groups: &ScalarGroups) -> G2Projective {
+     assert_eq!(bases.len(), groups.len);
++    if let Some(result) = layout_probe::grouped(bases, groups) {
++        return result;
++    }
+     if !(MIN_QUERY..MAX_QUERY).contains(&bases.len())
+         || !(MIN_QUERY..MAX_QUERY).contains(&groups.values.len())
+     {
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/g2_horner/layout_probe.rs
+@@ -0,0 +1,173 @@
++use super::*;
++use std::sync::OnceLock;
++
++#[derive(Clone, Copy)]
++struct Layout {
++    mode: u8,
++    bits: usize,
++    ranges: usize,
++}
++impl Layout {
++    fn configured() -> Option<Self> {
++        static VALUE: OnceLock<Option<Layout>> = OnceLock::new();
++        *VALUE.get_or_init(|| {
++            let env = std::env::var("ZOPRO_TRIAL_B2_WINDOWS").ok()?;
++            let (width, ranges) = env.get(1..)?.split_once('x')?;
++            let mode = *env.as_bytes().first()?;
++            let bits = width.parse().ok()?;
++            let ranges = ranges.parse().ok()?;
++            if !matches!(mode, b's' | b'u' | b't')
++                || !(10..=13).contains(&bits)
++                || !(1..=4).contains(&ranges)
++            {
++                return None;
++            }
++            Some(Self { mode, bits, ranges })
++        })
++    }
++}
++
++pub(super) fn grouped(bases: &[G2Affine], groups: &ScalarGroups) -> Option<G2Projective> {
++    if !(65_536..262_144).contains(&bases.len()) || !(1024..65536).contains(&groups.values.len()) {
++        return None;
++    }
++    let layout = Layout::configured()?;
++    let signed = layout.mode != b'u';
++    let bytes = super::super::workspace::grouped_layout_growth(
++        groups.values.len(),
++        layout.bits,
++        layout.ranges,
++        signed,
++        layout.mode == b't',
++    );
++    let reservation = crate::preparation::Reservation::analysis(bytes);
++    if std::env::var_os("ZOPRO_TRIAL_B2_WINDOWS_TRACE").is_some() {
++        eprintln!(
++            "GROUPED_B2_WINDOWS {} {}x{} {} {}",
++            bases.len(),
++            layout.bits,
++            layout.ranges,
++            layout.mode as char,
++            reservation.is_some(),
++        );
++    }
++    let _reservation = reservation?;
++    let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
++    Some(match layout.mode {
++        b'u' => super::super::msm_unsigned_raw(&points, &groups.values, layout.bits, layout.ranges),
++        b's' => {
++            super::super::merge_split_width(&points, &groups.values, layout.ranges, layout.bits)
++        }
++        _ => digit_matrix(&points, &groups.values, layout),
++    })
++}
++
++fn digit_matrix(bases: &[G2Affine], scalars: &[[u64; 4]], layout: Layout) -> G2Projective {
++    let Layout { bits, ranges, .. } = layout;
++    let count = scalars.len();
++    let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(bits);
++    let mut digits = vec![0i16; windows * count];
++    digits
++        .par_chunks_exact_mut(count)
++        .enumerate()
++        .for_each(|(w, row)| {
++            for (out, scalar) in row.iter_mut().zip(scalars) {
++                *out = digit(scalar, w, bits);
++            }
++        });
++    let part = count.div_ceil(ranges);
++    let batch = batch_size(bits).max(32);
++    let sums: Vec<_> = digits
++        .par_chunks_exact(count)
++        .enumerate()
++        .map(|(w, row)| {
++            if let Some(top) =
++                super::super::top_window::<zopro_bn254::G2Config, true>(bases, scalars, w, bits)
++            {
++                return top;
++            }
++            let mut slots: Vec<_> = bases
++                .par_chunks(part)
++                .zip(row.par_chunks(part))
++                .map(|(p, d)| {
++                    affine_buckets(super::super::fill_window(p, d.iter().copied(), bits, batch))
++                })
++                .collect();
++            let mut buckets = slots.swap_remove(0);
++            for slot in slots {
++                merge_buckets(&mut buckets, &slot);
++            }
++            crate::msm::weighted_affine(&buckets)
++        })
++        .collect();
++    let mut sum = G2Projective::IDENTITY;
++    for point in sums.into_iter().rev() {
++        for _ in 0..bits {
++            sum = sum.double();
++        }
++        sum += point;
++    }
++    sum
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn transposed_digits_match_original_windows() {
++        let n = 1237;
++        let mut scalar = Fr::from(9812736123u64);
++        let mut p = G2Projective::IDENTITY;
++        let mut pts = Vec::with_capacity(n);
++        let mut words = Vec::with_capacity(n);
++        let mut expected = Fr::ZERO;
++        for i in 0..n {
++            scalar = scalar.square() + Fr::from(i as u64);
++            let mut s = if i % 2 == 0 { scalar } else { -scalar };
++            p += G2Affine::GENERATOR;
++            let point = if i % 11 == 0 {
++                G2Affine::IDENTITY
++            } else if i % 3 == 0 {
++                -p.to_affine()
++            } else {
++                p.to_affine()
++            };
++            let weight = if i % 11 == 0 {
++                Fr::ZERO
++            } else if i % 3 == 0 {
++                -Fr::from((i + 1) as u64)
++            } else {
++                Fr::from((i + 1) as u64)
++            };
++            if i % 7 == 0 {
++                s = Fr::ZERO;
++            }
++            expected += weight * s;
++            pts.push(point);
++            words.push(s.to_canonical());
++        }
++        for workers in [1, 8] {
++            let pool = rayon::ThreadPoolBuilder::new()
++                .num_threads(workers)
++                .build()
++                .unwrap();
++            pool.install(|| {
++                for (bits, ranges) in [(10, 4), (11, 3), (12, 3), (13, 2)] {
++                    let result = digit_matrix(
++                        &pts,
++                        &words,
++                        Layout {
++                            mode: b't',
++                            bits,
++                            ranges,
++                        },
++                    );
++                    assert_eq!(
++                        result.to_affine(),
++                        (G2Affine::GENERATOR * expected).to_affine()
++                    );
++                }
++            });
++        }
++    }
++}
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -188,6 +188,21 @@
+         p.leaf = p.leaf.max(t.leaf);
+     }
+     Some(p)
++}
++#[cfg(zopro_g2_horner_buckets)]
++pub(super) fn grouped_layout_growth(
++    n: usize, bits: usize, ranges: usize, signed: bool, transpose: bool,
++) -> Option<usize> {
++    let next = one::<G2Config>(n, bits, ranges, signed)?;
++    let before = raw::<G2Config>(n, false)?;
++    let extra_held = next.held.saturating_sub(before.held);
++    let extra_leaf = next.leaf.saturating_sub(before.leaf);
++    let matrix = if transpose {
++        vector::<i16>(mul(n, (Fr::MODULUS_BITS as usize + 1).div_ceil(bits))?, false)?
++    } else {
++        0
++    };
++    add(add(extra_held, mul(extra_leaf, rayon::current_num_threads())?)?, matrix)
+ }
+ /// Extra positive growth over the ordinary raw H query at this worker count.
+ pub(super) fn dense_h_layout_extra<C: CurveConfig>(
