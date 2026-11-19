@@ -18,3 +18,6 @@ All arms use 32 Ryzen workers, the same ordinary verification key and five reque
 | aeglos | +0.173 | -1.589, +0.679, -1.151, +0.823, +0.173 |
 
 The contrast gives equal weight to the two adjacent and two scattered held-out requests and excludes the reference from both. All 105 exports passed independent verification. [Protocol](protocol.md) · [Counts](artifacts/counts.json) · [Samples](artifacts/samples.json.gz) · [Verification](artifacts/verification.json)
+
+
+Within each block, subtracting the scattered-minus-adjacent difference with grouping disabled from the difference with grouping enabled gives +16.340, +16.033, +21.803, +15.966, +16.237 ms. The median is **+16.237 ms**. These paired measurements isolate how changing the grouping option changes the latency gap between these requests. Other work inside that option, including point combination and memory allocation, contributes alongside the number of distinct scalars. Of the five current-build reference processes, 3 met the 28.400 ms M5 CPU target.
