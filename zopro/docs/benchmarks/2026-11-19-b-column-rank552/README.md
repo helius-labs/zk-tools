@@ -10,3 +10,10 @@ The reader expands the original constraint operands including assigned terms and
 | 2x2 | 52,274 | 35,837 | 51,587 | 687 | 1: 687 | +0.849% to +0.889% |
 
 All 17 archived proof exports passed independent verification again. No new proof timing was measured. [Exact counts and input hashes](artifacts/results.json) · [Curve check](artifacts/point_check.rs)
+
+To reproduce the rank and group checks from this report directory, supply the original key image and its SHA-256 from the results artifact.
+
+```sh
+python3 artifacts/scan.py "$IMAGE" "$IMAGE_SHA256" /tmp/b-column-points.bin
+cargo run --release --locked --manifest-path artifacts/Cargo.toml -- /tmp/b-column-points.bin
+```
