@@ -1,0 +1,43 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2246,8 +2246,18 @@
+         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
+         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
+         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
++        #[cfg(all(zopro_real_kh, zopro_resource_schedule))]
++        let medium = if omit_b && queries.product_scale == Fr::ONE
++            && (1024..65536).contains(&k.len()) && (1024..65536).contains(&z.len())
++            && k.len() + z.len() >= 65536
++            && std::env::var("ZOPRO_CPU_MEDIUM_KH").as_deref() == Ok("1")
++        {
++            crate::preparation::Reservation::analysis(msm_affine::workspace::medium_kh_bytes(k.len(), z.len()))
++        } else { None };
++        #[cfg(all(zopro_real_kh, not(zopro_resource_schedule)))]
++        let medium: Option<()> = None;
+         #[cfg(all(zopro_real_kh, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+-        if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len()) {
++        if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len()) || medium.is_some() {
+             if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
+                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+             }
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -261,6 +261,18 @@
+         proposed.held.saturating_sub(original.held),
+         mul(proposed.leaf.saturating_sub(original.leaf), workers)?,
+     )
++}
++
++/// Workspace for streaming both private and H queries into the same buckets.
++#[cfg(zopro_real_kh)]
++pub(crate) fn medium_kh_bytes(k: usize, h: usize) -> Option<usize> {
++    let mut budget = shape::<G1Config>(1 << 12, 255usize.div_ceil(13), 1, batch_size(13).max(32))?;
++    for count in [k, h] {
++        let segment = top::<G1Config>(count, 7)?;
++        budget.held = add(budget.held, segment.held)?;
++        budget.leaf = budget.leaf.max(segment.leaf);
++    }
++    add(budget.held, mul(budget.leaf, rayon::current_num_threads())?)
+ }
+
+ fn raw<C: CurveConfig>(n: usize, g2_query: bool) -> Option<Profile>
