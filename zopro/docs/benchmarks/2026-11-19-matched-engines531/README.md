@@ -40,3 +40,21 @@ The archived C7a.24xlarge run used nine blocks of seven timed calls at each of 3
 | merge-54x1 | 1002.847 / 348.025 / 173.308 | +654.822 | +651.414 / +1.571 / +3.916 / -2.079 |
 
 All 180 new exports verified. All 162 archived proof and public digests matched; one archived proof per shape and width was independently reverified. [Local samples](artifacts/local.json.gz) · [Archived AWS samples](artifacts/archived-aws.json.gz) · [Exact inputs and profiles](artifacts/config.json) · [Verification](artifacts/verification.json)
+
+## Process CPU time during the proof loop
+
+Each number is total process CPU time divided by elapsed loop time, summarized by the median across processes. It gives the average number of logical CPUs running the process, including scheduling and spinning. Each Ryzen width uses the same 16 physical cores. The C7a widths use distinct physical cores. These counters cannot independently identify memory-bandwidth saturation or the fraction of useful arithmetic.
+
+| Shape | Ryzen Zopro 16 | Ryzen Zopro 32 | Ryzen Aeglos 16 | Ryzen Aeglos 32 | Archived C7a Aeglos 32 | Archived C7a Aeglos 96 |
+|---|---:|---:|---:|---:|---:|---:|
+| 1x2 | 11.8 | 20.9 | 15.0 | 29.0 | 27.3 | 63.6 |
+| 2x2 | 11.8 | 20.3 | 15.2 | 29.6 | 28.5 | 69.2 |
+| 4x2 | 13.9 | 26.4 | 15.6 | 29.7 | 29.6 | 77.0 |
+| 8x2 | 14.7 | 27.8 | 15.7 | 31.0 | 30.4 | 83.2 |
+| 12x2 | 14.7 | 27.7 | 15.8 | 31.4 | 30.7 | 84.2 |
+| 16x2 | 14.7 | 28.6 | 15.8 | 31.3 | 30.7 | 85.6 |
+| 24x2 | 14.6 | 28.8 | 15.7 | 31.2 | 30.3 | 84.7 |
+| merge-24x1 | 14.6 | 28.3 | 15.7 | 31.1 | 30.4 | 85.6 |
+| merge-54x1 | 14.2 | 27.5 | 15.7 | 31.3 | 30.7 | 85.9 |
+
+[CPU-ms, elapsed loop time and CPU occupancy](artifacts/cpu-time.json)
