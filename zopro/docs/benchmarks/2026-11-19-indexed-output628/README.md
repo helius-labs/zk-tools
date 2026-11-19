@@ -18,3 +18,9 @@ The enhanced path uses tiled output on 12×2 and adds a caller-allocated smaller
 | 24x2 | 101 | 58.774 / 56.579 / 56.421 / 55.246 | -1.76% (4/4) | 1119.0 / 1039.9 / 918.1 / 855.4 | — |
 
 All 192 exports independently verified. [Protocol](protocol.md) · [Samples and profiles](artifacts/rows.json.gz) · [Verification](artifacts/verification.json)
+
+## CPU profiles of the combined path
+
+On the original 24×2 request, 32.9% of sampled user cycles landed in functions whose names start with `zopro_core::fft::` and 33.9% in functions starting with `zopro_core::msm`. The respective ranges on the three other 24×2 inputs were 34.7–35.6% and 33.5–35.0%. A change confined to the FFT or curve operations therefore still leaves substantial sampled work in the other family.
+
+The 12×2 input affected this distribution more strongly. The original had 32.9% in named FFT functions and 28.4% in named curve functions. On scattered input 139 these shares were 21.3% and 38.8%. Each profile covers fifteen complete warm proofs across the worker pool. The remaining symbols include field arithmetic, solver code and inlined Rayon closures. These percentages describe sampled CPU work. Elapsed single-proof latency is reported separately above. [Period sums and exact prefix rules](artifacts/profile-totals.json)
