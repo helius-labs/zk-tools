@@ -15,3 +15,5 @@ The 24×2 original was the one 32-worker shape with four paired wins for the out
 | 104 | 65.101 / 63.483 / 63.548 / 59.558 / 58.207 | -0.06% (3/5) | +1.23% (2/5) | 1039 / 851 / 1129 / 913 |
 
 The original grouped outer setting reached 58.903 ms, or 8.96× M5 CPU and 2.99× M5 Metal. 0/5 process means reached 52.8 ms. All 225 process exports verified. [Samples](artifacts/processes.json.gz) · [Plans and fixtures](artifacts/inputs.json) · [Verification](artifacts/verification.json)
+
+Across the eight held-out requests, the median of the eight paired latency changes for grouped outer versus the release was -9.45%. Grouped outer beat the release in 44/45 matched blocks across all nine requests. Isolating the scheduler by comparing grouped outer with ordinary grouped execution gave -0.16% across held-out requests, with 4/8 favorable. The outer-only policy reduced the observed grouped peak RSS on every request. The reductions ranged from 207 to 329 MiB. [Matched comparisons](artifacts/by-request.json)
