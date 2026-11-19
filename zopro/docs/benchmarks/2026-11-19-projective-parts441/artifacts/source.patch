@@ -1,0 +1,250 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -220,6 +220,20 @@
+     output_fq(out, p.x.c1);
+     output_fq(out, p.y.c0);
+     output_fq(out, p.y.c1);
++}
++
++/// MSM results before serialization for the public five-part API.
++struct ProofParts {
++    g1: [G1Projective; 4],
++    b2: G2Projective,
++}
++impl ProofParts {
++    fn encode(&self) -> Vec<u8> {
++        let mut out = Vec::with_capacity(384);
++        for &point in &self.g1 { output_g1(&mut out, point); }
++        output_g2(&mut out, self.b2);
++        out
++    }
+ }
+
+ // The version of the solver images Key::solver_image writes and
+@@ -1085,9 +1099,9 @@
+     }
+     /// `solve_parts` for hosts outside JavaScript, with a plain error.
+     pub fn solve(&self, witness: &[u8]) -> Result<Vec<u8>, String> {
+-        self.solve_inner(witness, false)
+-    }
+-    fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<Vec<u8>, String> {
++        self.solve_inner(witness, false).map(|p| p.encode())
++    }
++    fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<ProofParts, String> {
+         #[cfg(all(zopro_small_core_entry, zopro_real_kh, target_arch="x86_64",
+             target_os="linux", target_feature="avx512ifma", target_feature="avx512vl",
+             target_feature="avx512dq", feature="ifma8", not(no_ifma)))]
+@@ -1198,6 +1212,7 @@
+         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
+         let (mut sa, mut sb, mut sk) = (frs(sa), frs(sb), frs(sk));
+         self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false)
++            .map(|p| p.encode())
+             .map_err(|e| JsError::new(&e))
+     }
+ }
+@@ -1565,7 +1580,7 @@
+         c: Vec<Fr>,
+         public: Option<&[Fr]>,
+         omit_b: bool,
+-    ) -> Result<Vec<u8>, String> {
++    ) -> Result<ProofParts, String> {
+         #[cfg(gpu)]
+         if let Some(gpu) = &self.gpu {
+             let (sa, sb, sk) = (&*sa, &*sb, &*sk);
+@@ -1698,12 +1713,7 @@
+                     );
+                 }
+             }
+-            let mut out = Vec::with_capacity(384);
+-            for p in [ar, bs1, kr, hz] {
+-                output_g1(&mut out, p)
+-            }
+-            output_g2(&mut out, bs2);
+-            return Ok(out);
++            return Ok(ProofParts { g1: [ar, bs1, kr, hz], b2: bs2 });
+         }
+         #[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
+         if let Some(gpu) = &self.gpu {
+@@ -1809,12 +1819,7 @@
+                 (None, Some(cpu)) => cpu,
+                 (None, None) => unreachable!("a G2 MSM"),
+             };
+-            let mut out = Vec::with_capacity(384);
+-            for p in [ar, bs1, kr, hz] {
+-                output_g1(&mut out, p)
+-            }
+-            output_g2(&mut out, bs2);
+-            return Ok(out);
++            return Ok(ProofParts { g1: [ar, bs1, kr, hz], b2: bs2 });
+         }
+
+         #[cfg(all(not(target_arch="wasm32"),target_endian="little"))]
+@@ -1836,12 +1841,7 @@
+                     || folded.public_term(public),
+                 );
+                 trace("msms", started);
+-                let mut out = Vec::with_capacity(384);
+-                for point in [ar, bs1, kr + correction, queries.finish_product(hz)] {
+-                    output_g1(&mut out, point);
+-                }
+-                output_g2(&mut out, bs2);
+-                return Ok(out);
++                return Ok(ProofParts { g1: [ar, bs1, kr + correction, queries.finish_product(hz)], b2: bs2 });
+             }
+             let started = crate::time::Instant::now();
+             let mut product = queries.product_values(&self.plan,a,b);
+@@ -1851,12 +1851,7 @@
+                 || msm_g1(&queries.constraints[..c.len()], &c),
+             );
+             trace("msms", started);
+-            let mut out = Vec::with_capacity(384);
+-            for point in [ar, bs1, kr, positive - negative] {
+-                output_g1(&mut out, point);
+-            }
+-            output_g2(&mut out, bs2);
+-            return Ok(out);
++            return Ok(ProofParts { g1: [ar, bs1, kr, positive - negative], b2: bs2 });
+         }
+
+         let started = crate::time::Instant::now();
+@@ -1888,12 +1883,7 @@
+             let _ = msm_g2(&self.b2, &sb);
+             trace("msm-b2", started);
+         }
+-        let mut out = Vec::with_capacity(384);
+-        for p in [ar, bs1, kr, hz] {
+-            output_g1(&mut out, p)
+-        }
+-        output_g2(&mut out, bs2);
+-        Ok(out)
++        Ok(ProofParts { g1: [ar, bs1, kr, hz], b2: bs2 })
+     }
+     fn quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
+         self.plan.quotient(a, b, c)
+@@ -2208,7 +2198,7 @@
+
+ #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ impl Key {
+-    fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>)->Result<Vec<u8>,String>{
++    fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>)->Result<ProofParts,String>{
+         #[cfg(not(zopro_bounded_gather))]
+         use rayon::prelude::*;
+         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
+@@ -2264,10 +2254,7 @@
+                             |g|msm_grouped_b2(&self.b2,g))
+                     }
+                 });
+-            let mut out=Vec::with_capacity(384);
+-            for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY] {output_g1(&mut out,point);}
+-            output_g2(&mut out,bs2);
+-            return Ok(out);
++            return Ok(ProofParts { g1: [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY], b2: bs2 });
+         }
+         let (((ar,kr),hz),(bs1,bs2))={
+         let montgomery_h=h.len()>=(1<<18)&&crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
+@@ -2310,7 +2297,7 @@
+                 )
+         };
+
+-        let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(out)
++        Ok(ProofParts { g1: [ar,bs1,kr+correction,queries.finish_product(hz)], b2: bs2 })
+     }
+ }
+
+@@ -2329,13 +2316,19 @@
+             return Err("zero delta in proving key".into());
+         }
+         let parts = self.solve_inner(witness, true)?;
+-        if let Some(proof) = fixed.assemble_rerandomized(&parts) {
++        let proof = if std::env::var("ZOPRO_BENCH_PROJECTIVE_PARTS").as_deref() == Ok("1") {
++            if std::env::var_os("ZOPRO_BENCH_PARTS_TRACE").is_some() { eprintln!("PROJECTIVE_PARTS"); }
++            fixed.assemble_projective(&parts)
++        } else {
++            fixed.assemble_rerandomized(&parts.encode())
++        };
++        if let Some(proof) = proof {
+             return Ok(proof);
+         }
+         // A0 = identity: restore the complete ordinary prover and condition
+         // its fresh output on A != identity, matching the fast distribution.
+         let parts = self.solve_inner(witness, false)?;
+-        Ok(fixed.assemble_nonzero(&parts))
++        Ok(fixed.assemble_nonzero(&parts.encode()))
+     }
+ }
+
+@@ -2382,7 +2375,7 @@
+         key.lagrange=Some(queries);key.prepare_plan(&plan);key.solver=Some(plan);
+         Ok(key)
+     }
+-    fn basis_parts(&self,sa:&mut[Fr],sb:&mut[Fr],sk:&mut[Fr],a:Vec<Fr>,b:Vec<Fr>,c:Vec<Fr>,omit_b:bool)->Result<Vec<u8>,String>{
++    fn basis_parts(&self,sa:&mut[Fr],sb:&mut[Fr],sk:&mut[Fr],a:Vec<Fr>,b:Vec<Fr>,c:Vec<Fr>,omit_b:bool)->Result<ProofParts,String>{
+         use rayon::prelude::*;
+         let plan=self.solver.as_ref().or(self.basis_fallback.as_deref()).ok_or("CPU basis requires its C metadata")?;
+         let q=self.lagrange.as_ref().ok_or("missing CPU basis queries")?;
+@@ -2401,7 +2394,7 @@
+             product.par_iter_mut().zip(c_coset.par_iter()).for_each(|(p,c)|*p-=*c);product
+         };
+         let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b);
+-        let mut out=Vec::with_capacity(384);for p in [ar,bs1,kr+correction,q.finish_product(hz)]{output_g1(&mut out,p);}output_g2(&mut out,bs2);Ok(out)
++        Ok(ProofParts { g1: [ar,bs1,kr+correction,q.finish_product(hz)], b2: bs2 })
+     }
+ }
+
+--- a/crates/zopro-core/src/groth16.rs
++++ b/crates/zopro-core/src/groth16.rs
+@@ -359,13 +359,35 @@
+         // The B1 bytes are intentionally not read.
+         let c0 = decode_g1(&parts[128..192])[0].to_projective() + decode_g1(&parts[192..256])[0];
+         let b0 = decode_g2(&parts[256..384])[0].to_projective() + self.0.fixed.beta2;
++        Some(self.encode_rerandomized(a0, b0, c0, u, inverse, v))
++    }
++
++    fn projective_with(&self, parts: &crate::ProofParts, a0: G1Projective, u: Fr, v: Fr) -> Option<Vec<u8>> {
++        let inverse = u.inverse()?;
++        if a0.is_identity() { return None; }
++        let c0 = parts.g1[2] + parts.g1[3];
++        let b0 = parts.b2 + self.0.fixed.beta2;
++        Some(self.encode_rerandomized(a0, b0, c0, u, inverse, v))
++    }
++
++    pub(crate) fn assemble_projective(&self, parts: &crate::ProofParts) -> Option<Vec<u8>> {
++        let a0 = parts.g1[0] + self.0.fixed.alpha;
++        if a0.is_identity() { return None; }
++        let u = loop {
++            let value = uniform_fr();
++            if !value.is_zero() { break value; }
++        };
++        self.projective_with(parts, a0, u, uniform_fr())
++    }
++
++    fn encode_rerandomized(&self, a0: G1Projective, b0: G2Projective, c0: G1Projective, u: Fr, inverse: Fr, v: Fr) -> Vec<u8> {
+         let (a, c, b) = self.windowed_outputs(a0, b0, c0, u, inverse, v);
+         let (a, c, b) = (a.to_affine(), c.to_affine(), b.to_affine());
+         let mut out = Vec::with_capacity(256);
+         for x in [a.x, a.y, c.x, c.y, b.x.c1, b.x.c0, b.y.c1, b.y.c0] {
+             be(x, &mut out);
+         }
+-        Some(out)
++        out
+     }
+     pub(crate) fn assemble_nonzero(&self, parts: &[u8]) -> Vec<u8> {
+         loop {
+@@ -427,6 +449,17 @@
+                 for u in values {
+                     for v in values {
+                         let got = p.rerandomized_with(&parts, u, v);
++                        let g1 = decode_g1(&parts[..256]);
++                        let b2 = decode_g2(&parts[256..])[0].to_projective();
++                        // Add then subtract the generator to exercise equivalent
++                        // non-normalized inputs as well as affine and identity cases.
++                        let typed = crate::ProofParts {
++                            g1: std::array::from_fn(|i| (g1[i].to_projective() + g) - g.to_projective()),
++                            b2: (b2 + g2) - g2.to_projective(),
++                        };
++                        assert_eq!(typed.encode(),parts);
++                        assert_eq!(p.projective_with(&typed,typed.g1[0]+fixed.alpha,u,v),got);
++
+                         let a0 = a + Fr::from(13u64);
+                         if a0.is_zero() || u.is_zero() {
+                             assert!(got.is_none());
