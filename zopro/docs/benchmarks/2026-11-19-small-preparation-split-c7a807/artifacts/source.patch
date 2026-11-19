@@ -1,0 +1,74 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2343,10 +2343,13 @@
+         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         let offsets=self.wire_offsets.as_ref().filter(|_|omit_b);
+-        let prepare = || -> Result<_, String> {
++        let solve = || -> Result<_, String> {
+             let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
+             if let Some(scope) = reclaim { scope.release_unused(&mut w); }
+             drop(c);
++            Ok((w,a,b))
++        };
++        let gather = |mut w: Vec<Fr>| {
+             // The correction consumes Montgomery public values before the one
+             // in-place conversion. All later accesses to w use canonical words.
+             let correction=folded.public_term(&w[..plan.n_public]);
+@@ -2361,19 +2364,45 @@
+                 #[cfg(zopro_bounded_gather)]
+                 {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
+             };
+-            let product = queries.product_values(&self.plan, a, b, None);
+-            Ok((w, sa_vec, sb_vec, product, correction))
++            (w, sa_vec, sb_vec, correction)
+         };
+-        let (w, sa_vec, mut sb_vec, mut product, correction) =
+-            if let Some(pool) = self
+-                .frontend_pool
+-                .as_ref()
+-                .filter(|p| p.current_num_threads() < rayon::current_num_threads())
+-            {
+-                pool.install(prepare)?
+-            } else {
+-                prepare()?
++        let frontend = self.frontend_pool.as_ref().filter(|p| p.current_num_threads() < rayon::current_num_threads());
++        let prepare = || -> Result<_, String> {
++            let (w,a,b) = solve()?;
++            let (w,sa,sb,correction) = gather(w);
++            let product = queries.product_values(&self.plan,a,b,None);
++            Ok((w,sa,sb,product,correction))
++        };
++        static SPLIT: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
++        let requested = SPLIT.get_or_init(|| {
++            std::env::var("ZOPRO_TRIAL_SMALL_PREPARATION").ok()
++                .filter(|x| matches!(x.as_str(),"main"|"parallel"|"split"))
++        }).as_deref();
++        let split = frontend.zip(requested).filter(|_| omit_b && (1_024..65_536).contains(&self.b2.len()))
++            .and_then(|(pool,mode)| {
++                let fields = self.plan.size().checked_mul(128)?
++                    .checked_add((plan.a_indices.len().checked_add(plan.b_indices.len())?).checked_mul(32)?)?;
++                let reserve = crate::preparation::Reservation::analysis(Some(fields))?;
++                Some((pool,mode,reserve))
++            });
++        let (w, sa_vec, mut sb_vec, mut product, correction) = if let Some((pool,mode,_reserve)) = split {
++            if std::env::var_os("ZOPRO_TRIAL_SMALL_PREPARATION_TRACE").is_some() {
++                eprintln!("SMALL_PREPARATION {} {mode} {} {}", self.b2.len(),pool.current_num_threads(),rayon::current_num_threads());
++            }
++            let (w,a,b) = pool.install(solve)?;
++            let make_product = || queries.product_values(&self.plan,a,b,None);
++            let run_gather = || gather(w);
++            let ((w,sa,sb,correction),product) = match mode {
++                "main" => (run_gather(),make_product()),
++                "parallel" => rayon::join(run_gather,make_product),
++                _ => rayon::join(|| pool.install(run_gather),make_product),
+             };
++            (w,sa,sb,product,correction)
++        } else if let Some(pool)=frontend {
++            pool.install(prepare)?
++        } else {
++            prepare()?
++        };
+         // SAFETY: both branches converted every Fr in place to canonical limbs.
+         // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
+         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
