@@ -1,0 +1,41 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -41,11 +41,26 @@
+ 
+ mod diversity;
+ pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
++    classify_small_query(scalars, false)
++}
++
++pub(super) fn b2_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
++    classify_small_query(scalars, true)
++}
++
++fn classify_small_query(scalars: &[[u64;4]], b2: bool) -> Option<ScalarGroups> {
+     #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+     if let Some(shards) = std::env::var("ZOPRO_TRIAL_SMALL_B2_SHARDS").ok().and_then(|s| match s.as_str() {
+         "8" => Some(8), "32" => Some(32), _ => None
+     }) {
+-        if let Ok(result) = shard_b2::canonical(scalars, shards) { return result; }
++        if b2 || std::env::var("ZOPRO_TRIAL_CLASS_SCOPE").as_deref() == Ok("shared") {
++            if let Ok(result) = shard_b2::canonical(scalars, shards) {
++                if result.is_some() && std::env::var_os("ZOPRO_TRIAL_B2_SHARDS_PROBE").is_some() {
++                    eprintln!("CLASS_SCOPE {} {} {}", if b2 { "B2" } else { "G1" }, scalars.len(), shards);
++                }
++                return result;
++            }
++        }
+     }
+     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+     group_with_gate::<true>(scalars, zero_aware)
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1716,7 +1716,7 @@
+ ) -> zopro_bn254::G2Projective {
+     assert_eq!(bases.len(), words.len());
+     let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+-        .then(|| grouping::groups_with_diversity_check(words))
++        .then(|| grouping::b2_with_diversity_check(words))
+         .flatten();
+     #[cfg(all(
+         zopro_g2_horner_buckets,
