@@ -1,0 +1,228 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2343,6 +2343,33 @@
+         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         let offsets=self.wire_offsets.as_ref().filter(|_|omit_b);
++        #[cfg(all(zopro_resource_schedule,zopro_real_kh))]
++        let early = {
++            static WINDOWS: std::sync::OnceLock<Option<usize>> = std::sync::OnceLock::new();
++            let windows = *WINDOWS.get_or_init(|| match std::env::var("ZOPRO_TRIAL_EARLY_K").as_deref() {
++                Ok("2") => Some(2),
++                Ok("4") => Some(4),
++                Ok("8") => Some(8),
++                _ => None,
++            });
++            windows.filter(|_| omit_b && queries.euler && queries.product_scale == Fr::ONE
++                && (1024..65536).contains(&folded.private.len()) && self.plan.size() <= 65536
++                && msm_affine::fused_kh::supports_early_k())
++                .and_then(|windows| {
++                    let pool = self.frontend_pool.as_deref()
++                        .filter(|p| p.current_num_threads() < rayon::current_num_threads())?;
++                    let scratch = crate::preparation::Reservation::analysis(
++                        msm_affine::workspace::medium_kh_bytes(folded.private.len(), self.plan.size()),
++                    );
++                    if std::env::var_os("ZOPRO_TRIAL_EARLY_K_TRACE").is_some() {
++                        eprintln!("EARLY_K {} {windows} {} {}", self.b2.len(),
++                                  pool.current_num_threads(), scratch.is_some());
++                    }
++                    Some((windows, pool, scratch?))
++                })
++        };
++        #[cfg(not(all(zopro_resource_schedule,zopro_real_kh)))]
++        let early: Option<(usize, &rayon::ThreadPool, ())> = None;
+         let prepare = || -> Result<_, String> {
+             let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
+             if let Some(scope) = reclaim { scope.release_unused(&mut w); }
+@@ -2361,10 +2388,14 @@
+                 #[cfg(zopro_bounded_gather)]
+                 {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
+             };
+-            let product = queries.product_values(&self.plan, a, b, None);
+-            Ok((w, sa_vec, sb_vec, product, correction))
++            let (product, fields) = if early.is_some() {
++                (None, Some((a, b)))
++            } else {
++                (Some(queries.product_values(&self.plan, a, b, None)), None)
++            };
++            Ok((w, sa_vec, sb_vec, product, fields, correction))
+         };
+-        let (w, sa_vec, mut sb_vec, mut product, correction) =
++        let (w, sa_vec, mut sb_vec, product, fields, correction) =
+             if let Some(pool) = self
+                 .frontend_pool
+                 .as_ref()
+@@ -2378,10 +2409,28 @@
+         // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
+         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
+         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
+-        let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
++        let k = &folded.private[..];
++        #[cfg(zopro_real_kh)]
++        let (mut product, early_k) = if let Some((windows, pool, _scratch)) = &early {
++            let (a, b) = fields.expect("the early route retains the quotient operands");
++            let (product, saved) = rayon::join(
++                || pool.install(|| queries.product_values(&self.plan, a, b, None)),
++                || msm_affine::fused_kh::begin_k(k, sk, *windows),
++            );
++            (product, Some(saved))
++        } else {
++            (product.expect("ordinary preparation computes the quotient"), None)
++        };
++        #[cfg(not(zopro_real_kh))]
++        let mut product = {
++            let _ = fields;
++            product.expect("ordinary preparation computes the quotient")
++        };
++        let count = product.len();
++        let (h, z) = (&mut product[..], &queries.product[..count]);
+         #[cfg(all(zopro_real_kh, zopro_resource_schedule))]
+         // A single weighted sum is valid when B1 is omitted and H has unit scale.
+-        let medium = if omit_b && queries.product_scale == Fr::ONE
++        let medium = if early_k.is_none() && omit_b && queries.product_scale == Fr::ONE
+             && (1024..65536).contains(&k.len()) && (1024..65536).contains(&z.len())
+             && k.len() + z.len() >= 65536
+             && std::env::var("ZOPRO_CPU_MEDIUM_KH").as_deref() == Ok("1")
+@@ -2391,7 +2440,7 @@
+         #[cfg(all(zopro_real_kh, not(zopro_resource_schedule)))]
+         let medium: Option<()> = None;
+         #[cfg(all(zopro_real_kh, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+-        if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len()) || medium.is_some() {
++        if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len()) || medium.is_some() || early_k.is_some() {
+             if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
+                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+             }
+@@ -2411,7 +2460,14 @@
+                 msm(&self.a[..], sa)
+             };
+             let ((ar,kh),bs2)=rayon::join(
+-                || rayon::join(a, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
++                || rayon::join(a, || {
++                    let sh = canonical(h);
++                    if let Some(early) = early_k {
++                        msm_affine::fused_kh::finish_kh(early, k, sk, z, sh)
++                    } else {
++                        msm_affine::fused_kh::fused(k, sk, z, sh, 13)
++                    }
++                }),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+                         msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping)
+--- a/crates/zopro-core/src/msm_affine/fused_kh.rs
++++ b/crates/zopro-core/src/msm_affine/fused_kh.rs
+@@ -109,3 +109,6 @@
+         }
+     }
+ }
++
++pub(crate) use super::borrowed_pending::balanced::{begin_k, finish_kh};
++pub(crate) fn supports_early_k() -> bool { super::borrowed_pending::enabled() }
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending.rs
+@@ -4,7 +4,7 @@
+ use rayon::prelude::*;
+ use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fr, Projective};
+ 
+-mod balanced;
++pub(super) mod balanced;
+ 
+ pub(super) fn enabled() -> bool {
+     cfg!(all(
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
+@@ -78,6 +78,10 @@
+             crate::msm::weighted_affine(&state.finish())
+         })
+         .collect();
++    combine(&cover, sums)
++}
++
++fn combine<C: CurveConfig<Base = Fq>>(cover: &[Span], sums: Vec<Projective<C>>) -> Projective<C> {
+     let mut result = Projective::<C>::IDENTITY;
+     for (span, sum) in cover.iter().zip(&sums).rev() {
+         for _ in 0..span.width {
+@@ -86,6 +90,84 @@
+         result += sum;
+     }
+     result
++}
++
++pub(crate) struct EarlyK<'a, C: CurveConfig<Base = Fq>>(Vec<Window<'a, C>>);
++
++pub(crate) fn begin_k<'a, C: CurveConfig<Base = Fq>>(
++    bases: &'a [Affine<C>],
++    scalars: &[[u64; 4]],
++    count: usize,
++) -> EarlyK<'a, C> {
++    assert_eq!(bases.len(), scalars.len());
++    let cover = spans();
++    let states = cover[..count]
++        .par_iter()
++        .map(|&span| {
++            let size = batch_size(span.width).max(32);
++            let mut state = Window::new(1usize << (span.width - 1), size);
++            feed(&mut state, bases, scalars, span, size);
++            state
++        })
++        .collect();
++    EarlyK(states)
++}
++
++pub(crate) fn finish_kh<'a, C: CurveConfig<Base = Fq>>(
++    early: EarlyK<'a, C>,
++    k: &'a [Affine<C>], sk: &[[u64; 4]],
++    h: &'a [Affine<C>], sh: &[[u64; 4]],
++) -> Projective<C> {
++    assert_eq!(k.len(), sk.len());
++    assert_eq!(h.len(), sh.len());
++    let cover = spans();
++    let mut states: Vec<_> = early.0.into_iter().map(Some).collect();
++    states.resize_with(cover.len(), || None);
++    let sums: Vec<_> = states.into_par_iter().zip(cover.par_iter())
++        .map(|(state, &span)| {
++            let size = batch_size(span.width).max(32);
++            let mut state = state.unwrap_or_else(|| {
++                let mut state = Window::new(1usize << (span.width - 1), size);
++                feed(&mut state, k, sk, span, size);
++                state
++            });
++            feed(&mut state, h, sh, span, size);
++            crate::msm::weighted_affine(&state.finish())
++        }).collect();
++    combine(&cover, sums)
++}
++
++#[cfg(test)]
++mod early_seed_tests {
++    use super::*;
++    use crate::testing::Seeded;
++    use zopro_bn254::{G1Affine, G1Config};
++
++    #[test]
++    fn seeded_windows_match_generator_oracle() {
++        let g = G1Affine::GENERATOR;
++        let mut rng = Seeded::new(0x831a);
++        let mut expected = Fr::ZERO;
++        let mut fixture = |n: usize| -> (Vec<G1Affine>, Vec<[u64; 4]>) {
++            (0..n).map(|i| {
++                let (p, factor) = match i % 5 {
++                    0 => (G1Affine::IDENTITY, Fr::ZERO),
++                    1 => (-g, -Fr::ONE),
++                    _ => (g, Fr::ONE),
++                };
++                let value = if i % 13 == 0 { Fr::ZERO } else { rng.fr() };
++                expected += factor * value;
++                (p, value.to_canonical())
++            }).unzip()
++        };
++        let (k, sk) = fixture(1439);
++        let (h, sh) = fixture(2273);
++        let expected = (g * expected).to_affine();
++        for count in [2, 4, 8] {
++            let early = begin_k::<G1Config>(&k, &sk, count);
++            assert_eq!(finish_kh(early, &k, &sk, &h, &sh).to_affine(), expected);
++        }
++    }
+ }
+ 
+ #[cfg(test)]
