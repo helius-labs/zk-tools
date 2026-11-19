@@ -1,0 +1,79 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2300,6 +2300,17 @@
+             }
+             let g1 = || {
+                     let a = || msm(&self.a[..], sa);
++                    let seed = match std::env::var("ZOPRO_TRIAL_KH_SEED").as_deref() {
++                        Ok("1") => 1,
++                        Ok("2") => 2,
++                        Ok("4") => 4,
++                        _ => 0,
++                    };
++                    if seed != 0 && rayon::current_num_threads() >= 32
++                        && msm_affine::borrowed_pending::ordinary_enabled()
++                    {
++                        return msm_affine::borrowed_pending::seeded(k, sk, z, canonical(h), seed, a);
++                    }
+                     let kh = || msm_affine::fused_kh::fused(k, sk, z, canonical(h), 13);
+                     if std::env::var_os("ZOPRO_TRIAL_KH_FIRST").is_some() {
+                         let (kh, a) = rayon::join(kh, a);
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending.rs
+@@ -5,6 +5,8 @@
+ use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fr, Projective};
+ 
+ mod balanced;
++
++pub(crate) use balanced::seeded;
+ 
+ pub(super) fn enabled() -> bool {
+     cfg!(all(
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending/balanced.rs
+@@ -86,6 +86,45 @@
+         result += sum;
+     }
+     result
++}
++
++// Finish a few real K/H windows before publishing A to the worker pool.
++pub(crate) fn seeded<C, A, T>(
++    k: &[Affine<C>],
++    sk: &[[u64; 4]],
++    h: &[Affine<C>],
++    sh: &[[u64; 4]],
++    seed: usize,
++    compute_a: A,
++) -> (T, Projective<C>)
++where
++    C: CurveConfig<Base = Fq>,
++    A: FnOnce() -> T + Send,
++    T: Send,
++{
++    let cover = spans();
++    let mut sums = [Projective::<C>::IDENTITY; COUNT];
++    let (initial, pending) = sums.split_at_mut(seed);
++    let (initial_spans, pending_spans) = cover.split_at(seed);
++    let compute = |(sum, &span): (&mut Projective<C>, &Span)| {
++        let size = batch_size(span.width).max(32);
++        let mut state = Window::new(1usize << (span.width - 1), size);
++        feed(&mut state, k, sk, span, size);
++        feed(&mut state, h, sh, span, size);
++        *sum = crate::msm::weighted_affine(&state.finish());
++    };
++    initial.par_iter_mut().zip(initial_spans).for_each(compute);
++    let (a, ()) = rayon::join(compute_a, || {
++        pending.par_iter_mut().zip(pending_spans).for_each(compute);
++    });
++    let mut kh = Projective::<C>::IDENTITY;
++    for (span, sum) in cover.iter().zip(&sums).rev() {
++        for _ in 0..span.width {
++            kh = kh.double();
++        }
++        kh += sum;
++    }
++    (a, kh)
+ }
+ 
+ #[cfg(test)]
