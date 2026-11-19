@@ -1,0 +1,85 @@
+--- a/tree418_requests_test.go
++++ b/tree418_requests_test.go
+@@ -2,6 +2,7 @@
+ 
+ import (
+ 	"bytes"
++	"crypto/sha256"
+ 	"encoding/json"
+ 	"fmt"
+ 	"github.com/consensys/gnark-crypto/ecc"
+@@ -19,7 +20,7 @@
+ )
+ 
+ func TestTree418(t *testing.T) {
+-	cryptotest.SetGlobalRandom(t, 465)
++	cryptotest.SetGlobalRandom(t, 485)
+ 	out := os.Getenv("ZOPRO_TREE418_OUTPUT")
+ 	if out == "" {
+ 		t.Fatal("output required")
+@@ -28,8 +29,8 @@
+ 		if shape.NInputs != 12 || shape.NOutputs != 2 {
+ 			continue
+ 		}
+-		for id := 49; id <= 64; id++ {
+-			asset := new(big.Int).Add(new(big.Int).Lsh(big.NewInt(1), uint(128+id)), big.NewInt(int64(id*109)))
++		for id := 137; id <= 144; id++ {
++			asset := new(big.Int).Add(new(big.Int).Lsh(big.NewInt(1), uint(128+id%81)), big.NewInt(int64(id*109)))
+ 			total := int64(1)<<uint(20+id%20) | int64(83*id)
+ 			movement := int64(0)
+ 			assets, amounts := noPublicSlots()
+@@ -120,34 +121,44 @@
+ }
+ func refreshTree418(t testing.TB, assignment *testAssignment, id int) {
+ 	t.Helper()
++	value := func(i, level int, kind string) *big.Int {
++		digest := sha256.Sum256([]byte(fmt.Sprintf("transfer485/%d/%d/%d/%s", id, i, level, kind)))
++		return new(big.Int).Mod(new(big.Int).SetBytes(digest[:]), ecc.BN254.ScalarField())
++	}
++	positions := make([]uint64, len(assignment.Inputs))
+ 	inputHashes := make([]*big.Int, len(assignment.Inputs))
+ 	stateEntries := make(map[uint64]*big.Int, len(assignment.Inputs))
+ 	for i := range assignment.Inputs {
+ 		inputHash := testUtxoHash(t, circuitFieldsToUtxo(assignment.Inputs[i].Utxo), assignment.inputTreeID(i))
+ 		inputHashes[i] = inputHash
+-		stateEntries[(uint64(17 + i + 1024*id))] = inputHash
++		positions[i] = value(i, 0, "position").Uint64() & 0xffff_ffff
++		if _, used := stateEntries[positions[i]]; used {
++			t.Fatal("input collision")
++		}
++		stateEntries[positions[i]] = inputHash
+ 	}
+-	// A different sibling subtree at each of the low 24 levels changes the path.
+-	for level := 0; level < 24; level++ {
+-		key := uint64(17+1024*id) ^ (uint64(1) << level)
+-		if _, exists := stateEntries[key]; exists {
+-			continue
++	for i, index := range positions {
++		for level := 0; level < protocol.StateTreeHeight; level++ {
++			key := (index ^ (uint64(1) << level)) &^ ((uint64(1) << level) - 1)
++			key |= value(i, level, "low").Uint64() & ((uint64(1) << level) - 1)
++			if _, used := stateEntries[key]; !used {
++				stateEntries[key] = value(i, level, "state")
++			}
+ 		}
+-		stateEntries[key] = big.NewInt(int64(100000*id + level + 1))
+ 	}
+ 	stateRoot, stateProofs := spptest.MustBuildSparseStateTree(t, stateEntries)
+ 	for k := range assignment.TreeSlots {
+ 		assignment.TreeSlots[k].UtxoRoot = stateRoot
+ 	}
+ 	nullifierTree := spptest.MustNewNullifierTree(t)
+-	for j := 0; j < 8+id; j++ {
+-		v := new(big.Int).Lsh(big.NewInt(int64(id*121+j+1)), 187)
++	for j := 0; j < 128+8*(id%8); j++ {
++		v := value(j, 0, "spent")
+ 		if err := nullifierTree.Insert(v); err != nil {
+ 			t.Fatal(err)
+ 		}
+ 	}
+ 	for i := range assignment.Inputs {
+-		stateProof := stateProofs[(uint64(17 + i + 1024*id))]
++		stateProof := stateProofs[positions[i]]
+ 		fillStateProofElements(assignment.Inputs[i].StatePathElements, stateProof.PathElements)
+ 		assignment.Inputs[i].StatePathIndex = new(big.Int).SetUint64(stateProof.PathIndex)
+ 
