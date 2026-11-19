@@ -4,7 +4,7 @@ On 1×2, all fills started within a 2.210 ms interval. During that interval an a
 
 The two modes use byte-identical ordinary SDK binaries on separate inodes. Each shape ran in four alternating process pairs with 17 timed proofs after three warmups. All 16 independent exports verified. Traces contained one G2 query and 22 range fills for every measured proof. The tracer reported zero lost or throttled records. The plain and observed latency columns summarize process means. Phase times are medians within each process followed by medians across the four processes.
 
-| Shape | Plain ms | Observed ms | Paired observer change | G2 entry to return ms | Entry to first fill ms | First to last fill start ms | Final fill end to G2 return ms |
+| Shape | Plain ms | Observed ms | Paired traced vs plain | G2 entry to return ms | Entry to first fill ms | First to last fill start ms | Final fill end to G2 return ms |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | 1x2 | 7.058 | 7.309 | +3.11% | 4.377 | 0.077 | 2.210 | 0.251 |
 | 2x2 | 9.603 | 9.841 | +1.96% | 2.467 | 0.073 | 0.006 | 0.313 |
@@ -32,3 +32,5 @@ Times below are relative to the first range start. Each cell gives the median of
 | 2x2 | 0.002 | 0.003 | 0.005 | 0.006 | 1.375 | 22.0 |
 
 [Sorted start times for each proof](artifacts/launch-ranks.json.gz)
+
+The plain and traced arms used byte-identical files with different inodes. Their latency difference includes any executable backing effect. A separate three-arm comparison runs the very same copy with probes inactive and active. [Matched-copy protocol](../2026-11-19-probe-controls649/protocol.md)

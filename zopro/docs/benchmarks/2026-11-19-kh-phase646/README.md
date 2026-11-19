@@ -2,9 +2,9 @@
 
 Groups of two keep the original K/H arithmetic and reduce the number of jobs competing for workers. The 20-job mode uses the grouped iterator with one window per job. Each mode ran in four balanced blocks with 17 timed calls in each plain or traced process. Independent verification passed for all 32 exports. Every timed trace contained 22 G2 range fills, 40 balanced K/H feed calls, and 21 ordinary G1 range closures. Interval and endpoint columns are medians of process medians. Plain and observed latencies are medians of process means.
 
-Limiting K/H to 12 jobs raised the number of G2 fills starting before the first returned from 11 to 19. Against 20 jobs, the traced median G2 return shifted from 6.678 to 6.648 ms after SDK entry. The final K/H feed shifted from 4.319 to 7.649 ms and finished after G2 in 58/68 proofs. The plain proof slowed from 7.075 to 7.882 ms. Shifting workers changed which query finished last and did little for the G2 endpoint. The traced 12-job arm itself carried an 11.79% paired observer penalty.
+Limiting K/H to 12 jobs raised the number of G2 fills starting before the first returned from 11 to 19. Against 20 jobs, the traced median G2 return shifted from 6.678 to 6.648 ms after SDK entry. The final K/H feed shifted from 4.319 to 7.649 ms and finished after G2 in 58/68 proofs. The plain proof slowed from 7.075 to 7.882 ms. Shifting workers changed which query finished last and did little for the G2 endpoint. The traced 12-job copy was 11.79% slower than the plain source executable by paired median.
 
-| Mode | Plain ms | Observed ms | Paired observer change | G2 entry to return ms | Entry to first fill ms | First to last fill start ms | Final fill end to G2 return ms |
+| Mode | Plain ms | Observed ms | Paired traced vs plain | G2 entry to return ms | Entry to first fill ms | First to last fill start ms | Final fill end to G2 return ms |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | off | 7.034 | 7.407 | +4.47% | 4.362 | 0.081 | 2.172 | 0.246 |
 | j20 | 7.075 | 7.400 | +5.50% | 4.419 | 0.082 | 2.201 | 0.252 |
@@ -47,3 +47,5 @@ Times below are relative to the first range start. Each cell gives the median of
 | off | 0.002 | 0.003 | 1.977 | 2.172 | 1.810 | 11.0 |
 
 [Sorted start times for each proof](artifacts/launch-ranks.json.gz)
+
+The plain and traced arms used byte-identical files with different inodes. Their latency difference includes any executable backing effect. A separate three-arm comparison runs the very same copy with probes inactive and active. [Matched-copy protocol](../2026-11-19-probe-controls649/protocol.md)
