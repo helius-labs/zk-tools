@@ -14,3 +14,5 @@ Each independent prover and its small supervising process ran in a fresh Linux c
 | 12x2 | 768 | stock | 4/4 | 60.329 | 245.8 | 0 | 4.71× / 1.67× |
 
 [Samples and cgroup events](artifacts/samples.json.gz) · [Design](artifacts/design.json) · [Scope monitor](artifacts/scoped.py) · [Verification](artifacts/verification.json)
+
+[Kernel activity and charged memory compared with peak RSS](usage.md)
