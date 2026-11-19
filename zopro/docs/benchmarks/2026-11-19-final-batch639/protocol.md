@@ -1,0 +1,9 @@
+# Use available affine slots at the end of curve windows
+
+The ordinary borrowed G1 and G2 windows execute their last pending batch of affine additions and send the residual collision queue to projective accumulators. Before that last scheduled inversion, scan the queue once. Move available distinct destinations into spare affine slots, respecting the existing buffer capacity. Leave conflicts in their original order and use the existing projective fallback. Empty pending batches take the original path. The G1 path runs at window completion and the G2 path runs before each high/low component boundary. This differs from the older guarded drain, which executed additional inversions. There is no new table or persistent state.
+
+Measure the integrated release and four settings in the patched executable (both disabled, G1, G2, both). Use ten Williams-balanced blocks at each of 16 physical cores and 32 logical CPUs for the original 1×2 request. At 32 CPUs also measure witnesses 29 and 32, and original 2×2, using ten blocks per request. Every process primes three calls and times fifteen full SDK proofs. Collect a separate CPU profile per arm and request. Use independent original-key verification and digest freshness checks. A separate tracing process counts queued operands actually assigned to existing affine batches on each measured request and width. Run the native core suite with both paths enabled.
+
+Report latency, peak RSS, calibrated on/off comparisons and both supplied M5 references. Evaluate gains separately at 16 and 32 workers. A trace count alone is insufficient to select a placement or release change.
+
+[Current curve profiles](../2026-11-19-tag-certificate638/README.md) · [Earlier guarded queue drain](../2026-10-29-queue-drain175/README.md) · [Source change](artifacts/source.patch)

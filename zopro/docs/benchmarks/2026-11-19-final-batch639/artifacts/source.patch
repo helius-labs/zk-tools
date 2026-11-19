@@ -1,0 +1,88 @@
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending.rs
+@@ -104,6 +104,31 @@
+             }
+             self.queue.pop();
+             self.add(encoded, point);
++        }
++    }
++    // Reuse spare slots in the final scheduled inversion. Divert only points
++    // whose destination can already be updated through the affine batch.
++    fn fill_final_batch(&mut self) {
++        let pending = self.batch.len();
++        if pending == 0 || self.queue.is_empty() {
++            return;
++        }
++        let queued = self.queue.len();
++        let mut kept = 0;
++        for i in 0..queued {
++            let entry = self.queue[i];
++            if self.batch.len() < self.batch.capacity()
++                && !self.busy((entry.0 & 0x7fffffff) as usize)
++            {
++                self.add(entry.0, entry.1);
++            } else {
++                self.queue[kept] = entry;
++                kept += 1;
++            }
++        }
++        self.queue.truncate(kept);
++        if std::env::var_os("ZOPRO_TRIAL_FINAL_TRACE").is_some() {
++            eprintln!("FINAL_BATCH G1 {pending} {queued} {kept} {}", self.batch.len() - pending);
+         }
+     }
+     fn flush_queue(&mut self) {
+@@ -146,6 +171,9 @@
+         }
+     }
+     fn finish(mut self) -> Vec<Affine<C>> {
++        if std::env::var_os("ZOPRO_TRIAL_FINAL_G1").is_some() {
++            self.fill_final_batch();
++        }
+         self.execute();
+         self.flush_queue();
+         let combined: Vec<_> = self
+--- a/crates/zopro-core/src/msm_affine/g2_borrowed.rs
++++ b/crates/zopro-core/src/msm_affine/g2_borrowed.rs
+@@ -102,6 +102,31 @@
+             self.add(encoded, p);
+         }
+     }
++    // Reuse spare slots in the final scheduled inversion. Divert only points
++    // whose destination can already be updated through the affine batch.
++    fn fill_final_batch(&mut self) {
++        let pending = self.batch.len();
++        if pending == 0 || self.queue.is_empty() {
++            return;
++        }
++        let queued = self.queue.len();
++        let mut kept = 0;
++        for i in 0..queued {
++            let entry = self.queue[i];
++            if self.batch.len() < self.batch.capacity()
++                && !self.busy((entry.0 & 0x7fffffff) as usize)
++            {
++                self.add(entry.0, entry.1);
++            } else {
++                self.queue[kept] = entry;
++                kept += 1;
++            }
++        }
++        self.queue.truncate(kept);
++        if std::env::var_os("ZOPRO_TRIAL_FINAL_TRACE").is_some() {
++            eprintln!("FINAL_BATCH G2 {pending} {queued} {kept} {}", self.batch.len() - pending);
++        }
++    }
+     fn flush_queue(&mut self) {
+         for i in 0..self.queue.len() {
+             let (encoded, p) = self.queue[i];
+@@ -140,6 +165,9 @@
+                 self.execute();
+                 self.take_from_queue();
+             }
++        }
++        if std::env::var_os("ZOPRO_TRIAL_FINAL_G2").is_some() {
++            self.fill_final_batch();
+         }
+         self.execute();
+         self.flush_queue();
