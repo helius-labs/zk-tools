@@ -243,6 +243,7 @@ On the 32-worker Ryzen profile for 24×2 and merge-24×1, set both
 Local Euler weighting reduced median paired latency by 2.02% and 3.21% across
 eight varied requests per shape.
 [FFT qualification and current scorecard](docs/benchmarks/2026-11-19-larger-varied473/README.md)
+The 32-worker 24×2 profile also accepts a key-bound coefficient file with local Euler weighting enabled. [Combined measurements and public file](docs/benchmarks/2026-11-19-transfer-factors474/README.md)
 
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
