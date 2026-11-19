@@ -1,0 +1,89 @@
+--- a/circuits/spp_merge/fixture_test.go
++++ b/circuits/spp_merge/fixture_test.go
+@@ -2,6 +2,8 @@
+ 
+ import (
+ 	"crypto/elliptic"
++	"crypto/sha256"
++	"fmt"
+ 	"math/big"
+ 	"testing"
+ 
+@@ -136,6 +138,33 @@
+ 	}).ringCircuit()
+ }
+ 
++// Deterministic public fixtures with nonempty subtrees along the input paths.
++func deepValue(seed int64, slot, i int, kind string) *big.Int {
++	digest := sha256.Sum256([]byte(fmt.Sprintf("merge479/%d/%d/%d/%s", seed, slot, i, kind)))
++	return new(big.Int).Mod(new(big.Int).SetBytes(digest[:]), poseidon.Modulus)
++}
++
++func deeperState(entries map[uint64]*big.Int, seed int64, slot int) map[uint64]*big.Int {
++	for i := 0; i < 32; i++ {
++		if _, exists := entries[uint64(i)]; !exists {
++			entries[uint64(i)] = deepValue(seed, slot, i, "low")
++		}
++	}
++	for level := 5; level < protocol.StateTreeHeight; level++ {
++		index := (uint64(1) << level) | (deepValue(seed, slot, level, "index").Uint64() & ((uint64(1) << level) - 1))
++		entries[index] = deepValue(seed, slot, level, "high")
++	}
++	return entries
++}
++
++func populateNullifiers(t testing.TB, tree *protocol.NullifierTree, seed int64, slot int) {
++	for i := 0; i < 64+int(seed%8)*8; i++ {
++		if err := tree.Insert(deepValue(seed, slot, i, "spent")); err != nil {
++			t.Fatal(err)
++		}
++	}
++}
++
+ func buildMergeFixture(t testing.TB, options mergeFixtureOptions) *mergeWitnessFixture {
+ 	t.Helper()
+ 	inputCount := options.inputCount
+@@ -242,7 +271,7 @@
+ 	if options.inputSlot != 0 {
+ 		delete(stateEntries, 1)
+ 	}
+-	stateRoot, stateProofs, err := protocol.BuildSparseStateTree(stateEntries)
++	stateRoot, stateProofs, err := protocol.BuildSparseStateTree(deeperState(stateEntries, options.variant, 0))
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
+@@ -251,7 +280,7 @@
+ 		slotRoots[k] = stateRoot
+ 	}
+ 	if options.inputSlot != 0 {
+-		otherRoot, otherProofs, err := protocol.BuildSparseStateTree(map[uint64]*big.Int{1: inHashes[1]})
++		otherRoot, otherProofs, err := protocol.BuildSparseStateTree(deeperState(map[uint64]*big.Int{1: inHashes[1]}, options.variant, options.inputSlot))
+ 		if err != nil {
+ 			t.Fatal(err)
+ 		}
+@@ -267,6 +296,7 @@
+ 	if err != nil {
+ 		t.Fatal(err)
+ 	}
++	populateNullifiers(t, nfTree, options.variant, 0)
+ 	slotNullifierRoots := make([]*big.Int, mergeshared.InputTrees)
+ 	for k := range slotNullifierRoots {
+ 		slotNullifierRoots[k] = nfTree.Root()
+@@ -290,6 +320,7 @@
+ 			if err != nil {
+ 				t.Fatal(err)
+ 			}
++			populateNullifiers(t, inputNullifierTree, options.variant, inputSlots[i])
+ 			if err := inputNullifierTree.Insert(big.NewInt(int64(inputSlots[i]))); err != nil {
+ 				t.Fatal(err)
+ 			}
+@@ -297,6 +328,9 @@
+ 		}
+ 		w, err := inputNullifierTree.NonInclusionWitness(nf)
+ 		if err != nil {
++			t.Fatal(err)
++		}
++		if err := protocol.VerifyNullifierNonInclusion(w); err != nil {
+ 			t.Fatal(err)
+ 		}
+ 		nfWitnesses[i] = w
