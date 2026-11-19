@@ -28,3 +28,14 @@ The same preconverted merge-24×1 image is reused on additional public fixtures.
 | deep127 | 32 | 73.486 / 72.063 | -1.94% (3/3) |
 
 All 132 proof exports verified using the original key. [Measurements](artifacts/samples.json.gz) · [Input and binary identities](artifacts/config.json) · [Host runner](artifacts/run.py) · [Verification](artifacts/verification.json)
+
+## Results by worker count
+
+For each randomized pair of processes, the first column of results takes the median latency change over the distinct public requests in that pair. The three differences are separate block observations. Requests measured in the same process share a loaded key and process history. Peak RSS covers the complete stream of requests in a process.
+
+| Ryzen workers | Median paired change per block, % | Mapped wins per block | Inputs with a faster three-block median | Median whole-process peak MiB ordinary / mapped |
+|---|---:|---:|---:|---:|
+| 16 | -8.16 / -4.96 / -6.17 | 11 / 9 / 9 | 9/11 | 1136.4 / 1119.2 |
+| 32 | -2.18 / -2.03 / -5.27 | 9 / 8 / 11 | 11/11 | 1412.4 / 1489.6 |
+
+[Paired block and request differences](artifacts/widths.json)
