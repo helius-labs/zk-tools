@@ -14,3 +14,17 @@ The table compares ordinary and advised output in the same executable. Latencies
 | 24x2 | 103 | auxiliary | 59.356 / 64.433 | +8.67% (0/5) | 19,045 / 3,265 | 897.7 / 890.2 | — |
 
 All 104 exports verified independently. [Protocol](protocol.md) · [Per-process timings, advice receipts and frozen controls](artifacts/samples.json.gz) · [Source](artifacts/source.patch) · [Fault profile](../2026-11-19-product-faults609/README.md)
+
+
+## Observed huge-page backing
+
+Four separate diagnostic processes traced successful advice calls and sampled the corresponding virtual address range in Linux smaps. For each overlapping mapping the lower bound is its anonymous huge-page bytes minus any bytes outside the advised interval, floored at zero. The table gives the largest sampled lower bound and its corresponding advised range. A sampling miss can underestimate residency. The uninstrumented timings above are independent of these diagnostics.
+
+| Shape | Pool | Advised span at observation, MiB | Observed huge-page lower bound, MiB | Snapshots |
+|---|---|---:|---:|---:|
+| 12x2 | main | 30 | 30 | 314 |
+| 12x2 | product | 30 | 30 | 264 |
+| 24x2 | main | 62 | 62 | 257 |
+| 24x2 | product | 62 | 62 | 228 |
+
+Four additional proof exports verified. [Residency samples](artifacts/residency.json.gz) · [Verification](artifacts/residency-verification.json)
