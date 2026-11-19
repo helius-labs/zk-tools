@@ -1,0 +1,7 @@
+# Current ordinary SDK and prepared Aeglos on all 41 local catalog shapes
+
+Run the integrated indexed SDK from commit 60c11e4a4f and the retained Aeglos CPU-latency binary on the exact 41 keys, requests and public inputs from the full C7a catalog. Both engines receive the same 32 pinned hardware threads on a Ryzen 9 9950X. Nine SDK keys have an established per-shape configuration and the remaining 32 use the shared catalog configuration. The executable, allocator settings and placement are recorded in the plan. Aeglos retains its proving-key setup within each process and must report a cache hit on every timed call.
+
+Each shape has four process pairs, with each engine first twice. Shape order is shuffled separately in each block. Each process primes three calls, then measures seven verified single proofs. The Rust xtask workflow runs both engine drivers and the independent verifier for every export. Bind all images, keys, requests, runtimes, the verification tool and the Aeglos runtime library to their digests. Report median process means and maximum process RSS. Count paired wins without interpreting four blocks as a confidence interval. Both supplied M5 references appear on their eight shapes. This panel uses ordinary release images and one request per key.
+
+[SDK adoption and source identities](../2026-11-19-checked-release630/README.md) · [Historical C7a comparison](../2026-11-18-full-catalog-c7a244/README.md) · [Exact local workflow](artifacts/workflow.json.gz)
