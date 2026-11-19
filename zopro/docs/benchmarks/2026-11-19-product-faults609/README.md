@@ -14,3 +14,8 @@ Each cell includes three shuffled processes of eleven warm calls. The family col
 | 24x2 | product | 19,614 | 5,022 | FFT/product (84.7%) | 4,253 (84.7%) |
 
 All 18 exports verified. [Protocol](protocol.md) · [Per-process leaf and family counts](artifacts/samples.json.gz) · [Sampled stacks](artifacts/stacks.json.gz) · [Offline classification check](artifacts/classify.py) · [Uninstrumented latency and peak memory](../2026-11-19-product-pool607/README.md)
+
+
+## Mapping lifetime on 24×2
+
+Of 4,253 samples at the packing instruction with the auxiliary pool, **4,251** had a fault address inside a private writable anonymous mapping of exactly 64 MiB plus 4 KiB. For each event, this was the most recent preceding mapping record covering that address in the same process. The three eleven-proof processes touched 11, 11, 11 separate matching mapping records respectively, at 1, 1, 1 distinct base addresses. This explains how repeated first touches can occur even when the virtual address recurs. The recording locates the mappings and faulting accesses; it does not directly record allocator policy decisions. [Counts by process](artifacts/mapping-counts.json) · [Reader](artifacts/mapping_counts.py)
