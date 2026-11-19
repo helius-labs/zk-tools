@@ -18,6 +18,18 @@ The experimental Zopro profile led prepared Aeglos on 9/9 shapes. It met 0/8 sup
 
 For each program and shape, latency is the median of five shuffled blocks. Within each block the candidate uses the median of its three process means. Release and Aeglos each have one process per block. The spread column is the median within-block difference from fastest to slowest identical execution, relative to the fastest. Peak RSS is the largest observed across all measured processes for that program and shape. CPU and Metal ratios use the supplied M5 reference times. [Per-block results](artifacts/identical-sdk-blocks.json) · [Raw samples](artifacts/samples.json.gz)
 
+## Subsequent focused measurements
+
+These later Ryzen trials used fresh controls on their own inputs. The nine-shape panel above remains the simultaneous comparison with Aeglos. The 10× M5 CPU cutoffs for 4×2, 12×2 and 24×2 are 10.9, 28.4 and 52.8 ms respectively.
+
+| Original input and measured profile | Median ms | Peak MiB | M5 CPU / Metal | Report |
+|---|---:|---:|---:|---|
+| 4×2 experimental indexed grouping | 14.863 | 310.2 | 7.33× / 3.23× | [Independent transfers](../2026-11-19-indexed-transfer622/README.md) |
+| 12×2 experimental indexed grouping | 28.672 | 599.6 | 9.91× / 3.52× | [Independent transfers](../2026-11-19-indexed-transfer622/README.md) |
+| 24×2 experimental tiled output and smaller pool | 56.579 | 996.3 | 9.33× / 3.11× | [Combined changes](../2026-11-19-combined-output623/README.md) |
+
+The ordinary release SDK also gained an optional smaller folded FFT pool. Its peak RSS improvement reproduced with the measured tuned glibc settings. On the original 24×2 request, stock glibc gave the lowest peak with the main pool. [SDK release comparison](../2026-11-19-release-pool621/README.md) · [Stock and tuned glibc](../2026-11-19-allocator-pool624/README.md)
+
 ## Original per-label measurements
 
 All three experimental columns below executed identical bytes. The compiler-label deltas quantify repeatability on this machine.
