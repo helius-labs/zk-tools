@@ -13,4 +13,4 @@ Each cell includes three shuffled processes of eleven warm calls. The family col
 | 24x2 | idle | 6,197 | 2,204 | other/unresolved (36.6%) | 7 (0.3%) |
 | 24x2 | product | 19,614 | 5,022 | FFT/product (84.7%) | 4,253 (84.7%) |
 
-All 18 exports verified. [Protocol](protocol.md) · [Per-process leaf and family counts](artifacts/samples.json.gz) · [Uninstrumented latency and peak memory](../2026-11-19-product-pool607/README.md)
+All 18 exports verified. [Protocol](protocol.md) · [Per-process leaf and family counts](artifacts/samples.json.gz) · [Sampled stacks](artifacts/stacks.json.gz) · [Offline classification check](artifacts/classify.py) · [Uninstrumented latency and peak memory](../2026-11-19-product-pool607/README.md)
