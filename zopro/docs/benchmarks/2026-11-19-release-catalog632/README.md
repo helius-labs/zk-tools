@@ -1,6 +1,8 @@
 # Release regression results on 32 additional Ryzen shapes
 
-The indexed SDK reduced paired median proof latency on 29/32 shapes and maximum process RSS on 26/32. All 256 independently exported proofs verified. Both engines in this table are Zopro SDK releases with the same runtime settings.
+The indexed SDK reduced paired median proof latency on 29/32 shapes and maximum process RSS on 26/32. All 256 independently exported proofs verified. Both columns use the same runtime configuration.
+
+Combined with the original nine-shape check, 36/41 shapes had lower paired median latency and 34/41 had lower maximum process RSS. The five positive latency changes were 1×4 (+1.30%), 2×2 (+0.18%), 5×2 (+0.38%), 5×8 (+0.63%) and 8×2 (+0.67%). The original nine and additional 32 used six and four pairs per shape, respectively. [Original nine-shape check](../2026-11-19-checked-release630/README.md) · [Independent recheck protocol](../2026-11-19-regression-recheck633/protocol.md)
 
 | Circuit | Parent / current SDK ms | Paired change and wins | Peak parent / current MiB |
 |---|---:|---:|---:|
