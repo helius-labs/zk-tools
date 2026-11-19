@@ -2246,8 +2246,19 @@ impl Key {
         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
+        #[cfg(all(zopro_real_kh, zopro_resource_schedule))]
+        // A single weighted sum is valid when B1 is omitted and H has unit scale.
+        let medium = if omit_b && queries.product_scale == Fr::ONE
+            && (1024..65536).contains(&k.len()) && (1024..65536).contains(&z.len())
+            && k.len() + z.len() >= 65536
+            && std::env::var("ZOPRO_CPU_MEDIUM_KH").as_deref() == Ok("1")
+        {
+            crate::preparation::Reservation::analysis(msm_affine::workspace::medium_kh_bytes(k.len(), z.len()))
+        } else { None };
+        #[cfg(all(zopro_real_kh, not(zopro_resource_schedule)))]
+        let medium: Option<()> = None;
         #[cfg(all(zopro_real_kh, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
-        if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len()) {
+        if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len()) || medium.is_some() {
             if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
             }

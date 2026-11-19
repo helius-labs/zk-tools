@@ -263,6 +263,18 @@ pub(super) fn four_range_growth(n: usize, workers: usize) -> Option<usize> {
     )
 }
 
+/// Workspace for streaming both private and H queries into the same buckets.
+#[cfg(zopro_real_kh)]
+pub(crate) fn medium_kh_bytes(k: usize, h: usize) -> Option<usize> {
+    let mut budget = shape::<G1Config>(1 << 12, 255usize.div_ceil(13), 1, batch_size(13).max(32))?;
+    for count in [k, h] {
+        let segment = top::<G1Config>(count, 7)?;
+        budget.held = add(budget.held, segment.held)?;
+        budget.leaf = budget.leaf.max(segment.leaf);
+    }
+    add(budget.held, mul(budget.leaf, rayon::current_num_threads())?)
+}
+
 fn raw<C: CurveConfig>(n: usize, g2_query: bool) -> Option<Profile>
 where
     C::Base: BatchInverse,

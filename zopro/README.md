@@ -141,6 +141,10 @@ in the research driver (eight wins). Peak memory increased. Use
 `lscpu -e=CPU,CORE,CACHE` to identify the corresponding CPUs on the host.
 [Public SDK placement measurements](docs/benchmarks/2026-11-19-varied-entry444/README.md) · [Research driver measurements](docs/benchmarks/2026-11-19-varied-smt440/README.md)
 
+The Linux x86-64 `cpu-sdk` example accepts `ZOPRO_BENCH_PUBLIC_OVERLAP=early`
+to benchmark overlapping public-input verification and proof generation.
+Use `off` for sequential verification.
+
 Linux x86-64 servers can call `Prover::set_overlap_verification(true)` on a
 loaded prover to compute the public-input pairing during CPU proof generation.
 This setting uses the existing Rayon pool and applies to keys with at most
@@ -210,6 +214,14 @@ are still in the same buffer. This opt-in IFMA path reuses the existing
 root tables on domains from 8,192 through 2²⁸ points. On Ryzen 9950X
 12×2, it reduced median paired latency against the same build by 0.88% at 16 workers (8/8 witnesses) and 2.03% at 32 workers (8/8 witnesses).
 [Varied-witness measurements](docs/benchmarks/2026-11-19-varied-column-center427/README.md)
+
+On Ryzen 9950X with 16 main workers and an eight-worker frontend,
+`ZOPRO_CPU_MEDIUM_KH=1` reduced 2×2 median paired latency by 1.98% across
+eight varied witnesses. It streams the private K and H queries into one
+set of buckets when the key permits their results to be added directly.
+The prover checks the optional workspace allowance before taking this path.
+With 32 main workers, four of eight witnesses favored sharing the buckets.
+[Varied-witness comparison](docs/benchmarks/2026-11-19-varied-kh450/README.md)
 
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for

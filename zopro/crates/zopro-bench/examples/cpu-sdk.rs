@@ -31,6 +31,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let prover = {
         let mut prover = prover;
         prover.set_frontend_pool(frontend);
+        match std::env::var("ZOPRO_BENCH_PUBLIC_OVERLAP").as_deref() {
+            Ok("early") => prover.set_overlap_verification(true),
+            Ok("off") => prover.set_overlap_verification(false),
+            Err(std::env::VarError::NotPresent) => {}
+            _ => return Err("public verification overlap must be early or off".into()),
+        }
         prover
     };
     let mut sdk = zopro_zolana::Prover::new(prover)?;
