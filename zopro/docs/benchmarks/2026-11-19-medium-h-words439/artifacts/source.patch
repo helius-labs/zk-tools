@@ -1,0 +1,72 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1921,6 +1921,15 @@
+         if affine_msm() {
+             let montgomery_h =
+                 h.len() >= (1 << 18) && crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
++            let medium_h = if (1 << 16..1 << 18).contains(&h.len()) {
++                match std::env::var("ZOPRO_BENCH_MEDIUM_H_WORDS").as_deref() {
++                    Ok("canonical") => Some(false),
++                    Ok("montgomery") => Some(true),
++                    _ => None,
++                }
++            } else {
++                None
++            };
+             if let Some(prepared) = &self.equal_witness {
+                 let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                     || {
+@@ -1932,7 +1941,16 @@
+                                 )
+                             },
+                             || {
+-                                if montgomery_h {
++                                if let Some(mont) = medium_h {
++                                    if std::env::var_os("ZOPRO_BENCH_MEDIUM_H_TRACE").is_some() {
++                                        eprintln!("MEDIUM_H {} {}", h.len(), mont);
++                                    }
++                                    if mont {
++                                        msm_affine::msm_montgomery(z, h)
++                                    } else {
++                                        msm_affine::msm_raw(z, msm_affine::canonical(h))
++                                    }
++                                } else if montgomery_h {
+                                     msm_affine::msm_montgomery(z, h)
+                                 } else {
+                                     msm_affine::msm_in_place(z, h)
+@@ -1956,7 +1974,16 @@
+                         rayon::join(
+                             || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+                             || {
+-                                if montgomery_h {
++                                if let Some(mont) = medium_h {
++                                    if std::env::var_os("ZOPRO_BENCH_MEDIUM_H_TRACE").is_some() {
++                                        eprintln!("MEDIUM_H {} {}", h.len(), mont);
++                                    }
++                                    if mont {
++                                        msm_affine::msm_montgomery(z, h)
++                                    } else {
++                                        msm_affine::msm_raw(z, msm_affine::canonical(h))
++                                    }
++                                } else if montgomery_h {
+                                     msm_affine::msm_montgomery(z, h)
+                                 } else {
+                                     msm(z, canonical(h))
+@@ -1996,7 +2023,16 @@
+                     rayon::join(
+                         || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+                         || {
+-                            if montgomery_h {
++                            if let Some(mont) = medium_h {
++                                    if std::env::var_os("ZOPRO_BENCH_MEDIUM_H_TRACE").is_some() {
++                                        eprintln!("MEDIUM_H {} {}", h.len(), mont);
++                                    }
++                                    if mont {
++                                        msm_affine::msm_montgomery(z, h)
++                                    } else {
++                                        msm_affine::msm_raw(z, msm_affine::canonical(h))
++                                    }
++                                } else if montgomery_h {
+                                 msm_affine::msm_montgomery(z, h)
+                             } else {
+                                 msm(z, h)
