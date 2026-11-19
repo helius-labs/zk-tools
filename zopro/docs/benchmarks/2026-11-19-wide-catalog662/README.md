@@ -73,3 +73,5 @@ Ratios use the supplied M5 full-proof timing divided by the measured Ryzen media
 | merge-24x1 | 507 / 175 | 8.01× / 2.76× | 8.09× / 2.79× | 50.7 |
 
 [Source release check](../2026-11-19-owned-phi661/README.md) · [Historic C7a loss definitions](../2026-11-19-c7a-work655/README.md) · [Config and pins](artifacts/configs.json.gz) · [Samples and CPU profiles](artifacts/rows.json.gz) · [Verification](artifacts/verification.json)
+
+On an independent 12-block check of the three largest disabled-build regressions, 2×8 remained slower by 1.23% paired. The 6×8 and 4×4 disabled regressions did not repeat. [Independent repeat](../2026-11-19-default-repeat666/README.md)
