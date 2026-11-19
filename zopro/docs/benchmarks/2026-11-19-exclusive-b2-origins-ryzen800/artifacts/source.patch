@@ -1,0 +1,107 @@
+--- a/crates/zopro-core/src/solver/sparse_poseidon/aliases.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon/aliases.rs
+@@ -105,7 +105,7 @@
+ 
+ impl Plan {
+     pub(crate) fn b2_origins(&self) -> Option<&B2Origins> {
+-        if !(65_536..262_144).contains(&self.b_indices.len()) {
++        if !(32_768..262_144).contains(&self.b_indices.len()) {
+             return None;
+         }
+         if let Some(origins) = self.b2_origins.get() {
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -73,6 +73,14 @@
+ pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+     group_with_gate::<true, false>(scalars, zero_aware, None)
++}
++
++#[cfg(zopro_resource_schedule)]
++pub(super) fn exclusive_origins(
++    scalars: &[[u64; 4]], origins: &B2Origins,
++) -> Option<ScalarGroups> {
++    let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
++    group_with_gate::<true, false>(scalars, zero_aware, Some(origins))
+ }
+ 
+ type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -8,6 +8,8 @@
+ //! took five times gnark's last-level cache misses per second. Here a
+ //! window touches the bases once, in order, and its bucket array.
+ use crate::msm::{BatchAdd, BatchInverse};
++#[cfg(zopro_resource_schedule)]
++use crate::solver::B2Origins;
+ use rayon::prelude::*;
+ use zopro_bn254::{Affine, CurveConfig, Field, Fr, Projective};
+ mod grouping_cost;
+@@ -1734,6 +1736,27 @@
+     let groups = (grouping && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
+         .then(|| grouping::groups_with_diversity_check(words))
+         .flatten();
++    run_exclusive_g2(bases, words, groups)
++}
++
++#[cfg(zopro_resource_schedule)]
++pub(super) fn g2_query_exclusive_origins(
++    bases: &[zopro_bn254::G2Affine], words: &mut [[u64; 4]], origins: &B2Origins,
++) -> Option<zopro_bn254::G2Projective> {
++    assert_eq!(bases.len(), words.len());
++    if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
++        return None;
++    }
++    let groups = grouping::exclusive_origins(words, origins)?;
++    if std::env::var_os("ZOPRO_TRIAL_EXCLUSIVE_ORIGINS_TRACE").is_some() {
++        eprintln!("EXCLUSIVE_ORIGIN_B2 {} {}", bases.len(), groups.values.len());
++    }
++    Some(run_exclusive_g2(bases, words, Some(groups)))
++}
++
++fn run_exclusive_g2(
++    bases: &[zopro_bn254::G2Affine], words: &mut [[u64; 4]], groups: Option<ScalarGroups>,
++) -> zopro_bn254::G2Projective {
+     #[cfg(all(
+         zopro_g2_horner_buckets,
+         target_arch = "x86_64",
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2379,6 +2379,19 @@
+         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
+         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
+         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
++        let exclusive_b2 = |scalars: &mut [[u64; 4]]| {
++            #[cfg(zopro_resource_schedule)]
++            if self.exclusive_g2_grouping && (32_768..65_536).contains(&scalars.len())
++                && std::env::var("ZOPRO_TRIAL_EXCLUSIVE_ORIGINS").as_deref() == Ok("1")
++            {
++                if let Some(sum) = plan.b2_origins().and_then(|origins| {
++                    msm_affine::g2_query_exclusive_origins(&self.b2, scalars, origins)
++                }) {
++                    return sum;
++                }
++            }
++            msm_affine::g2_query_exclusive(&self.b2, scalars, self.exclusive_g2_grouping)
++        };
+         #[cfg(all(zopro_real_kh, zopro_resource_schedule))]
+         // A single weighted sum is valid when B1 is omitted and H has unit scale.
+         let medium = if omit_b && queries.product_scale == Fr::ONE
+@@ -2414,7 +2427,7 @@
+                 || rayon::join(a, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+-                        msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping)
++                        exclusive_b2(sb)
+                     } else {
+                         let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(||scalar_groups(sb)).flatten();
+@@ -2446,7 +2459,7 @@
+                     },
+                     || {
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping));
++                            return (G1Projective::IDENTITY,exclusive_b2(sb));
+                         }
+                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(|| scalar_groups(sb))
