@@ -1,0 +1,82 @@
+--- a/crates/zopro-core/src/groups482.rs
++++ b/crates/zopro-core/src/groups482.rs
+@@ -12,6 +12,25 @@
+ 
+ fn u32at(bytes: &[u8], offset: usize) -> u32 {
+     u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap())
++}
++
++// Present the first-stage representatives in the upper-stage point order.
++struct Representatives<'a> {
++    original: &'a [Fr],
++    sources: &'a [u32],
++    choices: &'a [(u32, u32)],
++}
++
++impl std::ops::Index<usize> for Representatives<'_> {
++    type Output = Fr;
++
++    fn index(&self, group: usize) -> &Fr {
++        let source = match self.choices.get(group) {
++            Some(&(chosen, _)) => chosen,
++            None => self.sources[group],
++        };
++        &self.original[source as usize]
++    }
+ }
+ 
+ impl Groups {
+@@ -82,7 +101,7 @@
+         &self.ids[start..self.ends[g]]
+     }
+ 
+-    fn choose(&self, rows: &[u32], scalars: &[Fr], adaptive: bool) -> (u32, u32) {
++    fn choose<S: std::ops::Index<usize, Output = Fr> + ?Sized>(&self, rows: &[u32], scalars: &S, adaptive: bool) -> (u32, u32) {
+         let first = rows[0];
+         let initial = scalars[first as usize];
+         let differences = rows[1..].iter().filter(|&&i| scalars[i as usize] != initial).count();
+@@ -113,6 +132,12 @@
+     }
+ 
+     pub fn query(&self, bases:&[G2Affine], scalars:&[Fr]) -> Option<G2Projective> {
++        self.evaluate(bases, scalars, scalars.len(), Some(scalars))
++    }
++
++    fn evaluate<S>(&self, bases: &[G2Affine], scalars: &S, length: usize, original: Option<&[Fr]>) -> Option<G2Projective>
++    where S: std::ops::Index<usize, Output = Fr> + Sync + ?Sized,
++    {
+         if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
+             let samples=self.ends.len().min(32);
+             let mut mismatches=0;
+@@ -125,7 +150,7 @@
+                 mismatches+=rows[1..].iter().filter(|&&i|scalars[i as usize]!=representative).count();
+             }
+             if mismatches*4>members {
+-                if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {eprintln!("GROUP_SKIP {} {} {}",scalars.len(),mismatches,members);}
++                if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {eprintln!("GROUP_SKIP {} {} {}",length,mismatches,members);}
+                 return None;
+             }
+         }
+@@ -137,10 +162,21 @@
+         if count>self.ids.len()/16 { return None; }
+         let _scratch=Reservation::analysis(count.checked_mul(160)?.checked_add(self.sources.len()*32+512))?;
+         if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
+-            eprintln!("GROUP_QUERY {} {} {}",scalars.len(),self.sources.len(),count);
++            eprintln!("GROUP_QUERY {} {} {}",length,self.sources.len(),count);
+         }
+         let (main,extra)=rayon::join(|| {
+             if let Some(upper)=&self.upper {
++                if std::env::var_os("ZOPRO_LAZY_REPRESENTATIVES").is_some() {
++                    // The format admits exactly two flat levels.
++                    let view = Representatives {original: original.expect("first group level"), sources: &self.sources, choices: &choices};
++                    if let Some(result) = upper.evaluate(&self.sums, &view, self.sums.len(), None) {
++                        if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() { eprintln!("NESTED_UPPER_COMPACT {}", self.sums.len()); }
++                        return result;
++                    }
++                    if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() { eprintln!("NESTED_UPPER_DENSE {}", self.sums.len()); }
++                    let mut words: Vec<_> = (0..self.sums.len()).into_par_iter().map(|i| view[i].to_canonical()).collect();
++                    return msm_affine::g2_query_exclusive(&self.sums, &mut words);
++                }
+                 let mut representatives:Vec<Fr>=self.sources.par_iter().enumerate().map(|(g,&source)| {
+                     let index=choices.get(g).map_or(source,|c|c.0);
+                     scalars[index as usize]
