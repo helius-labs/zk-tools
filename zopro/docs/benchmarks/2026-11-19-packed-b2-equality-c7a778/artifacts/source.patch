@@ -1,0 +1,279 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -224,6 +224,7 @@
+ 
+ #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+ mod public_wire_offsets;
++mod packed_b2_trial;
+ 
+ // The version of the solver images Key::solver_image writes and
+ // Key::set_solver_image reads, for a host to tell its images apart.
+@@ -807,6 +808,7 @@
+ 
+ #[wasm_bindgen]
+ pub struct Key {
++    packed_b2_trial: Option<packed_b2_trial::Packed>,
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     frontend_pool: Option<std::sync::Arc<FrontendThreadPool>>,
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+@@ -1122,6 +1124,11 @@
+                 self.solve_inner(witness,omit_b)
+             },||()).0;
+         }
++        if self.packed_b2_trial.is_some()
++            && (!omit_b || !affine_msm() || self.has_gpu() || self.equal_witness.is_some())
++        {
++            return Err("unsupported packed image execution route".into());
++        }
+         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
+         let plan = self.solver.as_ref().ok_or("no prepared solver")?;
+         if !witness.len().is_multiple_of(32) {
+@@ -1227,6 +1234,16 @@
+     }
+ }
+ impl Key {
++    pub fn attach_packed_b2_trial(&mut self, image: &Image, at: usize) -> Result<(), &'static str> {
++        if self.b2.len() < 65536 || self.has_gpu() || self.equal_witness.is_some() {
++            return Err("packed trial requires a large native B2 query");
++        }
++        let packed = packed_b2_trial::Packed::parse(image, at, self.b2.len())?;
++        self.packed_b2_trial = Some(packed);
++        self.canonical_wires = false;
++        Ok(())
++    }
++
+     pub(crate) fn set_solver_image_with_owner(&mut self, image: &[u8], owner: Option<&Image>) -> bool {
+         let started = crate::time::Instant::now();
+         self.invalidate_solver();
+@@ -1530,6 +1547,7 @@
+             raw_g1_a_on_frontend: false,
+             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+             g1_k_on_frontend: false,
++            packed_b2_trial: None,
+             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+             grouped_b2_serial_preparation: false,
+             basis_only,
+@@ -2087,6 +2105,9 @@
+                     )
+                 },
+                 || {
++                    if let Some(packed) = self.packed_b2_trial.as_ref() {
++                        return (G1Projective::IDENTITY, packed.query(&self.b2, sb));
++                    }
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
+--- /dev/null
++++ b/crates/zopro-core/src/packed_b2_trial.rs
+@@ -0,0 +1,140 @@
++//! Experimental B2 layout. All permanent indices and curve points stay in the mapped image.
++use super::{msm_affine, preparation::Reservation, Fr, G2Affine, G2Projective, Image};
++use rayon::prelude::*;
++
++const LEADER: u32 = 1 << 31;
++const SINGLE: usize = u32::MAX as usize;
++
++pub(super) struct Packed {
++    image: Image,
++    table: usize,
++    n: usize,
++    groups: usize,
++    prefix: usize,
++}
++
++impl Packed {
++    fn entry(&self, row: usize) -> (u32, usize) {
++        let bytes = (*self.image).as_ref();
++        let start = self.table + 8 * row;
++        let source = u32::from_le_bytes(bytes[start..start + 4].try_into().unwrap());
++        let group = u32::from_le_bytes(bytes[start + 4..start + 8].try_into().unwrap());
++        (source, group as usize)
++    }
++
++    fn source(&self, row: usize) -> usize {
++        (self.entry(row).0 & !LEADER) as usize
++    }
++
++    pub fn parse(image: &Image, at: usize, n: usize) -> Result<Self, &'static str> {
++        let bytes = (**image).as_ref().get(at..).ok_or("missing packed metadata")?;
++        if n >= LEADER as usize || bytes.len() != n.checked_mul(8).and_then(|x| x.checked_add(16)).ok_or("packed length overflow")? || &bytes[..8] != b"ZPB2T506" {
++            return Err("invalid packed metadata");
++        }
++        let groups = u32::from_le_bytes(bytes[8..12].try_into().unwrap()) as usize;
++        let prefix = u32::from_le_bytes(bytes[12..16].try_into().unwrap()) as usize;
++        if groups == 0 || groups > prefix || prefix >= n {return Err("invalid packed prefix");}
++        let result = Self { image: image.clone(), table: at+16, groups, prefix, n };
++        let mut visited = vec![0u64; n.div_ceil(64)];
++        for row in 0..n {
++            let source = result.source(row);
++            let (_, group) = result.entry(row);
++            if source >= n || visited[source / 64] & (1u64 << (source % 64)) != 0 || (row < prefix && group != SINGLE) || (row >= prefix && group >= groups) {
++                return Err("invalid packed mapping");
++            }
++            if row > groups && row < prefix && source <= result.source(row-1) { return Err("unordered singleton sources"); }
++            visited[source / 64] |= 1u64 << (source % 64);
++        }
++        visited.fill(0);
++        for row in 0..n {
++            if visited[row / 64] & (1u64 << (row % 64)) != 0 { continue; }
++            let mut j = row;
++            let mut leaders = 0;
++            loop {
++                visited[j / 64] |= 1u64 << (j % 64);
++                leaders += usize::from(result.entry(j).0 & LEADER != 0);
++                j = result.source(j);
++                if j == row {break;}
++            }
++            if leaders != usize::from(result.source(row)!=row) {return Err("invalid permutation cycle markers");}
++        }
++        Ok(result)
++    }
++
++    pub fn singleton_position(&self, source: usize) -> Option<usize> {
++        let (mut lo, mut hi) = (self.groups, self.prefix);
++        while lo < hi {
++            let mid = lo + (hi-lo)/2;
++            if self.source(mid) < source { lo = mid+1; } else { hi = mid; }
++        }
++        (lo < self.prefix && self.source(lo) == source).then_some(lo)
++    }
++
++    fn differs(&self, values: &[Fr], row: usize) -> bool {
++        let (src, group) = self.entry(row);
++        values[(src & !LEADER) as usize] != values[self.source(group)]
++    }
++
++    fn difference(&self, values: &[Fr], row: usize) -> Fr {
++        let (src, group) = self.entry(row);
++        values[(src & !LEADER) as usize] - values[self.source(group)]
++    }
++
++    fn in_place(&self, points: &[G2Affine], values: &mut [Fr]) -> G2Projective {
++        for start in 0..self.n {
++            if self.entry(start).0 & LEADER == 0 {continue;}
++            let saved = values[start];
++            let mut at = start;
++            loop {
++                let next = self.source(at);
++                if next == start {values[at]=saved;break;}
++                values[at] = values[next];
++                at = next;
++            }
++        }
++        let (front, tail) = values.split_at_mut(self.prefix);
++        tail.par_iter_mut().enumerate().for_each(|(i, value)| {
++            *value -= front[self.entry(self.prefix+i).1];
++        });
++        let words = msm_affine::canonical_exclusive(values);
++        msm_affine::g2_query_exclusive(points, words, true)
++    }
++
++    pub fn query(&self, points: &[G2Affine], values: &mut [Fr]) -> G2Projective {
++        assert_eq!(points.len(), self.n);
++        assert_eq!(values.len(), self.n);
++        let trace = std::env::var_os("ZOPRO_PACKED_TRACE").is_some();
++        let use_equality = std::env::var_os("ZOPRO_TRIAL_PACKED_EQUALITY").is_some();
++        let differs = |i| if use_equality { self.differs(values, i) } else { !self.difference(values, i).is_zero() };
++        let end=self.n-self.prefix;
++        let samples=end.min(64);
++        let mismatches=(0..samples).filter(|&i| differs(self.prefix+(2*i+1)*end/(2*samples))).count();
++        if mismatches*4>samples || std::env::var_os("ZOPRO_PACKED_DENSE").is_some() {
++            if trace {eprintln!("PACKED_DENSE {mismatches} {samples}");}
++            return self.in_place(points,values);
++        }
++        let differences=(self.prefix..self.n).into_par_iter().with_min_len(512).filter(|&i|differs(i)).count();
++        let scratch = self.prefix.checked_mul(32).and_then(|bytes|differences.checked_mul(160)?.checked_add(bytes)?.checked_add(512));
++        let permit = Reservation::analysis(scratch);
++        if permit.is_none() || differences>end/16 {
++            if trace {eprintln!("PACKED_DENSE {differences} {end}");}
++            return self.in_place(points,values);
++        }
++        if trace {eprintln!("PACKED_SPARSE {} {differences}",self.prefix);}
++        let (main, extra)=rayon::join(|| {
++            let mut words:Vec<_>=(0..self.prefix).into_par_iter().map(|i|values[self.source(i)].to_canonical()).collect();
++            msm_affine::g2_query_exclusive(&points[..self.prefix], &mut words, true)
++        },|| {
++            if differences==0 {return G2Projective::IDENTITY;}
++            let mut bases=Vec::with_capacity(differences);
++            let mut words=Vec::with_capacity(differences);
++            for i in self.prefix..self.n {
++                let delta=self.difference(values,i);
++                if !delta.is_zero() {bases.push(points[i]);words.push(delta.to_canonical());}
++            }
++            debug_assert_eq!(words.len(),differences);
++            msm_affine::g2_query_exclusive(&bases,&mut words, true)
++        });
++        main+extra
++    }
++}
+--- a/crates/zopro-prover/src/cpu_basis.rs
++++ b/crates/zopro-prover/src/cpu_basis.rs
+@@ -5,10 +5,11 @@
+ 
+ pub const FORMAT: &str = "zopro-basis-v2";
+ pub(super) fn is_image(bytes: &[u8]) -> bool {
+-    [BASIS_MAGIC, EULER_MAGIC, LEGACY_BASIS_MAGIC, LEGACY_EULER_MAGIC]
++    [PACKED_MAGIC, BASIS_MAGIC, EULER_MAGIC, LEGACY_BASIS_MAGIC, LEGACY_EULER_MAGIC]
+         .iter().any(|magic| bytes.starts_with(*magic))
+ }
+ 
++const PACKED_MAGIC: &[u8; 16] = b"zopro-b2-grp506\0";
+ const EULER_MAGIC: &[u8; 16] = b"zopro-euler-v2\0\0";
+ const BASIS_MAGIC: &[u8; 16] = b"zopro-basis-v2\0\0";
+ const LEGACY_EULER_MAGIC: &[u8; 16] = b"zopro-euler-v1\0\0";
+@@ -22,8 +23,9 @@
+     pub fn load_cpu_basis_image(image: Image) -> Result<Self, String> {
+         use zopro_core::{groth16::PreparedFixedPoints, Key};
+         let raw = (*image).as_ref();
+-        let euler = raw.starts_with(EULER_MAGIC) || raw.starts_with(LEGACY_EULER_MAGIC);
+-        let wide = raw.starts_with(BASIS_MAGIC) || raw.starts_with(EULER_MAGIC);
++        let packed = raw.starts_with(PACKED_MAGIC);
++        let euler = packed || raw.starts_with(EULER_MAGIC) || raw.starts_with(LEGACY_EULER_MAGIC);
++        let wide = packed || raw.starts_with(BASIS_MAGIC) || raw.starts_with(EULER_MAGIC);
+         if !is_image(raw) {
+             return Err("not a CPU basis image".into());
+         }
+@@ -90,12 +92,12 @@
+         }
+         let len = reader.length(wide).ok_or("basis solver length")?;
+         let solver = reader.take(len).ok_or("basis solver")?;
+-        if reader.at != raw.len() {
++        if !packed && reader.at != raw.len() {
+             return Err("basis trailing bytes".into());
+         }
+         let points = Points::Mapped(&image, [ar, br, (kr.0, k * 64), (pr.0, z * 64), b2r]);
+         let build = if euler {Key::build_cpu_euler_basis} else {Key::build_cpu_basis};
+-        let key = build(
++        let mut key = build(
+             points,
+             artifact.domain,
+             &image,
+@@ -107,6 +109,9 @@
+             digest,
+             solver,
+         )?;
++        if packed {
++            key.attach_packed_b2_trial(&image, reader.at)?;
++        }
+         let names: Vec<String> = artifact
+             .input_names()
+             .iter()
+--- a/crates/zopro-core/src/public_wire_offsets.rs
++++ b/crates/zopro-core/src/public_wire_offsets.rs
+@@ -196,12 +196,15 @@
+     let mut positions = Vec::with_capacity(count);
+     let mut previous = None;
+     for row in records.chunks_exact(ROW) {
+-        let (p, r) = map_row(row, plan, folded.private.len())?;
++        let (mut p, r) = map_row(row, plan, folded.private.len())?;
+         if previous.is_some_and(|i| p.b2 <= i) {
+             return Err("public wire offset indices must increase");
+         }
+         previous = Some(p.b2);
+         rows.push(r);
++        if let Some(layout) = &key.packed_b2_trial {
++            p.b2 = layout.singleton_position(p.b2).ok_or("offset touches grouped packed point")?;
++        }
+         positions.push(p);
+     }
+     let (a, k, b2) = correction(records, &positions, &key.a, &folded.private, &key.b2);
