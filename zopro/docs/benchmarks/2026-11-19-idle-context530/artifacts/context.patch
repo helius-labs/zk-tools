@@ -1,0 +1,66 @@
+--- a/src/sleep/mod.rs
++++ b/src/sleep/mod.rs
+@@ -24,7 +24,7 @@
+     worker_sleep_states: Vec<CachePadded<WorkerSleepState>>,
+ 
+     counters: AtomicCounters,
+-    idle_rounds: u32,
++    idle_rounds: [u32; 2],
+ }
+ 
+ /// An instance of this struct is created when a thread becomes idle.
+@@ -70,24 +70,29 @@
+         assert!(n_threads <= THREADS_MAX);
+         let budget = std::env::var("ZOPRO_IDLE_PROBES").ok().and_then(|v| v.parse().ok());
+         let idle_rounds = idle_rounds(n_threads, budget);
++        let limits = match std::env::var("ZOPRO_IDLE_CONTEXT").as_deref() {
++            Ok("outer") => [ROUNDS_UNTIL_SLEEPY, idle_rounds],
++            Ok("nested") => [idle_rounds, ROUNDS_UNTIL_SLEEPY],
++            _ => [idle_rounds; 2],
++        };
+         if std::env::var_os("ZOPRO_REPORT_IDLE_ROUNDS").is_some() {
+-            eprintln!("IDLE_ROUNDS {n_threads} {idle_rounds}");
++            eprintln!("IDLE_CONTEXT {n_threads} {} {}", limits[0], limits[1]);
+         }
+         Sleep {
+-            idle_rounds,
++            idle_rounds: limits,
+             worker_sleep_states: (0..n_threads).map(|_| Default::default()).collect(),
+             counters: AtomicCounters::new(),
+         }
+     }
+ 
+     #[inline]
+-    pub(super) fn start_looking(&self, worker_index: usize) -> IdleState {
++    pub(super) fn start_looking(&self, worker_index: usize, outer: bool) -> IdleState {
+         self.counters.add_inactive_thread();
+ 
+         IdleState {
+             worker_index,
+             rounds: 0,
+-            idle_rounds: self.idle_rounds,
++            idle_rounds: self.idle_rounds[usize::from(outer)],
+             jobs_counter: JobsEventCounter::DUMMY,
+         }
+     }
+--- a/src/registry.rs
++++ b/src/registry.rs
+@@ -785,6 +785,9 @@
+         // accesses, which would be *very bad*
+         let abort_guard = unwind::AbortIfPanic;
+ 
++        // The worker's permanent latch identifies its outer run loop.
++        // All joins, scopes and cross-pool waits use a different latch.
++        let outer = std::ptr::eq(latch, self.registry.thread_infos[self.index].terminate.as_core_latch());
+         'outer: while !latch.probe() {
+             // Check for local work *before* we start marking ourself idle,
+             // especially to avoid modifying shared sleep state.
+@@ -793,7 +796,7 @@
+                 continue;
+             }
+ 
+-            let mut idle_state = self.registry.sleep.start_looking(self.index);
++            let mut idle_state = self.registry.sleep.start_looking(self.index, outer);
+             while !latch.probe() {
+                 if let Some(job) = self.find_work() {
+                     self.registry.sleep.work_found();
