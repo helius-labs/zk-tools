@@ -1,0 +1,7 @@
+# Port the lower-memory 24×2 product path to the ordinary CPU SDK
+
+The grouped experimental prover showed lower peak RSS on all four 24×2 requests and faster paired medians with its 30-worker product pool. Port only caller allocation and dispatch of the folded packed Euler product into the current production-source checkout. Both compiled controls use its ordinary catalog key and normal SDK entry. A caller may attach a smaller frontend pool using the existing setter and select the folded product with the new environment option. The temporary packed vector is allocated before dispatch. A mobile caller requires no new pool, retained key table or configuration. This is a release-source trial on the Linux Ryzen machine.
+
+Use five arms on four requests in seven randomized blocks. The frozen release and fresh unmodified build check compilation effects. In the patched executable compare the ordinary path, a parked 30-worker pool, and the same pool executing the product. Separate diagnostic exports must report the actual product width with the option enabled without a pool, disabled with a pool, and enabled with a pool. All use 32 pinned main workers. Each timing process warms three requests and measures eleven. Compare full latency, lifetime peak RSS, minor faults and CPU time. A general default requires evidence beyond this specific host and key profile.
+
+[Previous selection and independent confirmation](../2026-11-19-packed-width616/README.md)

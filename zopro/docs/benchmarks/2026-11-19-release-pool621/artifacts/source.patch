@@ -1,0 +1,209 @@
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -88,8 +88,8 @@
+ }
+ 
+ #[inline(never)]
+-pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+-    let mut values = input_columns::first_layer(plan, a, b);
++pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
++    let mut values = input_columns::first_layer(plan, a, b, storage);
+     let width = values.len() / 32;
+     values
+         .par_chunks_exact_mut(width)
+@@ -115,7 +115,7 @@
+             let b: Vec<_> = (0..n - 1)
+                 .map(|i| Fr::from((i + 1) as u64).square())
+                 .collect();
+-            let got = from_inputs(&plan, &a, &b);
++            let got = from_inputs(&plan, &a, &b, Vec::with_capacity(n / 4));
+             let mut expected = input_columns::inverse(&plan, &a, &b);
+             for (i, value) in expected.iter_mut().enumerate() {
+                 let factors =
+--- a/crates/zopro-core/src/fft/pair/input_columns.rs
++++ b/crates/zopro-core/src/fft/pair/input_columns.rs
+@@ -50,12 +50,12 @@
+ }
+ 
+ #[inline(never)]
+-pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
++pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr], mut values: Vec<PackedPair>) -> Vec<PackedPair> {
+     let n = plan.n / 4;
+     let q = n / 32;
+     assert!(n >= 2048 && n.is_power_of_two());
+     let roots = &plan.inverse_roots;
+-    let mut values = Vec::with_capacity(n);
++    assert!(values.is_empty() && values.capacity() >= n);
+     let mut chunks = values.spare_capacity_mut()[..n].chunks_exact_mut(q);
+     let stripes = core::array::from_fn(|_| chunks.next().unwrap());
+     if roots.columns.is_empty() {
+@@ -70,7 +70,7 @@
+ }
+ 
+ pub(super) fn inverse(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+-    let mut values = first_layer(plan, a, b);
++    let mut values = first_layer(plan, a, b, Vec::with_capacity(plan.n / 4));
+     let n = values.len();
+     let q = n / 32;
+     let roots = &plan.inverse_roots;
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1767,7 +1767,9 @@
+ // Euler derivative product used by the evaluation-basis prover.
+ // Unnormalized inverse FFT means the returned prefix is
+ // n * (E(A) * B + A * E(B)), where E(f) = X f'.
+-pub(super) fn euler_product_study(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
++pub(super) fn euler_product_study(
++    plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>, pool: Option<&rayon::ThreadPool>,
++) -> Vec<Fr> {
+     assert!(plan.n >= 8 && a.len() <= plan.n && b.len() <= plan.n);
+     assert!(!plan.released && plan.twisted.is_none());
+     let count = a.len().max(b.len());
+@@ -1778,9 +1780,20 @@
+     if packed_inputs && plan.n <= (1 << 28) && plan.roots.single.is_none()
+         && std::env::var("ZOPRO_CPU_FFT_LOCAL_EULER").as_deref() == Ok("1")
+     {
+-        let values = euler_center::from_inputs(plan, &a, &b);
+-        euler_combine_products(&mut a, &b, &values);
+-        return a;
++        // Allocate before dispatch so the caller owns the allocation site on either path.
++        let storage = Vec::with_capacity(plan.n / 4);
++        let compute = move || {
++            if std::env::var_os("ZOPRO_EULER_TRACE").is_some() {
++                eprintln!("EULER_PACKED_WORKERS {}", rayon::current_num_threads());
++            }
++            let values = euler_center::from_inputs(plan, &a, &b, storage);
++            euler_combine_products(&mut a, &b, &values);
++            a
++        };
++        return match pool {
++            Some(pool) => pool.install(compute),
++            None => compute(),
++        };
+     }
+     let mut values = if packed_inputs {
+         input_columns::inverse(plan, &a, &b)
+--- a/crates/zopro-core/src/fft.rs
++++ b/crates/zopro-core/src/fft.rs
+@@ -1233,7 +1233,7 @@
+         }
+     }
+     pub fn euler_product_study(&self,a:Vec<Fr>,b:Vec<Fr>)->Vec<Fr> {
+-        pair::euler_product_study(self,a,b)
++        pair::euler_product_study(self,a,b,None)
+     }
+     pub fn current_product_study(&self,a:Vec<Fr>,b:Vec<Fr>)->Vec<Fr> {
+         self.coset_product_ordered(a,b,false)
+@@ -1313,11 +1313,13 @@
+         }
+     }
+     /// N*(E(A)B+A*E(B)), in original domain order, E(f)=X*f'.
+-    pub(crate) fn euler_product_values(&self, a:Vec<Fr>, b:Vec<Fr>)->Vec<Fr> {
++    pub(crate) fn euler_product_values(
++        &self, a: Vec<Fr>, b: Vec<Fr>, _pool: Option<&rayon::ThreadPool>,
++    ) -> Vec<Fr> {
+         assert!(!self.released && self.n>=8 && self.twisted.is_none());
+         assert!(a.len()<=self.n && b.len()<=self.n);
+         #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+-        { return pair::euler_product_study(self,a,b); }
++        { return pair::euler_product_study(self, a, b, _pool); }
+         #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
+         {
+             let count=a.len().max(b.len());if count==0{return a;}
+@@ -1370,7 +1372,7 @@
+                 let b:Vec<_>=(0..len).map(|i|-Fr::from(i as u64+seed+37).pow(&[17])).collect();
+                 let derivative=|v:&[Fr]|{let mut v=v.to_vec();v.resize(n,Fr::ZERO);let mut c=direct.coefficients(&v);for(k,c)in c.iter_mut().enumerate(){*c*=Fr::from(k as u64);}Direct::evaluate(&c,root,Fr::ONE)};
+                 let da=derivative(&a);let db=derivative(&b);let expected:Vec<_>=(0..len).map(|i|Fr::from(n as u64)*(da[i]*b[i]+a[i]*db[i])).collect();
+-                assert_eq!(plan.euler_product_values(a,b),expected);count+=1;
++                assert_eq!(plan.euler_product_values(a,b,None),expected);count+=1;
+             }}
+         }
+         assert_eq!(count,27);println!("EULER_PORTABLE_IDENTITIES={count}");
+--- a/crates/zopro-core/src/lagrange.rs
++++ b/crates/zopro-core/src/lagrange.rs
+@@ -598,10 +598,12 @@
+ }
+ 
+ impl Queries {
+-    pub(super) fn product_values(&self,plan:&fft::Plan,a:Vec<Fr>,b:Vec<Fr>)->Vec<Fr> {
++    pub(super) fn product_values(
++        &self, plan: &fft::Plan, a: Vec<Fr>, b: Vec<Fr>, pool: Option<&rayon::ThreadPool>,
++    ) -> Vec<Fr> {
+         if self.euler {
+             if std::env::var_os("ZOPRO_EULER_TRACE").is_some(){eprintln!("EULER_PRODUCT rows={} domain={}",a.len().max(b.len()),plan.size());}
+-            plan.euler_product_values(a,b)
++            plan.euler_product_values(a, b, pool)
+         } else {plan.coset_product_ordered(a,b,self.fused_product)}
+     }
+ }
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1846,7 +1846,14 @@
+             if let (Some(folded), Some(public)) = (&queries.folded, public) {
+                 drop(c);
+                 let started = crate::time::Instant::now();
+-                let mut product = queries.product_values(&self.plan,a,b);
++                #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++                let pool = self.frontend_pool.as_deref().filter(|pool| {
++                    pool.current_num_threads() < rayon::current_num_threads()
++                        && std::env::var("ZOPRO_CPU_FFT_PRODUCT_FRONTEND").as_deref() == Ok("1")
++                });
++                #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
++                let pool = None;
++                let mut product = queries.product_values(&self.plan, a, b, pool);
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+@@ -1869,7 +1876,7 @@
+                 return Ok(out);
+             }
+             let started = crate::time::Instant::now();
+-            let mut product = queries.product_values(&self.plan,a,b);
++            let mut product = queries.product_values(&self.plan, a, b, None);
+             let started = trace("quotient-product", started);
+             let (((ar, bs1), (kr, (positive, bs2))), negative) = rayon::join(
+                 || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b),
+@@ -2257,7 +2264,7 @@
+                 #[cfg(zopro_bounded_gather)]
+                 {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
+             };
+-            let product = queries.product_values(&self.plan, a, b);
++            let product = queries.product_values(&self.plan, a, b, None);
+             Ok((w, sa_vec, sb_vec, product, correction))
+         };
+         let (w, sa_vec, mut sb_vec, mut product, correction) =
+@@ -2436,7 +2443,7 @@
+         // The arbitrary-parts API does not promise that C is the solver's C.
+         // Restore K and H independently; do not assume a satisfied witness.
+         let cp=plan.basis_c_private(sk);
+-        let correction_values=if q.euler{self.plan.euler_product_values(cp,vec![Fr::ONE;self.domain])}else{self.plan.coset_product(cp,vec![Fr::ONE;self.domain])};
++        let correction_values=if q.euler{self.plan.euler_product_values(cp,vec![Fr::ONE;self.domain],None)}else{self.plan.coset_product(cp,vec![Fr::ONE;self.domain])};
+         let correction=q.finish_product(msm_g1(&q.product,&correction_values));
+         drop(correction_values);
+         let mut product=if q.euler {
+@@ -2482,7 +2489,10 @@
+     /// Use a shared pool for the native IFMA canonical witness and FFT stages.
+     /// The pool is used when it has fewer workers than the current Rayon pool.
+     /// With `ZOPRO_CPU_SOLVER_FRONTEND=1`, the general CPU witness interpreter
+-    /// also uses this pool. Passing `None` restores execution in the current pool.
++    /// also uses this pool. `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1` dispatches the
++    /// folded packed Euler product to this pool on native IFMA builds. The
++    /// caller allocates its temporary output before dispatch. Passing `None`
++    /// restores execution in the current pool.
+     pub fn set_frontend_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
+         self.frontend_pool = pool;
+     }
+--- a/crates/zopro-prover/src/lib.rs
++++ b/crates/zopro-prover/src/lib.rs
+@@ -90,7 +90,10 @@
+ impl Prover {
+     /// Share a smaller Rayon pool across provers for native IFMA canonical
+     /// witness solving and FFT preparation. With `ZOPRO_CPU_SOLVER_FRONTEND=1`,
+-    /// general CPU solver instructions also use this pool. Pass `None` to detach it.
++    /// general CPU solver instructions also use this pool. With
++    /// `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1`, folded packed Euler products
++    /// use this pool and allocate their temporary output before dispatch.
++    /// Pass `None` to detach it.
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     pub fn set_frontend_pool(
+         &mut self,
