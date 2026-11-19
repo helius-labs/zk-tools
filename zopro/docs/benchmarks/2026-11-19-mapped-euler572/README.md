@@ -14,4 +14,13 @@ Five randomized pairs compare complete ordinary and transformed SDK runs on the 
 | Original | 950 | 3 / 3 | 141.048 / 131.761 | -6.97% (3/3) | 631.465 / 624.254 |
 | Original | 1536 | 3 / 3 | 129.265 / 120.981 | -7.52% (3/3) | 825.684 / 815.891 |
 
+The original uncapped mapped request measured 8.31× the supplied M5 CPU speed and 2.87× the supplied Metal speed (507 ms and 175 ms references). The 10× CPU threshold is 50.7 ms. The image grew by 1,717,502 bytes.
+
+| Enforced cap MiB | Median cgroup peak MiB ordinary / mapped | OOM kills ordinary / mapped |
+|---:|---:|---:|
+| 950 | 391.1 / 393.9 | 0 / 0 |
+| 1536 | 585.5 / 586.8 | 0 / 0 |
+
+The cgroup charges were close across variants, with slightly higher medians for the mapped image at both tested caps.
+
 63 exported proofs verified independently. The converter's full-domain group FFT scratch is charged to the offline process. Generic arbitrary-parts requests are outside the experimental image's supported interface. [Image identities](artifacts/images.json) · [Samples and limit events](artifacts/samples.json.gz) · [Source](artifacts/source.patch) · [Verification](artifacts/verification.json)
