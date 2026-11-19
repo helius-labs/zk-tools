@@ -235,6 +235,9 @@ The general solver also accepts a 12×2 file. At 32 Ryzen workers it reduced
 paired warm latency by 2.90% across eight held-out requests. The file uses
 737,616 bytes and preparation took 64.73 ms per key in that run.
 [12×2 scorecard and public coefficients](docs/benchmarks/2026-11-19-integrated-wire467/README.md)
+The 16×2 profile at 32 Ryzen workers also qualified, with a 2.17% median
+paired improvement across eight held-out requests and a 976,800-byte file.
+[16×2 results and coefficients](docs/benchmarks/2026-11-19-sixteen-wire472/README.md)
 
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
