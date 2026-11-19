@@ -1,0 +1,256 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1164,12 +1164,26 @@
+         if let Some(offsets) = offsets {
+             offsets.apply(&mut w);
+         }
+-        let gather=|| -> (Vec<_>,Vec<_>) {rayon::join(
+-            || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
+-            || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
+-        )};
++        let gather_a = || {
++            #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
++            if omit_b && !self.has_gpu() && affine_msm() && self.equal_witness.is_none()
++                && self.lagrange.as_ref().is_some_and(|q| q.folded.is_some())
++                && plan.b_indices.len().max(w.len() - plan.n_public) >= 1 << 16
++                && crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++                && std::env::var_os("ZOPRO_TRIAL_INDEXED_A").is_some() {
++                if let Some(prepared) = self.trial_a.as_ref()
++                    .and_then(|groups| groups.from_wires(&self.a, &plan.a_indices, &w)) {
++                    return (Vec::new(), Some(prepared));
++                }
++                if std::env::var_os("ZOPRO_TRIAL_A_AUDIT").is_some() { eprintln!("A_DENSE_FALLBACK"); }
++            }
++            (plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(), None)
++        };
++        let gather = || rayon::join(gather_a, || -> Vec<_> {
++            plan.b_indices.par_iter().map(|&i| w[i as usize]).collect()
++        });
+         #[cfg(all(not(target_arch="wasm32"),target_endian="little"))]
+-        let ((mut sa,mut sb),a,b,centered)={
++        let (((mut sa,prepared_a),mut sb),a,b,centered)={
+             let mut a=a;let mut b=b;
+             let (vectors,centered)=if let Some(q)=self.lagrange.as_ref().filter(|q|
+                 q.euler && q.folded.is_some() && !self.has_gpu() &&
+@@ -1180,7 +1194,7 @@
+             (vectors,a,b,centered)
+         };
+         #[cfg(not(all(not(target_arch="wasm32"),target_endian="little")))]
+-        let ((mut sa,mut sb),centered)=(gather(),false);
++        let (((mut sa,prepared_a),mut sb),centered)=(gather(),false);
+         trace("extract-scalars", started);
+         let (public, private) = w.split_at_mut(plan.n_public);
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -1188,7 +1202,7 @@
+             // The folded public term still needs the original public values.
+             offsets.restore_public(public);
+         }
+-        self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b, centered)
++        self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b, centered, prepared_a)
+     }
+     pub fn commitment(
+         &self,
+@@ -1231,7 +1245,7 @@
+         }
+         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
+         let (mut sa, mut sb, mut sk) = (frs(sa), frs(sb), frs(sk));
+-        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false, false)
++        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false, false, None)
+             .map_err(|e| JsError::new(&e))
+     }
+ }
+@@ -1605,6 +1619,7 @@
+         public: Option<&[Fr]>,
+         omit_b: bool,
+         centered: bool,
++        prepared_a: Option<groups_g1_trial::PreparedA<'_>>,
+     ) -> Result<Vec<u8>, String> {
+         #[cfg(gpu)]
+         if let Some(gpu) = &self.gpu {
+@@ -1874,7 +1889,7 @@
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+-                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
++                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b, prepared_a),
+                     || folded.public_term(public),
+                 );
+                 #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -1896,7 +1911,7 @@
+             let mut product = queries.product_values(&self.plan,a,b);
+             let started = trace("quotient-product", started);
+             let (((ar, bs1), (kr, (positive, bs2))), negative) = rayon::join(
+-                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b),
++                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b, None),
+                 || msm_g1(&queries.constraints[..c.len()], &c),
+             );
+             trace("msms", started);
+@@ -1917,7 +1932,7 @@
+         let trace_scalars = std::env::var("ZOPRO_TRACE_MSMS")
+             .is_ok_and(|v| v == "1")
+             .then(|| (sa.to_vec(), sb.to_vec(), sk.to_vec(), h.to_vec()));
+-        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b);
++        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b, None);
+         trace("msms", started);
+         // Each MSM alone, on the whole pool, for its own share: this adds
+         // to the proof time, so only with ZOPRO_TRACE_MSMS=1.
+@@ -1961,6 +1976,7 @@
+         k: &[G1Affine],
+         folded_k: bool,
+         omit_b: bool,
++        prepared_a: Option<groups_g1_trial::PreparedA<'_>>,
+     ) -> (
+         (G1Projective, G1Projective),
+         (G1Projective, (G1Projective, G2Projective)),
+@@ -2044,7 +2060,7 @@
+                 || {
+                     rayon::join(
+                         || rayon::join(
+-                            || if omit_b && folded_k {self.trial_a.as_ref().and_then(|q|q.query(&self.a,sa)).unwrap_or_else(||msm(&self.a,sa))} else {msm(&self.a,sa)},
++                            || if let Some(prepared) = prepared_a { prepared.evaluate() } else if omit_b && folded_k {self.trial_a.as_ref().and_then(|q|q.query(&self.a,sa)).unwrap_or_else(||msm(&self.a,sa))} else {msm(&self.a,sa)},
+                             || if omit_b && folded_k {self.trial_k.as_ref().and_then(|q|q.query(k,sk)).unwrap_or_else(||msm(k,sk))} else {msm(k,sk)}
+                         ),
+                         || {
+@@ -2499,7 +2515,7 @@
+             let c_coset=self.plan.coset_product(c,vec![Fr::ONE;self.domain]);
+             product.par_iter_mut().zip(c_coset.par_iter()).for_each(|(p,c)|*p-=*c);product
+         };
+-        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b);
++        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b,None);
+         let mut out=Vec::with_capacity(384);for p in [ar,bs1,kr+correction,q.finish_product(hz)]{output_g1(&mut out,p);}output_g2(&mut out,bs2);Ok(out)
+     }
+ }
+--- a/crates/zopro-core/src/groups_g1_trial.rs
++++ b/crates/zopro-core/src/groups_g1_trial.rs
+@@ -11,6 +11,31 @@
+ 
+ fn u32at(bytes: &[u8], offset: usize) -> u32 {
+     u32::from_le_bytes(bytes[offset..offset + 4].try_into().unwrap())
++}
++
++/// Request-specific representatives and exact residuals for the A query.
++pub(super) struct PreparedA<'a> {
++    bases: &'a [G1Affine],
++    words: Vec<[u64; 4]>,
++    extra_points: Vec<G1Affine>,
++    extra_words: Vec<[u64; 4]>,
++    adaptive: bool,
++    _held: Reservation,
++}
++
++impl PreparedA<'_> {
++    pub fn evaluate(&self) -> G1Projective {
++        let (grouped, corrections) = rayon::join(
++            || msm_affine::msm_canonical(self.bases, &self.words),
++            || {
++                if self.extra_words.is_empty() { G1Projective::IDENTITY }
++                else if self.adaptive && self.extra_words.len() >= 256 {
++                    msm_affine::msm_canonical(&self.extra_points, &self.extra_words)
++                } else { msm_affine::msm_raw(&self.extra_points, &self.extra_words) }
++            }
++        );
++        grouped + corrections
++    }
+ }
+ 
+ impl Groups {
+@@ -68,10 +93,10 @@
+         &self.ids[start..self.ends[g]]
+     }
+ 
+-    fn choose(&self, rows: &[u32], scalars: &[Fr], adaptive: bool) -> (u32, u32) {
++    fn choose(&self, rows: &[u32], get: impl Fn(u32) -> Fr, adaptive: bool) -> (u32, u32) {
+         let first = rows[0];
+-        let initial = scalars[first as usize];
+-        let differences = rows[1..].iter().filter(|&&i| scalars[i as usize] != initial).count();
++        let initial = get(first);
++        let differences = rows[1..].iter().filter(|&&i| get(i) != initial).count();
+         if !adaptive || differences * 2 <= rows.len() {
+             return (first, differences as u32);
+         }
+@@ -82,20 +107,73 @@
+             if balance == 0 {
+                 representative = index;
+                 balance = 1;
+-            } else if scalars[index as usize] == scalars[representative as usize] {
++            } else if get(index) == get(representative) {
+                 balance += 1;
+             } else {
+                 balance -= 1;
+             }
+         }
+-        let alternative = scalars[representative as usize];
++        let alternative = get(representative);
+         if balance > 0 && alternative != initial {
+-            let count = rows.iter().filter(|&&i| scalars[i as usize] != alternative).count();
++            let count = rows.iter().filter(|&&i| get(i) != alternative).count();
+             if count < differences {
+                 return (representative, count as u32);
+             }
+         }
+         (first, differences as u32)
++    }
++
++    pub fn from_wires<'a>(&'a self, bases: &[G1Affine], indices: &[u32], wires: &[Fr]) -> Option<PreparedA<'a>> {
++        if bases.len() != indices.len() { return None; }
++        let get = |index: u32| wires[indices[index as usize] as usize];
++        if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
++            let samples = self.ends.len().min(32);
++            let (mut misses, mut members) = (0, 0);
++            for bucket in 0..samples {
++                let rows = self.members((2 * bucket + 1) * self.ends.len() / (2 * samples));
++                let first = get(rows[0]);
++                members += rows.len() - 1;
++                misses += rows[1..].iter().filter(|&&i| get(i) != first).count();
++            }
++            if misses * 4 > members { return None; }
++        }
++        let adaptive = std::env::var_os("ZOPRO_ADAPTIVE_CORRECTIONS").is_some();
++        let _choices = Reservation::analysis(self.ends.len().checked_mul(8)?.checked_add(256))?;
++        let choices: Vec<_> = (0..self.ends.len()).into_par_iter()
++            .map(|g| self.choose(self.members(g), get, adaptive)).collect();
++        let count: usize = choices.iter().map(|&(_, diff)| diff as usize).sum();
++        if count > self.ids.len() / 16 { return None; }
++        let bytes = self.sources.len().checked_mul(32)?.checked_add(count.checked_mul(96)?)?;
++        let held = Reservation::analysis(bytes.checked_add(512))?;
++        let (words,(extra_points, extra_words)) = rayon::join(
++            || self.sources.par_iter().enumerate().map(|(g,&source)| {
++                get(choices.get(g).map_or(source, |c| c.0)).to_canonical()
++            }).collect(),
++            || {
++                let mut points = Vec::with_capacity(count);
++                let mut words = Vec::with_capacity(count);
++                for (g, &(selected, diff)) in choices.iter().enumerate() {
++                    if diff == 0 { continue; }
++                    let rep = get(selected);
++                    for &i in self.members(g) {
++                        let value = get(i);
++                        if value != rep {
++                            points.push(bases[i as usize]);
++                            words.push((value - rep).to_canonical());
++                        }
++                    }
++                }
++                debug_assert_eq!(points.len(), count);
++                (points, words)
++            }
++        );
++        let result = PreparedA { bases: &self.sums, words, extra_points, extra_words, adaptive, _held: held };
++        if std::env::var_os("ZOPRO_TRIAL_A_AUDIT").is_some() {
++            let dense: Vec<_> = indices.par_iter().map(|&i| wires[i as usize].to_canonical()).collect();
++            assert_eq!(result.evaluate().to_affine(), msm_affine::msm_canonical(bases, &dense).to_affine());
++            eprintln!("A_FROM_WIRES {} {} {} {}", indices.len(), self.sources.len(), count, bytes);
++        }
++        Some(result)
+     }
+ 
+     pub fn query(&self, bases:&[G1Affine], scalars:&[Fr]) -> Option<G1Projective> {
+@@ -118,7 +196,7 @@
+         let adaptive = std::env::var_os("ZOPRO_ADAPTIVE_CORRECTIONS").is_some();
+         let _flags=Reservation::analysis(self.ends.len().checked_mul(8)?.checked_add(256))?;
+         let choices: Vec<(u32,u32)> = (0..self.ends.len()).into_par_iter()
+-            .map(|g| self.choose(self.members(g), scalars, adaptive)).collect();
++            .map(|g| self.choose(self.members(g), |i| scalars[i as usize], adaptive)).collect();
+         let count:usize=choices.iter().map(|&(_,count)|count as usize).sum();
+         if count>self.ids.len()/16 { return None; }
+         let _scratch=Reservation::analysis(count.checked_mul(96)?.checked_add(self.sources.len()*32+512))?;
