@@ -1692,6 +1692,7 @@ pub(super) fn canonical_exclusive(scalars: &mut [Fr]) -> &mut [[u64; 4]] {
 pub(super) fn owned_grouped_phi(
     bases: &[zopro_bn254::G2Affine],
     groups: ScalarGroups,
+    frontend: Option<&rayon::ThreadPool>,
 ) -> zopro_bn254::G2Projective {
     use rayon::prelude::*;
     if !(1024..65536).contains(&groups.values.len()) {
@@ -1705,6 +1706,16 @@ pub(super) fn owned_grouped_phi(
         || values.par_iter_mut().with_min_len(128).for_each(|s| *s = g2_phi::phi_split(*s)),
     );
     // Group index vectors have dropped. Keep the reservation through the MSM.
+    #[cfg(all(zopro_resource_schedule, target_os = "linux"))]
+    if let Some(pool) = frontend.filter(|p| p.current_num_threads() < rayon::current_num_threads()) {
+        let bytes =
+            workspace::grouped_auxiliary_window_bytes(values.len(), pool.current_num_threads());
+        if let Some(_scratch) = crate::preparation::Reservation::analysis(bytes) {
+            return pool.install(|| g2_phi::from_split(&points, &values, 12, 2));
+        }
+    }
+    #[cfg(not(all(zopro_resource_schedule, target_os = "linux")))]
+    let _ = frontend;
     g2_phi::from_split(&points, &values, 12, 2)
 }
 

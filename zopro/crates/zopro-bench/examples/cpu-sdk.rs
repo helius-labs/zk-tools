@@ -31,6 +31,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let prover = {
         let mut prover = prover;
         prover.set_frontend_pool(frontend);
+        match std::env::var("ZOPRO_BENCH_GROUPED_G2_FRONTEND").as_deref() {
+            Ok("1") => prover.set_grouped_g2_on_frontend(true),
+            Ok("0") | Err(std::env::VarError::NotPresent) => {}
+            _ => return Err("grouped G2 frontend must be 0 or 1".into()),
+        }
         match std::env::var("ZOPRO_BENCH_PUBLIC_OVERLAP").as_deref() {
             Ok("early") => prover.set_overlap_verification(true),
             Ok("off") => prover.set_overlap_verification(false),

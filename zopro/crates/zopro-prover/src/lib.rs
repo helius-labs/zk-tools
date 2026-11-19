@@ -102,6 +102,14 @@ impl Prover {
         self.key.set_frontend_pool(pool);
     }
 
+    /// Allow final grouped G2 windows to reuse the attached frontend pool on
+    /// native IFMA builds with resource scheduling. The prover checks scratch
+    /// space at dispatch. Enable per key when the two pools use separate cores.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_grouped_g2_on_frontend(&mut self, enabled: bool) {
+        self.key.set_grouped_g2_on_frontend(enabled);
+    }
+
     /// Compute the public-input pairing alongside CPU proof generation for
     /// keys with up to sixteen public inputs. Uses the existing Rayon pool.
     /// The default is sequential verification after generation.

@@ -251,6 +251,17 @@ where
     Some(profile)
 }
 
+// Main-pool siblings can keep their leaves live while the auxiliary pool
+// executes G2. Reserve the full window state for the second pool.
+#[cfg(all(zopro_g2_horner_buckets, target_os = "linux"))]
+pub(super) fn grouped_auxiliary_window_bytes(unique: usize, workers: usize) -> Option<usize> {
+    if !(1024..65536).contains(&unique) || workers == 0 {
+        return None;
+    }
+    let shape = hb_windows::<G2Config>(unique, 12, 2)?;
+    add(shape.held, mul(shape.leaf, workers)?)
+}
+
 // The ordinary forecast already covers 12-bit windows split into two parts.
 // Reserve any additional parent state or per-worker leaf scratch for this call.
 #[cfg(zopro_g2_horner_buckets)]

@@ -809,6 +809,8 @@ pub use rayon::ThreadPool as FrontendThreadPool;
 pub struct Key {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     frontend_pool: Option<std::sync::Arc<FrontendThreadPool>>,
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    grouped_g2_on_frontend: bool,
     basis_only: bool,
     // Audited native workspace, or conservative prompt release when unknown.
     proof_workspace: Option<usize>,
@@ -1514,6 +1516,8 @@ impl Key {
         let mut key = Self {
             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
             frontend_pool: None,
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            grouped_g2_on_frontend: false,
             basis_only,
             #[cfg(gpu_any)]
             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
@@ -2047,7 +2051,12 @@ impl Key {
                             && self.b2.len() >= 65_536
                             && std::env::var("ZOPRO_CPU_GROUPED_G2_PHI").as_deref() == Ok("1")
                         {
-                            let sum = msm_affine::owned_grouped_phi(&self.b2, groups);
+                            #[cfg(target_os = "linux")]
+                            let pool = self.frontend_pool.as_deref()
+                                .filter(|_| self.grouped_g2_on_frontend);
+                            #[cfg(not(target_os = "linux"))]
+                            let pool = None;
+                            let sum = msm_affine::owned_grouped_phi(&self.b2, groups, pool);
                             return (G1Projective::IDENTITY, sum);
                         }
                         rayon::join(
@@ -2503,6 +2512,13 @@ impl Key {
     /// restores execution in the current pool.
     pub fn set_frontend_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
         self.frontend_pool = pool;
+    }
+
+    /// Allow the final windows of an owned, grouped G2 query to use the
+    /// attached frontend pool. Dispatch requires a smaller pool and sufficient
+    /// additional proof workspace. Disabled by default.
+    pub fn set_grouped_g2_on_frontend(&mut self, enabled: bool) {
+        self.grouped_g2_on_frontend = enabled;
     }
 }
 

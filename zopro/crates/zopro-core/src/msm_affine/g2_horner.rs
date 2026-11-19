@@ -320,10 +320,13 @@ mod tests {
                     scalar.to_canonical()
                 })
                 .collect();
-            let groups = super::super::scalar_groups(&words).unwrap();
-            assert_eq!(groups.values.len(), classes);
-            let sum = super::super::owned_grouped_phi(&bases, groups);
-            assert_eq!(sum.to_affine(), (generator * expected).to_affine());
+            let pool = rayon::ThreadPoolBuilder::new().num_threads(1).build().unwrap();
+            for frontend in [None, Some(&pool)] {
+                let groups = super::super::scalar_groups(&words).unwrap();
+                assert_eq!(groups.values.len(), classes);
+                let sum = super::super::owned_grouped_phi(&bases, groups, frontend);
+                assert_eq!(sum.to_affine(), (generator * expected).to_affine());
+            }
         }
     }
 
