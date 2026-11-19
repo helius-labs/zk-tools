@@ -1,0 +1,204 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -859,6 +859,27 @@
+     #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+     lagrange: Option<lagrange::Queries>,
+ }
++enum SolvedParts {
++    Bytes(Vec<u8>),
++    Fused { a: G1Projective, kh: G1Projective, b2: G2Projective },
++}
++
++impl SolvedParts {
++    fn into_bytes(self) -> Vec<u8> {
++        match self {
++            Self::Bytes(parts) => parts,
++            Self::Fused { a, kh, b2 } => {
++                let mut parts = Vec::with_capacity(384);
++                for point in [a, G1Projective::IDENTITY, kh, G1Projective::IDENTITY] {
++                    output_g1(&mut parts, point);
++                }
++                output_g2(&mut parts, b2);
++                parts
++            }
++        }
++    }
++}
++
+ #[wasm_bindgen]
+ impl Key {
+     #[wasm_bindgen(constructor)]
+@@ -1101,9 +1122,9 @@
+     }
+     /// `solve_parts` for hosts outside JavaScript, with a plain error.
+     pub fn solve(&self, witness: &[u8]) -> Result<Vec<u8>, String> {
+-        self.solve_inner(witness, false)
+-    }
+-    fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<Vec<u8>, String> {
++        self.solve_inner(witness, false).map(SolvedParts::into_bytes)
++    }
++    fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<SolvedParts, String> {
+         #[cfg(all(zopro_small_core_entry, zopro_real_kh, target_arch="x86_64",
+             target_os="linux", target_feature="avx512ifma", target_feature="avx512vl",
+             target_feature="avx512dq", feature="ifma8", not(no_ifma)))]
+@@ -1151,25 +1172,16 @@
+             }
+         }
+         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+-        let solver_placement = self
+-            .frontend_pool
+-            .as_deref()
+-            .filter(|pool| {
+-                !self.has_gpu() && pool.current_num_threads() < rayon::current_num_threads()
+-            })
+-            .and_then(|pool| match std::env::var("ZOPRO_CPU_SOLVER_FRONTEND").as_deref() {
+-                Ok("1") => Some((pool, false)),
+-                Ok("full") => Some((pool, true)),
+-                _ => None,
+-            });
++        let instruction_pool = self.frontend_pool.as_deref().filter(|pool| {
++            !self.has_gpu()
++                && pool.current_num_threads() < rayon::current_num_threads()
++                && std::env::var("ZOPRO_CPU_SOLVER_FRONTEND").as_deref() == Ok("1")
++        });
+         #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+-        let solver_placement: Option<(&rayon::ThreadPool, bool)> = None;
+-        let solve =
+-            |pool| plan.solve_with_pool(&frs(witness), self.domain, slots, materialize_c, pool);
+-        let solver::Solution { mut w, a, b, c } = match solver_placement {
+-            Some((pool, true)) => pool.install(|| solve(None)),
+-            placement => solve(placement.map(|(pool, _)| pool)),
+-        }?;
++        let instruction_pool = None;
++        let solver::Solution { mut w, a, b, c } = plan.solve_with_pool(
++            &frs(witness), self.domain, slots, materialize_c, instruction_pool,
++        )?;
+         if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
+         let started = trace("solve", started);
+         use rayon::prelude::*;
+@@ -1191,6 +1203,7 @@
+             offsets.restore_public(public);
+         }
+         self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
++            .map(SolvedParts::Bytes)
+     }
+     pub fn commitment(
+         &self,
+@@ -2346,7 +2359,7 @@
+ 
+ #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ impl Key {
+-    fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>)->Result<Vec<u8>,String>{
++    fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>)->Result<SolvedParts,String>{
+         #[cfg(not(zopro_bounded_gather))]
+         use rayon::prelude::*;
+         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
+@@ -2433,10 +2446,15 @@
+                 });
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             let (ar,kh,bs2)=offsets.map_or((ar,kh,bs2), |o| (ar+o.a,kh+o.k,bs2+o.b2));
+-            let mut out=Vec::with_capacity(384);
+-            for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY] {output_g1(&mut out,point);}
+-            output_g2(&mut out,bs2);
+-            return Ok(out);
++            static DIRECT: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++            let parts = SolvedParts::Fused { a: ar, kh: kh + correction, b2: bs2 };
++            if *DIRECT.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_DIRECT_PROOF_PARTS").is_some()) {
++                if std::env::var_os("ZOPRO_TRIAL_DIRECT_PROOF_PARTS_TRACE").is_some() {
++                    eprintln!("DIRECT_PROOF_PARTS {}", self.b2.len());
++                }
++                return Ok(parts);
++            }
++            return Ok(SolvedParts::Bytes(parts.into_bytes()));
+         }
+         let (((ar,kr),hz),(bs1,bs2))={
+         let montgomery_h=h.len()>=(1<<18)&&crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
+@@ -2481,7 +2499,7 @@
+ 
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         let (ar,kr,bs2)=offsets.map_or((ar,kr,bs2), |o| (ar+o.a,kr+o.k,bs2+o.b2));
+-        let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(out)
++        let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(SolvedParts::Bytes(out))
+     }
+ }
+ 
+@@ -2499,14 +2517,17 @@
+         if !fixed.rerandomization_key_valid() {
+             return Err("zero delta in proving key".into());
+         }
+-        let parts = self.solve_inner(witness, true)?;
+-        if let Some(proof) = fixed.assemble_rerandomized(&parts) {
++        let assembled = match self.solve_inner(witness, true)? {
++            SolvedParts::Bytes(parts) => fixed.assemble_rerandomized(&parts),
++            SolvedParts::Fused { a, kh, b2 } => fixed.assemble_projective_rerandomized(a, kh, b2),
++        };
++        if let Some(proof) = assembled {
+             return Ok(proof);
+         }
+         // A0 = identity: restore the complete ordinary prover and condition
+         // its fresh output on A != identity, matching the fast distribution.
+         let parts = self.solve_inner(witness, false)?;
+-        Ok(fixed.assemble_nonzero(&parts))
++        Ok(fixed.assemble_nonzero(&parts.into_bytes()))
+     }
+ }
+ 
+@@ -2608,13 +2629,11 @@
+ impl Key {
+     /// Use a shared pool for the native IFMA canonical witness and FFT stages.
+     /// The pool is used when it has fewer workers than the current Rayon pool.
+-    /// With `ZOPRO_CPU_SOLVER_FRONTEND=1`, general CPU solver instructions
+-    /// also use this pool. `ZOPRO_CPU_SOLVER_FRONTEND=full` moves buffer
+-    /// allocation and witness copying to the same pool. Setting
+-    /// `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1` dispatches the folded packed Euler
+-    /// product to this pool on native IFMA builds. The caller allocates its
+-    /// temporary output before dispatch. Passing `None` restores execution
+-    /// in the current pool.
++    /// With `ZOPRO_CPU_SOLVER_FRONTEND=1`, the general CPU witness interpreter
++    /// also uses this pool. `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1` dispatches the
++    /// folded packed Euler product to this pool on native IFMA builds. The
++    /// caller allocates its temporary output before dispatch. Passing `None`
++    /// restores execution in the current pool.
+     pub fn set_frontend_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
+         self.frontend_pool = pool;
+     }
+--- a/crates/zopro-core/src/groth16.rs
++++ b/crates/zopro-core/src/groth16.rs
+@@ -349,6 +349,23 @@
+         let v = uniform_fr();
+         self.rerandomized_with(parts, u, v)
+     }
++    pub(crate) fn assemble_projective_rerandomized(
++        &self, a: G1Projective, c: G1Projective, b: G2Projective,
++    ) -> Option<Vec<u8>> {
++        let a0 = a + self.0.fixed.alpha;
++        if a0.is_identity() {
++            return None;
++        }
++        let u = loop {
++            let u = uniform_fr();
++            if !u.is_zero() {
++                break u;
++            }
++        };
++        let v = uniform_fr();
++        self.emit_rerandomized(a0, b + self.0.fixed.beta2, c, u, u.inverse()?, v)
++    }
++
+     fn rerandomized_with(&self, parts: &[u8], u: Fr, v: Fr) -> Option<Vec<u8>> {
+         assert_eq!(parts.len(), 384);
+         let inverse = u.inverse()?;
+@@ -359,6 +376,13 @@
+         // The B1 bytes are intentionally not read.
+         let c0 = decode_g1(&parts[128..192])[0].to_projective() + decode_g1(&parts[192..256])[0];
+         let b0 = decode_g2(&parts[256..384])[0].to_projective() + self.0.fixed.beta2;
++        self.emit_rerandomized(a0, b0, c0, u, inverse, v)
++    }
++
++    fn emit_rerandomized(
++        &self, a0: G1Projective, b0: G2Projective, c0: G1Projective,
++        u: Fr, inverse: Fr, v: Fr,
++    ) -> Option<Vec<u8>> {
+         let (a, c, b) = self.windowed_outputs(a0, b0, c0, u, inverse, v);
+         let (a, c, b) = (a.to_affine(), c.to_affine(), b.to_affine());
+         let mut out = Vec::with_capacity(256);
