@@ -1,0 +1,226 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -214,15 +214,29 @@
+         short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+     }
+     if std::env::var_os("ZOPRO_TRIAL_G2_BANDS").is_some() {
+-        if let Some(_scratch) = staged_tree::admit(bases.len(), bits, parts) {
+-            if std::env::var_os("ZOPRO_TRIAL_G2_BANDS_PROBE").is_some() {
+-                eprintln!("G2_BANDS {} {} {}", bases.len(), bits, parts);
+-            }
+-            return match (bits, parts) {
+-                (11, 4) => staged_tree::reduce::<11, 4>(bases, short),
+-                (12, 2) => staged_tree::reduce::<12, 2>(bases, short),
++        let whole_band = match std::env::var("ZOPRO_TRIAL_G2_BAND_OWNER").as_deref() {
++            Ok("128") => Some(128),
++            Ok("256") => Some(256),
++            _ => None,
++        };
++        if let Some(_scratch) = staged_tree::admit(bases.len(), bits, parts, whole_band) {
++            let trace = std::env::var_os("ZOPRO_TRIAL_G2_BANDS_PROBE")
++                .is_some()
++                .then(std::time::Instant::now);
++            let result = match (bits, parts, whole_band) {
++                (11, 4, None) => staged_tree::reduce::<11, 4, 0>(bases, short),
++                (12, 2, None) => staged_tree::reduce::<12, 2, 0>(bases, short),
++                (12, 2, Some(128)) => staged_tree::reduce::<12, 2, 128>(bases, short),
++                (12, 2, Some(256)) => staged_tree::reduce::<12, 2, 256>(bases, short),
+                 _ => unreachable!("admitted tree geometry"),
+             };
++            if let Some(start) = trace {
++                eprintln!(
++                    "G2_BAND_OWNER {} {} {} {} {}",
++                    bases.len(), bits, parts, whole_band.unwrap_or(0), start.elapsed().as_nanos()
++                );
++            }
++            return result;
+         }
+     }
+     let chunk = bases.len().div_ceil(parts);
+@@ -293,13 +307,17 @@
+         for workers in [1, 8] {
+             let pool = rayon::ThreadPoolBuilder::new().num_threads(workers).build().unwrap();
+             pool.install(|| {
+-                assert_eq!(staged_tree::reduce::<11,4>(&bases, &words).to_affine(), expected.to_affine());
+-                assert_eq!(staged_tree::reduce::<12,2>(&bases, &words).to_affine(), expected.to_affine());
++                assert_eq!(staged_tree::reduce::<11,4,0>(&bases, &words).to_affine(), expected.to_affine());
++                assert_eq!(staged_tree::reduce::<12,2,0>(&bases, &words).to_affine(), expected.to_affine());
++                assert_eq!(staged_tree::reduce::<12, 2, 128>(&bases, &words).to_affine(), expected.to_affine());
++                assert_eq!(staged_tree::reduce::<12, 2, 256>(&bases, &words).to_affine(), expected.to_affine());
+             });
+         }
+-        assert_eq!(staged_tree::extra_bytes(65536, 96, 11, 4), None);
+-        assert_eq!(staged_tree::extra_bytes(1031, 96, 10, 5), None);
+-        assert!(staged_tree::extra_bytes(1031, 96, 11, 4).is_some());
++        assert_eq!(staged_tree::extra_bytes(65536, 96, 11, 4, None), None);
++        assert_eq!(staged_tree::extra_bytes(1031, 96, 10, 5, None), None);
++        assert!(staged_tree::extra_bytes(1031, 96, 11, 4, None).is_some());
++        assert!(staged_tree::extra_bytes(1031, 96, 12, 2, Some(128)).is_some());
++        assert_eq!(staged_tree::extra_bytes(1031, 96, 11, 4, Some(128)), None);
+     }
+ 
+     #[test]
+--- a/crates/zopro-core/src/msm_affine/g2_phi/staged_tree.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi/staged_tree.rs
+@@ -16,16 +16,21 @@
+ }
+ 
+ /// Additional requested-capacity bound; the original proof forecast is retained.
+-pub(super) fn extra_bytes(n: usize, workers: usize, bits: usize, parts: usize) -> Option<usize> {
++pub(super) fn extra_bytes(n: usize, workers: usize, bits: usize, parts: usize, whole_band: Option<usize>) -> Option<usize> {
+     use super::super::workspace::vector as v;
+     if !(1024..65536).contains(&n) || workers == 0 || !matches!((bits, parts), (11, 4) | (12, 2)) {
+         return None;
+     }
++    let (parts, band) = match whole_band {
++        None => (parts, BAND),
++        Some(128 | 256) if (bits, parts) == (12, 2) => (1, whole_band?),
++        _ => return None,
++    };
+     let buckets = 1 << (bits - 1);
+     let ordinary = 127usize.div_ceil(bits) - 1;
+     let part = n.div_ceil(parts);
+-    let output = add(add(part, 2 * BAND)?.div_ceil(2), 7)?;
+-    let pairs = add(add(part, BAND)?.div_ceil(2), 7)?.next_multiple_of(8);
++    let output = add(add(part, 2 * band)?.div_ceil(2), 7)?;
++    let pairs = add(add(part, band)?.div_ceil(2), 7)?.next_multiple_of(8);
+     let routes = add(
+         v::<u32>(mul(part, 2)?, false)?,
+         mul(v::<usize>(2 * buckets + 1, false)?, 3)?,
+@@ -36,16 +41,16 @@
+     leaf = add(leaf, v::<(u32, &G2Affine)>(pairs, false)?)?;
+     leaf = add(leaf, crate::msm::workspace_batch::<G2Config>(pairs)?)?;
+     leaf = add(leaf, core::mem::size_of::<State>())?;
+-    leaf = add(leaf, core::mem::size_of::<[G2Affine; BAND]>() * 3)?;
+-    leaf = add(leaf, core::mem::size_of::<[usize; BAND]>() * 6)?;
++    leaf = add(leaf, core::mem::size_of::<G2Affine>() * band * 3)?;
++    leaf = add(leaf, core::mem::size_of::<usize>() * band * 6)?;
+     add(held, mul(leaf, workers)?)
+ }
+ 
+-pub(super) fn admit(n: usize, bits: usize, parts: usize) -> Option<Reservation> {
++pub(super) fn admit(n: usize, bits: usize, parts: usize, whole_band: Option<usize>) -> Option<Reservation> {
+     if !BatchAdd::<G2Config>::default().borrowed_g2_enabled() {
+         return None;
+     }
+-    Reservation::analysis(extra_bytes(n, rayon::current_num_threads(), bits, parts))
++    Reservation::analysis(extra_bytes(n, rayon::current_num_threads(), bits, parts, whole_band))
+ }
+ 
+ #[derive(Clone, Copy)]
+@@ -152,13 +157,13 @@
+     (real_pairs, padding)
+ }
+ 
+-fn stage<'a>(
+-    counts: &[usize; BAND],
++fn stage<'a, const WIDTH: usize>(
++    counts: &[usize; WIDTH],
+     get: impl Fn(usize, usize) -> Leaf<'a>,
+     state: &mut State,
+-) -> [usize; BAND] {
++) -> [usize; WIDTH] {
+     let mut counts = *counts;
+-    let mut starts = [0usize; BAND];
++    let mut starts = [0usize; WIDTH];
+     let mut batch = state.pairs.take();
+     let slots = counts.iter().map(|n| n.div_ceil(2)).sum::<usize>();
+     let pair_count = counts.iter().map(|n| n / 2).sum::<usize>();
+@@ -167,7 +172,7 @@
+     state.current.reserve_exact(slots + 7);
+     batch.reserve_exact(pair_count.next_multiple_of(8));
+     let mut exceptional = 0;
+-    for b in 0..BAND {
++    for b in 0..WIDTH {
+         starts[b] = state.current.len();
+         for i in (0..counts[b]).step_by(2) {
+             let left = get(b, i).value();
+@@ -198,9 +203,9 @@
+         state.next.reserve_exact(slots + 7);
+         let mut batch = state.pairs.take();
+         batch.reserve_exact(pair_count.next_multiple_of(8));
+-        let mut next_starts = [0usize; BAND];
++        let mut next_starts = [0usize; WIDTH];
+         let mut exceptional = 0;
+-        for b in 0..BAND {
++        for b in 0..WIDTH {
+             next_starts[b] = state.next.len();
+             for i in (0..counts[b]).step_by(2) {
+                 let left = state.current[starts[b] + i];
+@@ -282,19 +287,24 @@
+     }
+ }
+ 
+-pub(super) fn window<const BITS: usize>(bases: &[G2Affine], short: &[[u64; 4]], w: usize) -> Vec<G2Affine> {
++fn window<const BITS: usize, const WIDTH: usize, const ROUTE_JOIN: bool>(bases: &[G2Affine], short: &[[u64; 4]], w: usize) -> Vec<G2Affine> {
+     assert_eq!(bases.len(), short.len());
+     assert!(bases.len() < 65536 && w + 1 < 127usize.div_ceil(BITS));
+     #[cfg(test)]
+     WINDOW_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+-    let high = Route::new::<BITS>(bases, short, w, true);
+-    let low = Route::new::<BITS>(bases, short, w, false);
++    let high = || Route::new::<BITS>(bases, short, w, true);
++    let low = || Route::new::<BITS>(bases, short, w, false);
++    let (high, low) = if ROUTE_JOIN {
++        rayon::join(high, low)
++    } else {
++        (high(), low())
++    };
+     let mut out = vec![G2Affine::IDENTITY; 1 << (BITS - 1)];
+-    out.par_chunks_mut(BAND)
++    out.par_chunks_mut(WIDTH)
+         .enumerate()
+         .for_each_init(State::default, |state, (band, output)| {
+-            let start = band * BAND;
+-            let hc = core::array::from_fn(|b| high.count(start + b));
++            let start = band * WIDTH;
++            let hc: [usize; WIDTH] = core::array::from_fn(|b| high.count(start + b));
+             let high_indices = stage(&hc, |b, i| high.leaf(bases, start + b, i), state);
+             for (b, root) in output.iter_mut().enumerate() {
+                 *root = if high_indices[b] == usize::MAX {
+@@ -306,7 +316,7 @@
+                     root.x = root.x.mul_by_fp(&BETA);
+                 }
+             }
+-            let lc = core::array::from_fn(|b| low.count(start + b) + usize::from(hc[b] > 0));
++            let lc: [usize; WIDTH] = core::array::from_fn(|b| low.count(start + b) + usize::from(hc[b] > 0));
+             let result = stage(
+                 &lc,
+                 |b, i| {
+@@ -321,7 +331,7 @@
+                 },
+                 state,
+             );
+-            for b in 0..BAND {
++            for b in 0..WIDTH {
+                 output[b] = if result[b] == usize::MAX {
+                     G2Affine::IDENTITY
+                 } else {
+@@ -334,19 +344,25 @@
+ 
+ 
+ 
+-pub(super) fn reduce<const BITS: usize, const PARTS: usize>(
++pub(super) fn reduce<const BITS: usize, const PARTS: usize, const WHOLE_BAND: usize>(
+     bases: &[G2Affine], words: &[[u64; 4]],
+ ) -> zopro_bn254::G2Projective {
+     let windows = 127usize.div_ceil(BITS);
+     let width = bases.len().div_ceil(PARTS);
+     let sums: Vec<_> = (0..windows).into_par_iter().map(|w| {
++        // Each ordinary bucket belongs to a single band over all points.
++        // Preserve the existing point split for the specialized narrow top.
++        if WHOLE_BAND != 0 && w + 1 < windows {
++            let complete = window::<BITS, WHOLE_BAND, true>(bases, words, w);
++            return crate::msm::weighted_affine(&complete);
++        }
+         let mut buckets: Vec<_> = (0..PARTS).into_par_iter().map(|part| {
+             let start = (part * width).min(bases.len());
+             let end = (start + width).min(bases.len());
+             if w + 1 == windows {
+                 super::hb_window(&bases[start..end], &words[start..end], w, BITS)
+             } else {
+-                window::<BITS>(&bases[start..end], &words[start..end], w)
++                window::<BITS, BAND, false>(&bases[start..end], &words[start..end], w)
+             }
+         }).collect();
+         let mut out = buckets.swap_remove(0);
