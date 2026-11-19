@@ -1,0 +1,101 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -241,10 +241,51 @@
+     result
+ }
+ 
++/// Reduce partition pairs as workers finish their independent bucket fills.
++fn tiled(bases: &[G2Affine], short: &mut [[u64; 4]], bits: usize, parts: usize) -> G2Projective {
++    for s in short.iter_mut() { *s = phi_split(*s); }
++    let width = bases.len().div_ceil(parts);
++    let windows = 127usize.div_ceil(bits);
++    let sums: Vec<_> = (0..windows).into_par_iter().map(|w| {
++        let groups = (0..parts).into_par_iter().map(|part| {
++            let start = (part * width).min(bases.len());
++            let end = (start + width).min(bases.len());
++            hb_window(&bases[start..end], &short[start..end], w, bits)
++        }).reduce_with(|mut left, right| {
++            merge_buckets(&mut left, &right);
++            left
++        }).expect("nonzero partition count");
++        crate::msm::weighted_affine(&groups)
++    }).collect();
++    let mut result = G2Projective::IDENTITY;
++    for sum in sums.iter().rev() {
++        for _ in 0..bits { result = result.double(); }
++        result += sum;
++    }
++    result
++}
+ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Projective {
+     assert_eq!(bases.len(), words.len());
+     if !(MIN_QUERY..MAX_QUERY).contains(&bases.len()) {
+         return super::g2_horner::raw(bases, words);
++    }
++    #[cfg(zopro_resource_schedule)]
++    if let Ok(mode) = std::env::var("ZOPRO_TRIAL_G2_TILES") {
++        let geometry = match mode.as_str() {
++            "10x8" => Some((10, 8)),
++            "11x8" => Some((11, 8)),
++            "10x12" => Some((10, 12)),
++            _ => None,
++        };
++        if let Some((bits, parts)) = geometry {
++            let charge = super::workspace::range_growth(bases.len(), rayon::current_num_threads(), bits, parts);
++            if let Some(_hold) = crate::preparation::Reservation::analysis(charge) {
++                if std::env::var_os("ZOPRO_TRIAL_G2_TILES_PROBE").is_some() {
++                    eprintln!("G2_TILES {} {} {}", bases.len(), bits, parts);
++                }
++                return tiled(bases, words, bits, parts);
++            }
++        }
+     }
+     #[cfg(zopro_resource_schedule)]
+     if rayon::current_num_threads() >= 32
+@@ -262,6 +303,29 @@
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    #[test]
++    fn tiled_scalar_msm_matches_the_independent_generator_sum() {
++        let mut bases = Vec::new();
++        let mut words = Vec::new();
++        let mut expected = G2Projective::IDENTITY;
++        let mut x = Fr::from(37638u64);
++        for i in 0..1027 {
++            x = x.square() + Fr::from(i as u64 + 1);
++            let value = match i % 7 { 0 => Fr::ZERO, 1 => -Fr::ONE, _ => x };
++            let base = match i % 4 { 0 => G2Affine::IDENTITY, 1 => -G2Affine::GENERATOR, _ => G2Affine::GENERATOR };
++            words.push(value.to_canonical());
++            bases.push(base);
++            expected += base * value;
++        }
++        for n in [1,8] {
++            let pool = rayon::ThreadPoolBuilder::new().num_threads(n).build().unwrap();
++            for (bits, parts) in [(10,8), (11,8), (10,12)] {
++                let result = pool.install(|| tiled(&bases, &mut words.clone(), bits, parts));
++                assert_eq!(result.to_affine(), expected.to_affine());
++            }
++        }
++    }
++
+     #[test]
+     fn decomposition_and_endomorphism_match_independent_field_oracles() {
+         let lambda = Fr::from_decimal("4407920970296243842393367215006156084916469457145843978461");
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -255,8 +255,13 @@
+ // Reserve any additional parent state or per-worker leaf scratch for this call.
+ #[cfg(zopro_g2_horner_buckets)]
+ pub(super) fn four_range_growth(n: usize, workers: usize) -> Option<usize> {
++    range_growth(n, workers, 11, 4)
++}
++
++#[cfg(zopro_g2_horner_buckets)]
++pub(super) fn range_growth(n: usize, workers: usize, bits: usize, parts: usize) -> Option<usize> {
+     let original = hb_windows::<G2Config>(n, 12, 2)?;
+-    let proposed = hb_windows::<G2Config>(n, 11, 4)?;
++    let proposed = hb_windows::<G2Config>(n, bits, parts)?;
+     add(
+         proposed.held.saturating_sub(original.held),
+         mul(proposed.leaf.saturating_sub(original.leaf), workers)?,
