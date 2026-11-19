@@ -1,0 +1,428 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -189,6 +189,8 @@
+     state.flush_queue();
+     affine_buckets(state)
+ }
++mod staged_tree;
++
+ pub(super) fn hb_raw(bases: &[G2Affine], short: &mut [[u64; 4]], bits: usize, parts: usize) -> G2Projective {
+     hb_raw_decomposition(bases, short, bits, parts, false)
+ }
+@@ -210,6 +212,18 @@
+         short.par_iter_mut().with_min_len(128).for_each(|s| *s = phi_split(*s));
+         #[cfg(not(zopro_phi_grain))]
+         short.par_iter_mut().for_each(|s| *s = phi_split(*s));
++    }
++    if std::env::var_os("ZOPRO_TRIAL_G2_BANDS").is_some() {
++        if let Some(_scratch) = staged_tree::admit(bases.len(), bits, parts) {
++            if std::env::var_os("ZOPRO_TRIAL_G2_BANDS_PROBE").is_some() {
++                eprintln!("G2_BANDS {} {} {}", bases.len(), bits, parts);
++            }
++            return match (bits, parts) {
++                (11, 4) => staged_tree::reduce::<11, 4>(bases, short),
++                (12, 2) => staged_tree::reduce::<12, 2>(bases, short),
++                _ => unreachable!("admitted tree geometry"),
++            };
++        }
+     }
+     let chunk = bases.len().div_ceil(parts);
+     let windows = 127usize.div_ceil(bits);
+@@ -263,6 +277,32 @@
+ mod tests {
+     use super::*;
+     #[test]
++    fn banded_g2_matches_full_width_scalars_in_both_geometries() {
++        let mut bases = Vec::new();
++        let mut words = Vec::new();
++        let mut expected = G2Projective::IDENTITY;
++        let mut scalar = Fr::from(41785u64);
++        for i in 0..1031 {
++            scalar = scalar.square() + Fr::from(i as u64 + 1);
++            let value = match i % 9 { 0 => Fr::ZERO, 1 => -Fr::ONE, 2 => Fr::ONE, _ => scalar };
++            let base = match i % 5 { 0 => G2Affine::IDENTITY, 1 => -G2Affine::GENERATOR, _ => G2Affine::GENERATOR };
++            words.push(phi_split(value.to_canonical()));
++            bases.push(base);
++            expected += base * value;
++        }
++        for workers in [1, 8] {
++            let pool = rayon::ThreadPoolBuilder::new().num_threads(workers).build().unwrap();
++            pool.install(|| {
++                assert_eq!(staged_tree::reduce::<11,4>(&bases, &words).to_affine(), expected.to_affine());
++                assert_eq!(staged_tree::reduce::<12,2>(&bases, &words).to_affine(), expected.to_affine());
++            });
++        }
++        assert_eq!(staged_tree::extra_bytes(65536, 96, 11, 4), None);
++        assert_eq!(staged_tree::extra_bytes(1031, 96, 10, 5), None);
++        assert!(staged_tree::extra_bytes(1031, 96, 11, 4).is_some());
++    }
++
++    #[test]
+     fn decomposition_and_endomorphism_match_independent_field_oracles() {
+         let lambda = Fr::from_decimal("4407920970296243842393367215006156084916469457145843978461");
+         let mut values = vec![
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/g2_phi/staged_tree.rs
+@@ -0,0 +1,362 @@
++//! Proof-local balanced borrowed G2 bucket fills. No persistent point state.
++use super::{hb_digit, BETA};
++use crate::{msm::BatchAdd, preparation::Reservation};
++use rayon::prelude::*;
++use zopro_bn254::{G2Affine, G2Config};
++
++const BAND: usize = 256;
++#[cfg(test)]
++static WINDOW_CALLS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
++
++fn add(a: usize, b: usize) -> Option<usize> {
++    a.checked_add(b)
++}
++fn mul(a: usize, b: usize) -> Option<usize> {
++    a.checked_mul(b)
++}
++
++/// Additional requested-capacity bound; the original proof forecast is retained.
++pub(super) fn extra_bytes(n: usize, workers: usize, bits: usize, parts: usize) -> Option<usize> {
++    use super::super::workspace::vector as v;
++    if !(1024..65536).contains(&n) || workers == 0 || !matches!((bits, parts), (11, 4) | (12, 2)) {
++        return None;
++    }
++    let buckets = 1 << (bits - 1);
++    let ordinary = 127usize.div_ceil(bits) - 1;
++    let part = n.div_ceil(parts);
++    let output = add(add(part, 2 * BAND)?.div_ceil(2), 7)?;
++    let pairs = add(add(part, BAND)?.div_ceil(2), 7)?.next_multiple_of(8);
++    let routes = add(
++        v::<u32>(mul(part, 2)?, false)?,
++        mul(v::<usize>(2 * buckets + 1, false)?, 3)?,
++    )?;
++    // Count returned affine buckets as well, conservatively above the old floor.
++    let held = mul(add(routes, v::<G2Affine>(buckets, false)?)?, mul(ordinary, parts)?)?;
++    let mut leaf = mul(v::<G2Affine>(output, false)?, 2)?;
++    leaf = add(leaf, v::<(u32, &G2Affine)>(pairs, false)?)?;
++    leaf = add(leaf, crate::msm::workspace_batch::<G2Config>(pairs)?)?;
++    leaf = add(leaf, core::mem::size_of::<State>())?;
++    leaf = add(leaf, core::mem::size_of::<[G2Affine; BAND]>() * 3)?;
++    leaf = add(leaf, core::mem::size_of::<[usize; BAND]>() * 6)?;
++    add(held, mul(leaf, workers)?)
++}
++
++pub(super) fn admit(n: usize, bits: usize, parts: usize) -> Option<Reservation> {
++    if !BatchAdd::<G2Config>::default().borrowed_g2_enabled() {
++        return None;
++    }
++    Reservation::analysis(extra_bytes(n, rayon::current_num_threads(), bits, parts))
++}
++
++#[derive(Clone, Copy)]
++struct Leaf<'a> {
++    point: &'a G2Affine,
++    negative: bool,
++}
++impl Leaf<'_> {
++    fn value(self) -> G2Affine {
++        if self.negative {
++            -*self.point
++        } else {
++            *self.point
++        }
++    }
++}
++
++// The zero-length output carries no old references. Allocation reuse is an
++// optimization; Rust's lifetime checking, not that optimization, provides safety.
++fn empty<'old, 'new>(batch: Vec<(u32, &'old G2Affine)>) -> Vec<(u32, &'new G2Affine)> {
++    batch
++        .into_iter()
++        .map(|_| -> (u32, &'new G2Affine) { unreachable!("take(0)") })
++        .take(0)
++        .collect()
++}
++#[derive(Default)]
++struct PairStorage(Vec<(u32, &'static G2Affine)>);
++impl PairStorage {
++    fn take<'a>(&mut self) -> Vec<(u32, &'a G2Affine)> {
++        debug_assert!(self.0.is_empty());
++        empty(core::mem::take(&mut self.0))
++    }
++    fn restore(&mut self, batch: Vec<(u32, &G2Affine)>) {
++        self.0 = empty(batch);
++    }
++}
++#[derive(Default)]
++struct State {
++    current: Vec<G2Affine>,
++    next: Vec<G2Affine>,
++    pairs: PairStorage,
++    adder: BatchAdd<G2Config>,
++    #[cfg(test)]
++    stats: Stats,
++}
++#[cfg(test)]
++#[derive(Default, Clone, Debug)]
++struct Stats {
++    calls: usize,
++    real_pairs: usize,
++    dummy_pairs: usize,
++    exceptional: usize,
++}
++
++fn append<'a>(
++    out: &mut Vec<G2Affine>,
++    batch: &mut Vec<(u32, &'a G2Affine)>,
++    left: G2Affine,
++    right: Leaf<'a>,
++) -> bool {
++    if left.is_identity() {
++        out.push(right.value());
++        return true;
++    }
++    if right.point.is_identity() {
++        out.push(left);
++        return true;
++    }
++    if left.x == right.point.x {
++        out.push((left + right.value()).to_affine());
++        return true;
++    }
++    let index = u32::try_from(out.len()).unwrap();
++    assert!(index < 0x8000_0000);
++    out.push(left);
++    batch.push((
++        index | if right.negative { 1 << 31 } else { 0 },
++        right.point,
++    ));
++    false
++}
++fn execute(
++    out: &mut Vec<G2Affine>,
++    batch: &mut Vec<(u32, &G2Affine)>,
++    adder: &mut BatchAdd<G2Config>,
++) -> (usize, usize) {
++    let real_pairs = batch.len();
++    if real_pairs == 0 {
++        return (0, 0);
++    }
++    let real_outputs = out.len();
++    let (encoded, right) = batch[0];
++    let left = out[(encoded & 0x7fff_ffff) as usize];
++    let padding = (8 - real_pairs % 8) % 8;
++    for _ in 0..padding {
++        let index = u32::try_from(out.len()).unwrap();
++        out.push(left);
++        batch.push((index | (encoded & 0x8000_0000), right));
++    }
++    assert_eq!(batch.len() % 8, 0);
++    adder.apply_signed_borrowed_g2(out, batch);
++    out.truncate(real_outputs);
++    (real_pairs, padding)
++}
++
++fn stage<'a>(
++    counts: &[usize; BAND],
++    get: impl Fn(usize, usize) -> Leaf<'a>,
++    state: &mut State,
++) -> [usize; BAND] {
++    let mut counts = *counts;
++    let mut starts = [0usize; BAND];
++    let mut batch = state.pairs.take();
++    let slots = counts.iter().map(|n| n.div_ceil(2)).sum::<usize>();
++    let pair_count = counts.iter().map(|n| n / 2).sum::<usize>();
++    state.current.clear();
++    state.next.clear();
++    state.current.reserve_exact(slots + 7);
++    batch.reserve_exact(pair_count.next_multiple_of(8));
++    let mut exceptional = 0;
++    for b in 0..BAND {
++        starts[b] = state.current.len();
++        for i in (0..counts[b]).step_by(2) {
++            let left = get(b, i).value();
++            if i + 1 < counts[b] {
++                exceptional +=
++                    usize::from(append(&mut state.current, &mut batch, left, get(b, i + 1)));
++            } else {
++                state.current.push(left);
++            }
++        }
++        counts[b] = counts[b].div_ceil(2);
++    }
++    let metrics = execute(&mut state.current, &mut batch, &mut state.adder);
++    #[cfg(test)]
++    {
++        state.stats.calls += usize::from(metrics.0 > 0);
++        state.stats.real_pairs += metrics.0;
++        state.stats.dummy_pairs += metrics.1;
++        state.stats.exceptional += exceptional;
++    }
++    #[cfg(not(test))]
++    let _ = (metrics, exceptional);
++    state.pairs.restore(batch);
++    while counts.iter().any(|&n| n > 1) {
++        let slots = counts.iter().map(|n| n.div_ceil(2)).sum::<usize>();
++        let pair_count = counts.iter().map(|n| n / 2).sum::<usize>();
++        state.next.clear();
++        state.next.reserve_exact(slots + 7);
++        let mut batch = state.pairs.take();
++        batch.reserve_exact(pair_count.next_multiple_of(8));
++        let mut next_starts = [0usize; BAND];
++        let mut exceptional = 0;
++        for b in 0..BAND {
++            next_starts[b] = state.next.len();
++            for i in (0..counts[b]).step_by(2) {
++                let left = state.current[starts[b] + i];
++                if i + 1 < counts[b] {
++                    let right = Leaf {
++                        point: &state.current[starts[b] + i + 1],
++                        negative: false,
++                    };
++                    exceptional += usize::from(append(&mut state.next, &mut batch, left, right));
++                } else {
++                    state.next.push(left);
++                }
++            }
++            counts[b] = counts[b].div_ceil(2);
++        }
++        let metrics = execute(&mut state.next, &mut batch, &mut state.adder);
++        #[cfg(test)]
++        {
++            state.stats.calls += usize::from(metrics.0 > 0);
++            state.stats.real_pairs += metrics.0;
++            state.stats.dummy_pairs += metrics.1;
++            state.stats.exceptional += exceptional;
++        }
++        #[cfg(not(test))]
++        let _ = (metrics, exceptional);
++        state.pairs.restore(batch);
++        core::mem::swap(&mut state.current, &mut state.next);
++        starts = next_starts;
++    }
++    core::array::from_fn(|b| {
++        if counts[b] == 0 {
++            usize::MAX
++        } else {
++            starts[b]
++        }
++    })
++}
++
++struct Route {
++    order: Vec<u32>,
++    starts: Vec<usize>,
++}
++impl Route {
++    fn new<const BITS: usize>(bases: &[G2Affine], short: &[[u64; 4]], w: usize, high: bool) -> Self {
++        let buckets = 1 << (BITS - 1);
++        let mut counts = vec![0usize; buckets];
++        for (p, s) in bases.iter().zip(short) {
++            let d = hb_digit(s, high, w, BITS);
++            if d != 0 && !p.is_identity() {
++                counts[d.unsigned_abs() as usize - 1] += 1;
++            }
++        }
++        let mut starts = Vec::with_capacity(buckets + 1);
++        starts.push(0);
++        for n in counts {
++            starts.push(starts.last().unwrap() + n);
++        }
++        let mut positions = starts[..buckets].to_vec();
++        let mut order = vec![0u32; starts[buckets]];
++        for (i, (p, s)) in bases.iter().zip(short).enumerate() {
++            let d = hb_digit(s, high, w, BITS);
++            if d != 0 && !p.is_identity() {
++                let b = d.unsigned_abs() as usize - 1;
++                order[positions[b]] = i as u32 | if d < 0 { 1 << 31 } else { 0 };
++                positions[b] += 1;
++            }
++        }
++        Self { order, starts }
++    }
++    fn count(&self, bucket: usize) -> usize {
++        self.starts[bucket + 1] - self.starts[bucket]
++    }
++    fn leaf<'a>(&self, bases: &'a [G2Affine], bucket: usize, i: usize) -> Leaf<'a> {
++        let encoded = self.order[self.starts[bucket] + i];
++        Leaf {
++            point: &bases[(encoded & 0x7fff_ffff) as usize],
++            negative: encoded >> 31 != 0,
++        }
++    }
++}
++
++pub(super) fn window<const BITS: usize>(bases: &[G2Affine], short: &[[u64; 4]], w: usize) -> Vec<G2Affine> {
++    assert_eq!(bases.len(), short.len());
++    assert!(bases.len() < 65536 && w + 1 < 127usize.div_ceil(BITS));
++    #[cfg(test)]
++    WINDOW_CALLS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
++    let high = Route::new::<BITS>(bases, short, w, true);
++    let low = Route::new::<BITS>(bases, short, w, false);
++    let mut out = vec![G2Affine::IDENTITY; 1 << (BITS - 1)];
++    out.par_chunks_mut(BAND)
++        .enumerate()
++        .for_each_init(State::default, |state, (band, output)| {
++            let start = band * BAND;
++            let hc = core::array::from_fn(|b| high.count(start + b));
++            let high_indices = stage(&hc, |b, i| high.leaf(bases, start + b, i), state);
++            for (b, root) in output.iter_mut().enumerate() {
++                *root = if high_indices[b] == usize::MAX {
++                    G2Affine::IDENTITY
++                } else {
++                    state.current[high_indices[b]]
++                };
++                if !root.is_identity() {
++                    root.x = root.x.mul_by_fp(&BETA);
++                }
++            }
++            let lc = core::array::from_fn(|b| low.count(start + b) + usize::from(hc[b] > 0));
++            let result = stage(
++                &lc,
++                |b, i| {
++                    if hc[b] > 0 && i == 0 {
++                        Leaf {
++                            point: &output[b],
++                            negative: false,
++                        }
++                    } else {
++                        low.leaf(bases, start + b, i - usize::from(hc[b] > 0))
++                    }
++                },
++                state,
++            );
++            for b in 0..BAND {
++                output[b] = if result[b] == usize::MAX {
++                    G2Affine::IDENTITY
++                } else {
++                    state.current[result[b]]
++                };
++            }
++        });
++    out
++}
++
++
++
++pub(super) fn reduce<const BITS: usize, const PARTS: usize>(
++    bases: &[G2Affine], words: &[[u64; 4]],
++) -> zopro_bn254::G2Projective {
++    let windows = 127usize.div_ceil(BITS);
++    let width = bases.len().div_ceil(PARTS);
++    let sums: Vec<_> = (0..windows).into_par_iter().map(|w| {
++        let mut buckets: Vec<_> = (0..PARTS).into_par_iter().map(|part| {
++            let start = (part * width).min(bases.len());
++            let end = (start + width).min(bases.len());
++            if w + 1 == windows {
++                super::hb_window(&bases[start..end], &words[start..end], w, BITS)
++            } else {
++                window::<BITS>(&bases[start..end], &words[start..end], w)
++            }
++        }).collect();
++        let mut out = buckets.swap_remove(0);
++        for right in buckets { super::merge_buckets(&mut out, &right); }
++        crate::msm::weighted_affine(&out)
++    }).collect();
++    let mut result = zopro_bn254::G2Projective::IDENTITY;
++    for sum in sums.iter().rev() {
++        for _ in 0..BITS { result = result.double(); }
++        result += sum;
++    }
++    result
++}
