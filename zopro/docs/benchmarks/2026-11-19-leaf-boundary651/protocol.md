@@ -1,0 +1,7 @@
+# Fuse packed leaf loads and stores with the Euler FFT butterflies
+
+A 12×2 reference process in study 634 attributed 32.68% of sampled cycles to FFT functions. Within the local Euler transform, each bounded leaf expands its packed vectors, runs all inverse stages, applies the coefficient weights, runs all forward stages and packs the result again. This experiment runs the outer inverse butterfly when loading and its matching forward butterfly when storing. It uses one scratch allocation of the same length. One mode processes the remaining stages in their original order. The other finishes each independent half before moving to the next, halving the active scratch span.
+
+Compare the frozen indexed executable, the candidate with ordinary leaves, and both new paths on the same CPU placement and proving key. Use twelve balanced blocks on the reference 12×2 and four on each of witnesses 58, 61 and 139. Use eight blocks on the 24×2 reference with its qualified tiled, pooled profile. Each process uses three warmups and fifteen timed proofs. Collect one separate CPU profile per arm and input. Verify all exports against the pinned key and expected public inputs. Report peak process RSS, 10× threshold counts and both M5 ratios on reference inputs. A reference speedup needs independent confirmation.
+
+[Indexed 12×2 timing and allocation](../2026-11-19-indexed-pool634/README.md) · [Original Euler leaf](../2026-11-18-euler-center281/README.md) · [Candidate source](artifacts/source.patch)

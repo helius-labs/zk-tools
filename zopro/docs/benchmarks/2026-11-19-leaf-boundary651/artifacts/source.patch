@@ -1,0 +1,123 @@
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -72,8 +72,84 @@
+     }
+ }
+ 
+-fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++#[derive(Clone, Copy)]
++enum Boundary {
++    Ordinary,
++    Fused,
++    Halves,
++}
++impl Boundary {
++    fn configured() -> Self {
++        match std::env::var("ZOPRO_TRIAL_LEAF_BOUNDARY").as_deref() {
++            Ok("fused") => Self::Fused,
++            Ok("halves") => Self::Halves,
++            _ => Self::Ordinary,
++        }
++    }
++}
++fn middle(plan: &Plan, expanded: &mut [Pair], level: usize, first: usize, first_gap: usize) {
++    let mut gap = first_gap;
++    let mut layer = level;
++    while gap != 0 {
++        for pair in expanded.chunks_exact_mut(gap * 2) {
++            let (lo, hi) = pair.split_at_mut(gap);
++            dif_quads(lo, hi, &plan.inverse_roots.layers[layer][..gap]);
++        }
++        gap /= 2;
++        layer += 1;
++    }
++    let inv = broadcast(&plan.inverse_roots.pair);
++    let fwd = broadcast(&plan.roots.pair);
++    for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
++        center(a, b, &inv, &fwd, first + 2 * i, plan.n.ilog2() as usize);
++    }
++    gap = 1;
++    while gap <= first_gap {
++        layer -= 1;
++        for pair in expanded.chunks_exact_mut(gap * 2) {
++            let (lo, hi) = pair.split_at_mut(gap);
++            dit_quads(lo, hi, &plan.roots.layers[layer][..gap]);
++        }
++        gap *= 2;
++    }
++}
++
++// Fuse unpacking with the outer inverse butterfly, and the matching
++// forward butterfly with packing. The scratch layout is the original one.
++fn boundary_leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize, mode: Boundary) {
++    let n = values.len();
++    let half = n / 2;
++    let (low, high) = values.split_at_mut(half);
++    let mut scratch = Vec::<Pair>::with_capacity(n);
++    let (left, right) = scratch.spare_capacity_mut()[..n].split_at_mut(half);
++    for i in 0..half {
++        let a = low[i].load();
++        let b = high[i].load();
++        left[i].write(a.add(&b));
++        right[i].write(a.sub(&b).mul(&broadcast(&plan.inverse_roots.layers[level][i])));
++    }
++    // SAFETY: both halves contain exactly half initialized pairs.
++    unsafe { scratch.set_len(n); }
++    if matches!(mode, Boundary::Halves) {
++        for (index, part) in scratch.chunks_exact_mut(half).enumerate() {
++            middle(plan, part, level + 1, first + index * half, half / 2);
++        }
++    } else {
++        middle(plan, &mut scratch, level + 1, first, half / 2);
++    }
++    let (left, right) = scratch.split_at(half);
++    for i in 0..half {
++        let p = right[i].mul(&broadcast(&plan.roots.layers[level][i]));
++        low[i] = PackedPair::store(left[i].add(&p));
++        high[i] = PackedPair::store(left[i].sub(&p));
++    }
++}
++
++fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize, mode: Boundary) {
+     if values.len() <= 1024 {
++        if values.len() >= 4 && !matches!(mode, Boundary::Ordinary) {
++            return boundary_leaf(plan, values, level, first, mode);
++        }
+         return leaf(plan, values, level, first);
+     }
+     columns::<false>(values, &plan.inverse_roots, level);
+@@ -82,7 +158,7 @@
+         .par_chunks_exact_mut(size)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, level + 5, first + i * size);
++            transform(plan, part, level + 5, first + i * size, mode);
+         });
+     columns::<true>(values, &plan.roots, level);
+ }
+@@ -97,11 +173,15 @@
+ pub(super) fn interior(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
+     let mut values = input_columns::first_layer(plan, a, b, storage);
+     let width = values.len() / 32;
++    let mode = Boundary::configured();
++    if std::env::var_os("ZOPRO_TRIAL_LEAF_TRACE").is_some() {
++        eprintln!("LEAF_BOUNDARY {} {}", values.len(), width);
++    }
+     values
+         .par_chunks_exact_mut(width)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, 5, i * width);
++            transform(plan, part, 5, i * width, mode);
+         });
+     values
+ }
+@@ -162,7 +242,7 @@
+                     *v = PackedPair::store(v.load().mul_u28(&factors));
+                 }
+                 stored_transform::<PackedPair, true>(&mut expect, &plan.roots, 0);
+-                transform(&plan, &mut got, 0, 0);
++                transform(&plan, &mut got, 0, 0, Boundary::configured());
+                 for (a, b) in got.iter().zip(&expect) {
+                     assert_eq!(a.load().get(), b.load().get());
+                 }
