@@ -1,5 +1,7 @@
 # Indexed scalar grouping in the ordinary SDK
 
+**Every latency pair ran the parent first.** The runner rotated two variants and reversed them on odd blocks, canceling the rotation. All 156 proofs verified, and the candidate showed lower maximum RSS on all 13 inputs. For latency, run position and implementation are confounded. The follow-up uses the same binaries and inputs with equal numbers of parent-first and indexed-first blocks. The earlier four-input experimental comparison independently randomized its process order. [Experimental measurements](../2026-11-19-indexed-transfer622/README.md)
+
 Times are medians of five process means. Each process warms three requests and measures eleven. Differences use paired blocks. Peak RSS is the largest lifetime peak among the five latency processes. Each variant and input also has an independent CPU profile.
 
 | Shape | Request | Parent / indexed ms | Indexed versus parent | Peak parent / indexed MiB | Indexed vs M5 CPU / Metal |

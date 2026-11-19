@@ -96,8 +96,13 @@ failure under an attempt-specific name before revalidating completed steps.
 
 ## Protocol
 
-The first variant is the baseline. Three or more blocks rotate/reverse variants
-and case order. Every latency process finishes before profiling begins. An
+The first variant is the baseline. Case order rotates between blocks. Within
+each case, every variant occupies every position over a complete cycle of
+blocks. Two variants alternate AB and BA. For larger panels a Williams design
+also balances which variant immediately precedes each other variant over a full
+cycle (two cycles for odd panel sizes). The run records its order policy in
+`variant-order.json`. Resuming a capture created before this receipt preserves
+the original schedule. Every latency process finishes before profiling begins. An
 exclusive host lock prevents two instances of this task from overlapping.
 Other benchmark launchers must be kept idle separately.
 An optional case `cpu_affinity` uses an explicit Linux CPU list such as
@@ -250,7 +255,7 @@ verified SDK experiment from a complete plan. Choose the cases explicitly,
 before collecting data. It keeps every variant/control, pin, check command,
 verifier, public-input digest, CPU affinity, environment and previous-proof
 identity. The selected cases retain their original order. It uses three
-rotated/reversed fresh-process blocks and 17 timed requests after three primes.
+counterbalanced fresh-process blocks and 17 timed requests after three primes.
 Two cases and three variants therefore need 360 SDK requests and 18 exported
 proof checks. No cycle captures run during this short screen.
 

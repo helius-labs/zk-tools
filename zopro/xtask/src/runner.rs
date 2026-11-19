@@ -41,6 +41,54 @@ impl Mode {
     }
 }
 
+#[derive(Clone, Copy, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum VariantOrder {
+    Legacy,
+    Balanced,
+}
+
+impl VariantOrder {
+    fn indices(
+        self,
+        count: usize,
+        case_id: usize,
+        case_position: usize,
+        block: usize,
+    ) -> Vec<usize> {
+        match self {
+            Self::Legacy => {
+                let mut order: Vec<_> = (0..count).collect();
+                order.rotate_left((case_position + block) % count);
+                if block % 2 == 1 {
+                    order.reverse();
+                }
+                order
+            }
+            Self::Balanced => {
+                // Williams design: alternating offsets 0, +1, -1, +2, -2, ...
+                // Each complete cycle puts each variant in every position once.
+                let first = (case_id + block) % count;
+                let mut order: Vec<_> = (0..count)
+                    .map(|position| {
+                        let offset = if position % 2 == 1 {
+                            position.div_ceil(2)
+                        } else {
+                            count - position / 2
+                        };
+                        (first + offset) % count
+                    })
+                    .collect();
+                // Odd-sized designs need the reversed cycle to balance predecessors.
+                if count % 2 == 1 && (block / count) % 2 == 1 {
+                    order.reverse();
+                }
+                order
+            }
+        }
+    }
+}
+
 fn check_execution(recorded: Option<Mode>, wanted: Mode) -> Result<()> {
     // Captures made before execution receipts existed are full experiments.
     if recorded.unwrap_or(Mode::Full) != wanted {
@@ -63,7 +111,8 @@ fn evaluate_mode(config: Config, output: &Path, resume: bool, mode: Mode) -> Res
         return Err("perf experiments currently require a Linux host".into());
     }
     let _lock = HostLock::acquire()?;
-    if resume {
+    let order_path = output.join("variant-order.json");
+    let order = if resume {
         let previous: Config =
             serde_json::from_slice(&std::fs::read(output.join("protocol.json"))?)?;
         if serde_json::to_value(previous)? != serde_json::to_value(&config)? {
@@ -78,6 +127,11 @@ fn evaluate_mode(config: Config, output: &Path, resume: bool, mode: Mode) -> Res
             },
             mode,
         )?;
+        if order_path.exists() {
+            serde_json::from_slice(&std::fs::read(order_path)?)?
+        } else {
+            VariantOrder::Legacy
+        }
     } else {
         if let Some(parent) = output.parent() {
             std::fs::create_dir_all(parent)?;
@@ -85,7 +139,9 @@ fn evaluate_mode(config: Config, output: &Path, resume: bool, mode: Mode) -> Res
         std::fs::create_dir(output)?;
         json(output.join("protocol.json"), &config)?;
         json(output.join("execution.json"), &mode)?;
-    }
+        json(&order_path, &VariantOrder::Balanced)?;
+        VariantOrder::Balanced
+    };
     let mut rows = Vec::<Row>::new();
     let mut inventory = if resume && output.join("proof-inventory.json").exists() {
         serde_json::from_slice::<BTreeMap<String, String>>(&std::fs::read(
@@ -150,7 +206,8 @@ fn evaluate_mode(config: Config, output: &Path, resume: bool, mode: Mode) -> Res
                 let mut cases: Vec<_> = config
                     .cases
                     .iter()
-                    .filter(|case| {
+                    .enumerate()
+                    .filter(|(_, case)| {
                         phase != "profile"
                             || config
                                 .profile_cases
@@ -160,14 +217,9 @@ fn evaluate_mode(config: Config, output: &Path, resume: bool, mode: Mode) -> Res
                     .collect();
                 let shift = block % cases.len();
                 cases.rotate_left(shift);
-                for (ci, case) in cases.iter().enumerate() {
-                    let mut variants: Vec<_> = config.variants.iter().collect();
-                    let shift = (ci + block) % variants.len();
-                    variants.rotate_left(shift);
-                    if block % 2 == 1 {
-                        variants.reverse();
-                    }
-                    for variant in variants {
+                for (position, (case_id, case)) in cases.into_iter().enumerate() {
+                    for index in order.indices(config.variants.len(), case_id, position, block) {
+                        let variant = &config.variants[index];
                         pinned.check_identity()?;
                         let name = format!("{phase}/b{block}/{}/{}", case.name, variant.name);
                         let directory = output.join(&name);
@@ -449,6 +501,32 @@ fn evaluate_mode(config: Config, output: &Path, resume: bool, mode: Mode) -> Res
 mod tests {
     use super::*;
     #[test]
+    fn balanced_blocks_cover_positions_and_predecessors_for_each_case() {
+        for count in 2..=7 {
+            let cycles = if count % 2 == 0 { 1 } else { 2 };
+            for case_id in 0..4 {
+                let mut positions = vec![vec![0; count]; count];
+                let mut predecessors = vec![vec![0; count]; count];
+                for block in 0..count * cycles {
+                    let order = VariantOrder::Balanced.indices(count, case_id, block % 3, block);
+                    for (position, &variant) in order.iter().enumerate() {
+                        positions[position][variant] += 1;
+                    }
+                    for pair in order.windows(2) {
+                        predecessors[pair[0]][pair[1]] += 1;
+                    }
+                }
+                assert!(positions.iter().flatten().all(|&n| n == cycles));
+                for (left, row) in predecessors.iter().enumerate() {
+                    for (right, &n) in row.iter().enumerate() {
+                        assert_eq!(n, if left == right { 0 } else { cycles });
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn scope_separates_screens_from_full_and_legacy_captures() {
         assert_eq!(Mode::Screen.phases(), &["latency"]);
         assert_eq!(Mode::Full.phases(), &["latency", "profile"]);
@@ -509,6 +587,20 @@ printf 'SUMMARY {"workers":1,"rounds":%s,"priming":3}\n' "$1"
         assert_eq!(result["distinct_verified_exports"], 6);
         assert_eq!(result["qualification"], false);
         assert_eq!(result["execution"], "screen");
+        let rows: Vec<Row> =
+            serde_json::from_slice(&std::fs::read(output.join("rows.json")).unwrap()).unwrap();
+        let order: Vec<_> = rows.iter().map(|row| row.variant.as_str()).collect();
+        assert_eq!(
+            order,
+            [
+                "base",
+                "candidate",
+                "candidate",
+                "base",
+                "base",
+                "candidate"
+            ]
+        );
         let before = std::fs::read(&counter).unwrap();
         assert_eq!(before, b"call\n".repeat(6));
         let freshness = std::fs::read(output.join("freshness.json")).unwrap();
