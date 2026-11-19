@@ -46,6 +46,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok("0") | Err(std::env::VarError::NotPresent) => {}
             _ => return Err("G1 K frontend must be 0 or 1".into()),
         }
+        match std::env::var("ZOPRO_BENCH_GROUPED_B2_SERIAL").as_deref() {
+            Ok("1") => prover.set_grouped_b2_serial_preparation(true),
+            Ok("0") | Err(std::env::VarError::NotPresent) => {}
+            _ => return Err("grouped B2 serial preparation must be 0 or 1".into()),
+        }
         match std::env::var("ZOPRO_BENCH_EXCLUSIVE_G2_GROUPING").as_deref() {
             Ok("0") => prover.set_exclusive_g2_grouping(false),
             Ok("1") | Err(std::env::VarError::NotPresent) => {}

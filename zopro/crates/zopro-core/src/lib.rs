@@ -816,6 +816,8 @@ pub struct Key {
     raw_g1_a_on_frontend: bool,
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     g1_k_on_frontend: bool,
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    grouped_b2_serial_preparation: bool,
     basis_only: bool,
     // Audited native workspace, or conservative prompt release when unknown.
     proof_workspace: Option<usize>,
@@ -1528,6 +1530,8 @@ impl Key {
             raw_g1_a_on_frontend: false,
             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
             g1_k_on_frontend: false,
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            grouped_b2_serial_preparation: false,
             basis_only,
             #[cfg(gpu_any)]
             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
@@ -2087,7 +2091,25 @@ impl Key {
                         let words=msm_affine::canonical_exclusive(sb);
                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
                     }
-                    if let Some(groups) = group_witness(sb) {
+                    let serial = {
+                        #[cfg(all(
+                            target_os = "linux", target_arch = "x86_64", feature = "ifma8",
+                            target_feature = "avx512ifma", target_feature = "avx512vl",
+                            target_feature = "avx512dq", not(no_ifma),
+                        ))]
+                        { self.grouped_b2_serial_preparation && omit_b && (65_536..262_144).contains(&sb.len()) }
+                        #[cfg(not(all(
+                            target_os = "linux", target_arch = "x86_64", feature = "ifma8",
+                            target_feature = "avx512ifma", target_feature = "avx512vl",
+                            target_feature = "avx512dq", not(no_ifma),
+                        )))]
+                        { false }
+                    };
+                    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                    let groups = if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
+                    #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                    let groups = { let _ = serial; group_witness(sb) };
+                    if let Some(groups) = groups {
                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
                         if omit_b
                             && self.b2.len() >= 65_536
@@ -2589,6 +2611,14 @@ impl Key {
     /// Disabled by default.
     pub fn set_g1_k_on_frontend(&mut self, enabled: bool) {
         self.g1_k_on_frontend = enabled;
+    }
+
+    /// Prepare distinct scalars on the current worker for medium grouped B2 queries.
+    /// This also reserves initial table space for one class per three B2 terms.
+    /// The workspace policy still governs admission. Disabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_grouped_b2_serial_preparation(&mut self, enabled: bool) {
+        self.grouped_b2_serial_preparation = enabled;
     }
 
     /// Control scalar grouping for the native exclusive G2 evaluator.

@@ -14,6 +14,8 @@ mod grouping_cost;
 pub(super) mod borrowed_pending;
 mod grouping;
 pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+pub(super) use grouping::group_witness_serial_b2;
 
 #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
 mod g2_horner;

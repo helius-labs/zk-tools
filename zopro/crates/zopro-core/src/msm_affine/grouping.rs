@@ -18,6 +18,14 @@ pub(crate) struct ScalarGroups {
 /// Group before converting representations, so only distinct witness
 /// scalars need Montgomery reduction. The grouping is fresh per proof.
 pub(crate) fn group_witness(scalars: &[Fr]) -> Option<ScalarGroups> {
+    group_witness_inner::<false>(scalars)
+}
+
+pub(crate) fn group_witness_serial_b2(scalars: &[Fr]) -> Option<ScalarGroups> {
+    group_witness_inner::<true>(scalars)
+}
+
+fn group_witness_inner<const SERIAL_B2: bool>(scalars: &[Fr]) -> Option<ScalarGroups> {
     if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
         return None;
     }
@@ -25,10 +33,16 @@ pub(crate) fn group_witness(scalars: &[Fr]) -> Option<ScalarGroups> {
     // view only compares/hashes the existing Montgomery representations.
     let words =
         unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
-    let mut groups = scalar_groups(words)?;
-    groups.values.par_iter_mut().for_each(|value| {
+    let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+    let mut groups = group_with_gate::<false, SERIAL_B2>(words, zero_aware)?;
+    let convert = |value: &mut [u64; 4]| {
         *value = Fr::from_montgomery(*value).to_canonical();
-    });
+    };
+    if SERIAL_B2 {
+        groups.values.iter_mut().for_each(convert);
+    } else {
+        groups.values.par_iter_mut().for_each(convert);
+    }
     Some(groups)
 }
 
@@ -42,7 +56,7 @@ pub(crate) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
 mod diversity;
 pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
-    group_with_gate::<true>(scalars, zero_aware)
+    group_with_gate::<true, false>(scalars, zero_aware)
 }
 
 type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
@@ -101,10 +115,10 @@ fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSampl
 }
 
 fn scalar_groups_policy(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
-    group_with_gate::<false>(scalars, zero_aware)
+    group_with_gate::<false, false>(scalars, zero_aware)
 }
 
-fn group_with_gate<const EXCLUSIVE: bool>(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
+fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
     if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
         return None;
     }
@@ -119,7 +133,9 @@ fn group_with_gate<const EXCLUSIVE: bool>(scalars: &[[u64; 4]], zero_aware: bool
     // Bound the initial allocation by the sample and by the grouping
     // cutoff. Small high-diversity inputs otherwise grow and rehash the
     // entire table several times before either succeeding or declining.
-    let capacity = if crate::simd::cpu_option("ZOPRO_CPU_RESERVE_GROUPS") {
+    let capacity = if SERIAL_B2 {
+        scalars.len().div_ceil(3).min(scalars.len() * percent / 100)
+    } else if crate::simd::cpu_option("ZOPRO_CPU_RESERVE_GROUPS") {
         (unique.len() * 16)
             .min(scalars.len() * percent / 100)
             .min(32768)
@@ -206,3 +222,20 @@ fn classify_nonzero(
 
 #[cfg(test)]
 mod tests;
+
+
+#[cfg(all(test, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+#[test]
+fn serial_b2_scalar_preparation_preserves_groups() {
+    let scalars: Vec<_> = (0..113_537)
+        .map(|i| match i {
+            _ if i % 19 == 0 => Fr::ZERO,
+            _ if i % 17 == 0 => Fr::ONE,
+            _ => Fr::from((i % 27_013 + 2) as u64),
+        })
+        .collect();
+    let groups = |g: ScalarGroups| (g.len, g.values, g.starts, g.counts, g.order);
+    let control = groups(group_witness(&scalars).unwrap());
+    let serial = groups(group_witness_serial_b2(&scalars).unwrap());
+    assert_eq!(control, serial);
+}

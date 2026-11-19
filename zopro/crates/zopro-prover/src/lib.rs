@@ -126,6 +126,13 @@ impl Prover {
         self.key.set_g1_k_on_frontend(enabled);
     }
 
+    /// Use serial scalar preparation and a larger initial table for medium grouped B2 queries.
+    /// The workspace policy still governs admission. Disabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_grouped_b2_serial_preparation(&mut self, enabled: bool) {
+        self.key.set_grouped_b2_serial_preparation(enabled);
+    }
+
     /// Control scalar grouping for the native exclusive G2 evaluator.
     /// Grouping is enabled by default.
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
