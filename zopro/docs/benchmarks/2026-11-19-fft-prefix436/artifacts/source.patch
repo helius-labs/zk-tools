@@ -1,0 +1,117 @@
+--- a/crates/zopro-core/src/fft/pair/input_columns.rs
++++ b/crates/zopro-core/src/fft/pair/input_columns.rs
+@@ -6,7 +6,7 @@
+
+ // Construct the first inverse radix-32 columns directly from the two input
+ // polynomials. Each invocation owns the same column range in all 32 stripes.
+-fn pack_inverse_columns<const CACHED: bool>(
++fn pack_inverse_columns<const CACHED: bool, const PRUNED: bool>(
+     mut stripes: [&mut [MaybeUninit<PackedPair>]; 32],
+     a: &[Fr],
+     b: &[Fr],
+@@ -24,8 +24,8 @@
+             left
+         });
+         rayon::join(
+-            || pack_inverse_columns::<CACHED>(left, a, b, roots, q, start),
+-            || pack_inverse_columns::<CACHED>(stripes, a, b, roots, q, start + mid),
++            || pack_inverse_columns::<CACHED, PRUNED>(left, a, b, roots, q, start),
++            || pack_inverse_columns::<CACHED, PRUNED>(stripes, a, b, roots, q, start + mid),
+         );
+         return;
+     }
+@@ -42,7 +42,13 @@
+                 values.get(i + lane % 4).copied().unwrap_or(Fr::ZERO)
+             }))
+         });
+-        column_kernel::<CACHED, false>(&mut local, roots, 0, q, start + column);
++        let first = 4 * (start + column);
++        let live = count.saturating_sub(first).div_ceil(4*q).min(32);
++        if PRUNED && live < 32 {
++            inverse_prefix::<CACHED>(&mut local, roots, q, start + column, live);
++        } else {
++            column_kernel::<CACHED, false>(&mut local, roots, 0, q, start + column);
++        }
+         for (stripe, value) in stripes.iter_mut().zip(local) {
+             stripe[column].write(PackedPair::store(value));
+         }
+@@ -58,10 +64,15 @@
+     let mut values = Vec::with_capacity(n);
+     let mut chunks = values.spare_capacity_mut()[..n].chunks_exact_mut(q);
+     let stripes = core::array::from_fn(|_| chunks.next().unwrap());
+-    if roots.columns.is_empty() {
+-        pack_inverse_columns::<false>(stripes, a, b, roots, q, 0);
+-    } else {
+-        pack_inverse_columns::<true>(stripes, a, b, roots, q, 0);
++    let pruned = std::env::var("ZOPRO_BENCH_FFT_PRUNE_PREFIX").as_deref() == Ok("1");
++    if pruned && std::env::var_os("ZOPRO_BENCH_FFT_PRUNE_TRACE").is_some() {
++        eprintln!("FFT_PREFIX {} {}", plan.n, a.len().max(b.len()));
++    }
++    match (roots.columns.is_empty(), pruned) {
++        (true, true) => pack_inverse_columns::<false, true>(stripes, a, b, roots, q, 0),
++        (false, true) => pack_inverse_columns::<true, true>(stripes, a, b, roots, q, 0),
++        (true, false) => pack_inverse_columns::<false, false>(stripes, a, b, roots, q, 0),
++        (false, false) => pack_inverse_columns::<true, false>(stripes, a, b, roots, q, 0),
+     }
+     // SAFETY: the 32 disjoint stripes cover exactly n slots. Both branches
+     // join every producer and write each slot before this call.
+@@ -122,3 +133,59 @@
+         }
+     }
+ }
++// The packed input rows are a prefix. After a DIF stage each half has
++// min(live, gap) potentially nonzero rows, starting at its first row.
++fn inverse_prefix<const CACHED: bool>(
++    local: &mut [Pair; 32], roots: &Twiddles, q: usize, column: usize, live: usize,
++) {
++    for stage in 0..5 {
++        let gap = 16 >> stage;
++        let both = live.min(2 * gap).saturating_sub(gap);
++        let active = live.min(gap);
++        let root = |j: usize| {
++            if CACHED {
++                broadcast(&roots.columns[0][31 * column + 32 - 2 * gap + j])
++            } else {
++                broadcast(&roots.layers[stage][j * q + column])
++            }
++        };
++        for block in (0..32).step_by(2 * gap) {
++            for j in 0..both {
++                let (a,b) = (local[block+j], local[block+gap+j]);
++                local[block+j] = a.add(&b);
++                local[block+gap+j] = a.sub(&b).mul(&root(j));
++            }
++            for j in both..active {
++                local[block+gap+j] = local[block+j].mul(&root(j));
++            }
++        }
++    }
++}
++
++#[cfg(test)]
++#[test]
++fn inverse_prefix_matches_all_occupancies() {
++    let n = 8192;
++    let q = n / 128;
++    let coset = Fr::from(5u64);
++    let mut plan = Plan::new(n, Fr::root_of_unity(n).unwrap().pow(&[3]), coset, crate::fft::denominator(n, coset).unwrap());
++    for cached in [false,true] {
++        if cached { plan.inverse_roots.prepare_columns(); }
++        for live in 0..=32 {
++            for column in [0,1,q/2,q-1] {
++                let mut pruned = core::array::from_fn(|r| Pair::new(&core::array::from_fn(|j| {
++                    if r<live { Fr::from((r*1201+j*1147+column+1) as u64).square() } else { Fr::ZERO }
++                })));
++                let mut reference = pruned;
++                if cached {
++                    inverse_prefix::<true>(&mut pruned, &plan.inverse_roots, q, column, live);
++                    column_kernel::<true,false>(&mut reference, &plan.inverse_roots, 0, q, column);
++                } else {
++                    inverse_prefix::<false>(&mut pruned, &plan.inverse_roots, q, column, live);
++                    column_kernel::<false,false>(&mut reference, &plan.inverse_roots, 0, q, column);
++                }
++                for (x,y) in pruned.iter().zip(reference) { assert_eq!(x.get(), y.get()); }
++            }
++        }
++    }
++}
