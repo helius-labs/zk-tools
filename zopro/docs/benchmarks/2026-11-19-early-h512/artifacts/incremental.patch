@@ -1,0 +1,43 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2027,6 +2027,40 @@
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
++            if omit_b && folded_k && std::env::var_os("ZOPRO_EARLY_H").is_some() {
++                let (hz, ((ar,kr), (bs1,bs2))) = rayon::join(
++                    || if montgomery_h {msm_affine::msm_montgomery(z,h)} else {msm(z,h)},
++                    || {
++                        let selected = if omit_b && folded_k && self.shared_groups.is_some() {self.trial_groups.as_ref().and_then(|g|g.selected(sb))} else {None};
++            let shared = selected.as_ref().map(|(v,_)|v.as_slice());
++                        rayon::join(
++                            || rayon::join(|| if omit_b && folded_k {self.trial_a.as_ref().and_then(|q|q.query_using(&self.a,sa,shared.zip(self.shared_groups.as_ref()).map(|(v,m)|(m.a.as_slice(),v)))).unwrap_or_else(||msm(&self.a,sa))} else {msm(&self.a,sa)}, || if omit_b && folded_k {self.trial_k.as_ref().and_then(|q|q.query_using(k,sk,shared.zip(self.shared_groups.as_ref()).map(|(v,m)|(m.k.as_slice(),v)))).unwrap_or_else(||msm(k,sk))} else {msm(k,sk)}),
++                            || {
++                    if omit_b && (1024..65536).contains(&self.b2.len()) {
++                        let words=msm_affine::canonical_exclusive(sb);
++                        return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
++                    }
++                    if omit_b {
++                        if let Some(result)=self.trial_groups.as_ref().and_then(|g|g.query_using(&self.b2,sb,shared)) {
++                            return (G1Projective::IDENTITY,result);
++                        }
++                    }
++                    if let Some(groups) = group_witness(sb) {
++                        rayon::join(
++                            || if omit_b { G1Projective::IDENTITY } else { msm_grouped(&self.b[..], &groups) },
++                            || msm_grouped_b2(&self.b2[..], &groups),
++                        )
++                    } else {
++                        let sb = canonical(sb);
++                        rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
++                    }
++
++                            },
++                        )
++                    },
++                );
++                return ((ar,bs1),(kr,(hz,bs2)));
++            }
+             let selected = if omit_b && folded_k && self.shared_groups.is_some() {self.trial_groups.as_ref().and_then(|g|g.selected(sb))} else {None};
+             let shared = selected.as_ref().map(|(v,_)|v.as_slice());
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
