@@ -135,10 +135,11 @@ logical CPU IDs in `ZOPRO_BENCH_FRONT_CPUS`, one per frontend worker.
 within the process affinity mask. The benchmark prints the resulting CPU
 IDs in worker order. On a Ryzen 9950X with 32 main workers, 2×2 used eight
 physical cores sharing one L3 and four of their SMT siblings for the
-frontend. This reduced median paired latency by 1.86% across eight
-witnesses compared with using the same eight cores alone. Use
+frontend. Against the same eight cores alone, median paired latency on
+eight witnesses fell 0.53% in the public benchmark (six wins) and 1.86%
+in the research driver (eight wins). Peak memory increased. Use
 `lscpu -e=CPU,CORE,CACHE` to identify the corresponding CPUs on the host.
-[Ryzen placement measurements](docs/benchmarks/2026-11-19-varied-smt440/README.md)
+[Public SDK placement measurements](docs/benchmarks/2026-11-19-varied-entry444/README.md) · [Research driver measurements](docs/benchmarks/2026-11-19-varied-smt440/README.md)
 
 Linux x86-64 servers can call `Prover::set_overlap_verification(true)` on a
 loaded prover to compute the public-input pairing during CPU proof generation.
