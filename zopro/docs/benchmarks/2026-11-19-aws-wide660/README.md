@@ -1,0 +1,11 @@
+# Four-shape C7a release comparison
+
+The prepared Rust xtask workflow covers 1×2, 1×16, 5×16 and merge 54×1 on the same C7a.24xlarge at 32 and 96 physical cores. Eight blocks compare the historical catalog executable, current ordinary executable and prepared Aeglos. A fourth arm checks the selected current Ryzen configuration on 1×2, 5×16 and merge 54×1. On 5×16 this enables just the packed FFT options. Those configurations are candidates for the AWS host. Each process warms three proofs and times eleven. The independent verifier consumes an original image and the expected public input digest after every process. The planned AWS run has 240 timing processes and 240 verifications.
+
+The historical and current reference binaries share the catalog environment, requests and CPU masks. The tuned arm has a separate label. Keep every warm request and calculate the median of process means, paired differences, peak process RSS including setup, CPU-ms per proof, and busy cores from process CPU time divided by elapsed loop time. Compare each tuned result to both current ordinary and Aeglos. Count a 2× improvement from the current ordinary reference only. A recheck with independent witnesses is needed before applying a finding beyond the measured catalog request.
+
+The staged payload expects its manifest, binary, input, verification and configuration files under `/opt/zopro-wide660`. Run `bin/xtask workflow workflow.json results` from that directory. The workflow and pin file below use that root. They can also be reconstructed from the staged local bundle. The bundle includes the release executable compiled for `znver4`. Cloud execution remains pending authentication.
+
+[Manifest with relative payload paths](artifacts/manifest.json) · [Exact cloud workflow](artifacts/workflow.json.gz) · [Input pins](artifacts/pins.json) · [Engine order](artifacts/schedule.json.gz)
+
+A one-block Ryzen smoke exercised all 15 shape and engine combinations at 32 workers. All 15 exports verified, every timed Aeglos call hit the prepared-key cache, and placement checks passed. The historical SDK reports affinity inside the summary, while the current SDK emits a separate main-pool record. These records validate the workflow on Ryzen. The AWS 32- and 96-core comparison is pending. [Smoke receipts](artifacts/smoke.json) · [Verification](artifacts/verification.json)
