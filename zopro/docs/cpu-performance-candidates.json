@@ -722,6 +722,36 @@
         "setting": "ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1 with an attached smaller pool",
         "evidence": "benchmarks/2026-11-19-release-pool621/README.md"
       }
+    },
+    {
+      "id": "checked-indexed-scalar-groups630",
+      "change": "Store a u32 class index per proof-local scalar dictionary entry and reuse the existing diversity check for canonical MSMs.",
+      "correctness": {
+        "status": "passed",
+        "native_core_tests": 156,
+        "release_panel_verified_exports": 192,
+        "small_input_and_census_exports": 126,
+        "source_identities": "benchmarks/2026-11-19-checked-release630/artifacts/integrated-source.json"
+      },
+      "resources_and_compatibility": {
+        "scope": "Ryzen 9 9950X Linux ordinary SDK, generic x86-64 compile check",
+        "lower_maximum_rss_original_shapes": 8,
+        "original_shapes": 9,
+        "larger_peak_case": "4x2 +6.0 MiB"
+      },
+      "performance": {
+        "lower_paired_median_original_shapes": 7,
+        "small_regressions_pct": {
+          "2x2": 0.18,
+          "8x2": 0.67
+        },
+        "reference_1x2_ms": 7.012,
+        "reference_24x2_ms": 62.979
+      },
+      "adoption": {
+        "status": "adopted",
+        "evidence": "benchmarks/2026-11-19-checked-release630/README.md"
+      }
     }
   ],
   "historical_followups": [

@@ -20,6 +20,7 @@ wasm-bindgen-rayon = { version = "1.3", features = ["no-bundler"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 ahash = "0.8"
+hashbrown = { version = "0.16.1", default-features = false, features = ["inline-more"] }
 sha2 = "0.10"
 
 [features]

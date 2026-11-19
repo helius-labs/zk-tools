@@ -1,5 +1,9 @@
 # Checked indexed grouping across the ordinary release SDK
 
+The ordinary SDK now stores a 32-bit index for each distinct nonzero scalar in its proof-local grouping table. The table checks collisions against the complete scalar in the existing value vector. Canonical queries can use the existing bounded diversity check when that option is enabled.
+
+Across the nine original Ryzen requests, the new SDK had lower paired median latency on seven and lower maximum RSS on eight. The 2×2 and 8×2 paired medians rose by 0.18% and 0.67%. On 4×2 the maximum rose by 6.0 MiB. The scattered 12×2 request fell from 46.873 to 45.567 ms and from 967.3 to 776.4 MiB. These workload-dependent results, the smaller dictionary representation and the confirmed larger-input gains support adopting the change in the runtime. The exact integrated sources passed 156 native core tests and a generic x86-64 compile check. The all-shape timing panel verified 192 new exports. [Integrated source identities](artifacts/integrated-source.json) · [Portable check](artifacts/portable.json) · [Small-input coverage and probe limitation](../2026-11-19-canonical-index629/README.md)
+
 The same candidate and deployed parent run across all cases. Latency is the median over six process means. The two execution-order columns contain within-block median changes with the parent first and candidate first, respectively. Peak memory includes key setup and all warmed requests.
 
 | Shape | Request or configuration | Parent / checked index ms | Paired change | Parent first / candidate first | Peak parent / checked MiB | Checked vs M5 CPU / Metal |

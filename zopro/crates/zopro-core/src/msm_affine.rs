@@ -141,7 +141,7 @@ where
     C::Base: BatchInverse,
 {
     if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
-        if let Some(groups) = scalar_groups(canonical) {
+        if let Some(groups) = grouping::groups_with_diversity_check(canonical) {
             return msm_grouped(bases, &groups);
         }
     }
@@ -1695,7 +1695,7 @@ pub(super) fn g2_query_exclusive(
 ) -> zopro_bn254::G2Projective {
     assert_eq!(bases.len(), words.len());
     let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
-        .then(|| grouping::exclusive_groups(words))
+        .then(|| grouping::groups_with_diversity_check(words))
         .flatten();
     #[cfg(all(
         zopro_g2_horner_buckets,

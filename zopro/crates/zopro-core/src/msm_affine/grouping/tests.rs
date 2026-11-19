@@ -329,3 +329,36 @@ fn panic_waits_for_sibling_consumers_and_pool_remains_usable() {
         );
     }
 }
+
+
+#[test]
+fn indexed_classes_preserve_full_equality_and_order_under_collisions() {
+    use std::hash::{BuildHasherDefault, Hasher};
+
+    #[derive(Default)]
+    struct ConstantHash;
+    impl Hasher for ConstantHash {
+        fn write(&mut self, _: &[u8]) {}
+        fn finish(&self) -> u64 { 0 }
+    }
+
+    let distinct: Vec<_> = (0..257u64).map(|i| [7, i / 3, i % 3, 9]).collect();
+    let input: Vec<_> = std::iter::once([0; 4])
+        .chain(distinct.iter().copied())
+        .chain(distinct.iter().rev().copied())
+        .chain(std::iter::once([0; 4]))
+        .collect();
+    for capacity in [0, 1, 3, 128] {
+        let mut classes = vec![u32::MAX; input.len()];
+        let (values, counts) = super::classify_nonzero(
+            &input, &mut classes, capacity, BuildHasherDefault::<ConstantHash>::default(),
+        );
+        assert_eq!(values, distinct);
+        assert_eq!(counts, vec![2; distinct.len()]);
+        assert_eq!(classes.first(), Some(&u32::MAX));
+        assert_eq!(classes.last(), Some(&u32::MAX));
+        for (scalar, &index) in input.iter().zip(&classes).filter(|(s, _)| **s != [0; 4]) {
+            assert_eq!(values[index as usize], *scalar);
+        }
+    }
+}

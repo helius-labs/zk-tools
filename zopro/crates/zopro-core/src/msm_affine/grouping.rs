@@ -40,7 +40,7 @@ pub(crate) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
 }
 
 mod diversity;
-pub(super) fn exclusive_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
     group_with_gate::<true>(scalars, zero_aware)
 }
@@ -126,24 +126,8 @@ fn group_with_gate<const EXCLUSIVE: bool>(scalars: &[[u64; 4]], zero_aware: bool
     } else {
         0
     };
-    let mut groups =
-        std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());
-    let mut values = Vec::new();
     let mut classes = vec![u32::MAX; scalars.len()];
-    let mut counts: Vec<usize> = Vec::new();
-    for (scalar, class) in scalars.iter().zip(&mut classes) {
-        if *scalar == [0; 4] {
-            continue;
-        }
-        let index = *groups.entry(*scalar).or_insert_with(|| {
-            values.push(*scalar);
-            counts.push(0);
-            (values.len() - 1) as u32
-        });
-        *class = index;
-        counts[index as usize] += 1;
-    }
-    drop(groups);
+    let (values, counts) = classify_nonzero(scalars, &mut classes, capacity, ahash::RandomState::new());
     if values.len() * 100 > scalars.len() * percent {
         return None;
     }
@@ -180,6 +164,44 @@ fn group_with_gate<const EXCLUSIVE: bool>(scalars: &[[u64; 4]], zero_aware: bool
         starts,
         counts,
     })
+}
+
+// Keep one copy of each full scalar in first-occurrence order. The hash table
+// stores only indices and checks every limb against that copy on collision.
+fn classify_nonzero(
+    scalars: &[[u64; 4]],
+    classes: &mut [u32],
+    capacity: usize,
+    state: impl std::hash::BuildHasher,
+) -> (Vec<[u64; 4]>, Vec<usize>) {
+    use hashbrown::{hash_table::Entry, HashTable};
+
+    let mut table = HashTable::<u32>::with_capacity(capacity);
+    let mut values = Vec::new();
+    let mut counts = Vec::new();
+    for (scalar, class) in scalars.iter().zip(classes) {
+        if *scalar == [0; 4] {
+            continue;
+        }
+        let index = match table.entry(
+            state.hash_one(scalar),
+            |&index| values[index as usize] == *scalar,
+            |&index| state.hash_one(&values[index as usize]),
+        ) {
+            Entry::Occupied(entry) => *entry.get(),
+            Entry::Vacant(entry) => {
+                // The caller bounds the total input length below u32::MAX.
+                let index = values.len() as u32;
+                values.push(*scalar);
+                counts.push(0);
+                entry.insert(index);
+                index
+            }
+        };
+        *class = index;
+        counts[index as usize] += 1;
+    }
+    (values, counts)
 }
 
 #[cfg(test)]
