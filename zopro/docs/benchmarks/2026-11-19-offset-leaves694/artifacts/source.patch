@@ -1,0 +1,197 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2253,17 +2253,36 @@
+             // The correction consumes Montgomery public values before the one
+             // in-place conversion. All later accesses to w use canonical words.
+             let correction=folded.public_term(&w[..plan.n_public]);
+-            #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+-            if let Some(offsets)=offsets {offsets.apply(&mut w);}
+-            let (sa_vec,sb_vec):(Vec<_>,Vec<_>)=if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
+-                fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)
+-            } else {
+-                let words=canonical(&mut w);
+-                #[cfg(not(zopro_bounded_gather))]
+-                {rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect())}
+-                #[cfg(zopro_bounded_gather)]
+-                {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
+-            };
++            let fused = std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref() == Ok("1");
++            #[cfg(zopro_resource_schedule)]
++            let corrected = offsets
++                .filter(|_| fused && std::env::var_os("ZOPRO_TRIAL_OFFSET_LEAVES").is_some())
++                .map(|offsets| {
++                    if std::env::var_os("ZOPRO_TRIAL_OFFSET_PROBE").is_some() {
++                        eprintln!("OFFSET_LEAVES canonical");
++                    }
++                    fused_canonical_gather::prepare_with(
++                        &mut w, &plan.a_indices, &plan.b_indices,
++                        |start, block| offsets.canonical_block(start, block),
++                    )
++                });
++            #[cfg(not(zopro_resource_schedule))]
++            let corrected = None;
++            let (sa_vec, sb_vec): (Vec<_>, Vec<_>) = corrected.unwrap_or_else(|| {
++                #[cfg(zopro_resource_schedule)]
++                if let Some(offsets) = offsets { offsets.apply(&mut w); }
++                if fused {
++                    fused_canonical_gather::prepare(&mut w, &plan.a_indices, &plan.b_indices)
++                } else {
++                    let words = canonical(&mut w);
++                    #[cfg(not(zopro_bounded_gather))]
++                    { rayon::join(|| plan.a_indices.par_iter().map(|&i| words[i as usize]).collect(),
++                                  || plan.b_indices.par_iter().map(|&i| words[i as usize]).collect()) }
++                    #[cfg(zopro_bounded_gather)]
++                    { rayon::join(|| bounded_gather::gather(words, &plan.a_indices),
++                                  || bounded_gather::gather(words, &plan.b_indices)) }
++                }
++            });
+             let product = queries.product_values(&self.plan, a, b, None);
+             Ok((w, sa_vec, sb_vec, product, correction))
+         };
+--- a/crates/zopro-core/src/public_wire_offsets.rs
++++ b/crates/zopro-core/src/public_wire_offsets.rs
+@@ -25,7 +25,39 @@
+     _reservation: Reservation,
+ }
+ 
++fn block_rows(rows: &[Row], start: usize, len: usize) -> &[Row] {
++    let first = rows.partition_point(|row| row.wire < start);
++    let remaining = &rows[first..];
++    let count = remaining.partition_point(|row| row.wire < start + len);
++    &remaining[..count]
++}
++
++fn convert_block(rows: &[Row], start: usize, wires: &mut [Fr]) {
++    let convert = |slice: &mut [Fr]| {
++        for wire in slice {
++            *wire = Fr::from_montgomery(wire.to_canonical());
++        }
++    };
++    let mut cursor = 0;
++    for row in block_rows(rows, start, wires.len()) {
++        let at = row.wire - start;
++        convert(&mut wires[cursor..at]);
++        let value = wires[at];
++        wires[at] = if value == row.scalar {
++            Fr::ZERO
++        } else {
++            Fr::from_montgomery((value - row.scalar).to_canonical())
++        };
++        cursor = at + 1;
++    }
++    convert(&mut wires[cursor..]);
++}
++
+ impl Offsets {
++    pub fn canonical_block(&self, start: usize, wires: &mut [Fr]) {
++        convert_block(&self.rows, start, wires);
++    }
++
+     pub fn restore_public(&self, public: &mut [Fr]) {
+         for row in &self.rows {
+             let Some(value) = public.get_mut(row.wire) else {
+@@ -37,6 +69,18 @@
+     }
+ 
+     pub fn apply(&self, wires: &mut [Fr]) {
++        if std::env::var_os("ZOPRO_TRIAL_OFFSET_LEAVES").is_some() {
++            if std::env::var_os("ZOPRO_TRIAL_OFFSET_PROBE").is_some() {
++                eprintln!("OFFSET_LEAVES partitioned {}", self.rows.len());
++            }
++            wires.par_chunks_mut(2048).enumerate().for_each(|(i, block)| {
++                let start = i * 2048;
++                for row in block_rows(&self.rows, start, block.len()) {
++                    block[row.wire - start] -= row.scalar;
++                }
++            });
++            return;
++        }
+         for row in &self.rows {
+             wires[row.wire] -= row.scalar;
+         }
+@@ -217,6 +261,29 @@
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++
++    #[test]
++    fn corrected_canonical_blocks_match_serial_subtraction_and_conversion() {
++        let mut original: Vec<_> = (0..4097)
++            .map(|i| Fr::from(i as u64 + 3).square())
++            .collect();
++        original[512] = Fr::ZERO;
++        let positions = [0, 9, 511, 512, 1023, 1024, 2047, 2048, 4095, 4096];
++        let rows: Vec<_> = positions.iter().enumerate().map(|(j, &wire)| Row {
++            wire,
++            scalar: if j % 2 == 0 { original[wire] } else { -Fr::ONE },
++        }).collect();
++        let mut expected = original.clone();
++        for row in &rows { expected[row.wire] -= row.scalar; }
++        let expected: Vec<_> = expected.iter().map(Fr::to_canonical).collect();
++        for width in [1, 127, 1024, 2048, 4097] {
++            let mut actual = original.clone();
++            for (i, block) in actual.chunks_mut(width).enumerate() {
++                convert_block(&rows, i * width, block);
++            }
++            assert_eq!(actual.iter().map(|v| v.0).collect::<Vec<_>>(), expected);
++        }
++    }
+ 
+     #[test]
+     fn corrections_match_direct_scalar_multiplication() {
+--- a/crates/zopro-core/src/fused_canonical_gather.rs
++++ b/crates/zopro-core/src/fused_canonical_gather.rs
+@@ -5,7 +5,8 @@
+ type Words = [u64; 4];
+ const LEAF: usize = 1024;
+ 
+-fn fill(
++fn fill<F: Fn(usize, &mut [Fr]) + Sync>(
++    convert: &F,
+     wires: &mut [Fr],
+     base: usize,
+     a_indices: &[u32],
+@@ -14,9 +15,7 @@
+     b: &mut [MaybeUninit<Words>],
+ ) {
+     if wires.len() <= LEAF {
+-        for wire in wires.iter_mut() {
+-            *wire = Fr::from_montgomery(wire.to_canonical());
+-        }
++        convert(base, wires);
+         for (&i, out) in a_indices.iter().zip(a) {
+             // The stored limbs are canonical after the conversion above.
+             out.write(wires[i as usize - base].0);
+@@ -34,16 +33,29 @@
+     let (left_a, right_a) = a.split_at_mut(cut_a);
+     let (left_b, right_b) = b.split_at_mut(cut_b);
+     rayon::join(
+-        || fill(left_w, base, &a_indices[..cut_a], left_a, &b_indices[..cut_b], left_b),
+-        || fill(right_w, boundary, &a_indices[cut_a..], right_a, &b_indices[cut_b..], right_b),
++        || fill(convert, left_w, base, &a_indices[..cut_a], left_a, &b_indices[..cut_b], left_b),
++        || fill(convert, right_w, boundary, &a_indices[cut_a..], right_a, &b_indices[cut_b..], right_b),
+     );
+ }
+ 
+ pub(super) fn prepare(wires: &mut [Fr], a: &[u32], b: &[u32]) -> (Vec<Words>, Vec<Words>) {
++    prepare_with(wires, a, b, |_, block| {
++        for wire in block {
++            *wire = Fr::from_montgomery(wire.to_canonical());
++        }
++    })
++}
++
++pub(super) fn prepare_with(
++    wires: &mut [Fr],
++    a: &[u32],
++    b: &[u32],
++    convert: impl Fn(usize, &mut [Fr]) + Sync,
++) -> (Vec<Words>, Vec<Words>) {
+     let mut out_a = Vec::<Words>::with_capacity(a.len());
+     let mut out_b = Vec::<Words>::with_capacity(b.len());
+     fill(
+-        wires, 0, a, &mut out_a.spare_capacity_mut()[..a.len()],
++        &convert, wires, 0, a, &mut out_a.spare_capacity_mut()[..a.len()],
+         b, &mut out_b.spare_capacity_mut()[..b.len()],
+     );
+     // SAFETY: matching index/output slices are split at identical boundaries.
