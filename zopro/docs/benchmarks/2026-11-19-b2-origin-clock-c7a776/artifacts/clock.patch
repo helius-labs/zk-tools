@@ -1,0 +1,20 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2105,6 +2105,7 @@
+                         )))]
+                         { false }
+                     };
++                    let clock = std::env::var_os("ZOPRO_TRIAL_B2_ORIGIN_CLOCK").map(|_| crate::time::Instant::now());
+                     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                     let ordinary = || if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
+                     #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+@@ -2121,6 +2122,9 @@
+                     let groups = ordinary();
+                     #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                     let groups = { let _ = serial; group_witness(sb) };
++                    if let Some(start) = clock {
++                        eprintln!("B2_ORIGIN_CLOCK {} {} {}", sb.len(), groups.is_some(), start.elapsed().as_nanos());
++                    }
+                     if let Some(groups) = groups {
+                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+                         if omit_b
