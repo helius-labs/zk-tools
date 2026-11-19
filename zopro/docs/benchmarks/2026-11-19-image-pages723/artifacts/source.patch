@@ -1,0 +1,96 @@
+--- a/crates/zopro-bench/examples/cpu-sdk.rs
++++ b/crates/zopro-bench/examples/cpu-sdk.rs
+@@ -9,6 +9,9 @@
+ #[global_allocator]
+ static ALLOCATOR: zopro_prover::zopro_core::alloc::Allocator =
+     zopro_prover::zopro_core::alloc::Allocator;
++
++#[path = "support/image_pages.rs"]
++mod image_pages;
+ 
+ fn main() -> Result<(), Box<dyn std::error::Error>> {
+     let args: Vec<_> = std::env::args_os().collect();
+@@ -24,9 +27,14 @@
+     let frontend = placement::configure()?;
+     let file = fs::File::open(&args[1])?;
+     // SAFETY: the caller keeps this trusted key image unchanged for the run.
+-    let image = unsafe { memmap2::Mmap::map(&file)? };
++    let image: zopro_prover::zopro_core::Image = match std::env::var("ZOPRO_TRIAL_IMAGE_PAGES").as_deref() {
++        Ok("base") => Arc::new(image_pages::Mapping::open(&file, false)?),
++        Ok("large") => Arc::new(image_pages::Mapping::open(&file, true)?),
++        Err(std::env::VarError::NotPresent) => Arc::new(unsafe { memmap2::Mmap::map(&file)? }),
++        _ => return Err("unknown image mapping".into()),
++    };
+     drop(file);
+-    let prover = zopro_prover::Prover::load_image(Arc::new(image))?;
++    let prover = zopro_prover::Prover::load_image(image)?;
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     let prover = {
+         let mut prover = prover;
+--- /dev/null
++++ b/crates/zopro-bench/examples/support/image_pages.rs
+@@ -0,0 +1,64 @@
++// Linux-only benchmark fixture. The caller keeps the regular tmpfs file immutable.
++use std::{fs::File, io, os::fd::AsRawFd, ptr::NonNull};
++
++const PMD: usize = 2 << 20;
++
++pub(super) struct Mapping {
++    reservation: NonNull<libc::c_void>,
++    reserved: usize,
++    bytes: NonNull<u8>,
++    length: usize,
++}
++
++// The mapping has immutable backing for its entire lifetime and is read-only.
++unsafe impl Send for Mapping {}
++unsafe impl Sync for Mapping {}
++impl AsRef<[u8]> for Mapping {
++    fn as_ref(&self) -> &[u8] {
++        // SAFETY: the file mapping covers length bytes and outlives this slice.
++        unsafe { std::slice::from_raw_parts(self.bytes.as_ptr(), self.length) }
++    }
++}
++impl Drop for Mapping {
++    fn drop(&mut self) {
++        // SAFETY: includes both the retained guard pages and our file mapping.
++        unsafe { libc::munmap(self.reservation.as_ptr(), self.reserved) };
++    }
++}
++impl Mapping {
++    pub(super) fn open(file: &File, large: bool) -> io::Result<Self> {
++        let length = usize::try_from(file.metadata()?.len()).map_err(io::Error::other)?;
++        let reserved = length.checked_add(PMD).ok_or_else(|| io::Error::other("image too large"))?;
++        // SAFETY: anonymous virtual address reservation. MAP_FIXED below replaces only our pages.
++        let ptr = unsafe { libc::mmap(std::ptr::null_mut(), reserved, libc::PROT_NONE,
++            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS, -1, 0) };
++        if ptr == libc::MAP_FAILED { return Err(io::Error::last_os_error()); }
++        let aligned = (ptr as usize).next_multiple_of(PMD) as *mut libc::c_void;
++        let result = Self { reservation: NonNull::new(ptr).unwrap(), reserved,
++            bytes: NonNull::new(aligned.cast()).unwrap(), length };
++        let p = unsafe { libc::mmap(aligned, length, libc::PROT_READ, libc::MAP_SHARED | libc::MAP_FIXED,
++            file.as_raw_fd(), 0) };
++        if p == libc::MAP_FAILED { return Err(io::Error::last_os_error()); }
++        let advice = |len, option| {
++            if unsafe { libc::madvise(p, len, option) } == 0 { Ok(()) }
++            else { Err(io::Error::last_os_error()) }
++        };
++        advice(length, if large { libc::MADV_HUGEPAGE } else { libc::MADV_NOHUGEPAGE })?;
++        advice(length, libc::MADV_POPULATE_READ)?;
++        if large { advice(length / PMD * PMD, 25 /* MADV_COLLAPSE */)?; }
++        // Check the mapped page tables for this exact VMA, before priming.
++        let smaps = std::fs::read_to_string("/proc/self/smaps")?;
++        let prefix = format!("{:x}-", p as usize);
++        let mut lines = smaps.lines().skip_while(|l| !l.starts_with(&prefix));
++        lines.next().ok_or_else(|| io::Error::other("missing image VMA"))?;
++        let kb: usize = lines.take_while(|l| !l.split_once(' ').is_some_and(|(field,_)| field.contains('-')))
++            .find_map(|l| l.strip_prefix("ShmemPmdMapped:"))
++            .and_then(|x| x.split_whitespace().next()?.parse().ok())
++            .ok_or_else(|| io::Error::other("missing page-table accounting"))?;
++        if (large && kb * 1024 != length / PMD * PMD) || (!large && kb != 0) {
++            return Err(io::Error::other(format!("unexpected PMD coverage {kb} KiB for {length} bytes")));
++        }
++        println!("IMAGE_PMD_KIB {kb} {length}");
++        Ok(result)
++    }
++}
