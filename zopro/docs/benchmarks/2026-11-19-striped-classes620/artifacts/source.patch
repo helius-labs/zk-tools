@@ -14,7 +14,7 @@
 +                let mut points = crate::msm::group_affine(bases, &groups.order, &layout.starts, &layout.counts);
 +                if std::env::var_os("ZOPRO_TRIAL_CLASS_STRIPES").is_some() {
 +                    let bytes = points.len().div_ceil(64) * core::mem::size_of::<u64>();
-+                    if let Some(_charge) = crate::preparation::Reservation::analysis(bytes + 64) {
++                    if let Some(_charge) = crate::preparation::Reservation::analysis(bytes.checked_add(64)) {
 +                        split_classes::stripe_pairs(&mut points, &mut layout.values);
 +                        if std::env::var_os("ZOPRO_TRIAL_SPLIT_PROBE").is_some() {
 +                            eprintln!("STRIPED_CLASSES {} {} {}", bases.len(), points.len(), bytes);
