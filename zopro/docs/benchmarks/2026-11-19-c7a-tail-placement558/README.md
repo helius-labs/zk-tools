@@ -13,6 +13,8 @@ The archived C7a profiles contain 132 timed requests from twelve processes and t
 | Merge-24×1 | 96 | Before | 16 | 25.026 | 0.163 | 26.294 | 51.361 |
 | Merge-24×1 | 96 | After | 17 | 19.593 | 7.596 | 28.798 | 53.714 |
 
+None of the 7,987 G2 prefix samples preceded H entry. Of the 81 requests in the before group, all 81 had samples during the H call. Those requests had 4,910 samples during H and eight afterward. On the other 51 requests just two samples fell during H and 3,067 fell afterward.
+
 Each time above is a median within the indicated group. In both shapes the H call was shorter when G2 prefix samples fell later. The time between H return and the join therefore exaggerates the difference in complete proof time.
 
 The next table uses arithmetic means. The change in frequency uses the increase in the after-H group's frequency times the average of the two widths' within-width group differences. The remaining term averages the within-group changes at the two widths' mixture weights. The terms sum to the observed change.

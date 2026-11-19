@@ -42,7 +42,7 @@ def read_process(path, pin, width):
         if event.startswith("cpu-clock"):
             all_ticks.append(t)
             symbol = " ".join(fields[4:])
-            if "g2_prefix" in symbol and "apply" in symbol:
+            if symbol == "zopro_core::msm::g2_prefix::apply::<zopro_bn254::curve::G2Config, true>":
                 samples.append((t, worker.get(int(fields[0]), -1)))
         else:
             events[event].append(t)
@@ -62,9 +62,10 @@ def read_process(path, pin, width):
             sdk_ns = events["sdk_leave"][i] - events["sdk_entry"][i]
             h_start = events["denseh_entry"][i]
             assert events["sdk_entry"][i] <= start <= h_start <= split <= end <= events["sdk_leave"][i]
+            before_h_entry = bisect_left(ticks, h_start)-bisect_left(ticks,start)
             result.append(dict(round=i, phase=phase, duration_ns=finish-begin, sdk_ns=sdk_ns,
                                query_ns=end-start, h_ns=split-h_start,
-                               all_samples=bisect_left(all_ticks, finish)-bisect_left(all_ticks, begin),
+                               pre_h_entry=before_h_entry, all_samples=bisect_left(all_ticks, finish)-bisect_left(all_ticks, begin),
                                outside=counts.pop(-1, 0), counts=dict(counts)))
     return result
 
@@ -146,7 +147,7 @@ def main():
             before, after = [sum(r["counts"].values())+r["outside"] for r in (early,late)]
             share = after/(before+after) if before+after else None
             modes.append(dict(process=name, round=early["round"], before=before, after=after,
-                share=share, tail_ms=late["duration_ns"]/1e6, query_ms=late["query_ns"]/1e6,
+                pre_h_entry=late["pre_h_entry"], during_h=before-late["pre_h_entry"], share=share, tail_ms=late["duration_ns"]/1e6, query_ms=late["query_ns"]/1e6,
                 sdk_ms=late["sdk_ns"]/1e6, h_ms=late["h_ns"]/1e6,
                 tail_samples=late["all_samples"]))
     write("requests.json", modes)
