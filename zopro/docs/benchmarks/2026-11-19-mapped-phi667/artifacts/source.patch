@@ -1,0 +1,67 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -211,6 +211,11 @@
+         #[cfg(not(zopro_phi_grain))]
+         short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+     }
++    from_split(bases, short, bits, parts)
++}
++
++pub(super) fn from_split(bases: &[G2Affine], short: &[[u64; 4]], bits: usize, parts: usize) -> G2Projective {
++    assert_eq!(bases.len(), short.len());
+     let chunk = bases.len().div_ceil(parts);
+     let windows = 127usize.div_ceil(bits);
+     let sums: Vec<_> = (0..windows)
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1703,6 +1703,12 @@
+     }
+ }
+ 
++#[cfg(all(zopro_g2_horner_buckets, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++pub(super) fn correction_phi(points: &[zopro_bn254::G2Affine], words: &mut [[u64; 4]], bits: usize) -> zopro_bn254::G2Projective {
++    assert!((8..=10).contains(&bits));
++    g2_phi::hb_raw(points, words, bits, 1)
++}
++
+ // The four-query CPU prover gives up these proof-local scalar words.
+ // The ordinary five-part path continues to share immutable scalars with B1.
+ pub(super) fn g2_query_exclusive(
+@@ -1726,6 +1732,16 @@
+         if let Some(mut g) = groups {
+             if !(1024..65536).contains(&g.values.len()) {
+                 return crate::msm_grouped_b2(bases, &g);
++            }
++            if bases.len() >= 16384 && std::env::var_os("ZOPRO_MAPPED_OWNED_PHI").is_some() {
++                if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
++                    eprintln!("MAPPED_OWNED_PHI {} {}", bases.len(), g.values.len());
++                }
++                let (points, ()) = rayon::join(
++                    || crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts),
++                    || g.values.par_iter_mut().with_min_len(128).for_each(|v| *v = g2_phi::phi_split(*v)),
++                );
++                return g2_phi::from_split(&points, &g.values, 12, 2);
+             }
+             let points = crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts);
+             return g2_phi::raw_exclusive(&points, &mut g.values);
+--- a/crates/zopro-core/src/groups482.rs
++++ b/crates/zopro-core/src/groups482.rs
+@@ -254,6 +254,18 @@
+                     if s!=rep {points.push(bases[i as usize]);words.push((s-rep).to_canonical());}
+                 }
+             }
++            #[cfg(all(zopro_g2_horner_buckets, feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++            if (256..4096).contains(&count) {
++                let bits = match std::env::var("ZOPRO_MAPPED_CORRECTION_BITS").as_deref() {
++                    Ok("8") => Some(8), Ok("10") => Some(10), _ => None,
++                };
++                if let Some(bits) = bits {
++                    if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
++                        eprintln!("CORRECTION_PHI {} {}", count, bits);
++                    }
++                    return msm_affine::correction_phi(&points, &mut words, bits);
++                }
++            }
+             if adaptive && count>=256 {msm_affine::g2_query_exclusive(&points,&mut words)} else {super::msm_raw_b2(&points,&words)}
+         });
+         Some(main+extra)
