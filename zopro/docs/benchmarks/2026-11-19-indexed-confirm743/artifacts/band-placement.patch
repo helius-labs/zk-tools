@@ -1,0 +1,77 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2282,6 +2282,35 @@
+         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
+         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
+         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
++        let a_on_frontend = |use_raw: bool| -> Option<G1Projective> {
++            #[cfg(zopro_resource_schedule)]
++            if let Some(pool) = self.frontend_pool.as_ref().filter(|pool| {
++                pool.current_num_threads() < rayon::current_num_threads()
++            }) {
++                let workers = pool.current_num_threads();
++                let _scratch = crate::preparation::Reservation::analysis(
++                    msm_affine::workspace::frontend_a_bytes(sa.len(), workers, !use_raw),
++                )?;
++                if std::env::var_os("ZOPRO_TRIAL_WIDE_A_TRACE").is_some() {
++                    eprintln!("WIDE_A_POOL {} {}", workers, usize::from(use_raw));
++                }
++                return Some(pool.install(|| {
++                    if use_raw {
++                        msm_raw(&self.a[..], sa)
++                    } else {
++                        msm(&self.a[..], sa)
++                    }
++                }));
++            }
++            None
++        };
++        let wide_mode = std::env::var("ZOPRO_TRIAL_WIDE_A_POOL");
++        let wide_a = || match wide_mode.as_deref() {
++            Ok("raw") => a_on_frontend(true),
++            Ok("group") => a_on_frontend(false),
++            _ => None,
++        };
++
+         #[cfg(all(zopro_real_kh, zopro_resource_schedule))]
+         // A single weighted sum is valid when B1 is omitted and H has unit scale.
+         let medium = if omit_b && queries.product_scale == Fr::ONE
+@@ -2298,8 +2327,14 @@
+             if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
+                 eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+             }
++            let a = || {
++                if let Some(result) = wide_a() {
++                    return result;
++                }
++                msm(&self.a[..], sa)
++            };
+             let ((ar,kh),bs2)=rayon::join(
+-                || rayon::join(|| msm(&self.a[..],sa),
++                || rayon::join(a,
+                     || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+@@ -2323,7 +2358,7 @@
+                 rayon::join(
+                     || {
+                         rayon::join(
+-                            || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
++                            || rayon::join(|| wide_a().unwrap_or_else(|| msm(&self.a[..], sa)), || msm(k, sk)),
+                             || {
+                                 if montgomery_h {
+                                     msm_affine::msm_montgomery(z, h)
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -410,6 +410,11 @@
+     pub msms: usize,
+     pub total: usize,
+ }
++pub(crate) fn frontend_a_bytes(points: usize, workers: usize, grouping: bool) -> Option<usize> {
++    let profile = envelope::<G1Config>(points, grouping, false)?;
++    add(profile.held, mul(profile.leaf, workers)?)
++}
++
+ pub(crate) fn forecast(g: Geometry) -> Option<Forecast> {
+     if !cfg!(zopro_g2_horner_buckets) {
+         return None;
