@@ -1,0 +1,70 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -224,6 +224,7 @@
+ 
+ #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+ mod public_wire_offsets;
++mod reuse_probe;
+ 
+ // The version of the solver images Key::solver_image writes and
+ // Key::set_solver_image reads, for a host to tell its images apart.
+@@ -2372,7 +2373,9 @@
+         if !fixed.rerandomization_key_valid() {
+             return Err("zero delta in proving key".into());
+         }
++        let probe=std::env::var_os("ZOPRO_POSEIDON_REUSE_PROBE").is_some() && reuse_probe::begin();
+         let parts = self.solve_inner(witness, true)?;
++        if probe {reuse_probe::finish();}
+         if let Some(proof) = fixed.assemble_rerandomized(&parts) {
+             return Ok(proof);
+         }
+--- /dev/null
++++ b/crates/zopro-core/src/reuse_probe.rs
+@@ -0,0 +1,37 @@
++use super::Fr;
++use std::collections::{BTreeMap, HashMap};
++use std::sync::{Mutex,OnceLock};
++use std::sync::atomic::{AtomicBool,Ordering};
++
++#[derive(Default)]
++struct State {
++    lookup: HashMap<Vec<[u64;4]>,usize>,
++    completed: Vec<bool>,
++    counts: BTreeMap<usize,[usize;3]>,
++}
++static STORE: OnceLock<Mutex<State>>=OnceLock::new();
++static ACTIVE:AtomicBool=AtomicBool::new(false);
++pub fn begin()->bool {
++    if STORE.set(Mutex::new(State::default())).is_err() {return false;}
++    ACTIVE.store(true,Ordering::Release);true
++}
++pub struct Visit(usize);
++impl Drop for Visit {
++    fn drop(&mut self) {
++        STORE.get().unwrap().lock().unwrap().completed[self.0]=true;
++    }
++}
++pub fn visit(state:&[Fr])->Option<Visit> {
++    if !ACTIVE.load(Ordering::Acquire){return None;}
++    let w=state.len();let key:Vec<_>=state.iter().map(|x|x.to_canonical()).collect();
++    let mut s=STORE.get().unwrap().lock().unwrap();let prev=s.lookup.get(&key).copied();
++    let id=match prev {Some(i)=>i,None=>{let i=s.completed.len();s.lookup.insert(key,i);s.completed.push(false);i}};
++    let ready=s.completed[id];let c=s.counts.entry(w).or_default();c[0]+=1;c[1]+=usize::from(prev.is_some());c[2]+=usize::from(ready);
++    Some(Visit(id))
++}
++pub fn finish(){
++    ACTIVE.store(false,Ordering::Release);
++    let mut state=STORE.get().unwrap().lock().unwrap();
++    for (width,c) in &state.counts {eprintln!("POSEIDON_REUSE {} {} {} {}",width,c[0],c[1],c[2]);}
++    *state=State::default();
++}
+--- a/crates/zopro-core/src/solver/sparse_poseidon.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon.rs
+@@ -491,6 +491,7 @@
+             }
+             *s = next;
+         }
++        let _seen = crate::reuse_probe::visit(&s[..t]);
+         dense(&mut s, t, a, mds);
+         let mut k = t;
+         for r in [2, 3] {
