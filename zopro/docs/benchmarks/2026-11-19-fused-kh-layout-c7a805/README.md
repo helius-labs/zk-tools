@@ -54,10 +54,12 @@ None of the layouts improved both primary inputs consistently against both contr
 
 **4/8** original requests reach 10× M5 CPU.
 
+The released controls improve the 1×2 and 2×2 reference times. The [independent C7a panel](../2026-11-19-g1-query-bound-c7a803/README.md) measured the same released controls at 7.809 and 12.051 ms on the original requests. The scorecard uses this panel’s same-host values alongside Aeglos.
+
 | Shape | Profile | C7a ms | M5 CPU / Metal ms | CPU / Metal speedup | Gap to 10× CPU ms |
 |---|---|---:|---:|---:|---:|
-| 1×2 | 737 dedicated G1 80+16 | 7.953 | 37 / 24 | 4.65× / 3.02× | +4.253 |
-| 2×2 | 798 SDK medium K/H 64 main | 12.127 | 59 / 30 | 4.87× / 2.47× | +6.227 |
+| 1×2 | 805 released SDK 80+16 | 7.858 | 37 / 24 | 4.71× / 3.05× | +4.158 |
+| 2×2 | 805 released SDK medium K/H 64+32 | 12.029 | 59 / 30 | 4.90× / 2.49× | +6.129 |
 | 4×2 | 757 solve-front-on | 15.257 | 109 / 48 | 7.14× / 3.15× | +4.357 |
 | 8×2 | 781 recognized B2 origins replay | 20.098 | 189 / 74 | 9.40× / 3.68× | +1.198 |
 | 12×2 | 750 indexed fixed-on | 27.790 | 284 / 101 | 10.22× / 3.63× | -0.610 |
