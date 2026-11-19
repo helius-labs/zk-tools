@@ -1786,8 +1786,12 @@ pub(super) fn euler_product_study(
             if std::env::var_os("ZOPRO_EULER_TRACE").is_some() {
                 eprintln!("EULER_PACKED_WORKERS {}", rayon::current_num_threads());
             }
-            let values = euler_center::from_inputs(plan, &a, &b, storage);
-            euler_combine_products(&mut a, &b, &values);
+            if std::env::var("ZOPRO_CPU_FFT_FUSED_EULER_OUTPUT").as_deref() == Ok("1") {
+                euler_center::emit_products(plan, &mut a, &b, storage);
+            } else {
+                let values = euler_center::from_inputs(plan, &a, &b, storage);
+                euler_combine_products(&mut a, &b, &values);
+            }
             a
         };
         return match pool {
