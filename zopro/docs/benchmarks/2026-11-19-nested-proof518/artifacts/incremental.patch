@@ -1,0 +1,58 @@
+--- a/crates/zopro-core/src/groups482.rs
++++ b/crates/zopro-core/src/groups482.rs
+@@ -2,6 +2,7 @@
+ use rayon::prelude::*;
+ 
+ pub(super) struct Groups {
++    upper: Option<Box<Groups>>,
+     ids: Vec<u32>,
+     ends: Vec<usize>,
+     sums: Vec<G2Affine>,
+@@ -15,6 +16,19 @@
+ 
+ impl Groups {
+     pub fn prepare(bases: &[G2Affine], data: &[u8]) -> Result<Option<Self>, &'static str> {
++        if data.starts_with(b"ZPNEST17") {
++            let size_bytes = data.get(8..16).ok_or("missing nested group size")?;
++            let size = usize::try_from(u64::from_le_bytes(size_bytes.try_into().unwrap())).map_err(|_|"nested group size overflow")?;
++            let (lower, upper) = data[16..].split_at_checked(size).ok_or("truncated nested group plan")?;
++            if !lower.starts_with(b"ZPGR0482") || !upper.starts_with(b"ZPGR0482") {return Err("invalid nested group levels");}
++            let Some(mut first) = Self::prepare_flat(bases,lower)? else {return Ok(None);};
++            first.upper=Self::prepare_flat(&first.sums,upper)?.map(Box::new);
++            return Ok(Some(first));
++        }
++        Self::prepare_flat(bases,data)
++    }
++
++    fn prepare_flat(bases: &[G2Affine], data: &[u8]) -> Result<Option<Self>, &'static str> {
+         if data.len() < 16 || &data[..8] != b"ZPGR0482" || u32at(data, 8) as usize != bases.len() {
+             return Err("invalid group dimensions");
+         }
+@@ -60,7 +74,7 @@
+             out.copy_from_slice(&G2Projective::batch_to_affine(&projective));
+         });
+         sums[count..].par_iter_mut().zip(&sources[count..]).for_each(|(p,&i)|*p=bases[i as usize]);
+-        Ok(Some(Self {ids, ends, sources, sums, _held:held}))
++        Ok(Some(Self {upper:None, ids, ends, sources, sums, _held:held}))
+     }
+ 
+     fn members(&self, g:usize) -> &[u32] {
+@@ -126,6 +140,18 @@
+             eprintln!("GROUP_QUERY {} {} {}",scalars.len(),self.sources.len(),count);
+         }
+         let (main,extra)=rayon::join(|| {
++            if let Some(upper)=&self.upper {
++                let mut representatives:Vec<Fr>=self.sources.par_iter().enumerate().map(|(g,&source)| {
++                    let index=choices.get(g).map_or(source,|c|c.0);
++                    scalars[index as usize]
++                }).collect();
++                if let Some(result)=upper.query(&self.sums,&representatives) {
++                    if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() { eprintln!("NESTED_UPPER_COMPACT {}",self.sums.len()); }
++                    return result;
++                }
++                if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() { eprintln!("NESTED_UPPER_DENSE {}",self.sums.len()); }
++                return msm_affine::g2_query_exclusive(&self.sums,msm_affine::canonical_exclusive(&mut representatives));
++            }
+             let mut words:Vec<_>=self.sources.par_iter().enumerate().map(|(g,&source)| {
+                 let index = choices.get(g).map_or(source, |c| c.0);
+                 scalars[index as usize].to_canonical()
