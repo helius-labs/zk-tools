@@ -1,0 +1,124 @@
+--- a/src/sleep/mod.rs
++++ b/src/sleep/mod.rs
+@@ -24,6 +24,7 @@
+     worker_sleep_states: Vec<CachePadded<WorkerSleepState>>,
+ 
+     counters: AtomicCounters,
++    idle_rounds: u32,
+ }
+ 
+ /// An instance of this struct is created when a thread becomes idle.
+@@ -37,6 +38,7 @@
+ 
+     /// How many rounds have we been circling without sleeping?
+     rounds: u32,
++    idle_rounds: u32,
+ 
+     /// Once we become sleepy, what was the sleepy counter value?
+     /// Set to `INVALID_SLEEPY_COUNTER` otherwise.
+@@ -54,12 +56,25 @@
+ }
+ 
+ const ROUNDS_UNTIL_SLEEPY: u32 = 32;
+-const ROUNDS_UNTIL_SLEEPING: u32 = ROUNDS_UNTIL_SLEEPY + 1;
++fn idle_rounds(threads: usize, budget: Option<usize>) -> u32 {
++    match budget {
++        Some(probes @ (128 | 512)) if threads >= 16 => {
++            probes.div_ceil(threads - 1).clamp(1, ROUNDS_UNTIL_SLEEPY as usize) as u32
++        }
++        _ => ROUNDS_UNTIL_SLEEPY,
++    }
++}
+ 
+ impl Sleep {
+     pub(super) fn new(n_threads: usize) -> Sleep {
+         assert!(n_threads <= THREADS_MAX);
++        let budget = std::env::var("ZOPRO_IDLE_PROBES").ok().and_then(|v| v.parse().ok());
++        let idle_rounds = idle_rounds(n_threads, budget);
++        if std::env::var_os("ZOPRO_REPORT_IDLE_ROUNDS").is_some() {
++            eprintln!("IDLE_ROUNDS {n_threads} {idle_rounds}");
++        }
+         Sleep {
++            idle_rounds,
+             worker_sleep_states: (0..n_threads).map(|_| Default::default()).collect(),
+             counters: AtomicCounters::new(),
+         }
+@@ -72,6 +87,7 @@
+         IdleState {
+             worker_index,
+             rounds: 0,
++            idle_rounds: self.idle_rounds,
+             jobs_counter: JobsEventCounter::DUMMY,
+         }
+     }
+@@ -91,18 +107,18 @@
+         latch: &CoreLatch,
+         has_injected_jobs: impl FnOnce() -> bool,
+     ) {
+-        if idle_state.rounds < ROUNDS_UNTIL_SLEEPY {
++        if idle_state.rounds < idle_state.idle_rounds {
+             thread::yield_now();
+             idle_state.rounds += 1;
+-        } else if idle_state.rounds == ROUNDS_UNTIL_SLEEPY {
++        } else if idle_state.rounds == idle_state.idle_rounds {
+             idle_state.jobs_counter = self.announce_sleepy();
+             idle_state.rounds += 1;
+             thread::yield_now();
+-        } else if idle_state.rounds < ROUNDS_UNTIL_SLEEPING {
++        } else if idle_state.rounds < (idle_state.idle_rounds + 1) {
+             idle_state.rounds += 1;
+             thread::yield_now();
+         } else {
+-            debug_assert_eq!(idle_state.rounds, ROUNDS_UNTIL_SLEEPING);
++            debug_assert_eq!(idle_state.rounds, (idle_state.idle_rounds + 1));
+             self.sleep(idle_state, latch, has_injected_jobs);
+         }
+     }
+@@ -318,7 +334,46 @@
+     }
+ 
+     fn wake_partly(&mut self) {
+-        self.rounds = ROUNDS_UNTIL_SLEEPY;
++        self.rounds = self.idle_rounds;
+         self.jobs_counter = JobsEventCounter::DUMMY;
+     }
+ }
++
++#[cfg(test)]
++mod idle_budget_tests {
++    #[test]
++    fn limits_scale_with_team_size() {
++        for (workers, budget, expected) in [
++            (8, Some(128), 32), (16, Some(128), 9), (32, Some(128), 5),
++            (64, Some(128), 3), (96, Some(128), 2), (96, Some(512), 6),
++            (32, Some(512), 17), (32, None, 32), (96, Some(0), 32),
++        ] {
++            assert_eq!(super::idle_rounds(workers, budget), expected);
++        }
++    }
++
++    #[test]
++    fn jobs_complete_after_idle_transitions() {
++        use std::sync::atomic::{AtomicUsize, Ordering};
++        use std::time::Duration;
++        let pool = crate::ThreadPoolBuilder::new().num_threads(32).build().unwrap();
++        for _ in 0..8 {
++            std::thread::sleep(Duration::from_millis(3));
++            let completed = AtomicUsize::new(0);
++            std::thread::scope(|scope| {
++                for _ in 0..4 {
++                    scope.spawn(|| pool.scope(|s| {
++                        for _ in 0..128 {
++                            s.spawn(|_| {
++                                crate::join(|| completed.fetch_add(1, Ordering::Relaxed),
++                                            || completed.fetch_add(1, Ordering::Relaxed));
++                            });
++                        }
++                    }));
++                }
++            });
++            assert_eq!(completed.load(Ordering::Relaxed), 1024);
++            assert_eq!(pool.broadcast(|ctx| ctx.index()).len(), 32);
++        }
++    }
++}
