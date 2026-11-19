@@ -1,0 +1,49 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -211,7 +211,22 @@
+         #[cfg(not(zopro_phi_grain))]
+         short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+     }
+-    let chunk = bases.len().div_ceil(parts);
++    let chunk = if parts == 2 {
++        let numerator = match std::env::var("ZOPRO_TRIAL_G2_FIRST_SHARE").as_deref() {
++            Ok("7") => 7,
++            Ok("9") => 9,
++            Ok("10") => 10,
++            _ => 8,
++        };
++        let length = bases.len();
++        let first = (length / 16) * numerator + ((length % 16) * numerator).div_ceil(16);
++        if std::env::var_os("ZOPRO_TRIAL_G2_SHARE_TRACE").is_some() {
++            eprintln!("G2_RANGE_SHARE {numerator} {first} {length}");
++        }
++        first
++    } else {
++        bases.len().div_ceil(parts)
++    };
+     let windows = 127usize.div_ceil(bits);
+     let sums: Vec<_> = (0..windows)
+         .into_par_iter()
+@@ -220,7 +235,7 @@
+                 .into_par_iter()
+                 .map(|part| {
+                     let start = (part * chunk).min(bases.len());
+-                    let end = (start + chunk).min(bases.len());
++                    let end = if part + 1 == parts { bases.len() } else { (start + chunk).min(bases.len()) };
+                     hb_window(&bases[start..end], &short[start..end], w, bits)
+                 })
+                 .collect();
+--- a/crates/zopro-core/src/msm_affine/g2_borrowed.rs
++++ b/crates/zopro-core/src/msm_affine/g2_borrowed.rs
+@@ -251,6 +251,11 @@
+         assert_eq!(actual.to_affine(), expected.to_affine());
+     }
+     #[test]
++    fn unequal_range_ragged_generator_oracle() {
++        check(513, true);
++        check(1025, false);
++    }
++    #[test]
+     fn full_width_phi_msm_matches_generator_sum() {
+         for n in [1024, 4096, 8192] {
+             check(n, false)
