@@ -1,0 +1,91 @@
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1785,11 +1785,25 @@
+     euler_scaled::<false,false,false>(plan,a,b)
+ }
+ 
++struct EulerPhases {
++    start: std::time::Instant,
++    times: [u64;4],
++    next: usize,
++}
++impl EulerPhases {
++    fn begin()->Self {Self{start:std::time::Instant::now(),times:[0;4],next:0}}
++    fn mark(&mut self) {self.times[self.next]=self.start.elapsed().as_nanos() as u64;self.next+=1;}
++    fn report(mut self) {
++        self.mark();
++        eprintln!("EULER_PHASES {} {} {} {}",self.times[0],self.times[1],self.times[2],self.times[3]);
++    }
++}
+ fn euler_scaled<const INPUT:bool,const PRODUCT:bool,const RESTORE:bool>(
+     plan:&Plan,mut a:Vec<Fr>,b:Vec<Fr>
+ )->Vec<Fr> {
+     assert!(plan.n >= 8 && a.len() <= plan.n && b.len() <= plan.n);
+     assert!(!plan.released && plan.twisted.is_none());
++    let mut clock=EulerPhases::begin();
+     let count = a.len().max(b.len());
+     a.resize(count, Fr::ZERO);
+     if count == 0 { return a; }
+@@ -1798,8 +1812,9 @@
+     if packed_inputs && plan.n <= (1 << 28) && plan.roots.single.is_none()
+         && std::env::var("ZOPRO_CPU_FFT_LOCAL_EULER").as_deref() == Ok("1")
+     {
+-        let values = euler_center::from_inputs::<INPUT,RESTORE>(plan, &a, &b);
++        let values = euler_center::from_inputs::<INPUT,RESTORE>(plan, &a, &b,&mut clock);
+         euler_combine_products::<INPUT,PRODUCT>(&mut a, &b, &values);
++        clock.report();
+         return a;
+     }
+     let mut values = if packed_inputs {
+@@ -1816,6 +1831,7 @@
+         stored_transform::<PackedPair, false>(&mut values, &plan.inverse_roots, 0);
+         values
+     };
++    clock.mark();
+     if cfg!(zopro_euler_leading_weights) && plan.n <= 1usize<<28 {
+         let log=plan.n.trailing_zeros() as usize;let low=log.min(10);
+         // <=8KiB of ordinary integer weights replaces <=40KiB of field weights.
+@@ -1847,8 +1863,11 @@
+     });
+     drop(lows);
+     }
++    clock.mark();
+     stored_transform::<PackedPair, true>(&mut values, &plan.roots, 0);
++    clock.mark();
+     euler_combine_products::<INPUT,PRODUCT>(&mut a, &b, &values);
++    clock.report();
+     a
+ }
+ 
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -90,8 +90,9 @@
+ }
+ 
+ #[inline(never)]
+-pub(super) fn from_inputs<const RAW:bool,const RESTORE:bool>(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
++pub(super) fn from_inputs<const RAW:bool,const RESTORE:bool>(plan: &Plan, a: &[Fr], b: &[Fr],clock:&mut EulerPhases) -> Vec<PackedPair> {
+     let mut values = input_columns::first_layer::<RAW>(plan, a, b);
++    clock.mark();
+     let width = values.len() / 32;
+     values
+         .par_chunks_exact_mut(width)
+@@ -99,7 +100,9 @@
+         .for_each(|(i, part)| {
+             transform::<RESTORE>(plan, part, 5, i * width);
+         });
++    clock.mark();
+     columns::<true>(&mut values, &plan.roots, 0);
++    clock.mark();
+     values
+ }
+ 
+@@ -117,7 +120,7 @@
+             let b: Vec<_> = (0..n - 1)
+                 .map(|i| Fr::from((i + 1) as u64).square())
+                 .collect();
+-            let got = from_inputs::<false,false>(&plan, &a, &b);
++            let got = from_inputs::<false,false>(&plan, &a, &b,&mut EulerPhases::begin());
+             let mut expected = input_columns::inverse::<false>(&plan, &a, &b);
+             for (i, value) in expected.iter_mut().enumerate() {
+                 let factors =
