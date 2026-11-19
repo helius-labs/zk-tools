@@ -1,0 +1,188 @@
+{
+  "version": 1,
+  "blocks": 7,
+  "profile_blocks": 2,
+  "profile_cases": [
+    "original"
+  ],
+  "environment": {
+    "ZOPRO_BENCH_CERTIFIED_OUTPUT": "1",
+    "ZOPRO_BENCH_FUSED_PREPARATION": "1",
+    "ZOPRO_BENCH_WORKER_PLACEMENT": "fixed",
+    "ZOPRO_CPU_BOUNDED_SCHEDULE": "1",
+    "ZOPRO_CPU_CANONICAL_WIRES": "1",
+    "ZOPRO_CPU_DEFER_SIGNED_Y": "1",
+    "ZOPRO_CPU_DEFER_SIGN_PARTS": "1",
+    "ZOPRO_CPU_DEFER_SIGN_WIDTH": "12",
+    "ZOPRO_CPU_FFT_COLUMN_ROOTS": "1",
+    "ZOPRO_CPU_G2_PREFIX_RECORDS": "1",
+    "ZOPRO_CPU_INDEXED_TILE_BUNDLES": "1",
+    "ZOPRO_CPU_LAGRANGE": "1",
+    "ZOPRO_CPU_LAGRANGE_FOLD": "1",
+    "ZOPRO_CPU_PROOF_CONCURRENCY": "1",
+    "ZOPRO_CPU_RESOURCE_SCHEDULE": "1",
+    "ZOPRO_CPU_SMALL_CORE_ENTRY": "1",
+    "ZOPRO_CPU_ZERO_AWARE_GROUPS": "1",
+    "ZOPRO_SOLVE_EPOCHS": "8",
+    "ZOPRO_CPU_SOLVER_FRONTEND": "0",
+    "ZOPRO_CPU_G2_RANGES": "2",
+    "ZOPRO_CPU_G2_DECOMPOSITION": "off",
+    "ZOPRO_CPU_DENSE_H_WINDOWS": "19",
+    "ZOPRO_CPU_H_WINDOW_RANGES": "2",
+    "ZOPRO_BENCH_DENSE_H_BITS": "13",
+    "ZOPRO_CPU_GROUP_DIVERSITY": "0",
+    "ZOPRO_BENCH_PUBLIC_OVERLAP": "off",
+    "ZOPRO_SOLVE_TASK_CLAIMS": "0",
+    "ZOPRO_SOLVE_PACK_TASKS": "0",
+    "ZOPRO_CPU_POSEIDON_EMIT": "0",
+    "ZOPRO_CPU_FFT_INPUT_COLUMNS": "1",
+    "ZOPRO_CPU_FFT_LOCAL_EULER": "1",
+    "ZOPRO_CPU_MEDIUM_KH": "0",
+    "ZOPRO_BASIS_KEY_DIR": "/home/ubuntu/src/zopro-perf-work/matched-engines531/bundle/images",
+    "ZOPRO_CPU_LAGRANGE_DIR": "/home/ubuntu/src/zopro-perf-work/allocator-pool624/cache",
+    "ZOPRO_BENCH_WIRE_FILE": "/home/ubuntu/src/zopro-perf-work/matched-engines531/bundle/wires/24x2.wo"
+  },
+  "command": [
+    "{binary}",
+    "{image}",
+    "{request}",
+    "{rounds}",
+    "{proof_dir}"
+  ],
+  "variants": [
+    {
+      "name": "stock-main",
+      "binary": "/home/ubuntu/src/zopro-perf-work/release-pool621/candidate-target/x86_64-unknown-linux-gnu/release/examples/cpu-sdk",
+      "environment": {}
+    },
+    {
+      "name": "stock-pool",
+      "binary": "/home/ubuntu/src/zopro-perf-work/release-pool621/candidate-target/x86_64-unknown-linux-gnu/release/examples/cpu-sdk",
+      "environment": {
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,24,25,26,27,28,29,30",
+        "ZOPRO_CPU_FFT_PRODUCT_FRONTEND": "1"
+      }
+    },
+    {
+      "name": "tuned-main",
+      "binary": "/home/ubuntu/src/zopro-perf-work/release-pool621/candidate-target/x86_64-unknown-linux-gnu/release/examples/cpu-sdk",
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1"
+      }
+    },
+    {
+      "name": "tuned-pool",
+      "binary": "/home/ubuntu/src/zopro-perf-work/release-pool621/candidate-target/x86_64-unknown-linux-gnu/release/examples/cpu-sdk",
+      "environment": {
+        "MALLOC_ARENA_MAX": "32",
+        "MALLOC_MMAP_THRESHOLD_": "1073741824",
+        "MALLOC_TRIM_THRESHOLD_": "-1",
+        "ZOPRO_BENCH_FRONT_CPUS": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,24,25,26,27,28,29,30",
+        "ZOPRO_CPU_FFT_PRODUCT_FRONTEND": "1"
+      }
+    }
+  ],
+  "cases": [
+    {
+      "name": "original",
+      "shape": "24x2",
+      "workers": 32,
+      "cpu_affinity": "0-31",
+      "rounds": 17,
+      "profile_rounds": 21,
+      "public_sha256": "b0d48d1dbe96148b0f30d7ba3b1d74e65d5bdf3f8a45f9d7cd27b03c0e939095",
+      "image": "/home/ubuntu/src/zopro-perf-work/matched-engines531/bundle/images/transfer_confidential_24_2.image",
+      "request": "/home/ubuntu/src/zopro-perf-work/matched-engines531/bundle/requests/24x2.json",
+      "reference": {
+        "cpu_ms": 528.0,
+        "metal_ms": 176.0
+      }
+    }
+  ],
+  "pins": {
+    "/home/ubuntu/src/zopro-perf-work/matched-engines531/bundle/images/transfer_confidential_24_2.image": "2d6d800139202c68002bf2e98c0f833037ae74474d838fdbfa857ccffd6aa8ef",
+    "/home/ubuntu/src/zopro-perf-work/matched-engines531/bundle/bin/verify": "6ddf6c2bc8b784b38eef4be840209d674b66ab5fa11e8418464a913323df3ada",
+    "/home/ubuntu/src/zopro-perf-work/matched-engines531/bundle/requests/24x2.json": "c325b06a63cd7430d25b625812148a2e737d27ef1b82ae36b492032eedade1c8",
+    "/home/ubuntu/src/zopro-perf-work/matched-engines531/bundle/wires/24x2.wo": "acca8a178136a89400f2a8c12c21a16825d6082a1313b5fe127ec0caceaa9e7f",
+    "/home/ubuntu/src/zopro-perf-work/release-pool621/candidate-target/x86_64-unknown-linux-gnu/release/examples/cpu-sdk": "c077b0686bf45e0444a3e4a2da2ebda5cf1e38251e79c5e945a5a9e1e0e493bb"
+  },
+  "verifier": [
+    "/home/ubuntu/src/zopro-perf-work/matched-engines531/bundle/bin/verify",
+    "{image}",
+    "2d6d800139202c68002bf2e98c0f833037ae74474d838fdbfa857ccffd6aa8ef",
+    "{proof_dir}/0.proof",
+    "{proof_dir}/0.public",
+    "b0d48d1dbe96148b0f30d7ba3b1d74e65d5bdf3f8a45f9d7cd27b03c0e939095"
+  ],
+  "perf_prefix": [
+    "sudo",
+    "-n"
+  ],
+  "child_prefix": [
+    "sudo",
+    "-n",
+    "-u",
+    "ubuntu"
+  ],
+  "profile_environment": {
+    "ZOPRO_BENCH_PERF_CTL": "{control}",
+    "ZOPRO_BENCH_PERF_ACK": "{ack}"
+  },
+  "perf": "perf",
+  "symbol_categories": [
+    {
+      "name": "grouping",
+      "contains": [
+        "scalar_groups",
+        "hashbrown"
+      ]
+    },
+    {
+      "name": "G2_stream",
+      "contains": [
+        "g2_prefix",
+        "stream_g2"
+      ]
+    },
+    {
+      "name": "G1_stream",
+      "contains": [
+        "stream_g1"
+      ]
+    },
+    {
+      "name": "inverse",
+      "contains": [
+        "zopro_bn254::inverse"
+      ]
+    },
+    {
+      "name": "epoch",
+      "contains": [
+        "crossbeam_epoch"
+      ]
+    },
+    {
+      "name": "scheduler",
+      "contains": [
+        "rayon_core",
+        "crossbeam_deque"
+      ]
+    },
+    {
+      "name": "fft",
+      "contains": [
+        "zopro_core::fft"
+      ]
+    },
+    {
+      "name": "solver",
+      "contains": [
+        "zopro_core::solver"
+      ]
+    }
+  ],
+  "frequency_hz": 397
+}
