@@ -1,0 +1,269 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -16,6 +16,8 @@
+ pub mod alloc;
+ pub mod artifact;
+ mod decompress;
++mod curve_placement_trial;
++use curve_placement_trial::{Clock as CurveClock, Phase as CurvePhase};
+ #[cfg(not(target_arch = "wasm32"))]
+ pub mod dump;
+ pub mod fft;
+@@ -1152,9 +1154,10 @@
+         });
+         #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+         let instruction_pool = None;
+-        let solver::Solution { mut w, a, b, c } = plan.solve_with_pool(
+-            &frs(witness), self.domain, slots, materialize_c, instruction_pool,
+-        )?;
++        let clock = CurveClock::new();
++        let solver::Solution { mut w, a, b, c } = clock.time(CurvePhase::Solve, || {
++            plan.solve_with_pool(&frs(witness), self.domain, slots, materialize_c, instruction_pool)
++        })?;
+         if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
+         let started = trace("solve", started);
+         use rayon::prelude::*;
+@@ -1164,10 +1167,10 @@
+         if let Some(offsets) = offsets {
+             offsets.apply(&mut w);
+         }
+-        let (mut sa, mut sb): (Vec<_>, Vec<_>) = rayon::join(
++        let (mut sa, mut sb): (Vec<_>, Vec<_>) = clock.time(CurvePhase::Gather, || rayon::join(
+             || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
+             || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
+-        );
++        ));
+         trace("extract-scalars", started);
+         let (public, private) = w.split_at_mut(plan.n_public);
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -1175,7 +1178,9 @@
+             // The folded public term still needs the original public values.
+             offsets.restore_public(public);
+         }
+-        self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
++        let result = self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b, &clock);
++        clock.report();
++        result
+     }
+     pub fn commitment(
+         &self,
+@@ -1218,7 +1223,7 @@
+         }
+         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
+         let (mut sa, mut sb, mut sk) = (frs(sa), frs(sb), frs(sk));
+-        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false)
++        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false, &CurveClock::default())
+             .map_err(|e| JsError::new(&e))
+     }
+ }
+@@ -1593,6 +1598,7 @@
+         c: Vec<Fr>,
+         public: Option<&[Fr]>,
+         omit_b: bool,
++        clock: &CurveClock,
+     ) -> Result<Vec<u8>, String> {
+         #[cfg(gpu)]
+         if let Some(gpu) = &self.gpu {
+@@ -1863,11 +1869,11 @@
+                 });
+                 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                 let pool = None;
+-                let mut product = queries.product_values(&self.plan, a, b, pool);
++                let mut product = clock.time(CurvePhase::Fft, || queries.product_values(&self.plan, a, b, pool));
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+-                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
++                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b, clock),
+                     || folded.public_term(public),
+                 );
+                 #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -1889,7 +1895,7 @@
+             let mut product = queries.product_values(&self.plan, a, b, None);
+             let started = trace("quotient-product", started);
+             let (((ar, bs1), (kr, (positive, bs2))), negative) = rayon::join(
+-                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b),
++                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b, clock),
+                 || msm_g1(&queries.constraints[..c.len()], &c),
+             );
+             trace("msms", started);
+@@ -1910,7 +1916,7 @@
+         let trace_scalars = std::env::var("ZOPRO_TRACE_MSMS")
+             .is_ok_and(|v| v == "1")
+             .then(|| (sa.to_vec(), sb.to_vec(), sk.to_vec(), h.to_vec()));
+-        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b);
++        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b, clock);
+         trace("msms", started);
+         // Each MSM alone, on the whole pool, for its own share: this adds
+         // to the proof time, so only with ZOPRO_TRACE_MSMS=1.
+@@ -1954,11 +1960,12 @@
+         k: &[G1Affine],
+         folded_k: bool,
+         omit_b: bool,
++        clock: &CurveClock,
+     ) -> (
+         (G1Projective, G1Projective),
+         (G1Projective, (G1Projective, G2Projective)),
+     ) {
+-        let _ = folded_k;
++        let _ = (folded_k, clock);
+         #[cfg(not(target_arch = "wasm32"))]
+         if affine_msm() {
+             let montgomery_h =
+@@ -2033,20 +2040,24 @@
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
++            use crate::curve_placement_trial::placed;
++            let placement = std::env::var("ZOPRO_TRIAL_CURVE_FRONT").unwrap_or_default();
++            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++            let frontend = self.frontend_pool.as_deref();
++            #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
++            let frontend = None;
++            let ar = || placed(&placement, "a", sa.len(), frontend, || clock.time(CurvePhase::A, || msm(&self.a[..], sa)));
++            let kr = || placed(&placement, "k", sk.len(), frontend, || clock.time(CurvePhase::K, || msm(k, sk)));
++            let hz = || {
++                if montgomery_h {
++                    clock.time(CurvePhase::H, || msm_affine::msm_montgomery(z, h))
++                } else {
++                    placed(&placement, "h", h.len(), frontend, || clock.time(CurvePhase::H, || msm(z, h)))
++                }
++            };
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+-                || {
+-                    rayon::join(
+-                        || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+-                        || {
+-                            if montgomery_h {
+-                                msm_affine::msm_montgomery(z, h)
+-                            } else {
+-                                msm(z, h)
+-                            }
+-                        },
+-                    )
+-                },
+-                || {
++                || rayon::join(|| rayon::join(ar, kr), hz),
++                || clock.time(CurvePhase::B2, || {
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
+@@ -2073,7 +2084,7 @@
+                         let sb = canonical(sb);
+                         rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
+                     }
+-                },
++                }),
+             );
+             return ((ar, bs1), (kr, (hz, bs2)));
+         }
+@@ -2490,7 +2501,7 @@
+             let c_coset=self.plan.coset_product(c,vec![Fr::ONE;self.domain]);
+             product.par_iter_mut().zip(c_coset.par_iter()).for_each(|(p,c)|*p-=*c);product
+         };
+-        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b);
++        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b,&CurveClock::default());
+         let mut out=Vec::with_capacity(384);for p in [ar,bs1,kr+correction,q.finish_product(hz)]{output_g1(&mut out,p);}output_g2(&mut out,bs2);Ok(out)
+     }
+ }
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -423,6 +423,11 @@
+ }
+ pub(crate) fn frontend_a_bytes(points: usize, workers: usize) -> Option<usize> {
+     let profile = envelope::<G1Config>(points, false, false)?;
++    add(profile.held, mul(profile.leaf, workers)?)
++}
++
++pub(crate) fn frontend_curve_bytes(points: usize, workers: usize) -> Option<usize> {
++    let profile = envelope::<G1Config>(points, true, false)?;
+     add(profile.held, mul(profile.leaf, workers)?)
+ }
+ 
+--- /dev/null
++++ b/crates/zopro-core/src/curve_placement_trial.rs
+@@ -0,0 +1,84 @@
++//! Timings and optional disjoint placement for the ordinary CPU curve queries.
++use crate::{G1Projective, time::Instant};
++use std::sync::OnceLock;
++
++#[derive(Clone, Copy)]
++pub(super) enum Phase {
++    Solve,
++    Gather,
++    Fft,
++    A,
++    K,
++    H,
++    B2,
++}
++
++#[derive(Default)]
++pub(super) struct Clock {
++    start: Option<Instant>,
++    intervals: [OnceLock<(u128, u128, usize)>; 7],
++}
++
++impl Clock {
++    pub(super) fn new() -> Self {
++        Self {
++            start: std::env::var_os("ZOPRO_TRIAL_CURVE_CLOCK").is_some().then(Instant::now),
++            intervals: Default::default(),
++        }
++    }
++
++    pub(super) fn time<T>(&self, phase: Phase, f: impl FnOnce() -> T) -> T {
++        let Some(start) = self.start else {
++            return f();
++        };
++        let workers = rayon::current_num_threads();
++        let entered = start.elapsed().as_nanos();
++        let result = f();
++        let released = start.elapsed().as_nanos();
++        assert!(self.intervals[phase as usize].set((entered, released, workers)).is_ok());
++        result
++    }
++
++    pub(super) fn report(&self) {
++        if let Some(start) = self.start {
++            let names = ["solve", "gather", "fft", "a", "k", "h", "b2"];
++            let times = self.intervals.iter().zip(names).filter_map(|(sample, name)| {
++                let (begin, end, workers) = sample.get()?;
++                Some(format!("{name}:{begin}:{end}:{workers}"))
++            }).collect::<Vec<_>>().join(" ");
++            eprintln!("CURVE_CLOCK {} {times}", start.elapsed().as_nanos());
++        }
++    }
++}
++
++pub(super) fn placed(
++    placement: &str,
++    query: &str,
++    points: usize,
++    pool: Option<&rayon::ThreadPool>,
++    call: impl FnOnce() -> G1Projective + Send,
++) -> G1Projective {
++    #[cfg(all(zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    if placement == query {
++        if let Some(pool) = pool.filter(|p| p.current_num_threads() < rayon::current_num_threads()) {
++            // Budget the geometry selected by the receiving pool's actual width.
++            return match pool.install(|| {
++                let workers = rayon::current_num_threads();
++                let Some(_memory) = crate::preparation::Reservation::analysis(
++                    crate::msm_affine::workspace::frontend_curve_bytes(points, workers)
++                ) else {
++                    return Err(call);
++                };
++                if std::env::var_os("ZOPRO_TRIAL_CURVE_CLOCK").is_some() {
++                    eprintln!("CURVE_FRONT {query} {points} {workers}");
++                }
++                Ok(call())
++            }) {
++                Ok(result) => result,
++                Err(fallback) => fallback(),
++            };
++        }
++    }
++    let _ = (placement, query, points, pool);
++    call()
++}
