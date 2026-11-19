@@ -1,0 +1,131 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -126,24 +126,8 @@
+     } else {
+         0
+     };
+-    let mut groups =
+-        std::collections::HashMap::with_capacity_and_hasher(capacity, ahash::RandomState::new());
+-    let mut values = Vec::new();
+     let mut classes = vec![u32::MAX; scalars.len()];
+-    let mut counts: Vec<usize> = Vec::new();
+-    for (scalar, class) in scalars.iter().zip(&mut classes) {
+-        if *scalar == [0; 4] {
+-            continue;
+-        }
+-        let index = *groups.entry(*scalar).or_insert_with(|| {
+-            values.push(*scalar);
+-            counts.push(0);
+-            (values.len() - 1) as u32
+-        });
+-        *class = index;
+-        counts[index as usize] += 1;
+-    }
+-    drop(groups);
++    let (values, counts) = classify_nonzero(scalars, &mut classes, capacity, ahash::RandomState::new());
+     if values.len() * 100 > scalars.len() * percent {
+         return None;
+     }
+@@ -182,5 +166,43 @@
+     })
+ }
+ 
++// Keep one copy of each full scalar in first-occurrence order. The hash table
++// stores only indices and checks every limb against that copy on collision.
++fn classify_nonzero(
++    scalars: &[[u64; 4]],
++    classes: &mut [u32],
++    capacity: usize,
++    state: impl std::hash::BuildHasher,
++) -> (Vec<[u64; 4]>, Vec<usize>) {
++    use hashbrown::{hash_table::Entry, HashTable};
++
++    let mut table = HashTable::<u32>::with_capacity(capacity);
++    let mut values = Vec::new();
++    let mut counts = Vec::new();
++    for (scalar, class) in scalars.iter().zip(classes) {
++        if *scalar == [0; 4] {
++            continue;
++        }
++        let index = match table.entry(
++            state.hash_one(scalar),
++            |&index| values[index as usize] == *scalar,
++            |&index| state.hash_one(&values[index as usize]),
++        ) {
++            Entry::Occupied(entry) => *entry.get(),
++            Entry::Vacant(entry) => {
++                // The caller bounds the total input length below u32::MAX.
++                let index = values.len() as u32;
++                values.push(*scalar);
++                counts.push(0);
++                entry.insert(index);
++                index
++            }
++        };
++        *class = index;
++        counts[index as usize] += 1;
++    }
++    (values, counts)
++}
++
+ #[cfg(test)]
+ mod tests;
+--- a/crates/zopro-core/src/msm_affine/grouping/tests.rs
++++ b/crates/zopro-core/src/msm_affine/grouping/tests.rs
+@@ -329,3 +329,36 @@
+         );
+     }
+ }
++
++
++#[test]
++fn indexed_classes_preserve_full_equality_and_order_under_collisions() {
++    use std::hash::{BuildHasherDefault, Hasher};
++
++    #[derive(Default)]
++    struct ConstantHash;
++    impl Hasher for ConstantHash {
++        fn write(&mut self, _: &[u8]) {}
++        fn finish(&self) -> u64 { 0 }
++    }
++
++    let distinct: Vec<_> = (0..257u64).map(|i| [7, i / 3, i % 3, 9]).collect();
++    let input: Vec<_> = std::iter::once([0; 4])
++        .chain(distinct.iter().copied())
++        .chain(distinct.iter().rev().copied())
++        .chain(std::iter::once([0; 4]))
++        .collect();
++    for capacity in [0, 1, 3, 128] {
++        let mut classes = vec![u32::MAX; input.len()];
++        let (values, counts) = super::classify_nonzero(
++            &input, &mut classes, capacity, BuildHasherDefault::<ConstantHash>::default(),
++        );
++        assert_eq!(values, distinct);
++        assert_eq!(counts, vec![2; distinct.len()]);
++        assert_eq!(classes.first(), Some(&u32::MAX));
++        assert_eq!(classes.last(), Some(&u32::MAX));
++        for (scalar, &index) in input.iter().zip(&classes).filter(|(s, _)| **s != [0; 4]) {
++            assert_eq!(values[index as usize], *scalar);
++        }
++    }
++}
+--- a/crates/zopro-core/Cargo.toml
++++ b/crates/zopro-core/Cargo.toml
+@@ -20,6 +20,7 @@
+ 
+ [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ ahash = "0.8"
++hashbrown = { version = "0.16.1", default-features = false, features = ["inline-more"] }
+ sha2 = "0.10"
+ 
+ [features]
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -2101,6 +2101,7 @@
+  "ahash",
+  "futures-channel",
+  "getrandom 0.2.17",
++ "hashbrown 0.16.1",
+  "js-sys",
+  "libc",
+  "log",

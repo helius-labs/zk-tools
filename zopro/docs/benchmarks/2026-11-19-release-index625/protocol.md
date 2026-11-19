@@ -1,0 +1,7 @@
+# Indexed scalar grouping in the ordinary SDK
+
+Four different 4×2 requests ran faster with an index-only hash table in the grouped experimental prover. This candidate replaces the ordinary SDK grouping table directly. Each entry stores a 32-bit class ID, compares the complete scalar against the value vector on collision and retains first-occurrence order. It uses the existing per-proof reservation and adds no persistent state. The new test forces all inputs into one hash bucket, grows the table and checks zeros, order and multiplicities.
+
+Compare against the frozen SDK built from the same production sources before this change. Both run with the folded FFT pool option off. Use all nine original catalog requests, three additional 4×2 transfers and one scattered 12×2 request. Each uses the existing shape-specific server profile with 32 main workers. Run the Rust xtask on each fixture for five paired blocks of eleven timed calls after three warmups. Profile a separate process for each arm and fixture. Report process means paired by block, lifetime peak RSS, both supplied M5 ratios and independent proof verification. Check the native core suite and a generic x86-64 build before timing. A speedup in the experimental build does not establish a latency improvement on the ordinary SDK.
+
+[Held-out experimental comparison](../2026-11-19-indexed-transfer622/README.md) · [Production-source change](artifacts/source.patch)
