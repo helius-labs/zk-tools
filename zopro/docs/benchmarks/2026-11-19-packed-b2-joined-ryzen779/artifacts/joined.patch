@@ -1,0 +1,82 @@
+--- a/crates/zopro-core/src/packed_b2_trial.rs
++++ b/crates/zopro-core/src/packed_b2_trial.rs
+@@ -114,13 +114,44 @@
+             return self.in_place(points,values);
+         }
+         let differences=(self.prefix..self.n).into_par_iter().with_min_len(512).filter(|&i|differs(i)).count();
+-        let scratch = self.prefix.checked_mul(32).and_then(|bytes|differences.checked_mul(160)?.checked_add(bytes)?.checked_add(512));
++        let copies = if differences != 0 && std::env::var_os("ZOPRO_TRIAL_PACKED_JOINED").is_some() {64} else {32};
++        let correction_bytes = if copies == 64 {192} else {160};
++        let scratch = self.prefix.checked_mul(copies).and_then(|bytes|differences.checked_mul(correction_bytes)?.checked_add(bytes)?.checked_add(512));
+         let permit = Reservation::analysis(scratch);
+         if permit.is_none() || differences>end/16 {
+             if trace {eprintln!("PACKED_DENSE {differences} {end}");}
+             return self.in_place(points,values);
+         }
+         if trace {eprintln!("PACKED_SPARSE {} {differences}",self.prefix);}
++        if differences != 0 && std::env::var_os("ZOPRO_TRIAL_PACKED_JOINED").is_some() {
++            let capacity = self.prefix + differences;
++            let (mut words, (tail_points, mut tail_words)) = rayon::join(
++                || (0..self.prefix).into_par_iter().map(|i| values[self.source(i)].to_canonical()).collect::<Vec<_>>(),
++                || {
++                    let mut points_tail = Vec::with_capacity(differences);
++                    let mut words_tail = Vec::with_capacity(differences);
++                    for (i, point) in points.iter().enumerate().skip(self.prefix) {
++                        if self.differs(values, i) {
++                            points_tail.push(*point);
++                            words_tail.push(self.difference(values, i).to_canonical());
++                        }
++                    }
++                    (points_tail, words_tail)
++                },
++            );
++            words.reserve_exact(capacity - words.len());
++            words.append(&mut tail_words);
++            if let Some(result) = msm_affine::grouped_g2_with_tail(&points[..self.prefix], &tail_points, &words) {
++                if trace { eprintln!("PACKED_JOINED {} {differences}", self.prefix); }
++                return result;
++            }
++            let (head, tail) = words.split_at_mut(self.prefix);
++            let (a, b) = rayon::join(
++                || msm_affine::g2_query_exclusive(&points[..self.prefix], head, true),
++                || msm_affine::g2_query_exclusive(&tail_points, tail, true),
++            );
++            return a + b;
++        }
+         let (main, extra)=rayon::join(|| {
+             let mut words:Vec<_>=(0..self.prefix).into_par_iter().map(|i|values[self.source(i)].to_canonical()).collect();
+             msm_affine::g2_query_exclusive(&points[..self.prefix], &mut words, true)
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1756,6 +1756,31 @@
+         None => crate::msm_raw_b2(bases, words),
+     }
+ }
++/// Group the replacement prefix and compact correction tail without copying
++/// the mapped prefix. On a declined group, the caller still owns both inputs.
++pub(super) fn grouped_g2_with_tail(
++    bases: &[zopro_bn254::G2Affine],
++    tail: &[zopro_bn254::G2Affine],
++    words: &[[u64; 4]],
++) -> Option<zopro_bn254::G2Projective> {
++    if bases.len().checked_add(tail.len())? != words.len()
++        || !crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++    {
++        return None;
++    }
++    let mut g = grouping::groups_with_diversity_check(words)?;
++    let points = crate::msm::group_affine_prepared(bases, tail, &g.order, &g.starts, &g.counts);
++    #[cfg(all(
++        zopro_g2_horner_buckets, target_arch = "x86_64",
++        target_feature = "avx512ifma", target_feature = "avx512vl",
++        target_feature = "avx512dq", feature = "ifma8", not(no_ifma)
++    ))]
++    if (1024..65536).contains(&points.len()) {
++        return Some(g2_phi::raw_exclusive(&points, &mut g.values));
++    }
++    Some(msm_raw(&points, &g.values))
++}
++
+ #[cfg(test)]
+ mod exclusive_g2_tests {
+     use super::*;
