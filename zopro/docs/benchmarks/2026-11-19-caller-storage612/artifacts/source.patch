@@ -1,0 +1,128 @@
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -88,8 +88,8 @@
+ }
+ 
+ #[inline(never)]
+-pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+-    let mut values = input_columns::first_layer(plan, a, b);
++pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
++    let mut values = input_columns::first_layer(plan, a, b, storage);
+     let width = values.len() / 32;
+     values
+         .par_chunks_exact_mut(width)
+@@ -115,7 +115,7 @@
+             let b: Vec<_> = (0..n - 1)
+                 .map(|i| Fr::from((i + 1) as u64).square())
+                 .collect();
+-            let got = from_inputs(&plan, &a, &b);
++            let got = from_inputs(&plan, &a, &b, Vec::with_capacity(plan.n / 4));
+             let mut expected = input_columns::inverse(&plan, &a, &b);
+             for (i, value) in expected.iter_mut().enumerate() {
+                 let factors =
+--- a/crates/zopro-core/src/fft/pair/input_columns.rs
++++ b/crates/zopro-core/src/fft/pair/input_columns.rs
+@@ -50,12 +50,12 @@
+ }
+ 
+ #[inline(never)]
+-pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
++pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr], mut values: Vec<PackedPair>) -> Vec<PackedPair> {
+     let n = plan.n / 4;
+     let q = n / 32;
+     assert!(n >= 2048 && n.is_power_of_two());
+     let roots = &plan.inverse_roots;
+-    let mut values = Vec::with_capacity(n);
++    assert!(values.is_empty() && values.capacity() >= n);
+     let mut chunks = values.spare_capacity_mut()[..n].chunks_exact_mut(q);
+     let stripes = core::array::from_fn(|_| chunks.next().unwrap());
+     if roots.columns.is_empty() {
+@@ -70,7 +70,7 @@
+ }
+ 
+ pub(super) fn inverse(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+-    let mut values = first_layer(plan, a, b);
++    let mut values = first_layer(plan, a, b, Vec::with_capacity(plan.n / 4));
+     let n = values.len();
+     let q = n / 32;
+     let roots = &plan.inverse_roots;
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1764,6 +1764,32 @@
+ 
+ 
+ 
++fn local_product_in(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>, storage: Vec<PackedPair>) -> Vec<Fr> {
++    a.resize(a.len().max(b.len()), Fr::ZERO);
++    let values = euler_center::from_inputs(plan, &a, &b, storage);
++    euler_combine_products(&mut a, &b, &values);
++    a
++}
++
++impl Plan {
++    /// Allocate the packed FFT output in the calling thread and move it into
++    /// the product computation. Its lifetime still ends within the same proof.
++    pub(crate) fn caller_local_product(&self) -> Option<impl FnOnce(Vec<Fr>, Vec<Fr>) -> Vec<Fr> + '_> {
++        if !(8192..=(1 << 28)).contains(&self.n) || self.released || self.twisted.is_some()
++            || self.roots.single.is_some()
++            || std::env::var("ZOPRO_CPU_FFT_INPUT_COLUMNS").as_deref() != Ok("1")
++            || std::env::var("ZOPRO_CPU_FFT_LOCAL_EULER").as_deref() != Ok("1")
++        {
++            return None;
++        }
++        let storage = Vec::with_capacity(self.n / 4);
++        if std::env::var_os("ZOPRO_TRIAL_CALLER_PROBE").is_some() {
++            eprintln!("CALLER_STORAGE {}", self.n / 4 * core::mem::size_of::<PackedPair>());
++        }
++        Some(move |a, b| local_product_in(self, a, b, storage))
++    }
++}
++
+ // Euler derivative product used by the evaluation-basis prover.
+ // Unnormalized inverse FFT means the returned prefix is
+ // n * (E(A) * B + A * E(B)), where E(f) = X f'.
+@@ -1778,9 +1804,7 @@
+     if packed_inputs && plan.n <= (1 << 28) && plan.roots.single.is_none()
+         && std::env::var("ZOPRO_CPU_FFT_LOCAL_EULER").as_deref() == Ok("1")
+     {
+-        let values = euler_center::from_inputs(plan, &a, &b);
+-        euler_combine_products(&mut a, &b, &values);
+-        return a;
++        return local_product_in(plan, a, b, Vec::with_capacity(plan.n / 4));
+     }
+     let mut values = if packed_inputs {
+         input_columns::inverse(plan, &a, &b)
+--- a/crates/zopro-core/src/lagrange.rs
++++ b/crates/zopro-core/src/lagrange.rs
+@@ -600,6 +600,9 @@
+ }
+ 
+ impl Queries {
++    pub(super) fn is_uncentered_euler(&self) -> bool {
++        self.euler && self.origin.is_none()
++    }
+     pub(super) fn product_values(&self,plan:&fft::Plan,a:Vec<Fr>,b:Vec<Fr>)->Vec<Fr> {
+         if self.euler {
+             if std::env::var_os("ZOPRO_EULER_TRACE").is_some(){eprintln!("EULER_PRODUCT rows={} domain={}",a.len().max(b.len()),plan.size());}
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1868,7 +1868,19 @@
+             if let (Some(folded), Some(public)) = (&queries.folded, public) {
+                 drop(c);
+                 let started = crate::time::Instant::now();
++                #[cfg(all(target_os="linux", feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++                let prepared = if std::env::var_os("ZOPRO_TRIAL_CALLER_STORAGE").is_some()
++                    && (centered || queries.is_uncentered_euler()) && (!a.is_empty() || !b.is_empty())
++                {
++                    self.plan.caller_local_product()
++                } else {
++                    None
++                };
+                 let product_values = || {
++                    #[cfg(all(target_os="linux", feature="ifma8", target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++                    if let Some(run) = prepared {
++                        return run(a, b);
++                    }
+                     if centered {
+                         self.plan.euler_product_values(a, b)
+                     } else {

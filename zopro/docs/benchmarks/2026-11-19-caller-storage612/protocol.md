@@ -1,0 +1,5 @@
+# Allocate packed FFT storage before dispatch
+
+The previous warm fault recording found repeated 64 MiB plus 4 KiB mappings at the 24×2 first-layer write. This experiment allocates the same uninitialized packed output on the calling thread before starting the optional product pool. The original column jobs initialize the full vector, consume it and drop it within the same proof. No allocator configuration, page advice, second output buffer or proof-to-proof cache is needed.
+
+Cross main and auxiliary execution with ordinary or caller allocation in five randomized blocks. A frozen auxiliary-dispatch arm checks the previous implementation. Use the same four requests, 30 main workers and 24 product workers on 12×2 or 32 and 28 on 24×2. Four diagnostic probes must confirm the exact allocation charge. Each timed process primes three proofs and times eleven complete calls. Compare peak RSS, warm minor faults, full-proof latency and original M5 CPU and Metal ratios. Native FFT tests cover short input prefixes, both root layouts and the local Euler branch.
