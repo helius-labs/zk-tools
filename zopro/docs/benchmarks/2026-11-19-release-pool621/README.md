@@ -1,5 +1,9 @@
 # Caller-allocated folded FFT scratch in the ordinary Linux SDK
 
+The Linux SDK now supports opting into the smaller FFT pool with `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1` and an attached frontend pool. On a Ryzen 9 9950X with 32 main workers and 30 product workers, peak RSS fell in **all 28 paired runs** against the same executable with the option off. On the original request the maximum fell from **1,035.4 to 891.2 MiB**, while median latency was **63.167 and 63.144 ms**. The four paired median latency changes ranged from a 1.32% improvement to a 0.21% regression. The reason to enable this option here is memory.
+
+Both native builds passed 155 core tests apiece. Three diagnostic exports confirmed that the product used 32 workers with no attached pool, 32 with a parked pool, and 30 with dispatch enabled. The generic x86-64 build passed a compile check. Timings use the ordinary catalog key, one active proof and the benchmark's tuned glibc configuration. Mobile execution, stock allocator performance and concurrent serving need separate measurements. [Build identities, allocator settings and paired comparisons](artifacts/qualification.json)
+
 The ordinary key and its public wire offsets are identical in all five arms. The parked control attaches the same pool without dispatching the product. Each time is the median of seven complete process means. Peak RSS includes setup and all requests.
 
 | 24×2 request | Release / fresh / off / parked / pooled ms | Pooled vs parked / off | Peak release / fresh / off / parked / pooled MiB | Pooled CPU-ms / minor faults per proof | Pooled vs M5 CPU / Metal |

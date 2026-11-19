@@ -1767,7 +1767,9 @@ fn column_kernel<const CACHED: bool, const FORWARD: bool>(
 // Euler derivative product used by the evaluation-basis prover.
 // Unnormalized inverse FFT means the returned prefix is
 // n * (E(A) * B + A * E(B)), where E(f) = X f'.
-pub(super) fn euler_product_study(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
+pub(super) fn euler_product_study(
+    plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>, pool: Option<&rayon::ThreadPool>,
+) -> Vec<Fr> {
     assert!(plan.n >= 8 && a.len() <= plan.n && b.len() <= plan.n);
     assert!(!plan.released && plan.twisted.is_none());
     let count = a.len().max(b.len());
@@ -1778,9 +1780,20 @@ pub(super) fn euler_product_study(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Ve
     if packed_inputs && plan.n <= (1 << 28) && plan.roots.single.is_none()
         && std::env::var("ZOPRO_CPU_FFT_LOCAL_EULER").as_deref() == Ok("1")
     {
-        let values = euler_center::from_inputs(plan, &a, &b);
-        euler_combine_products(&mut a, &b, &values);
-        return a;
+        // Allocate before dispatch so the caller owns the allocation site on either path.
+        let storage = Vec::with_capacity(plan.n / 4);
+        let compute = move || {
+            if std::env::var_os("ZOPRO_EULER_TRACE").is_some() {
+                eprintln!("EULER_PACKED_WORKERS {}", rayon::current_num_threads());
+            }
+            let values = euler_center::from_inputs(plan, &a, &b, storage);
+            euler_combine_products(&mut a, &b, &values);
+            a
+        };
+        return match pool {
+            Some(pool) => pool.install(compute),
+            None => compute(),
+        };
     }
     let mut values = if packed_inputs {
         input_columns::inverse(plan, &a, &b)

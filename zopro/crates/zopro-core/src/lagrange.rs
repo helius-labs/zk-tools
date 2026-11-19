@@ -598,10 +598,12 @@ mod bounded_public_tests {
 }
 
 impl Queries {
-    pub(super) fn product_values(&self,plan:&fft::Plan,a:Vec<Fr>,b:Vec<Fr>)->Vec<Fr> {
+    pub(super) fn product_values(
+        &self, plan: &fft::Plan, a: Vec<Fr>, b: Vec<Fr>, pool: Option<&rayon::ThreadPool>,
+    ) -> Vec<Fr> {
         if self.euler {
             if std::env::var_os("ZOPRO_EULER_TRACE").is_some(){eprintln!("EULER_PRODUCT rows={} domain={}",a.len().max(b.len()),plan.size());}
-            plan.euler_product_values(a,b)
+            plan.euler_product_values(a, b, pool)
         } else {plan.coset_product_ordered(a,b,self.fused_product)}
     }
 }

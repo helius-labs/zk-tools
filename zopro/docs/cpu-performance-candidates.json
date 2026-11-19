@@ -691,6 +691,35 @@
         "invalidates_parent": false,
         "reason": "Both input envelopes lose the fixed product screen; no unchanged RZ/RNE/width rescue is selected."
       }
+    },
+    {
+      "id": "folded-product-pool621",
+      "change": "Allow an attached smaller pool to run the folded packed Euler product with caller-allocated scratch.",
+      "correctness": {
+        "status": "passed",
+        "native_core_tests_per_build": 155,
+        "verified_exports": 143
+      },
+      "resources_and_compatibility": {
+        "status": "lower process peak RSS in 28/28 paired runs against the option off",
+        "reference_off_peak_mib": 1035.4,
+        "reference_on_peak_mib": 891.2,
+        "scope": "Linux Ryzen 9 9950X, ordinary SDK, tuned glibc, 24x2, one proof at a time; generic x86-64 compile check"
+      },
+      "performance": {
+        "status": "mixed latency across four inputs",
+        "reference_off_ms": 63.167,
+        "reference_on_ms": 63.144,
+        "paired_change_pct_range": [
+          -1.32,
+          0.21
+        ]
+      },
+      "adoption": {
+        "status": "adopted_opt_in",
+        "setting": "ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1 with an attached smaller pool",
+        "evidence": "benchmarks/2026-11-19-release-pool621/README.md"
+      }
     }
   ],
   "historical_followups": [

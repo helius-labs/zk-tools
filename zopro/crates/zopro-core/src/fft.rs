@@ -1233,7 +1233,7 @@ impl Plan {
         }
     }
     pub fn euler_product_study(&self,a:Vec<Fr>,b:Vec<Fr>)->Vec<Fr> {
-        pair::euler_product_study(self,a,b)
+        pair::euler_product_study(self,a,b,None)
     }
     pub fn current_product_study(&self,a:Vec<Fr>,b:Vec<Fr>)->Vec<Fr> {
         self.coset_product_ordered(a,b,false)
@@ -1313,11 +1313,13 @@ impl Plan {
         }
     }
     /// N*(E(A)B+A*E(B)), in original domain order, E(f)=X*f'.
-    pub(crate) fn euler_product_values(&self, a:Vec<Fr>, b:Vec<Fr>)->Vec<Fr> {
+    pub(crate) fn euler_product_values(
+        &self, a: Vec<Fr>, b: Vec<Fr>, _pool: Option<&rayon::ThreadPool>,
+    ) -> Vec<Fr> {
         assert!(!self.released && self.n>=8 && self.twisted.is_none());
         assert!(a.len()<=self.n && b.len()<=self.n);
         #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
-        { return pair::euler_product_study(self,a,b); }
+        { return pair::euler_product_study(self, a, b, _pool); }
         #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
         {
             let count=a.len().max(b.len());if count==0{return a;}
@@ -1370,7 +1372,7 @@ mod euler_basis_tests {
                 let b:Vec<_>=(0..len).map(|i|-Fr::from(i as u64+seed+37).pow(&[17])).collect();
                 let derivative=|v:&[Fr]|{let mut v=v.to_vec();v.resize(n,Fr::ZERO);let mut c=direct.coefficients(&v);for(k,c)in c.iter_mut().enumerate(){*c*=Fr::from(k as u64);}Direct::evaluate(&c,root,Fr::ONE)};
                 let da=derivative(&a);let db=derivative(&b);let expected:Vec<_>=(0..len).map(|i|Fr::from(n as u64)*(da[i]*b[i]+a[i]*db[i])).collect();
-                assert_eq!(plan.euler_product_values(a,b),expected);count+=1;
+                assert_eq!(plan.euler_product_values(a,b,None),expected);count+=1;
             }}
         }
         assert_eq!(count,27);println!("EULER_PORTABLE_IDENTITIES={count}");

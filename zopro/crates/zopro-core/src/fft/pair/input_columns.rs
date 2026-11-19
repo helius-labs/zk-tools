@@ -50,12 +50,12 @@ fn pack_inverse_columns<const CACHED: bool>(
 }
 
 #[inline(never)]
-pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr], mut values: Vec<PackedPair>) -> Vec<PackedPair> {
     let n = plan.n / 4;
     let q = n / 32;
     assert!(n >= 2048 && n.is_power_of_two());
     let roots = &plan.inverse_roots;
-    let mut values = Vec::with_capacity(n);
+    assert!(values.is_empty() && values.capacity() >= n);
     let mut chunks = values.spare_capacity_mut()[..n].chunks_exact_mut(q);
     let stripes = core::array::from_fn(|_| chunks.next().unwrap());
     if roots.columns.is_empty() {
@@ -70,7 +70,7 @@ pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
 }
 
 pub(super) fn inverse(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
-    let mut values = first_layer(plan, a, b);
+    let mut values = first_layer(plan, a, b, Vec::with_capacity(plan.n / 4));
     let n = values.len();
     let q = n / 32;
     let roots = &plan.inverse_roots;

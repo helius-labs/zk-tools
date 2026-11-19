@@ -90,7 +90,10 @@ pub struct Prover {
 impl Prover {
     /// Share a smaller Rayon pool across provers for native IFMA canonical
     /// witness solving and FFT preparation. With `ZOPRO_CPU_SOLVER_FRONTEND=1`,
-    /// general CPU solver instructions also use this pool. Pass `None` to detach it.
+    /// general CPU solver instructions also use this pool. With
+    /// `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1`, folded packed Euler products
+    /// use this pool and allocate their temporary output before dispatch.
+    /// Pass `None` to detach it.
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     pub fn set_frontend_pool(
         &mut self,

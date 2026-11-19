@@ -88,8 +88,8 @@ fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize)
 }
 
 #[inline(never)]
-pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
-    let mut values = input_columns::first_layer(plan, a, b);
+pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
+    let mut values = input_columns::first_layer(plan, a, b, storage);
     let width = values.len() / 32;
     values
         .par_chunks_exact_mut(width)
@@ -115,7 +115,7 @@ mod tests {
             let b: Vec<_> = (0..n - 1)
                 .map(|i| Fr::from((i + 1) as u64).square())
                 .collect();
-            let got = from_inputs(&plan, &a, &b);
+            let got = from_inputs(&plan, &a, &b, Vec::with_capacity(n / 4));
             let mut expected = input_columns::inverse(&plan, &a, &b);
             for (i, value) in expected.iter_mut().enumerate() {
                 let factors =

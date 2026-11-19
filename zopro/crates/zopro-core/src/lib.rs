@@ -1846,7 +1846,14 @@ impl Key {
             if let (Some(folded), Some(public)) = (&queries.folded, public) {
                 drop(c);
                 let started = crate::time::Instant::now();
-                let mut product = queries.product_values(&self.plan,a,b);
+                #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                let pool = self.frontend_pool.as_deref().filter(|pool| {
+                    pool.current_num_threads() < rayon::current_num_threads()
+                        && std::env::var("ZOPRO_CPU_FFT_PRODUCT_FRONTEND").as_deref() == Ok("1")
+                });
+                #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                let pool = None;
+                let mut product = queries.product_values(&self.plan, a, b, pool);
                 let started = trace("quotient-product", started);
                 let product_points=&queries.product[..product.len()];
                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
@@ -1869,7 +1876,7 @@ impl Key {
                 return Ok(out);
             }
             let started = crate::time::Instant::now();
-            let mut product = queries.product_values(&self.plan,a,b);
+            let mut product = queries.product_values(&self.plan, a, b, None);
             let started = trace("quotient-product", started);
             let (((ar, bs1), (kr, (positive, bs2))), negative) = rayon::join(
                 || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b),
@@ -2257,7 +2264,7 @@ impl Key {
                 #[cfg(zopro_bounded_gather)]
                 {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
             };
-            let product = queries.product_values(&self.plan, a, b);
+            let product = queries.product_values(&self.plan, a, b, None);
             Ok((w, sa_vec, sb_vec, product, correction))
         };
         let (w, sa_vec, mut sb_vec, mut product, correction) =
@@ -2436,7 +2443,7 @@ impl Key {
         // The arbitrary-parts API does not promise that C is the solver's C.
         // Restore K and H independently; do not assume a satisfied witness.
         let cp=plan.basis_c_private(sk);
-        let correction_values=if q.euler{self.plan.euler_product_values(cp,vec![Fr::ONE;self.domain])}else{self.plan.coset_product(cp,vec![Fr::ONE;self.domain])};
+        let correction_values=if q.euler{self.plan.euler_product_values(cp,vec![Fr::ONE;self.domain],None)}else{self.plan.coset_product(cp,vec![Fr::ONE;self.domain])};
         let correction=q.finish_product(msm_g1(&q.product,&correction_values));
         drop(correction_values);
         let mut product=if q.euler {
@@ -2482,7 +2489,10 @@ impl Key {
     /// Use a shared pool for the native IFMA canonical witness and FFT stages.
     /// The pool is used when it has fewer workers than the current Rayon pool.
     /// With `ZOPRO_CPU_SOLVER_FRONTEND=1`, the general CPU witness interpreter
-    /// also uses this pool. Passing `None` restores execution in the current pool.
+    /// also uses this pool. `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1` dispatches the
+    /// folded packed Euler product to this pool on native IFMA builds. The
+    /// caller allocates its temporary output before dispatch. Passing `None`
+    /// restores execution in the current pool.
     pub fn set_frontend_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
         self.frontend_pool = pool;
     }
