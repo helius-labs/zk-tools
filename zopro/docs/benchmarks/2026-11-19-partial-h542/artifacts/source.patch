@@ -1,0 +1,88 @@
+--- a/crates/zopro-core/src/msm_affine/dense_h.rs
++++ b/crates/zopro-core/src/msm_affine/dense_h.rs
+@@ -27,6 +27,20 @@
+     (((overlap + 1) >> 1) as i32 - (((overlap >> bits) as i32) << bits)) as i16
+ }
+ 
++#[derive(Clone, Copy, PartialEq)]
++enum WindowRanges { One, Two, Wide, Alternate }
++
++impl WindowRanges {
++    fn split(self, index: usize, bits: usize) -> bool {
++        match self {
++            Self::One => false,
++            Self::Two => true,
++            Self::Wide => bits == 15,
++            Self::Alternate => index % 2 == 0,
++        }
++    }
++}
++
+ pub(super) fn try_sum<C: CurveConfig>(
+     bases: &[Affine<C>],
+     words: &[[u64; 4]],
+@@ -46,13 +60,29 @@
+     };
+     let split = rayon::current_num_threads() > 1
+         && std::env::var("ZOPRO_CPU_H_WINDOW_RANGES").as_deref() == Ok("2");
+-    let requested_ranges = if split { 2 } else { 1 };
++    let policy = if signed && widths.len()==18 && rayon::current_num_threads()>1 {
++        match std::env::var("ZOPRO_H_SELECTIVE").as_deref() {
++            Ok("wide") => WindowRanges::Wide,
++            Ok("alternate") => WindowRanges::Alternate,
++            _ if split => WindowRanges::Two,
++            _ => WindowRanges::One,
++        }
++    } else if split {WindowRanges::Two} else {WindowRanges::One};
++    // Admission for the fully split layout bounds both partial layouts.
++    let requested_ranges = if policy==WindowRanges::One {1} else {2};
+     for ranges in (1..=requested_ranges).rev() {
+         let extra =
+             super::workspace::dense_h_layout_extra::<C>(bases.len(), ranges, widths, signed);
+         if let Some(_reservation) = crate::preparation::Reservation::analysis(extra) {
+             return Some(match (signed, ranges) {
+-                (true, _) => signed_sum(bases, words, widths, ranges == 2),
++                (true, _) => {
++                    let applied=if ranges==1 {WindowRanges::One} else {policy};
++                    if std::env::var_os("ZOPRO_H_SELECTIVE_PROBE").is_some() {
++                        let split_count=widths.iter().enumerate().filter(|&(i,&bits)|applied.split(i,bits)).count();
++                        eprintln!("H_RANGE_COUNTS {} {}",widths.len(),split_count);
++                    }
++                    signed_sum(bases,words,widths,applied)
++                },
+                 (false, 2) => sum::<C, true>(bases, words),
+                 (false, _) => sum::<C, false>(bases, words),
+             });
+@@ -130,7 +160,7 @@
+     bases: &[Affine<C>],
+     words: &[[u64; 4]],
+     widths: &[usize],
+-    split: bool,
++    policy: WindowRanges,
+ ) -> Projective<C>
+ where
+     C::Base: BatchInverse,
+@@ -146,12 +176,12 @@
+     let sums: Vec<_> = widths
+         .par_iter()
+         .zip(&offsets[..widths.len()])
+-        .map(|(&bits, &offset)| {
++        .enumerate().map(|(window,(&bits, &offset))| {
+             let fill = |bases: &[Affine<C>], words: &[[u64; 4]]| {
+                 let digits = words.iter().map(|v| mixed_booth(v, offset, bits));
+                 affine_buckets(fill_window(bases, digits, bits, batch_size(bits).max(32)))
+             };
+-            let buckets = if split {
++            let buckets = if policy.split(window,bits) {
+                 let mid = bases.len().div_ceil(2);
+                 let (mut left, right) = rayon::join(
+                     || fill(&bases[..mid], &words[..mid]),
+@@ -221,7 +251,7 @@
+                 words.push(word);
+                 expected += v;
+             }
+-            for split in [false, true] {
++            for split in [WindowRanges::One,WindowRanges::Two,WindowRanges::Wide,WindowRanges::Alternate] {
+                 assert_eq!(
+                     signed_sum(&bases, &words, widths, split).to_affine(),
+                     (G1Affine::GENERATOR * expected).to_affine()
