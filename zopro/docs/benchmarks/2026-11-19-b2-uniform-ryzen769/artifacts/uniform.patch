@@ -1,0 +1,398 @@
+--- a/crates/zopro-core/src/msm.rs
++++ b/crates/zopro-core/src/msm.rs
+@@ -188,7 +188,19 @@
+ where
+     C::Base: BatchInverse,
+ {
+-    group_affine_impl(|index| bases[index as usize], order, starts, counts)
++    group_affine_impl::<C, _, false>(|index| bases[index as usize], order, starts, counts)
++}
++
++pub(super) fn group_affine_uniform<C: CurveConfig>(
++    bases: &[Affine<C>],
++    order: &[u32],
++    starts: &[usize],
++    counts: &[usize],
++) -> Vec<Affine<C>>
++where
++    C::Base: BatchInverse,
++{
++    group_affine_impl::<C, _, true>(|index| bases[index as usize], order, starts, counts)
+ }
+ 
+ pub(super) fn group_affine_prepared<C: CurveConfig>(
+@@ -201,7 +213,7 @@
+ where
+     C::Base: BatchInverse,
+ {
+-    group_affine_impl(
++    group_affine_impl::<C, _, false>(
+         |index| {
+             let index = index as usize;
+             if index < bases.len() {
+@@ -216,7 +228,7 @@
+     )
+ }
+ 
+-fn group_affine_impl<C: CurveConfig, F: Fn(u32) -> Affine<C> + Sync>(
++fn group_affine_impl<C: CurveConfig, F: Fn(u32) -> Affine<C> + Sync, const UNIFORM: bool>(
+     get: F,
+     order: &[u32],
+     starts: &[usize],
+@@ -241,6 +253,22 @@
+                 points.reserve_exact(end - offset);
+                 for &index in &order[offset..end] {
+                     points.push(limbs::<C>(get(index)));
++                }
++                if UNIFORM {
++                    let size = counts[first];
++                    if matches!(size, 4 | 8)
++                        && counts[first..first + output.len()].iter().all(|&n| n == size)
++                    {
++                        if reduce_uniform(points, size, scratch) {
++                            for (out, block) in output.iter_mut().zip(points.chunks_exact(size)) {
++                                out.write(affine::<C>(block[0]));
++                            }
++                            return;
++                        }
++                        // Reload any partial results before the generic reducer.
++                        points.clear();
++                        points.extend(order[offset..end].iter().map(|&i| limbs::<C>(get(i))));
++                    }
+                 }
+                 let mut local_starts = [0usize; GROUP];
+                 let mut local_counts = [0usize; GROUP];
+@@ -483,119 +511,9 @@
+             }
+         }
+     }
+-    type F<C> = <C as CurveConfig>::Base;
+-    let m = s.pairs.len();
+-    let use_prefix = F::<C>::TREE_PREFIX && m >= 32;
+-    let full = m / LANES * LANES;
+-    s.groups.clear();
+-    if !use_prefix {s.groups.reserve_exact(full / LANES);}
+-
+-    let mut chains = FqBatch::one();
+-    if use_prefix {
+-        s.prefix_records.clear();
+-        s.prefix_records.reserve(full / LANES);
+-        for k in (0..full).step_by(LANES) {
+-            let a = core::array::from_fn(|i| &points[s.pairs[k + i]].x);
+-            let b = core::array::from_fn(|i| &points[s.pairs[k + i] + 1].x);
+-            let dx = F::<C>::lanes_sub(&F::<C>::load(b), &F::<C>::load(a));
+-            let norm = F::<C>::lanes_norm(&dx);
+-            s.prefix_records.push([chains, norm]);
+-            chains = chains.mul(&norm);
+-        }
+-    } else {
+-    for k in (0..full).step_by(LANES) {
+-        let a: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[s.pairs[k + i]]);
+-        let b: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[s.pairs[k + i] + 1]);
+-        let (ax, ay) = (F::<C>::load(a.map(|p| &p.x)), F::<C>::load(a.map(|p| &p.y)));
+-        let (bx, by) = (F::<C>::load(b.map(|p| &p.x)), F::<C>::load(b.map(|p| &p.y)));
+-        let denominator = F::<C>::lanes_sub(&bx, &ax);
+-        let norm = F::<C>::lanes_norm(&denominator);
+-        let numerator =
+-            F::<C>::lanes_scaled_numerator(&F::<C>::lanes_sub(&by, &ay), &denominator, &chains);
+-        chains = chains.mul(&norm);
+-        s.groups.push(Group {
+-            ax,
+-            ay,
+-            xsum: F::<C>::lanes_add(&ax, &bx),
+-            norm,
+-            numerator,
+-        });
+-    }
+-
+-    }
+-    let mut inverses = if let Some(value)=direct_chain_inverse(&chains,full==m,s.vector_inverse) {
+-        value
+-    } else {
+-        let mut tail = chains.get();
+-        for k in full..m {
+-            let (a, b) = (
+-                affine::<C>(points[s.pairs[k]]),
+-                affine::<C>(points[s.pairs[k] + 1]),
+-            );
+-            let denominator = b.x - a.x;
+-            {
+-                s.denominators[k - full] = denominator;
+-                s.products[k - full] = F::<C>::prefix(&mut tail[k % LANES], denominator);
+-            }
+-        }
+-        let mut inverses = invert_lanes(tail, s.vector_inverse);
+-        for k in (full..m).rev() {
+-            let t = k - full;
+-            F::<C>::reverse(
+-                &mut inverses[k % LANES],
+-                s.denominators[t],
+-                &mut s.products[t],
+-            );
+-        }
+-        FqBatch::new(&inverses)
+-    };
+-    if use_prefix {
+-        for (j, record) in s.prefix_records.iter().enumerate().rev() {
+-            let k = j * LANES;
+-            let a: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[s.pairs[k + i]]);
+-            let b: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[s.pairs[k + i] + 1]);
+-            let (ax, ay) = (F::<C>::load(a.map(|p| &p.x)), F::<C>::load(a.map(|p| &p.y)));
+-            let (bx, by) = (F::<C>::load(b.map(|p| &p.x)), F::<C>::load(b.map(|p| &p.y)));
+-            let denominator = F::<C>::lanes_sub(&bx, &ax);
+-            let factor = record[0].mul(&inverses);
+-            inverses = inverses.mul(&record[1]);
+-            let slope = F::<C>::lanes_scaled_numerator(&F::<C>::lanes_sub(&by, &ay), &denominator, &factor);
+-            let x = F::<C>::lanes_sub(&F::<C>::lanes_square(&slope), &F::<C>::lanes_add(&ax, &bx));
+-            let y = F::<C>::lanes_sub(&F::<C>::lanes_mul(&slope, &F::<C>::lanes_sub(&ax, &x)), &ay);
+-            let (x, y) = (F::<C>::store(&x), F::<C>::store(&y));
+-            for i in 0..LANES { points[s.pairs[k + i]] = LimbPoint {x:x[i], y:y[i]}; }
+-        }
+-    } else {
+-    for (j, group) in s.groups.iter().enumerate().rev() {
+-        let slope = F::<C>::lanes_scale(&group.numerator, &inverses);
+-        inverses = inverses.mul(&group.norm);
+-        let x = F::<C>::lanes_sub(&F::<C>::lanes_square(&slope), &group.xsum);
+-        let y = F::<C>::lanes_sub(
+-            &F::<C>::lanes_mul(&slope, &F::<C>::lanes_sub(&group.ax, &x)),
+-            &group.ay,
+-        );
+-        let (x, y) = (F::<C>::store(&x), F::<C>::store(&y));
+-        for i in 0..LANES {
+-            {
+-                points[s.pairs[j * LANES + i]] = LimbPoint { x: x[i], y: y[i] };
+-            }
+-        }
+-    }
+-
+-    }
+-    for k in full..m {
+-        let t = k - full;
+-        let (a, b) = (
+-            affine::<C>(points[s.pairs[k]]),
+-            affine::<C>(points[s.pairs[k] + 1]),
+-        );
+-        let slope = (b.y - a.y) * F::<C>::denominator_inverse(s.denominators[t], s.products[t]);
+-        let x = slope.square() - a.x - b.x;
+-        let y = slope * (a.x - x) - a.y;
+-        {
+-            points[s.pairs[k]] = limbs::<C>(Affine::new(x, y));
+-        }
+-    }
++    let pairs = core::mem::take(&mut s.pairs);
++    apply_normal_pairs::<C, _>(points, s, pairs.len(), |i| (pairs[i], pairs[i] + 1));
++    s.pairs = pairs;
+     // All vector inputs were captured before the reverse pass. Each ordinary
+     // pair writes only its first input slot, disjoint from every other pair
+     // and exceptional pair. Scalar tails are likewise disjoint. Compaction
+@@ -631,6 +549,156 @@
+     }
+ }
+ 
++// Keep each result at the first operand's original position. Doubling the
++// stride makes the next layer read those slots directly.
++fn reduce_uniform<C: CurveConfig>(
++    points: &mut [LimbPoint<C::Base>],
++    size: usize,
++    scratch: &mut Scratch<C>,
++) -> bool
++where
++    C::Base: BatchInverse,
++{
++    for level in 0..size.ilog2() {
++        let stride = 1 << level;
++        let count = points.len() >> (level + 1);
++        if points.chunks_exact(2 * stride).any(|p| {
++            let a = &p[0];
++            let b = &p[stride];
++            a.is_infinity() || b.is_infinity() || a.x == b.x
++        }) {
++            return false;
++        }
++        apply_normal_pairs::<C, _>(points, scratch, count, |i| {
++            let first = i << (level + 1);
++            (first, first + stride)
++        });
++    }
++    true
++}
++
++fn apply_normal_pairs<C: CurveConfig, P: Fn(usize) -> (usize, usize)>(
++    points: &mut [LimbPoint<C::Base>],
++    s: &mut Scratch<C>,
++    m: usize,
++    pair: P,
++) where
++    C::Base: BatchInverse,
++{
++    type F<C> = <C as CurveConfig>::Base;
++    let use_prefix = F::<C>::TREE_PREFIX && m >= 32;
++    let full = m / LANES * LANES;
++    s.groups.clear();
++    if !use_prefix {s.groups.reserve_exact(full / LANES);}
++
++    let mut chains = FqBatch::one();
++    if use_prefix {
++        s.prefix_records.clear();
++        s.prefix_records.reserve(full / LANES);
++        for k in (0..full).step_by(LANES) {
++            let a = core::array::from_fn(|i| &points[pair(k + i).0].x);
++            let b = core::array::from_fn(|i| &points[pair(k + i).1].x);
++            let dx = F::<C>::lanes_sub(&F::<C>::load(b), &F::<C>::load(a));
++            let norm = F::<C>::lanes_norm(&dx);
++            s.prefix_records.push([chains, norm]);
++            chains = chains.mul(&norm);
++        }
++    } else {
++    for k in (0..full).step_by(LANES) {
++        let a: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[pair(k + i).0]);
++        let b: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[pair(k + i).1]);
++        let (ax, ay) = (F::<C>::load(a.map(|p| &p.x)), F::<C>::load(a.map(|p| &p.y)));
++        let (bx, by) = (F::<C>::load(b.map(|p| &p.x)), F::<C>::load(b.map(|p| &p.y)));
++        let denominator = F::<C>::lanes_sub(&bx, &ax);
++        let norm = F::<C>::lanes_norm(&denominator);
++        let numerator =
++            F::<C>::lanes_scaled_numerator(&F::<C>::lanes_sub(&by, &ay), &denominator, &chains);
++        chains = chains.mul(&norm);
++        s.groups.push(Group {
++            ax,
++            ay,
++            xsum: F::<C>::lanes_add(&ax, &bx),
++            norm,
++            numerator,
++        });
++    }
++
++    }
++    let mut inverses = if let Some(value)=direct_chain_inverse(&chains,full==m,s.vector_inverse) {
++        value
++    } else {
++        let mut tail = chains.get();
++        for k in full..m {
++            let (a, b) = (
++                affine::<C>(points[pair(k).0]),
++                affine::<C>(points[pair(k).1]),
++            );
++            let denominator = b.x - a.x;
++            {
++                s.denominators[k - full] = denominator;
++                s.products[k - full] = F::<C>::prefix(&mut tail[k % LANES], denominator);
++            }
++        }
++        let mut inverses = invert_lanes(tail, s.vector_inverse);
++        for k in (full..m).rev() {
++            let t = k - full;
++            F::<C>::reverse(
++                &mut inverses[k % LANES],
++                s.denominators[t],
++                &mut s.products[t],
++            );
++        }
++        FqBatch::new(&inverses)
++    };
++    if use_prefix {
++        for (j, record) in s.prefix_records.iter().enumerate().rev() {
++            let k = j * LANES;
++            let a: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[pair(k + i).0]);
++            let b: [&LimbPoint<F<C>>; LANES] = core::array::from_fn(|i| &points[pair(k + i).1]);
++            let (ax, ay) = (F::<C>::load(a.map(|p| &p.x)), F::<C>::load(a.map(|p| &p.y)));
++            let (bx, by) = (F::<C>::load(b.map(|p| &p.x)), F::<C>::load(b.map(|p| &p.y)));
++            let denominator = F::<C>::lanes_sub(&bx, &ax);
++            let factor = record[0].mul(&inverses);
++            inverses = inverses.mul(&record[1]);
++            let slope = F::<C>::lanes_scaled_numerator(&F::<C>::lanes_sub(&by, &ay), &denominator, &factor);
++            let x = F::<C>::lanes_sub(&F::<C>::lanes_square(&slope), &F::<C>::lanes_add(&ax, &bx));
++            let y = F::<C>::lanes_sub(&F::<C>::lanes_mul(&slope, &F::<C>::lanes_sub(&ax, &x)), &ay);
++            let (x, y) = (F::<C>::store(&x), F::<C>::store(&y));
++            for i in 0..LANES { points[pair(k + i).0] = LimbPoint {x:x[i], y:y[i]}; }
++        }
++    } else {
++    for (j, group) in s.groups.iter().enumerate().rev() {
++        let slope = F::<C>::lanes_scale(&group.numerator, &inverses);
++        inverses = inverses.mul(&group.norm);
++        let x = F::<C>::lanes_sub(&F::<C>::lanes_square(&slope), &group.xsum);
++        let y = F::<C>::lanes_sub(
++            &F::<C>::lanes_mul(&slope, &F::<C>::lanes_sub(&group.ax, &x)),
++            &group.ay,
++        );
++        let (x, y) = (F::<C>::store(&x), F::<C>::store(&y));
++        for i in 0..LANES {
++            {
++                points[pair(j * LANES + i).0] = LimbPoint { x: x[i], y: y[i] };
++            }
++        }
++    }
++
++    }
++    for k in full..m {
++        let t = k - full;
++        let (a, b) = (
++            affine::<C>(points[pair(k).0]),
++            affine::<C>(points[pair(k).1]),
++        );
++        let slope = (b.y - a.y) * F::<C>::denominator_inverse(s.denominators[t], s.products[t]);
++        let x = slope.square() - a.x - b.x;
++        let y = slope * (a.x - x) - a.y;
++        {
++            points[pair(k).0] = limbs::<C>(Affine::new(x, y));
++        }
++    }
++}
++ 
+ // The inverses of four chains with one field inversion: inverting is far
+ // dearer than the few products that share it. Every denominator is
+ // nonzero, so is every chain.
+@@ -2378,3 +2446,38 @@
+ 
+ #[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+ mod paired_weighted;
++
++
++#[cfg(test)]
++#[test]
++fn uniform_g2_classes_match_complete_group_reduction() {
++    use zopro_bn254::{Fr, G2Affine, G2Config};
++
++    let pool = rayon::ThreadPoolBuilder::new().num_threads(8).build().unwrap();
++    pool.install(|| for size in [4, 8] {
++        let counts = [vec![size; 257], vec![1, 3, size, 2]].concat();
++        let mut starts = vec![0];
++        for count in &counts {
++            starts.push(starts.last().unwrap() + count);
++        }
++        let n = *starts.last().unwrap();
++        let order: Vec<u32> = (0..n as u32).rev().collect();
++        let mut bases: Vec<G2Affine> = (0..n)
++            .map(|i| (G2Affine::GENERATOR * Fr::from((i + 1) as u64)).to_affine())
++            .collect();
++        for step in 0..4 {
++            if step == 1 {
++                // Ordinary first layer; equal sums in the second layer.
++                let p = |x| (G2Affine::GENERATOR * Fr::from(x as u64)).to_affine();
++                bases[n - 4..].copy_from_slice(&[p(2), p(9), p(6), p(5)]);
++            } else if step == 2 {
++                bases[n - 1] = -bases[n - 2];
++            } else if step == 3 {
++                bases[n - 1] = G2Affine::IDENTITY;
++            }
++            let a = group_affine_uniform::<G2Config>(&bases, &order, &starts, &counts);
++            let b = group_affine::<G2Config>(&bases, &order, &starts, &counts);
++            assert_eq!(a, b, "class size {size}, edge case {step}");
++        }
++    });
++}
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -172,7 +172,11 @@
+ 
+     assert_eq!(bases.len(), groups.len, "validated MSM dimensions");
+     let clock = class_ns.map(|_| crate::time::Instant::now());
+-    let grouped = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
++    let grouped = if layout == "uniform" {
++        crate::msm::group_affine_uniform(bases, &groups.order, &groups.starts, &groups.counts)
++    } else {
++        crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts)
++    };
+     let group_ns = clock.map(|t| t.elapsed().as_nanos());
+     let requested = match layout {
+         "u11x3" => Some((false, 11, 3)),
