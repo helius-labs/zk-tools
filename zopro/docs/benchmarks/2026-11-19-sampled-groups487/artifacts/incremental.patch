@@ -1,0 +1,50 @@
+--- a/crates/zopro-core/src/groups482.rs
++++ b/crates/zopro-core/src/groups482.rs
+@@ -69,6 +69,22 @@
+     }
+ 
+     pub fn query(&self, bases:&[G2Affine], scalars:&[Fr]) -> Option<G2Projective> {
++        if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
++            let samples=self.ends.len().min(32);
++            let mut mismatches=0;
++            let mut members=0;
++            for bucket in 0..samples {
++                let g=(2*bucket+1)*self.ends.len()/(2*samples);
++                let rows=self.members(g);
++                let representative=scalars[rows[0] as usize];
++                members+=rows.len()-1;
++                mismatches+=rows[1..].iter().filter(|&&i|scalars[i as usize]!=representative).count();
++            }
++            if mismatches*4>members {
++                if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {eprintln!("GROUP_SKIP {} {} {}",scalars.len(),mismatches,members);}
++                return None;
++            }
++        }
+         let _flags=Reservation::analysis(Some(self.ends.len()*4+256))?;
+         let differences: Vec<u32> = (0..self.ends.len()).into_par_iter().map(|g| {
+             let rows=self.members(g);
+--- a/crates/zopro-core/src/groups_g1_trial.rs
++++ b/crates/zopro-core/src/groups_g1_trial.rs
+@@ -69,6 +69,22 @@
+     }
+ 
+     pub fn query(&self, bases:&[G1Affine], scalars:&[Fr]) -> Option<G1Projective> {
++        if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
++            let samples=self.ends.len().min(32);
++            let mut mismatches=0;
++            let mut members=0;
++            for bucket in 0..samples {
++                let g=(2*bucket+1)*self.ends.len()/(2*samples);
++                let rows=self.members(g);
++                let representative=scalars[rows[0] as usize];
++                members+=rows.len()-1;
++                mismatches+=rows[1..].iter().filter(|&&i|scalars[i as usize]!=representative).count();
++            }
++            if mismatches*4>members {
++                if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {eprintln!("GROUP_SKIP {} {} {}",scalars.len(),mismatches,members);}
++                return None;
++            }
++        }
+         let _flags=Reservation::analysis(Some(self.ends.len()*4+256))?;
+         let differences: Vec<u32> = (0..self.ends.len()).into_par_iter().map(|g| {
+             let rows=self.members(g);
