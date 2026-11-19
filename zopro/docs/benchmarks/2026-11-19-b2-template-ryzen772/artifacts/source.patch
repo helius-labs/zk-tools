@@ -1,0 +1,385 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -30,6 +30,15 @@
+         *value = Fr::from_montgomery(*value).to_canonical();
+     });
+     Some(groups)
++}
++
++mod template;
++
++pub(crate) fn group_witness_template(scalars: &[Fr]) -> Option<ScalarGroups> {
++    if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
++        return None;
++    }
++    template::classify(scalars)
+ }
+ 
+ pub(crate) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2087,7 +2087,24 @@
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
+                     }
+-                    if let Some(groups) = group_witness(sb) {
++                    let layout = if omit_b && self.b2.len() >= 65_536 {
++                        std::env::var("ZOPRO_TRIAL_GROUPED_B2_LAYOUT").ok()
++                    } else {
++                        None
++                    };
++                    let clock = (layout.is_some() && std::env::var_os("ZOPRO_TRIAL_B2_PHASES").is_some())
++                        .then(crate::time::Instant::now);
++                    let groups = if layout.as_deref() == Some("template") {
++                        msm_affine::group_witness_template(sb).or_else(|| group_witness(sb))
++                    } else {
++                        group_witness(sb)
++                    };
++                    if let Some(groups) = groups {
++                        if let Some(layout) = layout {
++                            let class_ns = clock.map(|t| t.elapsed().as_nanos());
++                            let sum = msm_affine::grouped_b2_layout(&self.b2, &groups, &layout, class_ns);
++                            return (G1Projective::IDENTITY, sum);
++                        }
+                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+                         if omit_b
+                             && self.b2.len() >= 65_536
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -14,6 +14,7 @@
+ pub(super) mod borrowed_pending;
+ mod grouping;
+ pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
++pub(super) use grouping::group_witness_template;
+ 
+ #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ mod g2_horner;
+@@ -159,6 +160,57 @@
+     assert_eq!(bases.len(), groups.len, "validated MSM dimensions");
+     let bases = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
+     msm_raw(&bases, &groups.values)
++}
++
++/// Profile the ordinary grouped B2 stages or change only its final layout.
++pub(super) fn grouped_b2_layout(
++    bases: &[zopro_bn254::G2Affine],
++    groups: &ScalarGroups,
++    layout: &str,
++    class_ns: Option<u128>,
++) -> zopro_bn254::G2Projective {
++    use zopro_bn254::G2Config;
++
++    assert_eq!(bases.len(), groups.len, "validated MSM dimensions");
++    let clock = class_ns.map(|_| crate::time::Instant::now());
++    let grouped = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
++    let group_ns = clock.map(|t| t.elapsed().as_nanos());
++    let requested = match layout {
++        "u11x3" => Some((false, 11, 3)),
++        "u12x1" => Some((false, 12, 1)),
++        "u12x2" => Some((false, 12, 2)),
++        "u13x1" => Some((false, 13, 1)),
++        "s12x2" => Some((true, 12, 2)),
++        "s13x2" => Some((true, 13, 2)),
++        "s13x3" => Some((true, 13, 3)),
++        _ => None,
++    };
++    #[cfg(all(zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    let selected = requested.filter(|_| (1024..65536).contains(&grouped.len())).and_then(|geometry| {
++        let (signed, bits, parts) = geometry;
++        let bytes = workspace::grouped_b2_layout_bytes(grouped.len(), bits, parts, signed);
++        let reservation = crate::preparation::Reservation::analysis(bytes)?;
++        Some((geometry, reservation))
++    });
++    #[cfg(not(all(zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++    let selected: Option<((bool, usize, usize), ())> = None;
++    let _ = requested;
++    let geometry = selected.as_ref().map(|(shape, _)| *shape);
++    let begin = clock.map(|t| t.elapsed().as_nanos());
++    let sum = match geometry {
++        Some((true, bits, parts)) => merge_split_width::<G2Config>(&grouped, &groups.values, parts, bits),
++        Some((false, bits, parts)) => msm_unsigned_raw::<G2Config>(&grouped, &groups.values, bits, parts),
++        None => msm_raw::<G2Config>(&grouped, &groups.values),
++    };
++    if let (Some(start), Some(group), Some(class), Some(begin)) = (clock, group_ns, class_ns, begin) {
++        let (sign, bits, parts) = geometry.unwrap_or((false, 0, 0));
++        eprintln!(
++            "B2_STAGES {} {} {} {} {} {} {class} {group} {} {}",
++            bases.len(), grouped.len(), usize::from(sign), bits, parts, rayon::current_num_threads(),
++            start.elapsed().as_nanos() - begin, begin - group,
++        );
++    }
++    sum
+ }
+ 
+ fn msm_grouped_prepared<C: CurveConfig>(
+@@ -1844,3 +1896,29 @@
+ 
+ #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+ mod dense_h;
++
++
++#[cfg(test)]
++#[test]
++fn grouped_b2_signed_and_unsigned_layouts_match_generator_oracle() {
++    use zopro_bn254::{G2Affine, G2Config};
++
++    let terms = [Fr::ONE, Fr::ZERO, -Fr::ONE, Fr::from(193u64), -Fr::from(991u64)];
++    let mut random = Fr::from(884u64);
++    let mut weights = Vec::new();
++    let mut scalars = Vec::new();
++    for i in 0..2053 {
++        random = random.square() + Fr::from(i as u64 + 5);
++        weights.push(if i % 11 == 0 { Fr::ZERO } else { Fr::from(i as u64 + 1) });
++        scalars.push(if i % 3 == 0 { terms[i % terms.len()] } else { random });
++    }
++    let points: Vec<_> = weights.iter().map(|&w| (G2Affine::GENERATOR * w).to_affine()).collect();
++    let words: Vec<_> = scalars.iter().map(Fr::to_canonical).collect();
++    let expected = G2Affine::GENERATOR * weights.iter().zip(&scalars).map(|(&a, &b)| a * b).fold(Fr::ZERO, |sum, term| sum + term);
++    for (bits, parts) in [(11, 3), (12, 1), (12, 2), (13, 1)] {
++        assert_eq!(msm_unsigned_raw::<G2Config>(&points, &words, bits, parts), expected);
++    }
++    for (bits, parts) in [(12, 2), (13, 2), (13, 3)] {
++        assert_eq!(merge_split_width::<G2Config>(&points, &words, parts, bits), expected);
++    }
++}
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -189,6 +189,11 @@
+     }
+     Some(p)
+ }
++pub(super) fn grouped_b2_layout_bytes(n: usize, bits: usize, parts: usize, signed: bool) -> Option<usize> {
++    let p = one::<G2Config>(n, bits, parts, signed)?;
++    add(p.held, mul(p.leaf, rayon::current_num_threads())?)
++}
++
+ /// Extra positive growth over the ordinary raw H query at this worker count.
+ pub(super) fn dense_h_layout_extra<C: CurveConfig>(
+     n: usize, ranges: usize, widths: &[usize], signed: bool,
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/grouping/template.rs
+@@ -0,0 +1,224 @@
++use super::{grouping_cost, ScalarGroups};
++use crate::preparation::Reservation;
++use rayon::prelude::*;
++use std::sync::OnceLock;
++use zopro_bn254::Fr;
++
++const CLASS_TILE: usize = 256;
++const BIT_TILE: usize = 4096;
++
++struct Template {
++    terms: usize,
++    starts: Vec<usize>,
++    words: Vec<u32>,
++    flags: Vec<u32>,
++    _memory: Reservation,
++}
++
++#[derive(Default)]
++struct Tile {
++    values: Vec<[u64; 4]>,
++    counts: Vec<usize>,
++    members: Vec<u32>,
++    ones: Vec<u32>,
++    exceptions: Vec<u32>,
++}
++
++impl Template {
++    fn parse(bytes: &[u8], expected_terms: usize, memory: Reservation) -> Option<Self> {
++        let mut words = bytes.chunks_exact(4).map(|x| u32::from_le_bytes(x.try_into().unwrap()));
++        let terms = words.next()? as usize;
++        let classes = words.next()? as usize;
++        let flags = words.next()? as usize;
++        if terms != expected_terms || flags > terms || classes > terms - flags
++            || bytes.len() != (3 + classes + terms).checked_mul(4)?
++        {
++            return None;
++        }
++
++        let mut starts = Vec::with_capacity(classes + 1);
++        starts.push(0usize);
++        for _ in 0..classes {
++            let len = words.next()? as usize;
++            if len == 0 {
++                return None;
++            }
++            starts.push(starts.last()?.checked_add(len)?);
++        }
++        if *starts.last()? != terms - flags {
++            return None;
++        }
++
++        let mut seen = vec![false; terms];
++        let positions: Vec<u32> = words.collect();
++        for &index in &positions {
++            let first = seen.get_mut(index as usize)?;
++            if *first {
++                return None;
++            }
++            *first = true;
++        }
++        let flags = positions[terms - flags..].to_vec();
++        let mut order = positions;
++        order.truncate(terms - flags.len());
++        Some(Self { terms, starts, words: order, flags, _memory: memory })
++    }
++
++    fn load(expected_terms: usize) -> Option<Self> {
++        use std::io::Read;
++        let file = std::fs::File::open(std::env::var_os("ZOPRO_TRIAL_B2_TEMPLATE_FILE")?).ok()?;
++        let length = usize::try_from(file.metadata().ok()?.len()).ok()?;
++        let max = (3 + expected_terms.checked_mul(2)?).checked_mul(4)?;
++        if length < 12 || length > max {
++            return None;
++        }
++        // Covers the file being decoded, both index arrays, the range
++        // checks, and the wide start offsets while the plan is resident.
++        let memory = Reservation::analysis(grouping_cost::mul(max, 5))?;
++        let mut bytes = Vec::with_capacity(length);
++        file.take((max as u64) + 1).read_to_end(&mut bytes).ok()?;
++        Self::parse(&bytes, expected_terms, memory)
++    }
++
++    fn apply(&self, scalars: &[Fr]) -> Option<ScalarGroups> {
++        if self.terms != scalars.len() {
++            return None;
++        }
++        let n = self.terms;
++        let reservation = grouping_cost::reserve(n, 80)?;
++        let classes = self.starts.len() - 1;
++        let tile_count = classes.div_ceil(CLASS_TILE) + self.flags.len().div_ceil(BIT_TILE);
++        // At most one row membership, one unit index and one exception index
++        // per input are covered conservatively, along with the per-tile
++        // scalar outputs, capacity rounding and Vec metadata.
++        let extra = grouping_cost::add(grouping_cost::mul(n, 72)?, grouping_cost::mul(tile_count, 512)?)?;
++        let _extra = Reservation::analysis(Some(extra))?;
++        let (mut tiles, flags): (Vec<_>, Vec<_>) = rayon::join(
++            || (0..classes.div_ceil(CLASS_TILE)).into_par_iter().map(|tile| {
++                let start = tile * CLASS_TILE;
++                let end = (start + CLASS_TILE).min(classes);
++                let mut out = Tile::default();
++                out.values.reserve_exact(end - start);
++                out.counts.reserve_exact(end - start);
++                out.members.reserve_exact(self.starts[end] - self.starts[start]);
++                for window in self.starts[start..=end].windows(2) {
++                    let indices = &self.words[window[0]..window[1]];
++                    let rep = scalars[indices[0] as usize];
++                    let before = out.members.len();
++                    for &i in indices {
++                        let value = scalars[i as usize];
++                        if value == Fr::ONE {
++                            out.ones.push(i);
++                        } else if value != Fr::ZERO {
++                            if value == rep {
++                                out.members.push(i);
++                            } else {
++                                out.exceptions.push(i);
++                            }
++                        }
++                    }
++                    let count = out.members.len() - before;
++                    if count != 0 {
++                        out.counts.push(count);
++                        out.values.push(rep.to_canonical());
++                    }
++                }
++                out
++            }).collect(),
++            || self.flags.par_chunks(BIT_TILE).map(|positions| {
++                let mut out = Tile::default();
++                for &i in positions {
++                    let v = scalars[i as usize];
++                    if v == Fr::ONE {
++                        out.ones.push(i);
++                    } else if v != Fr::ZERO {
++                        out.exceptions.push(i);
++                    }
++                }
++                out
++            }).collect(),
++        );
++        tiles.extend(flags);
++
++        let one_count: usize = tiles.iter().map(|t| t.ones.len()).sum();
++        let exception_count: usize = tiles.iter().map(|t| t.exceptions.len()).sum();
++        let kept = tiles.iter().map(|t| t.counts.len()).sum::<usize>() + usize::from(one_count != 0) + exception_count;
++        if exception_count > n / 128 || kept > n * 80 / 100 {
++            return None;
++        }
++        let points = tiles.iter().map(|t| t.members.len()).sum::<usize>() + one_count + exception_count;
++        let mut order = Vec::with_capacity(points);
++        let mut counts = Vec::with_capacity(kept);
++        let mut values = Vec::with_capacity(kept);
++        for tile in &mut tiles {
++            order.append(&mut tile.members);
++            counts.append(&mut tile.counts);
++            values.append(&mut tile.values);
++        }
++        if one_count > 0 {
++            counts.push(one_count);
++            values.push(Fr::ONE.to_canonical());
++            for tile in &mut tiles {
++                order.append(&mut tile.ones);
++            }
++        }
++        for tile in tiles {
++            for i in tile.exceptions {
++                order.push(i);
++                counts.push(1);
++                values.push(scalars[i as usize].to_canonical());
++            }
++        }
++        let mut starts = Vec::with_capacity(counts.len() + 1);
++        starts.push(0);
++        for count in &counts {
++            starts.push(starts.last().unwrap() + count);
++        }
++        if std::env::var_os("ZOPRO_TRIAL_B2_PHASES").is_some() {
++            eprintln!("B2_TEMPLATE {n} {classes} {} {one_count} {exception_count} {kept}", self.flags.len());
++        }
++        Some(ScalarGroups { len: n, values, order, starts, counts, _reservation: reservation })
++    }
++}
++
++pub(super) fn classify(scalars: &[Fr]) -> Option<ScalarGroups> {
++    static PLAN: OnceLock<Option<Template>> = OnceLock::new();
++    PLAN.get_or_init(|| Template::load(scalars.len())).as_ref()?.apply(scalars)
++}
++
++#[cfg(test)]
++#[test]
++fn template_validates_members_and_routes_boolean_and_nonboolean_exceptions() {
++    const N: usize = 2048;
++    let plan_bytes = |bad: bool| {
++        let values = [N as u32, 2, (N - 8) as u32, 4, 4].into_iter().chain(
++            (0..N as u32).map(move |i| if bad && i == 21 { 20 } else { i }),
++        );
++        values.flat_map(u32::to_le_bytes).collect::<Vec<_>>()
++    };
++    let reservation = || Reservation::analysis(Some(1024)).unwrap();
++    assert!(Template::parse(&plan_bytes(true), N, reservation()).is_none());
++    assert!(Template::parse(&plan_bytes(false), N - 1, reservation()).is_none());
++    let plan = Template::parse(&plan_bytes(false), N, reservation()).unwrap();
++    let mut terms = vec![Fr::ZERO; N];
++    terms[0..4].fill(Fr::from(19u64));
++    terms[1] = Fr::ONE;
++    terms[2] = Fr::from(123u64);
++    terms[4..8].fill(Fr::from(27u64));
++    terms[4] = Fr::ZERO;
++    terms[21] = Fr::from(377u64);
++    terms[111] = Fr::ONE;
++    let groups = plan.apply(&terms).unwrap();
++    let mut seen = vec![false; N];
++    for (value, bounds) in groups.values.iter().zip(groups.starts.windows(2)) {
++        for &i in &groups.order[bounds[0]..bounds[1]] {
++            let i = i as usize;
++            assert!(!seen[i]);
++            seen[i] = true;
++            assert_eq!(terms[i].to_canonical(), *value);
++        }
++    }
++    assert!(terms.iter().zip(seen).all(|(v, has)| has == (*v != Fr::ZERO)));
++    terms[100..200].fill(Fr::from(101u64));
++    assert!(plan.apply(&terms).is_none());
++}
