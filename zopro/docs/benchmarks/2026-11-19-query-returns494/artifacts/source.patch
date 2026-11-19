@@ -1,0 +1,111 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2016,20 +2016,21 @@
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
++            let clock = QueryReturnTimes::new();
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
+                     rayon::join(
+-                        || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+-                        || {
++                        || rayon::join(|| clock.run(0, || msm(&self.a[..], sa)), || clock.run(1, || msm(k, sk))),
++                        || clock.run(2, || {
+                             if montgomery_h {
+                                 msm_affine::msm_montgomery(z, h)
+                             } else {
+                                 msm(z, h)
+                             }
+-                        },
++                        }),
+                     )
+                 },
+-                || {
++                || clock.run(3, || {
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
+@@ -2043,8 +2044,9 @@
+                         let sb = canonical(sb);
+                         rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
+                     }
+-                },
++                }),
+             );
++            clock.report("query", omit_b);
+             return ((ar, bs1), (kr, (hz, bs2)));
+         }
+         rayon::join(
+@@ -2311,22 +2313,23 @@
+             output_g2(&mut out,bs2);
+             return Ok(out);
+         }
++        let clock = QueryReturnTimes::new();
+         let (((ar,kr),hz),(bs1,bs2))={
+         let montgomery_h=h.len()>=(1<<18)&&crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
+                 rayon::join(
+                     || {
+                         rayon::join(
+-                            || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+-                            || {
++                            || rayon::join(|| clock.run(0, || msm(&self.a[..], sa)), || clock.run(1, || msm(k, sk))),
++                            || clock.run(2, || {
+                                 if montgomery_h {
+                                     msm_affine::msm_montgomery(z, h)
+                                 } else {
+                                     msm(z, canonical(h))
+                                 }
+-                            },
++                            }),
+                         )
+                     },
+-                    || {
++                    || clock.run(3, || {
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+                             return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
+                         }
+@@ -2348,10 +2351,11 @@
+                                 )
+                             },
+                         )
+-                    },
++                    }),
+                 )
+         };
+ 
++        clock.report("canonical", omit_b);
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         let (ar,kr,bs2)=offsets.map_or((ar,kr,bs2), |o| (ar+o.a,kr+o.k,bs2+o.b2));
+         let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(out)
+@@ -2504,3 +2508,30 @@
+         { let _ = bytes; Ok(false) }
+     }
+ }
++
++
++struct QueryReturnTimes {
++    start: std::time::Instant,
++    finish_ns: [std::sync::atomic::AtomicU64; 4],
++}
++
++impl QueryReturnTimes {
++    fn new() -> Self {
++        Self {
++            start: std::time::Instant::now(),
++            finish_ns: Default::default(),
++        }
++    }
++
++    fn run<T>(&self, index: usize, f: impl FnOnce() -> T) -> T {
++        let result = f();
++        self.finish_ns[index].store(self.start.elapsed().as_nanos() as u64, std::sync::atomic::Ordering::Relaxed);
++        result
++    }
++
++    fn report(&self, route: &str, omit_b: bool) {
++        let joined = self.start.elapsed().as_nanos();
++        let times = self.finish_ns.each_ref().map(|t| t.load(std::sync::atomic::Ordering::Relaxed));
++        eprintln!("QUERY_RETURNS {} {} {} {} {} {} {}", route, omit_b, times[0], times[1], times[2], times[3], joined);
++    }
++}
