@@ -1,5 +1,7 @@
 # Indexed 12×2 proof latency by FFT pool and output layout
 
+The 24-worker FFT pool reduced both peak RSS and minor faults in all 24 paired comparisons with the 30-worker main pool. This held with either output layout. On the reference, tiled output with the smaller pool reduced peak RSS from 562.8 to 448.9 MiB and median minor faults from 2,213 to 660 per proof relative to ordinary output on the main pool. Its paired median latency was 0.35% higher. Two of its twelve blocks met the M5 CPU target, and the median missed by 0.367 ms. The ordinary main pool had the lowest reference median at 28.628 ms, 0.228 ms above target. The smaller pool with ordinary output was fastest on scattered witness 139 and reduced its peak from 767.5 to 513.2 MiB.
+
 Each process warmed three requests and timed fifteen complete SDK requests. All 114 exports verified, including the two dispatch probes. The latency column is the median of process means.
 
 | Witness | Output and pool | Latency ms | Paired change vs main, wins | Peak MiB | M5 CPU / Metal | Blocks at or below 28.4 ms |
