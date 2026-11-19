@@ -4,7 +4,7 @@ The [preceding packed image study](../2026-11-19-packed-b2-equality-c7a778/READM
 
 One c7a.24xlarge runs six blocks on each of four inputs. Zopro uses 64 main and 32 frontend cores with packed solver tasks, fused FFT and late frontend K. Prepared Aeglos runs on all 96 cores. Each process discarded three priming requests and timed thirteen proofs. Separate route checks exercise the dense calculation and zero optional-memory fallback. All 156 AWS and six local exports independently verified against the original key image. The AWS instance and temporary storage were removed.
 
-The earlier scorecard remains the fastest qualifying comparison.
+The ordinary-kernel switch recovered 0.674–1.729 ms across the four inputs. The packed image still trailed both ordinary-image controls. The same-run origin-assisted ordinary image led both ordinary controls on all four inputs, and its original-input time updates the scorecard.
 
 | Input | Profile | Proof ms | Paired vs release | Paired vs ordinary same build | Paired vs origins | Paired vs packed Phi | Paired vs Aeglos | Peak MiB | M5 CPU / Metal |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
@@ -44,7 +44,7 @@ The earlier scorecard remains the fastest qualifying comparison.
 | 1×2 | 737 dedicated G1 80+16 | 7.953 | 37 / 24 | 4.65× / 3.02× | +4.253 |
 | 2×2 | 750 archived-band 72+24 | 12.358 | 59 / 30 | 4.77× / 2.43× | +6.458 |
 | 4×2 | 757 solve-front-on | 15.257 | 109 / 48 | 7.14× / 3.15× | +4.357 |
-| 8×2 | 776 recognized B2 origins | 20.341 | 189 / 74 | 9.29× / 3.64× | +1.441 |
+| 8×2 | 781 recognized B2 origins replay | 20.098 | 189 / 74 | 9.40× / 3.68× | +1.198 |
 | 12×2 | 750 indexed fixed-on | 27.790 | 284 / 101 | 10.22× / 3.63× | -0.610 |
 | 16×2 | 747 recorded SDK 64+32 | 30.884 | 335 / 124 | 10.85× / 4.01× | -2.616 |
 | 24×2 | 707 catalog | 47.046 | 528 / 176 | 11.22× / 3.74× | -5.754 |
