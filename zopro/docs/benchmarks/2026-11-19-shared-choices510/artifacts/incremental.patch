@@ -1,0 +1,322 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -225,6 +225,7 @@
+ #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+ mod public_wire_offsets;
+ mod groups482;
++mod shared_choices;
+ mod groups_g1_trial;
+ 
+ // The version of the solver images Key::solver_image writes and
+@@ -810,6 +811,7 @@
+ #[wasm_bindgen]
+ pub struct Key {
+     trial_groups: Option<groups482::Groups>,
++    shared_groups: Option<shared_choices::Maps>,
+     trial_a: Option<groups_g1_trial::Groups>,
+     trial_k: Option<groups_g1_trial::Groups>,
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+@@ -1535,6 +1537,7 @@
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             wire_offsets: None,
+             trial_groups: None,
++            shared_groups: None,
+             trial_a: None,
+             trial_k: None,
+             generated_g2: Default::default(),
+@@ -2024,12 +2027,14 @@
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
++            let selected = if omit_b && folded_k && self.shared_groups.is_some() {self.trial_groups.as_ref().and_then(|g|g.selected(sb))} else {None};
++            let shared = selected.as_ref().map(|(v,_)|v.as_slice());
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
+                     rayon::join(
+                         || rayon::join(
+-                            || if omit_b && folded_k {self.trial_a.as_ref().and_then(|q|q.query(&self.a,sa)).unwrap_or_else(||msm(&self.a,sa))} else {msm(&self.a,sa)},
+-                            || if omit_b && folded_k {self.trial_k.as_ref().and_then(|q|q.query(k,sk)).unwrap_or_else(||msm(k,sk))} else {msm(k,sk)}
++                            || if omit_b && folded_k {self.trial_a.as_ref().and_then(|q|q.query_using(&self.a,sa,shared.zip(self.shared_groups.as_ref()).map(|(v,m)|(m.a.as_slice(),v)))).unwrap_or_else(||msm(&self.a,sa))} else {msm(&self.a,sa)},
++                            || if omit_b && folded_k {self.trial_k.as_ref().and_then(|q|q.query_using(k,sk,shared.zip(self.shared_groups.as_ref()).map(|(v,m)|(m.k.as_slice(),v)))).unwrap_or_else(||msm(k,sk))} else {msm(k,sk)}
+                         ),
+                         || {
+                             if montgomery_h {
+@@ -2046,7 +2051,7 @@
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
+                     }
+                     if omit_b {
+-                        if let Some(result)=self.trial_groups.as_ref().and_then(|g|g.query(&self.b2,sb)) {
++                        if let Some(result)=self.trial_groups.as_ref().and_then(|g|g.query_using(&self.b2,sb,shared)) {
+                             return (G1Projective::IDENTITY,result);
+                         }
+                     }
+@@ -2401,7 +2406,7 @@
+ 
+ impl Key {
+     fn invalidate_solver(&mut self) {
+-        self.trial_groups=None;self.trial_a=None;self.trial_k=None;
++        self.shared_groups=None;self.trial_groups=None;self.trial_a=None;self.trial_k=None;
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         { self.wire_offsets = None; }
+         self.proof_workspace = None;
+@@ -2514,9 +2519,16 @@
+         let plan_a=groups_g1_trial::Groups::prepare(&self.a,a)?;
+         let plan_k=groups_g1_trial::Groups::prepare(&folded.private,k)?;
+         if plan_a.is_none() || plan_k.is_none(){return Ok(false)}
++        self.shared_groups=None;
++        if std::env::var_os("ZOPRO_SHARED_CHOICES").is_some() && std::env::var_os("ZOPRO_ADAPTIVE_CORRECTIONS").is_some() {
++            if let (Some(plan),Some(b),Some(a),Some(k))=(&self.solver,&self.trial_groups,&plan_a,&plan_k) {
++                self.shared_groups=shared_choices::Maps::bind(plan,b,a,k);
++            }
++        }
+         self.trial_a=plan_a;self.trial_k=plan_k;Ok(true)
+     }
+     pub fn prepare_group_trial(&mut self, bytes:&[u8])->Result<bool,&'static str>{
++        self.shared_groups=None;
+         self.trial_groups=groups482::Groups::prepare(&self.b2,bytes)?;
+         Ok(self.trial_groups.is_some())
+     }
+--- /dev/null
++++ b/crates/zopro-core/src/shared_choices.rs
+@@ -0,0 +1,37 @@
++use super::{groups482, groups_g1_trial, preparation::Reservation, solver::Plan};
++const NONE: u32 = u32::MAX;
++pub(super) struct Maps {
++    pub a: Vec<u32>,
++    pub k: Vec<u32>,
++    _held: Reservation,
++}
++impl Maps {
++    pub fn bind(plan: &Plan, b: &groups482::Groups, a: &groups_g1_trial::Groups, k: &groups_g1_trial::Groups) -> Option<Self> {
++        let held = Reservation::analysis(a.len().checked_add(k.len())?.checked_mul(4)?.checked_add(128))?;
++        let _tmp = Reservation::analysis(plan.b_indices.len().checked_mul(4))?;
++        let mut owner = vec![NONE; plan.b_indices.len()];
++        for group in 0..b.len() {
++            for &index in b.members(group) {
++                *owner.get_mut(index as usize)? = u32::try_from(group).ok()?;
++            }
++        }
++        let bind = |linear: &groups_g1_trial::Groups, is_a: bool| {
++            let wire = |i: u32| if is_a { plan.a_indices.get(i as usize).copied() }
++                else { i.checked_add(u32::try_from(plan.n_public).ok()?) };
++            (0..linear.len()).map(|g| {
++                let rows = linear.members(g);
++                let Some(first) = wire(rows[0]) else {return NONE;};
++                let Ok(index) = plan.b_indices.binary_search(&first) else {return NONE;};
++                let shared = owner[index];
++                if shared == NONE {return NONE;}
++                let other = b.members(shared as usize);
++                if other.len() == rows.len() && rows.iter().zip(other).all(|(&l,&r)|wire(l) == Some(plan.b_indices[r as usize])) { shared } else { NONE }
++            }).collect::<Vec<_>>()
++        };
++        let result = Self { a: bind(a,true), k: bind(k,false), _held: held };
++        if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
++            eprintln!("SHARED_MAP {} {} {} {}",result.a.iter().filter(|&&v|v!=NONE).count(),a.len(),result.k.iter().filter(|&&v|v!=NONE).count(),k.len());
++        }
++        Some(result)
++    }
++}
+--- a/crates/zopro-core/src/groups482.rs
++++ b/crates/zopro-core/src/groups482.rs
+@@ -63,7 +63,9 @@
+         Ok(Some(Self {ids, ends, sources, sums, _held:held}))
+     }
+ 
+-    fn members(&self, g:usize) -> &[u32] {
++    pub fn len(&self) -> usize {self.ends.len()}
++
++    pub fn members(&self, g:usize) -> &[u32] {
+         let start=if g==0 {0} else {self.ends[g-1]};
+         &self.ids[start..self.ends[g]]
+     }
+@@ -73,32 +75,33 @@
+         let initial = scalars[first as usize];
+         let differences = rows[1..].iter().filter(|&&i| scalars[i as usize] != initial).count();
+         if !adaptive || differences * 2 <= rows.len() {
+-            return (first, differences as u32);
++            return (0, differences as u32);
+         }
+ 
+-        let mut representative = first;
++        let mut representative = 0usize;
+         let mut balance = 0;
+-        for &index in rows {
++        for (pos, &index) in rows.iter().enumerate() {
+             if balance == 0 {
+-                representative = index;
++                representative = pos;
+                 balance = 1;
+-            } else if scalars[index as usize] == scalars[representative as usize] {
++            } else if scalars[index as usize] == scalars[rows[representative] as usize] {
+                 balance += 1;
+             } else {
+                 balance -= 1;
+             }
+         }
+-        let alternative = scalars[representative as usize];
++        let alternative = scalars[rows[representative] as usize];
+         if balance > 0 && alternative != initial {
+             let count = rows.iter().filter(|&&i| scalars[i as usize] != alternative).count();
+             if count < differences {
+-                return (representative, count as u32);
++                return (representative as u32, count as u32);
+             }
+         }
+-        (first, differences as u32)
++        (0, differences as u32)
+     }
+ 
+-    pub fn query(&self, bases:&[G2Affine], scalars:&[Fr]) -> Option<G2Projective> {
++    pub fn query(&self, bases:&[G2Affine], scalars:&[Fr]) -> Option<G2Projective> { self.query_using(bases,scalars,None) }
++    fn sampled(&self, scalars:&[Fr]) -> bool {
+         if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
+             let samples=self.ends.len().min(32);
+             let mut mismatches=0;
+@@ -112,13 +115,28 @@
+             }
+             if mismatches*4>members {
+                 if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {eprintln!("GROUP_SKIP {} {} {}",scalars.len(),mismatches,members);}
+-                return None;
++                return false;
+             }
+         }
++        true
++    }
++    pub fn selected(&self, scalars:&[Fr]) -> Option<(Vec<(u32,u32)>,Reservation)> {
++        if !self.sampled(scalars) {return None;}
++        self.select(scalars,true)
++    }
++    fn select(&self, scalars:&[Fr], adaptive:bool) -> Option<(Vec<(u32,u32)>,Reservation)> {
++        let permit = Reservation::analysis(self.ends.len().checked_mul(8)?.checked_add(256))?;
++        let choices = (0..self.ends.len()).into_par_iter().map(|g| self.choose(self.members(g), scalars, adaptive)).collect();
++        Some((choices,permit))
++    }
++    pub fn query_using(&self, bases:&[G2Affine], scalars:&[Fr], reuse: Option<&[(u32,u32)]>) -> Option<G2Projective> {
++        if !self.sampled(scalars) {return None;}
+         let adaptive = std::env::var_os("ZOPRO_ADAPTIVE_CORRECTIONS").is_some();
+-        let _flags=Reservation::analysis(self.ends.len().checked_mul(8)?.checked_add(256))?;
+-        let choices: Vec<(u32,u32)> = (0..self.ends.len()).into_par_iter()
+-            .map(|g| self.choose(self.members(g), scalars, adaptive)).collect();
++        let owned;
++        let choices = if let Some(shared)=reuse {shared} else {
++            owned=self.select(scalars,adaptive)?;
++            &owned.0
++        };
+         let count:usize=choices.iter().map(|&(_,count)|count as usize).sum();
+         if count>self.ids.len()/16 { return None; }
+         let _scratch=Reservation::analysis(count.checked_mul(160)?.checked_add(self.sources.len()*32+512))?;
+@@ -127,7 +145,7 @@
+         }
+         let (main,extra)=rayon::join(|| {
+             let mut words:Vec<_>=self.sources.par_iter().enumerate().map(|(g,&source)| {
+-                let index = choices.get(g).map_or(source, |c| c.0);
++                let index = choices.get(g).map_or(source, |c| self.members(g)[c.0 as usize]);
+                 scalars[index as usize].to_canonical()
+             }).collect();
+             msm_affine::g2_query_exclusive(&self.sums,&mut words)
+@@ -138,7 +156,7 @@
+             for (g,&(selected,diff)) in choices.iter().enumerate() {
+                 if diff==0 {continue;}
+                 let members=self.members(g);
+-                let rep=scalars[selected as usize];
++                let rep=scalars[members[selected as usize] as usize];
+                 for &i in members {
+                     let s=scalars[i as usize];
+                     if s!=rep {points.push(bases[i as usize]);words.push((s-rep).to_canonical());}
+--- a/crates/zopro-core/src/groups_g1_trial.rs
++++ b/crates/zopro-core/src/groups_g1_trial.rs
+@@ -63,7 +63,9 @@
+         Ok(Some(Self {ids, ends, sources, sums, _held:held}))
+     }
+ 
+-    fn members(&self, g:usize) -> &[u32] {
++    pub fn len(&self) -> usize {self.ends.len()}
++
++    pub fn members(&self, g:usize) -> &[u32] {
+         let start=if g==0 {0} else {self.ends[g-1]};
+         &self.ids[start..self.ends[g]]
+     }
+@@ -73,32 +75,33 @@
+         let initial = scalars[first as usize];
+         let differences = rows[1..].iter().filter(|&&i| scalars[i as usize] != initial).count();
+         if !adaptive || differences * 2 <= rows.len() {
+-            return (first, differences as u32);
++            return (0, differences as u32);
+         }
+ 
+-        let mut representative = first;
++        let mut representative = 0usize;
+         let mut balance = 0;
+-        for &index in rows {
++        for (pos, &index) in rows.iter().enumerate() {
+             if balance == 0 {
+-                representative = index;
++                representative = pos;
+                 balance = 1;
+-            } else if scalars[index as usize] == scalars[representative as usize] {
++            } else if scalars[index as usize] == scalars[rows[representative] as usize] {
+                 balance += 1;
+             } else {
+                 balance -= 1;
+             }
+         }
+-        let alternative = scalars[representative as usize];
++        let alternative = scalars[rows[representative] as usize];
+         if balance > 0 && alternative != initial {
+             let count = rows.iter().filter(|&&i| scalars[i as usize] != alternative).count();
+             if count < differences {
+-                return (representative, count as u32);
++                return (representative as u32, count as u32);
+             }
+         }
+-        (first, differences as u32)
++        (0, differences as u32)
+     }
+ 
+-    pub fn query(&self, bases:&[G1Affine], scalars:&[Fr]) -> Option<G1Projective> {
++    pub fn query(&self, bases:&[G1Affine], scalars:&[Fr]) -> Option<G1Projective> { self.query_using(bases,scalars,None) }
++    fn sampled(&self, scalars:&[Fr]) -> bool {
+         if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
+             let samples=self.ends.len().min(32);
+             let mut mismatches=0;
+@@ -112,13 +115,20 @@
+             }
+             if mismatches*4>members {
+                 if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {eprintln!("GROUP_SKIP {} {} {}",scalars.len(),mismatches,members);}
+-                return None;
++                return false;
+             }
+         }
++        true
++    }
++    pub fn query_using(&self, bases:&[G1Affine], scalars:&[Fr], reuse: Option<(&[u32], &[(u32,u32)])>) -> Option<G1Projective> {
++        if !self.sampled(scalars) {return None;}
+         let adaptive = std::env::var_os("ZOPRO_ADAPTIVE_CORRECTIONS").is_some();
+         let _flags=Reservation::analysis(self.ends.len().checked_mul(8)?.checked_add(256))?;
+         let choices: Vec<(u32,u32)> = (0..self.ends.len()).into_par_iter()
+-            .map(|g| self.choose(self.members(g), scalars, adaptive)).collect();
++            .map(|g| match reuse {
++                Some((map,data)) if map[g]!=u32::MAX => data[map[g] as usize],
++                _ => self.choose(self.members(g), scalars, adaptive)
++            }).collect();
+         let count:usize=choices.iter().map(|&(_,count)|count as usize).sum();
+         if count>self.ids.len()/16 { return None; }
+         let _scratch=Reservation::analysis(count.checked_mul(96)?.checked_add(self.sources.len()*32+512))?;
+@@ -127,7 +137,7 @@
+         }
+         let (main,extra)=rayon::join(|| {
+             let mut words:Vec<_>=self.sources.par_iter().enumerate().map(|(g,&source)| {
+-                let index = choices.get(g).map_or(source, |c| c.0);
++                let index = choices.get(g).map_or(source, |c| self.members(g)[c.0 as usize]);
+                 scalars[index as usize].to_canonical()
+             }).collect();
+             msm_affine::msm_canonical(&self.sums,&words)
+@@ -138,7 +148,7 @@
+             for (g,&(selected,diff)) in choices.iter().enumerate() {
+                 if diff==0 {continue;}
+                 let members=self.members(g);
+-                let rep=scalars[selected as usize];
++                let rep=scalars[members[selected as usize] as usize];
+                 for &i in members {
+                     let s=scalars[i as usize];
+                     if s!=rep {points.push(bases[i as usize]);words.push((s-rep).to_canonical());}
