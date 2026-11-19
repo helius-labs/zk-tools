@@ -1,0 +1,175 @@
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -40,7 +40,61 @@
+     *b = Pair::shuffle_pair::<2, 3, 6, 7>(&sum, &diff);
+ }
+ 
+-fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++// Transpose four independent quads within each polynomial half of the vector.
++#[inline(always)]
++fn transpose([a, b, c, d]: &[Pair; 4]) -> [Pair; 4] {
++    let ab0 = Pair::shuffle_pair::<0, 4, 1, 5>(a, b);
++    let ab1 = Pair::shuffle_pair::<2, 6, 3, 7>(a, b);
++    let cd0 = Pair::shuffle_pair::<0, 4, 1, 5>(c, d);
++    let cd1 = Pair::shuffle_pair::<2, 6, 3, 7>(c, d);
++    [
++        Pair::shuffle_pair::<0, 1, 4, 5>(&ab0, &cd0),
++        Pair::shuffle_pair::<2, 3, 6, 7>(&ab0, &cd0),
++        Pair::shuffle_pair::<0, 1, 4, 5>(&ab1, &cd1),
++        Pair::shuffle_pair::<2, 3, 6, 7>(&ab1, &cd1),
++    ]
++}
++
++fn four_center(values: &mut [Pair; 4], inv: &Pair, fwd: &Pair, first: usize, log: usize) {
++    let [x0, x1, x2, x3] = transpose(values);
++    let a = x0.add(&x2);
++    let b = x1.add(&x3);
++    let c = x0.sub(&x2);
++    let d = x1.sub(&x3).mul(inv);
++    let q: [u64; 8] = core::array::from_fn(|j| bit_reverse(first + j % 4, log - 2) as u64);
++    let quarter = 1u64 << (log - 2);
++    let y0 = a.add(&b).mul_u28(&q);
++    let y1 = a.sub(&b).mul_u28(&q.map(|k| k + 2 * quarter));
++    let y2 = c.add(&d).mul_u28(&q.map(|k| k + quarter));
++    let y3 = c.sub(&d).mul_u28(&q.map(|k| k + 3 * quarter));
++    let a = y0.add(&y1);
++    let b = y0.sub(&y1);
++    let c = y2.add(&y3);
++    let d = y2.sub(&y3).mul(fwd);
++    *values = transpose(&[a.add(&c), b.add(&d), a.sub(&c), b.sub(&d)]);
++}
++
++// For a cyclic four-point Euler operator the two opposite neighbor
++// differences are negatives. Pack the two independent differences of each
++// input into one vector before multiplying by the scaled fourth root.
++fn paired_circulant(a: &mut Pair, b: &mut Pair, root: &Pair, n: u64, first: usize, log: usize) {
++    let prev = Pair::shuffle_pair::<3,0,7,4>(a, b);
++    let next = Pair::shuffle_pair::<1,2,5,6>(a, b);
++    let rotated = prev.sub(&next).mul(root);
++    let partial = prev.add(&next);
++    let swapped = Pair::shuffle_pair::<1,0,3,2>(&partial, &partial);
++    let total = partial.add(&swapped).mul_u28(&[n / 2; 8]);
++    let plus = rotated.sub(&total);
++    let minus = Pair::zero().sub(&total).sub(&rotated);
++    let correction_a = Pair::shuffle_pair::<0,1,4,5>(&plus,&minus);
++    let correction_b = Pair::shuffle_pair::<2,3,6,7>(&plus,&minus);
++    let qa = bit_reverse(first, log - 2) as u64;
++    let qb = bit_reverse(first+1, log - 2) as u64;
++    *a = a.mul_u28(&[4*qa + 2*n; 8]).add(&correction_a);
++    *b = b.mul_u28(&[4*qb + 2*n; 8]).add(&correction_b);
++}
++
++fn leaf<const MODE: u8>(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+     // The ordinary transform expands the same bounded leaf separately in each direction.
+     let mut expanded: Vec<_> = values.iter().map(PairStorage::load).collect();
+     let mut gap = expanded.len() / 2;
+@@ -55,8 +109,28 @@
+     }
+     let inv = broadcast(&plan.inverse_roots.pair);
+     let fwd = broadcast(&plan.roots.pair);
+-    for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
+-        center(a, b, &inv, &fwd, first + 2 * i, plan.n.ilog2() as usize);
++    let log = plan.n.ilog2() as usize;
++    let (tail, skipped) = if MODE == 2 {
++        let inv_odd = Pair::shuffle_pair::<1, 1, 1, 1>(&inv, &inv);
++        let fwd_odd = Pair::shuffle_pair::<1, 1, 1, 1>(&fwd, &fwd);
++        let (quads, tail) = expanded.as_chunks_mut::<4>();
++        for (i, quad) in quads.iter_mut().enumerate() {
++            four_center(quad, &inv_odd, &fwd_odd, first + 4 * i, log);
++        }
++        (tail, 4 * quads.len())
++    } else {
++        (&mut expanded[..], 0)
++    };
++    if MODE == 4 && plan.n <= (1 << 26) {
++        let odd = Pair::shuffle_pair::<1,1,1,1>(&inv, &inv);
++        let root = odd.mul_u28(&[plan.n as u64 / 2; 8]);
++        for (i, [a, b]) in tail.as_chunks_mut::<2>().0.iter_mut().enumerate() {
++            paired_circulant(a, b, &root, plan.n as u64, first + 2*i, log);
++        }
++    } else {
++        for (i, [a, b]) in tail.as_chunks_mut::<2>().0.iter_mut().enumerate() {
++            center(a, b, &inv, &fwd, first + skipped + 2*i, log);
++        }
+     }
+     gap = 1;
+     while gap < expanded.len() {
+@@ -72,9 +146,9 @@
+     }
+ }
+ 
+-fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++fn transform<const MODE: u8>(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+     if values.len() <= 1024 {
+-        return leaf(plan, values, level, first);
++        return leaf::<MODE>(plan, values, level, first);
+     }
+     columns::<false>(values, &plan.inverse_roots, level);
+     let size = values.len() / 32;
+@@ -82,20 +156,28 @@
+         .par_chunks_exact_mut(size)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, level + 5, first + i * size);
++            transform::<MODE>(plan, part, level + 5, first + i * size);
+         });
+     columns::<true>(values, &plan.roots, level);
+ }
+ 
+ #[inline(never)]
+ pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
++    match std::env::var("ZOPRO_TRIAL_EULER_LANES").as_deref() {
++        Ok("paired") if plan.n <= (1 << 26) => run::<4>(plan, a, b, storage),
++        Ok("four") => run::<2>(plan, a, b, storage),
++        _ => run::<0>(plan, a, b, storage),
++    }
++}
++fn run<const MODE: u8>(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
++    if std::env::var_os("ZOPRO_REPORT_EULER_LANES").is_some() { eprintln!("EULER_LANES {MODE} {}", plan.n); }
+     let mut values = input_columns::first_layer(plan, a, b, storage);
+     let width = values.len() / 32;
+     values
+         .par_chunks_exact_mut(width)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, 5, i * width);
++            transform::<MODE>(plan, part, 5, i * width);
+         });
+     columns::<true>(&mut values, &plan.roots, 0);
+     values
+@@ -115,7 +197,7 @@
+             let b: Vec<_> = (0..n - 1)
+                 .map(|i| Fr::from((i + 1) as u64).square())
+                 .collect();
+-            let got = from_inputs(&plan, &a, &b, Vec::with_capacity(n / 4));
++            let got = from_inputs(&plan, &a, &b, Vec::with_capacity(n/4));
+             let mut expected = input_columns::inverse(&plan, &a, &b);
+             for (i, value) in expected.iter_mut().enumerate() {
+                 let factors =
+@@ -148,7 +230,7 @@
+                         })))
+                     })
+                     .collect::<Vec<_>>();
+-                let mut got = expect.clone();
++                let original = expect.clone();
+                 stored_transform::<PackedPair, false>(&mut expect, &plan.inverse_roots, 0);
+                 for (i, v) in expect.iter_mut().enumerate() {
+                     let factors = core::array::from_fn(|j| {
+@@ -157,9 +239,16 @@
+                     *v = PackedPair::store(v.load().mul_u28(&factors));
+                 }
+                 stored_transform::<PackedPair, true>(&mut expect, &plan.roots, 0);
+-                transform(&plan, &mut got, 0, 0);
++                for mode in [0, 4, 2] {
++                    let mut got = original.clone();
++                    match mode {
++                        4 => transform::<4>(&plan, &mut got, 0, 0),
++                        2 => transform::<2>(&plan, &mut got, 0, 0),
++                        _ => transform::<0>(&plan, &mut got, 0, 0),
++                    }
+                 for (a, b) in got.iter().zip(&expect) {
+                     assert_eq!(a.load().get(), b.load().get());
++                }
+                 }
+             }
+         }
