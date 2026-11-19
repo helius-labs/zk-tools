@@ -1,0 +1,112 @@
+--- a/crates/zopro-core/src/groups482.rs
++++ b/crates/zopro-core/src/groups482.rs
+@@ -3,6 +3,7 @@
+ 
+ pub(super) struct Groups {
+     upper: Option<Box<Groups>>,
++    fallback: Option<Box<Groups>>,
+     ids: Vec<u32>,
+     ends: Vec<usize>,
+     sums: Vec<G2Affine>,
+@@ -16,6 +17,15 @@
+ 
+ impl Groups {
+     pub fn prepare(bases: &[G2Affine], data: &[u8]) -> Result<Option<Self>, &'static str> {
++        if data.starts_with(b"ZPDUAL20") {
++            let raw=data.get(8..16).ok_or("missing primary group size")?;
++            let size=usize::try_from(u64::from_le_bytes(raw.try_into().unwrap())).map_err(|_|"primary group size overflow")?;
++            let (a,b)=data[16..].split_at_checked(size).ok_or("truncated fallback plan")?;
++            if !a.starts_with(b"ZPGR0482") || !b.starts_with(b"ZPGR0482") {return Err("invalid fallback plans");}
++            let Some(mut primary)=Self::prepare_flat(bases,a)? else {return Self::prepare_flat(bases,b);};
++            primary.fallback=Self::prepare_flat(bases,b)?.map(Box::new);
++            return Ok(Some(primary));
++        }
+         if data.starts_with(b"ZPNEST17") {
+             let size_bytes = data.get(8..16).ok_or("missing nested group size")?;
+             let size = usize::try_from(u64::from_le_bytes(size_bytes.try_into().unwrap())).map_err(|_|"nested group size overflow")?;
+@@ -74,7 +84,7 @@
+             out.copy_from_slice(&G2Projective::batch_to_affine(&projective));
+         });
+         sums[count..].par_iter_mut().zip(&sources[count..]).for_each(|(p,&i)|*p=bases[i as usize]);
+-        Ok(Some(Self {upper:None, ids, ends, sources, sums, _held:held}))
++        Ok(Some(Self {fallback:None,upper:None, ids, ends, sources, sums, _held:held}))
+     }
+ 
+     fn members(&self, g:usize) -> &[u32] {
+@@ -113,6 +123,18 @@
+     }
+ 
+     pub fn query(&self, bases:&[G2Affine], scalars:&[Fr]) -> Option<G2Projective> {
++        let Some(fallback)=&self.fallback else {return self.query_single(bases,scalars);};
++        let trace=std::env::var_os("ZOPRO_GROUP_PROBE").is_some();
++        if let Some(p)=self.query_single(bases,scalars) {
++            if trace {eprintln!("DUAL_PRIMARY {}",bases.len());}
++            return Some(p);
++        }
++        let value=fallback.query_single(bases,scalars);
++        if trace {eprintln!("{} {}",if value.is_some() {"DUAL_SECONDARY"} else {"DUAL_ORDINARY"},bases.len());}
++        value
++    }
++
++    fn query_single(&self, bases:&[G2Affine], scalars:&[Fr]) -> Option<G2Projective> {
+         if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
+             let samples=self.ends.len().min(32);
+             let mut mismatches=0;
+--- a/crates/zopro-core/src/groups_g1_trial.rs
++++ b/crates/zopro-core/src/groups_g1_trial.rs
+@@ -2,6 +2,7 @@
+ use rayon::prelude::*;
+ 
+ pub(super) struct Groups {
++    fallback: Option<Box<Groups>>,
+     ids: Vec<u32>,
+     ends: Vec<usize>,
+     sums: Vec<G1Affine>,
+@@ -15,6 +16,19 @@
+ 
+ impl Groups {
+     pub fn prepare(bases: &[G1Affine], data: &[u8]) -> Result<Option<Self>, &'static str> {
++        if data.starts_with(b"ZPDUAL20") {
++            let raw=data.get(8..16).ok_or("missing primary group size")?;
++            let size=usize::try_from(u64::from_le_bytes(raw.try_into().unwrap())).map_err(|_|"primary group size overflow")?;
++            let (a,b)=data[16..].split_at_checked(size).ok_or("truncated fallback plan")?;
++            if !a.starts_with(b"ZPGR0482") || !b.starts_with(b"ZPGR0482") {return Err("invalid fallback plans");}
++            let Some(mut primary)=Self::prepare_flat(bases,a)? else {return Self::prepare_flat(bases,b);};
++            primary.fallback=Self::prepare_flat(bases,b)?.map(Box::new);
++            return Ok(Some(primary));
++        }
++        Self::prepare_flat(bases,data)
++    }
++
++    fn prepare_flat(bases: &[G1Affine], data: &[u8]) -> Result<Option<Self>, &'static str> {
+         if data.len() < 16 || &data[..8] != b"ZPGR0482" || u32at(data, 8) as usize != bases.len() {
+             return Err("invalid group dimensions");
+         }
+@@ -60,7 +74,7 @@
+             out.copy_from_slice(&G1Projective::batch_to_affine(&projective));
+         });
+         sums[count..].par_iter_mut().zip(&sources[count..]).for_each(|(p,&i)|*p=bases[i as usize]);
+-        Ok(Some(Self {ids, ends, sources, sums, _held:held}))
++        Ok(Some(Self {fallback:None,ids, ends, sources, sums, _held:held}))
+     }
+ 
+     fn members(&self, g:usize) -> &[u32] {
+@@ -99,6 +113,18 @@
+     }
+ 
+     pub fn query(&self, bases:&[G1Affine], scalars:&[Fr]) -> Option<G1Projective> {
++        let Some(fallback)=&self.fallback else {return self.query_single(bases,scalars);};
++        let trace=std::env::var_os("ZOPRO_GROUP_PROBE").is_some();
++        if let Some(p)=self.query_single(bases,scalars) {
++            if trace {eprintln!("DUAL_PRIMARY {}",bases.len());}
++            return Some(p);
++        }
++        let value=fallback.query_single(bases,scalars);
++        if trace {eprintln!("{} {}",if value.is_some() {"DUAL_SECONDARY"} else {"DUAL_ORDINARY"},bases.len());}
++        value
++    }
++
++    fn query_single(&self, bases:&[G1Affine], scalars:&[Fr]) -> Option<G1Projective> {
+         if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
+             let samples=self.ends.len().min(32);
+             let mut mismatches=0;
