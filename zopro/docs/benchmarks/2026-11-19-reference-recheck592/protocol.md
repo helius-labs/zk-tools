@@ -1,0 +1,7 @@
+# Independent 12×2 reference check
+
+This comparison uses the frozen 30-worker binaries and images from the preceding warm-stream study. Seven fresh randomized blocks compare the original SDK harness repeating the reference, the stream harness repeating the reference, and the stream harness alternating five public requests. The early block configuration is common to those three settings. A fourth setting uses the flat dictionary in the same mixed stream. Each mixed arm uses the same three distinct warmups and seven independently shuffled permutations of the five requests, with no identical adjacent requests. Both repeated arms use three original warmups and 35 original calls. Placement rotates across blocks. Timings enclose a single verified SDK call.
+
+For each setting the reference result is the median of seven within-process means over every occurrence of the original. Report each of those means, the count at or below 28.4 ms, individual target crossings, and the M5 CPU and Metal ratios. The mixed arms each contain 49 timed originals and the repeated arms each contain 245. The stream harness exports every timed proof; the ordinary SDK harness exports its final proof from each process. All exports must verify against the original key and the pre-existing public digest for their input. The prior mixed result was 27.916 ms, while the earlier ordinary repeated benchmark on this configuration was 28.495 ms. A measurement in either setting can support a claim only for that setting.
+
+[Fixed request and process order](artifacts/schedule.json)
