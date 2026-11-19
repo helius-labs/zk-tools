@@ -1,0 +1,303 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -30,6 +30,119 @@
+         *value = Fr::from_montgomery(*value).to_canonical();
+     });
+     Some(groups)
++}
++
++/// Collapse chains of equal scalars separated by a candidate stride before
++/// inserting their representatives into the exact hash table.
++pub(crate) fn group_witness_runs(scalars: &[Fr], stride: usize) -> Option<ScalarGroups> {
++    if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++        || scalars.len() < 256 || scalars.len() >= u32::MAX as usize
++        || stride == 0 || stride >= scalars.len()
++    {
++        return None;
++    }
++    // SAFETY: Fr is repr(transparent) over four initialized u64 limbs.
++    let words = unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
++    let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
++    let (sample, percent) = grouping_sample(words, zero_aware)?;
++    let reservation = grouping_cost::reserve(words.len(), percent)?;
++    let n = words.len();
++    let tiles = n.div_ceil(RUN_TILE);
++    let scratch_bytes = grouping_cost::add(
++        grouping_cost::mul(tiles, grouping_cost::vector::<Vec<ScalarRun>>(1, false)?)?,
++        grouping_cost::vector::<ScalarRun>(n, false)?,
++    )?;
++    let scratch = crate::preparation::Reservation::analysis(Some(scratch_bytes))?;
++    let mut runs = scalar_runs(words, stride);
++    if std::env::var_os("ZOPRO_TRIAL_B2_PHASES").is_some() {
++        let representatives: usize = runs.iter().map(Vec::len).sum();
++        eprintln!("B2_RUNS {n} {stride} {representatives}");
++    }
++    let input_capacity = if crate::simd::cpu_option("ZOPRO_CPU_RESERVE_GROUPS") {
++        (sample.len() * 16).min(n * percent / 100).min(32768)
++    } else {
++        0
++    };
++
++    let (mut values, counts) = group_runs(words, &mut runs, input_capacity, ahash::RandomState::new());
++    if values.len() * 100 > n * percent {
++        return None;
++    }
++    let mut starts = Vec::with_capacity(counts.len() + 1);
++    starts.push(0);
++    for count in &counts {
++        starts.push(starts.last().unwrap() + count);
++    }
++    let mut positions = starts[..counts.len()].to_vec();
++    let mut order = vec![0u32; *starts.last().unwrap()];
++    for run in runs.into_iter().flatten() {
++        let k = run.class as usize;
++        let start = positions[k];
++        for (j, slot) in order[start..start + run.len as usize].iter_mut().enumerate() {
++            *slot = (run.first as usize + j * stride) as u32;
++        }
++        positions[k] += run.len as usize;
++    }
++    drop(scratch);
++    values.par_iter_mut().for_each(|v| *v = Fr::from_montgomery(*v).to_canonical());
++    Some(ScalarGroups { len: n, values, order, starts, counts, _reservation: reservation })
++}
++
++const RUN_TILE: usize = 2048;
++
++struct ScalarRun {
++    first: u32,
++    len: u32,
++    class: u32,
++}
++
++fn scalar_runs(words: &[[u64; 4]], stride: usize) -> Vec<Vec<ScalarRun>> {
++    words.par_chunks(RUN_TILE).enumerate().map(|(tile, chunk)| {
++        let offset = tile * RUN_TILE;
++        let mut runs = Vec::with_capacity(chunk.len());
++        for (j, scalar) in chunk.iter().enumerate() {
++            let i = offset + j;
++            if *scalar == [0; 4] || (i >= stride && words[i - stride] == *scalar) {
++                continue;
++            }
++            let len = 1 + words[i + 1..].iter().skip(stride - 1)
++                .step_by(stride).take_while(|&x| x == scalar).count();
++            runs.push(ScalarRun { first: i as u32, len: len as u32, class: u32::MAX });
++        }
++        runs
++    }).collect()
++}
++
++fn group_runs(
++    words: &[[u64; 4]],
++    runs: &mut [Vec<ScalarRun>],
++    capacity: usize,
++    state: impl std::hash::BuildHasher,
++) -> (Vec<[u64; 4]>, Vec<usize>) {
++    use hashbrown::{hash_table::Entry, HashTable};
++    let mut table = HashTable::<u32>::with_capacity(capacity);
++    let mut values = Vec::new();
++    let mut counts = Vec::new();
++    for run in runs.iter_mut().flatten() {
++        let value = words[run.first as usize];
++        let index = match table.entry(
++            state.hash_one(value),
++            |&i| values[i as usize] == value,
++            |&i| state.hash_one(&values[i as usize]),
++        ) {
++            Entry::Occupied(entry) => *entry.get(),
++            Entry::Vacant(entry) => {
++                let index = values.len() as u32;
++                values.push(value);
++                counts.push(0);
++                entry.insert(index);
++                index
++            }
++        };
++        run.class = index;
++        counts[index as usize] += run.len as usize;
++    }
++    (values, counts)
+ }
+ 
+ pub(crate) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+@@ -206,3 +319,37 @@
+ 
+ #[cfg(test)]
+ mod tests;
++
++
++#[cfg(test)]
++#[test]
++fn strided_runs_cover_every_nonzero_scalar_exactly_once() {
++    let words: Vec<_> = (0..19_879)
++        .map(|i| {
++            if i % 13 < 3 { [0; 4] }
++            else { [11, 5, 7, ((i % 379) + (i / 4733) % 3) as u64] }
++        })
++        .collect();
++    for stride in [1, 379, 4733, words.len() - 1] {
++        let mut runs = scalar_runs(&words, stride);
++        let (values, counts) = group_runs(&words, &mut runs, 0, ahash::RandomState::new());
++        let mut classes = vec![u32::MAX; words.len()];
++        let mut visited = vec![false; words.len()];
++        for run in runs.into_iter().flatten() {
++            for j in 0..run.len as usize {
++                let i = run.first as usize + j * stride;
++                assert!(!visited[i]);
++                visited[i] = true;
++                assert_eq!(words[i], values[run.class as usize]);
++                classes[i] = run.class;
++            }
++        }
++        let mut control_classes = vec![u32::MAX; words.len()];
++        let (control_values, control_counts) = classify_nonzero(
++            &words, &mut control_classes, 0, ahash::RandomState::new(),
++        );
++        assert_eq!(values, control_values);
++        assert_eq!(counts, control_counts);
++        assert_eq!(classes, control_classes);
++    }
++}
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2087,7 +2087,27 @@
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
+                     }
+-                    if let Some(groups) = group_witness(sb) {
++                    let layout = if omit_b && self.b2.len() >= 65_536 {
++                        std::env::var("ZOPRO_TRIAL_GROUPED_B2_LAYOUT").ok()
++                    } else {
++                        None
++                    };
++                    let clock = (layout.is_some() && std::env::var_os("ZOPRO_TRIAL_B2_PHASES").is_some())
++                        .then(crate::time::Instant::now);
++                    let trial_stride = match layout.as_deref() {
++                        Some("stride-runs") => Some(20_653),
++                        Some("stride-near") => Some(20_654),
++                        _ => None,
++                    };
++                    let groups = trial_stride
++                        .and_then(|stride| msm_affine::group_witness_runs(sb, stride))
++                        .or_else(|| group_witness(sb));
++                    if let Some(groups) = groups {
++                        if let Some(layout) = layout {
++                            let class_ns = clock.map(|t| t.elapsed().as_nanos());
++                            let sum = msm_affine::grouped_b2_layout(&self.b2, &groups, &layout, class_ns);
++                            return (G1Projective::IDENTITY, sum);
++                        }
+                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+                         if omit_b
+                             && self.b2.len() >= 65_536
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -14,6 +14,7 @@
+ pub(super) mod borrowed_pending;
+ mod grouping;
+ pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
++pub(super) use grouping::group_witness_runs;
+ 
+ #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ mod g2_horner;
+@@ -159,6 +160,57 @@
+     assert_eq!(bases.len(), groups.len, "validated MSM dimensions");
+     let bases = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
+     msm_raw(&bases, &groups.values)
++}
++
++/// Profile the ordinary grouped B2 stages or change only its final layout.
++pub(super) fn grouped_b2_layout(
++    bases: &[zopro_bn254::G2Affine],
++    groups: &ScalarGroups,
++    layout: &str,
++    class_ns: Option<u128>,
++) -> zopro_bn254::G2Projective {
++    use zopro_bn254::G2Config;
++
++    assert_eq!(bases.len(), groups.len, "validated MSM dimensions");
++    let clock = class_ns.map(|_| crate::time::Instant::now());
++    let grouped = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
++    let group_ns = clock.map(|t| t.elapsed().as_nanos());
++    let requested = match layout {
++        "u11x3" => Some((false, 11, 3)),
++        "u12x1" => Some((false, 12, 1)),
++        "u12x2" => Some((false, 12, 2)),
++        "u13x1" => Some((false, 13, 1)),
++        "s12x2" => Some((true, 12, 2)),
++        "s13x2" => Some((true, 13, 2)),
++        "s13x3" => Some((true, 13, 3)),
++        _ => None,
++    };
++    #[cfg(all(zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    let selected = requested.filter(|_| (1024..65536).contains(&grouped.len())).and_then(|geometry| {
++        let (signed, bits, parts) = geometry;
++        let bytes = workspace::grouped_b2_layout_bytes(grouped.len(), bits, parts, signed);
++        let reservation = crate::preparation::Reservation::analysis(bytes)?;
++        Some((geometry, reservation))
++    });
++    #[cfg(not(all(zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++    let selected: Option<((bool, usize, usize), ())> = None;
++    let _ = requested;
++    let geometry = selected.as_ref().map(|(shape, _)| *shape);
++    let begin = clock.map(|t| t.elapsed().as_nanos());
++    let sum = match geometry {
++        Some((true, bits, parts)) => merge_split_width::<G2Config>(&grouped, &groups.values, parts, bits),
++        Some((false, bits, parts)) => msm_unsigned_raw::<G2Config>(&grouped, &groups.values, bits, parts),
++        None => msm_raw::<G2Config>(&grouped, &groups.values),
++    };
++    if let (Some(start), Some(group), Some(class), Some(begin)) = (clock, group_ns, class_ns, begin) {
++        let (sign, bits, parts) = geometry.unwrap_or((false, 0, 0));
++        eprintln!(
++            "B2_STAGES {} {} {} {} {} {} {class} {group} {} {}",
++            bases.len(), grouped.len(), usize::from(sign), bits, parts, rayon::current_num_threads(),
++            start.elapsed().as_nanos() - begin, begin - group,
++        );
++    }
++    sum
+ }
+ 
+ fn msm_grouped_prepared<C: CurveConfig>(
+@@ -1844,3 +1896,29 @@
+ 
+ #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+ mod dense_h;
++
++
++#[cfg(test)]
++#[test]
++fn grouped_b2_signed_and_unsigned_layouts_match_generator_oracle() {
++    use zopro_bn254::{G2Affine, G2Config};
++
++    let terms = [Fr::ONE, Fr::ZERO, -Fr::ONE, Fr::from(193u64), -Fr::from(991u64)];
++    let mut random = Fr::from(884u64);
++    let mut weights = Vec::new();
++    let mut scalars = Vec::new();
++    for i in 0..2053 {
++        random = random.square() + Fr::from(i as u64 + 5);
++        weights.push(if i % 11 == 0 { Fr::ZERO } else { Fr::from(i as u64 + 1) });
++        scalars.push(if i % 3 == 0 { terms[i % terms.len()] } else { random });
++    }
++    let points: Vec<_> = weights.iter().map(|&w| (G2Affine::GENERATOR * w).to_affine()).collect();
++    let words: Vec<_> = scalars.iter().map(Fr::to_canonical).collect();
++    let expected = G2Affine::GENERATOR * weights.iter().zip(&scalars).map(|(&a, &b)| a * b).fold(Fr::ZERO, |sum, term| sum + term);
++    for (bits, parts) in [(11, 3), (12, 1), (12, 2), (13, 1)] {
++        assert_eq!(msm_unsigned_raw::<G2Config>(&points, &words, bits, parts), expected);
++    }
++    for (bits, parts) in [(12, 2), (13, 2), (13, 3)] {
++        assert_eq!(merge_split_width::<G2Config>(&points, &words, parts, bits), expected);
++    }
++}
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -189,6 +189,11 @@
+     }
+     Some(p)
+ }
++pub(super) fn grouped_b2_layout_bytes(n: usize, bits: usize, parts: usize, signed: bool) -> Option<usize> {
++    let p = one::<G2Config>(n, bits, parts, signed)?;
++    add(p.held, mul(p.leaf, rayon::current_num_threads())?)
++}
++
+ /// Extra positive growth over the ordinary raw H query at this worker count.
+ pub(super) fn dense_h_layout_extra<C: CurveConfig>(
+     n: usize, ranges: usize, widths: &[usize], signed: bool,
