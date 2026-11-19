@@ -1,0 +1,57 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -47,6 +47,16 @@
+
+ type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
+
++fn group_percent(n: usize) -> usize {
++    if (32768..65536).contains(&n)
++        && crate::simd::cpu_option("ZOPRO_CPU_SMALL_GROUPS")
++    {
++        95
++    } else {
++        80
++    }
++}
++
+ fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSample<'_>, usize)> {
+     let sample = scalars.len().min(2048);
+     let stride = scalars.len().div_ceil(sample);
+@@ -61,13 +71,7 @@
+     if unique.len() * 200 > observed * 199 {
+         return None;
+     }
+-    let percent = if (32768..65536).contains(&scalars.len())
+-        && crate::simd::cpu_option("ZOPRO_CPU_SMALL_GROUPS")
+-    {
+-        95
+-    } else {
+-        80
+-    };
++    let percent = group_percent(scalars.len());
+     if zero_aware {
+         let zeros = scalars
+             .iter()
+@@ -108,11 +112,18 @@
+     if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
+         return None;
+     }
++    let certificate = EXCLUSIVE && (1024..65536).contains(&scalars.len())
++        && std::env::var("ZOPRO_CPU_GROUP_DIVERSITY").as_deref() == Ok("1");
++    let first = certificate
++        && std::env::var("ZOPRO_BENCH_CERTIFICATE_FIRST").as_deref() == Ok("1");
++    if first && diversity::declines(scalars, scalars.len() * group_percent(scalars.len()) / 100) {
++        if std::env::var_os("ZOPRO_BENCH_CERTIFICATE_TRACE").is_some() {
++            eprintln!("CERTIFICATE_FIRST_DECLINED {}", scalars.len());
++        }
++        return None;
++    }
+     let (unique, percent) = grouping_sample(scalars, zero_aware)?;
+-    if EXCLUSIVE && (1024..65536).contains(&scalars.len())
+-        && std::env::var("ZOPRO_CPU_GROUP_DIVERSITY").as_deref() == Ok("1")
+-        && diversity::declines(scalars, scalars.len() * percent / 100)
+-    {
++    if certificate && !first && diversity::declines(scalars, scalars.len() * percent / 100) {
+         return None;
+     }
+     let reservation = grouping_cost::reserve(scalars.len(), percent)?;
