@@ -16,3 +16,5 @@ Four public training inputs select at most one pivot per row and either the raw 
 | 2x2 | 40 | 361 / 1 | 10 | 979,501 | 20 (0.002%) |
 
 All 16 archived source proofs verified independently again. [Counts and proof identities](artifacts/results.json) · [Selection and algebra](artifacts/screen.py)
+
+The checked-in reader accepts the original key image and hash, plus four training and four held-out scalar-vector filenames in request order. Each file holds the canonical 32-byte little-endian scalars. Run `python3 artifacts/screen.py --help` for the arguments.

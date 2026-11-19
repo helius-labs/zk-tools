@@ -1,8 +1,19 @@
-from collections import Counter,defaultdict
+from collections import Counter
 from functools import lru_cache
-from zp_cond534 import stable
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import runpy
+import sys
+
+reports = Path(__file__).resolve().parents[2]
+offsets = reports / "2026-11-19-conditional-wire534/artifacts"
+sys.path.insert(0, str(offsets))
+sys.path.insert(0, str(reports / "2026-11-19-quadratic-cancel476/artifacts"))
 from zp_glv513 import P,cost
 from zp_plan476 import Plan
+stable = runpy.run_path(str(offsets / "screen.py"))["stable"]
 inv=lru_cache(maxsize=8192)(lambda v:pow(v,-1,P))
 
 def candidate_rows(plan):
@@ -63,3 +74,40 @@ def control():
     for labels in [[3,0,7],[1,9,13]]:
         for xs in [[0,1,2],[P-1,7,P-3]]:
             apply(xs,[0,3,2],selected,labels)
+
+def read_scalars(path, length):
+    data = path.read_bytes()
+    if len(data) != 32 * length:
+        raise ValueError(f"unexpected scalar vector length in {path}")
+    values = [int.from_bytes(data[i:i+32], "little") for i in range(0, len(data), 32)]
+    if max(values) >= P:
+        raise ValueError(f"noncanonical scalar in {path}")
+    return values
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Reproduce the B-query basis and digit counts")
+    parser.add_argument("shape", choices=["1x2", "2x2"])
+    parser.add_argument("image", type=Path)
+    parser.add_argument("image_sha256")
+    parser.add_argument("--train", nargs=4, required=True, type=Path)
+    parser.add_argument("--held-out", nargs=4, required=True, type=Path)
+    args = parser.parse_args()
+    control()
+    plan = Plan(args.image, args.image_sha256)
+    try:
+        n = len(plan.b2)
+        rows = candidate_rows(plan)
+    finally:
+        plan.close()
+    origins, selected = select(rows, [read_scalars(path, n) for path in args.train])
+    labels = [int.from_bytes(hashlib.sha256(f"row-basis-{args.shape}-{i}".encode()).digest(),
+                             "little") % P for i in range(n)]
+    scores = [apply(read_scalars(path, n), origins, selected, labels) for path in args.held_out]
+    print(json.dumps(dict(eligible=len(rows), admitted=len(selected),
+                         touched=len({i for _, terms, _, _ in selected for i in terms}),
+                         scores=scores), indent=2))
+
+
+if __name__ == "__main__":
+    main()
