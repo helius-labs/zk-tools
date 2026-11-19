@@ -1,0 +1,58 @@
+--- a/crates/zopro-core/src/groups482.rs
++++ b/crates/zopro-core/src/groups482.rs
+@@ -168,7 +168,13 @@
+     fn evaluate<S>(&self, bases: &[G2Affine], scalars: &S, length: usize, original: Option<&[Fr]>) -> Option<G2Projective>
+     where S: std::ops::Index<usize, Output = Fr> + Sync + ?Sized,
+     {
+-        if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
++        let divisor = match std::env::var("ZOPRO_TRIAL_RESIDUAL_G2").as_deref() {
++            Ok("8") => 8,
++            Ok("4") => 4,
++            Ok("2") => 2,
++            _ => 16,
++        };
++        if divisor == 16 && std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
+             let samples=self.ends.len().min(32);
+             let mut mismatches=0;
+             let mut members=0;
+@@ -189,7 +195,10 @@
+         let choices: Vec<(u32,u32)> = (0..self.ends.len()).into_par_iter()
+             .map(|g| self.choose(self.members(g), scalars, adaptive)).collect();
+         let count:usize=choices.iter().map(|&(_,count)|count as usize).sum();
+-        if count>self.ids.len()/16 { return None; }
++        if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
++            eprintln!("RESIDUAL_EXACT g2 {} {} {}", self.ids.len(), count, divisor);
++        }
++        if count > self.ids.len() / divisor { return None; }
+         let _scratch=Reservation::analysis(count.checked_mul(160)?.checked_add(self.sources.len()*32+512))?;
+         if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
+             eprintln!("GROUP_QUERY {} {} {}",length,self.sources.len(),count);
+--- a/crates/zopro-core/src/groups_g1_trial.rs
++++ b/crates/zopro-core/src/groups_g1_trial.rs
+@@ -99,7 +99,13 @@
+     }
+ 
+     pub fn query(&self, bases:&[G1Affine], scalars:&[Fr]) -> Option<G1Projective> {
+-        if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
++        let divisor = match std::env::var("ZOPRO_TRIAL_RESIDUAL_G1").as_deref() {
++            Ok("8") => 8,
++            Ok("4") => 4,
++            Ok("2") => 2,
++            _ => 16,
++        };
++        if divisor == 16 && std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
+             let samples=self.ends.len().min(32);
+             let mut mismatches=0;
+             let mut members=0;
+@@ -120,7 +126,10 @@
+         let choices: Vec<(u32,u32)> = (0..self.ends.len()).into_par_iter()
+             .map(|g| self.choose(self.members(g), scalars, adaptive)).collect();
+         let count:usize=choices.iter().map(|&(_,count)|count as usize).sum();
+-        if count>self.ids.len()/16 { return None; }
++        if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
++            eprintln!("RESIDUAL_EXACT g1 {} {} {}", self.ids.len(), count, divisor);
++        }
++        if count > self.ids.len() / divisor { return None; }
+         let _scratch=Reservation::analysis(count.checked_mul(96)?.checked_add(self.sources.len()*32+512))?;
+         if std::env::var_os("ZOPRO_GROUP_PROBE").is_some() {
+             eprintln!("GROUP_G1 {} {} {}",scalars.len(),self.sources.len(),count);
