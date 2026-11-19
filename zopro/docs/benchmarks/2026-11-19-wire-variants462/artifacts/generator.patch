@@ -1,0 +1,43 @@
+--- a/tree418_requests_test.go
++++ b/tree418_requests_test.go
+@@ -22 +22 @@
+-	cryptotest.SetGlobalRandom(t, 461)
++	cryptotest.SetGlobalRandom(t, 462)
+@@ -31,7 +31,30 @@
+-		for id := 17; id <= 24; id++ {
+-			a := buildDefaultRingEddsaOnlyAssignment(t, shape)
+-			a.BlindingSeed = big.NewInt(int64(11800 + id*709))
+-			a.Inputs[0].Utxo.Blinding = big.NewInt(int64(774332 + id*3049))
+-			delta := big.NewInt(int64(101 * id))
+-			a.Inputs[0].Utxo.Amount = new(big.Int).Add(spptest.AsBigInt(a.Inputs[0].Utxo.Amount), delta)
+-			a.Outputs[0].Utxo.Amount = new(big.Int).Add(spptest.AsBigInt(a.Outputs[0].Utxo.Amount), delta)
++		for id := 25; id <= 32; id++ {
++			asset := new(big.Int).Add(new(big.Int).Lsh(big.NewInt(1), uint(128+id)), big.NewInt(int64(id*109)))
++			total := int64(1)<<uint(20+id%20) | int64(83*id)
++			movement := int64(0)
++			assets, amounts := noPublicSlots()
++			switch (id - 25) % 4 {
++			case 1:
++				movement = int64(281 * id)
++				assets, amounts = splPublicSlot(asset, movement)
++			case 2:
++				movement = -int64(327 * id)
++				assets, amounts = splPublicSlot(asset, movement)
++			}
++			left := (total + movement) / 3
++			if (id-25)%4 == 3 {
++				left = total
++			}
++			inputs := []protocol.Utxo{sampleUtxoWithAssetAndAmount(id, asset, big.NewInt(total))}
++			outputs := []protocol.Utxo{sampleUtxoWithAssetAndAmount(id+101, asset, big.NewInt(left)), sampleUtxoWithAssetAndAmount(id+210, asset, big.NewInt(total+movement-left))}
++			pkField, _ := defaultOutputOwnerTag(t)
++			recipient := spptest.MustNullifierPk(t, big.NewInt(int64(1299827*id)))
++			outputs[0].Owner = spptest.MustOwnerHash(t, pkField, recipient)
++			if (id-25)%4 == 3 {
++				outputs[0].DataHash = big.NewInt(int64(id * 75937))
++			}
++			a := buildCircuitAssignmentExact(t, shape, inputs, outputs, assets, amounts)
++			makeDefaultRing(t, a)
++			a.Outputs[0].NullifierPk = recipient
++			a.BlindingSeed = new(big.Int).Lsh(big.NewInt(int64(id*1477331)), 145)
++			a.Inputs[0].Utxo.Blinding = new(big.Int).Lsh(big.NewInt(int64(id*7133)), 93)
