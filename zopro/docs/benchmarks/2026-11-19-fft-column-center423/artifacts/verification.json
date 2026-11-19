@@ -1,0 +1,31 @@
+{
+  "new_exports": 23,
+  "cumulative": 83817,
+  "ledger_sha256": "49cacad5ebd4b5c2f2824eea011006a0886dd44724588874e131dfe70a7f9e40",
+  "requests": 447,
+  "release": "b58bac2d511407f8e8ebdd6c300c1fb7f41ac022a8c895487fe92b75028f3a6e",
+  "candidate": "7b4f44326895fb1da00024c3db5c8a4cca58b5cff615f831db871df12287a020",
+  "build": {
+    "source_files": 195,
+    "status": "complete",
+    "steps": [
+      "core-tests",
+      "libraries",
+      "candidate"
+    ]
+  },
+  "required_tests": [
+    "msm_affine::dense_h::tests::mixed_signed_digits_and_msm_match_scalar_oracle",
+    "msm_affine::dense_h::tests::mixed_windows_reconstruct_generator_sum",
+    "verify::overlap_tests::public_term_stays_bound_to_the_request_and_key",
+    "solver::tests::claims_cover_skewed_waves_and_propagate_errors",
+    "solver::sparse_poseidon::tests::emit_addresses_roundtrip_or_preserve_the_fallback",
+    "solver::sparse_poseidon::tests::every_width_exact_rows_and_adversarial_rejection",
+    "solver::bounded::packing_tests::packing_respects_bands_component_order_and_large_tasks",
+    "solver::bounded::balance_tests::equal_depth_keeps_one_band_and_dependencies_stay_ordered",
+    "fft::pair::input_columns::tests::packed_input_matches_inverse_for_prefixes_and_root_layouts",
+    "fft::euler_basis_tests::euler_product_matches_direct_coefficients_native_or_portable",
+    "fft::pair::euler_center::tests::column_center_matches_separate_transforms",
+    "fft::pair::euler_center::tests::derivative_coefficients_match_existing_transforms"
+  ]
+}
