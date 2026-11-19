@@ -1,0 +1,53 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -140,11 +140,9 @@
+ where
+     C::Base: BatchInverse,
+ {
+-    if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
+-        if let Some(groups) = grouping::groups_with_diversity_check(canonical) {
+-            return msm_grouped(bases, &groups);
+-        }
+-    }
++    let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP").then(|| grouping::groups_with_diversity_check(canonical)).flatten();
++    record_scalar_counts(std::any::type_name::<C>(), canonical, groups.as_ref());
++    if let Some(groups) = groups { return msm_grouped(bases, &groups); }
+     msm_raw(bases, canonical)
+ }
+ 
+@@ -1677,6 +1675,27 @@
+ ))]
+ mod g2_phi;
+ 
++
++fn record_scalar_counts(label: &str, words: &[[u64; 4]], grouped: Option<&ScalarGroups>) {
++    // Diagnostics for public fixtures. Emit only aggregate counts.
++    use std::collections::HashMap;
++    let mut freq = HashMap::new();
++    let mut zero = 0usize;
++    let mut short = 0usize;
++    for word in words {
++        if *word == [0; 4] {
++            zero += 1;
++        } else {
++            *freq.entry(*word).or_insert(0usize) += 1;
++            short += usize::from(word[1..] == [0; 3]);
++        }
++    }
++    let largest = freq.values().copied().max().unwrap_or(0);
++    let single = freq.values().filter(|v| **v == 1).count();
++    eprintln!("QUERY_COUNTS {} {} {} {} {} {} {} {}", label, words.len(), zero, short,
++        freq.len(), single, largest, grouped.map_or(0, |g| g.values.len()));
++}
++
+ pub(super) fn canonical_exclusive(scalars: &mut [Fr]) -> &mut [[u64; 4]] {
+     scalars
+         .par_iter_mut()
+@@ -1718,6 +1737,7 @@
+     let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+         .then(|| grouping::groups_with_diversity_check(words))
+         .flatten();
++    record_scalar_counts("G2Exclusive", words, groups.as_ref());
+     #[cfg(all(
+         zopro_g2_horner_buckets,
+         target_arch = "x86_64",
