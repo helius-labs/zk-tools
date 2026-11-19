@@ -19,3 +19,17 @@ The intervals below are arithmetic means of 55 traced requests for each shape. C
 | 8x2 | 0.501 | 3.425 | 0.776 | 4.606 | 15.303 | yes |
 
 All 60 process exports and the preceding smoke export verified independently. [Run protocol](protocol.md) · [Intervals and samples](artifacts/samples.json.gz) · [Verification](artifacts/verification.json)
+
+
+## Time inside the curve queries
+
+Every one of the 220 traced proofs entered `Key::cpu_msms` once after the FFT returned. The table splits the final interval into three disjoint elapsed times. Other work may run concurrently with the curve queries.
+
+| Shape | FFT return to curve entry, ms | Inside curve queries, ms | Curve return to SDK return, ms |
+|---|---:|---:|---:|
+| 5x16 | 0.010 | 15.310 | 0.764 |
+| 6x2 | 0.009 | 12.411 | 0.728 |
+| 4x2 | 0.009 | 9.385 | 0.702 |
+| 8x2 | 0.009 | 14.563 | 0.731 |
+
+Moving from 6×2 to 5×16 added 2.899 ms inside the curve queries, out of 2.936 ms more after the FFT and 3.228 ms more over the whole traced SDK call. The five paired block differences inside the curve queries were +3.051, +3.100, +2.436, +3.115, +2.795 ms. This localizes the extra time on Ryzen with the archived binaries. The 96-core C7a phase breakdown still requires a matched recording there. [Distinct scalar counts on both keys](../2026-11-19-crossover-groups603/README.md) · [Fixed-key witness comparison](../2026-11-19-fixed-key-groups604/README.md)
