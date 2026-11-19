@@ -1,0 +1,7 @@
+# Test the effect of grouped point order on the fixed-witness intervention
+
+At 51,707 G2 terms, the reconstructed 6×2 split and natural 5×16 had 1,128,290 and 1,128,284 nonzero canonical width-12 digits. Repeated adjacent bucket magnitudes were 368,674 and 15,821 respectively. In the model a stride-32 traversal reduced the split’s count to 15,868. The next experiment applies that permutation to the actual affine points and canonical scalar values after group reduction. Every pair moves together. The same raw MSM consumes them. A visited bitmap uses one bit per term with an optional memory reservation. The normal-order arm keeps the original term sequence. Timing includes all permutation work.
+
+Seven shuffled blocks compare natural layouts in both original shapes and 6×2 with only G2 or all three queries widened. Pair each active setting against the same setting in ordinary order. The frozen 614 copy route calibrates the natural layout on both shapes. The shuffled program permutes all three queries in every striped setting, so compare the G2 and combined order effects with the natural-order effect inside the same block. Four separate probes check all three term counts, exact bitmap payload and route admission. Use 32 pinned Ryzen workers, three warmups and 15 timed verified requests per process. Test the in-place permutation against an independent out-of-place strided traversal before measuring.
+
+[Actual scalar composition](../2026-11-19-class-weights619/README.md) · [Initial fixed-witness experiment](../2026-11-19-split-classes614/README.md)

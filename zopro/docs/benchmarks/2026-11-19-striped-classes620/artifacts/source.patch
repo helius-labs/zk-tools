@@ -1,0 +1,69 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -178,12 +178,21 @@
+     if let Ok(spec) = std::env::var("ZOPRO_TRIAL_SPLIT_CLASSES") {
+         if let Some(target) = split_classes::target(&spec, bases.len(), groups.values.len())
+             .filter(|&target| target <= bases.len() * 80 / 100) {
+-            if let Some((layout, _charge)) = split_classes::build(&groups.values, &groups.counts, target) {
++            if let Some((mut layout, _charge)) = split_classes::build(&groups.values, &groups.counts, target) {
+                 if std::env::var_os("ZOPRO_TRIAL_SPLIT_PROBE").is_some() {
+                     eprintln!("SPLIT_CLASSES {} {} {} {}", bases.len(), groups.values.len(),
+                               layout.values.len(), layout.wide_extras);
+                 }
+-                let points = crate::msm::group_affine(bases, &groups.order, &layout.starts, &layout.counts);
++                let mut points = crate::msm::group_affine(bases, &groups.order, &layout.starts, &layout.counts);
++                if std::env::var_os("ZOPRO_TRIAL_CLASS_STRIPES").is_some() {
++                    let bytes = points.len().div_ceil(64) * core::mem::size_of::<u64>();
++                    if let Some(_charge) = crate::preparation::Reservation::analysis(bytes + 64) {
++                        split_classes::stripe_pairs(&mut points, &mut layout.values);
++                        if std::env::var_os("ZOPRO_TRIAL_SPLIT_PROBE").is_some() {
++                            eprintln!("STRIPED_CLASSES {} {} {}", bases.len(), points.len(), bytes);
++                        }
++                    }
++                }
+                 return msm_raw(&points, &layout.values);
+             }
+         }
+--- a/crates/zopro-core/src/msm_affine/split_classes.rs
++++ b/crates/zopro-core/src/msm_affine/split_classes.rs
+@@ -58,9 +58,40 @@
+     Some((layout, charge))
+ }
+ 
++/// Apply the same stable stride-32 traversal to points and scalars in place.
++pub(super) fn stripe_pairs<P, S>(points: &mut [P], scalars: &mut [S]) {
++    let n = points.len();
++    assert_eq!(n, scalars.len());
++    let mut visited = vec![0u64; n.div_ceil(64)];
++    for start in 0..n {
++        if visited[start / 64] & (1u64 << (start % 64)) != 0 { continue; }
++        let mut source = start;
++        loop {
++            visited[source / 64] |= 1u64 << (source % 64);
++            let column = source % 32;
++            let destination = column * (n / 32) + column.min(n % 32) + source / 32;
++            if destination == start { break; }
++            points.swap(start, destination);
++            scalars.swap(start, destination);
++            source = destination;
++        }
++    }
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    #[test]
++    fn paired_permutation_matches_stable_striding() {
++        for n in [0, 1, 2, 31, 32, 33, 63, 64, 65, 99, 256, 1024, 23576, 51707] {
++            let mut points: Vec<_> = (0..n).collect();
++            let mut scalars: Vec<_> = (0..n).map(|i| i ^ 0x59a7).collect();
++            stripe_pairs(&mut points, &mut scalars);
++            let expected: Vec<_> = (0..32).flat_map(|column| (column..n).step_by(32)).collect();
++            assert_eq!(points, expected);
++            assert!(points.iter().zip(&scalars).all(|(&p, &s)| p ^ 0x59a7 == s));
++        }
++    }
+     #[test]
+     fn splits_preserve_each_ordered_member_and_scalar() {
+         let values = [[1,0,0,0], [7,0,0,1], [4,0,0,9], [3,0,0,0]];
