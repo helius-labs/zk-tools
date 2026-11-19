@@ -1,0 +1,379 @@
+--- a/crates/zopro-core/src/lagrange/origin.rs
++++ b/crates/zopro-core/src/lagrange/origin.rs
+@@ -5,14 +5,37 @@
+ use std::io::{BufReader, Read};
+ use std::path::Path;
+ 
+-pub(super) struct Origin {
++mod blocks;
++pub(super) enum Origin { Flat(Flat), Mapped(blocks::Blocks) }
++
++impl Origin {
++    fn count(&self)->usize {
++        match self { Self::Flat(data)=>data.count, Self::Mapped(data)=>data.count() }
++    }
++    fn pair(&self,i:usize)->(Fr,Fr) {
++        match self { Self::Flat(data)=>data.pair(i), Self::Mapped(data)=>data.pair(i) }
++    }
++    pub(super) fn product(&self,plan:&fft::Plan,mut a:Vec<Fr>,mut b:Vec<Fr>)->Vec<Fr>{
++        match self {
++            Self::Flat(data)=>data.product(plan,a,b),
++            Self::Mapped(data)=>{
++                assert_eq!(a.len().max(b.len()),data.count());
++                a.resize(data.count(),Fr::ZERO);b.resize(data.count(),Fr::ZERO);
++                data.subtract(&mut a,&mut b);
++                plan.euler_product_values(a,b)
++            }
++        }
++    }
++}
++
++pub(super) struct Flat {
+     count: usize,
+     width: usize,
+     pairs: Vec<(Fr, Fr)>,
+     indices: Vec<u8>,
+ }
+ 
+-impl Origin {
++impl Flat {
+     fn read(path: &Path, n: usize) -> Result<Self, String> {
+         let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+         let size = file.metadata().map_err(|e| e.to_string())?.len();
+@@ -119,7 +142,7 @@
+         // origin product belonged to public wire zero and has no private term.
+         for side in [0, 1] {
+             let rows = plan.origin_private_rows(side, private, &slots);
+-            let fixed = (0..origin.count).map(|i| {
++            let fixed = (0..origin.count()).map(|i| {
+                 let (a,b) = origin.pair(i);
+                 if side == 0 { b } else { a }
+             }).collect();
+@@ -131,9 +154,21 @@
+ 
+     pub(crate) fn has_origin(&self)->bool { self.origin.is_some() }
+ 
+-    pub(crate) fn attach_origin(&mut self, bytes:&[u8]) -> Result<(),String> {
+-        let origin=Origin::decode(bytes,bytes.len() as u64,self.product.len())?;
+-        eprintln!("ORIGIN_MAPPED {} {}",origin.count,bytes.len());
++    pub(crate) fn attach_origin(&mut self, bytes:&[u8], owner:&crate::Image, count:usize) -> Result<(),String> {
++        let origin=if bytes.starts_with(b"EUB1"){
++            let image=owner.as_ref().as_ref();
++            let begin=(bytes.as_ptr() as usize).checked_sub(image.as_ptr() as usize).ok_or("dictionary outside image")?;
++            let end=begin.checked_add(bytes.len()).ok_or("dictionary extent overflow")?;
++            if !image.get(begin..end).is_some_and(|s|std::ptr::eq(s,bytes)){return Err("dictionary image mismatch".into());}
++            let data=blocks::Blocks::load(owner.clone(),begin..end,count)?;
++            eprintln!("ORIGIN_BLOCKS {count} {} 0",bytes.len());
++            Origin::Mapped(data)
++        } else {
++            let data=Flat::decode(bytes,bytes.len() as u64,self.product.len())?;
++            if data.count!=count{return Err("origin row count does not match solver".into());}
++            eprintln!("ORIGIN_MAPPED {count} {}",bytes.len());
++            Origin::Flat(data)
++        };
+         self.origin=Some(origin);
+         Ok(())
+     }
+@@ -168,9 +203,9 @@
+                               path: &Path) -> Result<(),String> {
+         let started = std::time::Instant::now();
+         let n = self.product.len();
+-        let origin = Origin::read(path, n)?;
++        let origin = Origin::Flat(Flat::read(path, n)?);
+         let (forward, inverse) = fft.origin_roots();
+-        let (left, right): (Vec<_>,Vec<_>) = (0..origin.count).map(|i|origin.pair(i)).unzip();
++        let (left, right): (Vec<_>,Vec<_>) = (0..origin.count()).map(|i|origin.pair(i)).unzip();
+         let mut adjustment = vec![G1Projective::IDENTITY; solver.value_count()];
+         for (side, offset) in [(0, &right), (1, &left)] {
+             let rows = linear_points(fft, &self.product, offset, &forward, &inverse);
+--- /dev/null
++++ b/crates/zopro-core/src/lagrange/origin/blocks.rs
+@@ -0,0 +1,266 @@
++//! Immutable 64-row origin blocks inside the mapped key image.
++use crate::{Fr, Image};
++use rayon::prelude::*;
++use std::ops::Range;
++
++pub(super) struct Blocks {
++    image: Image,
++    range: Range<usize>,
++    count: usize,
++    width: usize,
++    descriptors: usize,
++    exceptions: usize,
++}
++
++fn word(bytes: &[u8], pos: usize) -> u64 {
++    u64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap())
++}
++fn small(bytes: &[u8], pos: usize) -> u32 {
++    u32::from_le_bytes(bytes[pos..pos + 4].try_into().unwrap())
++}
++
++impl Blocks {
++    pub(super) fn load(image: Image, range: Range<usize>, count: usize) -> Result<Self, String> {
++        let bytes = image
++            .as_ref()
++            .as_ref()
++            .get(range.clone())
++            .ok_or("origin image range")?;
++        if bytes.len() < 24
++            || &bytes[..4] != b"EUB1"
++            || bytes[5..8] != [0; 3]
++            || word(bytes, 8) != u64::try_from(count).map_err(|_| "row count overflow")?
++            || small(bytes, 20) != 64
++        {
++            return Err("invalid origin block header".into());
++        }
++        let width = usize::from(bytes[4]);
++        let npairs = small(bytes, 16) as usize;
++        if npairs == 0
++            || !matches!(width, 1 | 2 | 4)
++            || (width < 4 && npairs > 1usize << (8 * width))
++        {
++            return Err("invalid origin block dimensions".into());
++        }
++        let descriptors = npairs
++            .checked_mul(64)
++            .and_then(|n| 24usize.checked_add(n))
++            .ok_or("pair table overflow")?;
++        let chunks = count.div_ceil(64);
++        let exceptions = chunks
++            .checked_mul(24)
++            .and_then(|n| descriptors.checked_add(n))
++            .ok_or("descriptor overflow")?;
++        if exceptions > bytes.len() || bytes[24..88] != [0; 64] {
++            return Err("invalid pair table".into());
++        }
++        for f in bytes[24..descriptors].chunks_exact(32) {
++            let limbs = std::array::from_fn(|i| word(f, 8 * i));
++            if Fr::from_canonical(limbs).is_none() {
++                return Err("noncanonical Montgomery field".into());
++            }
++        }
++        let mut consumed = 0u64;
++        for (i, d) in bytes[descriptors..exceptions].chunks_exact(24).enumerate() {
++            let mask = word(d, 8);
++            let n = (count - i * 64).min(64);
++            if word(d, 0) != consumed
++                || small(d, 16) as usize >= npairs
++                || small(d, 20) != 0
++                || (n < 64 && mask >> n != 0)
++            {
++                return Err("invalid origin descriptor".into());
++            }
++            consumed += u64::from(mask.count_ones());
++        }
++        let stream = &bytes[exceptions..];
++        if u128::from(consumed) * width as u128 != stream.len() as u128 {
++            return Err("invalid exception extent".into());
++        }
++        if stream
++            .chunks_exact(width)
++            .any(|s| id(s, width, 0) >= npairs)
++        {
++            return Err("invalid exception id".into());
++        }
++        Ok(Self {
++            image,
++            range,
++            count,
++            width,
++            descriptors,
++            exceptions,
++        })
++    }
++    fn bytes(&self) -> &[u8] {
++        &self.image.as_ref().as_ref()[self.range.clone()]
++    }
++    pub(super) fn count(&self) -> usize {
++        self.count
++    }
++    fn coefficients(&self, bytes: &[u8], id: usize) -> (Fr, Fr) {
++        let at = 24 + 64 * id;
++        let field =
++            |offset| Fr::from_montgomery(std::array::from_fn(|i| word(bytes, at + offset + 8 * i)));
++        (field(0), field(32))
++    }
++    pub(super) fn pair(&self, row: usize) -> (Fr, Fr) {
++        assert!(row < self.count);
++        let bytes = self.bytes();
++        let d = self.descriptors + 24 * (row / 64);
++        let bit = 1u64 << (row % 64);
++        let mask = word(bytes, d + 8);
++        let source = if mask & bit == 0 {
++            small(bytes, d + 16) as usize
++        } else {
++            let pos = word(bytes, d) as usize + (mask & (bit - 1)).count_ones() as usize;
++            id(bytes, self.width, self.exceptions + self.width * pos)
++        };
++        self.coefficients(bytes, source)
++    }
++    pub(super) fn subtract(&self, a: &mut [Fr], b: &mut [Fr]) {
++        assert_eq!((a.len(), b.len()), (self.count, self.count));
++        let bytes = self.bytes();
++        a.par_chunks_mut(64)
++            .zip(b.par_chunks_mut(64))
++            .enumerate()
++            .for_each(|(i, (a, b))| {
++                let d = self.descriptors + 24 * i;
++                let default = small(bytes, d + 16) as usize;
++                let mut mask = word(bytes, d + 8);
++                if default == 0 && mask == 0 {
++                    return;
++                }
++                let mut cursor = self.exceptions + self.width * (word(bytes, d) as usize);
++                if default != 0 {
++                    let (x, y) = self.coefficients(bytes, default);
++                    // The last block may be partial. Exception lanes get their actual pair below.
++                    let mut common = !mask & (u64::MAX >> (64 - a.len()));
++                    while common != 0 {
++                        let j = common.trailing_zeros() as usize;
++                        a[j] -= x;
++                        b[j] -= y;
++                        common &= common - 1;
++                    }
++                }
++                while mask != 0 {
++                    let j = mask.trailing_zeros() as usize;
++                    let k = id(bytes, self.width, cursor);
++                    if k != 0 {
++                        let (x, y) = self.coefficients(bytes, k);
++                        a[j] -= x;
++                        b[j] -= y;
++                    }
++                    cursor += self.width;
++                    mask &= mask - 1;
++                }
++            });
++    }
++}
++
++fn id(bytes: &[u8], width: usize, at: usize) -> usize {
++    match width {
++        1 => usize::from(bytes[at]),
++        2 => usize::from(u16::from_le_bytes(bytes[at..at + 2].try_into().unwrap())),
++        4 => small(bytes, at) as usize,
++        _ => unreachable!(),
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    fn fixture(width: usize) -> (Vec<u8>, Vec<(Fr, Fr)>) {
++        let rows = 131u64;
++        let values = [
++            (Fr::ZERO, Fr::ZERO),
++            (Fr::ONE, -Fr::ONE),
++            (Fr::from(13u64), Fr::from(19u64)),
++        ];
++        let mut bytes = Vec::from(*b"EUB1");
++        bytes.extend_from_slice(&[width as u8, 0, 0, 0]);
++        bytes.extend(rows.to_le_bytes());
++        bytes.extend(3u32.to_le_bytes());
++        bytes.extend(64u32.to_le_bytes());
++        for (a, b) in values {
++            for f in [a, b] {
++                for w in f.0 {
++                    bytes.extend(w.to_le_bytes());
++                }
++            }
++        }
++        let mut oracle = vec![values[0]; rows as usize];
++        let mut except = Vec::<u8>::new();
++        for (block, (default, extra)) in [
++            (0usize, vec![]),
++            (1, vec![(0, 0usize), (4, 2), (63, 2)]),
++            (0, vec![(2, 1)]),
++        ]
++        .into_iter()
++        .enumerate()
++        {
++            let offset = except.len() / width;
++            let mut mask = 0u64;
++            let lo = block * 64;
++            let hi = (lo + 64).min(oracle.len());
++            oracle[lo..hi].fill(values[default]);
++            for (lane, k) in extra {
++                mask |= 1u64 << lane;
++                oracle[lo + lane] = values[k];
++                except.extend(&(k as u32).to_le_bytes()[..width]);
++            }
++            bytes.extend((offset as u64).to_le_bytes());
++            bytes.extend(mask.to_le_bytes());
++            bytes.extend((default as u32).to_le_bytes());
++            bytes.extend([0; 4]);
++        }
++        bytes.extend(except);
++        (bytes, oracle)
++    }
++    #[test]
++    fn mapped_blocks_validate_and_reconstruct_every_lane() {
++        for width in [1, 2, 4] {
++            let (raw, pairs) = fixture(width);
++            let n = pairs.len();
++            let end = raw.len();
++            // The host image may place the native words at an odd offset.
++            let image: Image = std::sync::Arc::new([&[7u8][..], raw.as_slice()].concat());
++            let d = Blocks::load(image, 1..end + 1, n).unwrap();
++            let original: Vec<_> = (0..n).map(|i| Fr::from(i as u64 + 5)).collect();
++            let (mut a, mut b) = (original.clone(), original.clone());
++            d.subtract(&mut a, &mut b);
++            for (i, &(x, y)) in pairs.iter().enumerate() {
++                assert_eq!(d.pair(i), (x, y));
++                assert_eq!((a[i], b[i]), (original[i] - x, original[i] - y));
++            }
++            let desc = 24 + 3 * 64;
++            for (offset, value) in [
++                (0, b'X'),
++                (4, 3),
++                (5, 1),
++                (8, 0),
++                (16, 0),
++                (20, 1),
++                (24, 1),
++                (desc + 24, 1),
++                (desc + 16, 3),
++                (desc + 20, 1),
++                (desc + 48 + 8, 128),
++                (desc + 72, 3),
++            ] {
++                let mut bad = raw.clone();
++                bad[offset] = value;
++                assert!(
++                    Blocks::load(std::sync::Arc::new(bad), 0..end, n).is_err(),
++                    "offset {offset}"
++                );
++            }
++            let mut bad = raw.clone();
++            bad[88..120].fill(255);
++            assert!(Blocks::load(std::sync::Arc::new(bad), 0..end, n).is_err());
++            for limit in [0, 23, 87, desc, desc + 71, end - 1] {
++                assert!(Blocks::load(std::sync::Arc::new(raw.clone()), 0..limit, n).is_err());
++            }
++        }
++    }
++}
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2434,7 +2434,7 @@
+         plan.for_each_c(|_,wire,_|{if wire>=plan.basis_wires(){selected.insert(wire);}});
+         if !selected.into_iter().eq(folded.slots.iter().copied()){return Err("CPU basis selected slots mismatch".into());}
+         if let Some(bytes) = embedded {
+-            queries.attach_origin(bytes)?;
++            queries.attach_origin(bytes,image,plan.origin_row_count())?;
+         } else if let Some(path) = std::env::var_os("ZOPRO_TRIAL_EULER_KEY_ORIGIN") {
+             if !euler { return Err("origin requires Euler key".into()); }
+             queries.fold_origin(&key.plan, &plan, std::path::Path::new(&path))?;
+--- a/crates/zopro-core/src/solver/private_projection.rs
++++ b/crates/zopro-core/src/solver/private_projection.rs
+@@ -2,6 +2,8 @@
+ use super::{Fr, Op, Plan, Previous};
+ 
+ impl Plan {
++    pub(crate) fn origin_row_count(&self)->usize{self.n_constraints}
++
+     fn projected_value(&self, wire: usize, private: &[Fr], slots: &[Fr]) -> Fr {
+         if wire < self.n_public {
+             Fr::ZERO
