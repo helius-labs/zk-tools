@@ -1,0 +1,44 @@
+--- a/crates/zopro-bn254/src/ifma8.rs
++++ b/crates/zopro-bn254/src/ifma8.rs
+@@ -951,6 +951,20 @@
+         unsafe {
+             let mask = Self::splat(MASK);
+             let bias = split(four).map(Self::splat);
++            let prime = split(crate::FrConfig::P).map(Self::splat);
++            // t omits the carry from the four low limbs of each input.
++            // For S=a+b+c+d and T=2^208, t*T <= S < (t+4)*T.
++            // With u=floor(p/T), k=floor(2^52/(u+1)), the estimate
++            // q=floor(t*k/2^52) never exceeds S/p, and S-q*p is below 2p.
++            let estimate = if cfg!(zopro_fft_sum_quotient) {
++                let t = _mm512_add_epi64(
++                    _mm512_add_epi64(a.0[4], b.0[4]),
++                    _mm512_add_epi64(c.0[4], d.0[4]),
++                );
++                _mm512_madd52hi_epu64(Self::splat(0), t, Self::splat(Self::RECIPROCAL))
++            } else {
++                Self::splat(0)
++            };
+             let mut sum = [Self::splat(0); 5];
+             let mut diff = sum;
+             let mut sum_carry = Self::splat(0);
+@@ -959,13 +973,18 @@
+                 let left = _mm512_add_epi64(a.0[j], b.0[j]);
+                 let right = _mm512_add_epi64(c.0[j], d.0[j]);
+                 let total = _mm512_add_epi64(_mm512_add_epi64(left, right), sum_carry);
++                let total = if cfg!(zopro_fft_sum_quotient) {
++                    _mm512_sub_epi64(total, _mm512_mullo_epi64(estimate, prime[j]))
++                } else {
++                    total
++                };
+                 let delta = _mm512_add_epi64(_mm512_add_epi64(_mm512_sub_epi64(left, right), bias[j]), diff_carry);
+                 sum[j] = _mm512_and_si512(total, mask);
+                 diff[j] = _mm512_and_si512(delta, mask);
+-                sum_carry = _mm512_srli_epi64::<52>(total);
++                sum_carry = _mm512_srai_epi64::<52>(total);
+                 diff_carry = _mm512_srai_epi64::<52>(delta);
+             }
+-            let low = Self::reduce(Self::reduce(sum, four).0, twice);
++            let low = if cfg!(zopro_fft_sum_quotient) { Self(sum, PhantomData) } else { Self::reduce(Self::reduce(sum, four).0, twice) };
+             (low, Self(diff, PhantomData).mul(root))
+         }
+     }
