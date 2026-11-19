@@ -24,3 +24,25 @@ The equality test compares empty, identical, disjoint, overlapping and unequal q
 | merge-24x1 | 32 | shared32 | 63.816 / 63.002 | -1.34% (4/5) | -0.59% | 1.499 | +0.49% | 8.05× / 2.78× |
 
 All 180 exports verified independently. [Samples](artifacts/samples.json.gz) · [Source](artifacts/source.patch) · [Host runner](artifacts/run.py) · [Verification](artifacts/verification.json)
+
+
+## Locality and task count at matched worker widths
+
+The first contrast caps the two collectors at sixteen leaves total. The second gives the same number of leaves to a combined A/B collector. The third doubles the combined collector's leaf budget. Each entry is the median of five within-block differences, selected policy minus reference. Gather durations come from traced processes. Complete SDK latency, aggregate CPU time, minor faults and process peak RSS come from separate untraced runs. RSS includes setup. An absolute decrease in gather latency can coincide with a slower whole request.
+
+| Shape | Ryzen workers | Policies | Gather Δ ms | SDK Δ ms (wins) | CPU Δ ms/proof | Minor faults Δ/proof | Peak RSS Δ MiB |
+|---|---:|---|---:|---:|---:|---:|---:|
+| 16x2 | 16 | separate16 vs control | -0.044 | -0.039 (3/5) | +1.6 | -708 | -26.2 |
+| 16x2 | 16 | shared16 vs separate16 | -0.187 | -0.247 (4/5) | -0.2 | +229 | +8.3 |
+| 16x2 | 16 | shared32 vs shared16 | +0.026 | +0.331 (1/5) | -0.7 | -48 | +6.6 |
+| 16x2 | 32 | separate16 vs control | -0.164 | -0.668 (3/5) | -24.7 | -417 | -32.6 |
+| 16x2 | 32 | shared16 vs separate16 | -0.199 | +0.700 (0/5) | +7.9 | -188 | -4.5 |
+| 16x2 | 32 | shared32 vs shared16 | +0.172 | -0.217 (3/5) | +18.2 | +26 | +11.1 |
+| merge-24x1 | 16 | separate16 vs control | -0.027 | -0.370 (4/5) | -1.5 | -1886 | -73.1 |
+| merge-24x1 | 16 | shared16 vs separate16 | -0.294 | -0.301 (4/5) | -2.4 | +516 | -16.9 |
+| merge-24x1 | 16 | shared32 vs shared16 | +0.007 | -0.417 (3/5) | -10.5 | -224 | +5.3 |
+| merge-24x1 | 32 | separate16 vs control | -0.099 | +0.695 (1/5) | -36.9 | -1075 | -100.5 |
+| merge-24x1 | 32 | shared16 vs separate16 | -0.300 | +0.703 (2/5) | -4.0 | -673 | -8.8 |
+| merge-24x1 | 32 | shared32 vs shared16 | -0.023 | -0.128 (4/5) | +22.7 | +80 | +12.4 |
+
+[All block differences](artifacts/policy-costs.json)
