@@ -1,0 +1,58 @@
+--- a/crates/zopro-core/src/fft/pair/input_columns.rs
++++ b/crates/zopro-core/src/fft/pair/input_columns.rs
+@@ -49,13 +49,36 @@
+     }
+ }
+ 
++#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++fn whole_pmd_range(address: usize, length: usize) -> Option<(usize, usize)> {
++    const PMD: usize = 2 << 20;
++    let first = address.checked_add(PMD - 1)? & !(PMD - 1);
++    let end = address.checked_add(length)? & !(PMD - 1);
++    if first < end { Some((first, end - first)) } else { None }
++}
++
+ #[inline(never)]
+ pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+     let n = plan.n / 4;
+     let q = n / 32;
+     assert!(n >= 2048 && n.is_power_of_two());
+     let roots = &plan.inverse_roots;
+-    let mut values = Vec::with_capacity(n);
++    let mut values: Vec<PackedPair> = Vec::with_capacity(n);
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    if std::env::var_os("ZOPRO_TRIAL_PACKED_PAGES").is_some() {
++        // Advise only whole 2 MiB ranges wholly inside this live payload.
++        // The array is still initialized by the original column jobs.
++        let address = values.as_mut_ptr() as usize;
++        let bytes = n * core::mem::size_of::<PackedPair>();
++        if let Some((first, count)) = whole_pmd_range(address, bytes) {
++            // SAFETY: this entire subrange lies within the reserved allocation.
++            let ptr = unsafe { values.as_mut_ptr().cast::<u8>().add(first - address) };
++            let rc = unsafe { libc::madvise(ptr.cast(), count, libc::MADV_HUGEPAGE) };
++            if std::env::var_os("ZOPRO_TRIAL_PACKED_PROBE").is_some() {
++                eprintln!("PACKED_ADVICE {} {} {}", bytes, count, rc);
++            }
++        }
++    }
+     let mut chunks = values.spare_capacity_mut()[..n].chunks_exact_mut(q);
+     let stripes = core::array::from_fn(|_| chunks.next().unwrap());
+     if roots.columns.is_empty() {
+@@ -84,6 +107,17 @@
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    #[test]
++    fn advice_stays_inside_owned_pages() {
++        const P: usize = 2 << 20;
++        assert_eq!(whole_pmd_range(P, P), Some((P, P)));
++        assert_eq!(whole_pmd_range(P + 9, 3 * P), Some((2 * P, 2 * P)));
++        assert_eq!(whole_pmd_range(P + 1, P), None);
++        assert_eq!(whole_pmd_range(P, 0), None);
++        assert_eq!(whole_pmd_range(usize::MAX - 8, P), None);
++    }
+ 
+     #[test]
+     fn packed_input_matches_inverse_for_prefixes_and_root_layouts() {
