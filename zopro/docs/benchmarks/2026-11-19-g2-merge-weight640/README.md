@@ -2,6 +2,8 @@
 
 The staged and fused modes use the same 512-bucket arithmetic, per-tile forest allocation and global combination. The disabled arm retains the regular paired-weighted implementation in the candidate binary. Each case has eight balanced process blocks per arm and one CPU profile per arm. All 157 native core tests passed and all 186 exported proofs verified.
 
+On the original 1×2 at 32 workers, fusion lost seven of eight pairs against disabled. On the original 2×2, it won six of eight against staged weighting and seven of eight against release. The follow-up repeats 2×2 with fresh processes and three additional witnesses. [Follow-up protocol](../2026-11-19-g2-tile-confirm642/protocol.md)
+
 | Input and workers | Release / disabled / staged / fused ms | Fused vs staged / disabled / release | Peaks in same order, MiB | Fused vs M5 CPU / Metal |
 |---|---:|---:|---:|---:|
 | 1x2-0-w32 | 7.146 / 6.986 / 7.007 / 7.039 | +0.34% (3/8) / +1.15% (1/8) / -0.56% (4/8) | 62.8 / 65.5 / 72.0 / 66.0 | 5.26× / 3.41× |
