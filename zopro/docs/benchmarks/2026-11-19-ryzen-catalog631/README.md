@@ -2,6 +2,8 @@
 
 On the Ryzen 9 9950X at 32 hardware threads, Zopro had lower median single-proof latency on 41 of 41 shapes and lower observed peak RSS on 41 of 41. Each latency is the median of four process means. Every Aeglos timed call reported a cache hit. All 328 independently exported proofs verified against the original images and public inputs.
 
+Zopro used less time and less memory in each of the 164 process pairs. Across the eight supplied M5 references, this SDK ran 5.13–9.21× faster than the M5 CPU and 2.78–3.33× faster than Metal. The tenfold CPU target remains open on all eight.
+
 | Circuit | Zopro / Aeglos ms | Paired Zopro change and wins | Peak Zopro / Aeglos MiB | Zopro vs M5 CPU / Metal |
 |---|---:|---:|---:|---:|
 | 1x2 | 7.217 / 12.923 | -43.56% (4/4) | 59.0 / 417.0 | 5.13× / 3.33× |
@@ -47,3 +49,18 @@ On the Ryzen 9 9950X at 32 hardware threads, Zopro had lower median single-proof
 | merge-54x1 | 151.398 / 1001.529 | -84.88% (4/4) | 1575.6 / 12556.3 | — |
 
 [Protocol](protocol.md) · [Summary](artifacts/summary.json) · [All samples](artifacts/rows.json.gz) · [Verification](artifacts/verification.json)
+
+## Where Aeglos gained time on C7a
+
+The retained Aeglos executable ran all 41 requests faster at 96 C7a cores than at 32. Multiscalar multiplication (MSM) showed the largest elapsed-time reduction on every shape, accounting for 79–114% of the net saving. The proportion can exceed 100% when other phases get slower. On 1×2, MSM saved 4.36 ms while witness solving took 0.30 ms longer, leaving the complete proof 3.84 ms faster.
+
+| Circuit | Verified latency saved, 32 to 96 cores (ms) | MSM saving (ms) | FFT saving (ms) | Witness saving (ms) |
+|---|---:|---:|---:|---:|
+| 1×2 | 3.84 | 4.36 | 0.02 | −0.30 |
+| 5×16 | 20.19 | 17.59 | 2.89 | 0.28 |
+| 6×2 | 19.91 | 17.46 | 3.07 | 0.02 |
+| Merge 54×1 | 174.72 | 139.84 | 29.34 | 6.19 |
+
+At 32 workers, Aeglos also spent less time in MSM on C7a than on Ryzen for all 41 shapes. The hosts have different core topologies: Ryzen used 16 physical cores with SMT, and C7a used 32 physical cores. The measurements locate elapsed time within Aeglos. Establishing which Zopro curve operations limit 96-core scaling requires timing the current Zopro release on C7a.
+
+The phase calculations give equal weight to each process mean. They use nine archived C7a blocks per width and four fresh Ryzen blocks. All 738 archived Aeglos output hashes match the published capture receipts. “Verified latency” includes work outside the three named phases. [All phase differences](artifacts/aeglos-phase-differences.json) · [Archived process means and hashes](artifacts/aeglos-phase-processes.json.gz) · [Original C7a comparison and receipts](../2026-11-18-full-catalog-c7a244/README.md)
