@@ -26,3 +26,13 @@ The table shows the median of three within-block mapped-versus-ordinary percenta
 | Original | -0.02% | -3.24% | -2.72% | -17.08% | -14.98% |
 | 109 | -5.83% | -4.01% | -8.40% | -23.20% | -23.61% |
 | 122 | +1.64% | +0.47% | -2.30% | -12.18% | -10.76% |
+
+The mapped key also changed the mix of work. The original G1 streaming and dense H summation functions received fewer cycle samples on every input. A new parallel traversal subtracts the two public origin coefficients before the Euler FFT. Its named iterator and join specializations appear in the mapped profiles. Samples per proof below use 93 timed requests in each cell, with the same sampling frequency in both arms. The aggregate instructions per cycle fell across all three inputs, which reduced the benefit of the lower instruction count. The counter measurements alone cannot determine the cause of the lower IPC.
+
+| Request | Instructions/cycle ordinary / mapped | Paired IPC change | G1 streaming and dense-H samples/proof ordinary / mapped | Mapped origin iterator samples/proof |
+|---|---:|---:|---:|---:|
+| Original | 0.952 / 0.811 | -14.81% | 205.1 / 121.1 | 14.9 |
+| 109 | 0.954 / 0.796 | -16.28% | 204.8 / 97.1 | 14.4 |
+| 122 | 0.951 / 0.855 | -10.10% | 208.4 / 147.5 | 14.4 |
+
+[Block IPC and sample counts](artifacts/work-per-cycle.json)
