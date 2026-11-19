@@ -229,6 +229,8 @@ coefficient file and returns whether the key and preparation budget support
 it. The prover derives correction points from the loaded key. Call the method once after loading the key. The SDK benchmark
 accepts the path through `ZOPRO_BENCH_WIRE_FILE`. The measured 1×2 file and
 timings are in the [external offset report](docs/benchmarks/2026-11-19-external-wire461/README.md).
+On the 32-worker Ryzen profile, the separate 2×2 coefficient file improved
+warm latency across eight held-out requests. See the [2×2 measurements and file](docs/benchmarks/2026-11-19-two-wire464/README.md).
 
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
