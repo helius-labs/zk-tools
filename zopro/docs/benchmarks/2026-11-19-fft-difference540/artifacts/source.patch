@@ -1,0 +1,122 @@
+--- a/crates/zopro-bn254/src/ifma8.rs
++++ b/crates/zopro-bn254/src/ifma8.rs
+@@ -934,10 +934,66 @@
+     }
+ }
+ 
++impl Ifma8<crate::FrConfig, false> {
++    /// Normalized R260 inputs are below 2p. The temporary delta is below
++    /// 4p and is used only in this product. REDC is below p + 8p²/R < 2p.
++    #[inline(always)]
++    pub fn difference_times(&self, b: &Self, root: &Self) -> Self {
++        unsafe {
++            let p = crate::FrConfig::P;
++            let twice = split(crate::portable::add4(p, p).0).map(Self::splat);
++            let mask = Self::splat(MASK);
++            let mut carry = Self::splat(0);
++            let digits = core::array::from_fn(|j| {
++                let biased = _mm512_add_epi64(twice[j], self.0[j]);
++                let value = _mm512_add_epi64(_mm512_sub_epi64(biased, b.0[j]), carry);
++                carry = _mm512_srai_epi64::<52>(value);
++                _mm512_and_si512(value, mask)
++            });
++            Self(digits, PhantomData).mul(root)
++        }
++    }
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+     use crate::{FqConfig, FrConfig};
++    #[test]
++    fn inverse_difference_times_matches_scalar_field_and_bounds() {
++        use crate::portable::{add4,less,sub4};
++        type V = Ifma8<FrConfig, false>;
++        let p = FrConfig::P;
++        let twice = add4(p,p).0;
++        let one = [1,0,0,0];
++        let mut values = vec![[0;4],one,sub4(p,one).0,p,add4(p,one).0,sub4(twice,one).0];
++        for bit in [51,52,63,64,103,104,127,128,155,156,191,192,207,208,253] {
++            let mut x = [0;4]; x[bit/64] = 1 << (bit%64);
++            values.extend([sub4(x,one).0,x,add4(x,one).0]);
++        }
++        let mut seed=0xae9102e51u64;
++        for _ in 0..96 {
++            let mut bytes=[0u8;64];
++            for w in bytes.chunks_exact_mut(8) {
++                seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17;
++                w.copy_from_slice(&seed.to_le_bytes());
++            }
++            let x=Fp::<FrConfig>::from_random_bytes(&bytes).0;
++            values.push(if seed&1 == 0 {x} else {add4(p,x).0});
++        }
++        for i in 0..values.len() {
++            for j in 0..values.len() {
++                let left=V::raw(&core::array::from_fn(|l|values[(i+l)%values.len()]));
++                let right=V::raw(&core::array::from_fn(|l|values[(j+2*l)%values.len()]));
++                let root=V::raw(&core::array::from_fn(|l|values[(i*7+j*3+l)%values.len()]));
++                let v=left.difference_times(&right,&root);
++                let (a,b,c)=(left.get(),right.get(),root.get());
++                assert_eq!(v.get(),core::array::from_fn(|k|(a[k]-b[k])*c[k]));
++                let packed:[[u64;8];4]=v.compact().0.map(|word|unsafe {core::mem::transmute(word)});
++                for k in 0..8 {assert!(less(core::array::from_fn(|j|packed[j][k]),twice));}
++            }
++        }
++    }
+     #[test]
+     fn compact_storage_roundtrip() {
+         fn check<C: FpConfig, const MIXED: bool>() {
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -128,13 +128,19 @@
+     out
+ }
+ 
++#[inline(always)]
++fn inverse_difference(low: &Pair, high: &Pair, root: &Pair) -> Pair {
++    if cfg!(zopro_fft_difference) { low.difference_times(high,root) }
++    else { low.sub(high).mul(root) }
++}
++
+ // lo, hi = lo + hi, (lo - hi) * twiddle, quad by quad.
+ #[inline(always)]
+ fn dif_quads(lo: &mut [Pair], hi: &mut [Pair], twiddles: &[Quad]) {
+     for j in 0..lo.len() {
+-        let difference = lo[j].sub(&hi[j]);
++        let difference = inverse_difference(&lo[j],&hi[j],&broadcast(&twiddles[j]));
+         lo[j] = lo[j].add(&hi[j]);
+-        hi[j] = difference.mul(&broadcast(&twiddles[j]));
++        hi[j] = difference;
+     }
+ }
+ 
+@@ -159,7 +165,7 @@
+         Pair::shuffle_pair::<2, 3, 6, 7>(a, b),
+     );
+     let sum = lo.add(&hi);
+-    let difference = lo.sub(&hi).mul(pair);
++    let difference = inverse_difference(&lo, &hi, pair);
+     *a = Pair::shuffle_pair::<0, 1, 4, 5>(&sum, &difference);
+     *b = Pair::shuffle_pair::<2, 3, 6, 7>(&sum, &difference);
+     // One apart: (a0 a2 b0 b2) with (a1 a3 b1 b3), twiddle one.
+@@ -1755,7 +1761,7 @@
+                     local[high] = a.sub(&product);
+                 } else {
+                     local[low] = a.add(&b);
+-                    local[high] = a.sub(&b).mul(&root);
++                    local[high] = inverse_difference(&a, &b, &root);
+                 }
+             }
+         }
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -7,7 +7,7 @@
+     let lo = Pair::shuffle_pair::<0, 1, 4, 5>(a, b);
+     let hi = Pair::shuffle_pair::<2, 3, 6, 7>(a, b);
+     let sum = lo.add(&hi);
+-    let diff = lo.sub(&hi).mul(inv);
++    let diff = inverse_difference(&lo,&hi,inv);
+     let left = Pair::shuffle_pair::<0, 1, 4, 5>(&sum, &diff);
+     let right = Pair::shuffle_pair::<2, 3, 6, 7>(&sum, &diff);
+     let lo = Pair::shuffle_pair::<0, 2, 4, 6>(&left, &right);
