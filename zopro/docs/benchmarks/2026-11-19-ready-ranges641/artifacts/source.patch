@@ -27,7 +27,7 @@
      let mut result = G2Projective::IDENTITY;
      for sum in sums.iter().rev() {
          for _ in 0..bits {
-@@ -239,6 +248,74 @@
+@@ -239,6 +248,96 @@
          result += sum;
      }
      result
@@ -43,6 +43,11 @@
 +    let waiting: Vec<_> = (0..windows).map(|_| Mutex::new(None)).collect();
 +    let sums: Vec<_> = (0..windows).map(|_| OnceLock::new()).collect();
 +    let trace = std::env::var_os("ZOPRO_TRIAL_G2_READY_TRACE").is_some();
++    let timeline = trace.then(|| (
++        std::time::Instant::now(),
++        (0..2 * windows).map(|_| OnceLock::new()).collect::<Vec<_>>(),
++    ));
++    let now = || timeline.as_ref().map_or(0, |(t, _)| t.elapsed().as_nanos() as u64);
 +    (0..2 * windows).into_par_iter().for_each(|task| {
 +        let (w, part) = if range_major {
 +            (task % windows, task / windows)
@@ -51,26 +56,43 @@
 +        };
 +        let start = part * chunk;
 +        let end = (start + chunk).min(bases.len());
++        let began = now();
 +        let own = hb_window(&bases[start..end], &short[start..end], w, bits);
++        let filled = now();
 +        let other = {
 +            let mut slot = waiting[w].lock().unwrap();
 +            match slot.take() {
 +                Some(other) => other,
 +                None => {
 +                    *slot = Some(own);
++                    if let Some((_, events)) = &timeline {
++                        events[task].set([began, filled, 0, 0, 0]).unwrap();
++                    }
 +                    return;
 +                }
 +            }
 +        };
++        let reducing = now();
 +        let (mut left, right) = if part == 0 { (own, other) } else { (other, own) };
 +        merge_buckets(&mut left, &right);
 +        drop(right);
 +        let sum = crate::msm::weighted_affine(&left);
 +        assert!(sums[w].set(sum).is_ok());
-+        if trace {
-+            eprintln!("READY_RANGE {w} {part} {} {}", left.len(), usize::from(range_major));
++        if let Some((_, events)) = &timeline {
++            events[task].set([began, filled, reducing, now(), left.len() as u64]).unwrap();
 +        }
 +    });
++    if let Some((_, events)) = timeline {
++        eprintln!("READY_TIMELINE {windows}");
++        for (task, entry) in events.into_iter().enumerate() {
++            let (w, part) = if range_major { (task % windows, task / windows) } else { (task / 2, task % 2) };
++            let [began, filled, reducing, done, len] = entry.into_inner().unwrap();
++            eprintln!("READY_TASK {w} {part} {began} {filled} {reducing} {done}");
++            if done != 0 {
++                eprintln!("READY_RANGE {w} {part} {len} {}", usize::from(range_major));
++            }
++        }
++    }
 +    sums.into_iter().map(|sum| sum.into_inner().unwrap()).collect()
 +}
 +
