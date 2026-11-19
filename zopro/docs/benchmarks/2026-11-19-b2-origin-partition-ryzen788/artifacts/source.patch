@@ -1,0 +1,367 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -70,6 +70,8 @@
+ }
+ 
+ mod diversity;
++#[cfg(zopro_resource_schedule)]
++mod origins_split;
+ pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+     group_with_gate::<true, false>(scalars, zero_aware, None)
+@@ -145,15 +147,6 @@
+     {
+         return None;
+     }
+-    #[cfg(zopro_resource_schedule)]
+-    let reservation = match origins {
+-        Some(plan) => crate::preparation::Reservation::analysis(
+-            grouping_cost::add(grouping_cost::peak(scalars.len(), percent)?, plan.scratch_bytes()?),
+-        )?,
+-        None => grouping_cost::reserve(scalars.len(), percent)?,
+-    };
+-    #[cfg(not(zopro_resource_schedule))]
+-    let reservation = { let _ = origins; grouping_cost::reserve(scalars.len(), percent)? };
+     // Bound the initial allocation by the sample and by the grouping
+     // cutoff. Small high-diversity inputs otherwise grow and rehash the
+     // entire table several times before either succeeding or declining.
+@@ -166,6 +159,21 @@
+     } else {
+         0
+     };
++    #[cfg(zopro_resource_schedule)]
++    if let Some(plan) = origins.filter(|_| std::env::var_os("ZOPRO_TRIAL_SPLIT_ORIGINS").is_some()) {
++        if let Some(groups) = origins_split::assemble(scalars, plan, percent, capacity) {
++            return Some(groups);
++        }
++    }
++    #[cfg(zopro_resource_schedule)]
++    let reservation = match origins {
++        Some(plan) => crate::preparation::Reservation::analysis(
++            grouping_cost::add(grouping_cost::peak(scalars.len(), percent)?, plan.scratch_bytes()?),
++        )?,
++        None => grouping_cost::reserve(scalars.len(), percent)?,
++    };
++    #[cfg(not(zopro_resource_schedule))]
++    let reservation = { let _ = origins; grouping_cost::reserve(scalars.len(), percent)? };
+     let mut classes = vec![u32::MAX; scalars.len()];
+     #[cfg(zopro_resource_schedule)]
+     let (values, counts) = if let Some(plan) = origins {
+@@ -223,12 +231,21 @@
+     capacity: usize,
+     state: impl std::hash::BuildHasher,
+ ) -> (Vec<[u64; 4]>, Vec<usize>) {
++    classify_words(scalars.iter(), classes, capacity, state)
++}
++
++fn classify_words<'a>(
++    scalars: impl Iterator<Item = &'a [u64; 4]>,
++    classes: &mut [u32],
++    capacity: usize,
++    state: impl std::hash::BuildHasher,
++) -> (Vec<[u64; 4]>, Vec<usize>) {
+     use hashbrown::{hash_table::Entry, HashTable};
+ 
+     let mut table = HashTable::<u32>::with_capacity(capacity);
+     let mut values = Vec::new();
+     let mut counts = Vec::new();
+-    for (scalar, class) in scalars.iter().zip(classes) {
++    for (scalar, class) in scalars.zip(classes) {
+         if *scalar == [0; 4] {
+             continue;
+         }
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/grouping/origins_split.rs
+@@ -0,0 +1,135 @@
++use super::{ScalarGroups, classify_words, grouping_cost};
++use crate::preparation::Reservation;
++use crate::solver::{B2Origins, OriginPartition};
++use rayon::prelude::*;
++
++#[derive(Default)]
++struct LocalGroups {
++    values: Vec<[u64; 4]>,
++    counts: Vec<usize>,
++    order: Vec<u32>,
++}
++
++impl LocalGroups {
++    fn collect(origins: &OriginPartition, spans: &[usize], words: &[[u64; 4]]) -> Self {
++        let mut out = Self::default();
++        let mut mismatches = Vec::new();
++        let mut members = Vec::with_capacity(spans.len());
++        for row in origins.rows(spans) {
++            members.clear();
++            members.extend(spans.iter().filter_map(|&span| origins.position(span, row)));
++            let mut matched = 0;
++            let mut representative = [0; 4];
++            for &position in &members {
++                let value = words[position];
++                if value == [0; 4] {
++                    continue;
++                }
++                if matched == 0 {
++                    representative = value;
++                }
++                if representative == value {
++                    out.order.push(position as u32);
++                    matched += 1;
++                } else {
++                    mismatches.push(position);
++                }
++            }
++            if matched != 0 {
++                out.values.push(representative);
++                out.counts.push(matched);
++            }
++        }
++        for position in mismatches {
++            out.order.push(position as u32);
++            out.values.push(words[position]);
++            out.counts.push(1);
++        }
++        out
++    }
++
++    fn remaining(indices: &[u32], words: &[[u64; 4]], capacity: usize) -> Self {
++        let mut classes = vec![u32::MAX; indices.len()];
++        let selected = indices.iter().map(|&i| &words[i as usize]);
++        let (values, counts) =
++            classify_words(selected, &mut classes, capacity, ahash::RandomState::new());
++        let starts = offsets(&counts);
++        let mut next = starts[..counts.len()].to_vec();
++        let mut order = vec![0u32; *starts.last().unwrap()];
++        for (&position, class) in indices.iter().zip(classes) {
++            if class != u32::MAX {
++                order[next[class as usize]] = position;
++                next[class as usize] += 1;
++            }
++        }
++        Self {
++            values,
++            counts,
++            order,
++        }
++    }
++}
++
++fn offsets(counts: &[usize]) -> Vec<usize> {
++    let mut starts = Vec::with_capacity(counts.len() + 1);
++    starts.push(0);
++    for n in counts {
++        starts.push(starts.last().unwrap() + n);
++    }
++    starts
++}
++
++pub(super) fn assemble(
++    words: &[[u64; 4]],
++    origins: &B2Origins,
++    percent: usize,
++    capacity: usize,
++) -> Option<ScalarGroups> {
++    let partition = origins.partition()?;
++    let n = words.len();
++    // Includes first and final copies of the per-state vectors, plus
++    // residual hash output and a temporary list of unexpected terms.
++    let extra = n.checked_mul(112)?;
++    let reservation =
++        Reservation::analysis(grouping_cost::add(grouping_cost::peak(n, percent)?, extra))?;
++    let spans = origins.state_groups(words)?;
++    let room = capacity.min(origins.residual().div_ceil(3));
++    let (mut batches, residual): (Vec<_>, _) = rayon::join(
++        || {
++            spans
++                .par_iter()
++                .map(|spans| LocalGroups::collect(partition, spans, words))
++                .collect()
++        },
++        || LocalGroups::remaining(partition.residual(), words, room),
++    );
++    batches.push(residual);
++    let class_count: usize = batches.iter().map(|g| g.values.len()).sum();
++    if class_count * 100 > n * percent {
++        return None;
++    }
++    let points = batches.iter().map(|g| g.order.len()).sum();
++    let mut values = Vec::with_capacity(class_count);
++    let mut counts = Vec::with_capacity(class_count);
++    let mut order = Vec::with_capacity(points);
++    for mut batch in batches {
++        values.append(&mut batch.values);
++        counts.append(&mut batch.counts);
++        order.append(&mut batch.order);
++    }
++    let starts = offsets(&counts);
++    if std::env::var_os("ZOPRO_TRIAL_SPLIT_ORIGINS_TRACE").is_some() {
++        eprintln!(
++            "SPLIT_B2_ORIGINS {n} {class_count} {points} {}",
++            spans.len()
++        );
++    }
++    Some(ScalarGroups {
++        len: n,
++        values,
++        counts,
++        order,
++        starts,
++        _reservation: reservation,
++    })
++}
+--- a/crates/zopro-core/src/solver/sparse_poseidon/aliases.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon/aliases.rs
+@@ -38,6 +38,7 @@
+     order: Vec<u32>,
+     states: Vec<State>,
+     covered: usize,
++    partition: std::sync::OnceLock<OriginPartition>,
+     _memory: Reservation,
+ }
+ 
+@@ -72,6 +73,15 @@
+     }
+ 
+     pub(crate) fn aliases<'a>(&'a self, words: &[[u64; 4]]) -> Option<RuntimeAliases<'a>> {
++        let (tags, classes) = self.state_tags(words)?;
++        Some(RuntimeAliases {
++            order: &self.order,
++            tags,
++            classes: vec![u32::MAX; (classes * STRIDE) as usize],
++        })
++    }
++
++    fn state_tags(&self, words: &[[u64; 4]]) -> Option<(Vec<u32>, u32)> {
+         if words.len() != self.order.len() {
+             return None;
+         }
+@@ -95,11 +105,7 @@
+             };
+             tags.push(tag);
+         }
+-        Some(RuntimeAliases {
+-            order: &self.order,
+-            tags,
+-            classes: vec![u32::MAX; (classes * STRIDE) as usize],
+-        })
++        Some((tags, classes))
+     }
+ }
+ 
+@@ -230,6 +236,7 @@
+             order,
+             states,
+             covered,
++            partition: std::sync::OnceLock::new(),
+             _memory: memory,
+         })
+     }
+@@ -256,6 +263,7 @@
+             state([0, 1, 2], 2),
+         ],
+         covered: 4,
++        partition: std::sync::OnceLock::new(),
+         _memory: memory,
+     };
+     let words = [
+@@ -272,3 +280,85 @@
+     assert_eq!(aliases.slot(3).copied(), Some(u32::MAX));
+     assert!(aliases.slot(4).is_none());
+ }
++
++const MASK_WORDS: usize = (STRIDE as usize).div_ceil(64);
++
++pub(crate) struct OriginPartition {
++    residual: Vec<u32>,
++    positions: Vec<u32>,
++    occupied: Vec<[u64; MASK_WORDS]>,
++    _memory: Reservation,
++}
++
++impl OriginPartition {
++    pub(crate) fn residual(&self) -> &[u32] {
++        &self.residual
++    }
++
++    pub(crate) fn rows(&self, spans: &[usize]) -> Vec<usize> {
++        let mut mask = [0u64; MASK_WORDS];
++        for &span in spans {
++            for (out, &word) in mask.iter_mut().zip(&self.occupied[span]) {
++                *out |= word;
++            }
++        }
++        let mut rows = Vec::with_capacity(STRIDE as usize);
++        for (i, mut bits) in mask.into_iter().enumerate() {
++            while bits != 0 {
++                rows.push(i * 64 + bits.trailing_zeros() as usize);
++                bits &= bits - 1;
++            }
++        }
++        rows
++    }
++
++    pub(crate) fn position(&self, span: usize, row: usize) -> Option<usize> {
++        let value = self.positions[span * STRIDE as usize + row];
++        (value != u32::MAX).then_some(value as usize)
++    }
++}
++
++impl B2Origins {
++    pub(crate) fn partition(&self) -> Option<&OriginPartition> {
++        if let Some(prepared) = self.partition.get() {
++            return Some(prepared);
++        }
++        let cells = self.states.len().checked_mul(STRIDE as usize)?;
++        let bytes = cells
++            .checked_mul(4)?
++            .checked_add(self.residual().checked_mul(4)?)?
++            .checked_add(self.states.len().checked_mul(MASK_WORDS * 8)?)?
++            .checked_add(512)?;
++        let memory = Reservation::analysis(Some(bytes))?;
++        let mut residual = Vec::with_capacity(self.residual());
++        let mut positions = vec![u32::MAX; cells];
++        let mut occupied = vec![[0u64; MASK_WORDS]; self.states.len()];
++        for (position, &origin) in self.order.iter().enumerate() {
++            if origin == u32::MAX {
++                residual.push(position as u32);
++                continue;
++            }
++            let cell = positions.get_mut(origin as usize)?;
++            *cell = position as u32;
++            let span = (origin / STRIDE) as usize;
++            let row = (origin % STRIDE) as usize;
++            occupied[span][row / 64] |= 1u64 << (row % 64);
++        }
++        let _ = self.partition.set(OriginPartition {
++            residual,
++            positions,
++            occupied,
++            _memory: memory,
++        });
++        self.partition.get()
++    }
++
++    pub(crate) fn state_groups(&self, words: &[[u64; 4]]) -> Option<Vec<Vec<usize>>> {
++        let (tags, n) = self.state_tags(words)?;
++        let mut groups = vec![Vec::new(); n as usize];
++        for (span, tag) in tags.into_iter().enumerate() {
++            groups[tag as usize].push(span);
++        }
++        Some(groups)
++    }
++}
+--- a/crates/zopro-core/src/solver/sparse_poseidon.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon.rs
+@@ -545,4 +545,4 @@
+ mod tests;
+ 
+ mod aliases;
+-pub(crate) use aliases::{B2Origins, RuntimeAliases};
++pub(crate) use aliases::{B2Origins, OriginPartition, RuntimeAliases};
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -3173,4 +3173,4 @@
+ #[cfg(zopro_resource_schedule)] mod sparse_poseidon;
+ 
+ #[cfg(zopro_resource_schedule)]
+-pub(crate) use sparse_poseidon::{B2Origins, RuntimeAliases};
++pub(crate) use sparse_poseidon::{B2Origins, OriginPartition, RuntimeAliases};
