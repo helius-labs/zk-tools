@@ -1,0 +1,38 @@
+--- a/crates/zopro-core/src/msm_affine/fused_kh.rs
++++ b/crates/zopro-core/src/msm_affine/fused_kh.rs
+@@ -14,9 +14,32 @@
+ }
+ // Only a borrowed pair of existing base/scalar slices. One bucket set per window;
+ // state remains valid across the segment boundary, with pending batches shared.
+-pub(crate)fn fused(k:&[G1Affine],sk:&[[u64;4]],h:&[G1Affine],sh:&[[u64;4]],bits:usize)->G1Projective{
+- if k.len().min(h.len())>=1024 && super::borrowed_pending::enabled() {return super::borrowed_pending::fused(k,sk,h,sh,bits);}
+- owned(k,sk,h,sh,bits)
++pub(crate) fn fused(
++    k: &[G1Affine], sk: &[[u64; 4]], h: &[G1Affine], sh: &[[u64; 4]], bits: usize,
++) -> G1Projective {
++    static GROUP_K: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    let group_k = *GROUP_K.get_or_init(|| std::env::var("ZOPRO_TRIAL_FUSED_KH_GROUP_K").as_deref() == Ok("1"));
++    if group_k && (1024..65536).contains(&k.len()) {
++        let groups = super::grouping::groups_with_diversity_check(sk);
++        if std::env::var_os("ZOPRO_TRIAL_FUSED_KH_GROUP_TRACE").is_some() {
++            eprintln!("FUSED_KH_GROUP_K {} {} {}", k.len(), h.len(),
++                groups.as_ref().map_or(0, |g| g.values.len()));
++        }
++        if let Some(groups) = groups {
++            let points = crate::msm::group_affine(k, &groups.order, &groups.starts, &groups.counts);
++            return fused_raw(&points, &groups.values, h, sh, bits);
++        }
++    }
++    fused_raw(k, sk, h, sh, bits)
++}
++
++fn fused_raw(
++    k: &[G1Affine], sk: &[[u64; 4]], h: &[G1Affine], sh: &[[u64; 4]], bits: usize,
++) -> G1Projective {
++    if k.len().min(h.len()) >= 1024 && super::borrowed_pending::enabled() {
++        return super::borrowed_pending::fused(k, sk, h, sh, bits);
++    }
++    owned(k, sk, h, sh, bits)
+ }
+ pub(super)fn owned(k:&[G1Affine],sk:&[[u64;4]],h:&[G1Affine],sh:&[[u64;4]],bits:usize)->G1Projective{
+  assert_eq!(k.len(),sk.len());assert_eq!(h.len(),sh.len());assert!((12..=14).contains(&bits));
