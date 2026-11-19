@@ -107,6 +107,20 @@ impl Prover {
         self.overlap_verification = enabled;
     }
 
+    /// Use optional public wire offsets with canonical CPU proofs for this key.
+    ///
+    /// The little-endian file starts with `ZPWO0001`, the SHA-256 of its B2
+    /// points (x.c0, x.c1, y.c0, y.c1 as Montgomery limbs), a u32 B2 count,
+    /// and a u32 record count. Each record has an increasing u32 B2 index
+    /// followed by a nonzero canonical 32-byte scalar. Supply public values.
+    ///
+    /// Preparation derives correction points from the loaded proving key. The
+    /// caller can release the input bytes after this call. Unsupported routes
+    /// and insufficient optional memory return `Ok(false)`.
+    pub fn prepare_public_wire_offsets(&mut self, bytes: &[u8]) -> Result<bool, &'static str> {
+        self.key.prepare_public_wire_offsets(bytes)
+    }
+
     /// From a zopro key file.
     pub fn load(bytes: &[u8]) -> Result<Self, String> {
         let artifact = Artifact::parse(bytes)?;

@@ -222,6 +222,9 @@ fn output_g2(out: &mut Vec<u8>, p: G2Projective) {
     output_fq(out, p.y.c1);
 }
 
+#[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+mod public_wire_offsets;
+
 // The version of the solver images Key::solver_image writes and
 // Key::set_solver_image reads, for a host to tell its images apart.
 #[wasm_bindgen]
@@ -827,6 +830,8 @@ pub struct Key {
     /// Shared, for a browser's CPU share of the G2 MSM on the pool while
     /// the proof's future awaits the GPU.
     b2: std::sync::Arc<Store<G2Affine>>,
+    #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+    wire_offsets: Option<Box<public_wire_offsets::Offsets>>,
     generated_g2: generated_proof::G2InputCertificate,
     #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
     canonical_wires: bool,
@@ -1511,6 +1516,8 @@ impl Key {
             k,
             z,
             b2: std::sync::Arc::new(b2),
+            #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+            wire_offsets: None,
             generated_g2: Default::default(),
             #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
             canonical_wires: !cfg!(target_arch="wasm32") && lengths.iter().copied().max().unwrap_or(0)<(1<<16) && std::env::var("ZOPRO_CPU_CANONICAL_WIRES").as_deref()==Ok("1"),
@@ -2212,6 +2219,8 @@ impl Key {
         #[cfg(not(zopro_bounded_gather))]
         use rayon::prelude::*;
         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
+        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+        let offsets=self.wire_offsets.as_ref().filter(|_|omit_b);
         let prepare = || -> Result<_, String> {
             let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
             if let Some(scope) = reclaim { scope.release_unused(&mut w); }
@@ -2219,6 +2228,8 @@ impl Key {
             // The correction consumes Montgomery public values before the one
             // in-place conversion. All later accesses to w use canonical words.
             let correction=folded.public_term(&w[..plan.n_public]);
+            #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+            if let Some(offsets)=offsets {offsets.apply(&mut w);}
             let (sa_vec,sb_vec):(Vec<_>,Vec<_>)=if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
                 fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)
             } else {
@@ -2275,6 +2286,8 @@ impl Key {
                             |g|msm_grouped_b2(&self.b2,g))
                     }
                 });
+            #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+            let (ar,kh,bs2)=offsets.map_or((ar,kh,bs2), |o| (ar+o.a,kh+o.k,bs2+o.b2));
             let mut out=Vec::with_capacity(384);
             for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY] {output_g1(&mut out,point);}
             output_g2(&mut out,bs2);
@@ -2321,6 +2334,8 @@ impl Key {
                 )
         };
 
+        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+        let (ar,kr,bs2)=offsets.map_or((ar,kr,bs2), |o| (ar+o.a,kr+o.k,bs2+o.b2));
         let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(out)
     }
 }
@@ -2352,6 +2367,8 @@ impl Key {
 
 impl Key {
     fn invalidate_solver(&mut self) {
+        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+        { self.wire_offsets = None; }
         self.proof_workspace = None;
         if self.basis_only {
             if let Some(plan) = self.solver.take() {
@@ -2450,5 +2467,22 @@ impl Key {
     /// also uses this pool. Passing `None` restores execution in the current pool.
     pub fn set_frontend_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
         self.frontend_pool = pool;
+    }
+}
+
+impl Key {
+    /// Prepare corrections from public offsets for this CPU key.
+    /// An unsupported key or insufficient preparation budget disables the
+    /// option and returns `Ok(false)`. An invalid file returns an error.
+    pub fn prepare_public_wire_offsets(&mut self, bytes: &[u8]) -> Result<bool, &'static str> {
+        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+        {
+            let prepared = public_wire_offsets::prepare(self, bytes)?;
+            let enabled = prepared.is_some();
+            self.wire_offsets = prepared.map(Box::new);
+            Ok(enabled)
+        }
+        #[cfg(not(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma))))]
+        { let _ = bytes; Ok(false) }
     }
 }

@@ -39,6 +39,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         prover
     };
+    let mut prover = prover;
+    if let Some(path) = std::env::var_os("ZOPRO_BENCH_WIRE_FILE") {
+        let file = fs::File::open(path)?;
+        // The benchmark owns the immutable input during preparation.
+        let bytes = unsafe { memmap2::Mmap::map(&file)? };
+        let start = Instant::now();
+        let enabled = prover.prepare_public_wire_offsets(&bytes)?;
+        println!("WIRE_FILE {} {}", enabled, start.elapsed().as_nanos());
+    }
     let mut sdk = zopro_zolana::Prover::new(prover)?;
     let request = fs::read_to_string(&args[2])?;
     for _ in 0..3 {

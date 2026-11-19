@@ -223,6 +223,13 @@ The prover checks the optional workspace allowance before taking this path.
 With 32 main workers, four of eight witnesses favored sharing the buckets.
 [Varied-witness comparison](docs/benchmarks/2026-11-19-varied-kh450/README.md)
 
+For repeated CPU proofs on Linux x86-64 with native IFMA and resource
+scheduling, `Prover::prepare_public_wire_offsets` accepts a borrowed public
+coefficient file and returns whether the key and preparation budget support
+it. The prover derives correction points from the loaded key. Call the method once after loading the key. The SDK benchmark
+accepts the path through `ZOPRO_BENCH_WIRE_FILE`. The measured 1×2 file and
+timings are in the [external offset report](docs/benchmarks/2026-11-19-external-wire461/README.md).
+
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
 G2 queries of 1,024 through 65,535 points when the worker pool has at least
