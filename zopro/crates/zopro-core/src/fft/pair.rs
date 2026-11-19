@@ -1,4 +1,5 @@
 //! Two independent transforms share the lower/upper four IFMA lanes.
+mod input_columns;
 use super::*;
 use zopro_bn254::{ifma8::Ifma8, FrConfig};
 type Pair = Ifma8<FrConfig>;
@@ -1771,15 +1772,22 @@ pub(super) fn euler_product_study(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Ve
     let count = a.len().max(b.len());
     a.resize(count, Fr::ZERO);
     if count == 0 { return a; }
-    let mut values: Vec<PackedPair> = (0..plan.n / 4).into_par_iter().map(|i| {
-        let mut lanes = [Fr::ZERO; 8];
-        for j in 0..4 {
-            lanes[j] = a.get(4*i+j).copied().unwrap_or(Fr::ZERO);
-            lanes[4+j] = b.get(4*i+j).copied().unwrap_or(Fr::ZERO);
-        }
-        PackedPair::store(Pair::new(&lanes))
-    }).collect();
-    stored_transform::<PackedPair, false>(&mut values, &plan.inverse_roots, 0);
+    let mut values = if plan.n >= 8192
+        && std::env::var("ZOPRO_CPU_FFT_INPUT_COLUMNS").as_deref() == Ok("1")
+    {
+        input_columns::inverse(plan, &a, &b)
+    } else {
+        let mut values: Vec<PackedPair> = (0..plan.n / 4).into_par_iter().map(|i| {
+            let mut lanes = [Fr::ZERO; 8];
+            for j in 0..4 {
+                lanes[j] = a.get(4*i+j).copied().unwrap_or(Fr::ZERO);
+                lanes[4+j] = b.get(4*i+j).copied().unwrap_or(Fr::ZERO);
+            }
+            PackedPair::store(Pair::new(&lanes))
+        }).collect();
+        stored_transform::<PackedPair, false>(&mut values, &plan.inverse_roots, 0);
+        values
+    };
     if cfg!(zopro_euler_leading_weights) && plan.n <= 1usize<<28 {
         let log=plan.n.trailing_zeros() as usize;let low=log.min(10);
         // <=8KiB of ordinary integer weights replaces <=40KiB of field weights.

@@ -177,6 +177,15 @@ in four of seven blocks.
 [16-core witness comparison](docs/benchmarks/2026-11-19-varied-h413/README.md) ·
 [16- and 32-worker comparison](docs/benchmarks/2026-11-19-single-range-h411/README.md)
 
+On native IFMA, `ZOPRO_CPU_FFT_INPUT_COLUMNS=1` packs the Euler FFT
+inputs while computing the first five inverse stages for domains of
+8,192 points or larger. The option defaults off and uses the existing
+root tables and a single packed transform buffer. On Ryzen 9950X 12×2,
+the option lowered paired latency across eight witnesses by 1.04% at
+16 workers and 0.46% at 32 workers against the identical build with
+the option disabled. Both widths favored it on seven of eight witnesses.
+[FFT configuration measurements](docs/benchmarks/2026-11-19-varied-fft417/README.md)
+
 With native IFMA G2 Horner buckets and resource scheduling,
 `ZOPRO_CPU_G2_RANGES=4` selects four point ranges and 11-bit windows for
 G2 queries of 1,024 through 65,535 points when the worker pool has at least
