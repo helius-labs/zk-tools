@@ -1,0 +1,105 @@
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1737,7 +1737,18 @@
+     q: usize,
+     column: usize,
+ ) {
+-    for order in 0..5 {
++    column_stages::<CACHED, FORWARD, 5>(local, roots, level, q, column)
++}
++
++#[inline(always)]
++fn column_stages<const CACHED: bool, const FORWARD: bool, const STAGES: usize>(
++    local: &mut [Pair; 32],
++    roots: &Twiddles,
++    level: usize,
++    q: usize,
++    column: usize,
++) {
++    for order in 0..STAGES {
+         let stage = if FORWARD { 4 - order } else { order };
+         let gap = 16 >> stage;
+         for block in (0..32).step_by(2 * gap) {
+--- a/crates/zopro-core/src/fft/pair/output_tiles.rs
++++ b/crates/zopro-core/src/fft/pair/output_tiles.rs
+@@ -15,32 +15,55 @@
+     let mut left = core::array::from_fn(|row| values[row * q + column].load());
+     let mut right = core::array::from_fn(|row| values[row * q + column + 1].load());
+     if roots.columns.is_empty() {
+-        column_kernel::<false, true>(&mut left, roots, 0, q, column);
+-        column_kernel::<false, true>(&mut right, roots, 0, q, column + 1);
++        column_stages::<false, true, 4>(&mut left, roots, 0, q, column);
++        column_stages::<false, true, 4>(&mut right, roots, 0, q, column + 1);
+     } else {
+-        column_kernel::<true, true>(&mut left, roots, 0, q, column);
+-        column_kernel::<true, true>(&mut right, roots, 0, q, column + 1);
+-    }
+-    for (row, stripe) in outputs.iter_mut().enumerate() {
+-        let Some(tail) = stripe.get_mut(offset..) else { continue };
+-        if tail.is_empty() { continue; }
+-        let len = tail.len().min(8);
+-        let out = &mut tail[..len];
+-        let (da0, db0) = left[row].halves();
+-        let (da1, db1) = right[row].halves();
+-        let da = Pair::from_halves(&da0, &da1);
+-        let db = Pair::from_halves(&db0, &db1);
+-        let aa = Pair::new(&core::array::from_fn(|j| {
+-            out.get(j).copied().unwrap_or(Fr::ZERO)
+-        }));
+-        let bb = Pair::new(&core::array::from_fn(|j| {
+-            b.get(4 * (row * q + column) + j)
+-                .copied()
+-                .unwrap_or(Fr::ZERO)
+-        }));
+-        let product = da.sum2(&bb, &aa, &db).get();
+-        out.copy_from_slice(&product[..out.len()]);
+-    }
++        column_stages::<true, true, 4>(&mut left, roots, 0, q, column);
++        column_stages::<true, true, 4>(&mut right, roots, 0, q, column + 1);
++    }
++
++    // Stage zero pairs rows 16 apart. The requested output is a prefix,
++    // so an absent low row also proves its high row is absent.
++    let (low, high) = outputs.split_at_mut(16);
++    for row in 0..16 {
++        if low[row].len() <= offset {
++            break;
++        }
++        let (lo_root, hi_root) = if roots.columns.is_empty() {
++            let i = row * q + column;
++            (&roots.layers[0][i], &roots.layers[0][i + 1])
++        } else {
++            let roots = &roots.columns[0];
++            (&roots[31 * column + row], &roots[31 * (column + 1) + row])
++        };
++        let left_product = left[row + 16].mul(&broadcast(lo_root));
++        let right_product = right[row + 16].mul(&broadcast(hi_root));
++        let first = 4 * (row * q + column);
++        write_derivative(&mut low[row][offset..], b, first,
++            left[row].add(&left_product), right[row].add(&right_product));
++        if high[row].len() > offset {
++            write_derivative(&mut high[row][offset..], b, first + 64 * q,
++                left[row].sub(&left_product), right[row].sub(&right_product));
++        }
++    }
++}
++
++#[inline(always)]
++fn write_derivative(tail: &mut [Fr], b: &[Fr], first: usize, left: Pair, right: Pair) {
++    let len = tail.len().min(8);
++    let out = &mut tail[..len];
++    let (da0, db0) = left.halves();
++    let (da1, db1) = right.halves();
++    let da = Pair::from_halves(&da0, &da1);
++    let db = Pair::from_halves(&db0, &db1);
++    let aa = Pair::new(&core::array::from_fn(|j| {
++        out.get(j).copied().unwrap_or(Fr::ZERO)
++    }));
++    let bb = Pair::new(&core::array::from_fn(|j| {
++        b.get(first + j).copied().unwrap_or(Fr::ZERO)
++    }));
++    let product = da.sum2(&bb, &aa, &db).get();
++    out.copy_from_slice(&product[..len]);
+ }
+ 
+ fn write_tile(

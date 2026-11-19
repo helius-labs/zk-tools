@@ -1,0 +1,7 @@
+# Consume the final FFT butterfly directly in the tiled derivative writer
+
+The indexed tiled FFT constructs two complete 32-row result columns before writing the requested prefix. Try executing four stages into those columns, then consume each final butterfly directly at the output. The low half is a sum and the high half a difference of the same product. Skip the high difference where its output ends before the current column. Inputs, field arithmetic, roots and output shape stay identical. The change uses the existing bounded column scratch. The native oracle checks short and full output including both twiddle layouts and simultaneous callers.
+
+Compare the frozen indexed SDK with a fresh patched SDK on the original 12×2 and 24×2 requests and scattered 12×2 witness 139. On 24×2 keep its selected 30-worker FFT pool with caller storage. On 12×2 keep its original 30-worker main pool. For both original inputs include the unchanged ordinary path in each executable to check build effects. Use eight balanced blocks on each reference, four on witness 139, plus one CPU profile per arm and request. Export each proof and check with the original key. Report the paired change against the frozen tiled route and the ordinary build comparison separately. The reference cutoffs are 28.4 and 52.8 ms. Timing starts after experiment 634 and after builds finish.
+
+[Parent SDK and CPU profiles](../2026-11-19-indexed-output628/README.md) · [Source change](artifacts/source.patch)
