@@ -43,3 +43,15 @@ Each fill interval runs from the start of a range task to its completed bucket a
 | 2x2-0-w32-range | 16.69 | 3.97 | 3.52 | 2.37 | 2.36 |
 
 [Per-query interval analysis](artifacts/range-occupancy.json)
+
+## Worker distribution in the ordinary release
+
+Three independently recorded release profiles per case use the same binary and a 397 Hz sampling frequency. The table gives the median across recordings. For each named function, a worker's share is its sampled cycles divided by all sampled cycles in that function. The effective worker count is one divided by the sum of squared shares. A larger value indicates that more threads shared the sampled work. The overlap column sums the smaller of the two function shares on each thread. These statistics describe work over the whole recording. They do not measure simultaneous execution or time spent waiting.
+
+| Reference | G1 stream / G2 borrowed update, % of sampled cycles | G1 / G2 effective worker count | Worker-share overlap |
+|---|---:|---:|---:|
+| 1×2, 16 workers | 25.57 / 17.85 | 11.53 / 10.68 | 61.0% |
+| 1×2, 32 workers | 20.95 / 20.69 | 16.41 / 13.51 | 45.5% |
+| 2×2, 32 workers | 24.44 / 12.19 | 20.24 / 18.13 | 57.2% |
+
+At 32 workers the 1×2 G2 update had a more concentrated distribution than on 2×2. The traces and profiles use different executables. Relating the narrower distribution to fill launch delays requires a synchronized measurement on the ordinary schedule. Each profile contained 59–97 samples in the named G2 update. Per-recording totals include the sampling period, the thread identity, the independent proof digest and the sample counts for both functions. [Release profile breakdown](artifacts/release-worker-samples.json)
