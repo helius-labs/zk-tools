@@ -814,6 +814,8 @@ pub struct Key {
     exclusive_g2_grouping: bool,
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     raw_g1_a_on_frontend: bool,
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    g1_k_on_frontend: bool,
     basis_only: bool,
     // Audited native workspace, or conservative prompt release when unknown.
     proof_workspace: Option<usize>,
@@ -1524,6 +1526,8 @@ impl Key {
             exclusive_g2_grouping: true,
             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
             raw_g1_a_on_frontend: false,
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            g1_k_on_frontend: false,
             basis_only,
             #[cfg(gpu_any)]
             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
@@ -2033,10 +2037,42 @@ impl Key {
                 return ((ar, bs1), (kr, (hz, bs2)));
             }
             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
+            let compute_k = || {
+                #[cfg(all(
+                    zopro_resource_schedule,
+                    feature = "ifma8",
+                    target_arch = "x86_64",
+                    target_os = "linux",
+                    target_feature = "avx512ifma",
+                    target_feature = "avx512vl",
+                    target_feature = "avx512dq",
+                    not(no_ifma)
+                ))]
+                if self.g1_k_on_frontend {
+                    if let Some(pool) = self.frontend_pool.as_ref().filter(|pool| {
+                        pool.current_num_threads() < rayon::current_num_threads()
+                    }) {
+                        let result = pool.install(|| {
+                            let workers = rayon::current_num_threads();
+                            let _scratch = crate::preparation::Reservation::analysis(
+                                msm_affine::workspace::frontend_g1_bytes(sk.len(), workers, true),
+                            )?;
+                            if std::env::var_os("ZOPRO_K_FRONTEND_TRACE").is_some() {
+                                eprintln!("K_FRONTEND {} {workers}", sk.len());
+                            }
+                            Some(msm(k, &mut *sk))
+                        });
+                        if let Some(result) = result {
+                            return result;
+                        }
+                    }
+                }
+                msm(k, sk)
+            };
             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
                 || {
                     rayon::join(
-                        || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+                        || rayon::join(|| msm(&self.a[..], sa), compute_k),
                         || {
                             if montgomery_h {
                                 msm_affine::msm_montgomery(z, h)
@@ -2328,7 +2364,7 @@ impl Key {
                         pool.current_num_threads() < rayon::current_num_threads()
                     }) {
                         if let Some(_scratch) = crate::preparation::Reservation::analysis(
-                            msm_affine::workspace::frontend_a_bytes(sa.len(), pool.current_num_threads()),
+                            msm_affine::workspace::frontend_g1_bytes(sa.len(), pool.current_num_threads(), false),
                         ) {
                             return pool.install(|| msm_raw(&self.a[..], sa));
                         }
@@ -2546,6 +2582,13 @@ impl Key {
     /// Disabled by default.
     pub fn set_raw_g1_a_on_frontend(&mut self, enabled: bool) {
         self.raw_g1_a_on_frontend = enabled;
+    }
+
+    /// Use the smaller caller-attached pool for the large native G1 K query.
+    /// Requires sufficient scratch under the proof workspace policy.
+    /// Disabled by default.
+    pub fn set_g1_k_on_frontend(&mut self, enabled: bool) {
+        self.g1_k_on_frontend = enabled;
     }
 
     /// Control scalar grouping for the native exclusive G2 evaluator.

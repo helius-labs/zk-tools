@@ -118,6 +118,14 @@ impl Prover {
         self.key.set_raw_g1_a_on_frontend(enabled);
     }
 
+    /// Run the large native IFMA G1 K query on the attached frontend pool.
+    /// Enable per key when the caller uses disjoint cores. Dispatch checks
+    /// the workspace budget. Disabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_g1_k_on_frontend(&mut self, enabled: bool) {
+        self.key.set_g1_k_on_frontend(enabled);
+    }
+
     /// Control scalar grouping for the native exclusive G2 evaluator.
     /// Grouping is enabled by default.
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]

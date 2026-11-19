@@ -421,8 +421,8 @@ pub(crate) struct Forecast {
     pub msms: usize,
     pub total: usize,
 }
-pub(crate) fn frontend_a_bytes(points: usize, workers: usize) -> Option<usize> {
-    let profile = envelope::<G1Config>(points, false, false)?;
+pub(crate) fn frontend_g1_bytes(points: usize, workers: usize, group: bool) -> Option<usize> {
+    let profile = envelope::<G1Config>(points, group, false)?;
     add(profile.held, mul(profile.leaf, workers)?)
 }
 

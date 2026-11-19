@@ -1,0 +1,131 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -814,6 +814,8 @@
+     exclusive_g2_grouping: bool,
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     raw_g1_a_on_frontend: bool,
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    g1_k_on_frontend: bool,
+     basis_only: bool,
+     // Audited native workspace, or conservative prompt release when unknown.
+     proof_workspace: Option<usize>,
+@@ -1524,6 +1526,8 @@
+             exclusive_g2_grouping: true,
+             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+             raw_g1_a_on_frontend: false,
++            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++            g1_k_on_frontend: false,
+             basis_only,
+             #[cfg(gpu_any)]
+             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
+@@ -2033,10 +2037,42 @@
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
++            let compute_k = || {
++                #[cfg(all(
++                    zopro_resource_schedule,
++                    feature = "ifma8",
++                    target_arch = "x86_64",
++                    target_os = "linux",
++                    target_feature = "avx512ifma",
++                    target_feature = "avx512vl",
++                    target_feature = "avx512dq",
++                    not(no_ifma)
++                ))]
++                if self.g1_k_on_frontend {
++                    if let Some(pool) = self.frontend_pool.as_ref().filter(|pool| {
++                        pool.current_num_threads() < rayon::current_num_threads()
++                    }) {
++                        let result = pool.install(|| {
++                            let workers = rayon::current_num_threads();
++                            let _scratch = crate::preparation::Reservation::analysis(
++                                msm_affine::workspace::frontend_g1_bytes(sk.len(), workers, true),
++                            )?;
++                            if std::env::var_os("ZOPRO_K_FRONTEND_TRACE").is_some() {
++                                eprintln!("K_FRONTEND {} {workers}", sk.len());
++                            }
++                            Some(msm(k, &mut *sk))
++                        });
++                        if let Some(result) = result {
++                            return result;
++                        }
++                    }
++                }
++                msm(k, sk)
++            };
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
+                     rayon::join(
+-                        || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
++                        || rayon::join(|| msm(&self.a[..], sa), compute_k),
+                         || {
+                             if montgomery_h {
+                                 msm_affine::msm_montgomery(z, h)
+@@ -2328,7 +2364,7 @@
+                         pool.current_num_threads() < rayon::current_num_threads()
+                     }) {
+                         if let Some(_scratch) = crate::preparation::Reservation::analysis(
+-                            msm_affine::workspace::frontend_a_bytes(sa.len(), pool.current_num_threads()),
++                            msm_affine::workspace::frontend_g1_bytes(sa.len(), pool.current_num_threads(), false),
+                         ) {
+                             return pool.install(|| msm_raw(&self.a[..], sa));
+                         }
+@@ -2548,6 +2584,13 @@
+         self.raw_g1_a_on_frontend = enabled;
+     }
+ 
++    /// Use the smaller caller-attached pool for the large native G1 K query.
++    /// Requires sufficient scratch under the proof workspace policy.
++    /// Disabled by default.
++    pub fn set_g1_k_on_frontend(&mut self, enabled: bool) {
++        self.g1_k_on_frontend = enabled;
++    }
++
+     /// Control scalar grouping for the native exclusive G2 evaluator.
+     /// Grouping is enabled by default.
+     pub fn set_exclusive_g2_grouping(&mut self, enabled: bool) {
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -421,8 +421,8 @@
+     pub msms: usize,
+     pub total: usize,
+ }
+-pub(crate) fn frontend_a_bytes(points: usize, workers: usize) -> Option<usize> {
+-    let profile = envelope::<G1Config>(points, false, false)?;
++pub(crate) fn frontend_g1_bytes(points: usize, workers: usize, group: bool) -> Option<usize> {
++    let profile = envelope::<G1Config>(points, group, false)?;
+     add(profile.held, mul(profile.leaf, workers)?)
+ }
+ 
+--- a/crates/zopro-prover/src/lib.rs
++++ b/crates/zopro-prover/src/lib.rs
+@@ -116,6 +116,14 @@
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     pub fn set_raw_g1_a_on_frontend(&mut self, enabled: bool) {
+         self.key.set_raw_g1_a_on_frontend(enabled);
++    }
++
++    /// Run the large native IFMA G1 K query on the attached frontend pool.
++    /// Enable per key when the caller uses disjoint cores. Dispatch checks
++    /// the workspace budget. Disabled by default.
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    pub fn set_g1_k_on_frontend(&mut self, enabled: bool) {
++        self.key.set_g1_k_on_frontend(enabled);
+     }
+ 
+     /// Control scalar grouping for the native exclusive G2 evaluator.
+--- a/crates/zopro-bench/examples/cpu-sdk.rs
++++ b/crates/zopro-bench/examples/cpu-sdk.rs
+@@ -40,6 +40,11 @@
+             Ok("1") => prover.set_raw_g1_a_on_frontend(true),
+             Ok("0") | Err(std::env::VarError::NotPresent) => {}
+             _ => return Err("raw G1 A frontend must be 0 or 1".into()),
++        }
++        match std::env::var("ZOPRO_BENCH_G1_K_FRONTEND").as_deref() {
++            Ok("1") => prover.set_g1_k_on_frontend(true),
++            Ok("0") | Err(std::env::VarError::NotPresent) => {}
++            _ => return Err("G1 K frontend must be 0 or 1".into()),
+         }
+         match std::env::var("ZOPRO_BENCH_EXCLUSIVE_G2_GROUPING").as_deref() {
+             Ok("0") => prover.set_exclusive_g2_grouping(false),
