@@ -1,0 +1,257 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2022,7 +2022,7 @@
+                 );
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+-            use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
++            use msm_affine::{canonical, msm_grouped, msm_in_place as msm, msm_raw};
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
+                     rayon::join(
+@@ -2041,7 +2041,7 @@
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
+                     }
+-                    if let Some(groups) = group_witness(sb) {
++                    if let Some(groups) = msm_affine::group_b2(sb, omit_b) {
+                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+                         if omit_b
+                             && self.b2.len() >= 65_536
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -13,7 +13,7 @@
+ mod grouping_cost;
+ pub(super) mod borrowed_pending;
+ mod grouping;
+-pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
++pub(super) use grouping::{group_b2, group_witness, scalar_groups, ScalarGroups};
+ 
+ #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ mod g2_horner;
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -206,3 +206,23 @@
+ 
+ #[cfg(test)]
+ mod tests;
++
++#[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++mod shard_b2;
++
++pub(crate) fn group_b2(scalars: &[Fr], exclusive: bool) -> Option<ScalarGroups> {
++    #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
++    if exclusive && std::env::var("ZOPRO_CPU_GROUPED_G2_PHI").as_deref() == Ok("1") {
++        let shards = match std::env::var("ZOPRO_TRIAL_B2_SHARDS").as_deref() {
++            Ok("8") => Some(8),
++            Ok("32") => Some(32),
++            _ => None,
++        };
++        if let Some(shards) = shards {
++            if let Ok(result) = shard_b2::build(scalars, shards) {
++                return result;
++            }
++        }
++    }
++    group_witness(scalars)
++}
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/grouping/shard_b2.rs
+@@ -0,0 +1,197 @@
++//! Group order is private to this B2 query. Equal full scalars share one
++//! class, and the original point order is preserved within that class.
++use super::{grouping_cost, grouping_sample, ScalarGroups};
++use hashbrown::hash_table::{Entry, HashTable};
++use rayon::prelude::*;
++use std::hash::BuildHasher;
++use zopro_bn254::Fr;
++
++#[derive(Default)]
++struct Columns {
++    values: Vec<[u64; 4]>,
++    counts: Vec<usize>,
++    order: Vec<u32>,
++}
++
++fn partition(s: &[u64; 4], shards: usize) -> usize {
++    (s[0] ^ s[1].rotate_left(19)) as usize & (shards - 1)
++}
++
++fn build_shard(input: &[[u64; 4]], ids: &[u32], state: &ahash::RandomState) -> Columns {
++    let mut map = HashTable::<u32>::with_capacity(ids.len());
++    let mut values = Vec::with_capacity(ids.len());
++    let mut counts = Vec::with_capacity(ids.len());
++    let mut classes = Vec::with_capacity(ids.len());
++    for &id in ids {
++        let s = input[id as usize];
++        let class = match map.entry(
++            state.hash_one(s),
++            |&i| values[i as usize] == s,
++            |&i| state.hash_one(values[i as usize]),
++        ) {
++            Entry::Occupied(e) => *e.get(),
++            Entry::Vacant(e) => {
++                let i = values.len() as u32;
++                values.push(s);
++                counts.push(0);
++                e.insert(i);
++                i
++            }
++        };
++        counts[class as usize] += 1;
++        classes.push(class);
++    }
++    drop(map);
++    let mut offset = 0;
++    let mut cursor: Vec<usize> = counts
++        .iter()
++        .map(|n| {
++            let start = offset;
++            offset += n;
++            start
++        })
++        .collect();
++    let mut order = vec![0; ids.len()];
++    for (&id, class) in ids.iter().zip(classes) {
++        let slot = &mut cursor[class as usize];
++        order[*slot] = id;
++        *slot += 1;
++    }
++    for word in &mut values {
++        *word = Fr::from_montgomery(*word).to_canonical();
++    }
++    Columns {
++        values,
++        counts,
++        order,
++    }
++}
++
++fn columns(input: &[[u64; 4]], shards: usize, cutoff: usize) -> Option<Columns> {
++    let mut counts = vec![0usize; shards];
++    for s in input.iter().filter(|s| **s != [0; 4]) {
++        counts[partition(s, shards)] += 1;
++    }
++    let mut ids: Vec<Vec<u32>> = counts.into_iter().map(Vec::with_capacity).collect();
++    for (id, s) in input.iter().enumerate() {
++        if *s != [0; 4] {
++            ids[partition(s, shards)].push(id as u32);
++        }
++    }
++    let state = ahash::RandomState::new();
++    let parts: Vec<_> = ids
++        .into_par_iter()
++        .map(|ids| build_shard(input, &ids, &state))
++        .collect();
++    let unique = parts.iter().map(|part| part.values.len()).sum::<usize>();
++    if unique > cutoff {
++        return None;
++    }
++    let points = parts.iter().map(|part| part.order.len()).sum();
++    let mut out = Columns {
++        values: Vec::with_capacity(unique),
++        counts: Vec::with_capacity(unique),
++        order: Vec::with_capacity(points),
++    };
++    for part in parts {
++        out.values.extend(part.values);
++        out.counts.extend(part.counts);
++        out.order.extend(part.order);
++    }
++    Some(out)
++}
++
++pub(super) fn build(input: &[Fr], shards: usize) -> Result<Option<ScalarGroups>, ()> {
++    let n = input.len();
++    if !(65_536..=262_144).contains(&n) || !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
++        return Err(());
++    }
++    // SAFETY: Fr is transparent over four limbs. Hashing and equality only
++    // borrow the stored Montgomery representative; output values are canonical.
++    let words = unsafe { std::slice::from_raw_parts(input.as_ptr().cast::<[u64; 4]>(), n) };
++    let Some((sample, percent)) = grouping_sample(
++        words,
++        std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1"),
++    ) else {
++        return Ok(None);
++    };
++    drop(sample);
++    let Some(reservation) = grouping_cost::reserve(n, percent) else {
++        return Err(());
++    };
++    // Bounds the two generations of value/count/index arrays, per-shard
++    // hash controls and slots, cursors, and per-shard allocation margins.
++    let bytes = n
++        .checked_mul(160)
++        .and_then(|b| b.checked_add(shards * 4096));
++    let Some(_scratch) = crate::preparation::Reservation::analysis(bytes) else {
++        return Err(());
++    };
++    let Some(Columns {
++        values,
++        counts,
++        order,
++    }) = columns(words, shards, n * percent / 100)
++    else {
++        return Ok(None);
++    };
++    let mut starts = Vec::with_capacity(counts.len() + 1);
++    starts.push(0);
++    for &count in &counts {
++        starts.push(starts.last().unwrap() + count);
++    }
++    if std::env::var_os("ZOPRO_TRIAL_B2_SHARDS_PROBE").is_some() {
++        eprintln!("B2_SHARDS {n} {} {shards} {}", values.len(), bytes.unwrap());
++    }
++    Ok(Some(ScalarGroups {
++        len: n,
++        values,
++        counts,
++        order,
++        starts,
++        _reservation: reservation,
++    }))
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::collections::BTreeMap;
++
++    #[test]
++    fn collisions_zeros_and_stable_membership_match_the_field_oracle() {
++        let input: Vec<[u64; 4]> = (0..2048)
++            .map(|i| {
++                if i % 7 == 0 {
++                    [0; 4]
++                } else if i % 3 == 0 {
++                    [3, 0, (i % 83) as u64, 0]
++                } else {
++                    [(i % 71) as u64, (i % 5) as u64, (i % 13) as u64, 0]
++                }
++            })
++            .collect();
++        let mut expected = BTreeMap::new();
++        for (i, &s) in input.iter().enumerate().filter(|(_, s)| **s != [0; 4]) {
++            expected
++                .entry(Fr::from_montgomery(s).to_canonical())
++                .or_insert_with(Vec::new)
++                .push(i as u32);
++        }
++        for shards in [8, 32] {
++            let p = columns(&input, shards, expected.len()).unwrap();
++            let mut offset = 0;
++            let mut got = BTreeMap::new();
++            for (s, n) in p.values.into_iter().zip(p.counts) {
++                assert!(got
++                    .insert(s, p.order[offset..offset + n].to_vec())
++                    .is_none());
++                offset += n;
++            }
++            assert_eq!(offset, p.order.len());
++            assert_eq!(got, expected);
++            assert!(columns(&input, shards, expected.len() - 1).is_none());
++            assert!(columns(&[[0; 4]; 256], shards, 0).unwrap().order.is_empty());
++        }
++    }
++}
