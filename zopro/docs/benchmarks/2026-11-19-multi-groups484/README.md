@@ -19,3 +19,9 @@ The production binary, same-build disabled, B2 alone and all three queries each 
 On the eight held-out requests the median changes were -5.50% vs release, -4.51% vs disabled and -1.45% vs B2 alone. The prototype passed the latency screen. The two instrumented witnesses exercised all three compact queries, and zero optional preparation allowance selected the ordinary route. All 111 exported proofs passed Gnark verification. This is a prototype measurement.
 
 [Full measurements](artifacts/results.json) · [Raw processes](artifacts/processes.json.gz) · [Verification](artifacts/verification.json) · [Patch](artifacts/source.patch)
+
+## Reproducing the prepared groups
+
+The compressed files contain public row indices. Decompress them into the same directory with their original names. In the patched SDK example, set `ZOPRO_TRIAL_GROUPS` to the path of `groups.bin` and `ZOPRO_LINEAR_GROUPS` to the directory holding `a.bin` and `k.bin`. The existing 12×2 wire offset file and local Euler weighting are enabled in every arm. The original input used 12 consecutive state positions and one nullifier predecessor for all inputs. Validation on scattered leaves is a separate test.
+
+[B2 groups](artifacts/groups.bin.gz) · [A groups](artifacts/a.bin.gz) · [K groups](artifacts/k.bin.gz) · [Dimensions and uncompressed SHA-256 digests](artifacts/layouts.json)
