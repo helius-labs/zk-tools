@@ -1,0 +1,117 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2332,7 +2332,10 @@
+                 rayon::join(
+                     || {
+                         rayon::join(
+-                            || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
++                            || rayon::join(
++                                || self.trial_a.as_ref().filter(|_| omit_b).and_then(|g|g.query(&self.a,sa)).unwrap_or_else(||msm(&self.a,sa)),
++                                || self.trial_k.as_ref().filter(|_| omit_b).and_then(|g|g.query(k,sk)).unwrap_or_else(||msm(k,sk))
++                            ),
+                             || {
+                                 if montgomery_h {
+                                     msm_affine::msm_montgomery(z, h)
+@@ -2344,7 +2347,9 @@
+                     },
+                     || {
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,sb));
++                            let result = self.trial_groups.as_ref().and_then(|g| g.query(&self.b2,sb))
++                                .unwrap_or_else(||msm_affine::g2_query_exclusive(&self.b2,sb));
++                            return (G1Projective::IDENTITY,result);
+                         }
+                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(|| scalar_groups(sb))
+--- a/crates/zopro-core/src/groups482.rs
++++ b/crates/zopro-core/src/groups482.rs
+@@ -1,6 +1,25 @@
+ use super::{msm_affine, preparation::Reservation, Fr, G2Affine, G2Projective};
+ use rayon::prelude::*;
+ 
++
++pub(super) trait GroupScalar: Copy + Eq + Send + Sync {
++    fn words(self) -> [u64; 4];
++    fn difference(self, representative: Self) -> [u64; 4];
++}
++impl GroupScalar for Fr {
++    fn words(self) -> [u64; 4] { self.to_canonical() }
++    fn difference(self, representative: Self) -> [u64; 4] {
++        (self - representative).to_canonical()
++    }
++}
++impl GroupScalar for [u64; 4] {
++    fn words(self) -> [u64; 4] { self }
++    fn difference(self, representative: Self) -> [u64; 4] {
++        let actual = Fr::from_canonical(self).expect("canonical scalar");
++        let previous = Fr::from_canonical(representative).expect("canonical representative");
++        (actual - previous).to_canonical()
++    }
++}
+ pub(super) struct Groups {
+     ids: Vec<u32>,
+     ends: Vec<usize>,
+@@ -68,7 +87,7 @@
+         &self.ids[start..self.ends[g]]
+     }
+ 
+-    pub fn query(&self, bases:&[G2Affine], scalars:&[Fr]) -> Option<G2Projective> {
++    pub fn query<T: GroupScalar>(&self, bases:&[G2Affine], scalars:&[T]) -> Option<G2Projective> {
+         if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
+             let samples=self.ends.len().min(32);
+             let mut mismatches=0;
+@@ -98,7 +117,7 @@
+             eprintln!("GROUP_QUERY {} {} {}",scalars.len(),self.sources.len(),count);
+         }
+         let (main,extra)=rayon::join(|| {
+-            let mut words:Vec<_>=self.sources.par_iter().map(|&i|scalars[i as usize].to_canonical()).collect();
++            let mut words:Vec<_>=self.sources.par_iter().map(|&i|scalars[i as usize].words()).collect();
+             msm_affine::g2_query_exclusive(&self.sums,&mut words)
+         },|| {
+             if count==0 {return G2Projective::IDENTITY;}
+@@ -110,7 +129,7 @@
+                 let rep=scalars[members[0] as usize];
+                 for &i in &members[1..] {
+                     let s=scalars[i as usize];
+-                    if s!=rep {points.push(bases[i as usize]);words.push((s-rep).to_canonical());}
++                    if s!=rep {points.push(bases[i as usize]);words.push(s.difference(rep));}
+                 }
+             }
+             super::msm_raw_b2(&points,&words)
+--- a/crates/zopro-core/src/groups_g1_trial.rs
++++ b/crates/zopro-core/src/groups_g1_trial.rs
+@@ -1,6 +1,7 @@
+ use super::{msm_affine, preparation::Reservation, Fr, G1Affine, G1Projective};
+ use rayon::prelude::*;
+ 
++use super::groups482::GroupScalar;
+ pub(super) struct Groups {
+     ids: Vec<u32>,
+     ends: Vec<usize>,
+@@ -68,7 +69,7 @@
+         &self.ids[start..self.ends[g]]
+     }
+ 
+-    pub fn query(&self, bases:&[G1Affine], scalars:&[Fr]) -> Option<G1Projective> {
++    pub fn query<T: GroupScalar>(&self, bases:&[G1Affine], scalars:&[T]) -> Option<G1Projective> {
+         if std::env::var_os("ZOPRO_GROUP_SAMPLE").is_some() {
+             let samples=self.ends.len().min(32);
+             let mut mismatches=0;
+@@ -98,7 +99,7 @@
+             eprintln!("GROUP_G1 {} {} {}",scalars.len(),self.sources.len(),count);
+         }
+         let (main,extra)=rayon::join(|| {
+-            let mut words:Vec<_>=self.sources.par_iter().map(|&i|scalars[i as usize].to_canonical()).collect();
++            let mut words:Vec<_>=self.sources.par_iter().map(|&i|scalars[i as usize].words()).collect();
+             msm_affine::msm_canonical(&self.sums,&words)
+         },|| {
+             if count==0 {return G1Projective::IDENTITY;}
+@@ -110,7 +111,7 @@
+                 let rep=scalars[members[0] as usize];
+                 for &i in &members[1..] {
+                     let s=scalars[i as usize];
+-                    if s!=rep {points.push(bases[i as usize]);words.push((s-rep).to_canonical());}
++                    if s!=rep {points.push(bases[i as usize]);words.push(s.difference(rep));}
+                 }
+             }
+             msm_affine::msm_raw(&points,&words)
