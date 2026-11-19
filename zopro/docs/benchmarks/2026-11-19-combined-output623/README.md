@@ -1,5 +1,9 @@
 # Joint effect of folded FFT output and a smaller product pool
 
+The original 24×2 experimental proof took **56.579 ms** with tiled output on the 30-worker product pool, down from 60.227 ms in the ordinary arm. That is **9.33× M5 CPU and 3.11× Metal**, with 3.779 ms still to save to reach the 52.8 ms CPU target. The combined change improved paired median latency on all four inputs against the ordinary arm (18/20 paired blocks), and against the frozen executable (17/20).
+
+For this Ryzen experimental profile, the combined path is the latency choice. Pool dispatch alone had the lowest peak RSS of the four active configurations on all four inputs. Adding tiled output increased its maximum peak by 28–104 MiB depending on the input. On the original, the combined path reached 996.3 MiB, compared with 891.9 MiB for pool dispatch alone and 1,131.5 MiB for the ordinary path. The release SDK pool option has a separate comparison on the ordinary key. [SDK result](../2026-11-19-release-pool621/README.md)
+
 Five fresh blocks compare both changes on four 24×2 inputs. Each comparison charges pool dispatch, allocation and the complete verified proof. The interaction is the within-block combined latency change less the sum of the two individual latency changes. A positive interaction means the combined saving was smaller than the sum.
 
 | Request | Frozen / ordinary / tiled / pool / both ms | Both vs ordinary / pool / tiled | Interaction ms | Peak ordinary / tiled / pool / both MiB | Both vs M5 CPU / Metal |
