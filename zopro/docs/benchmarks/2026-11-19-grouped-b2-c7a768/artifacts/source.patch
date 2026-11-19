@@ -1,0 +1,126 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2087,7 +2087,19 @@
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
+                     }
++                    let layout = if omit_b && self.b2.len() >= 65_536 {
++                        std::env::var("ZOPRO_TRIAL_GROUPED_B2_LAYOUT").ok()
++                    } else {
++                        None
++                    };
++                    let clock = (layout.is_some() && std::env::var_os("ZOPRO_TRIAL_B2_PHASES").is_some())
++                        .then(crate::time::Instant::now);
+                     if let Some(groups) = group_witness(sb) {
++                        if let Some(layout) = layout {
++                            let class_ns = clock.map(|t| t.elapsed().as_nanos());
++                            let sum = msm_affine::grouped_b2_layout(&self.b2, &groups, &layout, class_ns);
++                            return (G1Projective::IDENTITY, sum);
++                        }
+                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+                         if omit_b
+                             && self.b2.len() >= 65_536
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -159,6 +159,57 @@
+     assert_eq!(bases.len(), groups.len, "validated MSM dimensions");
+     let bases = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
+     msm_raw(&bases, &groups.values)
++}
++
++/// Profile the ordinary grouped B2 stages or change only its final layout.
++pub(super) fn grouped_b2_layout(
++    bases: &[zopro_bn254::G2Affine],
++    groups: &ScalarGroups,
++    layout: &str,
++    class_ns: Option<u128>,
++) -> zopro_bn254::G2Projective {
++    use zopro_bn254::G2Config;
++
++    assert_eq!(bases.len(), groups.len, "validated MSM dimensions");
++    let clock = class_ns.map(|_| crate::time::Instant::now());
++    let grouped = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
++    let group_ns = clock.map(|t| t.elapsed().as_nanos());
++    let requested = match layout {
++        "u11x3" => Some((false, 11, 3)),
++        "u12x1" => Some((false, 12, 1)),
++        "u12x2" => Some((false, 12, 2)),
++        "u13x1" => Some((false, 13, 1)),
++        "s12x2" => Some((true, 12, 2)),
++        "s13x2" => Some((true, 13, 2)),
++        "s13x3" => Some((true, 13, 3)),
++        _ => None,
++    };
++    #[cfg(all(zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    let selected = requested.filter(|_| (1024..65536).contains(&grouped.len())).and_then(|geometry| {
++        let (signed, bits, parts) = geometry;
++        let bytes = workspace::grouped_b2_layout_bytes(grouped.len(), bits, parts, signed);
++        let reservation = crate::preparation::Reservation::analysis(bytes)?;
++        Some((geometry, reservation))
++    });
++    #[cfg(not(all(zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++    let selected: Option<((bool, usize, usize), ())> = None;
++    let _ = requested;
++    let geometry = selected.as_ref().map(|(shape, _)| *shape);
++    let begin = clock.map(|t| t.elapsed().as_nanos());
++    let sum = match geometry {
++        Some((true, bits, parts)) => merge_split_width::<G2Config>(&grouped, &groups.values, parts, bits),
++        Some((false, bits, parts)) => msm_unsigned_raw::<G2Config>(&grouped, &groups.values, bits, parts),
++        None => msm_raw::<G2Config>(&grouped, &groups.values),
++    };
++    if let (Some(start), Some(group), Some(class), Some(begin)) = (clock, group_ns, class_ns, begin) {
++        let (sign, bits, parts) = geometry.unwrap_or((false, 0, 0));
++        eprintln!(
++            "B2_STAGES {} {} {} {} {} {} {class} {group} {} {}",
++            bases.len(), grouped.len(), usize::from(sign), bits, parts, rayon::current_num_threads(),
++            start.elapsed().as_nanos() - begin, begin - group,
++        );
++    }
++    sum
+ }
+ 
+ fn msm_grouped_prepared<C: CurveConfig>(
+@@ -1844,3 +1895,29 @@
+ 
+ #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+ mod dense_h;
++
++
++#[cfg(test)]
++#[test]
++fn grouped_b2_signed_and_unsigned_layouts_match_generator_oracle() {
++    use zopro_bn254::{G2Affine, G2Config};
++
++    let terms = [Fr::ONE, Fr::ZERO, -Fr::ONE, Fr::from(193u64), -Fr::from(991u64)];
++    let mut random = Fr::from(884u64);
++    let mut weights = Vec::new();
++    let mut scalars = Vec::new();
++    for i in 0..2053 {
++        random = random.square() + Fr::from(i as u64 + 5);
++        weights.push(if i % 11 == 0 { Fr::ZERO } else { Fr::from(i as u64 + 1) });
++        scalars.push(if i % 3 == 0 { terms[i % terms.len()] } else { random });
++    }
++    let points: Vec<_> = weights.iter().map(|&w| (G2Affine::GENERATOR * w).to_affine()).collect();
++    let words: Vec<_> = scalars.iter().map(Fr::to_canonical).collect();
++    let expected = G2Affine::GENERATOR * weights.iter().zip(&scalars).map(|(&a, &b)| a * b).fold(Fr::ZERO, |sum, term| sum + term);
++    for (bits, parts) in [(11, 3), (12, 1), (12, 2), (13, 1)] {
++        assert_eq!(msm_unsigned_raw::<G2Config>(&points, &words, bits, parts), expected);
++    }
++    for (bits, parts) in [(12, 2), (13, 2), (13, 3)] {
++        assert_eq!(merge_split_width::<G2Config>(&points, &words, parts, bits), expected);
++    }
++}
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -189,6 +189,11 @@
+     }
+     Some(p)
+ }
++pub(super) fn grouped_b2_layout_bytes(n: usize, bits: usize, parts: usize, signed: bool) -> Option<usize> {
++    let p = one::<G2Config>(n, bits, parts, signed)?;
++    add(p.held, mul(p.leaf, rayon::current_num_threads())?)
++}
++
+ /// Extra positive growth over the ordinary raw H query at this worker count.
+ pub(super) fn dense_h_layout_extra<C: CurveConfig>(
+     n: usize, ranges: usize, widths: &[usize], signed: bool,
