@@ -77,7 +77,14 @@ for k,s,m in jobs:
   for line in record.splitlines():
    match=re.match(r'^\s*[0-9a-f]+\s+(.+)\s+\(([^()]*)\)\s*$',line)
    if match:frames.append(re.sub(r'\+0x[0-9a-f]+$','',match[1].strip()))
-  assert frames,record[:400];stacks[tuple(frames)]+=1;families[family(frames)]+=1;leaves[frames[0]]+=1
+  assert frames,record[:400];stacks[tuple(frames)]+=1
+ names=sorted({f for st in stacks for f in st})
+ decoded=subprocess.check_output(['c++filt','-s','rust'],input='\n'.join(names)+'\n',text=True).splitlines()
+ assert len(decoded)==len(names)
+ symbols={f:re.sub(r'\[[0-9a-f]{16}\]','',v) for f,v in zip(names,decoded)}
+ for st,n in stacks.items():
+  frames=[symbols[f] for f in st]
+  families[family(frames)]+=n;leaves[frames[0]]+=n
  assert sum(families.values())>8
  proof=q/'0.proof';pub=q/'0.public';dg=sha(proof);assert sha(pub)==c['public_sha256'];msg=subprocess.check_output([bundle/'bin/verify',bundle/c['image'],c['image_sha256'],proof,pub,c['public_sha256']],text=True);assert 'VERIFIED proof_sha256='+dg in msg
  (q/'receipt').write_text(msg);pack(q/'stacks.json.gz',[dict(frames=list(f),samples=n) for f,n in stacks.items()])
