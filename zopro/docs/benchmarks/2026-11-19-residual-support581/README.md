@@ -1,6 +1,6 @@
 # Whole-pack FFT support after subtracting public Euler row pairs
 
-The reader uses the four archived, independently verified generated row captures for each supplied shape. In each leave-one-out fold, the held-out A/B row pair is compared with the majority pair from the other three fixtures. If all three differ, the reference is zero. This three-fixture reference differs from the four-fixture production candidate used in the mapped-image timings. Every input byte and capture digest was checked.
+The reader uses the four archived, independently verified generated row captures for each supplied shape. In each leave-one-out fold, the held-out A/B row pair is compared with the majority pair from the other three fixtures. If all three differ, the reference is zero. This three-fixture reference differs from the four-fixture experimental reference used in the mapped-image timings. Every input byte and capture digest was checked.
 
 A four-row SIMD pack can be skipped by the final pointwise product when all four centered row pairs vanish. Domain padding is excluded from the first percentage. For the five outer radix-32 forward layers, the reader propagates the required output packs backwards across each real butterfly pair. Neither output required permits omitting the entire butterfly, including its root multiplication. One output required still needs the root product. This second percentage includes domain padding in both arms. Counts are structural opportunities. Realized savings depend on traversal costs and the active key layout.
 
@@ -14,5 +14,7 @@ A four-row SIMD pack can be skipped by the final pointwise product when all four
 | 4x2 | 1.00% / 11.33% | 0.18% / 1.45% | 96 | 14.0% |
 | 8x2 | 1.04% / 11.42% | 0.13% / 1.26% | 156 | 11.1% |
 | merge-24x1 | 1.15% / 82.98% | 0.23% / 40.06% | 110 | 6.4% |
+
+On merge-24×1, subtracting the reference increased the median share of entirely unnecessary outer butterflies from 0.23% to 40.06%. The same opportunity was below 2% on every transfer shape. A timed kernel must establish how much of the merge opportunity remains on independently selected requests and after paying for support checks.
 
 The values summarize four folds per shape. The 32 underlying proof identities were previously verified in the [Euler origin study](../2026-11-19-euler-origin566/README.md). This analysis runs no new prover timings. [Raw level counts and identities](artifacts/counts.json) · [Streaming reader](artifacts/read.rs)
