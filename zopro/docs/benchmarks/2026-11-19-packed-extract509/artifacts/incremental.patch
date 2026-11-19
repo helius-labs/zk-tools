@@ -1,0 +1,106 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1171,7 +1171,10 @@
+         }
+         let (mut sa, mut sb): (Vec<_>, Vec<_>) = rayon::join(
+             || plan.a_indices.par_iter().map(|&i| w[i as usize]).collect(),
+-            || plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
++            || match &self.packed_b2 {
++                Some(layout) if layout.direct => layout.extract(&w, &plan.b_indices),
++                _ => plan.b_indices.par_iter().map(|&i| w[i as usize]).collect(),
++            },
+         );
+         trace("extract-scalars", started);
+         let (public, private) = w.split_at_mut(plan.n_public);
+@@ -2047,7 +2050,8 @@
+                     )
+                 },
+                 || {
+-                    if let Some(packed) = self.packed_b2.as_ref() {return (G1Projective::IDENTITY,packed.query(&self.b2,sb));}
++                    if let Some(packed) = self.packed_b2.as_ref() {let sum = if packed.direct {packed.extracted_query(&self.b2, sb)} else {packed.query(&self.b2,sb)};
++                        return (G1Projective::IDENTITY,sum);}
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
+--- a/crates/zopro-core/src/packed_b2.rs
++++ b/crates/zopro-core/src/packed_b2.rs
+@@ -6,6 +6,7 @@
+ const SINGLE: usize = u32::MAX as usize;
+ 
+ pub(super) struct Packed {
++    pub direct: bool,
+     image: Image,
+     table: usize,
+     n: usize,
+@@ -34,7 +35,7 @@
+         let groups = u32::from_le_bytes(bytes[8..12].try_into().unwrap()) as usize;
+         let prefix = u32::from_le_bytes(bytes[12..16].try_into().unwrap()) as usize;
+         if groups == 0 || groups > prefix || prefix >= n {return Err("invalid packed prefix");}
+-        let result = Self { image: image.clone(), table: at+16, groups, prefix, n };
++        let result = Self { direct: std::env::var_os("ZOPRO_PACKED_EXTRACT").is_some(), image: image.clone(), table: at+16, groups, prefix, n };
+         let mut visited = vec![0u64; n.div_ceil(64)];
+         for row in 0..n {
+             let source = result.source(row);
+@@ -70,6 +71,62 @@
+         (lo < self.prefix && self.source(lo) == source).then_some(lo)
+     }
+ 
++    pub fn extract(&self, wires: &[Fr], indices: &[u32]) -> Vec<Fr> {
++        // The prefix is already in its final order when the tail is corrected.
++        let mut values: Vec<_> = (0..self.n).into_par_iter().map(|row| {
++            wires[indices[self.source(row)] as usize]
++        }).collect();
++        let (front, tail) = values.split_at_mut(self.prefix);
++        tail.par_iter_mut().enumerate().for_each(|(index, value)| {
++            *value -= front[self.entry(self.prefix + index).1];
++        });
++        values
++    }
++
++    pub fn extracted_query(&self, points: &[G2Affine], values: &mut [Fr]) -> G2Projective {
++        let force_dense = std::env::var_os("ZOPRO_PACKED_DENSE").is_some();
++        let trace = std::env::var_os("ZOPRO_PACKED_TRACE").is_some();
++        let tail = &values[self.prefix..];
++        const BLOCKS: usize = 128;
++        let width = tail.len().div_ceil(BLOCKS);
++        let mut counts = [0usize; BLOCKS];
++        if !force_dense {
++            counts.par_iter_mut().zip(tail.par_chunks(width)).for_each(|(count, chunk)| {
++                *count = chunk.iter().filter(|x| !x.is_zero()).count();
++            });
++        }
++        let total: usize = counts.iter().sum();
++        let reservation = if force_dense || total > tail.len() / 16 {
++            None
++        } else {
++            Reservation::analysis(total.checked_mul(160).and_then(|bytes| bytes.checked_add(256)))
++        };
++        if reservation.is_none() {
++            if trace { eprintln!("PACKED_DENSE {} {}", total, tail.len()); }
++            return msm_affine::g2_query_exclusive(points, msm_affine::canonical_exclusive(values));
++        }
++        if trace { eprintln!("PACKED_SPARSE {} {}", self.prefix, total); }
++        let (front, tail) = values.split_at_mut(self.prefix);
++        let (main, residual) = rayon::join(
++            || msm_affine::g2_query_exclusive(&points[..self.prefix], msm_affine::canonical_exclusive(front)),
++            || {
++                if total == 0 { return G2Projective::IDENTITY; }
++                let mut bases = Vec::with_capacity(total);
++                let mut scalars = Vec::with_capacity(total);
++                for (block, chunk) in tail.chunks(width).enumerate() {
++                    if counts[block] == 0 { continue; }
++                    for (i, x) in chunk.iter().enumerate() {
++                        if !x.is_zero() {
++                            bases.push(points[self.prefix + block * width + i]);
++                            scalars.push(x.to_canonical());
++                        }
++                    }
++                }
++                msm_affine::g2_query_exclusive(&bases, &mut scalars)
++            },
++        );
++        main + residual
++    }
+     fn difference(&self, values: &[Fr], row: usize) -> Fr {
+         let (src, group) = self.entry(row);
+         values[(src & !LEADER) as usize] - values[self.source(group)]
