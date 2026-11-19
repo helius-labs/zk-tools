@@ -1,0 +1,121 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -604,21 +604,27 @@
+     left.par_chunks_mut(512)
+         .zip(right.par_chunks(512))
+         .for_each(|(left, right)| {
+-            let mut pairs = Vec::with_capacity(left.len());
+-            for (i, (a, &b)) in left.iter_mut().zip(right).enumerate() {
+-                if a.is_identity() {
+-                    *a = b;
+-                } else if b.is_identity() {
+-                } else if a.x == b.x {
+-                    *a = (*a + b).to_affine();
+-                } else {
+-                    pairs.push((i as u32, b));
+-                }
+-            }
+-            if !pairs.is_empty() {
+-                BatchAdd::<C>::default().apply(left, &pairs);
+-            }
++            merge_bucket_chunk(left, right);
+         });
++}
++
++pub(crate) fn merge_bucket_chunk<C: CurveConfig>(left: &mut [Affine<C>], right: &[Affine<C>])
++where C::Base: BatchInverse,
++{
++    let mut pairs = Vec::with_capacity(left.len());
++    for (i, (a, &b)) in left.iter_mut().zip(right).enumerate() {
++        if a.is_identity() {
++            *a = b;
++        } else if b.is_identity() {
++        } else if a.x == b.x {
++            *a = (*a + b).to_affine();
++        } else {
++            pairs.push((i as u32, b));
++        }
++    }
++    if !pairs.is_empty() {
++        BatchAdd::<C>::default().apply(left, &pairs);
++    }
+ }
+
+ fn merge_split<C: CurveConfig>(
+--- a/crates/zopro-core/src/msm.rs
++++ b/crates/zopro-core/src/msm.rs
+@@ -2377,4 +2377,4 @@
+ #[cfg(zopro_indexed_tile_bundles)]mod indexed_tiles;
+
+ #[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+-mod paired_weighted;
++pub(crate) mod paired_weighted;
+--- a/crates/zopro-core/src/msm/paired_weighted.rs
++++ b/crates/zopro-core/src/msm/paired_weighted.rs
+@@ -45,10 +45,38 @@
+ }
+ fn run<C:CurveConfig>(buckets:&[Affine<C>])->Projective<C>where C::Base:BatchInverse{
+  let partials:Vec<_>=buckets.par_chunks(2*GROUP).map_init(||(Vec::new(),scratch::<C>()),|(tree,s),b|forest::<C>(b,tree,s)).collect();
++ finish(partials)
++}
++
++fn finish<C: CurveConfig>(partials: Vec<[(Projective<C>, Affine<C>); 2]>) -> Projective<C> {
+  let(mut sum,mut offset,mut running)=(Projective::<C>::IDENTITY,Projective::<C>::IDENTITY,Projective::<C>::IDENTITY);
+  for pair in partials.into_iter().rev(){for(weighted,total)in pair.into_iter().rev(){sum+=weighted;offset+=running;running+=total;}}
+  for _ in 0..GROUP.ilog2(){offset=offset.double();}sum+offset
+ }
++/// Merge one tile's two input ranges and immediately reduce its weighted tree.
++pub(crate) fn try_merged<C: CurveConfig>(
++    left: &mut [Affine<C>], right: &[Affine<C>]
++) -> Option<Projective<C>>
++where C::Base: BatchInverse,
++{
++    if left.len() != right.len() || left.is_empty() || left.len() % (2 * GROUP) != 0 {
++        return None;
++    }
++    let tasks = (left.len() / (2 * GROUP)).min(rayon::current_num_threads());
++    let extra = workspace::<C>(2 * GROUP)?
++        .saturating_sub(workspace_weighted::<C>(GROUP)?)
++        .checked_mul(tasks)?;
++    let _reservation = crate::preparation::Reservation::analysis(Some(extra))?;
++    if std::env::var_os("ZOPRO_BENCH_H_MERGE_TRACE").is_some() {
++        eprintln!("H_MERGE_CHUNKS");
++    }
++    let partials = left.par_chunks_mut(2 * GROUP).zip(right.par_chunks(2 * GROUP))
++        .map(|(lhs, rhs)| {
++            crate::msm_affine::merge_bucket_chunk(lhs, rhs);
++            forest::<C>(lhs, &mut Vec::new(), &mut scratch::<C>())
++        }).collect();
++    Some(finish(partials))
++}
+ #[cfg(test)]
+ #[path="paired_weighted_tests.rs"]
+ mod tests;
+--- a/crates/zopro-core/src/msm_affine/dense_h.rs
++++ b/crates/zopro-core/src/msm_affine/dense_h.rs
+@@ -108,6 +108,12 @@
+                     || fill(&bases[..mid], &words[..mid]),
+                     || fill(&bases[mid..], &words[mid..]),
+                 );
++                #[cfg(zopro_paired_weighted)]
++                if std::env::var_os("ZOPRO_BENCH_H_MERGE_CHUNKS").is_some() {
++                    if let Some(total) = crate::msm::paired_weighted::try_merged(&mut left, &right) {
++                        return total;
++                    }
++                }
+                 merge_buckets(&mut left, &right);
+                 left
+             } else {
+@@ -157,6 +163,12 @@
+                     || fill(&bases[..mid], &words[..mid]),
+                     || fill(&bases[mid..], &words[mid..]),
+                 );
++                #[cfg(zopro_paired_weighted)]
++                if std::env::var_os("ZOPRO_BENCH_H_MERGE_CHUNKS").is_some() {
++                    if let Some(total) = crate::msm::paired_weighted::try_merged(&mut left, &right) {
++                        return total;
++                    }
++                }
+                 merge_buckets(&mut left, &right);
+                 left
+             } else {
