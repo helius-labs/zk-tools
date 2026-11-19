@@ -27,3 +27,15 @@ The interaction is combined − grouped − mapped + ordinary latency within a b
 | 142 | -0.031 | -18.5 / -20.8 | -650 / -369 | -23.0 / -1.6 |
 
 For the original combined request, preparing the nested B2 plan and the A/K plans together took 25.1 ms per freshly loaded key; preparing the wire offsets took 74.3 ms. These timers exclude loading the image. The warm median was 0.224 ms above the target. [Per-process resource measurements](artifacts/cpu-and-preparation.json.gz)
+
+## Individual proof latency on the reference request
+
+Each process measured 15 complete calls after three warmups. The percentiles below pool the 105 calls for a setting. The seven calls to the benchmark executable are the comparison units. Within each process the last column compares the mean of the last three measured calls with the mean of the first three. All calls enter the headline comparison.
+
+| Setting | Per-proof median / p90 ms | At or below 28.4 ms | Counts per block | Last three minus first three ms (faster blocks) |
+|---|---:|---:|---:|---:|
+| prior-grouped | 29.354 / 30.450 | 3/105 | 0 / 0 / 1 / 1 / 0 / 1 / 0 | -0.579 (6/7) |
+| ordinary | 31.310 / 32.243 | 0/105 | 0 / 0 / 0 / 0 / 0 / 0 / 0 | -0.840 (6/7) |
+| mapped | 30.477 / 31.384 | 0/105 | 0 / 0 / 0 / 0 / 0 / 0 / 0 | -1.004 (7/7) |
+| grouped | 29.355 / 30.961 | 3/105 | 1 / 0 / 1 / 1 / 0 / 0 / 0 | -0.598 (5/7) |
+| combined | 28.504 / 29.520 | 39/105 | 11 / 4 / 5 / 7 / 5 / 0 / 7 | -0.308 (7/7) |
