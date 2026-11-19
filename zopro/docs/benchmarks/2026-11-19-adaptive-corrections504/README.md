@@ -4,6 +4,8 @@ Each group first counts the terms differing from its first scalar. When more tha
 
 Five fresh randomized blocks compare the release, the preceding correction policy, the same build with adaptation disabled and the adaptive policy. The 12×2 candidate uses the previously selected worker count, larger shapes and the release use 32. All cells use three primes and eleven timed proofs. The larger-shape heldouts differ from those used to screen the prior correction policy. Peak RSS includes setup.
 
+The harness selected the 12×2 index file by fixture family before starting each process. The original and adjacent request 59 use the extended groups, and scattered request 141 uses the separately prepared mixed groups. Each of 16×2 and 24×2 uses one file across all three requests. This comparison leaves automatic selection of a 12×2 index file untested.
+
 | Shape | Request | Release / previous / off / adaptive ms | Adaptive vs off | Adaptive vs previous | Adaptive vs release | Peak MiB release / adaptive |
 |---|---:|---:|---:|---:|---:|---:|
 | 12x2 | Original | 31.912 / 29.862 / 32.084 / 29.152 | -9.14% (5/5) | -2.36% (4/5) | -8.43% (5/5) | 592.2 / 523.7 |
