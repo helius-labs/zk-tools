@@ -15,3 +15,15 @@ Five randomized blocks compare the earlier adaptive executable, the revised exec
 | 24x2 | 99 | 58.457 / 58.979 / 63.652 | +7.93% (0/5) | +8.40% (0/5) | 12970/12970 · 19457/19457 | 1117.4 / 1093.2 |
 
 All 119 exported proofs verified independently. [Samples](artifacts/processes.json.gz) · [Probes](artifacts/probes.json) · [Source](artifacts/incremental.patch) · [Verification](artifacts/verification.json)
+
+## CPU time on the original requests
+
+The SDK measured process CPU time and minor page faults over the eleven warmed calls. The CPU-time-to-wall-time ratio estimates occupied cores, including time spent on worker coordination. Each column gives the independent and shared modes, in that order.
+
+| Shape | CPU-ms per proof | CPU time / wall time | Minor faults per proof |
+|---|---:|---:|---:|
+| 12x2 | 761.2 / 768.4 | 25.8 / 26.2 | 2,721 / 2,651 |
+| 16x2 | 1054.8 / 1056.3 | 28.1 / 26.6 | 4,571 / 4,349 |
+| 24x2 | 1682.0 / 1692.2 | 28.2 / 26.2 | 5,773 / 5,723 |
+
+On 24×2, sharing increased elapsed time while summed CPU time changed by less than one percent and minor faults fell slightly. These counters do not identify time spent waiting for the shared selection. [Per-process counters](artifacts/counters.json.gz)
