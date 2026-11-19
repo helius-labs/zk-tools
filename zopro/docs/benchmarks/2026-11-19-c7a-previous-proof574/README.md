@@ -34,6 +34,21 @@ For the exact interval in each request, the reader counts every userspace CPU-cl
 
 [Per-request counts](artifacts/gap-samples.json) · [Full symbol counts](artifacts/gap-symbols.json.gz)
 
+### Instructions inside the indexed collection symbols
+
+The address reader relocates each sampled process against its pinned SDK ELF. At least three independently named functions constrain each page-aligned load address. Every indexed-collection sample then falls within the exact named symbol range and at a valid instruction boundary. Two hot collector closures contain identical loops that load a word, test a bit, and conditionally perform an atomic compare-exchange with a backwards retry branch. The following rows count samples from the load through that branch. Source line information did not resolve the precise inlined operation.
+
+| Shape | Cores | All gap samples | Indexed collection samples | Samples in two atomic loops | Of collection | Of all gap samples | At the two bit-test instructions |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 16 | 64 | 835 | 349 | 245 | 70.2% | 29.3% | 245 |
+| 16 | 96 | 1810 | 706 | 568 | 80.5% | 31.4% | 568 |
+| merge | 64 | 801 | 466 | 308 | 66.1% | 38.5% | 308 |
+| merge | 96 | 1654 | 855 | 666 | 77.9% | 40.3% | 666 |
+
+A sample at the bit test cannot distinguish a cache miss on the preceding load, a failed compare-exchange or sampling skid. The two loops are distinct from the loops that copy the field values into output memory. This supports testing fewer task publications while keeping the same scalar data and output buffers.
+
+[Relocated sample addresses](artifacts/collector-pcs.json.gz) · [Instructions and ELF digest](artifacts/atomic-loops.json)
+
 ## Does the previous proof's late G2 work predict the next solver duration?
 
 Within a recording, requests 2 through 10 serve as the nine solver observations. Each observation is classified three ways using either the prior, current or next request's distribution of sampled G2 prefix work. “Late” means most prefix samples occurred after H returned. Every comparison uses the same nine target requests. The table shows how much longer the median solver lasted in the late group for each individual process. A future label cannot cause the earlier solver. Each group can contain very few requests, so the process contrasts are descriptive.

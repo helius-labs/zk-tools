@@ -1,0 +1,25 @@
+{
+  "elf": "37caff895102f26611b0708654f505c4244c8d21892e5f0c58a9cfec0898a9d0",
+  "instructions": [
+    [
+      "4c1a40:\tmov    rax,QWORD PTR [rsi+0x1f0]",
+      "4c1a47:\ttest   rax,rcx",
+      "4c1a4a:\tjne    4c1a6a",
+      "4c1a4c:\tmov    rdx,rax",
+      "4c1a4f:\tor     rdx,rcx",
+      "4c1a52:\tlock cmpxchg QWORD PTR [rsi+0x1f0],rdx",
+      "4c1a5b:\tjne    4c1a40",
+      "4c1a5d:\trex.W"
+    ],
+    [
+      "4c27d0:\tmov    rax,QWORD PTR [rsi+0x1f0]",
+      "4c27d7:\ttest   rax,rcx",
+      "4c27da:\tjne    4c27fa",
+      "4c27dc:\tmov    rdx,rax",
+      "4c27df:\tor     rdx,rcx",
+      "4c27e2:\tlock cmpxchg QWORD PTR [rsi+0x1f0],rdx",
+      "4c27eb:\tjne    4c27d0",
+      "4c27ed:\trex.W"
+    ]
+  ]
+}
