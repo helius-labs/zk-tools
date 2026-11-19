@@ -1,0 +1,186 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1869,13 +1869,51 @@
+                 });
+                 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                 let pool = None;
+-                let mut product = clock.time(CurvePhase::Fft, || queries.product_values(&self.plan, a, b, pool));
+-                let started = trace("quotient-product", started);
+-                let product_points=&queries.product[..product.len()];
+-                let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+-                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b, clock),
+-                    || folded.public_term(public),
+-                );
++                #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++                let early = self.early_g1(sa.len(), sb.len(), sk.len());
++                #[cfg(not(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma))))]
++                let early: Option<(&rayon::ThreadPool, EarlyG1, crate::preparation::Reservation)> = None;
++                let product_parts = |sa: &mut [Fr], sk: &mut [Fr], skip: EarlyG1| {
++                    let mut product = clock.time(CurvePhase::Fft, || queries.product_values(&self.plan, a, b, pool));
++                    let started = trace("quotient-product", started);
++                    let points = &queries.product[..product.len()];
++                    let (parts, correction) = rayon::join(
++                        || self.cpu_msms(sa, sb, sk, &mut product, points, &folded.private, true, omit_b, clock, skip),
++                        || folded.public_term(public),
++                    );
++                    trace("msms", started);
++                    (parts, correction)
++                };
++                let (((ar, bs1), (kr, (hz, bs2))), correction) = match early {
++                    Some((frontend, EarlyG1::A, _memory)) => {
++                        let ((parts, correction), a) = rayon::join(
++                            || product_parts(&mut [], sk, EarlyG1::A),
++                            || frontend.install(|| clock.time(CurvePhase::A, || early_msm_g1(&self.a, sa))),
++                        );
++                        let ((_,b),(k,(h,b2))) = parts;
++                        (((a,b),(k,(h,b2))), correction)
++                    }
++                    Some((frontend, EarlyG1::K, _memory)) => {
++                        let ((parts, correction), k) = rayon::join(
++                            || product_parts(sa, &mut [], EarlyG1::K),
++                            || frontend.install(|| clock.time(CurvePhase::K, || early_msm_g1(&folded.private, sk))),
++                        );
++                        let ((a,b),(_, (h,b2))) = parts;
++                        (((a,b),(k,(h,b2))), correction)
++                    }
++                    Some((frontend, EarlyG1::Both, _memory)) => {
++                        let ((parts, correction), (a,k)) = rayon::join(
++                            || product_parts(&mut [], &mut [], EarlyG1::Both),
++                            || frontend.install(|| rayon::join(
++                                || clock.time(CurvePhase::A, || early_msm_g1(&self.a, sa)),
++                                || clock.time(CurvePhase::K, || early_msm_g1(&folded.private, sk)),
++                            )),
++                        );
++                        let ((_,b),(_, (h,b2))) = parts;
++                        (((a,b),(k,(h,b2))), correction)
++                    }
++                    _ => product_parts(sa, sk, EarlyG1::Off),
++                };
+                 #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+                 let (ar, kr, bs2) = match self.wire_offsets.as_deref() {
+                     Some(offsets) if omit_b && !self.canonical_wires => {
+@@ -1883,7 +1921,6 @@
+                     }
+                     _ => (ar, kr, bs2),
+                 };
+-                trace("msms", started);
+                 let mut out = Vec::with_capacity(384);
+                 for point in [ar, bs1, kr + correction, queries.finish_product(hz)] {
+                     output_g1(&mut out, point);
+@@ -1895,7 +1932,7 @@
+             let mut product = queries.product_values(&self.plan, a, b, None);
+             let started = trace("quotient-product", started);
+             let (((ar, bs1), (kr, (positive, bs2))), negative) = rayon::join(
+-                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b, clock),
++                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b, clock, EarlyG1::Off),
+                 || msm_g1(&queries.constraints[..c.len()], &c),
+             );
+             trace("msms", started);
+@@ -1916,7 +1953,7 @@
+         let trace_scalars = std::env::var("ZOPRO_TRACE_MSMS")
+             .is_ok_and(|v| v == "1")
+             .then(|| (sa.to_vec(), sb.to_vec(), sk.to_vec(), h.to_vec()));
+-        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b, clock);
++        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b, clock, EarlyG1::Off);
+         trace("msms", started);
+         // Each MSM alone, on the whole pool, for its own share: this adds
+         // to the proof time, so only with ZOPRO_TRACE_MSMS=1.
+@@ -1961,11 +1998,12 @@
+         folded_k: bool,
+         omit_b: bool,
+         clock: &CurveClock,
++        skip: EarlyG1,
+     ) -> (
+         (G1Projective, G1Projective),
+         (G1Projective, (G1Projective, G2Projective)),
+     ) {
+-        let _ = (folded_k, clock);
++        let _ = (folded_k, clock, skip);
+         #[cfg(not(target_arch = "wasm32"))]
+         if affine_msm() {
+             let montgomery_h =
+@@ -2046,8 +2084,18 @@
+             let frontend = self.frontend_pool.as_deref();
+             #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+             let frontend = None;
+-            let ar = || placed(&placement, "a", sa.len(), frontend, || clock.time(CurvePhase::A, || msm(&self.a[..], sa)));
+-            let kr = || placed(&placement, "k", sk.len(), frontend, || clock.time(CurvePhase::K, || msm(k, sk)));
++            let ar = || {
++                if matches!(skip, EarlyG1::A | EarlyG1::Both) {
++                    return G1Projective::IDENTITY;
++                }
++                placed(&placement, "a", sa.len(), frontend, || clock.time(CurvePhase::A, || msm(&self.a[..], sa)))
++            };
++            let kr = || {
++                if matches!(skip, EarlyG1::K | EarlyG1::Both) {
++                    return G1Projective::IDENTITY;
++                }
++                placed(&placement, "k", sk.len(), frontend, || clock.time(CurvePhase::K, || msm(k, sk)))
++            };
+             let hz = || {
+                 if montgomery_h {
+                     clock.time(CurvePhase::H, || msm_affine::msm_montgomery(z, h))
+@@ -2097,6 +2145,54 @@
+                 )
+             },
+         )
++    }
++}
++
++#[derive(Clone, Copy)]
++enum EarlyG1 { Off, A, K, Both }
++
++fn early_msm_g1(bases: &[G1Affine], scalars: &mut [Fr]) -> G1Projective {
++    #[cfg(not(target_arch = "wasm32"))]
++    return msm_affine::msm_in_place(bases, scalars);
++    #[cfg(target_arch = "wasm32")]
++    msm_g1(bases, scalars)
++}
++
++#[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++impl Key {
++    fn early_g1(&self, a: usize, b: usize, k: usize) -> Option<(&rayon::ThreadPool, EarlyG1, crate::preparation::Reservation)> {
++        // Keep the large, grouped CPU route when A or K is removed from the later call.
++        if b < 65536 || !affine_msm() || self.equal_witness.is_some()
++            || !crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++        {
++            return None;
++        }
++        let selected = match std::env::var("ZOPRO_TRIAL_EARLY_G1").as_deref() {
++            Ok("a") => EarlyG1::A,
++            Ok("k") => EarlyG1::K,
++            Ok("both") => EarlyG1::Both,
++            _ => return None,
++        };
++        let pool = self.frontend_pool.as_deref()
++            .filter(|p| p.current_num_threads() < rayon::current_num_threads())?;
++        // The early query must have disjoint workers from the quotient.
++        if std::env::var("ZOPRO_CPU_FFT_PRODUCT_FRONTEND").as_deref() == Ok("1") {
++            return None;
++        }
++        let charge = pool.install(|| {
++            let bytes = |n| msm_affine::workspace::frontend_curve_bytes(n, rayon::current_num_threads());
++            let needed = match selected {
++                EarlyG1::A => bytes(a),
++                EarlyG1::K => bytes(k),
++                EarlyG1::Both => bytes(a)?.checked_add(bytes(k)?),
++                EarlyG1::Off => None,
++            };
++            crate::preparation::Reservation::analysis(needed)
++        })?;
++        if std::env::var_os("ZOPRO_TRIAL_CURVE_CLOCK").is_some() {
++            eprintln!("EARLY_G1 {}", match selected { EarlyG1::A=>"a", EarlyG1::K=>"k", EarlyG1::Both=>"both",EarlyG1::Off=>"off" });
++        }
++        Some((pool, selected, charge))
+     }
+ }
+ 
+@@ -2501,7 +2597,7 @@
+             let c_coset=self.plan.coset_product(c,vec![Fr::ONE;self.domain]);
+             product.par_iter_mut().zip(c_coset.par_iter()).for_each(|(p,c)|*p-=*c);product
+         };
+-        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b,&CurveClock::default());
++        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b,&CurveClock::default(),EarlyG1::Off);
+         let mut out=Vec::with_capacity(384);for p in [ar,bs1,kr+correction,q.finish_product(hz)]{output_g1(&mut out,p);}output_g2(&mut out,bs2);Ok(out)
+     }
+ }
