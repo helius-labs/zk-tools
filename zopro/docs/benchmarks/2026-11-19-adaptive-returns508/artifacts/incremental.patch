@@ -1,0 +1,75 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2024,23 +2024,24 @@
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
++            let clock = QueryReturnTimes::new();
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
+                     rayon::join(
+                         || rayon::join(
+-                            || if omit_b && folded_k {self.trial_a.as_ref().and_then(|q|q.query(&self.a,sa)).unwrap_or_else(||msm(&self.a,sa))} else {msm(&self.a,sa)},
+-                            || if omit_b && folded_k {self.trial_k.as_ref().and_then(|q|q.query(k,sk)).unwrap_or_else(||msm(k,sk))} else {msm(k,sk)}
+-                        ),
+-                        || {
++                            || clock.run(0, || if omit_b && folded_k {self.trial_a.as_ref().and_then(|q|q.query(&self.a,sa)).unwrap_or_else(||msm(&self.a,sa))} else {msm(&self.a,sa)}),
++                            || clock.run(1, || if omit_b && folded_k {self.trial_k.as_ref().and_then(|q|q.query(k,sk)).unwrap_or_else(||msm(k,sk))} else {msm(k,sk)}
++                        )),
++                        || clock.run(2, || {
+                             if montgomery_h {
+                                 msm_affine::msm_montgomery(z, h)
+                             } else {
+                                 msm(z, h)
+                             }
+-                        },
++                        }),
+                     )
+                 },
+-                || {
++                || clock.run(3, || {
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2,words));
+@@ -2059,8 +2060,9 @@
+                         let sb = canonical(sb);
+                         rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
+                     }
+-                },
++                }),
+             );
++            clock.report("query", omit_b);
+             return ((ar, bs1), (kr, (hz, bs2)));
+         }
+         rayon::join(
+@@ -2533,3 +2535,30 @@
+         { let _ = bytes; Ok(false) }
+     }
+ }
++
++
++struct QueryReturnTimes {
++    start: std::time::Instant,
++    finish_ns: [std::sync::atomic::AtomicU64; 4],
++}
++
++impl QueryReturnTimes {
++    fn new() -> Self {
++        Self {
++            start: std::time::Instant::now(),
++            finish_ns: Default::default(),
++        }
++    }
++
++    fn run<T>(&self, index: usize, f: impl FnOnce() -> T) -> T {
++        let result = f();
++        self.finish_ns[index].store(self.start.elapsed().as_nanos() as u64, std::sync::atomic::Ordering::Relaxed);
++        result
++    }
++
++    fn report(&self, route: &str, omit_b: bool) {
++        let joined = self.start.elapsed().as_nanos();
++        let times = self.finish_ns.each_ref().map(|t| t.load(std::sync::atomic::Ordering::Relaxed));
++        eprintln!("QUERY_RETURNS {} {} {} {} {} {} {}", route, omit_b, times[0], times[1], times[2], times[3], joined);
++    }
++}
