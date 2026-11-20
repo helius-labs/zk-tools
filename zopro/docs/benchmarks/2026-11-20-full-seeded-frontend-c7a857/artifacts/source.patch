@@ -1,0 +1,78 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1151,17 +1151,30 @@
+             }
+         }
+         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+-        let instruction_pool = self.frontend_pool.as_deref().filter(|pool| {
+-            !self.has_gpu()
+-                && pool.current_num_threads() < rayon::current_num_threads()
+-                && std::env::var("ZOPRO_CPU_SOLVER_FRONTEND").as_deref() == Ok("1")
+-        });
++        let solver_placement = self
++            .frontend_pool
++            .as_deref()
++            .filter(|pool| {
++                !self.has_gpu() && pool.current_num_threads() < rayon::current_num_threads()
++            })
++            .and_then(|pool| match std::env::var("ZOPRO_CPU_SOLVER_FRONTEND").as_deref() {
++                Ok("1") => Some((pool, false)),
++                Ok("full") => Some((pool, true)),
++                _ => None,
++            });
+         #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+-        let instruction_pool = None;
+-        let solver::Solution { mut w, a, b, c } = plan.solve_with_pool(
+-            &frs(witness), self.domain, slots, materialize_c, instruction_pool,
+-        )?;
++        let solver_placement: Option<(&rayon::ThreadPool, bool)> = None;
++        let solve =
++            |pool| plan.solve_with_pool(&frs(witness), self.domain, slots, materialize_c, pool);
++        let solver::Solution { mut w, a, b, c } = match solver_placement {
++            Some((pool, true)) => pool.install(|| solve(None)),
++            placement => solve(placement.map(|(pool, _)| pool)),
++        }?;
+         if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
++        static SOLVE_CLOCK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++        if *SOLVE_CLOCK.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_FRONT_SOLVE_CLOCK").is_some()) {
++            eprintln!("FRONT_SOLVE_CLOCK {} {}", self.b2.len(), started.elapsed().as_nanos());
++        }
+         let started = trace("solve", started);
+         use rayon::prelude::*;
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -2599,11 +2612,13 @@
+ impl Key {
+     /// Use a shared pool for the native IFMA canonical witness and FFT stages.
+     /// The pool is used when it has fewer workers than the current Rayon pool.
+-    /// With `ZOPRO_CPU_SOLVER_FRONTEND=1`, the general CPU witness interpreter
+-    /// also uses this pool. `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1` dispatches the
+-    /// folded packed Euler product to this pool on native IFMA builds. The
+-    /// caller allocates its temporary output before dispatch. Passing `None`
+-    /// restores execution in the current pool.
++    /// With `ZOPRO_CPU_SOLVER_FRONTEND=1`, general CPU solver instructions
++    /// also use this pool. `ZOPRO_CPU_SOLVER_FRONTEND=full` moves buffer
++    /// allocation and witness copying to the same pool. Setting
++    /// `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1` dispatches the folded packed Euler
++    /// product to this pool on native IFMA builds. The caller allocates its
++    /// temporary output before dispatch. Passing `None` restores execution
++    /// in the current pool.
+     pub fn set_frontend_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
+         self.frontend_pool = pool;
+     }
+--- a/crates/zopro-prover/src/lib.rs
++++ b/crates/zopro-prover/src/lib.rs
+@@ -90,9 +90,11 @@
+ impl Prover {
+     /// Share a smaller Rayon pool across provers for native IFMA canonical
+     /// witness solving and FFT preparation. With `ZOPRO_CPU_SOLVER_FRONTEND=1`,
+-    /// general CPU solver instructions also use this pool. With
+-    /// `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1`, folded packed Euler products
+-    /// use this pool and allocate their temporary output before dispatch.
++    /// general CPU solver instructions also use this pool.
++    /// `ZOPRO_CPU_SOLVER_FRONTEND=full` also moves solver allocation and
++    /// witness copying to it. With `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1`, folded
++    /// packed Euler products use this pool and allocate their temporary output
++    /// before dispatch.
+     /// Pass `None` to detach it.
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     pub fn set_frontend_pool(
