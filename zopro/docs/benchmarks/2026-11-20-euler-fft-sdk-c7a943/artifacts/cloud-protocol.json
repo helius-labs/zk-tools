@@ -1,0 +1,24 @@
+{
+  "shape": "2x2",
+  "root": "/opt/zopro-leaf943",
+  "modes": [
+    "release",
+    "disabled",
+    "enabled",
+    "prior-shift",
+    "aeglos"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "rounds": 13,
+  "blocks": 12,
+  "workers": 64,
+  "frontend": 32,
+  "calibration": "Absolute paired median <=2% for same-build disabled vs frozen release on each input.",
+  "qualification": "Faster paired median and at least 75% of repeats vs both controls on each fixture.",
+  "prior": "The byte-exact earlier shift executable supplies a contemporaneous equivalent algorithm comparison.",
+  "correctness": "Fixed wires and matching public inputs, certified output, fresh external Gnark verification for each exported proof.",
+  "source_patch": "9c7457647d0b57e46fefe4542953ccd98f962b5ac876415dae327df1a2866249"
+}

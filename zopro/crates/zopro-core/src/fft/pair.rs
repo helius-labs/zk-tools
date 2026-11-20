@@ -1810,6 +1810,10 @@ pub(super) fn euler_product_study(
             }
             PackedPair::store(Pair::new(&lanes))
         }).collect();
+        if plan.euler_fft_leaf_fusion && euler_center::try_transform_ordinary_layout(plan, &mut values) {
+            euler_combine_products(&mut a, &b, &values);
+            return a;
+        }
         stored_transform::<PackedPair, false>(&mut values, &plan.inverse_roots, 0);
         values
     };

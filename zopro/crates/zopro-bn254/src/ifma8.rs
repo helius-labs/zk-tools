@@ -336,6 +336,41 @@ impl<C: FpConfig, const MIXED: bool> Ifma8<C, MIXED> {
             Self(out, PhantomData)
         }
     }
+    /// Multiply normalized input below 2p by -2^shift. The result is
+    /// in (0, 2p], with 2p representing zero. Use it for the final add/sub.
+    /// Adding a normalized value below 2p leaves less than 4p.
+    #[inline(always)]
+    pub fn negative_power_of_two(&self, shift: u32) -> Self {
+        assert!(shift <= 28);
+        unsafe {
+            let zero = Self::splat(0);
+            let mask = Self::splat(MASK);
+            let left = Self::splat(u64::from(shift));
+            let right = Self::splat(52 - u64::from(shift));
+            // For k=2^shift, this is precisely floor(k*mu/2^28)
+            // from mul_u28, with the same underestimate bound.
+            let mu = const { small_reciprocal(C::P) };
+            let reciprocal = Self::splat(mu >> (28 - shift));
+            let q = _mm512_add_epi64(_mm512_madd52hi_epu64(zero, self.0[4], reciprocal), Self::splat(2));
+            let p = split(C::P).map(Self::splat);
+            let mut out = [zero; 5];
+            let mut carry = zero;
+            for j in 0..5 {
+                let shifted = _mm512_and_si512(_mm512_sllv_epi64(self.0[j], left), mask);
+                let lo = _mm512_sub_epi64(_mm512_madd52lo_epu64(zero, p[j], q), shifted);
+                let hi = _mm512_sub_epi64(
+                    _mm512_madd52hi_epu64(zero, p[j], q),
+                    _mm512_srlv_epi64(self.0[j], right),
+                );
+                let value = _mm512_add_epi64(lo, carry);
+                out[j] = _mm512_and_si512(value, mask);
+                carry = _mm512_add_epi64(hi, _mm512_srai_epi64::<52>(value));
+            }
+            debug_assert_eq!(_mm512_cmpneq_epi64_mask(carry, zero), 0);
+            Self(out, PhantomData)
+        }
+    }
+
     #[inline(always)]
     pub fn mul(&self, b: &Self) -> Self {
         self.product::<false>(b, self, b)

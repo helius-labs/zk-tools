@@ -70,6 +70,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         prover
     };
     let mut prover = prover;
+    match std::env::var("ZOPRO_BENCH_EULER_FFT_LEAF_FUSION").as_deref() {
+        Ok("1") => prover.set_euler_fft_leaf_fusion(true),
+        Ok("0") | Err(std::env::VarError::NotPresent) => {}
+        _ => return Err("Euler FFT leaf fusion must be 0 or 1".into()),
+    }
     if let Some(path) = std::env::var_os("ZOPRO_BENCH_WIRE_FILE") {
         let file = fs::File::open(path)?;
         // The benchmark owns the immutable input during preparation.

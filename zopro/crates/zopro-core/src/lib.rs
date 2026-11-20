@@ -2477,6 +2477,12 @@ impl Key {
 }
 
 impl Key {
+    /// Fuse inverse, Euler-weight and forward work within native CPU FFT leaves.
+    /// Disabled by default. Portable and other quotient routes keep their ordinary path.
+    pub fn set_euler_fft_leaf_fusion(&mut self, enabled: bool) {
+        self.plan.set_euler_fft_leaf_fusion(enabled);
+    }
+
     /// Solve on the CPU and return a freshly randomized raw Groth16 proof.
     /// The ordinary five-part solving APIs retain their complete outputs.
     pub fn solve_rerandomized(

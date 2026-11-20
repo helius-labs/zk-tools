@@ -1,0 +1,23 @@
+{
+  "shape": "2x2",
+  "root": "/home/ubuntu/src/zopro-perf-work/euler-fft-sdk943/local",
+  "modes": [
+    "release",
+    "disabled",
+    "enabled",
+    "prior-shift"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "rounds": 17,
+  "blocks": 8,
+  "workers": 24,
+  "frontend": 8,
+  "calibration": "Absolute paired median <=2% for same-build disabled vs frozen release on each input.",
+  "qualification": "Faster paired median and at least 75% of repeats vs both controls on each fixture.",
+  "prior": "The byte-exact earlier shift executable supplies a contemporaneous equivalent algorithm comparison.",
+  "correctness": "Fixed wires and matching public inputs, certified output, fresh external Gnark verification for each exported proof.",
+  "source_patch": "9c7457647d0b57e46fefe4542953ccd98f962b5ac876415dae327df1a2866249"
+}

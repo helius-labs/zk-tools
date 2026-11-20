@@ -1,6 +1,34 @@
 //! Apply both local transforms and the Euler weights in one expanded leaf.
 use super::*;
 
+enum Center {
+    Ordinary,
+    Shift(Pair),
+}
+
+/// Both halves use the same form. The last two root products in each
+/// four-point group are the negatives of the first two. Interleave the
+/// independent differences from two groups for a single full-vector product.
+#[inline(always)]
+fn shifted_center(a: &mut Pair, b: &mut Pair, da: u64, db: u64, shift: u32, root: &Pair) {
+    let prev = Pair::shuffle_pair::<3, 0, 7, 4>(a, b);
+    let next = Pair::shuffle_pair::<1, 2, 5, 6>(a, b);
+    let neighbor = prev.sub(&next).mul(root);
+
+    let even = Pair::shuffle_pair::<0, 2, 4, 6>(a, b);
+    let odd = Pair::shuffle_pair::<1, 3, 5, 7>(a, b);
+    let pair_sum = even.add(&odd);
+    let other = Pair::shuffle_pair::<1, 0, 3, 2>(&pair_sum, &pair_sum);
+    let sum = pair_sum.add(&other);
+    let negative_sum = sum.negative_power_of_two(shift);
+    let positive = negative_sum.add(&neighbor);
+    let negative = negative_sum.sub(&neighbor);
+    let ca = Pair::shuffle_pair::<0, 1, 4, 5>(&positive, &negative);
+    let cb = Pair::shuffle_pair::<2, 3, 6, 7>(&positive, &negative);
+    *a = a.mul_u28(&[da; 8]).add(&ca);
+    *b = b.mul_u28(&[db; 8]).add(&cb);
+}
+
 // Leave the adjacent sum and difference lanes together between the two transforms.
 // Their natural coefficient indices differ by N/2 in bit-reversed DIF order.
 fn center(a: &mut Pair, b: &mut Pair, inv: &Pair, fwd: &Pair, first: usize, log: usize) {
@@ -40,7 +68,7 @@ fn center(a: &mut Pair, b: &mut Pair, inv: &Pair, fwd: &Pair, first: usize, log:
     *b = Pair::shuffle_pair::<2, 3, 6, 7>(&sum, &diff);
 }
 
-fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize, method: &Center) {
     // The ordinary transform expands the same bounded leaf separately in each direction.
     let mut expanded: Vec<_> = values.iter().map(PairStorage::load).collect();
     let mut gap = expanded.len() / 2;
@@ -53,10 +81,24 @@ fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
         gap /= 2;
         layer += 1;
     }
-    let inv = broadcast(&plan.inverse_roots.pair);
-    let fwd = broadcast(&plan.roots.pair);
-    for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
-        center(a, b, &inv, &fwd, first + 2 * i, plan.n.ilog2() as usize);
+    let log = plan.n.ilog2() as usize;
+    match method {
+        Center::Ordinary => {
+            let inv = broadcast(&plan.inverse_roots.pair);
+            let fwd = broadcast(&plan.roots.pair);
+            for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
+                center(a, b, &inv, &fwd, first + 2 * i, log);
+            }
+        }
+        Center::Shift(root) => {
+            let shift = (log - 1) as u32;
+            let half = 1u64 << shift;
+            for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
+                let q = bit_reverse(first + 2 * i, log - 2) as u64;
+                let r = bit_reverse(first + 2 * i + 1, log - 2) as u64;
+                shifted_center(a, b, 4 * (q + half), 4 * (r + half), shift, root);
+            }
+        }
     }
     gap = 1;
     while gap < expanded.len() {
@@ -72,9 +114,9 @@ fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
     }
 }
 
-fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize, method: &Center) {
     if values.len() <= 1024 {
-        return leaf(plan, values, level, first);
+        return leaf(plan, values, level, first, method);
     }
     columns::<false>(values, &plan.inverse_roots, level);
     let size = values.len() / 32;
@@ -82,7 +124,7 @@ fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize)
         .par_chunks_exact_mut(size)
         .enumerate()
         .for_each(|(i, part)| {
-            transform(plan, part, level + 5, first + i * size);
+            transform(plan, part, level + 5, first + i * size, method);
         });
     columns::<true>(values, &plan.roots, level);
 }
@@ -101,9 +143,31 @@ fn prepare_columns(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) ->
         .par_chunks_exact_mut(width)
         .enumerate()
         .for_each(|(i, part)| {
-            transform(plan, part, 5, i * width);
+            transform(plan, part, 5, i * width, &Center::Ordinary);
         });
     values
+}
+
+/// Retain the ordinary outer packing and column transforms. The two
+/// inner transforms share each expanded leaf and its Euler weights.
+#[inline(never)]
+pub(super) fn try_transform_ordinary_layout(plan: &Plan, values: &mut [PackedPair]) -> bool {
+    // The shifted diagonal factors must remain below 2^28 in mul_u28.
+    if !(8192..=(1 << 26)).contains(&plan.n) || plan.roots.single.is_some() {
+        return false;
+    }
+    let width = values.len() / 32;
+    let fourth_root = plan.inverse_roots.pair.get()[1];
+    let method = Center::Shift(Pair::new(&[fourth_root * Fr::from((plan.n / 2) as u64); 8]));
+    columns::<false>(values, &plan.inverse_roots, 0);
+    values
+        .par_chunks_exact_mut(width)
+        .enumerate()
+        .for_each(|(i, part)| {
+            transform(plan, part, 5, i * width, &method);
+        });
+    columns::<true>(values, &plan.roots, 0);
+    true
 }
 
 // The 32 output stripes share a column index. Split each stripe at the
@@ -211,7 +275,10 @@ mod tests {
     use super::*;
     #[test]
     fn fused_columns_product_matches_materialized_derivatives() {
-        let workers = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
+        let workers = rayon::ThreadPoolBuilder::new()
+            .num_threads(4)
+            .build()
+            .unwrap();
         workers.install(|| {
             for n in [8192usize, 32768, 262144] {
                 for cached in [false, true] {
@@ -225,7 +292,8 @@ mod tests {
                         plan.roots.columns.clear();
                     }
                     for (na, nb) in [(0, 0), (1, 9), (n / 2 + 3, n - 5), (n, n)] {
-                        let mut a: Vec<_> = (0..na).map(|i| Fr::from(i as u64 + 1).pow(&[3])).collect();
+                        let mut a: Vec<_> =
+                            (0..na).map(|i| Fr::from(i as u64 + 1).pow(&[3])).collect();
                         let b: Vec<_> = (0..nb).map(|i| Fr::from(i as u64 + 9).square()).collect();
                         a.resize(na.max(nb), Fr::ZERO);
                         let values = from_inputs(&plan, &a, &b, Vec::with_capacity(n / 4));
@@ -292,7 +360,7 @@ mod tests {
                     *v = PackedPair::store(v.load().mul_u28(&factors));
                 }
                 stored_transform::<PackedPair, true>(&mut expect, &plan.roots, 0);
-                transform(&plan, &mut got, 0, 0);
+                transform(&plan, &mut got, 0, 0, &Center::Ordinary);
                 for (a, b) in got.iter().zip(&expect) {
                     assert_eq!(a.load().get(), b.load().get());
                 }
@@ -309,4 +377,105 @@ fn columns<const FORWARD: bool>(values: &mut [PackedPair], roots: &Twiddles, lev
         v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17, v18, v19,
         v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, roots, level,
     );
+}
+
+#[cfg(test)]
+#[test]
+fn shifted_center_matches_scalar_dft() {
+    let mut rng = crate::testing::Seeded::new(0x907c_0117);
+    for log in [3usize, 8, 15, 16, 17, 25, 26] {
+        let n = 1u64 << log;
+        for root_power in [1u64, 3] {
+            let i = Fr::root_of_unity(4).unwrap().pow(&[root_power]);
+            let coefficient = Pair::new(&[i * Fr::from(n / 2); 8]);
+            for sample in 0..32 {
+                let q = (17 * sample + 1) % (n / 4);
+                let r = (63 * sample + 2) % (n / 4);
+                let make = |rng: &mut crate::testing::Seeded| -> [Fr; 8] {
+                    core::array::from_fn(|j| {
+                        if sample % 4 == j as u64 % 4 {
+                            Fr::ZERO
+                        } else {
+                            rng.fr()
+                        }
+                    })
+                };
+                let original_a = make(&mut rng);
+                let original_b = make(&mut rng);
+                let mut a = Pair::new(&original_a);
+                let mut b = Pair::new(&original_b);
+                shifted_center(
+                    &mut a,
+                    &mut b,
+                    4 * q + 2 * n,
+                    4 * r + 2 * n,
+                    (n / 2).ilog2(),
+                    &coefficient,
+                );
+                for (out, input, offset) in [(a, original_a, q), (b, original_b, r)] {
+                    let exact = core::array::from_fn(|j| {
+                        let row = j % 4;
+                        let start = j - row;
+                        (0..4)
+                            .map(|k| {
+                                let inverse = (0..4)
+                                    .map(|t| input[start + t] * i.pow(&[(t * k) as u64]))
+                                    .fold(Fr::ZERO, |s, x| s + x);
+                                inverse
+                                    * Fr::from(offset + n / 4 * k as u64)
+                                    * i.pow(&[((4 - row) * k) as u64])
+                            })
+                            .fold(Fr::ZERO, |s, x| s + x)
+                    });
+                    assert_eq!(out.get(), exact);
+                }
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn negative_power_scaling_matches_field_and_handles_zero_edge() {
+    let mut rng = crate::testing::Seeded::new(0x3a55_9080);
+    for shift in 0..=28 {
+        for block in 0..64 {
+            let data = core::array::from_fn(|i| match (i + block) % 8 {
+                0 => Fr::ZERO,
+                1 => Fr::ONE,
+                2 => -Fr::ONE,
+                _ => rng.fr(),
+            });
+            let value = Pair::new(&data).add(&Pair::new(&data));
+            let scale = Fr::from(1u64 << shift);
+            let result = value.negative_power_of_two(shift);
+            assert_eq!(
+                result.add(&Pair::zero()).get(),
+                data.map(|x| -(x + x) * scale)
+            );
+            let check = Pair::new(&[Fr::from(7); 8]);
+            assert_eq!(
+                result.sub(&check).get(),
+                data.map(|x| -(x + x) * scale - Fr::from(7))
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn euler_fft_leaf_fusion_matches_ordinary_product() {
+    for n in [512usize, 8192, 32768, 65536, 131072, 262144] {
+        let root = Fr::root_of_unity(n).unwrap().pow(&[3]);
+        let coset = Fr::from(5u64);
+        let mut plan = Plan::new(n, root, coset, denominator(n, coset).unwrap());
+        plan.prepare_euler_basis();
+        let a: Vec<_> = (0..n / 2 + 7)
+            .map(|i| Fr::from((i + 1) as u64).square())
+            .collect();
+        let b: Vec<_> = (0..n - 9).map(|i| Fr::from((i + 3) as u64)).collect();
+        let expected = euler_product_study(&plan, a.clone(), b.clone(), None);
+        plan.set_euler_fft_leaf_fusion(true);
+        assert_eq!(euler_product_study(&plan, a, b, None), expected, "n={n}");
+    }
 }

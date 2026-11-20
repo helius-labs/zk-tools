@@ -85,6 +85,15 @@ pub struct Plan {
     params: (Fr, Fr, Fr),
     /// Whether the tables were released: a GPU holds its own copy.
     released: bool,
+    #[cfg(all(
+        feature = "ifma8",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    euler_fft_leaf_fusion: bool,
     roots: Twiddles,
     inverse_roots: Twiddles,
     forward_weights: Weights,
@@ -412,6 +421,15 @@ impl Plan {
                 n,
                 params: (generator, coset, den),
                 released: false,
+                #[cfg(all(
+                    feature = "ifma8",
+                    target_arch = "x86_64",
+                    target_feature = "avx512ifma",
+                    target_feature = "avx512vl",
+                    target_feature = "avx512dq",
+                    not(no_ifma)
+                ))]
+                euler_fft_leaf_fusion: false,
                 roots: Twiddles::empty(),
                 inverse_roots: Twiddles::empty(),
                 forward_weights: Weights::empty(),
@@ -471,6 +489,15 @@ impl Plan {
             n,
             params: (generator, coset, den),
             released: false,
+            #[cfg(all(
+                feature = "ifma8",
+                target_arch = "x86_64",
+                target_feature = "avx512ifma",
+                target_feature = "avx512vl",
+                target_feature = "avx512dq",
+                not(no_ifma)
+            ))]
+            euler_fft_leaf_fusion: false,
             roots,
             inverse_roots,
             forward_weights,
@@ -479,6 +506,21 @@ impl Plan {
             small: None,
         }
     }
+    pub(crate) fn set_euler_fft_leaf_fusion(&mut self, enabled: bool) {
+        let _ = enabled;
+        #[cfg(all(
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        {
+            self.euler_fft_leaf_fusion = enabled;
+        }
+    }
+
     /// Drops the CPU tables once a GPU holds its own (160 MB at 2^20, which
     /// a phone counts against its memory limit); a CPU quotient after this
     /// rebuilds them for the one call.

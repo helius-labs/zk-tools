@@ -118,6 +118,12 @@ impl Prover {
         self.key.set_raw_g1_a_on_frontend(enabled);
     }
 
+    /// Fuse inverse, Euler-weight and forward work within native CPU FFT leaves.
+    /// Disabled by default. Portable and other quotient routes keep their ordinary path.
+    pub fn set_euler_fft_leaf_fusion(&mut self, enabled: bool) {
+        self.key.set_euler_fft_leaf_fusion(enabled);
+    }
+
     /// Run the large native IFMA G1 K query on the attached frontend pool.
     /// Enable per key when the caller uses disjoint cores. Dispatch checks
     /// the workspace budget. Disabled by default.
