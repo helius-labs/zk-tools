@@ -1,0 +1,279 @@
+--- a/crates/zopro-core/src/msm.rs
++++ b/crates/zopro-core/src/msm.rs
+@@ -189,6 +189,30 @@
+     C::Base: BatchInverse,
+ {
+     group_affine_impl(|index| bases[index as usize], order, starts, counts)
++}
++
++#[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", feature="ifma8", not(no_ifma)))]
++mod group_head;
++
++#[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", feature="ifma8", not(no_ifma)))]
++pub(super) fn group_affine_g2(
++    bases: &[zopro_bn254::G2Affine],
++    order: &[u32],
++    starts: &[usize],
++    counts: &[usize],
++) -> Vec<zopro_bn254::G2Affine> {
++    static BORROW: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    static CLOCK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    let enabled = *BORROW.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_GROUP_BORROWED_HEAD").is_some());
++    let clock = *CLOCK.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_GROUP_HEAD_CLOCK").is_some());
++    let started = clock.then(crate::time::Instant::now);
++    let attempted = enabled.then(|| group_head::try_reduce(bases, order, starts, counts)).flatten();
++    let used = attempted.is_some();
++    let points = attempted.unwrap_or_else(|| group_affine(bases, order, starts, counts));
++    if let Some(started) = started {
++        eprintln!("G2_GROUP_HEAD {} {} {} {}", bases.len(), counts.len(), used, started.elapsed().as_nanos());
++    }
++    points
+ }
+ 
+ pub(super) fn group_affine_prepared<C: CurveConfig>(
+--- /dev/null
++++ b/crates/zopro-core/src/msm/group_head.rs
+@@ -0,0 +1,201 @@
++//! Borrow the first layer's right operands while gathering G2 scalar groups.
++use super::*;
++use zopro_bn254::{G2Affine, G2Config};
++
++const GROUP: usize = 256;
++const MAX_POINTS: usize = 2048;
++const TILE_OVERLAP: usize = 512 * 1024;
++
++pub(super) fn try_reduce(
++    bases: &[G2Affine],
++    order: &[u32],
++    starts: &[usize],
++    counts: &[usize],
++) -> Option<Vec<G2Affine>> {
++    let packed = BatchAdd::<G2Config>::default();
++    if counts.len() < 1024 || !packed.borrowed_g2_enabled() {
++        return None;
++    }
++    let active = counts
++        .len()
++        .div_ceil(GROUP)
++        .min(rayon::current_num_threads());
++    let _reserve = crate::preparation::Reservation::analysis(active.checked_mul(TILE_OVERLAP))?;
++    Some(reduce(bases, order, starts, counts))
++}
++
++fn reduce(bases: &[G2Affine], order: &[u32], starts: &[usize], counts: &[usize]) -> Vec<G2Affine> {
++    assert_eq!(starts.len(), counts.len() + 1);
++    let n = counts.len();
++    let mut result: Vec<G2Affine> = Vec::with_capacity(n);
++    result.spare_capacity_mut()[..n]
++        .par_chunks_mut(GROUP)
++        .enumerate()
++        .for_each_init(Tile::default, |tile, (i, output)| {
++            let first = i * GROUP;
++            let after = first + output.len();
++            if starts[after] - starts[first] > MAX_POINTS {
++                let offset = starts[first];
++                let local: Vec<_> = starts[first..=after]
++                    .iter()
++                    .map(|start| start - offset)
++                    .collect();
++                let ordinary = group_affine(
++                    bases,
++                    &order[offset..starts[after]],
++                    &local,
++                    &counts[first..after],
++                );
++                for (dst, point) in output.iter_mut().zip(ordinary) {
++                    dst.write(point);
++                }
++                return;
++            }
++            tile.reduce_tile(
++                bases,
++                order,
++                &starts[first..=after],
++                &counts[first..after],
++                output,
++            );
++        });
++    // SAFETY: each disjoint output tile initializes all its entries, and
++    // every Rayon task has joined before the result becomes observable.
++    unsafe { result.set_len(n) };
++    result
++}
++
++#[derive(Default)]
++struct Tile<'a> {
++    heads: Vec<G2Affine>,
++    pairs: Vec<(u32, &'a G2Affine)>,
++    remaining: Vec<LimbPoint<Fq2>>,
++    packed: BatchAdd<G2Config>,
++    scratch: Scratch<G2Config>,
++}
++
++impl<'a> Tile<'a> {
++    fn reduce_tile(
++        &mut self,
++        bases: &'a [G2Affine],
++        order: &[u32],
++        starts: &[usize],
++        counts: &[usize],
++        out: &mut [core::mem::MaybeUninit<G2Affine>],
++    ) {
++        self.heads.clear();
++        self.pairs.clear();
++        self.remaining.clear();
++        let mut start = [0usize; GROUP + 1];
++        for (j, range) in starts.windows(2).enumerate() {
++            let mut points = order[range[0]..range[1]].chunks_exact(2);
++            for pair in &mut points {
++                let left = &bases[pair[0] as usize];
++                let right = &bases[pair[1] as usize];
++                let slot = self.heads.len() as u32;
++                let sum = if left.is_identity() {
++                    *right
++                } else if right.is_identity() {
++                    *left
++                } else if left.x == right.x {
++                    (*left + *right).to_affine()
++                } else {
++                    self.pairs.push((slot, right));
++                    *left
++                };
++                self.heads.push(sum);
++            }
++            if let [last] = points.remainder() {
++                self.heads.push(bases[*last as usize]);
++            }
++            start[j + 1] = self.heads.len();
++        }
++        if !self.pairs.is_empty() {
++            self.packed
++                .apply_signed_borrowed_g2(&mut self.heads, &self.pairs);
++        }
++
++        let mut next_starts = [0usize; GROUP];
++        let mut next_counts = [0usize; GROUP];
++        for (j, dst) in out.iter_mut().enumerate() {
++            let heads = &self.heads[start[j]..start[j + 1]];
++            match heads {
++                [] => {
++                    dst.write(G2Affine::IDENTITY);
++                }
++                [point] => {
++                    dst.write(*point);
++                }
++                _ => {
++                    next_starts[j] = self.remaining.len();
++                    next_counts[j] = heads.len();
++                    self.remaining
++                        .extend(heads.iter().copied().map(limbs::<G2Config>));
++                }
++            }
++        }
++        let next_starts = &next_starts[..counts.len()];
++        let next_counts = &mut next_counts[..counts.len()];
++        while next_counts.iter().any(|&count| count > 1) {
++            reduce_layer(
++                &mut self.remaining,
++                next_starts,
++                next_counts,
++                &mut self.scratch,
++            );
++        }
++        for (j, dst) in out.iter_mut().enumerate() {
++            if next_counts[j] != 0 {
++                dst.write(affine::<G2Config>(self.remaining[next_starts[j]]));
++            }
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use zopro_bn254::G2Projective;
++
++    #[test]
++    fn first_borrowed_layer_matches_projective_group_sums() {
++        let mut curve = Vec::new();
++        let mut scalar = Vec::new();
++        let mut order = Vec::new();
++        let mut starts = vec![0];
++        let mut expected = Vec::new();
++        let sizes = (0..1027).map(|i| if i == 811 { 2061 } else { i % 13 });
++        for size in sizes {
++            let mut sum = Fr::ZERO;
++            for j in 0..size {
++                let k = scalar.len();
++                let weight = match k % 23 {
++                    0 => Fr::ZERO,
++                    1 => Fr::ONE,
++                    2 => -Fr::ONE,
++                    3 | 4 => Fr::from(31u64),
++                    _ => Fr::from((k * 503 + j + 17) as u64),
++                };
++                scalar.push(weight);
++                curve.push(G2Affine::GENERATOR * weight);
++                order.push(k as u32);
++                sum += weight;
++            }
++            starts.push(order.len());
++            expected.push(G2Affine::GENERATOR * sum);
++        }
++        let points = G2Projective::batch_to_affine(&curve);
++        let expected = G2Projective::batch_to_affine(&expected);
++        let counts: Vec<_> = starts.windows(2).map(|r| r[1] - r[0]).collect();
++        for workers in [1, 4, 16] {
++            let pool = rayon::ThreadPoolBuilder::new()
++                .num_threads(workers)
++                .build()
++                .unwrap();
++            pool.install(|| {
++                assert_eq!(reduce(&points, &order, &starts, &counts), expected);
++                assert_eq!(group_affine(&points, &order, &starts, &counts), expected);
++            });
++        }
++    }
++}
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -8,6 +8,10 @@
+ //! took five times gnark's last-level cache misses per second. Here a
+ //! window touches the bases once, in order, and its bucket array.
+ use crate::msm::{BatchAdd, BatchInverse};
++#[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", feature="ifma8", not(no_ifma)))]
++use crate::msm::group_affine_g2 as group_affine_b2;
++#[cfg(not(all(zopro_resource_schedule, zopro_g2_horner_buckets, target_arch="x86_64", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", feature="ifma8", not(no_ifma))))]
++use crate::msm::group_affine as group_affine_b2;
+ use rayon::prelude::*;
+ use zopro_bn254::{Affine, CurveConfig, Field, Fr, Projective};
+ mod grouping_cost;
+@@ -1706,7 +1710,7 @@
+     assert_eq!(bases.len(), len);
+     // B1 is omitted. The B2 query owns its canonical coefficients.
+     let (points, ()) = rayon::join(
+-        move || crate::msm::group_affine(bases, &order, &starts, &counts),
++        move || group_affine_b2(bases, &order, &starts, &counts),
+         || values.par_iter_mut().with_min_len(128).for_each(|s| *s = g2_phi::phi_split(*s)),
+     );
+     // Group index vectors have dropped. Keep the reservation through the MSM.
+@@ -1748,7 +1752,7 @@
+             if !(1024..65536).contains(&g.values.len()) {
+                 return crate::msm_grouped_b2(bases, &g);
+             }
+-            let points = crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts);
++            let points = group_affine_b2(bases, &g.order, &g.starts, &g.counts);
+             return g2_phi::raw_exclusive(&points, &mut g.values);
+         }
+         return g2_phi::raw_exclusive(bases, words);
+--- a/crates/zopro-core/src/msm_affine/g2_horner.rs
++++ b/crates/zopro-core/src/msm_affine/g2_horner.rs
+@@ -237,7 +237,7 @@
+     {
+         return msm_grouped(bases, groups);
+     }
+-    let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
++    let points = super::group_affine_b2(bases, &groups.order, &groups.starts, &groups.counts);
+     let mut short = groups.values.clone();
+     hb_raw(&points, &mut short, 11, 2)
+ }

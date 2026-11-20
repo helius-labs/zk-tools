@@ -1,0 +1,7 @@
+# Borrow the first right operand in the grouped G2 reducer
+
+- The existing point reducer copies both input points of every pair into tile scratch before the first layer, even when a class finishes at that layer. Use the existing borrowed affine addition to read right operands from the unchanged key.
+- Copy the surviving left points once, apply the first layer in batches, and move only unfinished class sums into the existing limb tree. Singleton classes require no field arithmetic. Ordinary and exceptional pairs preserve group order and membership.
+- Check complete affine outputs against an independent projective generator oracle and against existing reduction. Include empty, singleton, odd, even, cancellation and oversized tiles. Time complete proofs on two inputs each for 2×2, 4×2 and 8×2. Compare with the recorded SDK and the ordinary function from the same build. Separately clock the actual reducer to determine whether reducing first-layer copies helps.
+- Limit a tile to 2,048 input points. Charge a conservative proof-local scratch reservation under the existing memory policy. Process larger tiles or declined optional requests with the original consumer. Keep the proving key and all original point buffers unchanged.
+- Advance to a fresh C7a measurement only for a repeatable full-proof gain or a substantially faster reducer with acceptable memory. Allow three minutes for the native build and tests and two minutes for the local capture.
