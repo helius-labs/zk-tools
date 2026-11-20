@@ -21,11 +21,11 @@ The change columns are paired medians in milliseconds. They can differ from the 
 
 Each pair is catalog and heldout. The prediction substitutes the measured replay durations at the ordinary starts and keeps the remaining query times and join overhead fixed. The observed timings show that the retained work runs differently when K or B2 is removed. They do not distinguish scheduling, workspace admission and memory-system effects.
 
-The unclocked ordinary arm calibrated within 0.46% of the frozen build on both inputs in twelve paired blocks. Tracing moved all paired full-proof medians by less than 2.34% in magnitude except held-out joint replay, which shifted +4.45%. Treat that clocked joint result as exploratory. The two single-replay comparisons and the fully active clocks stayed within the 3% observer tolerance. All 176 proofs independently verified after retrieval. The temporary instance and bucket were removed, with zero active tagged benchmark instances and zero associated volumes in the region.
+In twelve unclocked blocks, the frozen catalog and held-out medians were 14.425 and 14.704 ms. The ordinary observer build took 14.688 and 14.453 ms, within 0.46% of frozen in paired medians. Tracing moved all paired full-proof medians by less than 2.34% in magnitude except held-out joint replay, which shifted +4.45%. Treat that clocked joint result as exploratory. The two single-replay comparisons and the fully active clocks stayed within the 3% observer tolerance. All 176 proofs independently verified after retrieval. The temporary instance and bucket were removed, with zero active tagged benchmark instances and zero associated volumes in the region.
 
 ## Eight supplied M5 examples
 
-| Shape | Best verified C7a ms | M5 CPU / Metal ms | CPU / Metal speedup |
+| Shape | Recorded C7a baseline ms | M5 CPU / Metal ms | CPU / Metal speedup |
 |---|---:|---:|---:|
 | 1×2 | 7.736 | 37 / 24 | 4.78× / 3.10× |
 | 2×2 | 11.898 | 59 / 30 | 4.96× / 2.52× |
