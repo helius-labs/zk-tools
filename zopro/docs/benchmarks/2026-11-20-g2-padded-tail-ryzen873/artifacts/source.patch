@@ -1,0 +1,135 @@
+--- a/crates/zopro-core/src/msm.rs
++++ b/crates/zopro-core/src/msm.rs
+@@ -719,6 +719,10 @@
+                 canonical,
+                 #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_enabled:std::env::var("ZOPRO_CPU_G2_PREFIX_RECORDS").as_deref()==Ok("1"),
+                 #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_trace:std::env::var_os("ZOPRO_CPU_G2_PREFIX_TRACE").is_some(),
++                #[cfg(all(zopro_g2_prefix_records,zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++                padded_borrowed_tail: std::env::var_os("ZOPRO_TRIAL_G2_PADDED_TAIL").is_some(),
++                #[cfg(all(zopro_g2_prefix_records,zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++                padded_borrowed_tail_trace: std::env::var_os("ZOPRO_TRIAL_G2_PADDED_TAIL_TRACE").is_some(),
+                 ..Default::default()
+             },
+         }
+@@ -982,6 +986,10 @@
+     #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_enabled:bool,
+     #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_trace:bool,
+     #[cfg(all(zopro_g2_prefix_records,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))] prefix_traced:bool,
++    #[cfg(all(zopro_g2_prefix_records,zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    padded_borrowed_tail: bool,
++    #[cfg(all(zopro_g2_prefix_records,zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    padded_borrowed_tail_trace: bool,
+     tail: Vec<[Fq2; 5]>,
+ }
+ #[inline(always)]
+--- a/crates/zopro-core/src/msm/g2_borrowed.rs
++++ b/crates/zopro-core/src/msm/g2_borrowed.rs
+@@ -20,8 +20,14 @@
+         chains = prefix_mul(&chains,&norm);
+     }
+     s.tail.clear();
++    let tail = &batch[full..];
+     let mut inverse =
+-        if let Some(value) = prefix_inverse(&chains, full == batch.len(), s.vector_inverse) {
++        if FAST && tail.len() >= 4 && s.padded_borrowed_tail && s.vector_inverse {
++            if s.padded_borrowed_tail_trace {
++                eprintln!("G2_PADDED_TAIL {} {}", batch.len(), tail.len());
++            }
++            padded_tail(buckets, tail, &chains)
++        } else if let Some(value) = prefix_inverse(&chains, full == batch.len(), s.vector_inverse) {
+             value
+         } else {
+             let mut tail = chains.get();
+@@ -83,6 +89,45 @@
+     }
+ }
+ 
++/// Finish the partial group first, then return the inverse prefix for
++/// the remaining groups. Dummy lanes have denominator one and no destination.
++#[inline(never)]
++fn padded_tail<C: CurveConfig<Base = Fq2>>(
++    buckets: &mut [Affine<C>],
++    batch: &[(u32, &Affine<C>)],
++    prefix: &FqBatch,
++) -> FqBatch {
++    debug_assert!((1..LANES).contains(&batch.len()));
++    let a: [Affine<C>; LANES] = core::array::from_fn(|i| {
++        batch.get(i).map_or(Affine::IDENTITY, |&(id, _)| {
++            buckets[(id & 0x7fff_ffff) as usize]
++        })
++    });
++    let bx = fq2_pack(core::array::from_fn(|i| {
++        batch.get(i).map_or(Fq2::ONE, |&(_, p)| p.x)
++    }));
++    let by = fq2_pack(core::array::from_fn(|i| {
++        batch.get(i).map_or(Fq2::ZERO, |&(id, p)| {
++            if id >> 31 != 0 { -p.y } else { p.y }
++        })
++    }));
++    let ax = fq2_pack(a.map(|p| p.x));
++    let ay = fq2_pack(a.map(|p| p.y));
++    let denominator = core::array::from_fn(|i| canonical_sub::<true>(&bx[i], &ax[i]));
++    let numerator = core::array::from_fn(|i| canonical_sub::<true>(&by[i], &ay[i]));
++    let norm = prefix_norm(&denominator);
++    let product = prefix_mul(prefix, &norm);
++    let inverse = prefix_inverse(&product, true, true).expect("complete vector group");
++    let slope = prefix_numerator(&numerator, &denominator, &prefix_mul(prefix, &inverse));
++    let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));
++    let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);
++    let (x, y) = (fq2_unpack(x), fq2_unpack(y));
++    for ((&(id, _), x), y) in batch.iter().zip(x).zip(y) {
++        buckets[(id & 0x7fff_ffff) as usize] = Affine::new(x, y);
++    }
++    prefix_mul(&inverse, &norm)
++}
++
+ impl<C: CurveConfig<Base = Fq2>> BatchAdd<C> {
+     pub(crate) fn borrowed_g2_enabled(&self) -> bool {
+         self.direct
+@@ -110,6 +155,46 @@
+ mod tests {
+     use super::*;
+     use zopro_bn254::G2Config;
++    #[test]
++    fn padded_tail_matches_changing_projective_oracles() {
++        let g = Projective::<G2Config>::generator();
++        let initial = Projective::<G2Config>::batch_to_affine(
++            &(0..224).map(|i| g * Fr::from(21571 + 17 * i)).collect::<Vec<_>>(),
++        );
++        let incoming = Projective::<G2Config>::batch_to_affine(
++            &(0..224).map(|i| g * Fr::from(1877527 + 23 * i)).collect::<Vec<_>>(),
++        );
++        for full in [0, 8, 16, 192, 216] {
++            for tail in 1..LANES {
++                for mask in [0u32, 0x33, 0x5a, 0xff] {
++                    let mut actual = initial.clone();
++                    let mut expected = initial.clone();
++                    let batch: Vec<_> = incoming[..full + tail]
++                        .iter()
++                        .enumerate()
++                        .map(|(i, p)| (i as u32 | (((mask >> (i % LANES)) & 1) << 31), p))
++                        .collect();
++                    let mut s = Fq2AddScratch {
++                        canonical: true,
++                        vector_inverse: true,
++                        padded_borrowed_tail: true,
++                        ..Default::default()
++                    };
++                    for _ in 0..3 {
++                        for &(id, point) in &batch {
++                            let index = (id & 0x7fff_ffff) as usize;
++                            let point = if id >> 31 == 0 { *point } else { -*point };
++                            assert_ne!(expected[index].x, point.x);
++                            expected[index] = (expected[index] + point).to_affine();
++                        }
++                        apply::<G2Config, true>(&mut actual, &batch, &mut s);
++                        assert_eq!(actual, expected);
++                    }
++                }
++            }
++        }
++    }
++
+     #[test]
+     fn signed_borrowed_prefix_tails_and_reuse() {
+         let g = Projective::<G2Config>::generator();
