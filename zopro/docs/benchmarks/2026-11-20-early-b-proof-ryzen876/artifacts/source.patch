@@ -1,0 +1,315 @@
+--- a/crates/zopro-core/src/groth16.rs
++++ b/crates/zopro-core/src/groth16.rs
+@@ -367,6 +367,17 @@
+         }
+         Some(out)
+     }
++    fn assemble_prepared_b(&self, parts: &[u8], b: G2Affine, u: Fr, v: Fr) -> Option<Vec<u8>> {
++        let a0 = decode_g1(&parts[..64])[0].to_projective() + self.0.fixed.alpha;
++        if a0.is_identity() {
++            return None;
++        }
++        let c0 = decode_g1(&parts[128..192])[0].to_projective() + decode_g1(&parts[192..256])[0];
++        let (a, add) = pair_g1(a0, u.inverse()?, v);
++        let (a, c) = (a.to_affine(), (c0 + add).to_affine());
++        Some(crate::verify::Proof { ar: a, krs: c, bs: b }.to_raw())
++    }
++
+     pub(crate) fn assemble_nonzero(&self, parts: &[u8]) -> Vec<u8> {
+         loop {
+             let proof = assemble_blinded(
+@@ -484,4 +495,84 @@
+ 
+ include!("groth16_rerandomize.rs");
+ 
++pub(crate) struct PreparedProofB {
++    pub(crate) point: G2Affine,
++    pub(crate) lines: zopro_bn254::pairing::G2Prepared,
++}
++
++pub(crate) struct StagedProofB<'a> {
++    fixed: &'a PreparedFixedPoints,
++    u: Fr,
++    v: Fr,
++    early: bool,
++    result: std::sync::OnceLock<PreparedProofB>,
++}
++
++impl<'a> StagedProofB<'a> {
++    pub(crate) fn new(fixed: &'a PreparedFixedPoints, early: bool) -> Self {
++        let u = loop {
++            let candidate = uniform_fr();
++            if !candidate.is_zero() {
++                break candidate;
++            }
++        };
++        Self { fixed, u, v: uniform_fr(), early, result: std::sync::OnceLock::new() }
++    }
++
++    pub(crate) fn compute(&self, b2: G2Projective) {
++        let b = joint_g2(
++            b2 + self.fixed.0.fixed.beta2,
++            self.u,
++            self.fixed.0.fixed.delta2,
++            self.u * self.v,
++            self.fixed.0.windows.as_ref().map(|(_, g2)| g2),
++        ).to_affine();
++        assert!(self.result.set(PreparedProofB {
++            point: b,
++            lines: zopro_bn254::pairing::G2Prepared::new(&b),
++        }).is_ok(), "one staged B result per proof");
++    }
++
++    pub(crate) fn early(&self) -> bool {
++        self.early
++    }
++
++    pub(crate) fn finish(self, parts: &[u8]) -> Option<(Vec<u8>, PreparedProofB)> {
++        let b = self.result.into_inner()?;
++        let raw = self.fixed.assemble_prepared_b(parts, b.point, self.u, self.v)?;
++        Some((raw, b))
++    }
++}
++
++#[cfg(test)]
++#[test]
++fn staged_b_matches_rerandomization() {
++    let g = G1Affine::GENERATOR;
++    let q = G2Affine::GENERATOR;
++    let fixed = PreparedFixedPoints::new(FixedPoints {
++        alpha: g, beta: g, delta: g, beta2: q, delta2: q,
++    });
++    for a in [G1Projective::IDENTITY, -g.to_projective(), g.to_projective().double()] {
++        for b2 in [G2Projective::IDENTITY, -q.to_projective(), q.to_projective().double()] {
++            let mut parts = Vec::new();
++            for part in [a, G1Projective::IDENTITY, g.to_projective().double(), g.to_projective()] {
++                crate::output_g1(&mut parts, part);
++            }
++            crate::output_g2(&mut parts, b2);
++            for early in [false, true] {
++                let staged = StagedProofB::new(&fixed, early);
++                staged.compute(b2);
++                let expected = fixed.rerandomized_with(&parts, staged.u, staged.v);
++                let got = staged.finish(&parts);
++                assert_eq!(got.as_ref().map(|(raw, _)| raw), expected.as_ref());
++                if let Some((raw, b)) = got {
++                    let proof = crate::verify::Proof::from_raw(&raw).unwrap();
++                    assert_eq!(proof.bs, b.point);
++                    assert_eq!(b.lines, zopro_bn254::pairing::G2Prepared::new(&proof.bs));
++                }
++            }
++        }
++    }
++}
++
+ impl PreparedFixedPoints{pub(crate)fn generated_g2_certified(&self)->bool{self.0.generated_g2.check(&[self.0.fixed.beta2,self.0.fixed.delta2],true)}}
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1104,6 +1104,14 @@
+         self.solve_inner(witness, false)
+     }
+     fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<Vec<u8>, String> {
++        self.solve_staged(witness, omit_b, None)
++    }
++    fn solve_staged(
++        &self,
++        witness: &[u8],
++        omit_b: bool,
++        staged_b: Option<&groth16::StagedProofB<'_>>,
++    ) -> Result<Vec<u8>, String> {
+         #[cfg(all(zopro_small_core_entry, zopro_real_kh, target_arch="x86_64",
+             target_os="linux", target_feature="avx512ifma", target_feature="avx512vl",
+             target_feature="avx512dq", feature="ifma8", not(no_ifma)))]
+@@ -1121,7 +1129,7 @@
+             }
+             return rayon::join(||{
+                 assert!(rayon::current_thread_index().is_some());
+-                self.solve_inner(witness,omit_b)
++                self.solve_staged(witness,omit_b,staged_b)
+             },||()).0;
+         }
+         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
+@@ -1146,7 +1154,7 @@
+         if self.canonical_wires && !self.has_gpu() && affine_msm() && self.equal_witness.is_none() {
+             if let Some(queries)=&self.lagrange {
+                 if let Some(folded)=&queries.folded {
+-                    return self.solve_canonical_wires(plan,&frs(witness),materialize_c,queries,folded,omit_b,_reclaim.as_ref());
++                    return self.solve_canonical_wires(plan,&frs(witness),materialize_c,queries,folded,omit_b,_reclaim.as_ref(),staged_b);
+                 }
+             }
+         }
+@@ -2337,7 +2345,7 @@
+ 
+ #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ impl Key {
+-    fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>)->Result<Vec<u8>,String>{
++    fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>,staged_b:Option<&groth16::StagedProofB<'_>>)->Result<Vec<u8>,String>{
+         #[cfg(not(zopro_bounded_gather))]
+         use rayon::prelude::*;
+         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
+@@ -2413,17 +2421,33 @@
+             let ((ar,kh),bs2)=rayon::join(
+                 || rayon::join(a, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                 || {
+-                    if (1024..65536).contains(&self.b2.len()) {
++                    let bs2 = if (1024..65536).contains(&self.b2.len()) {
+                         msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping)
+                     } else {
+                         let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(||scalar_groups(sb)).flatten();
+                         groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),
+                             |g|msm_grouped_b2(&self.b2,g))
++                    };
++                    if let Some(staged) = staged_b.filter(|staged| staged.early()) {
++                        let b = bs2;
++                        #[cfg(zopro_resource_schedule)]
++                        let b = offsets.map_or(b, |offsets| b + offsets.b2);
++                        staged.compute(b);
++                        if std::env::var_os("ZOPRO_TRIAL_STAGED_PROOF_B_TRACE").is_some() {
++                            eprintln!("STAGED_PROOF_B early");
++                        }
+                     }
++                    bs2
+                 });
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             let (ar,kh,bs2)=offsets.map_or((ar,kh,bs2), |o| (ar+o.a,kh+o.k,bs2+o.b2));
++            if let Some(staged) = staged_b.filter(|staged| !staged.early()) {
++                staged.compute(bs2);
++                if std::env::var_os("ZOPRO_TRIAL_STAGED_PROOF_B_TRACE").is_some() {
++                    eprintln!("STAGED_PROOF_B late");
++                }
++            }
+             let mut out=Vec::with_capacity(384);
+             for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY] {output_g1(&mut out,point);}
+             output_g2(&mut out,bs2);
+@@ -2591,6 +2615,23 @@
+         #[cfg(all(target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",feature="ifma8",not(no_ifma)))]
+         let eligible=!self.has_gpu()&&self.b2.len()<65536&&std::env::var("ZOPRO_BENCH_CERTIFIED_OUTPUT").as_deref()==Ok("1");
+         let certified=eligible&&self.generated_g2.check(&self.b2,false)&&fixed.generated_g2_certified();
++        let mode = std::env::var_os("ZOPRO_TRIAL_STAGED_PROOF_B");
++        if self.canonical_wires
++            && !self.has_gpu()
++            && fixed.rerandomization_key_valid()
++            && matches!(mode.as_deref().and_then(std::ffi::OsStr::to_str), Some("early" | "late"))
++        {
++            let staged = groth16::StagedProofB::new(fixed, mode.as_deref().is_some_and(|m| m == "early"));
++            let parts = self.solve_staged(witness, true, Some(&staged))?;
++            if let Some((raw, b)) = staged.finish(&parts) {
++                return Ok(generated_proof::GeneratedProof::with_prepared_b(raw, certified, b));
++            }
++            let proof = match fixed.assemble_rerandomized(&parts) {
++                Some(proof) => proof,
++                None => fixed.assemble_nonzero(&self.solve_inner(witness, false)?),
++            };
++            return Ok(generated_proof::GeneratedProof::new(proof, certified));
++        }
+         Ok(generated_proof::GeneratedProof::new(self.solve_rerandomized(witness,fixed)?,certified))
+     }
+ }
+--- a/crates/zopro-core/src/generated_proof.rs
++++ b/crates/zopro-core/src/generated_proof.rs
+@@ -8,9 +8,28 @@
+ pub struct GeneratedProof {
+     raw: Vec<u8>,
+     g2_certified: bool,
++    prepared_b: Option<crate::groth16::PreparedProofB>,
+ }
++
++/// A parsed fresh proof and any proof-local verification work.
++pub struct GeneratedVerification {
++    pub(crate) proof: crate::verify::Proof,
++    pub(crate) prepared_b: Option<crate::groth16::PreparedProofB>,
++}
++
+ impl GeneratedProof {
+-    pub(crate) fn new(raw: Vec<u8>, g2_certified: bool) -> Self { Self { raw, g2_certified } }
++    pub(crate) fn new(raw: Vec<u8>, g2_certified: bool) -> Self {
++        Self { raw, g2_certified, prepared_b: None }
++    }
++    pub(crate) fn with_prepared_b(raw: Vec<u8>, g2_certified: bool, b: crate::groth16::PreparedProofB) -> Self {
++        Self { raw, g2_certified, prepared_b: Some(b) }
++    }
++    pub fn into_verification(self) -> Result<GeneratedVerification, &'static str> {
++        if self.g2_certified { probe::fast(); }
++        let proof = crate::verify::Proof::from_generated_raw(&self.raw, self.g2_certified)?;
++        let prepared_b = self.prepared_b.filter(|b| b.point == proof.bs);
++        Ok(GeneratedVerification { proof, prepared_b })
++    }
+     pub fn into_proof(self) -> Result<crate::verify::Proof, &'static str> {
+         if self.g2_certified { probe::fast(); }
+         crate::verify::Proof::from_generated_raw(&self.raw, self.g2_certified)
+--- a/crates/zopro-core/src/verify.rs
++++ b/crates/zopro-core/src/verify.rs
+@@ -177,15 +177,42 @@
+         public: &[Fr],
+         generate: impl FnOnce() -> Result<Proof, E> + Send,
+     ) -> Result<Option<Proof>, E> {
++        self.verify_during_generated(public, || {
++            generate().map(|proof| crate::generated_proof::GeneratedVerification {
++                proof, prepared_b: None,
++            })
++        })
++    }
++
++    #[cfg(not(target_arch = "wasm32"))]
++    pub fn verify_during_generated<E: Send>(
++        &self,
++        public: &[Fr],
++        generate: impl FnOnce() -> Result<crate::generated_proof::GeneratedVerification, E> + Send,
++    ) -> Result<Option<Proof>, E> {
+         if public.len() != self.public_inputs() {
+             return Ok(None);
+         }
+         let public_term = || multi_miller_loop(&[(self.public_point(public), &self.gamma2)]);
+-        let proof_terms = |proof: Proof| {
++        let proof_terms = |generated: crate::generated_proof::GeneratedVerification| {
++            let crate::generated_proof::GeneratedVerification { proof, prepared_b } = generated;
+             let (ab, cd) = rayon::join(
+                 || {
+-                    let bs = G2Prepared::new(&proof.bs);
+-                    multi_miller_loop(&[(-proof.ar, &bs)])
++                    let generated = prepared_b.map(|b| b.lines);
++                    let fallback;
++                    let bs = match generated.as_ref() {
++                        Some(lines) => {
++                            if std::env::var_os("ZOPRO_TRIAL_STAGED_PROOF_B_TRACE").is_some() {
++                                eprintln!("STAGED_PROOF_B used");
++                            }
++                            lines
++                        }
++                        None => {
++                            fallback = G2Prepared::new(&proof.bs);
++                            &fallback
++                        }
++                    };
++                    multi_miller_loop(&[(-proof.ar, bs)])
+                 },
+                 || multi_miller_loop(&[(proof.krs, &self.delta2)]),
+             );
+--- a/crates/zopro-prover/src/lib.rs
++++ b/crates/zopro-prover/src/lib.rs
+@@ -264,18 +264,20 @@
+                         .map_err(Error::Prove)?;
+                     prove_ms = started.elapsed().as_millis() as u64;
+                     verify_started = zopro_core::time::Instant::now();
+-                    raw.into_proof().map_err(|_| Error::Unverified)
++                    Ok::<_, Error>(raw)
+                 };
+                 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                 let verified = if self.overlap_verification && self.public <= 16 {
+-                    self.verifying_key.verify_during_generation(public, generate)?
++                    self.verifying_key.verify_during_generated(public, || {
++                        generate()?.into_verification().map_err(|_| Error::Unverified)
++                    })?
+                 } else {
+-                    let proof = generate()?;
++                    let proof = generate()?.into_proof().map_err(|_| Error::Unverified)?;
+                     self.verifying_key.verify(&proof, public).then_some(proof)
+                 };
+                 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                 let verified = {
+-                    let proof = generate()?;
++                    let proof = generate()?.into_proof().map_err(|_| Error::Unverified)?;
+                     self.verifying_key.verify(&proof, public).then_some(proof)
+                 };
+                 let proof = verified.ok_or(Error::Unverified)?;
