@@ -1,0 +1,217 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2068,6 +2068,8 @@
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
++            #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++            let h_placement = four_by_two_probe::h_placement();
+             let compute_k = |sk: &mut [Fr]| {
+                 #[cfg(all(
+                     zopro_resource_schedule,
+@@ -2091,6 +2093,7 @@
+                             if std::env::var_os("ZOPRO_K_FRONTEND_TRACE").is_some() {
+                                 eprintln!("K_FRONTEND {} {workers}", sk.len());
+                             }
++                            four_by_two_probe::placement("k");
+                             Some(msm(k, &mut *sk))
+                         });
+                         if let Some(result) = result {
+@@ -2098,6 +2101,8 @@
+                         }
+                     }
+                 }
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                four_by_two_probe::placement("k");
+                 msm(k, sk)
+             };
+             #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+@@ -2109,15 +2114,6 @@
+                 return four_by_two_probe::g1(Query::A, phase, self.a.as_ptr() as usize, sa, |s| msm(&self.a[..], s));
+                 #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
+                 msm(&self.a[..], sa)
+-            };
+-            let h_query = || {
+-                let evaluate = |s: &mut [Fr]| {
+-                    if montgomery_h { msm_affine::msm_montgomery(z, s) } else { msm(z, s) }
+-                };
+-                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+-                return four_by_two_probe::g1(Query::H, phase, z.as_ptr() as usize, h, evaluate);
+-                #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
+-                evaluate(h)
+             };
+             let evaluate_b = |sb: &mut [Fr]| {
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+@@ -2183,6 +2179,59 @@
+                 #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
+                 evaluate_b(sb)
+             };
++            #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++            if h_placement == four_by_two_probe::HPlacement::Joined && self.g1_k_on_frontend {
++                if let Some(pool) = self.frontend_pool.as_deref().filter(|pool| {
++                    pool.current_num_threads() < rayon::current_num_threads()
++                }) {
++                    let width = pool.current_num_threads();
++                    let bytes = msm_affine::workspace::frontend_g1_bytes(sk.len(), width, true)
++                        .zip(msm_affine::workspace::frontend_g1_bytes(h.len(), width, true))
++                        .and_then(|(k, h)| k.checked_add(h));
++                    if let Some(_scratch) = crate::preparation::Reservation::analysis(bytes) {
++                        let kh = || pool.install(|| rayon::join(
++                            || four_by_two_probe::g1(Query::K, phase, k.as_ptr() as usize, sk, |s| {
++                                four_by_two_probe::placement("k");
++                                msm(k, s)
++                            }),
++                            || four_by_two_probe::g1(Query::H, phase, z.as_ptr() as usize, h, |s| {
++                                four_by_two_probe::placement("h");
++                                if montgomery_h { msm_affine::msm_montgomery(z, s) } else { msm(z, s) }
++                            }),
++                        ));
++                        let ((ar, (kr, hz)), (bs1, bs2)) =
++                            rayon::join(|| rayon::join(a, kh), b2);
++                        return ((ar, bs1), (kr, (hz, bs2)));
++                    }
++                }
++            }
++            let h_query = || {
++                let evaluate = |s: &mut [Fr]| {
++                    #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++                    if h_placement == four_by_two_probe::HPlacement::Independent {
++                        if let Some(pool) = self.frontend_pool.as_deref().filter(|pool| {
++                            pool.current_num_threads() < rayon::current_num_threads()
++                        }) {
++                            let bytes = msm_affine::workspace::frontend_g1_bytes(
++                                s.len(), pool.current_num_threads(), true,
++                            );
++                            if let Some(_scratch) = crate::preparation::Reservation::analysis(bytes) {
++                                return pool.install(|| {
++                                    four_by_two_probe::placement("h");
++                                    if montgomery_h { msm_affine::msm_montgomery(z, s) } else { msm(z, s) }
++                                });
++                            }
++                        }
++                    }
++                    #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                    four_by_two_probe::placement("h");
++                    if montgomery_h { msm_affine::msm_montgomery(z, s) } else { msm(z, s) }
++                };
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                return four_by_two_probe::g1(Query::H, phase, z.as_ptr() as usize, h, evaluate);
++                #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
++                evaluate(h)
++            };
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || rayon::join(|| rayon::join(a, || {
+                     #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+--- a/crates/zopro-core/src/four_by_two_probe.rs
++++ b/crates/zopro-core/src/four_by_two_probe.rs
+@@ -30,6 +30,29 @@
+             Some("b2") => matches!(self, Self::B2),
+             _ => false,
+         }
++    }
++}
++
++#[derive(Clone, Copy, PartialEq, Eq)]
++pub(crate) enum HPlacement {
++    Main,
++    Independent,
++    Joined,
++}
++
++pub(crate) fn h_placement() -> HPlacement {
++    static PLACEMENT: OnceLock<HPlacement> = OnceLock::new();
++    *PLACEMENT.get_or_init(|| match std::env::var("ZOPRO_892_H_POOL").as_deref() {
++        Ok("front") => HPlacement::Independent,
++        Ok("joined") => HPlacement::Joined,
++        _ => HPlacement::Main,
++    })
++}
++
++pub(crate) fn placement(query: &str) {
++    static TRACE: OnceLock<bool> = OnceLock::new();
++    if *TRACE.get_or_init(|| std::env::var_os("ZOPRO_892_TRACE").is_some()) {
++        eprintln!("ZP892_PLACEMENT {query} {}", rayon::current_num_threads());
+     }
+ }
+ 
+--- a/crates/zopro-bench/examples/cpu-sdk.rs
++++ b/crates/zopro-bench/examples/cpu-sdk.rs
+@@ -22,6 +22,12 @@
+     let mut profile = perf::Control::from_env()?;
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     let frontend = placement::configure()?;
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    let pool_counters = if std::env::var_os("ZOPRO_892_CPU_POOL").is_some() {
++        Some(placement::PoolCpu::new(frontend.as_deref())?)
++    } else {
++        None
++    };
+     let file = fs::File::open(&args[1])?;
+     // SAFETY: the caller keeps this trusted key image unchanged for the run.
+     let image = unsafe { memmap2::Mmap::map(&file)? };
+@@ -93,6 +99,8 @@
+     if let Some(control) = profile.as_mut() {
+         control.enable()?;
+     }
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    let pool_before = pool_counters.as_ref().map(placement::PoolCpu::snapshot).transpose()?;
+     let before = perf::Usage::now()?;
+     let loop_started = Instant::now();
+     for _ in 0..rounds {
+@@ -103,6 +111,11 @@
+     }
+     let loop_wall_ms = loop_started.elapsed().as_secs_f64() * 1000.;
+     let after = perf::Usage::now()?;
++    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++    if let (Some(counters), Some(before)) = (&pool_counters, pool_before) {
++        let after = counters.snapshot()?;
++        println!("ZP892_CPU {} {}", after[0] - before[0], after[1] - before[1]);
++    }
+     if let Some(control) = profile.as_mut() {
+         control.disable()?;
+     }
+--- a/crates/zopro-bench/examples/support/placement.rs
++++ b/crates/zopro-bench/examples/support/placement.rs
+@@ -95,6 +95,42 @@
+     Ok(frontend)
+ }
+ 
++pub(super) struct PoolCpu {
++    tasks: [Vec<std::fs::File>; 2],
++}
++
++impl PoolCpu {
++    pub(super) fn new(frontend: Option<&rayon::ThreadPool>) -> io::Result<Self> {
++        let ids = |_: rayon::BroadcastContext<'_>| {
++            // SAFETY: gettid takes no arguments and returns the calling thread.
++            unsafe { libc::syscall(libc::SYS_gettid) }
++        };
++        let main = rayon::broadcast(ids);
++        let front = frontend.map_or_else(Vec::new, |pool| pool.broadcast(ids));
++        let open = |tids: Vec<_>| tids.into_iter()
++            .map(|tid| std::fs::File::open(format!("/proc/self/task/{tid}/schedstat")))
++            .collect::<io::Result<Vec<_>>>();
++        Ok(Self { tasks: [open(main)?, open(front)?] })
++    }
++
++    pub(super) fn snapshot(&self) -> io::Result<[u64; 2]> {
++        use std::os::unix::fs::FileExt;
++        let mut result = [0; 2];
++        let mut bytes = [0; 128];
++        for (pool, tasks) in result.iter_mut().zip(&self.tasks) {
++            for task in tasks {
++                let size = task.read_at(&mut bytes, 0)?;
++                let text = std::str::from_utf8(&bytes[..size]).map_err(io::Error::other)?;
++                let elapsed = text.split_whitespace().next()
++                    .and_then(|t| t.parse::<u64>().ok())
++                    .ok_or_else(|| io::Error::other("missing schedstat execution time"))?;
++                *pool += elapsed;
++            }
++        }
++        Ok(result)
++    }
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
