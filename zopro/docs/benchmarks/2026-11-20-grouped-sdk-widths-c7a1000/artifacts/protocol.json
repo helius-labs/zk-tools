@@ -1,0 +1,67 @@
+{
+  "root": "/opt/zopro-group-width1000",
+  "shapes": [
+    "4x2",
+    "8x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "main64-solve16",
+    "main64-solve8",
+    "main72-solve16",
+    "main72-solve8",
+    "main64-fused",
+    "main72-fused",
+    "aeglos"
+  ],
+  "layouts": {
+    "main64-solve16": [
+      64,
+      16,
+      false
+    ],
+    "main64-solve8": [
+      64,
+      8,
+      false
+    ],
+    "main72-solve16": [
+      72,
+      16,
+      false
+    ],
+    "main72-solve8": [
+      72,
+      8,
+      false
+    ],
+    "main64-fused": [
+      64,
+      16,
+      true
+    ],
+    "main72-fused": [
+      72,
+      16,
+      true
+    ]
+  },
+  "blocks": 8,
+  "executable": "4bf5d58ecf1be9689abe7ff33e6182190f931ba0aaa155f7d202e531e99fc187",
+  "reference": {
+    "4x2": {
+      "cpu_ms": 109,
+      "metal_ms": 48
+    },
+    "8x2": {
+      "cpu_ms": 189,
+      "metal_ms": 74
+    }
+  },
+  "scope": "Same tiled SDK with 64+32 and 72+24 placement, eight versus sixteen witness cores, and the existing Euler leaf/product and packed-final options.",
+  "gate": "Require at least six of eight paired wins against the pinned control on both requests. Report whether each median meets 10\u00d7 on CPU and Metal independently."
+}
