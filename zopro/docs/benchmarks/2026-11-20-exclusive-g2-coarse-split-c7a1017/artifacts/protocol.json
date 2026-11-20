@@ -1,0 +1,88 @@
+{
+  "shapes": [
+    "1x2",
+    "1x4",
+    "1x16",
+    "2x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "layouts": {
+    "1x2": "early-equal",
+    "1x4": "second",
+    "1x16": "third",
+    "2x2": "third"
+  },
+  "root": "/opt/zopro-exclusive-split1017",
+  "build": {
+    "executable": "0a413b159872218fe22f35fe21dc062e192936846d041f94255b163172d72f94",
+    "source_patch": "6a30406f5ea48abca00ba234b588e1d7dd3904820956a5c2e1d1524901acf8cf",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/msm_affine/workspace.rs",
+      "crates/zopro-prover/src/lib.rs",
+      "crates/zopro-bench/examples/cpu-sdk.rs",
+      "crates/zopro-bench/examples/support/placement.rs"
+    ]
+  },
+  "trial_build": {
+    "executable": "270efdb7f6a8748efca651e52675ec4deefe0ff339b872930c4d8a0382c21f87",
+    "source_patch": "b885efc2a39563f941f8cc6f58a520bb63c7dc0389bb939639523dd87e19d18d",
+    "files": [
+      "crates/zopro-core/src/msm_affine/g2_phi.rs"
+    ]
+  },
+  "panels": {
+    "timing": [
+      8,
+      17,
+      [
+        "exact",
+        "control",
+        "split512",
+        "split2048",
+        "split8192",
+        "aeglos",
+        "pinned"
+      ]
+    ],
+    "route": [
+      3,
+      5,
+      [
+        "exact",
+        "control",
+        "split512",
+        "split2048",
+        "split8192"
+      ]
+    ]
+  },
+  "group": "zp1017",
+  "sites": {
+    "prove": "0x559980",
+    "gen": "0x54ede0",
+    "canonical": "0x49e100",
+    "solve": "0x44d170",
+    "g1": "0x49fe80",
+    "g1canonical": "0x1e4310",
+    "g1raw": "0x1e4a40",
+    "g2": "0x4b6300",
+    "phi": "0x4e6400",
+    "windows": "0x4bccb0",
+    "quotient": "0x4a0c70"
+  },
+  "reference": {
+    "1x2": {
+      "cpu_ms": 37,
+      "metal_ms": 24
+    },
+    "2x2": {
+      "cpu_ms": 59,
+      "metal_ms": 30
+    }
+  },
+  "scope": "Measure bounded exclusive G2 scalar chunks and trace the exact same SDK on matched C7a profiles."
+}
