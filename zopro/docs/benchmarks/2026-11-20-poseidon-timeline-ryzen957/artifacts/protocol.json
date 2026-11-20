@@ -1,0 +1,58 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "ordinary",
+    "timeline"
+  ],
+  "main": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "front": [
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "solver_widths": [
+    4,
+    7
+  ],
+  "timed_rounds": 17,
+  "blocks": 5,
+  "calibration": "Compare trace with same-build ordinary, check against exact 946 frozen. Summarize solver and full paired observer drift.",
+  "scope": "Capture timestamps of the same 256 certified spans and their 28 original tasks while preserving the normal parallel schedule. Probe both four and seven pinned solver workers.",
+  "chronology": "Each span records first-round state ready, completion of 25 and 50 of the remaining 75 S-box writes, and whole tail completion. Every timestamp is elapsed nanoseconds plus one from the beginning of solver instruction execution. Task entry and exit bracket each span.",
+  "source_patch": "61f5b057ffbfecc389413d8f81ecae39321fff48d664c366b383d2f1c13e033f"
+}
