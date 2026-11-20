@@ -1,0 +1,180 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1888,6 +1888,66 @@
+                 });
+                 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                 let pool = None;
++                #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++                if let Some((early, frontend, _scratch)) = four_by_two_probe::k_overlap_mode()
++                    .and_then(|early| {
++                        if pool.is_some() || !omit_b || !self.g1_k_on_frontend || !affine_msm()
++                            || self.equal_witness.is_some() || sa.len().max(sb.len()) < 65_536
++                            || sk.len() != folded.private.len()
++                            || !crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++                            || four_by_two_probe::h_placement() != four_by_two_probe::HPlacement::Main
++                        {
++                            return None;
++                        }
++                        let frontend = self.frontend_pool.as_deref().filter(|pool| {
++                            pool.current_num_threads() < rayon::current_num_threads()
++                        })?;
++                        let bytes = msm_affine::workspace::frontend_g1_bytes(
++                            sk.len(), frontend.current_num_threads(), true,
++                        );
++                        let scratch = crate::preparation::Reservation::analysis(bytes)?;
++                        Some((early, frontend, scratch))
++                    })
++                {
++                    let origin = four_by_two_probe::k_overlap_clock();
++                    let fft = || four_by_two_probe::k_overlap_span(origin, || {
++                        queries.product_values(&self.plan, a, b, None)
++                    });
++                    let k = || frontend.install(|| four_by_two_probe::k_overlap_span(origin, || {
++                        four_by_two_probe::placement("k");
++                        msm_affine::msm_in_place(&folded.private, sk)
++                    }));
++                    let mut curves = |mut product: Vec<Fr>| four_by_two_probe::k_overlap_span(origin, || {
++                        let product_points = &queries.product[..product.len()];
++                        rayon::join(
++                            || self.cpu_msms(sa, sb, &mut [], &mut product, product_points, &folded.private, true, omit_b, true),
++                            || folded.public_term(public),
++                        )
++                    });
++                    let ((curve_result, stages), (kr, k_span)) = if early {
++                        rayon::join(|| {
++                            let (product, fft_span) = fft();
++                            let (curve_result, curves_span) = curves(product);
++                            (curve_result, (fft_span, curves_span))
++                        }, k)
++                    } else {
++                        let (product, fft_span) = fft();
++                        let ((curve_result, curves_span), k) = rayon::join(|| curves(product), k);
++                        ((curve_result, (fft_span, curves_span)), k)
++                    };
++                    let (((ar, bs1), (_, (hz, bs2))), correction) = curve_result;
++                    four_by_two_probe::k_overlap_report(early, folded.private.len(), stages.0, k_span, stages.1);
++                    let (ar, kr, bs2) = match self.wire_offsets.as_deref() {
++                        Some(offsets) if !self.canonical_wires => (ar + offsets.a, kr + offsets.k, bs2 + offsets.b2),
++                        _ => (ar, kr, bs2),
++                    };
++                    let mut out = Vec::with_capacity(384);
++                    for point in [ar, bs1, kr + correction, queries.finish_product(hz)] {
++                        output_g1(&mut out, point);
++                    }
++                    output_g2(&mut out, bs2);
++                    return Ok(out);
++                }
+                 #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+                 let phase = four_by_two_probe::clock();
+                 let mut product = queries.product_values(&self.plan, a, b, pool);
+@@ -1896,7 +1956,7 @@
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+-                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
++                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b, false),
+                     || folded.public_term(public),
+                 );
+                 #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -1924,7 +1984,7 @@
+             let mut product = queries.product_values(&self.plan, a, b, None);
+             let started = trace("quotient-product", started);
+             let (((ar, bs1), (kr, (positive, bs2))), negative) = rayon::join(
+-                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b),
++                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b, false),
+                 || msm_g1(&queries.constraints[..c.len()], &c),
+             );
+             trace("msms", started);
+@@ -1945,7 +2005,7 @@
+         let trace_scalars = std::env::var("ZOPRO_TRACE_MSMS")
+             .is_ok_and(|v| v == "1")
+             .then(|| (sa.to_vec(), sb.to_vec(), sk.to_vec(), h.to_vec()));
+-        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b);
++        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b, false);
+         trace("msms", started);
+         // Each MSM alone, on the whole pool, for its own share: this adds
+         // to the proof time, so only with ZOPRO_TRACE_MSMS=1.
+@@ -1989,6 +2049,7 @@
+         k: &[G1Affine],
+         folded_k: bool,
+         omit_b: bool,
++        skip_k: bool,
+     ) -> (
+         (G1Projective, G1Projective),
+         (G1Projective, (G1Projective, G2Projective)),
+@@ -2234,6 +2295,9 @@
+             };
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || rayon::join(|| rayon::join(a, || {
++                    if skip_k {
++                        return G1Projective::IDENTITY;
++                    }
+                     #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+                     return four_by_two_probe::g1(Query::K, phase, k.as_ptr() as usize, sk, compute_k);
+                     #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
+@@ -2656,7 +2720,7 @@
+             let c_coset=self.plan.coset_product(c,vec![Fr::ONE;self.domain]);
+             product.par_iter_mut().zip(c_coset.par_iter()).for_each(|(p,c)|*p-=*c);product
+         };
+-        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b);
++        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b, false);
+         let mut out=Vec::with_capacity(384);for p in [ar,bs1,kr+correction,q.finish_product(hz)]{output_g1(&mut out,p);}output_g2(&mut out,bs2);Ok(out)
+     }
+ }
+--- a/crates/zopro-core/src/four_by_two_probe.rs
++++ b/crates/zopro-core/src/four_by_two_probe.rs
+@@ -53,6 +53,54 @@
+     static TRACE: OnceLock<bool> = OnceLock::new();
+     if *TRACE.get_or_init(|| std::env::var_os("ZOPRO_892_TRACE").is_some()) {
+         eprintln!("ZP892_PLACEMENT {query} {}", rayon::current_num_threads());
++    }
++}
++
++pub(crate) fn k_overlap_mode() -> Option<bool> {
++    static EARLY: OnceLock<Option<bool>> = OnceLock::new();
++    *EARLY.get_or_init(|| match std::env::var("ZOPRO_895_K_OVERLAP").as_deref() {
++        Ok("early") => Some(true),
++        Ok("late") => Some(false),
++        _ => None,
++    })
++}
++
++pub(crate) fn k_overlap_clock() -> Option<Instant> {
++    static CLOCK: OnceLock<bool> = OnceLock::new();
++    CLOCK.get_or_init(|| std::env::var_os("ZOPRO_895_CLOCK").is_some()).then(Instant::now)
++}
++
++pub(crate) struct Stage {
++    start: u128,
++    end: u128,
++    workers: usize,
++}
++
++pub(crate) fn k_overlap_span<T>(
++    clock: Option<Instant>, compute: impl FnOnce() -> T,
++) -> (T, Option<Stage>) {
++    let start = clock.map(|t| t.elapsed().as_nanos());
++    let result = compute();
++    let span = clock.zip(start).map(|(t, start)| Stage {
++        start,
++        end: t.elapsed().as_nanos(),
++        workers: rayon::current_num_threads(),
++    });
++    (result, span)
++}
++
++pub(crate) fn k_overlap_report(
++    early: bool, points: usize, fft: Option<Stage>, k: Option<Stage>, curves: Option<Stage>,
++) {
++    let mode = if early { "early" } else { "late" };
++    static TRACE: OnceLock<bool> = OnceLock::new();
++    if *TRACE.get_or_init(|| std::env::var_os("ZOPRO_895_TRACE").is_some()) {
++        eprintln!("ZP895_ROUTE {mode} {points}");
++    }
++    if let (Some(fft), Some(k), Some(curves)) = (fft, k, curves) {
++        eprintln!("ZP895_SPAN {mode} {} {} {} {} {} {} {} {} {}",
++            fft.start, fft.end, fft.workers, k.start, k.end, k.workers,
++            curves.start, curves.end, curves.workers);
+     }
+ }
+ 
