@@ -2,7 +2,7 @@
 
 The trial fills one fixed-size twiddle buffer per eligible FFT level. It reserves the requested storage plus a small allowance per allocation. The original builder allocates temporary vectors per column and reserves 256 bytes per domain element. At 12×2 that request is 128 MiB against a 64 MiB process-wide ceiling, which prevents the original cache from being built. The direct builder keeps the same ceiling, domain limit, and FFT arithmetic.
 
-Paired full-proof latency changed by -2.74% to -0.85% against the same-build control. Peak RSS changed by -13.0 to +72.4 MiB. The candidate meets the local latency criterion on 12×2, 16×2. C7a confirmation is pending.
+Paired full-proof latency changed by -2.74% to -0.85% against the same-build control. Peak RSS changed by -13.0 to +72.4 MiB. The candidate met the local latency criterion on 12×2 and 16×2. Both shapes fell short of the adoption criterion in the subsequent C7a run. [C7a follow-up](../2026-11-20-fft-bounded-column-cache-c7a1047/README.md)
 
 | Shape | Input | Frozen / control / direct ms | Direct vs control | Direct vs frozen | Control / direct peak MiB |
 |---|---|---:|---:|---:|---:|
