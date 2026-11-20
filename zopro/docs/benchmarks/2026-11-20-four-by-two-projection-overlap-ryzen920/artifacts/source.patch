@@ -1,0 +1,253 @@
+--- a/crates/zopro-core/src/four_by_two_probe.rs
++++ b/crates/zopro-core/src/four_by_two_probe.rs
+@@ -56,16 +56,37 @@
+     }
+ }
+ 
+-pub(crate) fn k_b2_projection_mode() -> Option<(bool, bool)> {
+-    static MODE: OnceLock<Option<(bool, bool)>> = OnceLock::new();
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(crate) enum Projection {
++    Gate,
++    Late,
++    EarlyMain,
++    EarlyFront,
++}
++
++pub(crate) fn k_b2_projection_mode() -> Option<(Projection, bool)> {
++    static MODE: OnceLock<Option<(Projection, bool)>> = OnceLock::new();
+     *MODE.get_or_init(|| {
+         let trace = std::env::var_os("ZOPRO_919_TRACE").is_some();
+-        match std::env::var("ZOPRO_919_PROJECTION").as_deref() {
+-            Ok("gate") => Some((false,trace)),
+-            Ok("projected") => Some((true,trace)),
+-            _ => None,
+-        }
++        let mode = match std::env::var("ZOPRO_919_PROJECTION").as_deref() {
++            Ok("gate") => Projection::Gate,
++            Ok("projected") => Projection::Late,
++            Ok("early-main") => Projection::EarlyMain,
++            Ok("early-front") => Projection::EarlyFront,
++            _ => return None,
++        };
++        Some((mode, trace))
+     })
++}
++
++pub(crate) fn timed_interval<T>(
++    clock: Option<Instant>,
++    work: impl FnOnce() -> T,
++) -> (T, Option<(u128,u128)>) {
++    let start = clock.map(|t| t.elapsed().as_nanos());
++    let value = work();
++    let span = start.zip(clock.map(|t| t.elapsed().as_nanos()));
++    (value, span)
+ }
+ 
+ pub(crate) fn clock() -> Option<Instant> {
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -13,6 +13,11 @@
+     pub use web_time::Instant;
+ }
+ pub use wasm_bindgen_rayon::init_thread_pool;
++#[cfg(not(target_arch = "wasm32"))]
++type PreparedCurveGroups = (msm_affine::ScalarGroups, msm_affine::ScalarGroups);
++#[cfg(target_arch = "wasm32")]
++type PreparedCurveGroups = ();
++
+ pub mod alloc;
+ pub mod artifact;
+ mod decompress;
+@@ -1890,13 +1895,56 @@
+                 let pool = None;
+                 #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+                 let phase = four_by_two_probe::clock();
+-                let mut product = queries.product_values(&self.plan, a, b, pool);
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                let (mut product, early_groups) = {
++                    use four_by_two_probe::Projection;
++                    let frontend = self.frontend_pool.as_deref().filter(|p| {
++                        p.current_num_threads() < rayon::current_num_threads()
++                    });
++                    let eligible = omit_b && (65_536..262_144).contains(&sb.len());
++                    let overlap = four_by_two_probe::k_b2_projection_mode().and_then(|(mode, trace)| {
++                        if !eligible || !matches!(mode, Projection::EarlyMain | Projection::EarlyFront) {
++                            return None;
++                        }
++                        let selected_pool = match mode {
++                            Projection::EarlyMain => None,
++                            Projection::EarlyFront if pool.is_none() => Some(frontend?),
++                            _ => return None,
++                        };
++                        Some((mode, trace, selected_pool, self.solver.as_ref()?))
++                    });
++                    let fft_work = || queries.product_values(&self.plan, a, b, pool);
++                    if let Some((mode, trace, selected_pool, plan)) = overlap {
++                        let consumer_workers = rayon::current_num_threads();
++                        let clock = phase.or_else(|| trace.then(std::time::Instant::now));
++                        let ((product, fft_span), (groups, prep_span)) = rayon::join(
++                            || four_by_two_probe::timed_interval(clock, fft_work),
++                            || {
++                                let prepare = || msm_affine::project_k_b2(
++                                    sk, sb, &plan.b_indices, plan.n_public, consumer_workers,
++                                );
++                                four_by_two_probe::timed_interval(clock, || match selected_pool {
++                                    Some(p) => p.install(prepare),
++                                    None => prepare(),
++                                })
++                            },
++                        );
++                        if let (Some(t),Some((fs,fe)),Some((ps,pe))) = (clock,fft_span,prep_span) {
++                            eprintln!("ZP920_OVERLAP {mode:?} {} {fs} {fe} {ps} {pe} {}", groups.is_some(), t.elapsed().as_nanos());
++                        }
++                        (product, groups)
++                    } else {
++                        (fft_work(), None)
++                    }
++                };
++                #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
++                let (mut product, early_groups) = (queries.product_values(&self.plan, a, b, pool), None);
+                 #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+                 let fft = phase.map(|t| t.elapsed());
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+-                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
++                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b, early_groups),
+                     || folded.public_term(public),
+                 );
+                 #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -1924,7 +1972,7 @@
+             let mut product = queries.product_values(&self.plan, a, b, None);
+             let started = trace("quotient-product", started);
+             let (((ar, bs1), (kr, (positive, bs2))), negative) = rayon::join(
+-                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b),
++                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b, None),
+                 || msm_g1(&queries.constraints[..c.len()], &c),
+             );
+             trace("msms", started);
+@@ -1945,7 +1993,7 @@
+         let trace_scalars = std::env::var("ZOPRO_TRACE_MSMS")
+             .is_ok_and(|v| v == "1")
+             .then(|| (sa.to_vec(), sb.to_vec(), sk.to_vec(), h.to_vec()));
+-        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b);
++        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b, None);
+         trace("msms", started);
+         // Each MSM alone, on the whole pool, for its own share: this adds
+         // to the proof time, so only with ZOPRO_TRACE_MSMS=1.
+@@ -1989,11 +2037,12 @@
+         k: &[G1Affine],
+         folded_k: bool,
+         omit_b: bool,
++        early_groups: Option<PreparedCurveGroups>,
+     ) -> (
+         (G1Projective, G1Projective),
+         (G1Projective, (G1Projective, G2Projective)),
+     ) {
+-        let _ = folded_k;
++        let _ = (folded_k, &early_groups);
+         #[cfg(not(target_arch = "wasm32"))]
+         if affine_msm() {
+             let montgomery_h =
+@@ -2246,15 +2295,20 @@
+             };
+             #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+             if folded_k && omit_b && (65_536..262_144).contains(&sb.len()) {
+-                if let Some((project, trace)) = four_by_two_probe::k_b2_projection_mode() {
++                if let Some((mode, trace)) = four_by_two_probe::k_b2_projection_mode() {
++                    let project = mode == four_by_two_probe::Projection::Late;
+                     if let Some(plan) = self.solver.as_ref() {
+                         let ((ar, hz), (kr, (bs1, bs2))) = rayon::join(
+                             || rayon::join(a, h_query),
+                             || {
+                                 let started = (trace || phase.is_some()).then(std::time::Instant::now);
+-                                let groups = project.then(|| {
+-                                    msm_affine::project_k_b2(sk, sb, &plan.b_indices, plan.n_public)
+-                                }).flatten();
++                                let groups = early_groups.or_else(|| {
++                                    project.then(|| {
++                                        msm_affine::project_k_b2(
++                                            sk, sb, &plan.b_indices, plan.n_public, rayon::current_num_threads(),
++                                        )
++                                    }).flatten()
++                                });
+                                 if let Some(started) = started {
+                                     eprintln!("ZP919_PROJECT {project} {} {}", groups.is_some(), started.elapsed().as_nanos());
+                                 }
+@@ -2685,7 +2739,7 @@
+             let c_coset=self.plan.coset_product(c,vec![Fr::ONE;self.domain]);
+             product.par_iter_mut().zip(c_coset.par_iter()).for_each(|(p,c)|*p-=*c);product
+         };
+-        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b);
++        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b, None);
+         let mut out=Vec::with_capacity(384);for p in [ar,bs1,kr+correction,q.finish_product(hz)]{output_g1(&mut out,p);}output_g2(&mut out,bs2);Ok(out)
+     }
+ }
+--- a/crates/zopro-core/src/msm_affine/grouping_cost.rs
++++ b/crates/zopro-core/src/msm_affine/grouping_cost.rs
+@@ -32,6 +32,13 @@
+ where
+     C::Base: BatchInverse,
+ {
++    limits_for::<C>(n, u, rayon::current_num_threads())
++}
++
++fn limits_for<C: CurveConfig>(n: usize, u: usize, workers: usize) -> Option<(usize, usize)>
++where
++    C::Base: BatchInverse,
++{
+     let sample = hash_table::<&[u64; 4]>(n.min(2048))?;
+     let values = vector::<[u64; 4]>(n, true)?;
+     let counts = vector::<usize>(n, true)?;
+@@ -47,7 +54,7 @@
+         vector::<u32>(n, false)?,
+     )?;
+     let build = add(sample, build.max(lists))?;
+-    let workers = rayon::current_num_threads().max(1);
++    let workers = workers.max(1);
+     let classes = mul(workers, 256)?.min(u);
+     // A live map_init state retains its largest assigned chunk. Across all
+     // states those representative chunks contain at most workers*256 distinct
+@@ -80,11 +87,15 @@
+ /// A ScalarGroups value can feed G1 and G2 concurrently. Charge both worst
+ /// consumer peaks; this deliberately counts shared metadata conservatively.
+ pub(super) fn peak(n: usize, percent: usize) -> Option<usize> {
++    peak_for(n, percent, rayon::current_num_threads())
++}
++
++pub(super) fn peak_for(n: usize, percent: usize, workers: usize) -> Option<usize> {
+     if n == 0 || percent > 100 { return None; }
+     let u = mul(n, percent)?.checked_div(100)?;
+     if u == 0 { return None; }
+-    add(limits::<zopro_bn254::G1Config>(n, u)?.0,
+-        limits::<zopro_bn254::G2Config>(n, u)?.0)
++    add(limits_for::<zopro_bn254::G1Config>(n, u, workers)?.0,
++        limits_for::<zopro_bn254::G2Config>(n, u, workers)?.0)
+ }
+ 
+ pub(super) fn reserve(n: usize, percent: usize) -> Option<crate::preparation::Reservation> {
+--- a/crates/zopro-core/src/msm_affine/grouping/projection.rs
++++ b/crates/zopro-core/src/msm_affine/grouping/projection.rs
+@@ -61,6 +61,7 @@
+     b: &[Fr],
+     b_wires: &[u32],
+     n_public: usize,
++    consumer_workers: usize,
+ ) -> Option<(ScalarGroups, ScalarGroups)> {
+     if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+         || !(65_536..262_144).contains(&k.len())
+@@ -88,9 +89,11 @@
+     // holds on to the remaining output.
+     let extra = grouping_cost::vector::<u32>(k.len(), false)?.checked_mul(2)?;
+     let k_owner = crate::preparation::Reservation::analysis(
+-        grouping_cost::peak(k.len(), k_percent)?.checked_add(extra),
++        grouping_cost::peak_for(k.len(), k_percent, consumer_workers)?.checked_add(extra),
+     )?;
+-    let b_owner = grouping_cost::reserve(b.len(), b_percent)?;
++    let b_owner = crate::preparation::Reservation::analysis(
++        grouping_cost::peak_for(b.len(), b_percent, consumer_workers),
++    )?;
+     let mut k_rows = vec![MISSING; k.len()];
+     let (mut k_values, k_counts) =
+         classify_nonzero(k, &mut k_rows, capacity, ahash::RandomState::new());

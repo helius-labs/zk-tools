@@ -1,0 +1,63 @@
+{
+  "purpose": "Overlap unchanged 919 K/B2 classification with the quotient FFT and check whether the gain exceeds contention.",
+  "cpu": {
+    "main": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "frontend": [
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31
+    ]
+  },
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": {
+    "frozen": "original seeded SDK",
+    "ordinary": "fresh original schedule",
+    "gate": "paired curve schedule without projection",
+    "late": "paired schedule with exact projection after FFT",
+    "early_main": "project in the existing FFT pool",
+    "early_front": "project in the attached frontend while FFT uses main"
+  },
+  "warmup": 3,
+  "rounds": 17,
+  "blocks": 8,
+  "clock_rounds": 7,
+  "clock_blocks": 3,
+  "admission": "Both early variants must show exact projection on both inputs; zero optional workspace must prevent successful projection while allowing a valid proof.",
+  "criterion": "Fresh ordinary versus frozen paired median within 2% on both inputs. Early mode needs lower paired medians and at least 6/8 wins per input against frozen, ordinary and gate. Late is the placement comparison.",
+  "forecast": "Both late and early take the existing per-query group workspace forecast using the main consumer pool width.",
+  "clocks": "Early records measure separate FFT, preparation and joined spans. Preparation includes the frontend pool handoff. For other modes folded entry clocks measure the direct FFT, with late preparation logged in the curve stage."
+}
