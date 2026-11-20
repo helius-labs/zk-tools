@@ -11,6 +11,7 @@ static ALLOCATOR: zopro_prover::zopro_core::alloc::Allocator =
     zopro_prover::zopro_core::alloc::Allocator;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let process_started = Instant::now();
     let args: Vec<_> = std::env::args_os().collect();
     if !(4..=5).contains(&args.len()) {
         return Err("usage: cpu-sdk IMAGE REQUEST_JSON ROUNDS [PROOF_DIRECTORY]".into());
@@ -19,6 +20,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if rounds == 0 {
         return Err("rounds must be positive".into());
     }
+    let priming: usize = match std::env::var("ZOPRO_BENCH_PRIMING") {
+        Ok(value) => value.parse()?,
+        Err(std::env::VarError::NotPresent) => 3,
+        Err(error) => return Err(error.into()),
+    };
     let mut profile = perf::Control::from_env()?;
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     let exclusive_g2 = match std::env::var("ZOPRO_BENCH_EXCLUSIVE_G2_SCHEDULE").as_deref() {
@@ -104,8 +110,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let mut sdk = zopro_zolana::Prover::new(prover)?;
     let request = fs::read_to_string(&args[2])?;
-    for _ in 0..3 {
+    let ready_ms = process_started.elapsed().as_secs_f64() * 1000.0;
+    let mut first_verified_ms = None;
+    for index in 0..priming {
         std::hint::black_box(sdk.prove(&request)?);
+        if index == 0 {
+            first_verified_ms = Some(process_started.elapsed().as_secs_f64() * 1000.0);
+        }
     }
     let mut samples = Vec::with_capacity(rounds);
     let mut last = None;
@@ -117,7 +128,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for _ in 0..rounds {
         let started = Instant::now();
         let proof = sdk.prove(&request)?;
-        samples.push(started.elapsed().as_secs_f64() * 1000.0);
+        let finished = Instant::now();
+        if first_verified_ms.is_none() {
+            first_verified_ms = Some(finished.duration_since(process_started).as_secs_f64() * 1000.0);
+        }
+        samples.push(finished.duration_since(started).as_secs_f64() * 1000.0);
         last = Some(proof);
     }
     let loop_wall_ms = loop_started.elapsed().as_secs_f64() * 1000.;
@@ -137,7 +152,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let mut summary = after.difference(&before);
     summary["rounds"] = rounds.into();
-    summary["priming"] = 3.into();
+    summary["priming"] = priming.into();
+    summary["ready_from_main_ms"] = ready_ms.into();
+    summary["first_verified_from_main_ms"] = first_verified_ms.unwrap().into();
     summary["workers"] = rayon::current_num_threads().into();
     summary["loop_wall_ms"] = loop_wall_ms.into();
     println!("SUMMARY {summary}");
