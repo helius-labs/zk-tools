@@ -1,0 +1,41 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -253,6 +253,8 @@
+ 
+ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Projective {
+     assert_eq!(bases.len(), words.len());
++    capture_coefficients(bases, words);
++
+     if !(MIN_QUERY..MAX_QUERY).contains(&bases.len()) {
+         return super::g2_horner::raw(bases, words);
+     }
+@@ -314,3 +316,29 @@
+         }
+     }
+ }
++
++
++// Capture one canonical B2 operand vector after the three SDK primes.
++fn capture_coefficients(bases: &[G2Affine], words: &[[u64; 4]]) {
++    use std::io::{BufWriter, Write};
++    use std::sync::atomic::{AtomicUsize, Ordering};
++    static CALLS: AtomicUsize = AtomicUsize::new(0);
++    let Some(path) = std::env::var_os("ZOPRO_940_CAPTURE") else {
++        return;
++    };
++    if CALLS.fetch_add(1, Ordering::Relaxed) != 3 {
++        return;
++    }
++    let output = std::fs::OpenOptions::new().write(true).create_new(true).open(path).unwrap();
++    let mut writer = BufWriter::new(output);
++    writer.write_all(b"ZPB94000").unwrap();
++    writer.write_all(&(words.len() as u64).to_le_bytes()).unwrap();
++    writer.write_all(&(rayon::current_num_threads() as u64).to_le_bytes()).unwrap();
++    for (p, word) in bases.iter().zip(words) {
++        writer.write_all(&[u8::from(p.is_identity())]).unwrap();
++        for limb in word {
++            writer.write_all(&limb.to_le_bytes()).unwrap();
++        }
++    }
++    writer.flush().unwrap();
++}
