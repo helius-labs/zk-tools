@@ -106,4 +106,4 @@ The earlier 1×8 profile peaked at 138.2 MiB. With the same worker layout, K/H f
 
 The original 41-shape run and the later follow-ups used different Zopro profiles. The CSV and JSON include paired percentages and win counts. The benchmark runs linked in the table include the raw timing blocks. [Original full-catalog baseline](../2026-11-20-all-shapes-c7a979/README.md) · [Earlier 5×2 confirmation](../2026-11-19-equal-core-scorecard707/README.md)
 
-[Download CSV](artifacts/scorecard.csv) · [Scorecard JSON](artifacts/scorecard.json) · [Concurrent proof benchmark](../2026-11-20-c7a-concurrent-proofs/README.md) · [M5 reference comparisons](../2026-11-20-geometry-placement-c7a1027/README.md#all-eight-supplied-m5-references)
+[Download CSV](artifacts/scorecard.csv) · [Scorecard JSON](artifacts/scorecard.json) · [Concurrent proof benchmark](../2026-11-20-c7a-concurrent-proofs/README.md) · [K/H fusion analysis for all 41 shapes](../2026-11-20-kh-fusion-geometry-all-shapes/README.md) · [M5 reference comparisons](../2026-11-20-geometry-placement-c7a1027/README.md#all-eight-supplied-m5-references)
