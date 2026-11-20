@@ -23,6 +23,23 @@ fn verifies_the_kernels_proof() {
     assert!(key.verify(&proof, &[public]));
     assert!(!key.verify(&proof, &[public + Fr::from(1u64)]));
     assert!(!key.verify(&proof, &[]));
+    for damaged in [
+        Proof {
+            ar: (proof.ar.to_projective() + zopro_bn254::G1Affine::GENERATOR).to_affine(),
+            ..proof
+        },
+        Proof {
+            krs: (proof.krs.to_projective() + zopro_bn254::G1Affine::GENERATOR).to_affine(),
+            ..proof
+        },
+        Proof {
+            bs: (proof.bs.to_projective() + zopro_bn254::G2Affine::GENERATOR).to_affine(),
+            ..proof
+        },
+    ] {
+        assert!(!key.verify(&damaged, &[public]));
+    }
+
     let mut damaged = PROOF.to_vec();
     damaged[200] ^= 1;
     if let Ok(proof) = Proof::from_raw(&damaged) {

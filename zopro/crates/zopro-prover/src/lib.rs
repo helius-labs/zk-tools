@@ -21,7 +21,7 @@ use zopro_bn254::Fr;
 use zopro_core::{
     Key, Points,
     artifact::Artifact,
-    groth16::{self, FixedPoints},
+    groth16::PreparedFixedPoints,
     verify::{Proof, VerifyingKey, public_witness},
 };
 
@@ -74,9 +74,11 @@ impl Proved {
 
 /// A loaded zopro key.
 pub struct Prover {
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    overlap_verification: bool,
     key: Key,
     verifying_key: VerifyingKey,
-    fixed: FixedPoints,
+    fixed: PreparedFixedPoints,
     name: String,
     metadata: Vec<u8>,
     /// The inputs' names in the key's order, public then secret, the
@@ -86,6 +88,126 @@ pub struct Prover {
 }
 
 impl Prover {
+    /// Opt into packed cyclotomic squaring during proof verification on
+    /// native AVX-512 IFMA builds. This uses no extra key tables.
+    pub fn set_packed_final_exponentiation(&mut self, enabled: bool) {
+        self.verifying_key.set_packed_final_exponentiation(enabled);
+    }
+
+    /// Share a smaller Rayon pool across provers for native IFMA canonical
+    /// witness solving and FFT preparation. With `ZOPRO_CPU_SOLVER_FRONTEND=1`,
+    /// general CPU solver instructions also use this pool. With
+    /// `ZOPRO_CPU_FFT_PRODUCT_FRONTEND=1`, folded packed Euler products
+    /// use this pool and allocate their temporary output before dispatch.
+    /// Pass `None` to detach it.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_frontend_pool(
+        &mut self,
+        pool: Option<std::sync::Arc<zopro_core::FrontendThreadPool>>,
+    ) {
+        self.key.set_frontend_pool(pool);
+    }
+
+    /// Allow final grouped G2 windows to reuse the attached frontend pool on
+    /// native IFMA builds with resource scheduling. The prover checks scratch
+    /// space at dispatch. Enable per key when the two pools use separate cores.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_grouped_g2_on_frontend(&mut self, enabled: bool) {
+        self.key.set_grouped_g2_on_frontend(enabled);
+    }
+
+    /// Run the native IFMA fused K/H path's raw G1 A query on a smaller
+    /// caller-attached frontend pool when additional scratch is available.
+    /// Disabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_raw_g1_a_on_frontend(&mut self, enabled: bool) {
+        self.key.set_raw_g1_a_on_frontend(enabled);
+    }
+
+    /// Fuse inverse, Euler-weight and forward work within native CPU FFT leaves.
+    /// Disabled by default. Portable and other quotient routes keep their ordinary path.
+    pub fn set_euler_fft_leaf_fusion(&mut self, enabled: bool) {
+        self.key.set_euler_fft_leaf_fusion(enabled);
+    }
+
+    /// Attach a disjoint worker pool for a small exclusive G2 query.
+    /// Enable quotient overlap to start G2 before the product FFT.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_exclusive_g2_pool(
+        &mut self,
+        pool: Option<std::sync::Arc<zopro_core::FrontendThreadPool>>,
+        overlap_quotient: bool,
+    ) {
+        self.key.set_exclusive_g2_pool(pool, overlap_quotient);
+    }
+
+    /// Set a caller-owned pool for CPU witness instructions.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_solver_pool(
+        &mut self,
+        pool: Option<std::sync::Arc<zopro_core::FrontendThreadPool>>,
+    ) {
+        self.key.set_solver_pool(pool);
+    }
+
+    /// Reduce eligible grouped query points within the CPU scratch budget.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_grouped_point_tiling(&mut self, enabled: bool) {
+        self.key.set_grouped_point_tiling(enabled);
+    }
+
+    /// Run the large native IFMA G1 K query on the attached frontend pool.
+    /// Enable per key when the caller uses disjoint cores. Dispatch checks
+    /// the workspace budget. Disabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_g1_k_on_frontend(&mut self, enabled: bool) {
+        self.key.set_g1_k_on_frontend(enabled);
+    }
+
+    /// Use serial scalar preparation and a larger initial table for medium grouped B2 queries.
+    /// The workspace policy still governs admission. Disabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_grouped_b2_serial_preparation(&mut self, enabled: bool) {
+        self.key.set_grouped_b2_serial_preparation(enabled);
+    }
+
+    /// Reuse solver-derived Poseidon origins during native grouped B2 proofs.
+    /// The prover checks scalar equality before reusing any class.
+    /// Disabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_grouped_b2_poseidon_origins(&mut self, enabled: bool) {
+        self.key.set_grouped_b2_poseidon_origins(enabled);
+    }
+
+    /// Control scalar grouping for the native exclusive G2 evaluator.
+    /// Grouping is enabled by default.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_exclusive_g2_grouping(&mut self, enabled: bool) {
+        self.key.set_exclusive_g2_grouping(enabled);
+    }
+
+    /// Compute the public-input pairing alongside CPU proof generation for
+    /// keys with up to sixteen public inputs. Uses the existing Rayon pool.
+    /// The default is sequential verification after generation.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_overlap_verification(&mut self, enabled: bool) {
+        self.overlap_verification = enabled;
+    }
+
+    /// Use optional public wire offsets with folded CPU proof queries for this key.
+    ///
+    /// The little-endian file starts with `ZPWO0001`, the SHA-256 of its B2
+    /// points (x.c0, x.c1, y.c0, y.c1 as Montgomery limbs), a u32 B2 count,
+    /// and a u32 record count. Each record has an increasing u32 B2 index
+    /// followed by a nonzero canonical 32-byte scalar. Supply public values.
+    ///
+    /// Preparation derives correction points from the loaded proving key. The
+    /// caller can release the input bytes after this call. Unsupported routes
+    /// and insufficient optional memory return `Ok(false)`.
+    pub fn prepare_public_wire_offsets(&mut self, bytes: &[u8]) -> Result<bool, &'static str> {
+        self.key.prepare_public_wire_offsets(bytes)
+    }
+
     /// From a zopro key file.
     pub fn load(bytes: &[u8]) -> Result<Self, String> {
         let artifact = Artifact::parse(bytes)?;
@@ -113,9 +235,11 @@ impl Prover {
             return Err("the key's inputs do not match its verifying key".into());
         }
         Ok(Self {
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            overlap_verification: false,
             key: artifact.key(points, solver_image)?,
             verifying_key,
-            fixed: artifact.fixed_points()?,
+            fixed: PreparedFixedPoints::new(artifact.fixed_points()?),
             name: artifact.name.to_owned(),
             metadata: artifact.metadata.to_vec(),
             names,
@@ -179,6 +303,41 @@ impl Prover {
     pub fn prove(&mut self, witness: &[Fr]) -> Result<Proved, Error> {
         let encoded = self.encode(witness)?;
         loop {
+            if !self.key.has_gpu() {
+                let started = zopro_core::time::Instant::now();
+                let public = &witness[..self.public];
+                let mut prove_ms = 0;
+                let mut verify_started = started;
+                let mut generate = || {
+                    let raw = self
+                        .key
+                        .solve_rerandomized(&encoded, &self.fixed)
+                        .map_err(Error::Prove)?;
+                    prove_ms = started.elapsed().as_millis() as u64;
+                    verify_started = zopro_core::time::Instant::now();
+                    Proof::from_raw(&raw).map_err(|_| Error::Unverified)
+                };
+                #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                let verified = if self.overlap_verification && self.public <= 16 {
+                    self.verifying_key
+                        .verify_during_generation(public, generate)?
+                } else {
+                    let proof = generate()?;
+                    self.verifying_key.verify(&proof, public).then_some(proof)
+                };
+                #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                let verified = {
+                    let proof = generate()?;
+                    self.verifying_key.verify(&proof, public).then_some(proof)
+                };
+                let proof = verified.ok_or(Error::Unverified)?;
+                return Ok(Proved {
+                    proof,
+                    public: public.to_vec(),
+                    prove_ms,
+                    verify_ms: verify_started.elapsed().as_millis() as u64,
+                });
+            }
             let started = zopro_core::time::Instant::now();
             let parts = match self.key.solve(&encoded) {
                 Ok(parts) => parts,
@@ -235,7 +394,7 @@ impl Prover {
                 .key
                 .solve_parts_gpu(&encoded)
                 .map_err(|_| Error::Prove("the GPU could not start".into()))?;
-            let (witness, public, fixed) = (witness.to_vec(), self.public, self.fixed);
+            let (witness, public, fixed) = (witness.to_vec(), self.public, self.fixed.clone());
             let verifying_key = self.verifying_key.clone();
             return Ok(Box::pin(async move {
                 let parts = wasm_bindgen_futures::JsFuture::from(parts)
@@ -281,13 +440,13 @@ fn finish(
     parts: &[u8],
     witness: &[Fr],
     public: usize,
-    fixed: &FixedPoints,
+    fixed: &PreparedFixedPoints,
     verifying_key: &VerifyingKey,
     prove_ms: u64,
 ) -> Result<Proved, Error> {
     let started = zopro_core::time::Instant::now();
     let public = witness[..public].to_vec();
-    let proof = Proof::from_raw(&groth16::assemble(parts, fixed)).map_err(|_| Error::Unverified)?;
+    let proof = Proof::from_raw(&fixed.assemble(parts)).map_err(|_| Error::Unverified)?;
     if !verifying_key.verify(&proof, &public) {
         return Err(Error::Unverified);
     }
