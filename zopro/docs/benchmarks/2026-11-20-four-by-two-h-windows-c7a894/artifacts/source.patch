@@ -1,0 +1,255 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -192,6 +192,55 @@
+         msm_grouped(bases, &groups)
+     } else {
+         msm_raw(bases, canonical(scalars))
++    }
++}
++
++#[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++pub(super) fn try_h_window_layout(
++    bases: &[zopro_bn254::G1Affine],
++    scalars: &mut [Fr],
++    frontend: Option<&rayon::ThreadPool>,
++) -> Option<zopro_bn254::G1Projective> {
++    use std::sync::OnceLock;
++    static MODE: OnceLock<Option<String>> = OnceLock::new();
++    let mode = MODE.get_or_init(|| std::env::var("ZOPRO_894_H_WINDOW").ok()).as_deref()?;
++    let workers = rayon::current_num_threads();
++    let n = bases.len();
++    if !(65_536..262_144).contains(&n) || !crate::simd::cpu_option("ZOPRO_CPU_UNSIGNED") {
++        return None;
++    }
++    let (unsigned_bits, parts) = unsigned_geometry::<zopro_bn254::G1Config>(n);
++    // Retain the original (unsigned) bucket count and point range count.
++    if unsigned_bits != 12 {
++        return None;
++    }
++    let pool = if mode == "front2" {
++        Some(frontend.filter(|p| p.current_num_threads() < workers)?)
++    } else {
++        None
++    };
++    let signed = mode == "signed13";
++    let indexed = matches!(mode, "main2" | "front2");
++    if !signed && !indexed && mode != "unsigned12" {
++        return None;
++    }
++    let bits = if signed { 13 } else { unsigned_bits };
++    let extra_workers = pool.map_or(0, rayon::ThreadPool::current_num_threads);
++    let bytes = workspace::h_window_trial(n, bits, parts, signed, workers, extra_workers);
++    let _scratch = crate::preparation::Reservation::analysis(bytes)?;
++    if let Some(groups) = group_witness(scalars) {
++        return Some(msm_grouped(bases, &groups));
++    }
++    let trace = std::env::var_os("ZOPRO_892_TRACE").is_some();
++    if trace {
++        eprintln!("ZP894_ARITH {mode} {n} {bits} {parts}");
++    }
++    let words = canonical(scalars);
++    if signed {
++        Some(merge_split_width(bases, words, parts, bits))
++    } else {
++        let route = indexed.then_some(UnsignedWindowRoute { pool, trace });
++        Some(msm_unsigned_window_layout(bases, words, bits, parts, route))
+     }
+ }
+ 
+@@ -256,41 +305,7 @@
+     // useful for reference checks, but small production MSMs keep their
+     // existing shared-window path.
+     if n >= 256 && crate::simd::cpu_option("ZOPRO_CPU_UNSIGNED") {
+-        let delta = std::env::var("ZOPRO_CPU_UNSIGNED_DELTA")
+-            .ok()
+-            .and_then(|v| v.parse::<isize>().ok())
+-            .unwrap_or(0)
+-            .clamp(-4, 4);
+-        let explicit_bits = std::env::var("ZOPRO_CPU_UNSIGNED_WIDTH")
+-            .ok()
+-            .and_then(|v| v.parse::<usize>().ok());
+-        let mut bits = explicit_bits
+-            .unwrap_or_else(|| width(n).saturating_add_signed(delta))
+-            .clamp(3, 15);
+-        if explicit_bits.is_none() && crate::simd::cpu_option("ZOPRO_CPU_UNSIGNED_CACHE") {
+-            let point = core::mem::size_of::<Affine<C>>();
+-            while bits > 3 {
+-                let working =
+-                    (1usize << bits) * (point + 4) + batch_size(bits + 1) * (point * 7 / 2 + 48);
+-                if working <= 400 * 1024 {
+-                    break;
+-                }
+-                bits -= 1;
+-            }
+-        }
+-        let default_parts = if (1024..(1 << 18)).contains(&n)
+-            && rayon::current_num_threads() >= 16
+-            && crate::simd::cpu_option("ZOPRO_CPU_MERGE_SPLIT")
+-        {
+-            2
+-        } else {
+-            1
+-        };
+-        let parts = std::env::var("ZOPRO_CPU_UNSIGNED_PARTS")
+-            .ok()
+-            .and_then(|v| v.parse::<usize>().ok())
+-            .unwrap_or(default_parts)
+-            .clamp(1, 32);
++        let (bits, parts) = unsigned_geometry::<C>(n);
+         return msm_unsigned_raw(bases, canonical, bits, parts);
+     }
+     // Small MSMs benefit from shorter streaming tasks on a wide pool.
+@@ -347,6 +362,45 @@
+ /// Positive radix digits use an extra bucket bit in exchange for no
+ /// carry propagation and no conditional negation of point coordinates.
+ /// Scalar words are canonical Fr values, hence have at most 254 bits.
++fn unsigned_geometry<C: CurveConfig>(n: usize) -> (usize, usize) {
++    let delta = std::env::var("ZOPRO_CPU_UNSIGNED_DELTA")
++        .ok()
++        .and_then(|v| v.parse::<isize>().ok())
++        .unwrap_or(0)
++        .clamp(-4, 4);
++    let explicit_bits = std::env::var("ZOPRO_CPU_UNSIGNED_WIDTH")
++        .ok()
++        .and_then(|v| v.parse::<usize>().ok());
++    let mut bits = explicit_bits
++        .unwrap_or_else(|| width(n).saturating_add_signed(delta))
++        .clamp(3, 15);
++    if explicit_bits.is_none() && crate::simd::cpu_option("ZOPRO_CPU_UNSIGNED_CACHE") {
++        let point = core::mem::size_of::<Affine<C>>();
++        while bits > 3 {
++            let working =
++                (1usize << bits) * (point + 4) + batch_size(bits + 1) * (point * 7 / 2 + 48);
++            if working <= 400 * 1024 {
++                break;
++            }
++            bits -= 1;
++        }
++    }
++    let default_parts = if (1024..(1 << 18)).contains(&n)
++        && rayon::current_num_threads() >= 16
++        && crate::simd::cpu_option("ZOPRO_CPU_MERGE_SPLIT")
++    {
++        2
++    } else {
++        1
++    };
++    let parts = std::env::var("ZOPRO_CPU_UNSIGNED_PARTS")
++        .ok()
++        .and_then(|v| v.parse::<usize>().ok())
++        .unwrap_or(default_parts)
++        .clamp(1, 32);
++    (bits, parts)
++}
++
+ #[inline(always)]
+ fn unsigned_digit(words: &[u64; 4], w: usize, bits: usize) -> i16 {
+     let offset = w * bits;
+@@ -367,6 +421,24 @@
+ where
+     C::Base: BatchInverse,
+ {
++    msm_unsigned_window_layout(bases, scalars, bits, parts, None)
++}
++
++struct UnsignedWindowRoute<'a> {
++    pool: Option<&'a rayon::ThreadPool>,
++    trace: bool,
++}
++
++fn msm_unsigned_window_layout<C: CurveConfig>(
++    bases: &[Affine<C>],
++    scalars: &[[u64; 4]],
++    bits: usize,
++    parts: usize,
++    placement: Option<UnsignedWindowRoute<'_>>,
++) -> Projective<C>
++where
++    C::Base: BatchInverse,
++{
+     assert_eq!(bases.len(), scalars.len());
+     assert!((3..=15).contains(&bits));
+     let n = bases.len();
+@@ -379,9 +451,7 @@
+     // The final bucket is unused padding. A power-of-two table preserves
+     // the existing affine tree's bucket-group layout and weights.
+     let size = batch_size(bits + 1).max(32);
+-    let sums: Vec<_> = (0..windows)
+-        .into_par_iter()
+-        .map(|w| {
++    let compute = |w| {
+             if let Some(sum) = top_window::<C, false>(bases, scalars, w, bits) {
+                 return sum;
+             }
+@@ -419,8 +489,33 @@
+                 merge_buckets(&mut combined, &other);
+             }
+             crate::msm::weighted_affine(&combined)
+-        })
+-        .collect();
++    };
++    let sums: Vec<_> = if let Some(placement) = placement {
++        // Partition windows only. The point partitions, weighted reduction,
++        // and radix of every window remain identical to the ordinary query.
++        let selected = [1, windows / 2];
++        let task = |w| {
++            if placement.trace {
++                eprintln!("ZP894_WINDOW {w} {}", rayon::current_num_threads());
++            }
++            compute(w)
++        };
++        let alternate = || rayon::join(|| task(selected[0]), || task(selected[1]));
++        let (main, (first, second)) = rayon::join(
++            || (0..windows).into_par_iter()
++                .map(|w| (!selected.contains(&w)).then(|| compute(w))).collect::<Vec<_>>(),
++            || match placement.pool {
++                Some(pool) => pool.install(alternate),
++                None => alternate(),
++            },
++        );
++        let mut main = main;
++        main[selected[0]] = Some(first);
++        main[selected[1]] = Some(second);
++        main.into_iter().map(Option::unwrap).collect()
++    } else {
++        (0..windows).into_par_iter().map(compute).collect()
++    };
+     let mut result = Projective::<C>::IDENTITY;
+     for sum in sums.iter().rev() {
+         for _ in 0..bits {
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -189,6 +189,17 @@
+     }
+     Some(p)
+ }
++pub(super) fn h_window_trial(
++    points: usize, bits: usize, parts: usize, signed: bool, main: usize, front: usize,
++) -> Option<usize> {
++    let profile = one::<G1Config>(points, bits, parts, signed)?;
++    // Include both pools at their complete per-worker bound and the additional
++    // indexed result vector. The admission stays live through the final fold.
++    let windows = (Fr::MODULUS_BITS as usize + usize::from(signed)).div_ceil(bits);
++    let ordered = vector::<Option<Projective<G1Config>>>(windows, false)?;
++    add(add(profile.held, ordered)?, mul(profile.leaf, add(main, front)?)?)
++}
++
+ /// Extra positive growth over the ordinary raw H query at this worker count.
+ pub(super) fn dense_h_layout_extra<C: CurveConfig>(
+     n: usize, ranges: usize, widths: &[usize], signed: bool,
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2208,6 +2208,13 @@
+             let h_query = || {
+                 let evaluate = |s: &mut [Fr]| {
+                     #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++                    if !montgomery_h {
++                        if let Some(value) = msm_affine::try_h_window_layout(z, s, self.frontend_pool.as_deref()) {
++                            four_by_two_probe::placement("h");
++                            return value;
++                        }
++                    }
++                    #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+                     if h_placement == four_by_two_probe::HPlacement::Independent {
+                         if let Some(pool) = self.frontend_pool.as_deref().filter(|pool| {
+                             pool.current_num_threads() < rayon::current_num_threads()
