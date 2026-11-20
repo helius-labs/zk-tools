@@ -1,5 +1,7 @@
 //! Measure verified SDK requests against an existing CPU key image.
+#[cfg(unix)]
 use std::{fs, path::Path, sync::Arc, time::Instant};
+#[cfg(unix)]
 #[path = "support/perf.rs"]
 mod perf;
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
@@ -7,8 +9,10 @@ mod perf;
 mod placement;
 
 // Use the same global allocator as the other benchmark entry points.
+#[cfg(unix)]
 use zopro_bench as _;
 
+#[cfg(unix)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let process_started = Instant::now();
     let args: Vec<_> = std::env::args_os().collect();
@@ -178,4 +182,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     summary["loop_wall_ms"] = loop_wall_ms.into();
     println!("SUMMARY {summary}");
     Ok(())
+}
+
+#[cfg(not(unix))]
+fn main() -> std::process::ExitCode {
+    eprintln!("cpu-sdk requires Unix process accounting");
+    std::process::ExitCode::FAILURE
 }
