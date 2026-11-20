@@ -437,25 +437,36 @@ fn fused_sums_mode() -> u8 {
         .min(2)
 }
 
-fn share_solver_tasks() -> bool {
+#[derive(Clone, Copy)]
+enum SolverTaskClaims {
+    Rayon,
+    Dynamic,
+    Seeded,
+}
+
+fn solver_task_claims() -> SolverTaskClaims {
     #[cfg(target_arch = "wasm32")]
-    { false }
+    { SolverTaskClaims::Rayon }
     #[cfg(not(target_arch = "wasm32"))]
-    { std::env::var("ZOPRO_SOLVE_TASK_CLAIMS").as_deref() == Ok("1") }
+    match std::env::var("ZOPRO_SOLVE_TASK_CLAIMS").as_deref() {
+        Ok("1") => SolverTaskClaims::Dynamic,
+        Ok("seed") => SolverTaskClaims::Seeded,
+        _ => SolverTaskClaims::Rayon,
+    }
 }
 
 /// Visit the tasks in one dependency wave. Each task's writes are disjoint.
-/// Prepared waves store the longest tasks first, so each claimant takes the
-/// longest remaining task whenever it finishes its previous one.
+/// Prepared waves store the longest tasks first. Seeded claimants each take
+/// one of those tasks before taking the longest available remaining task.
 fn visit_solver_tasks(
     jobs: &[Vec<u32>],
-    share: bool,
+    claims: SolverTaskClaims,
     run: impl Fn(&Vec<u32>) -> Result<(), String> + Sync + Send,
 ) -> Result<(), String> {
     use rayon::prelude::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
-    if !share || jobs.len() < 4 {
+    if matches!(claims, SolverTaskClaims::Rayon) || jobs.len() < 4 {
         return jobs.par_iter().try_for_each(run);
     }
     let (work, longest) = jobs.iter().fold((0usize, 1usize), |(sum, longest), job| {
@@ -463,8 +474,12 @@ fn visit_solver_tasks(
     });
     let workers = rayon::current_num_threads().min(jobs.len());
     let claimants = work.div_ceil(longest).saturating_mul(2).clamp(1, workers);
-    let next = AtomicUsize::new(0);
-    (0..claimants).into_par_iter().with_max_len(1).try_for_each(|_| {
+    let seeded = matches!(claims, SolverTaskClaims::Seeded);
+    let next = AtomicUsize::new(if seeded { claimants } else { 0 });
+    (0..claimants).into_par_iter().with_max_len(1).try_for_each(|slot| {
+        if seeded {
+            run(&jobs[slot])?;
+        }
         while let Some(job) = jobs.get(next.fetch_add(1, Ordering::Relaxed)) {
             run(job)?;
         }
@@ -1335,9 +1350,9 @@ impl Plan {
                     unsafe { self.run(op, view)? };
                 }
             } else if schedule.refined.is_empty() {
-                let share = share_solver_tasks();
+                let claims = solver_task_claims();
                 for epoch in &schedule.epochs {
-                    visit_solver_tasks(epoch, share, |task| {
+                    visit_solver_tasks(epoch, claims, |task| {
                         #[cfg(zopro_resource_schedule)]
                         if self.poseidon_task(task) {
                             // SAFETY: only prepared, encoding-eligible leaves carry tags.
@@ -1724,7 +1739,7 @@ impl Plan {
     /// Every read is initialized, and the schedule orders all writers
     /// before readers. Distinct tasks write disjoint wires, slots and rows.
     unsafe fn execute_schedule(&self, schedule: &Schedule, v: View) -> Result<(), String> {
-        let share = share_solver_tasks();
+        let claims = solver_task_claims();
         let serial = |task: &[u32]| -> Result<(), String> {
             #[cfg(zopro_resource_schedule)]
             if self.poseidon_task(task) {
@@ -1740,10 +1755,10 @@ impl Plan {
             Ok(())
         };
         for epoch in &schedule.epochs {
-            visit_solver_tasks(epoch, share, |task| {
+            visit_solver_tasks(epoch, claims, |task| {
                 if let Some(waves) = schedule.refined.get(&(task[0] as usize)) {
                     for wave in waves {
-                        visit_solver_tasks(wave, share, |part| serial(part))?;
+                        visit_solver_tasks(wave, claims, |part| serial(part))?;
                     }
                     Ok(())
                 } else {
@@ -2124,14 +2139,14 @@ mod tests {
                     let jobs: Vec<_> = (0..count)
                         .map(|i| vec![i as u32; if i == 0 { 37 } else { 1 }])
                         .collect();
-                    for share in [false, true] {
+                    for claims in [SolverTaskClaims::Rayon, SolverTaskClaims::Dynamic, SolverTaskClaims::Seeded] {
                         let hits: Vec<_> = (0..count).map(|_| AtomicUsize::new(0)).collect();
-                        visit_solver_tasks(&jobs, share, |job| {
+                        visit_solver_tasks(&jobs, claims, |job| {
                             hits[job[0] as usize].fetch_add(1, Ordering::Relaxed);
                             Ok(())
                         }).unwrap();
                         assert!(hits.iter().all(|h| h.load(Ordering::Relaxed) == 1));
-                        let result = visit_solver_tasks(&jobs, share, |job| {
+                        let result = visit_solver_tasks(&jobs, claims, |job| {
                             if job[0] == 3 { Err("failed".to_owned()) } else { Ok(()) }
                         });
                         assert_eq!(result.is_err(), count > 3);

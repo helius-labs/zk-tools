@@ -54,12 +54,60 @@ fn group_witness_inner<const SERIAL_B2: bool>(scalars: &[Fr], origins: Origins<'
     let convert = |value: &mut [u64; 4]| {
         *value = Fr::from_montgomery(*value).to_canonical();
     };
+    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+    if SERIAL_B2 && use_vector_b2_decoding() {
+        decode_b2_classes(&mut groups.values);
+        return Some(groups);
+    }
     if SERIAL_B2 {
         groups.values.iter_mut().for_each(convert);
     } else {
         groups.values.par_iter_mut().for_each(convert);
     }
     Some(groups)
+}
+
+#[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+fn use_vector_b2_decoding() -> bool {
+    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ENABLED.get_or_init(|| std::env::var("ZOPRO_CPU_GROUPED_B2_VECTOR").as_deref() == Ok("1"))
+}
+
+#[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+fn decode_b2_classes(values: &mut [[u64; 4]]) {
+    use zopro_bn254::{FrConfig, ifma8::Ifma8};
+
+    type Batch = Ifma8<FrConfig, true>;
+    // Integer one, deliberately in the raw limb representation. A
+    // Montgomery multiply by it converts the input to canonical limbs.
+    let one = Batch::new(&[Fr::from_montgomery([1,0,0,0]); 8]);
+    let (full, tail) = values.as_chunks_mut::<8>();
+    for batch in full {
+        let input = batch.map(Fr::from_montgomery);
+        *batch = Batch::new(&input).mul(&one).get().map(|v| v.0);
+    }
+    for value in tail {
+        *value = Fr::from_montgomery(*value).to_canonical();
+    }
+}
+
+#[cfg(all(test,all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
+#[test]
+fn vector_b2_classes_match_canonical_conversion_and_preserve_all_tails() {
+    use crate::testing::Seeded;
+
+    let mut seed = Seeded::new(0x36417472);
+    for len in (0..20).chain(108_893..108_900) {
+        let input: Vec<_> = (0..len).map(|i| match i%7 {
+            0 => Fr::ZERO,
+            1 => Fr::ONE,
+            2 => -Fr::ONE,
+            _ => seed.fr(),
+        }).collect();
+        let mut words: Vec<_> = input.iter().map(|f| f.0).collect();
+        decode_b2_classes(&mut words);
+        assert!(words.iter().zip(&input).all(|(actual, value)| *actual == value.to_canonical()));
+    }
 }
 
 pub(crate) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
