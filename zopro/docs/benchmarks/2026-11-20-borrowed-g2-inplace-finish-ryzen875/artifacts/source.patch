@@ -1,0 +1,113 @@
+--- a/crates/zopro-core/src/msm_affine/g2_borrowed.rs
++++ b/crates/zopro-core/src/msm_affine/g2_borrowed.rs
+@@ -1,7 +1,7 @@
+ //! Proof-local borrowed pending operands for ordinary G2 phi windows.
+ use super::{batch_size, digit};
+ use crate::msm::BatchAdd;
+-use zopro_bn254::{Field, Fq, G2Affine, G2Config, G2Projective};
++use zopro_bn254::{Field, Fq, Fq2, G2Affine, G2Config, G2Projective};
+ const BETA: Fq = Fq::from_decimal(
+     "21888242871839275220042445260109153167277707414472061641714758635765020556616",
+ );
+@@ -145,6 +145,13 @@
+         self.flush_queue();
+     }
+     fn finish(mut self) -> Vec<G2Affine> {
++        static IN_PLACE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++        if *IN_PLACE.get_or_init(|| {
++            std::env::var_os("ZOPRO_TRIAL_G2_INPLACE_FINISH").is_some_and(|v| v == "1")
++        }) {
++            self.finish_in_place();
++            return self.affine;
++        }
+         let combined: Vec<_> = self
+             .projective
+             .iter()
+@@ -159,6 +166,52 @@
+         }
+         self.affine
+     }
++
++    fn finish_in_place(&mut self) {
++        let mut product = Fq2::ONE;
++        let mut pending = 0usize;
++        for (point, &bucket) in self.projective.iter_mut().zip(&self.projective_buckets) {
++            let destination = &mut self.affine[bucket];
++            *point += *destination;
++            if point.is_identity() {
++                *destination = G2Affine::IDENTITY;
++            } else if point.z == Fq2::ONE {
++                *destination = G2Affine::new(point.x, point.y);
++                point.z = Fq2::ZERO;
++            } else {
++                // Each projective contribution has a unique affine destination.
++                // Once consumed by the addition, its X can hold the prefix.
++                destination.x = product;
++                product *= point.z;
++                pending += 1;
++            }
++        }
++
++        static TRACE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++        if *TRACE.get_or_init(|| {
++            std::env::var_os("ZOPRO_TRIAL_G2_INPLACE_FINISH_TRACE").is_some_and(|v| v == "1")
++        }) {
++            eprintln!("G2_INPLACE_FINISH {} {}", self.projective.len(), pending);
++        }
++
++        if pending == 0 {
++            return;
++        }
++        let mut inverse = product.inverse().expect("a nonzero product");
++        for (point, &bucket) in self.projective.iter().zip(&self.projective_buckets).rev() {
++            if point.is_identity() {
++                continue;
++            }
++            let destination = &mut self.affine[bucket];
++            let inv_z = inverse * destination.x;
++            inverse *= point.z;
++            let inv_z_squared = inv_z.square();
++            *destination = G2Affine::new(
++                point.x * inv_z_squared,
++                point.y * inv_z_squared * inv_z,
++            );
++        }
++    }
+ }
+ pub(super) fn try_window(
+     bases: &[G2Affine],
+@@ -189,6 +242,34 @@
+ mod tests {
+     use super::*;
+     use zopro_bn254::Fr;
++    #[test]
++    fn in_place_finish_matches_batch_normalization() {
++        let generator = G2Affine::GENERATOR;
++        let other = generator.to_projective().double().to_affine();
++        for length in 0..26 {
++            let mut window = Window::new(2 * length + 1, 32, BatchAdd::default());
++            let mut expected = vec![generator; 2 * length + 1];
++            window.affine.copy_from_slice(&expected);
++            for i in 0..length {
++                let b = 2 * (length - i) - 1;
++                let (left, right) = match i % 5 {
++                    0 => (G2Projective::IDENTITY, G2Affine::IDENTITY),
++                    1 => (G2Projective::IDENTITY, other),
++                    2 => (generator.to_projective(), -generator),
++                    3 => (generator.to_projective(), other),
++                    _ => (generator.to_projective().double(), G2Affine::IDENTITY),
++                };
++                window.affine[b] = right;
++                window.projective.push(left);
++                window.projective_buckets.push(b);
++                window.projective_indices[b] = i as u32;
++                expected[b] = (left + right).to_affine();
++            }
++            window.finish_in_place();
++            assert_eq!(window.affine, expected);
++        }
++    }
++
+     fn random(seed: &mut u64) -> Fr {
+         let mut b = [0; 32];
+         for c in b.chunks_mut(8) {
