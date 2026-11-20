@@ -1,6 +1,6 @@
 # Which curve queries limit 4×2 proof latency on Ryzen
 
-Replaying the exact results of K and B2 together reduced median paired proof time by **3.99 / 3.95 ms** on the two inputs. Replaying B2 alone saved **2.19 / 2.18 ms**, while replaying K alone saved **0.69 / 0.63 ms**. The joint effect exceeded the sum of the individual effects by **1.13 / 1.17 ms**, with a positive excess in all eight blocks on both inputs. Every single-query replay remained above 10.9 ms in every block. Joint K and B2 replay fell below 10.9 ms in every block, with A and H still computed normally.
+Replaying the exact results of K and B2 together reduced median paired proof time by **3.99 / 3.95 ms** on the two inputs. Replaying B2 alone saved **2.19 / 2.18 ms**, while replaying K alone saved **0.69 / 0.63 ms**. The joint effect exceeded the sum of the individual effects by **1.13 / 1.16 ms**, with a positive excess in all eight blocks on both inputs. Every single-query replay remained above 10.9 ms in every block. Joint K and B2 replay fell below 10.9 ms in every block, with A and H still computed normally.
 
 | Input | All active ms | K replay saving ms | B2 replay saving ms | Joint saving ms | Joint excess ms | A and H active ms | All replayed ms |
 |---|---:|---:|---:|---:|---:|---:|---:|
@@ -38,6 +38,6 @@ Values are medians of process means. Saved time is the median within-block diffe
 
 Exact-result replay is a diagnostic. Its timing depends on the cost of checking a stored result and the work left on the two pools. The experiment establishes a joint opportunity on this Ryzen layout, with no measured production speedup or C7a retest. The [C7a replay study](../2026-11-20-four-by-two-phase-c7a891/README.md) measured a different core layout and did not include joint K and B2 replay.
 
-The [recorded C7a scorecard](../2026-11-20-typed-small-proof-c7a898/README.md#eight-supplied-m5-reference-timings) contains CPU and Metal comparisons for all eight supplied M5 references. Five reach the 10× M5 CPU target. AWS SSO expired before this run, leaving the pending 2×2 confirmation unrun.
+The all-active catalog run is 7.96× as fast as the supplied 109 ms M5 CPU reference and 3.50× as fast as the 48 ms Metal reference. The [recorded C7a scorecard](../2026-11-20-typed-small-proof-c7a898/README.md#eight-supplied-m5-reference-timings) contains CPU and Metal comparisons for all eight supplied M5 references. Five reach the 10× M5 CPU target. AWS SSO expired before this run, leaving the pending 2×2 confirmation unrun.
 
 [Protocol](artifacts/protocol.json) · [Samples and clocks](artifacts/rows.json.gz) · [Aggregates](artifacts/summary.json) · [Proof verification](artifacts/verification.json)
