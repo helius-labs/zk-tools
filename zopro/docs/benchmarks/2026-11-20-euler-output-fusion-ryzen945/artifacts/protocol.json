@@ -1,0 +1,27 @@
+{
+  "placement": "Ryzen 9950X with 24 main and 8 frontend workers",
+  "modes": [
+    "frozen",
+    "ordinary",
+    "output",
+    "both"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "shapes": [
+    "2x2",
+    "4x2"
+  ],
+  "rounds": 17,
+  "blocks": 8,
+  "modes_detail": {
+    "frozen": "Exact 943 SDK with fused leaf enabled for 2x2 and seeded 854 for 4x2.",
+    "ordinary": "Same build. Retain selected 943 leaf route for 2x2 and packed input and output fusion with ordinary Euler center for 4x2.",
+    "output": "Use the shifted Euler center and fuse the final product with the outer column transform.",
+    "both": "Also fuse the initial packing with the inverse column transform."
+  },
+  "calibration": "Same build ordinary within 2% paired median of exact frozen on both inputs.",
+  "qualification": "Lower paired median and six of eight wins against both controls on both fixtures of the shape."
+}
