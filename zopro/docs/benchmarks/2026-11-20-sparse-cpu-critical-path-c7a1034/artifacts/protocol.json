@@ -1,0 +1,35 @@
+{
+  "root": "/opt/zopro-critical1034",
+  "blocks": 6,
+  "profiles": {
+    "1x2": [
+      "geometry-placement-c7a1027",
+      "two"
+    ],
+    "2x2": [
+      "geometry-placement-c7a1027",
+      "exact"
+    ]
+  },
+  "probes": {
+    "0a413b159872218fe22f35fe21dc062e192936846d041f94255b163172d72f94": {
+      "path": "/opt/zopro-critical1034/traced/sdk-0",
+      "plain": "/opt/zopro-critical1034/payload/geometry-placement-c7a1027/bin/exact-sdk",
+      "group": "zp1034_0",
+      "sites": {
+        "proof": "0x559980",
+        "core": "0x497600",
+        "g1": "0x1e4310",
+        "g2": "0x4b6300"
+      },
+      "symbols": {
+        "proof": "<zopro_zolana::Prover>::prove",
+        "core": "<zopro_core::Key>::solve_inner",
+        "g1": "zopro_core::msm_affine::msm_canonical::<zopro_bn254::curve::G1Config>",
+        "g2": "zopro_core::msm_affine::g2_query_exclusive"
+      }
+    }
+  },
+  "prime": 3,
+  "mode": "Uprobes on byte-identical copies with independent plain controls."
+}
