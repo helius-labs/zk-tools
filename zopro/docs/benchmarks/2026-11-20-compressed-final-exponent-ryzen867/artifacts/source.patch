@@ -1,0 +1,237 @@
+--- a/crates/zopro-bn254/src/pairing.rs
++++ b/crates/zopro-bn254/src/pairing.rs
+@@ -3,6 +3,9 @@
+ //! coefficients, the loop over the signed digits of 6x + 2, and the final
+ //! exponentiation's easy part and Fuentes-Castañeda et al.'s hard part.
+ use crate::{curve::PSI_X, curve::PSI_Y, Fq, Fq12, Fq2, G1Affine, G2Affine};
++
++#[path = "pairing_compressed_trial.rs"]
++mod compressed_trial;
+ 
+ /// The BN parameter x (positive for BN254).
+ const X: u64 = 4965661367192848881;
+@@ -149,6 +152,27 @@
+ 
+ /// f^((p^12 - 1) / r), `None` for zero.
+ pub fn final_exponentiation(f: Fq12) -> Option<Fq12> {
++    static MODE: std::sync::OnceLock<u8> = std::sync::OnceLock::new();
++    static CLOCK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    let mode = *MODE.get_or_init(|| match std::env::var("ZOPRO_TRIAL_FINAL_EXP").as_deref() {
++        Ok("signed") => 1,
++        Ok("compressed") => 2,
++        _ => 0,
++    });
++    let clock = *CLOCK.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_FINAL_EXP_CLOCK").is_some());
++    let started = clock.then(std::time::Instant::now);
++    let result = match mode {
++        1 => final_exponentiation_with(f, |x| compressed_trial::signed(x).conjugate()),
++        2 => final_exponentiation_with(f, |x| compressed_trial::compressed(x).conjugate()),
++        _ => final_exponentiation_with(f, exp_by_neg_x),
++    };
++    if let Some(started) = started {
++        eprintln!("FINAL_EXP_TRIAL {mode} {}", started.elapsed().as_nanos());
++    }
++    result
++}
++
++fn final_exponentiation_with(f: Fq12, exp_by_neg_x: impl Fn(Fq12) -> Fq12) -> Option<Fq12> {
+     let f1 = f.conjugate();
+     let f2 = f.inverse()?;
+     let mut r = f1 * f2;
+@@ -213,3 +237,16 @@
+     let q = G2Prepared::new(q);
+     final_exponentiation(multi_miller_loop(&[(*p, &q)])).unwrap_or(Fq12::ONE)
+ }
++
++#[cfg(test)]
++pub(crate) fn trial_final_powers(x: Fq12) -> [Fq12; 2] {
++    [compressed_trial::signed(x), compressed_trial::compressed(x)]
++}
++
++#[cfg(test)]
++pub(crate) fn trial_final_exponents(x: Fq12) -> [Option<Fq12>; 2] {
++    [
++        final_exponentiation_with(x, |x| compressed_trial::signed(x).conjugate()),
++        final_exponentiation_with(x, |x| compressed_trial::compressed(x).conjugate()),
++    ]
++}
+--- /dev/null
++++ b/crates/zopro-bn254/src/pairing_compressed_trial.rs
+@@ -0,0 +1,152 @@
++//! Karabina's four-coordinate form, https://eprint.iacr.org/2010/542.
++use crate::{Fq12, Fq2, Fq6};
++
++// The nonzero digits of the signed nonadjacent form of the BN254 parameter.
++// Bit zero is positive and uses the original, already complete element.
++const POWERS: [(u8, bool); 23] = [
++    (4, true),
++    (9, false),
++    (11, false),
++    (16, false),
++    (19, false),
++    (21, true),
++    (23, false),
++    (25, false),
++    (27, false),
++    (30, false),
++    (34, false),
++    (36, true),
++    (38, true),
++    (40, true),
++    (42, false),
++    (44, false),
++    (47, true),
++    (49, false),
++    (51, false),
++    (53, true),
++    (56, false),
++    (58, false),
++    (62, false),
++];
++
++fn signed_power(x: Fq12, negative: bool) -> Fq12 {
++    if negative {
++        x.conjugate()
++    } else {
++        x
++    }
++}
++
++pub(super) fn signed(x: Fq12) -> Fq12 {
++    let inverse = x.conjugate();
++    let mut bit = POWERS.last().unwrap().0;
++    let mut result = x;
++    for &(next, negative) in POWERS[..POWERS.len() - 1].iter().rev() {
++        for _ in next..bit {
++            result = result.cyclotomic_square();
++        }
++        result *= if negative { inverse } else { x };
++        bit = next;
++    }
++    for _ in 0..bit {
++        result = result.cyclotomic_square();
++    }
++    result * x
++}
++
++#[derive(Clone, Copy, Default)]
++struct Compressed {
++    g1: Fq2,
++    g2: Fq2,
++    g3: Fq2,
++    g5: Fq2,
++}
++
++impl Compressed {
++    fn new(x: Fq12) -> Self {
++        Self {
++            g1: x.c0.c1,
++            g2: x.c0.c2,
++            g3: x.c1.c0,
++            g5: x.c1.c2,
++        }
++    }
++
++    #[inline]
++    fn square(self) -> Self {
++        let first = self.g3.square() + self.g2.square().mul_by_nonresidue();
++        let second = self.g1.square() + self.g5.square().mul_by_nonresidue();
++        let cross_first = (self.g3 * self.g2).double();
++        let cross_second = (self.g1 * self.g5).double().mul_by_nonresidue();
++        Self {
++            g1: (first - self.g1).double() + first,
++            g2: (second - self.g2).double() + second,
++            g3: (cross_second + self.g3).double() + cross_second,
++            g5: (cross_first + self.g5).double() + cross_first,
++        }
++    }
++
++    fn denominator(self) -> Fq2 {
++        self.g3.double().double()
++    }
++
++    fn with_inverse(self, inverse: Fq2) -> Fq12 {
++        let g1_square = self.g1.square();
++        let numerator =
++            self.g5.square().mul_by_nonresidue() + g1_square + (g1_square - self.g2).double();
++        let g4 = numerator * inverse;
++        let g2g1 = self.g2 * self.g1;
++        let g0 = ((g4.square() - g2g1).double() - g2g1 + self.g3 * self.g5).mul_by_nonresidue()
++            + Fq2::ONE;
++        Fq12::new(
++            Fq6::new(g0, self.g1, self.g2),
++            Fq6::new(self.g3, g4, self.g5),
++        )
++    }
++}
++
++pub(super) fn compressed(x: Fq12) -> Fq12 {
++    let mut powers = [Compressed::default(); POWERS.len()];
++    let mut prefixes = [Fq2::ONE; POWERS.len()];
++    let mut value = Compressed::new(x);
++    let mut product = Fq2::ONE;
++    let mut bit = 0;
++    for (index, &(next, _)) in POWERS.iter().enumerate() {
++        for _ in bit..next {
++            value = value.square();
++        }
++        bit = next;
++        let denominator = value.denominator();
++        // All inputs, including exceptional subgroup elements, remain
++        // eligible for the complete-coordinate algorithm.
++        if denominator.is_zero() {
++            return signed(x);
++        }
++        powers[index] = value;
++        prefixes[index] = product;
++        product *= denominator;
++    }
++    let mut inverse = product.inverse().expect("nonzero batch product");
++    let mut result = x;
++    for (index, (&value, &prefix)) in powers.iter().zip(&prefixes).enumerate().rev() {
++        let recovered = value.with_inverse(prefix * inverse);
++        inverse *= value.denominator();
++        result *= signed_power(recovered, POWERS[index].1);
++    }
++    result
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn digits_reconstruct_the_curve_parameter() {
++        let mut value = 1i128;
++        for &(bit, negative) in &POWERS {
++            let term = 1i128 << bit;
++            value += if negative { -term } else { term };
++        }
++        assert_eq!(value, super::super::X as i128);
++    }
++}
+--- a/crates/zopro-bn254/src/tests.rs
++++ b/crates/zopro-bn254/src/tests.rs
+@@ -211,6 +211,8 @@
+             let ours = fq12(x);
+             assert_eq!(ours.cyclotomic_square(), ours.square());
+             assert_eq!(ours.cyclotomic_square(), fq12(x.square()));
++            let expected = fq12(x.pow([4965661367192848881]));
++            assert_eq!(pairing::trial_final_powers(ours), [expected; 2]);
+             for exponent in [0, 1, 2, 3, 4965661367192848881, u64::MAX] {
+                 assert_eq!(ours.cyclotomic_pow_u64(exponent), fq12(x.pow([exponent])));
+             }
+@@ -225,10 +227,9 @@
+     values.extend((0..128).map(|_| ark::Fq12::rand(&mut rng)));
+     for x in values {
+         let ours = fq12(x);
+-        assert_eq!(
+-            pairing::final_exponentiation(ours),
+-            pairing::final_exponentiation_reference(ours)
+-        );
++        let expected = pairing::final_exponentiation_reference(ours);
++        assert_eq!(pairing::trial_final_exponents(ours), [expected; 2]);
++        assert_eq!(pairing::final_exponentiation(ours), expected);
+         assert_eq!(
+             pairing::final_exponentiation(ours),
+             ark::Bn254::final_exponentiation(ark_ec::pairing::MillerLoopOutput(x))
