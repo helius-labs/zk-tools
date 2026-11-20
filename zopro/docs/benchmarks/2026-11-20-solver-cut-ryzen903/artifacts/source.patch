@@ -1,0 +1,116 @@
+--- a/crates/zopro-core/src/solver/bounded.rs
++++ b/crates/zopro-core/src/solver/bounded.rs
+@@ -113,6 +113,27 @@
+     for depth in depths {
+         *depth = histogram[*depth as usize];
+     }
++}
++
++// Explicit outer boundaries for experiments. Invalid configurations do not
++// replace the ordinary schedule, and inner depths are left untouched.
++fn custom_boundaries(raw: &str, bands: usize, deepest: usize) -> Option<[u32; 3]> {
++    let mut result = [u32::MAX; 3];
++    let mut fields = raw.split(',');
++    let observed = bands.checked_sub(1)?;
++    if !(1..=result.len()).contains(&observed) {
++        return None;
++    }
++    let mut previous = 0;
++    for cutoff in &mut result[..observed] {
++        let next: u32 = fields.next()?.parse().ok()?;
++        if next <= previous || next as usize >= deepest {
++            return None;
++        }
++        *cutoff = next;
++        previous = next;
++    }
++    fields.next().is_none().then_some(result)
+ }
+ 
+ // Merge adjacent small independent components before allocating task
+@@ -185,7 +206,15 @@
+         let bands = bands.max(1).min(deepest);
+         let balance = pack_tasks && indices.is_none();
+         if balance {
+-            balance_depths(&mut self.depth[..n], &mut self.parent[..deepest], bands);
++            let custom = std::env::var("ZOPRO_903_SOLVER_CUTS").ok()
++                .and_then(|value| custom_boundaries(&value, bands, deepest));
++            if let Some(cuts) = custom {
++                for depth in &mut self.depth[..n] {
++                    *depth = cuts.partition_point(|&cutoff| cutoff <= *depth) as u32;
++                }
++            } else {
++                balance_depths(&mut self.depth[..n], &mut self.parent[..deepest], bands);
++            }
+         }
+         let band = |i: usize| {
+             if balance {
+@@ -344,6 +373,25 @@
+         let waves = scratch.bands(plan, Some(task), local, &mut reservation, pack_tasks)?;
+         refined.insert(task[0] as usize, waves);
+     }
++    if std::env::var_os("ZOPRO_903_SOLVER_TRACE").is_some() {
++        let counts: Vec<_> = epochs.iter().map(|band| {
++            let mut span = 0;
++            let mut leaves = 0;
++            let mut total = 0;
++            for task in band {
++                total += task.len();
++                if let Some(waves) = refined.get(&(task[0] as usize)) {
++                    span = span.max(waves.iter().map(|wave| wave[0].len()).sum());
++                    leaves += waves.iter().map(Vec::len).sum::<usize>();
++                } else {
++                    span = span.max(task.len());
++                    leaves += 1;
++                }
++            }
++            (span,total,leaves)
++        }).collect();
++        eprintln!("ZP903_PLAN {:?}", counts);
++    }
+     let peak_charge = reservation.bytes();
+     let mut retained = add(retained_bytes(&epochs)?, map_charge)?;
+     for waves in refined.values() {
+@@ -437,3 +485,18 @@
+         );
+     }
+ }
++
++#[cfg(test)]
++mod cut_tests {
++    use super::*;
++
++    #[test]
++    fn nested_schedule_cuts_reject_invalid_depth_boundaries() {
++        assert_eq!(custom_boundaries("7,12,20",4,21),Some([7,12,20]));
++        assert_eq!(custom_boundaries("7",2,21),Some([7,u32::MAX,u32::MAX]));
++        assert_eq!(custom_boundaries("7,12",3,21),Some([7,12,u32::MAX]));
++        for bad in ["", "7,12,12", "7,12,21", "0,12,20", "9,5,20", "7,12", "7,12,20,", "7,12,no"] {
++            assert_eq!(custom_boundaries(bad,4,21),None);
++        }
++    }
++}
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -1739,6 +1739,11 @@
+     /// Every read is initialized, and the schedule orders all writers
+     /// before readers. Distinct tasks write disjoint wires, slots and rows.
+     unsafe fn execute_schedule(&self, schedule: &Schedule, v: View) -> Result<(), String> {
++        let started = {
++            static CLOCK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++            CLOCK.get_or_init(|| std::env::var_os("ZOPRO_903_SOLVER_CLOCK").is_some())
++                .then(crate::time::Instant::now)
++        };
+         let claims = solver_task_claims();
+         let serial = |task: &[u32]| -> Result<(), String> {
+             #[cfg(zopro_resource_schedule)]
+@@ -1765,6 +1770,9 @@
+                     serial(task)
+                 }
+             })?;
++        }
++        if let Some(started) = started {
++            eprintln!("ZP903_SOLVE_NS {}", started.elapsed().as_nanos());
+         }
+         Ok(())
+     }
