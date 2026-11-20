@@ -1,0 +1,228 @@
+{
+  "shapes": [
+    "1x2",
+    "1x4",
+    "1x16",
+    "2x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "layouts": {
+    "1x2": {
+      "pinned": [
+        0,
+        0,
+        "pinned"
+      ],
+      "exact": [
+        48,
+        48,
+        "exact"
+      ],
+      "main16": [
+        64,
+        32,
+        "main"
+      ],
+      "idle16": [
+        48,
+        32,
+        "idle"
+      ],
+      "a16": [
+        48,
+        32,
+        "a"
+      ],
+      "aeglos": [
+        96,
+        0,
+        "aeglos"
+      ]
+    },
+    "1x4": {
+      "exact": [
+        48,
+        48,
+        "exact"
+      ],
+      "same": [
+        48,
+        48,
+        "main"
+      ],
+      "main16": [
+        64,
+        32,
+        "main"
+      ],
+      "main8": [
+        56,
+        40,
+        "main"
+      ],
+      "idle16": [
+        48,
+        32,
+        "idle"
+      ],
+      "idle8": [
+        48,
+        40,
+        "idle"
+      ],
+      "k16": [
+        48,
+        32,
+        "k"
+      ],
+      "h16": [
+        48,
+        32,
+        "h"
+      ],
+      "k8": [
+        48,
+        40,
+        "k"
+      ],
+      "h8": [
+        48,
+        40,
+        "h"
+      ],
+      "aeglos": [
+        96,
+        0,
+        "aeglos"
+      ]
+    },
+    "1x16": {
+      "exact": [
+        32,
+        64,
+        "exact"
+      ],
+      "same": [
+        32,
+        64,
+        "main"
+      ],
+      "main16": [
+        48,
+        48,
+        "main"
+      ],
+      "main8": [
+        40,
+        56,
+        "main"
+      ],
+      "idle16": [
+        32,
+        48,
+        "idle"
+      ],
+      "idle8": [
+        32,
+        56,
+        "idle"
+      ],
+      "k16": [
+        32,
+        48,
+        "k"
+      ],
+      "h16": [
+        32,
+        48,
+        "h"
+      ],
+      "k8": [
+        32,
+        56,
+        "k"
+      ],
+      "h8": [
+        32,
+        56,
+        "h"
+      ],
+      "aeglos": [
+        96,
+        0,
+        "aeglos"
+      ]
+    },
+    "2x2": {
+      "exact": [
+        32,
+        64,
+        "exact"
+      ],
+      "main16": [
+        48,
+        48,
+        "main"
+      ],
+      "idle16": [
+        32,
+        48,
+        "idle"
+      ],
+      "a16": [
+        32,
+        48,
+        "a"
+      ],
+      "aeglos": [
+        96,
+        0,
+        "aeglos"
+      ]
+    }
+  },
+  "root": "/opt/zopro-g1-pool1022",
+  "panels": {
+    "timing": [
+      8,
+      17
+    ],
+    "route": [
+      1,
+      5
+    ]
+  },
+  "reference": {
+    "1x2": {
+      "cpu_ms": 37,
+      "metal_ms": 24
+    },
+    "2x2": {
+      "cpu_ms": 59,
+      "metal_ms": 30
+    }
+  },
+  "build": {
+    "executable": "0a413b159872218fe22f35fe21dc062e192936846d041f94255b163172d72f94",
+    "source_patch": "6a30406f5ea48abca00ba234b588e1d7dd3904820956a5c2e1d1524901acf8cf",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/msm_affine/workspace.rs",
+      "crates/zopro-prover/src/lib.rs",
+      "crates/zopro-bench/examples/cpu-sdk.rs",
+      "crates/zopro-bench/examples/support/placement.rs"
+    ]
+  },
+  "trial_build": {
+    "executable": "8dcef7345dc7302564674f5f2a1bd1010960eacf0a3f10c2ef003654e7dbbb55",
+    "source_patch": "dd98b35bedf4d17086a4814d7b4b9f8b3899d572c7e81578938e3090d8e1e9b0",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-bench/examples/support/placement.rs"
+    ]
+  },
+  "scope": "Compare separate G1 deployment with two-pool placement at equal C7a core counts."
+}
