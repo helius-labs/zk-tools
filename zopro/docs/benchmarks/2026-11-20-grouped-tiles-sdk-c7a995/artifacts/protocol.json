@@ -1,0 +1,83 @@
+{
+  "shapes": [
+    "3x2",
+    "4x2",
+    "4x8",
+    "2x16",
+    "8x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "archived",
+    "clean",
+    "tiled",
+    "aeglos"
+  ],
+  "panels": {
+    "route": [
+      1,
+      2,
+      [
+        "clean",
+        "tiled",
+        "denied"
+      ]
+    ],
+    "timing": [
+      8,
+      17,
+      [
+        "frozen",
+        "archived",
+        "clean",
+        "tiled",
+        "aeglos"
+      ]
+    ]
+  },
+  "root": "/opt/zopro-grouped-sdk995",
+  "build": {
+    "binary": "4bf5d58ecf1be9689abe7ff33e6182190f931ba0aaa155f7d202e531e99fc187",
+    "sha256": "84b87b9fa33e43bab5e411de361d57cce631357d4f60f7cebe48381db0644a78",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/msm.rs",
+      "crates/zopro-core/src/msm_affine.rs",
+      "crates/zopro-core/src/msm_affine/grouping.rs",
+      "crates/zopro-core/src/msm_affine/grouping/tiled.rs",
+      "crates/zopro-core/src/msm/class_tiles.rs",
+      "crates/zopro-prover/src/lib.rs",
+      "crates/zopro-bench/examples/cpu-sdk.rs",
+      "crates/zopro-bench/examples/support/placement.rs"
+    ]
+  },
+  "reference": {
+    "4x2": {
+      "cpu_ms": 109,
+      "metal_ms": 48
+    },
+    "8x2": {
+      "cpu_ms": 189,
+      "metal_ms": 74
+    }
+  },
+  "probe": {
+    "group": "zp995",
+    "path": "/opt/zopro-grouped-sdk995/traced/integrated-sdk",
+    "sites": {
+      "prove": "0x53ce60",
+      "g1": "0x4e2050",
+      "g2": "0x4a4260"
+    },
+    "symbols": {
+      "prove": "<zopro_zolana::Prover>::prove",
+      "g1": "zopro_core::msm::class_tiles::compact::<zopro_bn254::curve::G1Config>",
+      "g2": "zopro_core::msm::class_tiles::compact::<zopro_bn254::curve::G2Config>"
+    }
+  },
+  "scope": "Match the typed SDK integration against archived tiling, the same SDK with tiling disabled, exact catalog control and prepared Aeglos. Include 8x2 near the M5 CPU threshold."
+}
