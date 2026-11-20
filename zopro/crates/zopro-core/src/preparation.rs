@@ -185,6 +185,11 @@ fn reserve(counter: &AtomicUsize, peak: usize, limit: usize) -> bool {
 
 #[cfg(not(any(target_os = "linux", target_os = "android")))]
 pub(crate) fn headroom() -> Option<usize> {
+    // Unit tests exercise the admitted preparation paths on hosts without
+    // an OS budget provider. Keep the usual per-table and process limits.
+    if cfg!(test) {
+        return Some(1 << 30);
+    }
     // Without an OS headroom estimate, retain the allocation-free fallback.
     Some(0)
 }
