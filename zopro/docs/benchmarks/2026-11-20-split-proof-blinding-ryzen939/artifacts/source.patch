@@ -1,0 +1,269 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1679,7 +1679,7 @@
+     feature = "ifma8",
+     not(no_ifma)
+ ))]
+-mod g2_phi;
++pub(super) mod g2_phi;
+ 
+ pub(super) fn canonical_exclusive(scalars: &mut [Fr]) -> &mut [[u64; 4]] {
+     scalars
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -45,7 +45,7 @@
+     assert!(m < 1u128 << 126);
+     m | (sign & (1u128 << 127))
+ }
+-pub(super) fn phi_split(s: [u64; 4]) -> [u64; 4] {
++pub(crate) fn phi_split(s: [u64; 4]) -> [u64; 4] {
+     let a = product::<2, 3, 5>([s[2], s[3]], C1);
+     let b = product::<3, 4, 7>([s[1], s[2], s[3]], C2);
+     debug_assert_eq!(a[4], 0);
+@@ -61,7 +61,7 @@
+     [a as u64, (a >> 64) as u64, b as u64, (b >> 64) as u64]
+ }
+ use zopro_bn254::{Fq, G2Affine, G2Config, G2Projective};
+-const BETA: Fq = Fq::from_decimal(
++pub(crate) const BETA: Fq = Fq::from_decimal(
+     "21888242871839275220042445260109153167277707414472061641714758635765020556616",
+ );
+ #[cfg(test)]
+--- a/crates/zopro-core/src/groth16_rerandomize.rs
++++ b/crates/zopro-core/src/groth16_rerandomize.rs
+@@ -68,6 +68,115 @@
+     }
+     out
+ }
++
++#[cfg(all(zopro_g2_horner_buckets, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++mod split_blinding {
++    use super::*;
++    use crate::msm_affine::g2_phi::{phi_split, BETA};
++    use zopro_bn254::{Fq, Fq2};
++
++    fn digits(scalar: Fr) -> [([i8; 256], usize); 2] {
++        let words = phi_split(scalar.to_canonical());
++        [0, 2].map(|i| {
++            let hi = words[i + 1];
++            let value = Fr::from_canonical([words[i], hi & (u64::MAX >> 1), 0, 0]).unwrap();
++            let (mut digits, used) = blinding_digits::<5>(value);
++            if hi >> 63 != 0 {
++                for d in &mut digits[..used] {
++                    *d = -*d;
++                }
++            }
++            (digits, used)
++        })
++    }
++
++    fn tables<C: CurveConfig>(
++        base: Projective<C>,
++        transform_x: impl Fn(C::Base) -> C::Base,
++    ) -> (Vec<Affine<C>>, [Affine<C>; 8]) {
++        let usual = odd_multiples(base);
++        let transformed = core::array::from_fn(|i| {
++            let p = usual[i];
++            if p.is_identity() {
++                p
++            } else {
++                Affine::new(transform_x(p.x), p.y)
++            }
++        });
++        (usual, transformed)
++    }
++
++    pub(super) fn g1(base: G1Projective, left: Fr, right: Fr) -> (G1Projective, G1Projective) {
++        let beta = BETA.square();
++        let (first, second) = tables(base, |x: Fq| x * beta);
++        let [(ld, ln), (le, en)] = digits(left);
++        let [(rd, rn), (re, fn_)] = digits(right);
++        let (mut l, mut r) = (G1Projective::IDENTITY, G1Projective::IDENTITY);
++        for i in (0..ln.max(en).max(rn).max(fn_)).rev() {
++            l = l.double();
++            r = r.double();
++            add_digit(&mut l, &first, ld[i]);
++            add_digit(&mut l, &second, le[i]);
++            add_digit(&mut r, &first, rd[i]);
++            add_digit(&mut r, &second, re[i]);
++        }
++        (l, r)
++    }
++
++    pub(super) fn g2(base: G2Projective, u: Fr, delta: &FixedBase<G2Config>, uv: Fr)
++        -> G2Projective
++    {
++        let (first, second) = tables(base, |x: Fq2| x.mul_by_fp(&BETA));
++        let [(ld, ln), (rd, rn)] = digits(u);
++        let mut out = G2Projective::IDENTITY;
++        for i in (0..ln.max(rn)).rev() {
++            out = out.double();
++            add_digit(&mut out, &first, ld[i]);
++            add_digit(&mut out, &second, rd[i]);
++        }
++        out + delta.mul(uv)
++    }
++
++    pub(super) fn mode() -> u8 {
++        static MODE: std::sync::OnceLock<u8> = std::sync::OnceLock::new();
++        *MODE.get_or_init(|| match std::env::var("ZOPRO_939_BLINDING").as_deref() {
++            Ok("g2") => 1,
++            Ok("both") => 2,
++            _ => 0,
++        })
++    }
++
++    pub(super) fn trace(query: &str) {
++        static TRACE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++        if *TRACE.get_or_init(|| std::env::var_os("ZOPRO_939_TRACE").is_some()) {
++            eprintln!("ZP939_BLINDING {query}");
++        }
++    }
++
++    #[cfg(test)]
++    mod tests {
++        use super::*;
++
++        #[test]
++        fn split_blinding_matches_unsplit_scalar_multiplication() {
++            let values = [Fr::ZERO, Fr::ONE, -Fr::ONE, Fr::from(2u64).pow(&[128]),
++                          Fr::from(5u64).pow(&[100]), Fr::from(7u64).pow(&[117])];
++            let delta = G2Affine::GENERATOR * Fr::from(317u64);
++            let delta = delta.to_affine();
++            let table = FixedBase::new(delta);
++            for j in 0..18 {
++                let p = Fr::from((j * 97) as u64);
++                let a = G1Affine::GENERATOR * p;
++                let b = G2Affine::GENERATOR * (-p);
++                let u = values[j % values.len()];
++                let v = values[(j / 3 + 2) % values.len()];
++                assert_eq!(g1(a, u, v), (a.mul(&u), a.mul(&v)));
++                assert_eq!(g2(b, u, &table, v), b.mul(&u) + delta * v);
++            }
++        }
++    }
++}
++
+ impl PreparedFixedPoints {
+     fn windowed_outputs(
+         &self,
+@@ -77,10 +186,26 @@
+         u: Fr,
+         inverse: Fr,
+         v: Fr,
++        certified: bool,
+     ) -> (G1Projective, G1Projective, G2Projective) {
++        let _ = certified;
+         let ((a, add), b) = rayon::join(
+-            || pair_g1(a0, inverse, v),
+             || {
++                #[cfg(all(zopro_g2_horner_buckets, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++                if certified && split_blinding::mode() == 2 && a0.to_affine().is_on_curve() {
++                    split_blinding::trace("g1");
++                    return split_blinding::g1(a0, inverse, v);
++                }
++                pair_g1(a0, inverse, v)
++            },
++            || {
++                #[cfg(all(zopro_g2_horner_buckets, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++                if certified && split_blinding::mode() != 0 {
++                    if let Some((_, delta)) = &self.0.windows {
++                        split_blinding::trace("g2");
++                        return split_blinding::g2(b0, u, delta, u * v);
++                    }
++                }
+                 joint_g2(
+                     b0,
+                     u,
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2484,6 +2484,15 @@
+         witness: &[u8],
+         fixed: &groth16::PreparedFixedPoints,
+     ) -> Result<Vec<u8>, String> {
++        self.solve_rerandomized_with_certificate(witness, fixed, false)
++    }
++
++    fn solve_rerandomized_with_certificate(
++        &self,
++        witness: &[u8],
++        fixed: &groth16::PreparedFixedPoints,
++        certified: bool,
++    ) -> Result<Vec<u8>, String> {
+         if self.has_gpu() {
+             return Err("randomized solving requires the CPU".into());
+         }
+@@ -2491,7 +2500,7 @@
+             return Err("zero delta in proving key".into());
+         }
+         let parts = self.solve_inner(witness, true)?;
+-        if let Some(proof) = fixed.assemble_rerandomized(&parts) {
++        if let Some(proof) = fixed.assemble_rerandomized(&parts, certified) {
+             return Ok(proof);
+         }
+         // A0 = identity: restore the complete ordinary prover and condition
+@@ -2591,7 +2600,7 @@
+         #[cfg(all(target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",feature="ifma8",not(no_ifma)))]
+         let eligible=!self.has_gpu()&&self.b2.len()<65536&&std::env::var("ZOPRO_BENCH_CERTIFIED_OUTPUT").as_deref()==Ok("1");
+         let certified=eligible&&self.generated_g2.check(&self.b2,false)&&fixed.generated_g2_certified();
+-        Ok(generated_proof::GeneratedProof::new(self.solve_rerandomized(witness,fixed)?,certified))
++        Ok(generated_proof::GeneratedProof::new(self.solve_rerandomized_with_certificate(witness,fixed,certified)?,certified))
+     }
+ }
+ 
+--- a/crates/zopro-core/src/groth16.rs
++++ b/crates/zopro-core/src/groth16.rs
+@@ -334,7 +334,7 @@
+     pub(crate) fn rerandomization_key_valid(&self) -> bool {
+         !self.0.fixed.delta.is_identity() && !self.0.fixed.delta2.is_identity()
+     }
+-    pub(crate) fn assemble_rerandomized(&self, parts: &[u8]) -> Option<Vec<u8>> {
++    pub(crate) fn assemble_rerandomized(&self, parts: &[u8], certified: bool) -> Option<Vec<u8>> {
+         assert_eq!(parts.len(), 384);
+         let a0 = decode_g1(&parts[..64])[0].to_projective() + self.0.fixed.alpha;
+         if a0.is_identity() {
+@@ -347,9 +347,9 @@
+             }
+         };
+         let v = uniform_fr();
+-        self.rerandomized_with(parts, u, v)
+-    }
+-    fn rerandomized_with(&self, parts: &[u8], u: Fr, v: Fr) -> Option<Vec<u8>> {
++        self.rerandomized_with(parts, u, v, certified)
++    }
++    fn rerandomized_with(&self, parts: &[u8], u: Fr, v: Fr, certified: bool) -> Option<Vec<u8>> {
+         assert_eq!(parts.len(), 384);
+         let inverse = u.inverse()?;
+         let a0 = decode_g1(&parts[..64])[0].to_projective() + self.0.fixed.alpha;
+@@ -359,7 +359,7 @@
+         // The B1 bytes are intentionally not read.
+         let c0 = decode_g1(&parts[128..192])[0].to_projective() + decode_g1(&parts[192..256])[0];
+         let b0 = decode_g2(&parts[256..384])[0].to_projective() + self.0.fixed.beta2;
+-        let (a, c, b) = self.windowed_outputs(a0, b0, c0, u, inverse, v);
++        let (a, c, b) = self.windowed_outputs(a0, b0, c0, u, inverse, v, certified);
+         let (a, c, b) = (a.to_affine(), c.to_affine(), b.to_affine());
+         let mut out = Vec::with_capacity(256);
+         for x in [a.x, a.y, c.x, c.y, b.x.c1, b.x.c0, b.y.c1, b.y.c0] {
+@@ -426,7 +426,7 @@
+                 crate::output_g2(&mut parts, g2 * Fr::from(5u64));
+                 for u in values {
+                     for v in values {
+-                        let got = p.rerandomized_with(&parts, u, v);
++                        let got = p.rerandomized_with(&parts, u, v, false);
+                         let a0 = a + Fr::from(13u64);
+                         if a0.is_zero() || u.is_zero() {
+                             assert!(got.is_none());
+@@ -449,11 +449,11 @@
+                         );
+                         let mut poisoned = parts.clone();
+                         poisoned[64..128].fill(255);
+-                        assert_eq!(p.rerandomized_with(&poisoned, u, v).unwrap(), expected);
++                        assert_eq!(p.rerandomized_with(&poisoned, u, v, false).unwrap(), expected);
+                     }
+                 }
+                 if (a + Fr::from(13u64)).is_zero() {
+-                    assert!(p.assemble_rerandomized(&parts).is_none());
++                    assert!(p.assemble_rerandomized(&parts, false).is_none());
+                     for _ in 0..4 {
+                         assert!(p.assemble_nonzero(&parts)[..64].iter().any(|&x| x != 0));
+                     }
