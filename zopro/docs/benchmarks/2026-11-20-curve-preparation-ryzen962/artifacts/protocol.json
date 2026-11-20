@@ -1,0 +1,67 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "ordinary",
+    "forecast"
+  ],
+  "clocked": [
+    "ordinary",
+    "forecast",
+    "k",
+    "b2"
+  ],
+  "main": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "front": [
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "solver": [
+    24,
+    25,
+    26,
+    27
+  ],
+  "timed_rounds": 17,
+  "blocks": 8,
+  "clock_blocks": 4,
+  "clock_rounds": 13,
+  "calibration": "Absolute paired ordinary proof within 2% of frozen. Forecast candidate needs lower paired medians and six wins in eight on each input against both ordinary and frozen. Observe drift of traced full-proof medians.",
+  "scope": "Separate K frontend dispatch, forecast, mutex wait and headroom reads from preparation; separate K/B2 sample, reservation, hashing, index assembly and conversion. Test an equivalent requested-capacity calculation evaluating each reachable small signed layout once.",
+  "source_patch": "d35cd7ae22e8714423f88cc56383741cb5c51253fd624e28cf14a47b03525b1c"
+}
