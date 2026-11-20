@@ -8,13 +8,13 @@ At 64+32 workers, 2×4 peak memory fell from **186.2 to 163.0 MiB** on the prima
 
 ## How the prover decides
 
-K and H are two G1 sums that contribute to the same proof component. Fusion lets their points use one bucket set per window. The CPU route checks the key dimensions and the proof call. Both folded sums must have 1,024–65,535 terms, H must have unit scale, and the proof mode must consume the combined result. The canonical wire path also requires each original key point array to be smaller than 65,536 points. It uses the small path when K and H total fewer than 65,536 terms. Above that total, the medium path requires its opt-in and a successful scratch reservation. Large shapes use the general route.
+K and H are two G1 sums that contribute to the same proof component. Fusion lets their points use one bucket set per window. The CPU route checks the key dimensions and the proof call. Both folded sums must have 1,024–65,535 terms, H must have unit scale, and the proof mode must consume the combined result. The canonical-wire entry checks the original A, B, and K lengths against 65,536. The H limit is checked later when choosing whether to fuse. It uses the small path when K and H total fewer than 65,536 terms. Above that total, the medium path requires its opt-in and a successful scratch reservation. Larger A, B, or K lengths use the general solver route.
 
-The census reads all 41 SHA-256-pinned proving-image headers from the exact selected workflows. K includes folded solver slots. The Euler H query uses the original constraint rows. Ten additional local proofs verified the selected fusion calls on 1×2, 1×4, 1×16 and 2×2 and the general route on 2×8 with the medium flag enabled. The separate 1×8 and 2×4 runs confirmed actual fusion on both inputs. [Verifier and route data](artifacts/routes.json)
+The census reads all 41 SHA-256-pinned proving-image headers from the exact selected workflows. K includes folded solver slots. The Euler H query uses the original constraint rows. Ten additional local proofs verified the selected fusion calls on 1×2, 1×4, 1×16 and 2×2 and confirmed that 2×8 leaves K and H separate with the medium flag enabled. The separate 1×8 and 2×4 runs confirmed actual fusion on both inputs. [Verifier and route data](artifacts/routes.json)
 
 ## All 41 shapes
 
-Peak memory is the recorded whole-process RSS and includes key setup. The two peak columns show the same Zopro profiles as the latency scorecard. Geometry is computed from the selected key. The 35 large shapes require investigation in the general route for related optimizations.
+Peak memory is the recorded whole-process RSS and includes key setup. The two peak columns show the same Zopro profiles as the latency scorecard. Geometry is computed from the selected key. Thirty-five shapes fall outside the existing fusion path.
 
 | Shape | K terms | H terms | FFT domain | Zopro primary peak MiB | Zopro held-out peak MiB | Selected route |
 |---|---:|---:|---:|---:|---:|---|
@@ -24,7 +24,7 @@ Peak memory is the recorded whole-process RSS and includes key setup. The two pe
 | 1×16 | 59,131 | 59,546 | 65,536 | 91.0 | 89.5 | Medium fused K/H |
 | 2×2 | 53,079 | 53,874 | 65,536 | 78.9 | 74.5 | Medium fused K/H |
 | 2×4 | 56,762 | 57,554 | 65,536 | 186.1 | 191.5 | Separate K/H |
-| 2×8 | 65,362 | 66,162 | 131,072 | 183.4 | 180.2 | General |
+| 2×8 | 65,362 | 66,162 | 131,072 | 183.4 | 180.2 | Canonical wires, separate K/H |
 | 2×16 | 81,794 | 82,610 | 131,072 | 238.6 | 241.6 | General, direct tiles |
 | 3×2 | 75,069 | 76,266 | 131,072 | 183.1 | 181.7 | General, direct tiles |
 | 3×4 | 78,769 | 79,962 | 131,072 | 213.1 | 195.1 | General, direct tiles |
@@ -62,7 +62,7 @@ Peak memory is the recorded whole-process RSS and includes key setup. The two pe
 
 ## Larger-shape findings
 
-- **2×8 is the first shape outside the size guard.** Its H query has 66,162 terms and its FFT domain has 131,072 entries. A follow-up needs a general-route implementation with a measured scratch bound. On 4×2 and 8×2, the previous prototype that merged point-range buckets before weighted reduction raised proof latency by 5.52–8.93% locally. [Large K/H experiment](../2026-11-20-merged-partitioned-kh-ryzen1028/README.md)
+- **2×8 is the first shape outside the size guard.** Its H query has 66,162 terms and its FFT domain has 131,072 entries. Its original A, B, and K lengths still fit the canonical-wire route. A larger fused kernel would need a separate scratch bound. On 4×2 and 8×2, the previous prototype that merged point-range buckets before weighted reduction raised proof latency by 5.52–8.93% locally. [Large K/H experiment](../2026-11-20-merged-partitioned-kh-ryzen1028/README.md)
 - **Direct tiles already provide a similar win on six large shapes.** At fixed placement they reduced primary peak RSS from 248.4 to 238.6 MiB on 2×16, 189.1 to 183.1 on 3×2, 228.1 to 218.5 on 3×8, 224.4 to 216.2 on 4×4, 252.1 to 241.0 on 4×8, and 289.8 to 263.4 on 4×16. Peak RSS also fell on the held-out requests and paired latency improved in all six cases. The 3×4 tile result improved speed but increased primary peak memory from 206.4 to 213.1 MiB. [3× and 4× tile comparisons](../2026-11-20-grouped-transfers-c7a988/README.md) · [2×16, 3×8 and 4×16 tile comparisons](../2026-11-20-medium-profile-transfer-c7a985/README.md)
 - **48×2 and 49×2 show another cross-shape peak reversal.** Primary peak memory is 1,771.0 MiB and 1,598.0 MiB respectively, despite the same FFT domain and more terms on 49×2. The timing and RSS data leave the cause undetermined. A same-shape allocation or layout comparison would isolate it. [Full-catalog timing](../2026-11-20-all-shapes-c7a979/README.md)
 
