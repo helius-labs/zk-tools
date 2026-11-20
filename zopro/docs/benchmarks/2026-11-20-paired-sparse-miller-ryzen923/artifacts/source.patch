@@ -1,0 +1,282 @@
+--- a/crates/zopro-bn254/src/pairing.rs
++++ b/crates/zopro-bn254/src/pairing.rs
+@@ -111,8 +111,27 @@
+     *f = f.mul_by_034(&c0, &c1, &line.2);
+ }
+ 
++#[path = "pairing_sparse_trial.rs"]
++mod sparse_trial;
++
+ /// The product of the Miller loops of the pairs.
+ pub fn multi_miller_loop(pairs: &[(G1Affine, &G2Prepared)]) -> Fq12 {
++    if let [(p, q)] = pairs {
++        if let Some(packed) = sparse_trial::mode() {
++            if p.is_identity() || q.is_identity() {
++                return Fq12::ONE;
++            }
++            return if packed {
++                sparse_trial::run::<true>(p, q)
++            } else {
++                sparse_trial::run::<false>(p, q)
++            };
++        }
++    }
++    ordinary_miller_loop(pairs)
++}
++
++fn ordinary_miller_loop(pairs: &[(G1Affine, &G2Prepared)]) -> Fq12 {
+     let pairs: Vec<_> = pairs
+         .iter()
+         .filter(|(p, q)| !p.is_identity() && !q.is_identity())
+--- /dev/null
++++ b/crates/zopro-bn254/src/pairing_sparse_trial.rs
+@@ -0,0 +1,215 @@
++//! Pair the two sparse line factors following a signed Miller digit.
++use super::{ell, Fq12, Fq2, G1Affine, G2Prepared, Line, ATE_LOOP_COUNT};
++use crate::Fq6;
++use std::sync::OnceLock;
++
++pub(super) fn mode() -> Option<bool> {
++    static MODE: OnceLock<Option<bool>> = OnceLock::new();
++    *MODE.get_or_init(|| parse_mode(std::env::var("ZOPRO_923_MILLER").ok().as_deref()))
++}
++
++fn parse_mode(value: Option<&str>) -> Option<bool> {
++    match value {
++        Some("paired") => Some(false),
++        Some("ifma")
++            if cfg!(all(
++                target_arch = "x86_64",
++                target_feature = "avx512ifma",
++                target_feature = "avx512vl",
++                target_feature = "avx512dq",
++                not(no_ifma)
++            )) =>
++        {
++            Some(true)
++        }
++        _ => None,
++    }
++}
++
++fn products<const PACKED: bool, const N: usize>(a: [Fq2; N], b: [Fq2; N]) -> [Fq2; N] {
++    #[cfg(all(
++        target_arch = "x86_64",
++        target_feature = "avx512ifma",
++        target_feature = "avx512vl",
++        target_feature = "avx512dq",
++        not(no_ifma)
++    ))]
++    if PACKED {
++        use crate::{ifma8::Ifma8, Fq, FqConfig};
++        type F = Ifma8<FqConfig, true>;
++        debug_assert!(N <= 8);
++        let a0 = F::new(&core::array::from_fn(|i| {
++            a.get(i).map_or(Fq::ZERO, |v| v.c0)
++        }));
++        let a1 = F::new(&core::array::from_fn(|i| {
++            a.get(i).map_or(Fq::ZERO, |v| v.c1)
++        }));
++        let b0 = F::new(&core::array::from_fn(|i| {
++            b.get(i).map_or(Fq::ZERO, |v| v.c0)
++        }));
++        let b1 = F::new(&core::array::from_fn(|i| {
++            b.get(i).map_or(Fq::ZERO, |v| v.c1)
++        }));
++        let d0 = a0.mul(&b0);
++        let d1 = a1.mul(&b1);
++        let cross = a0.add_canonical(&a1).mul(&b0.add_canonical(&b1));
++        let c0 = d0.sub(&d1).get();
++        let c1 = cross.sub(&d0).sub(&d1).get();
++        return core::array::from_fn(|i| Fq2::new(c0[i], c1[i]));
++    }
++    core::array::from_fn(|i| a[i] * b[i])
++}
++
++fn pair_lines<const PACKED: bool>(a: [Fq2; 3], b: [Fq2; 3]) -> (Fq6, Fq6) {
++    // Indices 0, 3 and 4 of the ordinary Fq12 sparse tower factor.
++    let [a0, a3, a4] = a;
++    let [b0, b3, b4] = b;
++    let [d0, d3, d4, m03, m04, m34] = products::<PACKED, 6>(
++        [a0, a3, a4, a0 + a3, a0 + a4, a3 + a4],
++        [b0, b3, b4, b0 + b3, b0 + b4, b3 + b4],
++    );
++    (
++        Fq6::new(d0 + d4.mul_by_nonresidue(), d3, m34 - d3 - d4),
++        Fq6::new(m03 - d0 - d3, m04 - d0 - d4, Fq2::ZERO),
++    )
++}
++
++fn fq6_mul<const PACKED: bool>(a: Fq6, b: Fq6) -> Fq6 {
++    if !PACKED {
++        return a * b;
++    }
++    let [v0, v1, v2, m01, m02, m12] = products::<PACKED, 6>(
++        [a.c0, a.c1, a.c2, a.c0 + a.c1, a.c0 + a.c2, a.c1 + a.c2],
++        [b.c0, b.c1, b.c2, b.c0 + b.c1, b.c0 + b.c2, b.c1 + b.c2],
++    );
++    Fq6::new(
++        v0 + (m12 - v1 - v2).mul_by_nonresidue(),
++        m01 - v0 - v1 + v2.mul_by_nonresidue(),
++        m02 - v0 - v2 + v1,
++    )
++}
++
++fn fq6_low<const PACKED: bool>(a: Fq6, b: Fq6) -> Fq6 {
++    if !PACKED {
++        return a.mul_by_01(&b.c0, &b.c1);
++    }
++    let [d0, d1, m1, m2, m3] = products::<PACKED, 5>(
++        [a.c0, a.c1, a.c1 + a.c2, a.c0 + a.c1, a.c0 + a.c2],
++        [b.c0, b.c1, b.c1, b.c0 + b.c1, b.c0],
++    );
++    Fq6::new(
++        d0 + (m1 - d1).mul_by_nonresidue(),
++        m2 - d0 - d1,
++        m3 - d0 + d1,
++    )
++}
++
++fn apply_pair<const PACKED: bool>(f: Fq12, lines: (Fq6, Fq6)) -> Fq12 {
++    let (l0, l1) = lines;
++    let c0 = fq6_mul::<PACKED>(f.c0, l0);
++    let c1 = fq6_low::<PACKED>(f.c1, l1);
++    let cross = fq6_mul::<PACKED>(f.c0 + f.c1, l0 + l1);
++    Fq12::new(c0 + c1.mul_by_nonresidue(), cross - c0 - c1)
++}
++
++fn evaluate(line: &Line, p: &G1Affine) -> [Fq2; 3] {
++    [line.0.mul_by_fp(&p.y), line.1.mul_by_fp(&p.x), line.2]
++}
++
++pub(super) fn run<const PACKED: bool>(p: &G1Affine, q: &G2Prepared) -> Fq12 {
++    let mut lines = q.lines.iter();
++    let mut f = Fq12::ONE;
++    for i in (1..ATE_LOOP_COUNT.len()).rev() {
++        if i != ATE_LOOP_COUNT.len() - 1 {
++            f = f.square();
++        }
++        let first = lines.next().expect("doubling line");
++        if ATE_LOOP_COUNT[i - 1] != 0 {
++            let second = lines.next().expect("addition line");
++            f = apply_pair::<PACKED>(
++                f,
++                pair_lines::<PACKED>(evaluate(first, p), evaluate(second, p)),
++            );
++        } else {
++            ell(&mut f, first, p);
++        }
++    }
++    let first = lines.next().expect("first final line");
++    let second = lines.next().expect("second final line");
++    apply_pair::<PACKED>(
++        f,
++        pair_lines::<PACKED>(evaluate(first, p), evaluate(second, p)),
++    )
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::{Fq, Fr, G2Affine};
++
++    #[test]
++    fn paired_sparse_products_match_two_original_line_products() {
++        let term = |i| Fq2::new(Fq::from(i as u64 + 1), Fq::from(i as u64 * 9 + 13));
++        for i in 0..257 {
++            let f = Fq12::new(
++                Fq6::new(term(i), term(i + 1), term(i + 2)),
++                Fq6::new(term(i + 3), term(i + 4), term(i + 5)),
++            );
++            let mut a = core::array::from_fn(|j| term(i + 19 + j));
++            let mut b = core::array::from_fn(|j| term(i + 91 + j));
++            if i % 3 == 0 {
++                a[i % 3] = Fq2::ZERO;
++            }
++            if i % 5 == 0 {
++                b[i % 3] = Fq2::ZERO;
++            }
++            let expected = f
++                .mul_by_034(&a[0], &a[1], &a[2])
++                .mul_by_034(&b[0], &b[1], &b[2]);
++            assert_eq!(apply_pair::<false>(f, pair_lines::<false>(a, b)), expected);
++            assert_eq!(apply_pair::<true>(f, pair_lines::<true>(a, b)), expected);
++        }
++    }
++
++    #[cfg(all(
++        target_arch = "x86_64",
++        target_feature = "avx512ifma",
++        target_feature = "avx512vl",
++        target_feature = "avx512dq",
++        not(no_ifma)
++    ))]
++    #[test]
++    fn native_ifma_trial_is_selectable() {
++        assert_eq!(parse_mode(Some("ifma")), Some(true));
++        assert_eq!(parse_mode(Some("paired")), Some(false));
++        assert_eq!(parse_mode(None), None);
++    }
++
++    #[test]
++    fn product_batches_match_scalar_for_wide_and_zero_coordinates() {
++        for i in 1..65u64 {
++            let a = core::array::from_fn(|j| {
++                let a = Fq::from(i * 21 + j as u64);
++                Fq2::new(-a, a.square())
++            });
++            let b = core::array::from_fn(|j| {
++                let b = Fq::from(i * 8 + j as u64);
++                Fq2::new(b, if j % 2 == 0 { Fq::ZERO } else { -b.square() })
++            });
++            assert_eq!(products::<true, 6>(a, b), products::<false, 6>(a, b));
++        }
++    }
++
++    #[test]
++    fn complete_paired_loops_match_original() {
++        for i in 1..31 {
++            let p = (G1Affine::GENERATOR * Fr::from(i as u64 * 333)).to_affine();
++            let q = G2Prepared::new(
++                &(G2Affine::GENERATOR * Fr::from(199 + i as u64 * 719)).to_affine(),
++            );
++            let expected = super::super::ordinary_miller_loop(&[(p, &q)]);
++            assert_eq!(run::<false>(&p, &q), expected);
++            assert_eq!(run::<true>(&p, &q), expected);
++        }
++    }
++}
+--- /dev/null
++++ b/crates/zopro-bn254/examples/sparse-miller923.rs
+@@ -0,0 +1,31 @@
++use std::hint::black_box;
++use std::time::Instant;
++use zopro_bn254::{
++    pairing::{multi_miller_loop, G2Prepared},
++    Fr, G1Affine, G2Affine,
++};
++
++fn main() {
++    let identity = G2Prepared::new(&G2Affine::IDENTITY);
++    let mut cases = Vec::new();
++    for i in 1..=24u64 {
++        let p = (G1Affine::GENERATOR * Fr::from(i * 197)).to_affine();
++        let q = G2Prepared::new(&(G2Affine::GENERATOR * Fr::from(23 + i * 301)).to_affine());
++        let expected = multi_miller_loop(&[(p, &q), (G1Affine::IDENTITY, &identity)]);
++        assert_eq!(multi_miller_loop(&[(p, &q)]), expected);
++        cases.push((p, q, expected));
++    }
++    for i in 0..48 {
++        let (p, q, _) = &cases[i % 24];
++        black_box(multi_miller_loop(black_box(&[(*p, q)])));
++    }
++    for i in 0..192 {
++        let (p, q, expected) = &cases[i % 24];
++        let args = [(*p, q)];
++        let start = Instant::now();
++        let result = black_box(multi_miller_loop(black_box(&args)));
++        let ns = start.elapsed().as_nanos();
++        assert_eq!(result, *expected);
++        println!("SAMPLE {i} {ns}");
++    }
++}
