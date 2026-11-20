@@ -1,0 +1,313 @@
+--- /dev/null
++++ b/crates/zopro-core/src/four_by_two_probe.rs
+@@ -0,0 +1,126 @@
++//! Single-key fixed-request ablation for the native benchmark.
++use crate::preparation::Reservation;
++use std::sync::OnceLock;
++use std::time::Instant;
++use zopro_bn254::{Fr, G1Projective, G2Projective};
++
++#[derive(Clone, Copy)]
++pub(crate) enum Query {
++    A,
++    K,
++    H,
++    B2,
++}
++impl Query {
++    fn name(self) -> &'static str {
++        match self {
++            Self::A => "a",
++            Self::K => "k",
++            Self::H => "h",
++            Self::B2 => "b2",
++        }
++    }
++
++    fn replay_enabled(self) -> bool {
++        static MODE: OnceLock<Option<String>> = OnceLock::new();
++        match MODE.get_or_init(|| std::env::var("ZOPRO_891_REPLAY").ok()).as_deref() {
++            Some("all") => true,
++            Some("kh") => matches!(self, Self::K | Self::H),
++            Some("a") => matches!(self, Self::A),
++            Some("b2") => matches!(self, Self::B2),
++            _ => false,
++        }
++    }
++}
++
++pub(crate) fn clock() -> Option<Instant> {
++    static CLOCK: OnceLock<bool> = OnceLock::new();
++    if *CLOCK.get_or_init(|| std::env::var_os("ZOPRO_891_CLOCK").is_some()) {
++        Some(Instant::now())
++    } else {
++        None
++    }
++}
++
++pub(crate) fn trace_enabled() -> bool {
++    static TRACE: OnceLock<bool> = OnceLock::new();
++    *TRACE.get_or_init(|| std::env::var_os("ZOPRO_891_REPLAY_TRACE").is_some())
++}
++
++type B = (G1Projective, G2Projective);
++struct Frozen<T> {
++    base: usize,
++    scalars: Vec<Fr>,
++    value: T,
++    _reservation: Reservation,
++}
++
++pub(crate) fn g1(
++    query: Query, origin: Option<Instant>, base: usize, scalars: &mut [Fr],
++    compute: impl FnOnce(&mut [Fr]) -> G1Projective,
++) -> G1Projective {
++    static A: OnceLock<Option<Frozen<G1Projective>>> = OnceLock::new();
++    static K: OnceLock<Option<Frozen<G1Projective>>> = OnceLock::new();
++    static H: OnceLock<Option<Frozen<G1Projective>>> = OnceLock::new();
++    let cell = match query {
++        Query::A => &A,
++        Query::K => &K,
++        Query::H => &H,
++        _ => unreachable!(),
++    };
++    run(cell, query, origin, base, scalars, compute)
++}
++
++pub(crate) fn b2(
++    origin: Option<Instant>, base: usize, scalars: &mut [Fr],
++    compute: impl FnOnce(&mut [Fr]) -> B,
++) -> B {
++    static B2: OnceLock<Option<Frozen<B>>> = OnceLock::new();
++    run(&B2, Query::B2, origin, base, scalars, compute)
++}
++
++fn run<T: Copy + Sync + Send>(
++    cell: &OnceLock<Option<Frozen<T>>>, query: Query, origin: Option<Instant>,
++    base: usize, scalars: &mut [Fr], compute: impl FnOnce(&mut [Fr]) -> T,
++) -> T {
++    let start = origin.map(|t| t.elapsed());
++    let result = if query.replay_enabled() {
++        replay(cell, query, base, scalars, compute)
++    } else {
++        compute(scalars)
++    };
++    if let (Some(t), Some(start)) = (origin, start) {
++        eprintln!("ZP891_QUERY {} {} {}", query.name(), start.as_nanos(), t.elapsed().as_nanos());
++    }
++    result
++}
++
++fn replay<T: Copy + Sync + Send>(
++    cell: &OnceLock<Option<Frozen<T>>>, query: Query, base: usize,
++    scalars: &mut [Fr], compute: impl FnOnce(&mut [Fr]) -> T,
++) -> T {
++    let mut compute = Some(compute);
++    let mut primed = false;
++    let frozen = cell.get_or_init(|| {
++        let _reservation = Reservation::analysis(Some(std::mem::size_of_val(scalars)))?;
++        let copy = scalars.to_vec();
++        let value = compute.take().unwrap()(scalars);
++        primed = true;
++        Some(Frozen { base, scalars: copy, value, _reservation })
++    });
++    let trace = |event| {
++        if trace_enabled() {
++            eprintln!("ZP891_REPLAY {} {}", query.name(), event);
++        }
++    };
++    if let Some(frozen) = frozen {
++        if primed || (frozen.base == base && frozen.scalars == scalars) {
++            trace(if primed { "prime" } else { "hit" });
++            return frozen.value;
++        }
++        trace("mismatch");
++    } else {
++        trace("denied");
++    }
++    compute.unwrap()(scalars)
++}
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -37,6 +37,8 @@
+ #[cfg(test)]
+ mod testing;
+ pub mod verify;
++#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++mod four_by_two_probe;
+ 
+ /// Initialize fresh field storage in parallel, including first page touches.
+ /// Capacity beyond `len` remains uninitialized for the quotient's padding.
+@@ -1158,10 +1160,14 @@
+         });
+         #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+         let instruction_pool = None;
++        #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++        let phase = four_by_two_probe::clock();
+         let solver::Solution { mut w, a, b, c } = plan.solve_with_pool(
+             &frs(witness), self.domain, slots, materialize_c, instruction_pool,
+         )?;
+         if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
++        #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++        let solved = phase.map(|t| t.elapsed());
+         let started = trace("solve", started);
+         use rayon::prelude::*;
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -1181,7 +1187,14 @@
+             // The folded public term still needs the original public values.
+             offsets.restore_public(public);
+         }
+-        self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
++        #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++        let gathered = phase.map(|t| t.elapsed());
++        let output = self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b);
++        #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++        if let (Some(t), Some(solve), Some(gather)) = (phase, solved, gathered) {
++            eprintln!("ZP891_SOLVE {} {} {}", solve.as_nanos(), gather.as_nanos(), t.elapsed().as_nanos());
++        }
++        output
+     }
+     pub fn commitment(
+         &self,
+@@ -1875,7 +1888,11 @@
+                 });
+                 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                 let pool = None;
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                let phase = four_by_two_probe::clock();
+                 let mut product = queries.product_values(&self.plan, a, b, pool);
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                let fft = phase.map(|t| t.elapsed());
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+@@ -1890,11 +1907,17 @@
+                     _ => (ar, kr, bs2),
+                 };
+                 trace("msms", started);
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                let curves = phase.map(|t| t.elapsed());
+                 let mut out = Vec::with_capacity(384);
+                 for point in [ar, bs1, kr + correction, queries.finish_product(hz)] {
+                     output_g1(&mut out, point);
+                 }
+                 output_g2(&mut out, bs2);
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                if let (Some(t), Some(fft), Some(end)) = (phase, fft, curves) {
++                    eprintln!("ZP891_FOLDED {} {} {}", fft.as_nanos(), end.as_nanos(), t.elapsed().as_nanos());
++                }
+                 return Ok(out);
+             }
+             let started = crate::time::Instant::now();
+@@ -2045,7 +2068,7 @@
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
+-            let compute_k = || {
++            let compute_k = |sk: &mut [Fr]| {
+                 #[cfg(all(
+                     zopro_resource_schedule,
+                     feature = "ifma8",
+@@ -2077,20 +2100,26 @@
+                 }
+                 msm(k, sk)
+             };
+-            let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+-                || {
+-                    rayon::join(
+-                        || rayon::join(|| msm(&self.a[..], sa), compute_k),
+-                        || {
+-                            if montgomery_h {
+-                                msm_affine::msm_montgomery(z, h)
+-                            } else {
+-                                msm(z, h)
+-                            }
+-                        },
+-                    )
+-                },
+-                || {
++            #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++            use four_by_two_probe::Query;
++            #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++            let phase = four_by_two_probe::clock();
++            let a = || {
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                return four_by_two_probe::g1(Query::A, phase, self.a.as_ptr() as usize, sa, |s| msm(&self.a[..], s));
++                #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
++                msm(&self.a[..], sa)
++            };
++            let h_query = || {
++                let evaluate = |s: &mut [Fr]| {
++                    if montgomery_h { msm_affine::msm_montgomery(z, s) } else { msm(z, s) }
++                };
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                return four_by_two_probe::g1(Query::H, phase, z.as_ptr() as usize, h, evaluate);
++                #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
++                evaluate(h)
++            };
++            let evaluate_b = |sb: &mut [Fr]| {
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
+@@ -2147,7 +2176,21 @@
+                         let sb = canonical(sb);
+                         rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
+                     }
+-                },
++            };
++            let b2 = || {
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                return four_by_two_probe::b2(phase, self.b2.as_ptr() as usize, sb, evaluate_b);
++                #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
++                evaluate_b(sb)
++            };
++            let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
++                || rayon::join(|| rayon::join(a, || {
++                    #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                    return four_by_two_probe::g1(Query::K, phase, k.as_ptr() as usize, sk, compute_k);
++                    #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
++                    compute_k(sk)
++                }), h_query),
++                b2,
+             );
+             return ((ar, bs1), (kr, (hz, bs2)));
+         }
+--- a/crates/zopro-zolana/src/lib.rs
++++ b/crates/zopro-zolana/src/lib.rs
+@@ -237,13 +237,21 @@
+     /// proof that fails is proved again on the CPU.
+     pub fn prove(&mut self, request: &str) -> Result<ProofResult, Error> {
+         let started = zopro_prover::zopro_core::time::Instant::now();
++        static CLOCK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++        let clock = *CLOCK.get_or_init(|| std::env::var_os("ZOPRO_891_CLOCK").is_some());
+         let witness = self.witness(request)?;
+         let witness_ms = started.elapsed().as_millis() as u64;
++        let parsed = clock.then(|| started.elapsed());
+         let proved = self
+             .prover
+             .prove(&witness)
+             .map_err(|e| Error::Prove(e.to_string()))?;
+-        Ok(self.result(proved, witness_ms))
++        let performed = clock.then(|| started.elapsed());
++        let result = self.result(proved, witness_ms);
++        if let (Some(parse), Some(prove)) = (parsed, performed) {
++            eprintln!("ZP891_SDK {} {} {}", parse.as_nanos(), prove.as_nanos(), started.elapsed().as_nanos());
++        }
++        Ok(result)
+     }
+ 
+     /// The SDKs' result for a proof of this key.
+--- a/crates/zopro-bench/examples/cpu-sdk.rs
++++ b/crates/zopro-bench/examples/cpu-sdk.rs
+@@ -80,6 +80,11 @@
+     }
+     let mut sdk = zopro_zolana::Prover::new(prover)?;
+     let request = fs::read_to_string(&args[2])?;
++    let prime = std::env::var_os("ZOPRO_891_PRIME_REQUEST")
++        .map(fs::read_to_string).transpose()?;
++    if let Some(prime) = prime {
++        std::hint::black_box(sdk.prove(&prime)?);
++    }
+     for _ in 0..3 {
+         std::hint::black_box(sdk.prove(&request)?);
+     }
