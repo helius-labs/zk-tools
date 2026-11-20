@@ -1,0 +1,544 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -412,7 +412,13 @@
+     // A replacement for one oversized serial component. Local waves join
+     // before advancing; the component's external inputs are already ready.
+     refined: FxMap<usize, Vec<Vec<Vec<u32>>>>,
++    euler_tiles: Option<EulerTiles>,
+     _reservation: Option<crate::preparation::Reservation>,
++}
++
++struct EulerTiles {
++    bands: Vec<Vec<usize>>,
++    _reservation: crate::preparation::Reservation,
+ }
+ 
+ /// Raw access to the solution's vectors for the parallel solve: every op
+@@ -1276,6 +1282,18 @@
+         materialize_c: bool,
+         pool: Option<&rayon::ThreadPool>,
+     ) -> Result<Solution, String> {
++        self.solve_with_pool_visit(witness, domain, slots, materialize_c, pool, None)
++    }
++
++    fn solve_with_pool_visit(
++        &self,
++        witness: &[Fr],
++        domain: usize,
++        slots: &[usize],
++        materialize_c: bool,
++        pool: Option<&rayon::ThreadPool>,
++        staged: Option<(&Schedule, bool, &(dyn Fn(usize, View) + Sync))>,
++    ) -> Result<Solution, String> {
+         if witness.len() != self.n_inputs - 1 {
+             return Err("invalid witness size".into());
+         }
+@@ -1307,7 +1325,12 @@
+             c: if materialize_c { c.as_mut_ptr() } else { core::ptr::null_mut() },
+         };
+         // The instruction executor joins every worker before these buffers are used again.
+-        let execute = || unsafe { self.execute_instructions(view) };
++        let execute = || unsafe {
++            match staged {
++                Some((schedule, early, visit)) => self.execute_schedule_visit(schedule, view, Some((early, visit))),
++                None => self.execute_instructions(view),
++            }
++        };
+         match pool {
+             Some(pool) => pool.install(execute)?,
+             None => execute()?,
+@@ -1332,6 +1355,44 @@
+         w.extend(selected);
+         crate::trace("solve-copy", started);
+         Ok(Solution { w, a, b, c })
++    }
++
++    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    pub(crate) fn solve_with_euler_prefix(
++        &self,
++        witness: &[Fr],
++        fft: &crate::fft::Plan,
++        slots: &[usize],
++        materialize_c: bool,
++        pool: Option<&rayon::ThreadPool>,
++        early: bool,
++    ) -> Result<(Solution, Option<crate::fft::EulerPrefix>), String> {
++        let domain = fft.size();
++        let epochs = solve_epochs();
++        let staged = (epochs > 0 && self.n_constraints.next_power_of_two() == domain)
++            .then(|| self.schedule.get_or_init(|| self.build_schedule(epochs)))
++            .and_then(|schedule| Some((schedule, schedule.euler_tiles.as_ref()?, crate::fft::EulerPrefix::new(fft)?)));
++        let Some((schedule, tiles, mut prefix)) = staged else {
++            return self.solve_with_pool(witness, domain, slots, materialize_c, pool).map(|s| (s, None));
++        };
++        use rayon::prelude::*;
++        let writer = prefix.writer(fft);
++        let visit = |band: usize, view: View| {
++            if std::env::var_os("ZOPRO_TRIAL_RADIX4_STAGE_TRACE").is_some() {
++                eprintln!("STAGED_RADIX4 {} {} {}", if early { "early" } else { "late" }, band, tiles.bands[band].len());
++            }
++            let write = |completed: View, group: &[usize]| {
++                // SAFETY: the schedule certificate requires exactly one writer
++                // per input row. Outputs belong to unique disjoint column tiles.
++                unsafe { writer.write_band(fft, completed.a, completed.b, self.n_constraints, group) };
++            };
++            tiles.bands[band].par_chunks(4).for_each(|group| write(view, group));
++        };
++        let solution = self.solve_with_pool_visit(witness, domain, slots, materialize_c, pool,
++            Some((schedule, early, &visit)))?;
++        // SAFETY: all bands completed and every distinct tile has joined.
++        unsafe { prefix.end_input(fft) };
++        Ok((solution, Some(prefix)))
+     }
+ 
+     /// The caller owns all four buffers until the instruction workers have joined.
+@@ -1541,18 +1602,57 @@
+     }
+     fn build_schedule_with_workspace(&self,epochs:usize,workspace:Option<usize>,exact:bool)->Schedule {
+         let mut schedule=self.build_schedule_before_poseidon(epochs,workspace,exact);
++        #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++        if std::env::var_os("ZOPRO_TRIAL_RADIX4_STAGE").is_some() {
++            schedule.euler_tiles = self.ready_euler_tiles(&schedule);
++        }
+         #[cfg(zopro_resource_schedule)] self.tag_poseidon(&mut schedule);
+         schedule
+     }
++    #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    fn ready_euler_tiles(&self, schedule: &Schedule) -> Option<EulerTiles> {
++        let domain = self.n_constraints.next_power_of_two();
++        if !(8192..=1 << 17).contains(&domain) || schedule.epochs.len() < 2 {
++            return None;
++        }
++        let reservation = crate::preparation::Reservation::analysis(Some(256 << 10))?;
++        let width = domain / 16;
++        let tile_count = width / crate::fft::RADIX4_TILE;
++        let mut latest = vec![0; tile_count];
++        let mut seen = vec![false; self.n_constraints];
++        // At this point the top-level task vectors still contain original
++        // indices, including the parents of local refinements.
++        for (band, tasks) in schedule.epochs.iter().enumerate() {
++            for &id in tasks.iter().flatten() {
++                if let Op::Constraint(step) = self.ops.get(id as usize)? {
++                    let row = step.constraint();
++                    if core::mem::replace(seen.get_mut(row)?, true) {
++                        return None;
++                    }
++                    let col = (row / 4) % width;
++                    latest[col / crate::fft::RADIX4_TILE] = band;
++                }
++            }
++        }
++        if !seen.into_iter().all(|written| written) {
++            return None;
++        }
++        let mut bands = vec![Vec::new(); schedule.epochs.len()];
++        for (tile, band) in latest.into_iter().enumerate() {
++            bands[band].push(tile);
++        }
++        Some(EulerTiles { bands, _reservation: reservation })
++    }
++
+     fn build_schedule_before_poseidon(&self,epochs:usize,workspace:Option<usize>,exact:bool)->Schedule {
+         #[cfg(all(zopro_bounded_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+         if std::env::var("ZOPRO_CPU_BOUNDED_SCHEDULE").as_deref()==Ok("1") {
+             let local=std::env::var("ZOPRO_SOLVE_LOCAL_BANDS").ok().and_then(|v|v.parse::<usize>().ok()).unwrap_or(if crate::simd::cpu_option("ZOPRO_SOLVE_LOCAL"){8}else{0}).min(1024);
+             let minimum=std::env::var("ZOPRO_SOLVE_LOCAL_MIN_OPS").ok().and_then(|v|v.parse::<usize>().ok()).unwrap_or(4096).max(32);
+-            if local!=1 {return (if exact {bounded::build_with_workspace(self,epochs,local,minimum,workspace)}else{bounded::build(self,epochs,local,minimum)}).unwrap_or(Schedule{epochs:Vec::new(),refined:FxMap::default(),_reservation:None});}
++            if local!=1 {return (if exact {bounded::build_with_workspace(self,epochs,local,minimum,workspace)}else{bounded::build(self,epochs,local,minimum)}).unwrap_or(Schedule{epochs:Vec::new(),refined:FxMap::default(),euler_tiles:None,_reservation:None});}
+         }
+         let Some(reservation) = crate::preparation::Reservation::acquire(self.n_constraints, self.preparation_peak()) else {
+-            return Schedule { _reservation: None, epochs: Vec::new(), refined: FxMap::default() };
++            return Schedule { _reservation: None, epochs: Vec::new(), refined: FxMap::default(), euler_tiles: None };
+         };
+         let local = std::env::var("ZOPRO_SOLVE_LOCAL_BANDS")
+             .ok()
+@@ -1672,7 +1772,7 @@
+                 }
+             }
+         }
+-        Schedule { _reservation: None, epochs, refined }
++        Schedule { _reservation: None, epochs, refined, euler_tiles: None }
+     }
+ 
+     /// Split a component into local dependency bands. Parent components
+@@ -1739,6 +1839,12 @@
+     /// Every read is initialized, and the schedule orders all writers
+     /// before readers. Distinct tasks write disjoint wires, slots and rows.
+     unsafe fn execute_schedule(&self, schedule: &Schedule, v: View) -> Result<(), String> {
++        unsafe { self.execute_schedule_visit(schedule, v, None) }
++    }
++
++    unsafe fn execute_schedule_visit(
++        &self, schedule: &Schedule, v: View, visit: Option<(bool, &(dyn Fn(usize, View) + Sync))>,
++    ) -> Result<(), String> {
+         let claims = solver_task_claims();
+         let serial = |task: &[u32]| -> Result<(), String> {
+             #[cfg(zopro_resource_schedule)]
+@@ -1754,7 +1860,7 @@
+             }
+             Ok(())
+         };
+-        for epoch in &schedule.epochs {
++        let run_epoch = |epoch: &[Vec<u32>]| {
+             visit_solver_tasks(epoch, claims, |task| {
+                 if let Some(waves) = schedule.refined.get(&(task[0] as usize)) {
+                     for wave in waves {
+@@ -1764,7 +1870,22 @@
+                 } else {
+                     serial(task)
+                 }
+-            })?;
++            })
++        };
++        for (i, epoch) in schedule.epochs.iter().enumerate() {
++            match visit {
++                Some((true, fill)) if i > 0 => rayon::join(|| run_epoch(epoch), || fill(i - 1, v)).0?,
++                _ => run_epoch(epoch)?,
++            }
++        }
++        match visit {
++            Some((true, fill)) => fill(schedule.epochs.len() - 1, v),
++            Some((false, fill)) => {
++                for i in 0..schedule.epochs.len() {
++                    fill(i, v);
++                }
++            }
++            None => {}
+         }
+         Ok(())
+     }
+--- a/crates/zopro-core/src/solver/bounded.rs
++++ b/crates/zopro-core/src/solver/bounded.rs
+@@ -359,6 +359,7 @@
+     Some(Schedule {
+         epochs,
+         refined,
++        euler_tiles: None,
+         _reservation: Some(reservation),
+     })
+ }
+--- a/crates/zopro-core/src/fft.rs
++++ b/crates/zopro-core/src/fft.rs
+@@ -23,6 +23,8 @@
+     not(no_ifma)
+ ))]
+ mod pair;
++#[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++pub(crate) use pair::euler_center::{EulerPrefix, RADIX4_TILE};
+ #[cfg(all(
+     feature = "inplace-fft",
+     target_arch = "x86_64",
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1,6 +1,6 @@
+ //! Two independent transforms share the lower/upper four IFMA lanes.
+ mod input_columns;
+-mod euler_center;
++pub(super) mod euler_center;
+ use super::*;
+ use zopro_bn254::{ifma8::Ifma8, FrConfig};
+ type Pair = Ifma8<FrConfig>;
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -108,8 +108,8 @@
+ 
+ // The 32 output stripes share a column index. Split each stripe at the
+ // same column so Rayon's child tasks have disjoint mutable destinations.
+-type PackedRows<'a> = [&'a [PackedPair]; 32];
+-type OutputRows<'a> = [&'a mut [Fr]; 32];
++type PackedRows<'a, const RADIX: usize> = [&'a [PackedPair]; RADIX];
++type OutputRows<'a, const RADIX: usize> = [&'a mut [Fr]; RADIX];
+ 
+ pub(super) fn emit_products(
+     plan: &Plan,
+@@ -118,7 +118,11 @@
+     storage: Vec<PackedPair>,
+ ) {
+     let values = prepare_columns(plan, a, b, storage);
+-    let width = values.len() / 32;
++    emit_prepared::<32>(plan, a, b, &values);
++}
++
++fn emit_prepared<const RADIX: usize>(plan: &Plan, a: &mut [Fr], b: &[Fr], values: &[PackedPair]) {
++    let width = values.len() / RADIX;
+     let mut stripes = values.chunks_exact(width);
+     let inputs = core::array::from_fn(|_| stripes.next().unwrap());
+     let mut remaining = a;
+@@ -130,15 +134,154 @@
+     });
+     debug_assert!(remaining.is_empty());
+     let cutoff = width.div_ceil(2 * rayon::current_num_threads()).max(8).next_power_of_two();
+-    emit_range(&plan.roots, width, 0, inputs, outputs, b, cutoff);
+-}
+-
+-fn emit_range(
++    emit_range::<RADIX>(&plan.roots, width, 0, inputs, outputs, b, cutoff);
++}
++
++
++pub(crate) const RADIX4_TILE: usize = 16;
++
++#[inline(always)]
++fn radix4<const FORWARD: bool>(lanes: &mut [Pair], roots: &Twiddles, width: usize, col: usize) {
++    let r0 = broadcast(&roots.layers[0][col]);
++    let r1 = broadcast(&roots.layers[0][width + col]);
++    let r2 = broadcast(&roots.layers[1][col]);
++    let [a,b,c,d] = *<&[Pair; 4]>::try_from(&*lanes).unwrap();
++    if FORWARD {
++        let b = b.mul(&r2);
++        let d = d.mul(&r2);
++        let (lo0,lo1) = (a.add(&b), a.sub(&b));
++        let (hi0,hi1) = (c.add(&d).mul(&r0), c.sub(&d).mul(&r1));
++        lanes.copy_from_slice(&[lo0.add(&hi0),lo1.add(&hi1),lo0.sub(&hi0),lo1.sub(&hi1)]);
++    } else {
++        let (lo0,lo1) = (a.add(&c), b.add(&d));
++        let (hi0,hi1) = (a.sub(&c).mul(&r0), b.sub(&d).mul(&r1));
++        lanes.copy_from_slice(&[lo0.add(&lo1),lo0.sub(&lo1).mul(&r2),hi0.add(&hi1),hi0.sub(&hi1).mul(&r2)]);
++    }
++}
++
++pub(crate) struct EulerPrefix {
++    data: Vec<PackedPair>,
++    _reservation: crate::preparation::Reservation,
++}
++
++impl EulerPrefix {
++    pub(crate) fn new(plan: &Plan) -> Option<Self> {
++        let n = plan.n;
++        if plan.released || plan.twisted.is_some() || plan.roots.single.is_some()
++            || !(8192..=1 << 17).contains(&n) {
++            return None;
++        }
++        let count = n / 4;
++        let bytes = count.checked_mul(core::mem::size_of::<PackedPair>())?;
++        let expansion = count.checked_mul(core::mem::size_of::<Pair>())?;
++        let reservation = crate::preparation::Reservation::analysis(
++            Some(bytes.checked_add(expansion)?.checked_add(64 << 10)?),
++        )?;
++        let mut data = Vec::new();
++        data.try_reserve_exact(count).ok()?;
++        Some(Self { data, _reservation: reservation })
++    }
++
++    pub(crate) fn writer(&mut self, plan: &Plan) -> Radix4Writer<'_> {
++        let width = plan.n / 16;
++        let data = &mut self.data.spare_capacity_mut()[..4 * width];
++        Radix4Writer { data: data.as_mut_ptr(), width, _borrow: core::marker::PhantomData }
++    }
++
++    /// # Safety
++    /// All tiles were initialized exactly once, and their workers have joined.
++    pub(crate) unsafe fn end_input(&mut self, plan: &Plan) {
++        unsafe { self.data.set_len(plan.n / 4) };
++    }
++
++    pub(crate) fn finish(mut self, plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>) -> Vec<Fr> {
++        a.resize(a.len().max(b.len()), Fr::ZERO);
++        let width = self.data.len() / 4;
++        assert_eq!(4 * width, plan.n / 4);
++        self.data.par_chunks_exact_mut(width).enumerate().for_each(|(stripe, values)| {
++            transform(plan, values, 2, stripe * width);
++        });
++        emit_prepared::<4>(plan, &mut a, &b, &self.data);
++        a
++    }
++}
++
++pub(crate) struct Radix4Writer<'a> {
++    data: *mut core::mem::MaybeUninit<PackedPair>,
++    width: usize,
++    _borrow: core::marker::PhantomData<&'a mut [core::mem::MaybeUninit<PackedPair>]>,
++}
++
++// Shared access exposes no safe reads or writes. write_band requires disjoint output
++// tiles, completed input rows, and a join before the buffers can be used elsewhere.
++unsafe impl Sync for Radix4Writer<'_> {}
++unsafe impl Send for Radix4Writer<'_> {}
++
++impl Radix4Writer<'_> {
++    /// # Safety
++    /// Tiles are unique and belong to this writer. All real rows they read have
++    /// finished writing in a joined solver band and will never be written again.
++    pub(crate) unsafe fn write_band(
++        &self, plan: &Plan, a: *const Fr, b: *const Fr, rows: usize, tiles: &[usize],
++    ) {
++        let write = |tile| {
++            for col in (tile * RADIX4_TILE)..((tile + 1) * RADIX4_TILE) {
++                let mut column: [Pair; 4] = core::array::from_fn(|stripe| {
++                    let first = 4 * (stripe * self.width + col);
++                    let values = core::array::from_fn(|lane| {
++                        let row = first + lane % 4;
++                        if row >= rows {
++                            return Fr::ZERO;
++                        }
++                        let input = if lane < 4 { a } else { b };
++                        unsafe { *input.add(row) }
++                    });
++                    Pair::new(&values)
++                });
++                radix4::<false>(&mut column, &plan.inverse_roots, self.width, col);
++                for (stripe, value) in column.into_iter().enumerate() {
++                    unsafe {
++                        self.data.add(stripe * self.width + col)
++                            .write(core::mem::MaybeUninit::new(PackedPair::store(value)));
++                    }
++                }
++            }
++        };
++        for &tile in tiles {
++            write(tile);
++        }
++    }
++}
++
++#[cfg(test)]
++#[test]
++fn staged_radix4_matches_euler_for_partial_rows() {
++    let n = 8192;
++    let root = Fr::root_of_unity(n).unwrap().pow(&[3]);
++    let coset = Fr::from(5u64);
++    let mut plan = Plan::new(n, root, coset, crate::fft::denominator(n, coset).unwrap());
++    plan.prepare_euler_basis();
++    for rows in [7, 2048, 4021, 8191, 8192] {
++        let a: Vec<_> = (0..rows).map(|i| Fr::from((i*i+7) as u64)).collect();
++        let b: Vec<_> = (0..rows).map(|i| Fr::from((3*i*i+41) as u64)).collect();
++        let mut expected = a.clone();
++        emit_products(&plan, &mut expected, &b, Vec::with_capacity(n/4));
++        let mut prefix = EulerPrefix::new(&plan).unwrap();
++        let tiles: Vec<_> = (0..n/16/RADIX4_TILE).rev().collect();
++        let writer = prefix.writer(&plan);
++        unsafe {
++            writer.write_band(&plan, a.as_ptr(), b.as_ptr(), rows, &tiles);
++            prefix.end_input(&plan);
++        }
++        assert_eq!(prefix.finish(&plan, a, b), expected);
++    }
++}
++fn emit_range<const RADIX: usize>(
+     roots: &Twiddles,
+     width: usize,
+     start: usize,
+-    inputs: PackedRows<'_>,
+-    outputs: OutputRows<'_>,
++    inputs: PackedRows<'_, RADIX>,
++    outputs: OutputRows<'_, RADIX>,
+     b: &[Fr],
+     cutoff: usize,
+ ) {
+@@ -151,7 +294,7 @@
+     let left_inputs = inputs.map(|stripe| &stripe[..mid]);
+     let right_inputs = inputs.map(|stripe| &stripe[mid..]);
+     let mut outputs = outputs.into_iter();
+-    let mut right_outputs = [const { None }; 32];
++    let mut right_outputs = [const { None }; RADIX];
+     let left_outputs = core::array::from_fn(|i| {
+         let stripe = outputs.next().unwrap();
+         let (left, right) = stripe.split_at_mut(stripe.len().min(4 * mid));
+@@ -166,20 +309,25 @@
+ }
+ 
+ #[inline(never)]
+-fn emit_leaf(
++fn emit_leaf<const RADIX: usize>(
+     roots: &Twiddles,
+     width: usize,
+     start: usize,
+-    inputs: PackedRows<'_>,
+-    mut outputs: OutputRows<'_>,
++    inputs: PackedRows<'_, RADIX>,
++    mut outputs: OutputRows<'_, RADIX>,
+     b: &[Fr],
+ ) {
+     let transform = |j: usize| {
+         let mut column = inputs.map(|stripe| stripe[j].load());
+-        if roots.columns.is_empty() {
+-            column_kernel::<false, true>(&mut column, roots, 0, width, start + j);
++        if RADIX == 4 {
++            radix4::<true>(&mut column, roots, width, start + j);
+         } else {
+-            column_kernel::<true, true>(&mut column, roots, 0, width, start + j);
++            let values: &mut [Pair; 32] = column.as_mut_slice().try_into().unwrap();
++            if roots.columns.is_empty() {
++                column_kernel::<false, true>(values, roots, 0, width, start + j);
++            } else {
++                column_kernel::<true, true>(values, roots, 0, width, start + j);
++            }
+         }
+         column
+     };
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1158,9 +1158,17 @@
+         });
+         #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+         let instruction_pool = None;
+-        let solver::Solution { mut w, a, b, c } = plan.solve_with_pool(
+-            &frs(witness), self.domain, slots, materialize_c, instruction_pool,
+-        )?;
++        let witness = frs(witness);
++        #[cfg(all(feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++        let (solution, prefix) = match std::env::var("ZOPRO_TRIAL_RADIX4_STAGE").as_deref() {
++            Ok(mode @ ("early" | "late"))
++                if omit_b && !self.has_gpu() && self.lagrange.as_ref().is_some_and(|q| q.euler && q.folded.is_some()) =>
++                plan.solve_with_euler_prefix(&witness, &self.plan, slots, materialize_c, instruction_pool, mode == "early")?,
++            _ => (plan.solve_with_pool(&witness, self.domain, slots, materialize_c, instruction_pool)?, None),
++        };
++        #[cfg(not(all(feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++        let solution = plan.solve_with_pool(&witness, self.domain, slots, materialize_c, instruction_pool)?;
++        let solver::Solution { mut w, a, b, c } = solution;
+         if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
+         let started = trace("solve", started);
+         use rayon::prelude::*;
+@@ -1181,7 +1189,25 @@
+             // The folded public term still needs the original public values.
+             offsets.restore_public(public);
+         }
+-        self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
++        #[cfg(all(feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++        let (a, b, product) = match prefix {
++            Some(prefix) => {
++                let pool = self.frontend_pool.as_deref().filter(|pool| {
++                    pool.current_num_threads() < rayon::current_num_threads()
++                        && std::env::var("ZOPRO_CPU_FFT_PRODUCT_FRONTEND").as_deref() == Ok("1")
++                });
++                let finish = || prefix.finish(&self.plan, a, b);
++                let product = match pool {
++                    Some(pool) => pool.install(finish),
++                    None => finish(),
++                };
++                (Vec::new(), Vec::new(), Some(product))
++            }
++            None => (a, b, None),
++        };
++        #[cfg(not(all(feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++        let product = None;
++        self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b, product)
+     }
+     pub fn commitment(
+         &self,
+@@ -1224,7 +1250,7 @@
+         }
+         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
+         let (mut sa, mut sb, mut sk) = (frs(sa), frs(sb), frs(sk));
+-        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false)
++        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false, None)
+             .map_err(|e| JsError::new(&e))
+     }
+ }
+@@ -1605,6 +1631,7 @@
+         c: Vec<Fr>,
+         public: Option<&[Fr]>,
+         omit_b: bool,
++        staged_product: Option<Vec<Fr>>,
+     ) -> Result<Vec<u8>, String> {
+         #[cfg(gpu)]
+         if let Some(gpu) = &self.gpu {
+@@ -1875,7 +1902,7 @@
+                 });
+                 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                 let pool = None;
+-                let mut product = queries.product_values(&self.plan, a, b, pool);
++                let mut product = staged_product.unwrap_or_else(|| queries.product_values(&self.plan, a, b, pool));
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
