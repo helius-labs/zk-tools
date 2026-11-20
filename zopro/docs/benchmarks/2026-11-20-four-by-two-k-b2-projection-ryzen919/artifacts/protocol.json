@@ -1,0 +1,60 @@
+{
+  "goal": "Classify K scalar words once and project B2 private rows using the solver wire indices.",
+  "cpu": {
+    "main": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "frontend": [
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31
+    ]
+  },
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "bodies": {
+    "frozen": "original seeded SDK",
+    "ordinary": "fresh solver with the original curve join tree",
+    "gate": "paired K/B2 branch concurrent with A/H, ordinary independent classification",
+    "projected": "same paired branch, one K classification and a checked first-occurrence B2 projection"
+  },
+  "warmups": 3,
+  "timed_rounds": 17,
+  "blocks": 8,
+  "clocked_rounds": 7,
+  "clocked_blocks": 3,
+  "criterion": "Ordinary versus frozen paired median within 2% on both inputs. Projected needs lower paired median and at least 6/8 wins per input against frozen, ordinary and gate.",
+  "route_checks": "Projected mode must select projection on each normal request. Gate runs the paired branch with no projection. Zero optional workspace must still produce a valid proof while forbidding successful projection.",
+  "clocks": "Projection preparation is clocked separately and ends before the K and B2 query clocks start. Diagnostic only."
+}

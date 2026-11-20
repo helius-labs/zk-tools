@@ -1,0 +1,398 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -228,15 +228,25 @@
+     if values.len() * 100 > scalars.len() * percent {
+         return None;
+     }
++    Some(pack_groups(scalars.len(),values,counts,classes,reservation))
++}
++
++fn pack_groups(
++    len: usize,
++    values: Vec<[u64; 4]>,
++    counts: Vec<usize>,
++    classes: Vec<u32>,
++    reservation: crate::preparation::Reservation,
++) -> ScalarGroups {
+     if values.is_empty() {
+-        return Some(ScalarGroups {
++        return ScalarGroups {
+             _reservation: reservation,
+-            len: scalars.len(),
++            len,
+             values,
+             order: Vec::new(),
+             starts: vec![0],
+             counts,
+-        });
++        };
+     }
+     let mut starts = Vec::with_capacity(counts.len() + 1);
+     starts.push(0);
+@@ -253,15 +263,19 @@
+     }
+     drop(classes);
+     drop(positions);
+-    Some(ScalarGroups {
++    ScalarGroups {
+         _reservation: reservation,
+-        len: scalars.len(),
++        len,
+         values,
+         order,
+         starts,
+         counts,
+-    })
+-}
++    }
++}
++#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++mod projection;
++#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++pub(crate) use projection::project_k_b2;
+ 
+ // Keep one copy of each full scalar in first-occurrence order. The hash table
+ // stores only indices and checks every limb against that copy on collision.
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/grouping/projection.rs
+@@ -0,0 +1,174 @@
++//! Use the folded private K wire projection to classify B2 without hashing it.
++use super::*;
++
++const MISSING: u32 = u32::MAX;
++
++struct B2Classes {
++    shared: Vec<u32>,
++    counts: Vec<usize>,
++    rows: Vec<u32>,
++}
++
++fn project_classes(
++    k: &[[u64; 4]],
++    k_rows: &[u32],
++    k_values: &[[u64; 4]],
++    b: &[[u64; 4]],
++    wires: &[u32],
++    n_public: usize,
++) -> Option<B2Classes> {
++    if b.len() != wires.len() {
++        return None;
++    }
++    let mut ids = vec![MISSING; k_values.len()];
++    let mut result = B2Classes {
++        shared: Vec::with_capacity(k_values.len()),
++        counts: Vec::with_capacity(k_values.len()),
++        rows: Vec::with_capacity(b.len()),
++    };
++    for (&value, &wire) in b.iter().zip(wires) {
++        let source = if let Some(i) = (wire as usize).checked_sub(n_public) {
++            if *k.get(i)? != value {
++                return None;
++            }
++            k_rows[i]
++        } else if value == [0; 4] {
++            MISSING
++        } else {
++            // The image supplies the public wire IDs, but their values
++            // need independent exact lookup. Unrepresented values fall
++            // back to independent grouping for the whole query.
++            k_values.iter().position(|&v| v == value)? as u32
++        };
++        if source == MISSING {
++            result.rows.push(MISSING);
++            continue;
++        }
++        let local = &mut ids[source as usize];
++        if *local == MISSING {
++            *local = result.shared.len() as u32;
++            result.shared.push(source);
++            result.counts.push(0);
++        }
++        result.counts[*local as usize] += 1;
++        result.rows.push(*local);
++    }
++    Some(result)
++}
++
++pub(crate) fn project_k_b2(
++    k: &[Fr],
++    b: &[Fr],
++    b_wires: &[u32],
++    n_public: usize,
++) -> Option<(ScalarGroups, ScalarGroups)> {
++    if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
++        || !(65_536..262_144).contains(&k.len())
++        || !(65_536..262_144).contains(&b.len())
++        || b.len() != b_wires.len()
++        || n_public > 8
++    {
++        return None;
++    }
++    let (k, b) = (k.as_flattened_words(), b.as_flattened_words());
++    let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
++    let (sample, k_percent) = grouping_sample(k, zero_aware)?;
++    let (_, b_percent) = grouping_sample(b, zero_aware)?;
++    let capacity = if crate::simd::cpu_option("ZOPRO_CPU_RESERVE_GROUPS") {
++        (sample.len() * 16)
++            .min(k.len() * k_percent / 100)
++            .min(32768)
++    } else {
++        0
++    };
++    drop(sample);
++
++    // Keep both existing worst-case group reservations and also charge the
++    // extra shared-ID map and local references, even when only one curve
++    // holds on to the remaining output.
++    let extra = grouping_cost::vector::<u32>(k.len(), false)?.checked_mul(2)?;
++    let k_owner = crate::preparation::Reservation::analysis(
++        grouping_cost::peak(k.len(), k_percent)?.checked_add(extra),
++    )?;
++    let b_owner = grouping_cost::reserve(b.len(), b_percent)?;
++    let mut k_rows = vec![MISSING; k.len()];
++    let (mut k_values, k_counts) =
++        classify_nonzero(k, &mut k_rows, capacity, ahash::RandomState::new());
++    if k_values.len() * 100 > k.len() * k_percent {
++        return None;
++    }
++    let projected = project_classes(k, &k_rows, &k_values, b, b_wires, n_public)?;
++    if projected.shared.len() * 100 > b.len() * b_percent {
++        return None;
++    }
++
++    k_values
++        .par_iter_mut()
++        .for_each(|v| *v = Fr::from_montgomery(*v).to_canonical());
++    let b_values = projected
++        .shared
++        .iter()
++        .map(|&id| k_values[id as usize])
++        .collect();
++    Some((
++        pack_groups(k.len(), k_values, k_counts, k_rows, k_owner),
++        pack_groups(b.len(), b_values, projected.counts, projected.rows, b_owner),
++    ))
++}
++
++// Fr is transparent over its four limbs. Like the ordinary group classifier,
++// the projection only reads this shared view of initialized Montgomery words.
++trait WordView {
++    fn as_flattened_words(&self) -> &[[u64; 4]];
++}
++impl WordView for [Fr] {
++    fn as_flattened_words(&self) -> &[[u64; 4]] {
++        unsafe { std::slice::from_raw_parts(self.as_ptr().cast::<[u64; 4]>(), self.len()) }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn projected_b2_matches_first_occurrence_grouping_and_fallbacks() {
++        for n in 0..96 {
++            let k: Vec<_> = (0..n).map(|i| Fr::from(((i * 19) % 31) as u64).0).collect();
++            let mut k_rows = vec![MISSING; n];
++            let (k_values, _) = classify_nonzero(&k, &mut k_rows, 0, ahash::RandomState::new());
++            let mut b = vec![[0; 4]];
++            let mut wires = vec![0];
++            for i in (0..n).step_by(2).rev() {
++                b.push(k[i]);
++                wires.push((i + 2) as u32);
++            }
++            if let Some(first) = k_values.first() {
++                b.push(*first);
++                wires.push(1);
++            }
++            let projected = project_classes(&k, &k_rows, &k_values, &b, &wires, 2).unwrap();
++            let mut ordinary_rows = vec![MISSING; b.len()];
++            let (ordinary_values, ordinary_counts) =
++                classify_nonzero(&b, &mut ordinary_rows, 0, ahash::RandomState::new());
++            let values: Vec<_> = projected
++                .shared
++                .iter()
++                .map(|&v| k_values[v as usize])
++                .collect();
++            assert_eq!(ordinary_values, values);
++            assert_eq!(ordinary_counts, projected.counts);
++            assert_eq!(ordinary_rows, projected.rows);
++            assert!(project_classes(&k, &k_rows, &k_values, &b[..0], &wires, 2).is_none());
++            b[0] = Fr::from(87623).0;
++            assert!(project_classes(&k, &k_rows, &k_values, &b, &wires, 2).is_none());
++            b[0] = [0; 4];
++            if n != 0 {
++                b[1] = Fr::from(87624).0;
++                assert!(project_classes(&k, &k_rows, &k_values, &b, &wires, 2).is_none());
++                wires[1] = u32::MAX;
++                assert!(project_classes(&k, &k_rows, &k_values, &b, &wires, 2).is_none());
++            }
++        }
++    }
++}
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -14,6 +14,8 @@
+ pub(super) mod borrowed_pending;
+ mod grouping;
+ pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
++#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++pub(super) use grouping::project_k_b2;
+ #[cfg(zopro_resource_schedule)]
+ pub(super) use grouping::group_witness_b2_origins;
+ #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2070,7 +2070,11 @@
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
+             #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+             let h_placement = four_by_two_probe::h_placement();
+-            let compute_k = |sk: &mut [Fr]| {
++            let compute_k = |sk: &mut [Fr], groups: Option<&msm_affine::ScalarGroups>| {
++                let sum = |s: &mut [Fr]| match groups {
++                    Some(groups) => msm_grouped(k, groups),
++                    None => msm(k, s),
++                };
+                 #[cfg(all(
+                     zopro_resource_schedule,
+                     feature = "ifma8",
+@@ -2094,7 +2098,7 @@
+                                 eprintln!("K_FRONTEND {} {workers}", sk.len());
+                             }
+                             four_by_two_probe::placement("k");
+-                            Some(msm(k, &mut *sk))
++                            Some(sum(&mut *sk))
+                         });
+                         if let Some(result) = result {
+                             return result;
+@@ -2103,7 +2107,7 @@
+                 }
+                 #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+                 four_by_two_probe::placement("k");
+-                msm(k, sk)
++                sum(sk)
+             };
+             #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+             use four_by_two_probe::Query;
+@@ -2115,7 +2119,7 @@
+                 #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
+                 msm(&self.a[..], sa)
+             };
+-            let evaluate_b = |sb: &mut [Fr]| {
++            let evaluate_b = |sb: &mut [Fr], projected: Option<msm_affine::ScalarGroups>| {
+                     if omit_b && (1024..65536).contains(&self.b2.len()) {
+                         let words=msm_affine::canonical_exclusive(sb);
+                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
+@@ -2137,7 +2141,9 @@
+                     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                     let ordinary = || if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
+                     #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+-                    let groups = if omit_b && (65_536..262_144).contains(&sb.len())
++                    let groups = if projected.is_some() {
++                        projected
++                    } else if omit_b && (65_536..262_144).contains(&sb.len())
+                         && self.grouped_b2_poseidon_origins
+                     {
+                         self.solver.as_ref().and_then(solver::Plan::b2_origins)
+@@ -2147,9 +2153,9 @@
+                         ordinary()
+                     };
+                     #[cfg(all(not(zopro_resource_schedule), target_os = "linux", target_arch = "x86_64"))]
+-                    let groups = ordinary();
++                    let groups = projected.or_else(ordinary);
+                     #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+-                    let groups = { let _ = serial; group_witness(sb) };
++                    let groups = { let _ = serial; projected.or_else(|| group_witness(sb)) };
+                     if let Some(groups) = groups {
+                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+                         if omit_b
+@@ -2173,11 +2179,11 @@
+                         rayon::join(|| if omit_b { G1Projective::IDENTITY } else { msm_raw(&self.b[..], sb) }, || msm_raw_b2(&self.b2[..], sb))
+                     }
+             };
+-            let b2 = || {
++            let b2 = |sb: &mut [Fr], groups| {
+                 #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+-                return four_by_two_probe::b2(phase, self.b2.as_ptr() as usize, sb, evaluate_b);
++                return four_by_two_probe::b2(phase, self.b2.as_ptr() as usize, sb, |s| evaluate_b(s, groups));
+                 #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
+-                evaluate_b(sb)
++                evaluate_b(sb, groups)
+             };
+             #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+             if h_placement == four_by_two_probe::HPlacement::Joined && self.g1_k_on_frontend {
+@@ -2200,7 +2206,7 @@
+                             }),
+                         ));
+                         let ((ar, (kr, hz)), (bs1, bs2)) =
+-                            rayon::join(|| rayon::join(a, kh), b2);
++                            rayon::join(|| rayon::join(a, kh), || b2(sb, None));
+                         return ((ar, bs1), (kr, (hz, bs2)));
+                     }
+                 }
+@@ -2232,14 +2238,37 @@
+                 #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
+                 evaluate(h)
+             };
++            let k_query = |sk: &mut [Fr], groups: Option<&msm_affine::ScalarGroups>| {
++                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++                return four_by_two_probe::g1(Query::K, phase, k.as_ptr() as usize, sk, |s| compute_k(s, groups));
++                #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
++                compute_k(sk, groups)
++            };
++            #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
++            if folded_k && omit_b && (65_536..262_144).contains(&sb.len()) {
++                if let Some((project, trace)) = four_by_two_probe::k_b2_projection_mode() {
++                    if let Some(plan) = self.solver.as_ref() {
++                        let ((ar, hz), (kr, (bs1, bs2))) = rayon::join(
++                            || rayon::join(a, h_query),
++                            || {
++                                let started = (trace || phase.is_some()).then(std::time::Instant::now);
++                                let groups = project.then(|| {
++                                    msm_affine::project_k_b2(sk, sb, &plan.b_indices, plan.n_public)
++                                }).flatten();
++                                if let Some(started) = started {
++                                    eprintln!("ZP919_PROJECT {project} {} {}", groups.is_some(), started.elapsed().as_nanos());
++                                }
++                                let (k_groups, b_groups) = groups.unzip();
++                                rayon::join(|| k_query(sk, k_groups.as_ref()), || b2(sb, b_groups))
++                            },
++                        );
++                        return ((ar, bs1), (kr, (hz, bs2)));
++                    }
++                }
++            }
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+-                || rayon::join(|| rayon::join(a, || {
+-                    #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+-                    return four_by_two_probe::g1(Query::K, phase, k.as_ptr() as usize, sk, compute_k);
+-                    #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
+-                    compute_k(sk)
+-                }), h_query),
+-                b2,
++                || rayon::join(|| rayon::join(a, || k_query(sk, None)), h_query),
++                || b2(sb, None),
+             );
+             return ((ar, bs1), (kr, (hz, bs2)));
+         }
+--- a/crates/zopro-core/src/four_by_two_probe.rs
++++ b/crates/zopro-core/src/four_by_two_probe.rs
+@@ -54,6 +54,18 @@
+     if *TRACE.get_or_init(|| std::env::var_os("ZOPRO_892_TRACE").is_some()) {
+         eprintln!("ZP892_PLACEMENT {query} {}", rayon::current_num_threads());
+     }
++}
++
++pub(crate) fn k_b2_projection_mode() -> Option<(bool, bool)> {
++    static MODE: OnceLock<Option<(bool, bool)>> = OnceLock::new();
++    *MODE.get_or_init(|| {
++        let trace = std::env::var_os("ZOPRO_919_TRACE").is_some();
++        match std::env::var("ZOPRO_919_PROJECTION").as_deref() {
++            Ok("gate") => Some((false,trace)),
++            Ok("projected") => Some((true,trace)),
++            _ => None,
++        }
++    })
+ }
+ 
+ pub(crate) fn clock() -> Option<Instant> {
