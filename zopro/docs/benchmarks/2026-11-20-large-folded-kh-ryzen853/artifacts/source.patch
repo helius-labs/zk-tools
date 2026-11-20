@@ -1,0 +1,179 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1879,7 +1879,7 @@
+                 let started = trace("quotient-product", started);
+                 let product_points=&queries.product[..product.len()];
+                 let (((ar, bs1), (kr, (hz, bs2))), correction) = rayon::join(
+-                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b),
++                    || self.cpu_msms(sa, sb, sk, &mut product, product_points, &folded.private, true, omit_b, queries.product_scale == Fr::ONE),
+                     || folded.public_term(public),
+                 );
+                 #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+@@ -1901,7 +1901,7 @@
+             let mut product = queries.product_values(&self.plan, a, b, None);
+             let started = trace("quotient-product", started);
+             let (((ar, bs1), (kr, (positive, bs2))), negative) = rayon::join(
+-                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b),
++                || self.cpu_msms(sa, sb, sk, &mut product, &queries.product, &self.k, false, omit_b, false),
+                 || msm_g1(&queries.constraints[..c.len()], &c),
+             );
+             trace("msms", started);
+@@ -1922,7 +1922,7 @@
+         let trace_scalars = std::env::var("ZOPRO_TRACE_MSMS")
+             .is_ok_and(|v| v == "1")
+             .then(|| (sa.to_vec(), sb.to_vec(), sk.to_vec(), h.to_vec()));
+-        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b);
++        let ((ar, bs1), (kr, (hz, bs2))) = self.cpu_msms(sa, sb, sk, &mut h, &self.z, &self.k, false, omit_b, false);
+         trace("msms", started);
+         // Each MSM alone, on the whole pool, for its own share: this adds
+         // to the proof time, so only with ZOPRO_TRACE_MSMS=1.
+@@ -1966,11 +1966,12 @@
+         k: &[G1Affine],
+         folded_k: bool,
+         omit_b: bool,
++        fold_unit_product: bool,
+     ) -> (
+         (G1Projective, G1Projective),
+         (G1Projective, (G1Projective, G2Projective)),
+     ) {
+-        let _ = folded_k;
++        let _ = (folded_k, fold_unit_product);
+         #[cfg(not(target_arch = "wasm32"))]
+         if affine_msm() {
+             let montgomery_h =
+@@ -2045,7 +2046,7 @@
+                 return ((ar, bs1), (kr, (hz, bs2)));
+             }
+             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
+-            let compute_k = || {
++            let compute_k = |sk: &mut [Fr]| {
+                 #[cfg(all(
+                     zopro_resource_schedule,
+                     feature = "ifma8",
+@@ -2079,8 +2080,30 @@
+             };
+             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
+                 || {
++                    #[cfg(all(
++                        zopro_real_kh, zopro_resource_schedule, feature = "ifma8",
++                        target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma",
++                        target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)
++                    ))]
++                    if omit_b && folded_k && fold_unit_product && k.len() == sk.len()
++                        && z.len() == h.len() && (65_536..=262_144).contains(&k.len())
++                        && (65_536..=262_144).contains(&z.len())
++                    {
++                        use msm_affine::fused_kh::{large_mode, large_with_mode};
++                        if let Some(mode) = large_mode() {
++                            let bytes = msm_affine::workspace::medium_kh_bytes(k.len(), z.len())
++                                .and_then(|bytes| bytes.checked_mul(mode.parts));
++                            if let Some(_scratch) = crate::preparation::Reservation::analysis(bytes) {
++                                let (ar, kh) = rayon::join(
++                                    || msm(&self.a[..], sa),
++                                    || large_with_mode(k, sk, z, h, mode),
++                                );
++                                return ((ar, kh), G1Projective::IDENTITY);
++                            }
++                        }
++                    }
+                     rayon::join(
+-                        || rayon::join(|| msm(&self.a[..], sa), compute_k),
++                        || rayon::join(|| msm(&self.a[..], sa), || compute_k(sk)),
+                         || {
+                             if montgomery_h {
+                                 msm_affine::msm_montgomery(z, h)
+@@ -2564,7 +2587,7 @@
+             let c_coset=self.plan.coset_product(c,vec![Fr::ONE;self.domain]);
+             product.par_iter_mut().zip(c_coset.par_iter()).for_each(|(p,c)|*p-=*c);product
+         };
+-        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b);
++        let ((ar,bs1),(kr,(hz,bs2)))=self.cpu_msms(sa,sb,sk,&mut product,&q.product,&f.private[..self.lengths[2]],false,omit_b, false);
+         let mut out=Vec::with_capacity(384);for p in [ar,bs1,kr+correction,q.finish_product(hz)]{output_g1(&mut out,p);}output_g2(&mut out,bs2);Ok(out)
+     }
+ }
+--- a/crates/zopro-core/src/msm_affine/fused_kh.rs
++++ b/crates/zopro-core/src/msm_affine/fused_kh.rs
+@@ -42,6 +42,59 @@
+         && (1024..65536).contains(&h) && k + h < 65536
+ }
+ 
++#[derive(Clone, Copy)]
++pub(crate) struct LargeMode {
++    group_k: bool,
++    pub(crate) parts: usize,
++}
++
++pub(crate) fn large_mode() -> Option<LargeMode> {
++    static MODE: std::sync::OnceLock<Option<LargeMode>> = std::sync::OnceLock::new();
++    *MODE.get_or_init(|| match std::env::var("ZOPRO_TRIAL_LARGE_FUSED_KH").as_deref() {
++        Ok("raw") => Some(LargeMode { group_k: false, parts: 1 }),
++        Ok("group") => Some(LargeMode { group_k: true, parts: 1 }),
++        Ok("striped") => Some(LargeMode { group_k: true, parts: 2 }),
++        _ => None,
++    })
++}
++
++fn large_fused(
++    k: &[G1Affine], sk: &[[u64; 4]], h: &[G1Affine], sh: &[[u64; 4]], parts: usize,
++) -> G1Projective {
++    if parts == 1 {
++        return fused(k, sk, h, sh, 13);
++    }
++    let k_mid = k.len() / 2;
++    let h_mid = h.len() / 2;
++    let (low, high) = rayon::join(
++        || fused(&k[..k_mid], &sk[..k_mid], &h[..h_mid], &sh[..h_mid], 13),
++        || fused(&k[k_mid..], &sk[k_mid..], &h[h_mid..], &sh[h_mid..], 13),
++    );
++    low + high
++}
++
++pub(crate) fn large_with_mode(
++    k: &[G1Affine], sk: &mut [Fr], h: &[G1Affine], sh: &mut [Fr], mode: LargeMode,
++) -> G1Projective {
++    let (groups, sh) = rayon::join(
++        || mode.group_k.then(|| super::group_witness(sk)).flatten(),
++        || super::canonical(sh),
++    );
++    let trace = std::env::var_os("ZOPRO_TRIAL_LARGE_FUSED_KH_TRACE").is_some();
++    if let Some(groups) = groups {
++        let reduced = crate::msm::group_affine(k, &groups.order, &groups.starts, &groups.counts);
++        if trace {
++            eprintln!("LARGE_FUSED_KH {} {} {} {}", k.len(), h.len(), mode.parts, reduced.len());
++        }
++        large_fused(&reduced, &groups.values, h, sh, mode.parts)
++    } else {
++        if trace {
++            eprintln!("LARGE_FUSED_KH {} {} {} 0", k.len(), h.len(), mode.parts);
++        }
++        large_fused(k, super::canonical(sk), h, sh, mode.parts)
++    }
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+@@ -73,6 +126,23 @@
+             raw.push(q); weights.push(weight);
+         }
+         (G1Projective::batch_to_affine(&raw), weights)
++    }
++
++    #[test]
++    fn independently_striped_ranges_preserve_fused_sum() {
++        let (k, sk) = points(2049, 7);
++        let (h, sh) = points(4097, 1_000_003);
++        let signed = |values: &[Fr]| -> Vec<_> {
++            values.iter().enumerate().map(|(i, &v)| if i % 7 == 0 { -v } else { v }).collect()
++        };
++        let sk = signed(&sk);
++        let sh = signed(&sh);
++        let ck: Vec<_> = sk.iter().map(Fr::to_canonical).collect();
++        let ch: Vec<_> = sh.iter().map(Fr::to_canonical).collect();
++        let expected = super::super::msm_raw(&k, &ck) + super::super::msm_raw(&h, &ch);
++        for parts in [1, 2] {
++            assert_eq!(large_fused(&k, &ck, &h, &ch, parts), expected);
++        }
+     }
+ 
+     #[test]
