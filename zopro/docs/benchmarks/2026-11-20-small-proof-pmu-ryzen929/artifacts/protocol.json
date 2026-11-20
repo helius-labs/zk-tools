@@ -1,0 +1,74 @@
+{
+  "pinned_binary": "b37c12b7a106c786ea160690cf64915b10d34c5b31b547c96c0d2455bc39132e",
+  "process_rounds": 37,
+  "warmups": 3,
+  "blocks": 3,
+  "layouts": {
+    "16+8": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "24+8": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ]
+  },
+  "frontend": [
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "shapes": [
+    "1x2",
+    "2x2",
+    "4x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "proof_limit": "Observability study. Paired capture latency median must be within 3% of its plain arm per shape/input/width for causal timing comparison.",
+  "profile": "Userspace 503009ns CPU clocks and 2500009-cycle PMU events after SDK warmups. Five pairs of symbol-derived entry/return events; all proofs independently verified.",
+  "scope": "Warm single proofs on 16 physical Ryzen 9950X cores. At 16+8 main workers occupy both threads of the eight first-CCD cores. At 24+8 there are eight extra main workers sharing physical cores with frontend. Profile CPU sample intervals include all process threads; adjacent wall phases are delimited by SDK, core, solver, folded quotient and final exponentiation function boundaries."
+}
