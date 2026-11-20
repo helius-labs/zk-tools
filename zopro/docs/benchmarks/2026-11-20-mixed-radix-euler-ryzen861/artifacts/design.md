@@ -1,0 +1,7 @@
+# Mixed Montgomery radix in the fused Euler quotient
+
+- The fused FFT currently imports both raw R256 inputs as R260 even though inverse butterflies are linear. It imports A and B again for the final pointwise product and converts that product back to R256.
+- Pack A and B as raw R256 residues for the inverse butterflies. Existing R260 roots retain the input scale through every linear butterfly. Multiply the Euler weights by sixteen to reach R260 before the forward butterflies. At final emission an R260 derivative times an R256 input reduces directly to R256, so the result needs only normal correction and packing.
+- Test both radices against identical complete field outputs, including padding, cached roots, small worker counts and the largest domain in the first timing screen. Compare the original and held-out 1×2, 2×2, 4×2 and 8×2 full proofs after independent verification. Include the recorded release and same-build fused controls.
+- No new tables, buffers, allocations or key format. Admit only eligible fused Euler output domains through 2^24 so that the scaled nonnegative weights remain below 2^28. Generic targets and other paths stay on the existing implementation.
+- Use separate route probes to confirm eligibility. If the local timings justify an AWS follow-up, add separate quotient stage clocks. An end-to-end win against both controls on both inputs selects C7a. Budget three minutes for build and test and two minutes for local capture.

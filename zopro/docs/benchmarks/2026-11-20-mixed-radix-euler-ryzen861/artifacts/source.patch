@@ -1,0 +1,328 @@
+--- a/crates/zopro-bn254/src/ifma8.rs
++++ b/crates/zopro-bn254/src/ifma8.rs
+@@ -735,6 +735,27 @@
+             }
+             Self(t, PhantomData).mul(scale)
+         }
++    }
++}
++
++impl<C: FpConfig> Ifma8<C, false> {
++    /// Import raw R256 words for a linear transform with R260 factors.
++    /// The result has a common factor 1/16 compared to ordinary R260 lanes.
++    #[inline(always)]
++    pub fn from_r256_for_linear_transform(values: &[Fp<C>; 8]) -> Self {
++        Self::raw(&values.map(|v| v.0))
++    }
++
++    /// Multiply R260 derivative lanes by R256 input lanes. The R260
++    /// cancellation puts the sum directly in R256 for the final store.
++    #[inline(always)]
++    pub fn sum2_to_r256(
++        &self, b: &[Fp<C>; 8], c: &Self, d: &[Fp<C>; 8],
++    ) -> [Fp<C>; 8] {
++        let b = Self::raw(&b.map(|v| v.0));
++        let d = Self::raw(&d.map(|v| v.0));
++        let result = self.sum2(&b, c, &d);
++        Ifma8::<C, true>(result.0, PhantomData).get()
+     }
+ }
+ 
+--- a/crates/zopro-core/src/fft/pair/input_columns.rs
++++ b/crates/zopro-core/src/fft/pair/input_columns.rs
+@@ -6,7 +6,7 @@
+ 
+ // Construct the first inverse radix-32 columns directly from the two input
+ // polynomials. Each invocation owns the same column range in all 32 stripes.
+-fn pack_inverse_columns<const CACHED: bool>(
++fn pack_inverse_columns<const CACHED: bool, const RAW: bool>(
+     mut stripes: [&mut [MaybeUninit<PackedPair>]; 32],
+     a: &[Fr],
+     b: &[Fr],
+@@ -24,8 +24,8 @@
+             left
+         });
+         rayon::join(
+-            || pack_inverse_columns::<CACHED>(left, a, b, roots, q, start),
+-            || pack_inverse_columns::<CACHED>(stripes, a, b, roots, q, start + mid),
++            || pack_inverse_columns::<CACHED, RAW>(left, a, b, roots, q, start),
++            || pack_inverse_columns::<CACHED, RAW>(stripes, a, b, roots, q, start + mid),
+         );
+         return;
+     }
+@@ -37,10 +37,15 @@
+             if i >= count {
+                 return zero;
+             }
+-            Pair::new(&core::array::from_fn(|lane| {
++            let lanes = core::array::from_fn(|lane| {
+                 let values = if lane < 4 { a } else { b };
+                 values.get(i + lane % 4).copied().unwrap_or(Fr::ZERO)
+-            }))
++            });
++            if RAW {
++                Pair::from_r256_for_linear_transform(&lanes)
++            } else {
++                Pair::new(&lanes)
++            }
+         });
+         column_kernel::<CACHED, false>(&mut local, roots, 0, q, start + column);
+         for (stripe, value) in stripes.iter_mut().zip(local) {
+@@ -50,7 +55,7 @@
+ }
+ 
+ #[inline(never)]
+-pub(super) fn first_layer(plan: &Plan, a: &[Fr], b: &[Fr], mut values: Vec<PackedPair>) -> Vec<PackedPair> {
++pub(super) fn first_layer<const RAW: bool>(plan: &Plan, a: &[Fr], b: &[Fr], mut values: Vec<PackedPair>) -> Vec<PackedPair> {
+     let n = plan.n / 4;
+     let q = n / 32;
+     assert!(n >= 2048 && n.is_power_of_two());
+@@ -59,9 +64,9 @@
+     let mut chunks = values.spare_capacity_mut()[..n].chunks_exact_mut(q);
+     let stripes = core::array::from_fn(|_| chunks.next().unwrap());
+     if roots.columns.is_empty() {
+-        pack_inverse_columns::<false>(stripes, a, b, roots, q, 0);
++        pack_inverse_columns::<false, RAW>(stripes, a, b, roots, q, 0);
+     } else {
+-        pack_inverse_columns::<true>(stripes, a, b, roots, q, 0);
++        pack_inverse_columns::<true, RAW>(stripes, a, b, roots, q, 0);
+     }
+     // SAFETY: the 32 disjoint stripes cover exactly n slots. Both branches
+     // join every producer and write each slot before this call.
+@@ -70,7 +75,7 @@
+ }
+ 
+ pub(super) fn inverse(plan: &Plan, a: &[Fr], b: &[Fr]) -> Vec<PackedPair> {
+-    let mut values = first_layer(plan, a, b, Vec::with_capacity(plan.n / 4));
++    let mut values = first_layer::<false>(plan, a, b, Vec::with_capacity(plan.n / 4));
+     let n = values.len();
+     let q = n / 32;
+     let roots = &plan.inverse_roots;
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -3,7 +3,7 @@
+ 
+ // Leave the adjacent sum and difference lanes together between the two transforms.
+ // Their natural coefficient indices differ by N/2 in bit-reversed DIF order.
+-fn center(a: &mut Pair, b: &mut Pair, inv: &Pair, fwd: &Pair, first: usize, log: usize) {
++fn center<const RAW: bool>(a: &mut Pair, b: &mut Pair, inv: &Pair, fwd: &Pair, first: usize, log: usize) {
+     let lo = Pair::shuffle_pair::<0, 1, 4, 5>(a, b);
+     let hi = Pair::shuffle_pair::<2, 3, 6, 7>(a, b);
+     let sum = lo.add(&hi);
+@@ -26,6 +26,9 @@
+         r + quarter,
+     ];
+     let odd = even.map(|x| x + 2 * quarter);
++    // R260 roots preserve the inverse transform's starting scale. Fold
++    // the 16× conversion into the existing integer Euler weights.
++    let (even, odd) = if RAW { (even.map(|x| x << 4), odd.map(|x| x << 4)) } else { (even, odd) };
+     let s = lo.add(&hi).mul_u28(&even);
+     let d = lo.sub(&hi).mul_u28(&odd);
+     let sum = s.add(&d);
+@@ -40,7 +43,7 @@
+     *b = Pair::shuffle_pair::<2, 3, 6, 7>(&sum, &diff);
+ }
+ 
+-fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++fn leaf<const RAW: bool>(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+     // The ordinary transform expands the same bounded leaf separately in each direction.
+     let mut expanded: Vec<_> = values.iter().map(PairStorage::load).collect();
+     let mut gap = expanded.len() / 2;
+@@ -56,7 +59,7 @@
+     let inv = broadcast(&plan.inverse_roots.pair);
+     let fwd = broadcast(&plan.roots.pair);
+     for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
+-        center(a, b, &inv, &fwd, first + 2 * i, plan.n.ilog2() as usize);
++        center::<RAW>(a, b, &inv, &fwd, first + 2 * i, plan.n.ilog2() as usize);
+     }
+     gap = 1;
+     while gap < expanded.len() {
+@@ -72,9 +75,9 @@
+     }
+ }
+ 
+-fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++fn transform<const RAW: bool>(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+     if values.len() <= 1024 {
+-        return leaf(plan, values, level, first);
++        return leaf::<RAW>(plan, values, level, first);
+     }
+     columns::<false>(values, &plan.inverse_roots, level);
+     let size = values.len() / 32;
+@@ -82,26 +85,26 @@
+         .par_chunks_exact_mut(size)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, level + 5, first + i * size);
++            transform::<RAW>(plan, part, level + 5, first + i * size);
+         });
+     columns::<true>(values, &plan.roots, level);
+ }
+ 
+ #[inline(never)]
+ pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
+-    let mut values = prepare_columns(plan, a, b, storage);
++    let mut values = prepare_columns::<false>(plan, a, b, storage);
+     columns::<true>(&mut values, &plan.roots, 0);
+     values
+ }
+ 
+-fn prepare_columns(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
+-    let mut values = input_columns::first_layer(plan, a, b, storage);
++fn prepare_columns<const RAW: bool>(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
++    let mut values = input_columns::first_layer::<RAW>(plan, a, b, storage);
+     let width = values.len() / 32;
+     values
+         .par_chunks_exact_mut(width)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, 5, i * width);
++            transform::<RAW>(plan, part, 5, i * width);
+         });
+     values
+ }
+@@ -111,13 +114,13 @@
+ type PackedRows<'a> = [&'a [PackedPair]; 32];
+ type OutputRows<'a> = [&'a mut [Fr]; 32];
+ 
+-pub(super) fn emit_products(
++pub(super) fn emit_products<const RAW: bool>(
+     plan: &Plan,
+     a: &mut [Fr],
+     b: &[Fr],
+     storage: Vec<PackedPair>,
+ ) {
+-    let values = prepare_columns(plan, a, b, storage);
++    let values = prepare_columns::<RAW>(plan, a, b, storage);
+     let width = values.len() / 32;
+     let mut stripes = values.chunks_exact(width);
+     let inputs = core::array::from_fn(|_| stripes.next().unwrap());
+@@ -130,10 +133,10 @@
+     });
+     debug_assert!(remaining.is_empty());
+     let cutoff = width.div_ceil(2 * rayon::current_num_threads()).max(8).next_power_of_two();
+-    emit_range(&plan.roots, width, 0, inputs, outputs, b, cutoff);
+-}
+-
+-fn emit_range(
++    emit_range::<RAW>(&plan.roots, width, 0, inputs, outputs, b, cutoff);
++}
++
++fn emit_range<const RAW: bool>(
+     roots: &Twiddles,
+     width: usize,
+     start: usize,
+@@ -144,7 +147,7 @@
+ ) {
+     let count = inputs[0].len();
+     if count <= cutoff {
+-        return emit_leaf(roots, width, start, inputs, outputs, b);
++        return emit_leaf::<RAW>(roots, width, start, inputs, outputs, b);
+     }
+ 
+     let mid = count / 2;
+@@ -160,13 +163,13 @@
+     });
+     let right_outputs = right_outputs.map(Option::unwrap);
+     rayon::join(
+-        || emit_range(roots, width, start, left_inputs, left_outputs, b, cutoff),
+-        || emit_range(roots, width, start + mid, right_inputs, right_outputs, b, cutoff),
++        || emit_range::<RAW>(roots, width, start, left_inputs, left_outputs, b, cutoff),
++        || emit_range::<RAW>(roots, width, start + mid, right_inputs, right_outputs, b, cutoff),
+     );
+ }
+ 
+ #[inline(never)]
+-fn emit_leaf(
++fn emit_leaf<const RAW: bool>(
+     roots: &Twiddles,
+     width: usize,
+     start: usize,
+@@ -199,9 +202,14 @@
+             let (da1, db1) = second[i].halves();
+             let da = Pair::from_halves(&da0, &da1);
+             let db = Pair::from_halves(&db0, &db1);
+-            let aa = Pair::new(&core::array::from_fn(|k| out.get(k).copied().unwrap_or(Fr::ZERO)));
+-            let bb = Pair::new(&core::array::from_fn(|k| b.get(b_start + k).copied().unwrap_or(Fr::ZERO)));
+-            out.copy_from_slice(&da.sum2(&bb, &aa, &db).get()[..n]);
++            let aa = core::array::from_fn(|k| out.get(k).copied().unwrap_or(Fr::ZERO));
++            let bb = core::array::from_fn(|k| b.get(b_start + k).copied().unwrap_or(Fr::ZERO));
++            let product = if RAW {
++                da.sum2_to_r256(&bb, &db, &aa)
++            } else {
++                da.sum2(&Pair::new(&bb), &db, &Pair::new(&aa)).get()
++            };
++            out.copy_from_slice(&product[..n]);
+         }
+     }
+ }
+@@ -213,7 +221,7 @@
+     fn fused_columns_product_matches_materialized_derivatives() {
+         let workers = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
+         workers.install(|| {
+-            for n in [8192usize, 32768, 262144] {
++            for n in [8192usize, 32768, 65536, 131072, 262144] {
+                 for cached in [false, true] {
+                     let root = Fr::root_of_unity(n).unwrap().pow(&[3]);
+                     let coset = Fr::from(5u64);
+@@ -221,6 +229,7 @@
+                     plan.prepare_euler_basis();
+                     if cached {
+                         plan.roots.prepare_columns();
++                        plan.inverse_roots.prepare_columns();
+                     } else {
+                         plan.roots.columns.clear();
+                     }
+@@ -231,8 +240,11 @@
+                         let values = from_inputs(&plan, &a, &b, Vec::with_capacity(n / 4));
+                         let mut expected = a.clone();
+                         euler_combine_products(&mut expected, &b, &values);
+-                        emit_products(&plan, &mut a, &b, Vec::with_capacity(n / 4));
+-                        assert_eq!(a, expected, "n={n} cached={cached} lengths={na}/{nb}");
++                        let mut raw = a.clone();
++                        emit_products::<false>(&plan, &mut a, &b, Vec::with_capacity(n / 4));
++                        emit_products::<true>(&plan, &mut raw, &b, Vec::with_capacity(n / 4));
++                        assert_eq!(a, expected, "ordinary n={n} cached={cached} lengths={na}/{nb}");
++                        assert_eq!(raw, expected, "mixed n={n} cached={cached} lengths={na}/{nb}");
+                     }
+                 }
+             }
+@@ -292,7 +304,7 @@
+                     *v = PackedPair::store(v.load().mul_u28(&factors));
+                 }
+                 stored_transform::<PackedPair, true>(&mut expect, &plan.roots, 0);
+-                transform(&plan, &mut got, 0, 0);
++                transform::<false>(&plan, &mut got, 0, 0);
+                 for (a, b) in got.iter().zip(&expect) {
+                     assert_eq!(a.load().get(), b.load().get());
+                 }
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1764,6 +1764,11 @@
+ 
+ 
+ 
++fn mixed_euler_boundary() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_EULER_MIXED_RADIX").is_some())
++}
++
+ // Euler derivative product used by the evaluation-basis prover.
+ // Unnormalized inverse FFT means the returned prefix is
+ // n * (E(A) * B + A * E(B)), where E(f) = X f'.
+@@ -1787,7 +1792,14 @@
+                 eprintln!("EULER_PACKED_WORKERS {}", rayon::current_num_threads());
+             }
+             if std::env::var("ZOPRO_CPU_FFT_FUSED_EULER_OUTPUT").as_deref() == Ok("1") {
+-                euler_center::emit_products(plan, &mut a, &b, storage);
++                if plan.n <= (1 << 24) && mixed_euler_boundary() {
++                    if std::env::var_os("ZOPRO_TRIAL_EULER_RADIX_TRACE").is_some() {
++                        eprintln!("EULER_MIXED_RADIX {}", plan.n);
++                    }
++                    euler_center::emit_products::<true>(plan, &mut a, &b, storage);
++                } else {
++                    euler_center::emit_products::<false>(plan, &mut a, &b, storage);
++                }
+             } else {
+                 let values = euler_center::from_inputs(plan, &a, &b, storage);
+                 euler_combine_products(&mut a, &b, &values);
