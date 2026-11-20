@@ -1,0 +1,93 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2208,6 +2208,45 @@
+             let h_query = || {
+                 let evaluate = |s: &mut [Fr]| {
+                     #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++                    if let Some((divisor, use_frontend)) = four_by_two_probe::h_split() {
++                        let pool = self.frontend_pool.as_deref().filter(|pool| {
++                            pool.current_num_threads() < rayon::current_num_threads()
++                        });
++                        let main = rayon::current_num_threads();
++                        let front = pool.filter(|_| use_frontend);
++                        let cut = s.len() / divisor;
++                        if cut >= 1024 && z.len() == s.len() && (!use_frontend || front.is_some()) {
++                            let head_workers = front.map_or(main, |pool| pool.current_num_threads());
++                            let bytes = msm_affine::workspace::frontend_g1_bytes(cut, head_workers, true)
++                                .zip(msm_affine::workspace::frontend_g1_bytes(s.len() - cut, main, true))
++                                .and_then(|(head, tail)| head.checked_add(tail));
++                            if let Some(_scratch) = crate::preparation::Reservation::analysis(bytes) {
++                                let (head, tail) = s.split_at_mut(cut);
++                                let (head_points, tail_points) = z.split_at(cut);
++                                let eval_range = |bases: &[G1Affine], values: &mut [Fr]| {
++                                    if montgomery_h {
++                                        msm_affine::msm_montgomery(bases, values)
++                                    } else {
++                                        msm(bases, values)
++                                    }
++                                };
++                                let head_sum = || {
++                                    let compute = || eval_range(head_points, head);
++                                    if let Some(pool) = front {
++                                        pool.install(|| four_by_two_probe::h_range("head", cut, phase, compute))
++                                    } else {
++                                        four_by_two_probe::h_range("head", cut, phase, compute)
++                                    }
++                                };
++                                let tail_count = tail.len();
++                                let (left, right) = rayon::join(head_sum, || {
++                                    four_by_two_probe::h_range("tail", tail_count, phase, || eval_range(tail_points, tail))
++                                });
++                                return left + right;
++                            }
++                        }
++                    }
++                    #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+                     if h_placement == four_by_two_probe::HPlacement::Independent {
+                         if let Some(pool) = self.frontend_pool.as_deref().filter(|pool| {
+                             pool.current_num_threads() < rayon::current_num_threads()
+--- a/crates/zopro-core/src/four_by_two_probe.rs
++++ b/crates/zopro-core/src/four_by_two_probe.rs
+@@ -49,11 +49,40 @@
+     })
+ }
+ 
++fn trace_enabled_placement() -> bool {
++    static TRACE: OnceLock<bool> = OnceLock::new();
++    *TRACE.get_or_init(|| std::env::var_os("ZOPRO_892_TRACE").is_some())
++}
++
+ pub(crate) fn placement(query: &str) {
+-    static TRACE: OnceLock<bool> = OnceLock::new();
+-    if *TRACE.get_or_init(|| std::env::var_os("ZOPRO_892_TRACE").is_some()) {
++    if trace_enabled_placement() {
+         eprintln!("ZP892_PLACEMENT {query} {}", rayon::current_num_threads());
+     }
++}
++
++pub(crate) fn h_split() -> Option<(usize, bool)> {
++    static SPLIT: OnceLock<Option<(usize, bool)>> = OnceLock::new();
++    *SPLIT.get_or_init(|| match std::env::var("ZOPRO_893_H_SPLIT").as_deref() {
++        Ok("main8") => Some((8, false)),
++        Ok("front8") => Some((8, true)),
++        Ok("main4") => Some((4, false)),
++        Ok("front4") => Some((4, true)),
++        _ => None,
++    })
++}
++
++pub(crate) fn h_range(
++    name: &str, len: usize, origin: Option<Instant>, compute: impl FnOnce() -> G1Projective,
++) -> G1Projective {
++    if trace_enabled_placement() {
++        eprintln!("ZP893_ROUTE {name} {} {len}", rayon::current_num_threads());
++    }
++    let start = origin.map(|t| t.elapsed());
++    let result = compute();
++    if let (Some(t), Some(start)) = (origin, start) {
++        eprintln!("ZP893_RANGE {name} {} {}", start.as_nanos(), t.elapsed().as_nanos());
++    }
++    result
+ }
+ 
+ pub(crate) fn clock() -> Option<Instant> {
