@@ -1,0 +1,72 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -55,11 +55,69 @@
+         *value = Fr::from_montgomery(*value).to_canonical();
+     };
+     if SERIAL_B2 {
++        #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++        if vector_b2_decode() {
++            let clock = std::env::var_os("ZOPRO_TRIAL_B2_VECTOR_TRACE")
++                .map(|_| crate::time::Instant::now());
++            decode_b2_classes(&mut groups.values);
++            if let Some(start) = clock {
++                eprintln!("B2_VECTOR_DECODE {} {}", groups.values.len(), start.elapsed().as_nanos());
++            }
++            return Some(groups);
++        }
++        let clock = std::env::var_os("ZOPRO_TRIAL_B2_VECTOR_TRACE")
++            .map(|_| crate::time::Instant::now());
+         groups.values.iter_mut().for_each(convert);
++        if let Some(start) = clock {
++            eprintln!("B2_SCALAR_DECODE {} {}", groups.values.len(), start.elapsed().as_nanos());
++        }
+     } else {
+         groups.values.par_iter_mut().for_each(convert);
+     }
+     Some(groups)
++}
++
++#[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++fn vector_b2_decode() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_B2_VECTOR_DECODE").is_some())
++}
++
++#[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++fn decode_b2_classes(values: &mut [[u64; 4]]) {
++    use zopro_bn254::{FrConfig, ifma8::Ifma8};
++
++    type Batch = Ifma8<FrConfig, true>;
++    // Integer one, deliberately in the raw limb representation. A
++    // Montgomery multiply by it converts the input to canonical limbs.
++    let one = Batch::new(&[Fr::from_montgomery([1,0,0,0]); 8]);
++    let (full, tail) = values.as_chunks_mut::<8>();
++    for batch in full {
++        let input = batch.map(Fr::from_montgomery);
++        *batch = Batch::new(&input).mul(&one).get().map(|v| v.0);
++    }
++    for value in tail {
++        *value = Fr::from_montgomery(*value).to_canonical();
++    }
++}
++
++#[cfg(all(test,all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++#[test]
++fn vector_b2_classes_match_canonical_conversion_and_preserve_all_tails() {
++    use crate::testing::Seeded;
++
++    let mut seed = Seeded::new(0x36417472);
++    for len in (0..20).chain(108_893..108_900) {
++        let input: Vec<_> = (0..len).map(|i| match i%7 {
++            0 => Fr::ZERO,
++            1 => Fr::ONE,
++            2 => -Fr::ONE,
++            _ => seed.fr(),
++        }).collect();
++        let mut words: Vec<_> = input.iter().map(|f| f.0).collect();
++        decode_b2_classes(&mut words);
++        assert!(words.iter().zip(&input).all(|(actual, value)| *actual == value.to_canonical()));
++    }
+ }
+ 
+ pub(crate) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
