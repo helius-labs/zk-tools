@@ -1,0 +1,71 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "ordinary",
+    "serial",
+    "k",
+    "b2",
+    "both"
+  ],
+  "clocked": [
+    "ordinary",
+    "serial",
+    "k",
+    "b2",
+    "both"
+  ],
+  "main": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "front": [
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "solver": [
+    24,
+    25,
+    26,
+    27
+  ],
+  "timed_rounds": 17,
+  "blocks": 8,
+  "clock_blocks": 4,
+  "clock_rounds": 13,
+  "calibration": "Absolute paired ordinary proof within 2% of frozen. Each candidate needs lower paired medians and six wins in eight on each input against ordinary and frozen. Observe drift of traced full-proof medians.",
+  "scope": "Classify exactly in shards, then use one parallel list of point reduction tiles that write directly into final input arrays. Keep sixteen shards and same scalar/point order as the serial per-shard compactor. Evaluate K and B2 separately and jointly.",
+  "source_patch": "6485b447fc51f50fe6a93853efcc85a6ee46537378de2cacfade2dc6cb12b1c0"
+}
