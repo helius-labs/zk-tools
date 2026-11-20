@@ -2,7 +2,7 @@
 
 The benchmark loads the archived shifted image with the current SDK. The image supplies a compact read-only table for subtracting a fixed reference from the A and B FFT inputs. Its K and public queries contain the matching linear adjustments. Both image variants use the same pinned original proving parameters and public verification. The optional two-level G2 plan is held fixed within each image comparison.
 
-The shifted image met the local paired criterion on catalog, heldout, v58. C7a confirmation is pending.
+The shifted image met the local paired criterion on catalog, heldout, v58. The C7a follow-up cleared the 12×2 M5 CPU threshold on the catalog and held-out inputs. [C7a follow-up](../2026-11-20-shifted-euler-sdk-c7a1054/README.md)
 
 | Request | Frozen / standard / shifted / standard grouped / shifted grouped ms | Shifted vs standard | Shifted grouped vs standard grouped | Shifted grouped vs frozen | Standard / shifted grouped peak MiB |
 |---|---:|---:|---:|---:|---:|
