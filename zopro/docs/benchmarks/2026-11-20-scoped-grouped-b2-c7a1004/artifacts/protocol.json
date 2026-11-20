@@ -1,0 +1,106 @@
+{
+  "root": "/opt/zopro-scoped-b21004",
+  "shapes": [
+    "4x2",
+    "8x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "archive",
+    "ordinary72",
+    "early72",
+    "late72",
+    "ordinary64",
+    "early64",
+    "early72-solver20",
+    "aeglos"
+  ],
+  "layouts": {
+    "archive": [
+      72,
+      16,
+      null
+    ],
+    "ordinary72": [
+      72,
+      16,
+      null
+    ],
+    "early72": [
+      72,
+      16,
+      "early"
+    ],
+    "late72": [
+      72,
+      16,
+      "late"
+    ],
+    "ordinary64": [
+      64,
+      16,
+      null
+    ],
+    "early64": [
+      64,
+      16,
+      "early"
+    ],
+    "early72-solver20": [
+      72,
+      20,
+      "early"
+    ],
+    "denied72": [
+      72,
+      16,
+      "early"
+    ]
+  },
+  "panels": {
+    "route": [
+      1,
+      2,
+      [
+        "late72",
+        "early72",
+        "early64",
+        "denied72"
+      ]
+    ],
+    "timing": [
+      8,
+      17,
+      [
+        "frozen",
+        "archive",
+        "ordinary72",
+        "early72",
+        "late72",
+        "ordinary64",
+        "early64",
+        "early72-solver20",
+        "aeglos"
+      ]
+    ]
+  },
+  "blocks": 8,
+  "executable": "10667a6e1d08792fa25a35a3113cedc82a96734574a691dee692d124402f150f",
+  "archive_executable": "4bf5d58ecf1be9689abe7ff33e6182190f931ba0aaa155f7d202e531e99fc187",
+  "reference": {
+    "4x2": {
+      "cpu_ms": 109,
+      "metal_ms": 48
+    },
+    "8x2": {
+      "cpu_ms": 189,
+      "metal_ms": 74
+    }
+  },
+  "scope": "Early grouped B2 on disjoint front pools, paired ordinary and late routes, archived 1000 and prepared Aeglos controls.",
+  "gate": "Require at least six of eight paired wins against the archived 1000 control on both requests. Report whether each median meets 10\u00d7 on CPU and Metal independently."
+}
