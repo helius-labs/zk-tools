@@ -198,6 +198,46 @@ fn tower() {
 }
 
 #[test]
+fn cyclotomic_arithmetic_matches_general_field_operations() {
+    let mut rng = ark_std::test_rng();
+    let mut values = vec![ark::Fq12::ONE];
+    for _ in 0..96 {
+        let raw = ark::Fq12::rand(&mut rng);
+        let easy = raw.frobenius_map(6) * raw.inverse().unwrap();
+        values.push(easy.frobenius_map(2) * easy);
+    }
+    for x in values {
+        for x in [x, x.frobenius_map(6), x * x.frobenius_map(1)] {
+            let ours = fq12(x);
+            assert_eq!(ours.cyclotomic_square(), ours.square());
+            assert_eq!(ours.cyclotomic_square(), fq12(x.square()));
+            for exponent in [0, 1, 2, 3, 4965661367192848881, u64::MAX] {
+                assert_eq!(ours.cyclotomic_pow_u64(exponent), fq12(x.pow([exponent])));
+            }
+        }
+    }
+}
+
+#[test]
+fn final_exponentiation_matches_its_general_square_reference() {
+    let mut rng = ark_std::test_rng();
+    let mut values = vec![ark::Fq12::ZERO, ark::Fq12::ONE, -ark::Fq12::ONE];
+    values.extend((0..128).map(|_| ark::Fq12::rand(&mut rng)));
+    for x in values {
+        let ours = fq12(x);
+        assert_eq!(
+            pairing::final_exponentiation(ours),
+            pairing::final_exponentiation_reference(ours)
+        );
+        assert_eq!(
+            pairing::final_exponentiation(ours),
+            ark::Bn254::final_exponentiation(ark_ec::pairing::MillerLoopOutput(x))
+                .map(|x| fq12(x.0))
+        );
+    }
+}
+
+#[test]
 fn curves() {
     let mut rng = ark_std::test_rng();
     for _ in 0..50 {
@@ -252,6 +292,50 @@ fn g2_subgroup() {
             assert!(ours.is_on_curve());
             assert_eq!(ours.is_in_subgroup(), p.is_in_correct_subgroup_assuming_on_curve());
             outside += !ours.is_in_subgroup() as usize;
+        }
+    }
+    assert!(outside > 0);
+}
+
+#[test]
+fn short_g2_subgroup_matches_independent_checks() {
+    use crate::{FpConfig, FrConfig};
+    fn check(p: ark::G2Affine) {
+        let ours = g2(p);
+        assert!(ours.is_on_curve());
+        const SIX_X_SQUARED: [u64; 2] = [17887900258952609094, 8020209761171036667];
+        let old =
+            ours.is_identity() || ours.mul_limbs(&SIX_X_SQUARED) == ours.psi().to_projective();
+        let full_order = ours.mul_limbs(&FrConfig::P).is_identity();
+        let reference = p.is_in_correct_subgroup_assuming_on_curve();
+        assert_eq!(ours.is_in_subgroup(), old);
+        assert_eq!(ours.is_in_subgroup(), full_order);
+        assert_eq!(ours.is_in_subgroup(), reference);
+        let z = Fq2::new(Fq::from(7u64), Fq::from(11u64));
+        let scaled = if ours.is_identity() {
+            G2Projective::IDENTITY
+        } else {
+            G2Projective::new(ours.x * z.square(), ours.y * z.square() * z, z)
+        };
+        assert_eq!(scaled.psi().to_affine(), ours.psi());
+    }
+    let mut rng = ark_std::test_rng();
+    check(ark::G2Affine::zero());
+    check(ark::G2Projective::generator().into_affine());
+    check((-ark::G2Projective::generator()).into_affine());
+    for _ in 0..64 {
+        check(ark::G2Projective::rand(&mut rng).into_affine());
+    }
+    let mut outside = 0;
+    for _ in 0..256 {
+        if let Some(p) = ark::G2Affine::get_point_from_x_unchecked(ark::Fq2::rand(&mut rng), false)
+        {
+            outside += usize::from(!p.is_in_correct_subgroup_assuming_on_curve());
+            check(p);
+            check(-p);
+            // Multiplication by r keeps only the cofactor component.
+            let torsion = p.mul_bigint(FrConfig::P).into_affine();
+            check(torsion);
         }
     }
     assert!(outside > 0);
