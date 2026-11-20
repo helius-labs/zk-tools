@@ -1,0 +1,87 @@
+{
+  "shapes": [
+    "1x4",
+    "1x8",
+    "1x16"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "archive",
+    "port",
+    "alt1",
+    "alt2",
+    "alt3",
+    "fused",
+    "aeglos"
+  ],
+  "layouts": {
+    "1x4": [
+      64,
+      48,
+      56,
+      72
+    ],
+    "1x8": [
+      48,
+      56,
+      64,
+      72
+    ],
+    "1x16": [
+      48,
+      56,
+      64,
+      72
+    ]
+  },
+  "root": "/opt/zopro-scoped-final1001",
+  "build": {
+    "executable": "1d79919565d668af48c92904ee0886e8d52f373bfbd2f0d5cbe7a03c4f6e5fc5",
+    "source_patch": "c68a1ed8c24059c2614ecab23adb7a3d2a9441cde5994b16b1abf5de780bd7e8",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/msm_affine/workspace.rs",
+      "crates/zopro-prover/src/lib.rs",
+      "crates/zopro-bench/examples/cpu-sdk.rs",
+      "crates/zopro-bench/examples/support/placement.rs"
+    ]
+  },
+  "panels": {
+    "route": [
+      1,
+      2,
+      [
+        "port",
+        "alt1",
+        "alt2",
+        "alt3",
+        "denied"
+      ]
+    ],
+    "timing": [
+      8,
+      17,
+      [
+        "frozen",
+        "archive",
+        "port",
+        "alt1",
+        "alt2",
+        "alt3",
+        "fused",
+        "aeglos"
+      ]
+    ]
+  },
+  "group": "zp1001",
+  "sites": {
+    "prove": "0x559980",
+    "g2": "0x4b6300",
+    "quotient": "0x4a0c70"
+  },
+  "scope": "Match the scoped SDK port and three alternative placements against archived early G2, exact catalog controls and Aeglos on the remaining three shapes."
+}
