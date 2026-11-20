@@ -1,0 +1,281 @@
+--- a/crates/zopro-bn254/src/lib.rs
++++ b/crates/zopro-bn254/src/lib.rs
+@@ -42,6 +42,11 @@
+     not(no_ifma)
+ ))]
+ mod signed_delta;
++#[cfg(all(
++    target_arch = "x86_64", target_feature = "avx512ifma",
++    target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)
++))]
++mod coordinate_scale;
+ #[cfg(all(
+     feature = "fast-inverse",
+     target_arch = "x86_64",
+--- /dev/null
++++ b/crates/zopro-bn254/src/coordinate_scale.rs
+@@ -0,0 +1,95 @@
++//! Exact modular division by sixteen without leaving normalized SIMD lanes.
++use crate::{ifma8::Ifma8, FpConfig};
++use core::{arch::x86_64::*, marker::PhantomData};
++
++impl<C: FpConfig> Ifma8<C, true> {
++    /// For raw x < 2p, select k < 16 with 16 dividing x + kp.
++    /// The result is normalized, below 17p/16 < 2p, and still in host radix.
++    #[inline(always)]
++    pub fn divide_by_sixteen(&self) -> Self {
++        const MASK: u64 = (1u64 << 52) - 1;
++        let p = C::P;
++        let modulus = [
++            p[0] & MASK,
++            ((p[0] >> 52) | (p[1] << 12)) & MASK,
++            ((p[1] >> 40) | (p[2] << 24)) & MASK,
++            ((p[2] >> 28) | (p[3] << 36)) & MASK,
++            p[3] >> 16,
++        ];
++        // SAFETY: the module requires AVX-512 IFMA/VL/DQ. Each base-52
++        // digit times k < 16 and its incoming carry fit in 64 bits.
++        unsafe {
++            let lo = _mm512_and_si512(self.0[0], _mm512_set1_epi64(15));
++            let k = _mm512_and_si512(
++                _mm512_mullo_epi64(lo, _mm512_set1_epi64((C::INV & 15) as i64)),
++                _mm512_set1_epi64(15),
++            );
++            let mask = _mm512_set1_epi64(MASK as i64);
++            let mut carry = _mm512_setzero_si512();
++            let mut digits = [_mm512_setzero_si512(); 5];
++            for i in 0..5 {
++                let sum = _mm512_add_epi64(
++                    _mm512_add_epi64(
++                        self.0[i],
++                        _mm512_mullo_epi64(k, _mm512_set1_epi64(modulus[i] as i64)),
++                    ),
++                    carry,
++                );
++                digits[i] = _mm512_and_si512(sum, mask);
++                carry = _mm512_srli_epi64::<52>(sum);
++            }
++            debug_assert_eq!(_mm512_cmpneq_epi64_mask(carry, _mm512_setzero_si512()), 0);
++            for i in 0..4 {
++                digits[i] = _mm512_or_si512(
++                    _mm512_srli_epi64::<4>(digits[i]),
++                    _mm512_and_si512(_mm512_slli_epi64::<48>(digits[i + 1]), mask),
++                );
++            }
++            digits[4] = _mm512_srli_epi64::<4>(digits[4]);
++            Self(digits, PhantomData)
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::{Fq, FqConfig};
++
++    #[test]
++    fn exact_division_in_mixed_radix() {
++        let mut seed = 0x26fa8c8395fbf502u64;
++        let inverse = Fq::from_u64(16).inverse().unwrap();
++        for sample in 0..1024 {
++            let values = core::array::from_fn(|i| {
++                if sample == 0 {
++                    return match i {
++                        0 => Fq::ZERO,
++                        1 => Fq::ONE,
++                        2 => -Fq::ONE,
++                        _ => Fq::from_montgomery([i as u64, 0, 0, 0]),
++                    };
++                }
++                let bytes = core::array::from_fn(|_| {
++                    seed ^= seed << 13;
++                    seed ^= seed >> 7;
++                    seed ^= seed << 17;
++                    seed as u8
++                });
++                Fq::from_random_bytes(&bytes)
++            });
++            let mut packed = Ifma8::<FqConfig, true>::new(&values);
++            let mut expected = values;
++            for i in 0..4 {
++                if i == 1 {
++                    // Force lazy representatives from normal addition.
++                    packed = packed.add(&packed);
++                    expected = expected.map(|v| v.double());
++                }
++                packed = packed.divide_by_sixteen();
++                expected = expected.map(|v| v * inverse);
++                assert_eq!(packed.get(), expected);
++            }
++        }
++    }
++}
+--- a/crates/zopro-core/src/simd.rs
++++ b/crates/zopro-core/src/simd.rs
+@@ -346,6 +346,14 @@
+     #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+     #[inline(always)]
+     pub(crate) fn mul_div16(&self,b:&Self)->Self{Self(self.0.mul_div16(&b.0))}
++    #[inline(always)]
++    pub(crate) fn coordinate_scale_u28(&self, factor: u64) -> Self {
++        Self(self.0.mul_u28(&[factor; 8]))
++    }
++    #[inline(always)]
++    pub(crate) fn coordinate_divide_by_sixteen(&self) -> Self {
++        Self(self.0.divide_by_sixteen())
++    }
+     #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+     #[inline(always)]
+     pub(crate) fn sum2_div16(&self,b:&Self,c:&Self,d:&Self)->Self{Self(self.0.sum2_div16(&b.0,&c.0,&d.0))}
+--- a/crates/zopro-core/src/msm/g2_borrowed.rs
++++ b/crates/zopro-core/src/msm/g2_borrowed.rs
+@@ -1,6 +1,29 @@
+ //! Signed borrowed G2 prefix, retaining accepted arithmetic and scratch.
+ use super::*;
+ pub(super) fn apply<C: CurveConfig<Base = Fq2>, const FAST: bool>(
++    buckets: &mut [Affine<C>],
++    batch: &[(u32, &Affine<C>)],
++    s: &mut Fq2AddScratch,
++) {
++    static LAYOUT: std::sync::OnceLock<u8> = std::sync::OnceLock::new();
++    let mode = if FAST {
++        *LAYOUT.get_or_init(|| match std::env::var("ZOPRO_902_G2_SCALE").as_deref() {
++            Ok("four") => 4,
++            Ok("sixteen") => 16,
++            _ => 1,
++        })
++    } else {
++        1
++    };
++    match mode {
++        4 => apply_with_scale::<C, FAST, 4>(buckets, batch, s),
++        16 => apply_with_scale::<C, FAST, 16>(buckets, batch, s),
++        _ => apply_with_scale::<C, FAST, 1>(buckets, batch, s),
++    }
++}
++
++#[inline(never)]
++fn apply_with_scale<C: CurveConfig<Base = Fq2>, const FAST: bool, const SCALE: u64>(
+     buckets: &mut [Affine<C>],
+     batch: &[(u32, &Affine<C>)],
+     s: &mut Fq2AddScratch,
+@@ -48,6 +71,12 @@
+             }
+             prefix_tail_inverse(FqBatch::new(&inverse),full)
+         };
++    if SCALE != 1 && full > 0 {
++        // The scalar tail consumed the original inverse. The remaining
++        // reverse recurrence is linear in this seed.
++        inverse = inverse.coordinate_scale_u28(SCALE);
++        trace_scaled_coordinates(SCALE);
++    }
+     for j in (0..full / LANES).rev() {
+         let k = j * LANES;
+         let a: [Affine<C>; LANES] =
+@@ -68,18 +97,58 @@
+         let factor = prefix_mul(&s.prefix_records[j][0],&inverse);
+         inverse = prefix_mul(&inverse,&s.prefix_records[j][1]);
+         let slope = prefix_numerator(&dy, &denominator, &factor);
+-        #[cfg(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++        let square = if SCALE == 1 {
++            Fq2::lanes_square(&slope)
++        } else {
++            let [real, imag] = slope;
++            let cross = real.mul_div16(&imag);
++            let q = [
++                real.add(&imag).mul_div16(&real.sub(&imag)),
++                cross.add(&cross),
++            ];
++            if SCALE == 16 {
++                q.map(|v| v.coordinate_divide_by_sixteen())
++            } else {
++                q
++            }
++        };
+         let x = if FAST {
+-            let square=Fq2::lanes_square(&slope);
+-            core::array::from_fn(|i| square[i].subtract_uncarried_xsum(&FqBatch::uncarried_xsum(&ax[i],&bx[i])))
+-        } else { Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx)) };
+-        #[cfg(not(all(feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
+-        let x = Fq2::lanes_sub(&Fq2::lanes_square(&slope), &Fq2::lanes_add(&ax, &bx));
+-        let y = Fq2::lanes_sub(&Fq2::lanes_mul(&slope, &Fq2::lanes_sub(&ax, &x)), &ay);
++            core::array::from_fn(|i| {
++                square[i].subtract_uncarried_xsum(&FqBatch::uncarried_xsum(&ax[i], &bx[i]))
++            })
++        } else {
++            Fq2::lanes_sub(&square, &Fq2::lanes_add(&ax, &bx))
++        };
++        let delta = Fq2::lanes_sub(&ax, &x);
++        let product = if SCALE == 1 {
++            Fq2::lanes_mul(&slope, &delta)
++        } else {
++            let [re, im] = if SCALE == 4 {
++                delta.map(|v| v.coordinate_scale_u28(4))
++            } else {
++                delta
++            };
++            [
++                slope[0].difference2_div16(&re, &slope[1], &im),
++                slope[0].sum2_div16(&im, &slope[1], &re),
++            ]
++        };
++        let y = Fq2::lanes_sub(&product, &ay);
+         let (x, y) = (fq2_unpack(x), fq2_unpack(y));
+         for i in 0..LANES {
+             buckets[(batch[k + i].0 & 0x7fffffff) as usize] = Affine::new(x[i], y[i]);
+         }
++    }
++}
++
++fn trace_scaled_coordinates(scale: u64) {
++    use std::sync::{atomic::{AtomicBool, Ordering}, OnceLock};
++    static TRACE: OnceLock<bool> = OnceLock::new();
++    static PRINTED: AtomicBool = AtomicBool::new(false);
++    if *TRACE.get_or_init(|| std::env::var_os("ZOPRO_902_TRACE").is_some())
++        && !PRINTED.swap(true, Ordering::Relaxed)
++    {
++        eprintln!("ZP902_SCALE {scale}");
+     }
+ }
+ 
+@@ -110,6 +179,40 @@
+ mod tests {
+     use super::*;
+     use zopro_bn254::G2Config;
++    #[test]
++    fn scaled_coordinate_batches_match_complete_addition() {
++        let generator = Projective::<G2Config>::generator();
++        let initial = Projective::<G2Config>::batch_to_affine(
++            &(0..512).map(|i| generator * Fr::from(113 * i + 1)).collect::<Vec<_>>(),
++        );
++        let incoming = Projective::<G2Config>::batch_to_affine(
++            &(0..512).map(|i| generator * Fr::from(241 * i + 900001)).collect::<Vec<_>>(),
++        );
++        let mut scale4 = Fq2AddScratch { canonical: true, vector_inverse: true, ..Default::default() };
++        let mut scale16 = Fq2AddScratch { canonical: true, vector_inverse: true, ..Default::default() };
++        for n in [0, 1, 7, 8, 9, 15, 16, 33, 111, 200, 352, 511, 7, 0] {
++            let mut a = initial.clone();
++            let mut b = initial.clone();
++            let mut expected = initial.clone();
++            for mask in [0x00usize, 0xff, 0x76] {
++                let pairs = (0..n).map(|i| {
++                    let id = (i * 131) % 512;
++                    let sign = (mask >> (i % 8)) & 1;
++                    (id as u32 | ((sign as u32) << 31), &incoming[i])
++                }).collect::<Vec<_>>();
++                for &(encoded,p) in &pairs {
++                    let id = (encoded & 0x7fffffff) as usize;
++                    assert_ne!(expected[id].x,p.x);
++                    expected[id] = (expected[id] + if encoded >> 31 != 0 { -*p } else { *p }).to_affine();
++                }
++                apply_with_scale::<G2Config, true, 4>(&mut a, &pairs, &mut scale4);
++                apply_with_scale::<G2Config, true, 16>(&mut b, &pairs, &mut scale16);
++                assert_eq!(a,expected);
++                assert_eq!(b,expected);
++            }
++        }
++    }
++
+     #[test]
+     fn signed_borrowed_prefix_tails_and_reuse() {
+         let g = Projective::<G2Config>::generator();
