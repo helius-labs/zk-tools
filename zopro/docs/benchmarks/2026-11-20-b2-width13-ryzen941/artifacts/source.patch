@@ -1,0 +1,65 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -257,6 +257,17 @@
+         return super::g2_horner::raw(bases, words);
+     }
+     #[cfg(zopro_resource_schedule)]
++    if let Some(parts) = width13_ranges() {
++        let workers = rayon::current_num_threads();
++        let growth = super::workspace::wider_g2_growth(bases.len(), workers, parts);
++        if let Some(_reservation) = crate::preparation::Reservation::analysis(growth) {
++            if std::env::var_os("ZOPRO_941_WIDTH_TRACE").is_some() {
++                eprintln!("ZP941_WIDTH 13 {parts} {}", bases.len());
++            }
++            return hb_raw_decomposition(bases, words, 13, parts, false);
++        }
++    }
++    #[cfg(zopro_resource_schedule)]
+     if rayon::current_num_threads() >= 32
+         && std::env::var("ZOPRO_CPU_G2_RANGES").as_deref() == Ok("4")
+     {
+@@ -314,3 +325,13 @@
+         }
+     }
+ }
++
++#[cfg(zopro_resource_schedule)]
++fn width13_ranges() -> Option<usize> {
++    static RANGES: std::sync::OnceLock<Option<usize>> = std::sync::OnceLock::new();
++    *RANGES.get_or_init(|| match std::env::var("ZOPRO_941_G2_WIDTH").as_deref() {
++        Ok("13x2") => Some(2),
++        Ok("13x4") => Some(4),
++        _ => None,
++    })
++}
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -268,6 +268,17 @@
+ pub(super) fn four_range_growth(n: usize, workers: usize) -> Option<usize> {
+     let original = hb_windows::<G2Config>(n, 12, 2)?;
+     let proposed = hb_windows::<G2Config>(n, 11, 4)?;
++    add(
++        proposed.held.saturating_sub(original.held),
++        mul(proposed.leaf.saturating_sub(original.leaf), workers)?,
++    )
++}
++
++/// Additional scratch beyond the ordinary two-range profile.
++#[cfg(zopro_g2_horner_buckets)]
++pub(super) fn wider_g2_growth(n: usize, workers: usize, parts: usize) -> Option<usize> {
++    let original = hb_windows::<G2Config>(n, 12, 2)?;
++    let proposed = hb_windows::<G2Config>(n, 13, parts)?;
+     add(
+         proposed.held.saturating_sub(original.held),
+         mul(proposed.leaf.saturating_sub(original.leaf), workers)?,
+--- a/crates/zopro-core/src/msm_affine/g2_borrowed.rs
++++ b/crates/zopro-core/src/msm_affine/g2_borrowed.rs
+@@ -239,7 +239,7 @@
+             .zip(&coefficients)
+             .fold(Fr::ZERO, |a, (s, c)| a + *s * *c);
+         let mut words: Vec<_> = scalars.iter().map(|s| s.to_canonical()).collect();
+-        for (bits, parts) in [(12, 2), (11, 4)] {
++        for (bits, parts) in [(12, 2), (11, 4), (13, 2), (13, 4)] {
+             let mut input = words.clone();
+             let check = super::super::g2_phi::hb_raw(&bases, &mut input, bits, parts);
+             assert_eq!(check.to_affine(), expected.to_affine());
