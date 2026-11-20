@@ -1,0 +1,288 @@
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -201,6 +201,11 @@
+     serial: bool,
+ ) -> G2Projective {
+     assert_eq!(bases.len(), short.len());
++    decompose(short, serial);
++    from_split(bases, short, bits, parts)
++}
++
++pub(super) fn decompose(short: &mut [[u64; 4]], serial: bool) {
+     if serial {
+         for word in short.iter_mut() {
+             *word = phi_split(*word);
+@@ -211,7 +216,6 @@
+         #[cfg(not(zopro_phi_grain))]
+         short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+     }
+-    from_split(bases, short, bits, parts)
+ }
+ 
+ pub(super) fn from_split(
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/staged_exclusive_b2.rs
+@@ -0,0 +1,167 @@
++//! Optional proof-local preparation for small exclusive B2 queries.
++use super::{g2_phi, grouping, ScalarGroups};
++use crate::preparation::Reservation;
++use zopro_bn254::{Fr, G2Affine, G2Projective};
++
++const SMALL_QUERY: core::ops::Range<usize> = 1024..65_536;
++type Words = [u64; 4];
++
++#[derive(Clone, Copy)]
++pub(crate) enum Schedule {
++    Wait,
++    Early,
++    EarlySerial,
++}
++
++impl Schedule {
++    pub(crate) fn select(
++        eligible: bool,
++        terms: usize,
++        domain: usize,
++    ) -> Option<(Self, Reservation)> {
++        if !eligible
++            || !SMALL_QUERY.contains(&terms)
++            || std::env::var("ZOPRO_CPU_G2_RANGES").as_deref() == Ok("4")
++        {
++            return None;
++        }
++        let mode = match std::env::var("ZOPRO_TRIAL_STAGE_SMALL_B2").as_deref() {
++            Ok("wait") => Self::Wait,
++            Ok("early") => Self::Early,
++            Ok("early-serial") => Self::EarlySerial,
++            _ => return None,
++        };
++        // The grouping token separately accounts for the complete point and
++        // class lifetimes. Reserve the potentially concurrent FFT buffers.
++        let fft_buffers = super::workspace::vector::<Fr>(domain.checked_mul(6)?, false)?;
++        Some((mode, Reservation::analysis(Some(fft_buffers))?))
++    }
++
++    pub(crate) fn serial(self) -> bool {
++        matches!(self, Self::EarlySerial)
++    }
++
++    pub(crate) fn run<T: Send, U: Send>(
++        self,
++        quotient: impl FnOnce() -> T + Send,
++        prepare_b2: impl FnOnce() -> U + Send,
++    ) -> (T, U) {
++        let origin = std::env::var_os("ZOPRO_TRIAL_STAGE_SMALL_B2_TRACE")
++            .is_some()
++            .then(crate::time::Instant::now);
++        if origin.is_some() {
++            let name = match self {
++                Self::Wait => "wait",
++                Self::Early => "early",
++                Self::EarlySerial => "early-serial",
++            };
++            eprintln!("STAGED_SMALL_B2 {name}");
++        }
++        let quotient = || phase(origin, "fft", quotient);
++        let prepare_b2 = || phase(origin, "prepare", prepare_b2);
++        match self {
++            Self::Wait => (quotient(), prepare_b2()),
++            Self::Early | Self::EarlySerial => rayon::join(quotient, prepare_b2),
++        }
++    }
++}
++
++fn phase<T>(origin: Option<crate::time::Instant>, name: &str, work: impl FnOnce() -> T) -> T {
++    let Some(origin) = origin else { return work() };
++    let start = origin.elapsed().as_nanos();
++    let result = work();
++    eprintln!(
++        "SMALL_B2_PHASE {name} {start} {}",
++        origin.elapsed().as_nanos()
++    );
++    result
++}
++
++pub(crate) enum Prepared {
++    SplitRaw,
++    GroupTooSmall(ScalarGroups),
++    SplitGroups {
++        bases: Vec<G2Affine>,
++        scalars: Vec<Words>,
++        _reservation: Reservation,
++    },
++}
++
++impl Prepared {
++    pub(crate) fn new(bases: &[G2Affine], words: &mut [Words], group: bool, serial: bool) -> Self {
++        let groups = (group && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
++            .then(|| grouping::groups_with_diversity_check(words))
++            .flatten();
++        let Some(groups) = groups else {
++            g2_phi::decompose(words, serial);
++            return Self::SplitRaw;
++        };
++        if !SMALL_QUERY.contains(&groups.values.len()) {
++            return Self::GroupTooSmall(groups);
++        }
++        let ScalarGroups {
++            len,
++            mut values,
++            starts,
++            order,
++            counts,
++            _reservation,
++        } = groups;
++        assert_eq!(len, bases.len());
++        let (bases, ()) = rayon::join(
++            || crate::msm::group_affine(bases, &order, &starts, &counts),
++            || g2_phi::decompose(&mut values, serial),
++        );
++        Self::SplitGroups {
++            bases,
++            scalars: values,
++            _reservation,
++        }
++    }
++
++    pub(crate) fn finish(self, bases: &[G2Affine], words: &[Words]) -> G2Projective {
++        match self {
++            Self::SplitRaw => g2_phi::from_split(bases, words, 12, 2),
++            Self::GroupTooSmall(groups) => crate::msm_grouped_b2(bases, &groups),
++            Self::SplitGroups {
++                bases,
++                scalars,
++                _reservation,
++            } => g2_phi::from_split(&bases, &scalars, 12, 2),
++        }
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::testing::Seeded;
++
++    #[test]
++    fn staged_exclusive_b2_preserves_generator_sums() {
++        let mut rng = Seeded::new(0xe3a3_5125);
++        let weights: Vec<_> = (0..8195)
++            .map(|i| match i % 7 {
++                0 => Fr::ZERO,
++                1 => -Fr::from((i % 31) as u64),
++                _ => Fr::from((i % 31) as u64),
++            })
++            .collect();
++        let points: Vec<_> = weights.iter().map(|&w| G2Affine::GENERATOR * w).collect();
++        let bases = G2Projective::batch_to_affine(&points);
++        let random: Vec<_> = (0..2048).map(|_| rng.fr()).collect();
++        for domains in [13, 2048] {
++            let values: Vec<_> = (0..weights.len()).map(|i| random[i % domains]).collect();
++            let wanted = weights
++                .iter()
++                .zip(&values)
++                .fold(Fr::ZERO, |s, (a, b)| s + *a * *b);
++            let wanted = (G2Affine::GENERATOR * wanted).to_affine();
++            for (group, serial) in [(false, false), (true, false), (true, true)] {
++                let mut words: Vec<_> = values.iter().map(Fr::to_canonical).collect();
++                let prepared = Prepared::new(&bases, &mut words, group, serial);
++                assert_eq!(prepared.finish(&bases, &words).to_affine(), wanted);
++            }
++        }
++    }
++}
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1723,6 +1723,13 @@
+     g2_phi::from_split(&points, &values, 12, 2)
+ }
+ 
++#[cfg(all(
++    zopro_resource_schedule, zopro_g2_horner_buckets, target_arch = "x86_64", target_os = "linux",
++    target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq",
++    feature = "ifma8", not(no_ifma)
++))]
++pub(crate) mod staged_exclusive_b2;
++
+ // The four-query CPU prover gives up these proof-local scalar words.
+ // The ordinary five-part path continues to share immutable scalars with B1.
+ pub(super) fn g2_query_exclusive(
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2361,24 +2361,49 @@
+                 #[cfg(zopro_bounded_gather)]
+                 {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
+             };
++            Ok((w, sa_vec, sb_vec, a, b, correction))
++        };
++        let frontend = self.frontend_pool.as_ref()
++            .filter(|pool| pool.current_num_threads() < rayon::current_num_threads());
++        let ordinary = || {
++            let (w, sa, sb, a, b, correction) = prepare()?;
+             let product = queries.product_values(&self.plan, a, b, None);
+-            Ok((w, sa_vec, sb_vec, product, correction))
++            Ok::<_, String>((w, sa, sb, product, correction))
+         };
+-        let (w, sa_vec, mut sb_vec, mut product, correction) =
+-            if let Some(pool) = self
+-                .frontend_pool
+-                .as_ref()
+-                .filter(|p| p.current_num_threads() < rayon::current_num_threads())
+-            {
+-                pool.install(prepare)?
++        #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets))]
++        let (buffers, staged) = if let Some(pool) = frontend {
++            if let Some((schedule, _scratch)) = msm_affine::staged_exclusive_b2::Schedule::select(
++                omit_b && self.proof_workspace.is_some(), self.b2.len(), self.domain,
++            ) {
++                let (w, sa, mut sb, a, b, correction) = pool.install(prepare)?;
++                let (product, staged) = schedule.run(
++                    || pool.install(|| queries.product_values(&self.plan, a, b, None)),
++                    || msm_affine::staged_exclusive_b2::Prepared::new(
++                        &self.b2, &mut sb, self.exclusive_g2_grouping, schedule.serial(),
++                    ),
++                );
++                ((w, sa, sb, product, correction), Some(staged))
+             } else {
+-                prepare()?
+-            };
++                (pool.install(ordinary)?, None)
++            }
++        } else {
++            (ordinary()?, None)
++        };
++        #[cfg(not(all(zopro_resource_schedule, zopro_g2_horner_buckets)))]
++        let buffers = if let Some(pool) = frontend { pool.install(ordinary)? } else { ordinary()? };
++        let (w, sa_vec, mut sb_vec, mut product, correction) = buffers;
+         // SAFETY: both branches converted every Fr in place to canonical limbs.
+         // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
+         let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
+         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
+         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
++        let exclusive_b2 = |words: &mut [[u64; 4]], grouping| {
++            #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets))]
++            if let Some(prepared) = staged {
++                return prepared.finish(&self.b2, words);
++            }
++            msm_affine::g2_query_exclusive(&self.b2, words, grouping)
++        };
+         #[cfg(all(zopro_real_kh, zopro_resource_schedule))]
+         // A single weighted sum is valid when B1 is omitted and H has unit scale.
+         let medium = if omit_b && queries.product_scale == Fr::ONE
+@@ -2414,7 +2439,7 @@
+                 || rayon::join(a, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+-                        msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping)
++                        exclusive_b2(sb, self.exclusive_g2_grouping)
+                     } else {
+                         let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(||scalar_groups(sb)).flatten();
+@@ -2446,7 +2471,7 @@
+                     },
+                     || {
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping));
++                            return (G1Projective::IDENTITY,exclusive_b2(sb, self.exclusive_g2_grouping));
+                         }
+                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                             .then(|| scalar_groups(sb))
