@@ -1,0 +1,220 @@
+--- a/crates/zopro-core/src/solver/sparse_poseidon/aliases.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon/aliases.rs
+@@ -4,6 +4,13 @@
+ use std::hash::BuildHasher;
+ 
+ const STRIDE: u32 = 4 * MAX_N as u32;
++const INDEX_BITS: u32 = STRIDE.next_power_of_two().trailing_zeros();
++const COORDINATE_MASK: u32 = (1 << INDEX_BITS) - 1;
++
++fn compact_origin_slots() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_COMPACT_B2_ORIGINS").is_some())
++}
+ 
+ #[derive(Clone, Copy)]
+ struct State {
+@@ -38,6 +45,7 @@
+     order: Vec<u32>,
+     states: Vec<State>,
+     covered: usize,
++    compact: bool,
+     _memory: Reservation,
+ }
+ 
+@@ -45,6 +53,7 @@
+     order: &'a [u32],
+     tags: Vec<u32>,
+     classes: Vec<u32>,
++    compact: bool,
+ }
+ 
+ impl RuntimeAliases<'_> {
+@@ -53,9 +62,13 @@
+         if origin == u32::MAX {
+             return None;
+         }
+-        let tag = self.tags[(origin / STRIDE) as usize];
+-        self.classes
+-            .get_mut((tag * STRIDE + origin % STRIDE) as usize)
++        let index = if self.compact {
++            self.tags[(origin >> INDEX_BITS) as usize] + (origin & COORDINATE_MASK)
++        } else {
++            let tag = self.tags[(origin / STRIDE) as usize];
++            tag * STRIDE + origin % STRIDE
++        };
++        self.classes.get_mut(index as usize)
+     }
+ }
+ 
+@@ -78,7 +91,7 @@
+         let mut table = HashTable::<u32>::with_capacity(self.states.len());
+         let state = ahash::RandomState::new();
+         let mut tags = Vec::with_capacity(self.states.len());
+-        let mut classes = 0u32;
++        let mut slot_count = 0u32;
+         for (i, span) in self.states.iter().enumerate() {
+             let tag = match table.entry(
+                 span.hash(words, &state),
+@@ -88,17 +101,28 @@
+                 Entry::Occupied(e) => tags[*e.get() as usize],
+                 Entry::Vacant(e) => {
+                     e.insert(i as u32);
+-                    let tag = classes;
+-                    classes += 1;
+-                    tag
++                    let first = slot_count;
++                    if self.compact {
++                        let width = span.width as usize;
++                        let (partial, _) = parameters(width);
++                        slot_count = slot_count.checked_add((4 * (7 * width + partial)) as u32)?;
++                        first
++                    } else {
++                        slot_count = slot_count.checked_add(STRIDE)?;
++                        first / STRIDE
++                    }
+                 }
+             };
+             tags.push(tag);
++        }
++        if self.compact && std::env::var_os("ZOPRO_TRIAL_COMPACT_B2_TRACE").is_some() {
++            eprintln!("B2_ORIGIN_SLOTS {} {}", slot_count, self.states.len());
+         }
+         Some(RuntimeAliases {
+             order: &self.order,
+             tags,
+-            classes: vec![u32::MAX; (classes * STRIDE) as usize],
++            classes: vec![u32::MAX; slot_count as usize],
++            compact: self.compact,
+         })
+     }
+ }
+@@ -142,6 +166,8 @@
+             }
+             *slot = j as u32;
+         }
++        let compact = compact_origin_slots();
++        let stride = if compact { 1 << INDEX_BITS } else { STRIDE };
+         let mut states = Vec::new();
+         let mut order = vec![u32::MAX; self.b_indices.len()];
+         let mut covered = 0;
+@@ -170,7 +196,10 @@
+                 if s.positions().contains(&u32::MAX) {
+                     continue;
+                 }
+-                let code = (states.len() as u32).checked_mul(STRIDE)?;
++                let code = u32::try_from(states.len()).ok()?.checked_mul(stride)?;
++                if code.checked_add(STRIDE - 1)? == u32::MAX {
++                    return None;
++                }
+                 states.push(s);
+                 for k in width..n {
+                     let [f, m, l] = positions(width, partial, k);
+@@ -230,6 +259,7 @@
+             order,
+             states,
+             covered,
++            compact,
+             _memory: memory,
+         })
+     }
+@@ -256,6 +286,7 @@
+             state([0, 1, 2], 2),
+         ],
+         covered: 4,
++        compact: false,
+         _memory: memory,
+     };
+     let words = [
+@@ -270,5 +301,33 @@
+     assert_eq!(aliases.slot(1).copied(), Some(79));
+     assert_eq!(aliases.slot(2).copied(), Some(u32::MAX));
+     assert_eq!(aliases.slot(3).copied(), Some(u32::MAX));
++    assert!(aliases.slot(4).is_none());}
++
++#[cfg(test)]
++#[test]
++fn compact_origins_separate_widths_and_reuse_equal_states() {
++    let make = |positions: &[u32]| {
++        let mut all = [0; 13];
++        all[..positions.len()].copy_from_slice(positions);
++        State { positions: all, width: positions.len() as u8 }
++    };
++    let stride = 1 << INDEX_BITS;
++    let plan = B2Origins {
++        order: vec![7, stride + 7, stride * 2 + 7, stride * 3 + 7, u32::MAX],
++        states: vec![
++            make(&[0, 1, 2]), make(&[0, 1, 2]), make(&[0, 1, 3]), make(&[0, 1]),
++        ],
++        covered: 4,
++        compact: true,
++        _memory: Reservation::analysis(Some(4096)).unwrap(),
++    };
++    let words = [[1; 4], [2; 4], [3; 4], [4; 4], [5; 4]];
++    let mut aliases = plan.aliases(&words).unwrap();
++    assert_eq!(aliases.classes.len(), 8 * (7 * 3 + parameters(3).0) + 4 * (7 * 2 + parameters(2).0));
++    *aliases.slot(0).unwrap() = 37;
++    assert_eq!(aliases.slot(1), Some(&mut 37));
++    assert_eq!(aliases.slot(2), Some(&mut u32::MAX));
++    assert_eq!(aliases.slot(3), Some(&mut u32::MAX));
+     assert!(aliases.slot(4).is_none());
+ }
++
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -195,16 +195,18 @@
+     for &count in &counts {
+         starts.push(starts.last().unwrap() + count);
+     }
+-    let mut positions = starts[..counts.len()].to_vec();
+     let mut order = vec![0u32; *starts.last().unwrap()];
+-    for (i, &class) in classes.iter().enumerate() {
+-        if class != u32::MAX {
+-            order[positions[class as usize]] = i as u32;
+-            positions[class as usize] += 1;
+-        }
++    static IN_PLACE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    if *IN_PLACE.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_B2_REUSE_OFFSETS").is_some()) {
++        scatter_classes(&classes, &mut starts, &mut order);
++        // The advanced cursors are the ends of these same groups.
++        starts.copy_within(..counts.len(), 1);
++        starts[0] = 0;
++    } else {
++        let mut positions = starts[..counts.len()].to_vec();
++        scatter_classes(&classes, &mut positions, &mut order);
+     }
+     drop(classes);
+-    drop(positions);
+     Some(ScalarGroups {
+         _reservation: reservation,
+         len: scalars.len(),
+@@ -213,6 +215,29 @@
+         starts,
+         counts,
+     })
++}
++
++fn scatter_classes(classes: &[u32], positions: &mut [usize], order: &mut [u32]) {
++    for (i, &class) in classes.iter().enumerate() {
++        if class != u32::MAX {
++            let position = &mut positions[class as usize];
++            order[*position] = i as u32;
++            *position += 1;
++        }
++    }
++}
++
++#[cfg(test)]
++#[test]
++fn reused_offsets_recover_the_original_class_ranges() {
++    let classes = [3, 0, u32::MAX, 0, 2, 3, 3];
++    let mut starts = [0, 2, 2, 3, 6];
++    let mut order = [u32::MAX; 6];
++    scatter_classes(&classes, &mut starts, &mut order);
++    starts.copy_within(..4, 1);
++    starts[0] = 0;
++    assert_eq!(starts, [0, 2, 2, 3, 6]);
++    assert_eq!(order, [1, 3, 4, 0, 5, 6]);
+ }
+ 
+ // Keep one copy of each full scalar in first-occurrence order. The hash table
