@@ -1,0 +1,75 @@
+{
+  "shapes": [
+    "2x2",
+    "2x4",
+    "2x8",
+    "1x16"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "archive",
+    "port",
+    "fused",
+    "aeglos"
+  ],
+  "layouts": {
+    "2x2": 48,
+    "2x4": 64,
+    "2x8": 48,
+    "1x16": 48
+  },
+  "root": "/opt/zopro-scoped-port1007",
+  "build": {
+    "executable": "0a413b159872218fe22f35fe21dc062e192936846d041f94255b163172d72f94",
+    "source_patch": "6a30406f5ea48abca00ba234b588e1d7dd3904820956a5c2e1d1524901acf8cf",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/msm_affine/workspace.rs",
+      "crates/zopro-prover/src/lib.rs",
+      "crates/zopro-bench/examples/cpu-sdk.rs",
+      "crates/zopro-bench/examples/support/placement.rs"
+    ]
+  },
+  "panels": {
+    "route": [
+      3,
+      5,
+      [
+        "port",
+        "fused",
+        "late",
+        "denied"
+      ]
+    ],
+    "timing": [
+      8,
+      17,
+      [
+        "frozen",
+        "archive",
+        "port",
+        "fused",
+        "aeglos"
+      ]
+    ]
+  },
+  "group": "zp1007",
+  "sites": {
+    "prove": "0x559980",
+    "gen": "0x54ede0",
+    "canonical": "0x49e100",
+    "solve": "0x44d170",
+    "g1": "0x49fe80",
+    "g1canonical": "0x1e4310",
+    "g1raw": "0x1e4a40",
+    "g2": "0x4b6300",
+    "phi": "0x4e6400",
+    "windows": "0x4bccb0",
+    "quotient": "0x4a0c70"
+  },
+  "scope": "Qualify the cleaned scoped SDK on 998 winning shapes, with detailed trace diagnostics also on 1x16."
+}
