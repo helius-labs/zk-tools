@@ -1,0 +1,56 @@
+{
+  "shapes": [
+    "1x2",
+    "2x2",
+    "4x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "reference",
+    "ordinary",
+    "prior",
+    "bridge",
+    "emit",
+    "ends"
+  ],
+  "blocks": 12,
+  "timed_per_process": 19,
+  "priming": 3,
+  "reference": {
+    "1x2": "851 release",
+    "2x2": "908 shift",
+    "4x2": "851 seed4-emit"
+  },
+  "calibration": {
+    "same_configuration_pairs": [
+      [
+        "ordinary",
+        "reference"
+      ],
+      [
+        "bridge",
+        "prior"
+      ]
+    ],
+    "paired_median_max_absolute_pct": 2.0,
+    "apply_per_shape_and_input": true
+  },
+  "advancement": {
+    "min_wins": 9,
+    "wins_denominator": 12,
+    "require_negative_paired_median": true,
+    "controls": [
+      "reference",
+      "ordinary",
+      "prior"
+    ],
+    "apply_per_shape_and_input": true
+  },
+  "schedule_seed": 9141,
+  "arm_seed": 91420,
+  "prior_workflow_sha256": "d29a36763d6a41f637684ae15fec62cc2c72e422b70e760d868f06e4d7731f2b",
+  "source_pins": "64f559a4abecea578c1c9fb8240143dc442ea012ca4c28b6505f62fe293c0c95"
+}
