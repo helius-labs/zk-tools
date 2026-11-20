@@ -1,6 +1,6 @@
 # Direct point tiles for A on Ryzen 4×2
 
-A with 16 shards plus K and B2 took **15.103 ms** on catalog and **15.081 ms** on held-out. Paired latency changes against same-build k and b2 were +0.68% (1/8) and +0.66% (3/8). All candidate layouts fell short of the repeatability criterion.
+A with 16 shards plus K and B2 took **15.103 ms** on catalog and **15.081 ms** on held-out. Paired latency changes against same-build K and B2 were +0.68% (1/8) and +0.66% (3/8). All candidate layouts fell short of the repeatability criterion.
 
 A classifies its 67,154 scalar rows in independent shards. A global list of reduction tiles writes directly into disjoint ranges of the compact affine and scalar outputs. Each tile uses the previous point-reduction math and the existing window passes consume the rows in shard order. The trial used 24 main, eight frontend and four solver workers. [Source and previous trial](../2026-11-20-shard-point-tiles-c7a971/README.md)
 
