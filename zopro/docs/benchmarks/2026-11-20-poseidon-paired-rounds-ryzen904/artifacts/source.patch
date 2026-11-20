@@ -1,0 +1,321 @@
+--- a/crates/zopro-core/src/solver/sparse_poseidon.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon.rs
+@@ -4,6 +4,7 @@
+ //! wire, stored prefix and constraint row. Unmatched tasks keep the interpreter.
+ use super::*;
+ mod constants;
++mod paired_rounds;
+ use constants::parameters;
+ const TASK: u32 = 1 << 27;
+ const INDEX: u32 = TASK - 1;
+@@ -503,7 +504,27 @@
+         let mut c = 4 * t;
+         let mut x = s[0] + a[c];
+         c += 1;
+-        for r in 0..partial {
++        let mut consumed = 0;
++        if t == 3 && partial == 57 {
++            let mode = paired_rounds::mode();
++            if mode != 0 {
++                paired_rounds::trace(mode);
++                // SAFETY: the tagged span retains its full original round
++                // and field/address validation. The new recurrence changes
++                // when intermediate tail products are evaluated.
++                x = unsafe {
++                    if mode == 1 {
++                        self.poseidon_round_pairs::<true>(task, &mut s, x, a, v)
++                    } else {
++                        self.poseidon_round_pairs::<false>(task, &mut s, x, a, v)
++                    }
++                };
++                consumed = 56;
++                c += consumed;
++                k += consumed;
++            }
++        }
++        for r in consumed..partial {
+             let offset = sparse + r * (2 * t - 1);
+             let mut rest = if r + 1 < partial {
+                 let z = a[c];
+--- /dev/null
++++ b/crates/zopro-core/src/solver/sparse_poseidon/paired_rounds.rs
+@@ -0,0 +1,255 @@
++//! Paired width-three partial Poseidon rounds. The round coefficients are public.
++use super::*;
++
++const PARTIAL: usize = 57;
++const SPARSE: usize = 8 * 3 + PARTIAL + 2 * 3 * 3;
++
++// Each entry is the dot product of round r+1's head projection and
++// round r's tail update column, in the existing Montgomery representation.
++const FEEDBACK: [Fr; 28] = [
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++    Fr::from_montgomery([
++        0x9bc1242fa009be18,
++        0x81136bafb771345a,
++        0xe7fd749227478855,
++        0x261decaa5504997f,
++    ]),
++];
++
++#[inline]
++pub(super) fn mode() -> u8 {
++    static MODE: std::sync::OnceLock<u8> = std::sync::OnceLock::new();
++    *MODE.get_or_init(
++        || match std::env::var("ZOPRO_904_PAIRED_POSEIDON").as_deref() {
++            Ok("fused") => 1,
++            Ok("early") => 2,
++            _ => 0,
++        },
++    )
++}
++
++#[inline]
++pub(super) fn trace(mode: u8) {
++    static TRACE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    if *TRACE.get_or_init(|| std::env::var_os("ZOPRO_904_TRACE").is_some()) {
++        eprintln!("ZP904_PAIRED {mode}");
++    }
++}
++
++impl Plan {
++    /// The parent has recognized all coefficients in both rounds, verified the
++    /// original address list, and executed the earlier rows.
++    #[inline(never)]
++    pub(super) unsafe fn poseidon_round_pairs<const FUSED: bool>(
++        &self,
++        task: &[u32],
++        state: &mut [Fr; 13],
++        mut head: Fr,
++        a: &[Fr],
++        v: View,
++    ) -> Fr {
++        let [mut left, mut right] = [state[1], state[2]];
++        for (i, feedback) in FEEDBACK.iter().enumerate() {
++            let r = 2 * i;
++            let first = SPARSE + r * 5;
++            let second = first + 5;
++            let a0 = &a[first..first + 5];
++            let a1 = &a[second..second + 5];
++            // Projection into both head coordinates uses the same old tail.
++            let rest0 = Fr::sum_of_products(&a0[1], &left, &a0[2], &right) + a[13 + r];
++            let rest1 = Fr::sum_of_products(&a1[1], &left, &a1[2], &right) + a[14 + r];
++            // SAFETY: see the caller's checked task and the two original indices.
++            let h0 = unsafe { self.emit_poseidon(task, 3, PARTIAL, 9 + r, head, v) };
++            let x1 = a0[0] * h0 + rest0;
++            let projected = if FUSED { rest1 } else { rest1 + *feedback * h0 };
++            let h1 = unsafe { self.emit_poseidon(task, 3, PARTIAL, 10 + r, x1, v) };
++            head = if FUSED {
++                Fr::sum_of_products(&a1[0], &h1, feedback, &h0) + projected
++            } else {
++                a1[0] * h1 + projected
++            };
++            left += Fr::sum_of_products(&a0[3], &h0, &a1[3], &h1);
++            right += Fr::sum_of_products(&a0[4], &h0, &a1[4], &h1);
++        }
++        state[1] = left;
++        state[2] = right;
++        head
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn paired_feedback_matches_public_matrix_products() {
++        let (partial, a) = parameters(3);
++        assert_eq!(partial, PARTIAL);
++        assert_eq!(a.len(), SPARSE + 5 * partial);
++        for (i, &value) in FEEDBACK.iter().enumerate() {
++            let r = SPARSE + 10 * i;
++            assert_eq!(value, a[r + 6] * a[r + 3] + a[r + 7] * a[r + 4]);
++        }
++    }
++}
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -1739,6 +1739,11 @@
+     /// Every read is initialized, and the schedule orders all writers
+     /// before readers. Distinct tasks write disjoint wires, slots and rows.
+     unsafe fn execute_schedule(&self, schedule: &Schedule, v: View) -> Result<(), String> {
++        let started = {
++            static CLOCK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++            CLOCK.get_or_init(|| std::env::var_os("ZOPRO_904_SOLVER_CLOCK").is_some())
++                .then(crate::time::Instant::now)
++        };
+         let claims = solver_task_claims();
+         let serial = |task: &[u32]| -> Result<(), String> {
+             #[cfg(zopro_resource_schedule)]
+@@ -1765,6 +1770,9 @@
+                     serial(task)
+                 }
+             })?;
++        }
++        if let Some(started) = started {
++            eprintln!("ZP904_SOLVE_NS {}", started.elapsed().as_nanos());
+         }
+         Ok(())
+     }
