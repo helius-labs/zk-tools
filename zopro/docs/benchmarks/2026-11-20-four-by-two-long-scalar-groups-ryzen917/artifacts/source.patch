@@ -1,0 +1,187 @@
+--- a/crates/zopro-core/src/msm.rs
++++ b/crates/zopro-core/src/msm.rs
+@@ -188,7 +188,8 @@
+ where
+     C::Base: BatchInverse,
+ {
+-    group_affine_impl(|index| bases[index as usize], order, starts, counts)
++    let split = split_group_admission::<C>(order.len(), counts);
++    group_affine_impl(|index| bases[index as usize], order, starts, counts, split.is_some())
+ }
+ 
+ pub(super) fn group_affine_prepared<C: CurveConfig>(
+@@ -213,7 +214,81 @@
+         order,
+         starts,
+         counts,
++        false,
+     )
++}
++
++const GROUP_SPLIT_TILE: usize = 512;
++const GROUP_SPLIT_MIN: usize = 2 * GROUP_SPLIT_TILE;
++
++fn split_group_admission<C: CurveConfig>(
++    terms: usize,
++    counts: &[usize],
++) -> Option<crate::preparation::Reservation>
++where
++    C::Base: BatchInverse,
++{
++    use std::sync::OnceLock;
++    static SELECT: OnceLock<(bool, bool, bool)> = OnceLock::new();
++    let (g1, g2, trace) = *SELECT.get_or_init(|| {
++        let mode = std::env::var("ZOPRO_917_GROUP_SPLIT").ok();
++        let g1 = matches!(mode.as_deref(), Some("both" | "g1"));
++        let g2 = matches!(mode.as_deref(), Some("both" | "g2"));
++        (g1, g2, std::env::var_os("ZOPRO_917_GROUP_TRACE").is_some())
++    });
++    let is_g2 = core::mem::size_of::<C::Base>() > 32;
++    let requested = if is_g2 { g2 } else { g1 };
++    if !requested && !trace {
++        return None;
++    }
++    let eligible = counts.iter().filter(|&&length| length >= GROUP_SPLIT_MIN);
++    let shards = eligible.clone().map(|&length| length.div_ceil(GROUP_SPLIT_TILE)).sum::<usize>();
++    let peak = if requested && shards != 0 {
++        let workers = rayon::current_num_threads().min(shards);
++        let per_point = core::mem::size_of::<LimbPoint<C::Base>>() +
++            core::mem::size_of::<usize>() +
++            core::mem::size_of::<Group<C::Base>>().div_ceil(2 * LANES) +
++            2 * core::mem::size_of::<FqBatch>().div_ceil(LANES);
++        GROUP_SPLIT_TILE.checked_mul(per_point)
++            .and_then(|bytes| bytes.checked_mul(workers))
++            .and_then(|bytes| {
++                shards.checked_mul(core::mem::size_of::<Affine<C>>())
++                    .and_then(|roots| bytes.checked_add(roots))
++            })
++    } else {
++        None
++    };
++    let reservation = crate::preparation::Reservation::analysis(peak);
++    if trace {
++        let curve = if is_g2 { "g2" } else { "g1" };
++        eprintln!("ZP917_GROUP {curve} {terms} {} {} {} {shards} {} {}",
++                  counts.len(), counts.iter().copied().max().unwrap_or(0),
++                  eligible.count(), peak.unwrap_or(0), reservation.is_some());
++    }
++    reservation
++}
++
++fn sum_group_chunks<C: CurveConfig, F: Fn(u32) -> Affine<C> + Sync>(
++    get: &F,
++    order: &[u32],
++) -> Affine<C>
++where
++    C::Base: BatchInverse,
++{
++    let partials: Vec<_> = order.par_chunks(GROUP_SPLIT_TILE).map(|chunk| {
++        let mut points: Vec<_> = chunk.iter().map(|&index| limbs::<C>(get(index))).collect();
++        let mut count = [points.len()];
++        let mut scratch = Scratch::<C>::default();
++        while count[0] > 1 {
++            reduce_layer(&mut points, &[0], &mut count, &mut scratch);
++        }
++        affine::<C>(points[0])
++    }).collect();
++    let mut sum = Projective::<C>::IDENTITY;
++    for partial in partials {
++        sum += partial;
++    }
++    sum.to_affine()
+ }
+ 
+ fn group_affine_impl<C: CurveConfig, F: Fn(u32) -> Affine<C> + Sync>(
+@@ -221,6 +296,7 @@
+     order: &[u32],
+     starts: &[usize],
+     counts: &[usize],
++    split: bool,
+ ) -> Vec<Affine<C>>
+ where
+     C::Base: BatchInverse,
+@@ -238,15 +314,32 @@
+                 let offset = starts[first];
+                 let end = starts[first + output.len()];
+                 points.clear();
+-                points.reserve_exact(end - offset);
+-                for &index in &order[offset..end] {
+-                    points.push(limbs::<C>(get(index)));
+-                }
+                 let mut local_starts = [0usize; GROUP];
+                 let mut local_counts = [0usize; GROUP];
+-                for j in 0..output.len() {
+-                    local_starts[j] = starts[first + j] - offset;
+-                    local_counts[j] = counts[first + j];
++                if split && counts[first..first + output.len()].iter()
++                    .any(|&length| length >= GROUP_SPLIT_MIN)
++                {
++                    for j in 0..output.len() {
++                        let class = first + j;
++                        let members = &order[starts[class]..starts[class + 1]];
++                        local_starts[j] = points.len();
++                        if members.len() >= GROUP_SPLIT_MIN {
++                            points.push(limbs::<C>(sum_group_chunks(&get, members)));
++                            local_counts[j] = 1;
++                        } else {
++                            points.extend(members.iter().map(|&index| limbs::<C>(get(index))));
++                            local_counts[j] = members.len();
++                        }
++                    }
++                } else {
++                    points.reserve_exact(end - offset);
++                    for &index in &order[offset..end] {
++                        points.push(limbs::<C>(get(index)));
++                    }
++                    for j in 0..output.len() {
++                        local_starts[j] = starts[first + j] - offset;
++                        local_counts[j] = counts[first + j];
++                    }
+                 }
+                 let local_starts = &local_starts[..output.len()];
+                 let local_counts = &mut local_counts[..output.len()];
+@@ -2378,3 +2471,44 @@
+ 
+ #[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+ mod paired_weighted;
++
++#[cfg(test)]
++mod split_group_tests {
++    use super::*;
++
++    fn compare<C: CurveConfig>() where C::Base: BatchInverse {
++        let generator = Projective::<C>::generator();
++        let p = generator.to_affine();
++        let q = (generator.double() + p).to_affine();
++        let points = [p, -p, q, Affine::<C>::IDENTITY, -q];
++        let counts = [0, 1, GROUP_SPLIT_MIN - 1, GROUP_SPLIT_MIN,
++                      GROUP_SPLIT_MIN + 3, 0, 2*GROUP_SPLIT_MIN + 1, 1];
++        let mut starts = vec![0];
++        for n in counts {
++            starts.push(starts.last().unwrap() + n);
++        }
++        let order: Vec<u32> = (0..*starts.last().unwrap())
++            .map(|i| ((i * (i % 3 + 1)) % points.len()) as u32).collect();
++        let get = |index| points[index as usize];
++        let expected: Vec<_> = starts.windows(2).map(|span| {
++            let mut sum = Projective::<C>::IDENTITY;
++            for &i in &order[span[0]..span[1]] {
++                sum += get(i);
++            }
++            sum.to_affine()
++        }).collect();
++        for threads in [1, 4] {
++            let pool = rayon::ThreadPoolBuilder::new().num_threads(threads).build().unwrap();
++            let got = pool.install(|| group_affine_impl(get, &order, &starts, &counts, true));
++            let ordinary = pool.install(|| group_affine_impl(get, &order, &starts, &counts, false));
++            assert_eq!(got, expected);
++            assert_eq!(ordinary, expected);
++        }
++    }
++
++    #[test]
++    fn long_class_shards_match_complete_curve_addition() {
++        compare::<zopro_bn254::G1Config>();
++        compare::<zopro_bn254::G2Config>();
++    }
++}

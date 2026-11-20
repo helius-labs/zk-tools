@@ -1,0 +1,19 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "workers": [
+    24,
+    8
+  ],
+  "priming": 3,
+  "algorithm": "Split scalar classes of at least 1024 point inputs into independent 512-point subtrees. Final affine point sums keep the same class scalar.",
+  "initial_cases": 10,
+  "timing_cases": 80,
+  "clock_cases": 24,
+  "eligibility": "Each timed curve must show admitted long classes on both exact inputs. Joint timing needs admissions for G1 and G2. Verify no admissions at zero optional workspace.",
+  "criterion": "Absolute paired ordinary versus frozen median <=2%. A candidate needs a negative paired median and at least 6/8 faster process means against both on both inputs.",
+  "clock_diagnostic": "Three separate blocks with query and class traces. Clocked results are diagnostic."
+}
