@@ -1,0 +1,7 @@
+# Reusing completed Poseidon spans from existing solution storage
+
+- The preceding trace cache copied four field elements per nonlinear output into a second allocation. Test whether saving only a pointer to the immutable source span makes completed matches cheap enough to reuse.
+- Compare the full width-three state after the ordinary first round. A completed match can reuse the source square, fourth power and fifth power from the proof's existing persistent wires, and the input from the source's certified immutable temporary slot. Reconstruct every destination row with its own orientation.
+- First test source/destination address and operand orientation coverage independently. Then compare an ordinary and a cached path in the same SDK on two 4×2 and two 8×2 requests. Use a release comparator, an independent verifier, and separate route probes including zero optional workspace. Local screening precedes AWS.
+- Limit the prototype to 256 proof-local entries, each with one width-three signature and an immutable schedule pointer. A busy or colliding entry never makes another solver job wait for arithmetic. No wire values survive the call. Admission uses the existing optional workspace budget and the solver's single-writer certificate. Target build and tests within three minutes and timing within two minutes.
+- Advance only if the cache is used, independently verifies, and lowers complete proof time on both original and held-out inputs for a tested shape. If hit counts are low, measure whether more reuse would require delaying the first wave.

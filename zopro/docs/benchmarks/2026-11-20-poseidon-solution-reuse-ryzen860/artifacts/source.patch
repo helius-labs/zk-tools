@@ -1,0 +1,339 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -424,6 +424,8 @@
+     a: *mut Fr,
+     b: *mut Fr,
+     c: *mut Fr,
++    #[cfg(zopro_resource_schedule)]
++    completed_poseidon: *const sparse_poseidon::CompletedSpans,
+ }
+ // SAFETY: see View; the schedule keeps every write disjoint and ordered
+ // before its reads.
+@@ -1300,7 +1302,17 @@
+             w[0] = Fr::ONE;
+             w[1..self.n_inputs].copy_from_slice(witness);
+         }
++        // Source rows remain immutable only when the single-writer
++        // certificate has been established for all solution cells.
++        #[cfg(zopro_resource_schedule)]
++        let completed_poseidon = if uninitialized && (45_000..262_144).contains(&self.ops.len()) {
++            sparse_poseidon::CompletedSpans::new()
++        } else {
++            None
++        };
+         let view = View {
++            #[cfg(zopro_resource_schedule)]
++            completed_poseidon: completed_poseidon.as_ref().map_or(core::ptr::null(), core::ptr::from_ref),
+             w: w.as_mut_ptr(),
+             a: a.as_mut_ptr(),
+             b: b.as_mut_ptr(),
+@@ -1311,6 +1323,10 @@
+         match pool {
+             Some(pool) => pool.install(execute)?,
+             None => execute()?,
++        }
++        #[cfg(zopro_resource_schedule)]
++        if let Some(completed) = completed_poseidon {
++            completed.report();
+         }
+         if uninitialized {
+             // SAFETY: the cached data-flow check establishes that all reads
+@@ -2517,6 +2533,8 @@
+             let mut b = a.clone();
+             let mut c = if materialize_c { a.clone() } else { Vec::new() };
+             let view = View {
++                #[cfg(zopro_resource_schedule)]
++                completed_poseidon: core::ptr::null(),
+                 w: w.as_mut_ptr(),
+                 a: a.as_mut_ptr(),
+                 b: b.as_mut_ptr(),
+@@ -2611,6 +2629,8 @@
+                     vec![Fr::ZERO; plan.n_constraints],
+                 );
+                 let v = View {
++                    #[cfg(zopro_resource_schedule)]
++                    completed_poseidon: core::ptr::null(),
+                     w: w.as_mut_ptr(),
+                     a: a.as_mut_ptr(),
+                     b: b.as_mut_ptr(),
+--- a/crates/zopro-core/src/solver/sparse_poseidon.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon.rs
+@@ -5,6 +5,8 @@
+ use super::*;
+ mod constants;
+ use constants::parameters;
++mod completed;
++pub(super) use completed::CompletedSpans;
+ const TASK: u32 = 1 << 27;
+ const INDEX: u32 = TASK - 1;
+ const MAX_N: usize = 156;
+@@ -404,17 +406,15 @@
+         }
+         Ok(())
+     }
+-    unsafe fn emit_poseidon(
++    fn poseidon_destination(
+         &self,
+         task: &[u32],
+         t: usize,
+         partial: usize,
+         k: usize,
+-        x: Fr,
+-        v: View,
+-    ) -> Fr {
++    ) -> (usize, [usize; 3], [usize; 3], bool) {
+         let [f, m, l] = positions(t, partial, k);
+-        let (slot, rows, wires, normal) = if task[f] & EMIT_MARK != 0 {
++        if task[f] & EMIT_MARK != 0 {
+             (
+                 (task[f] & !(EMIT_MARK | EMIT_NORMAL)) as usize,
+                 unpack_three(task[m]),
+@@ -430,10 +430,15 @@
+                 steps.map(|s| s.assignment.as_ref().unwrap().wire()),
+                 wire(&steps[2].expressions[0]) == Some(slot),
+             )
+-        };
+-        let square = x.square();
+-        let fourth = square.square();
+-        let fifth = fourth * x;
++        }
++    }
++
++    unsafe fn write_poseidon(
++        destination: (usize, [usize; 3], [usize; 3], bool),
++        [x, square, fourth, fifth]: [Fr; 4],
++        v: View,
++    ) {
++        let (slot, rows, wires, normal) = destination;
+         // Exact recognition proves these are precisely the original writes.
+         unsafe {
+             *v.w.add(slot) = x;
+@@ -452,8 +457,30 @@
+                 *v.c.add(rows[2]) = fifth;
+             }
+         }
++    }
++
++    #[inline]
++    unsafe fn emit_poseidon(&self, task: &[u32], t: usize, partial: usize, k: usize, x: Fr, v: View) -> Fr {
++        let square = x.square();
++        let fourth = square.square();
++        let fifth = fourth * x;
++        let destination = self.poseidon_destination(task, t, partial, k);
++        unsafe { Self::write_poseidon(destination, [x, square, fourth, fifth], v) };
+         fifth
+     }
++
++    #[cold]
++    unsafe fn replay_poseidon(&self, task: &[u32], source: &[u32], partial: usize, v: View) {
++        for k in 3..(7 * 3 + partial) {
++            let (slot, _, wires, _) = self.poseidon_destination(source, 3, partial, k);
++            let destination = self.poseidon_destination(task, 3, partial, k);
++            // Acquire of the publication mutex follows every source write.
++            // The single-writer certificate forbids subsequent writes.
++            let values = unsafe { [*v.w.add(slot), *v.w.add(wires[0]), *v.w.add(wires[1]), *v.w.add(wires[2])] };
++            unsafe { Self::write_poseidon(destination, values, v) };
++        }
++    }
++
+     unsafe fn run_poseidon(
+         &self,
+         task: &[u32],
+@@ -490,6 +517,20 @@
+                 }
+             }
+             *s = next;
++        }
++        let cache = if t == 3 {
++            // The cache and immutable task storage outlive all instruction workers.
++            unsafe { v.completed_poseidon.as_ref() }
++        } else {
++            None
++        };
++        let state = [s[0], s[1], s[2]];
++        let previous = cache.map(|cache| (cache, cache.index(&state)));
++        if let Some((cache, index)) = previous {
++            if let Some(entry) = cache.lookup(index, &state) {
++                unsafe { self.replay_poseidon(task, entry.task(), partial, v) };
++                return Ok(());
++            }
+         }
+         dense(&mut s, t, a, mds);
+         let mut k = t;
+@@ -537,6 +578,9 @@
+                 dense(&mut s, t, a, mds);
+             }
+         }
++        if let Some((cache, index)) = previous {
++            unsafe { cache.publish(index, state, task) };
++        }
+         Ok(())
+     }
+ }
+--- /dev/null
++++ b/crates/zopro-core/src/solver/sparse_poseidon/completed.rs
+@@ -0,0 +1,97 @@
++//! Borrow completed span outputs from the current proof's solution arrays.
++use super::{constants::parameters, Fr};
++use std::{
++    hash::BuildHasher,
++    sync::{
++        atomic::{AtomicUsize, Ordering},
++        Mutex, OnceLock,
++    },
++};
++
++const SLOTS: usize = 256;
++
++#[derive(Clone, Copy)]
++pub(super) struct Entry {
++    state: [Fr; 3],
++    task: *const u32,
++}
++
++// The pointer refers to immutable schedule storage owned by the Plan, which
++// outlives the cache and all workers. Only completed spans are published.
++unsafe impl Send for Entry {}
++
++pub(crate) struct CompletedSpans {
++    hash: ahash::RandomState,
++    slots: Vec<Mutex<Option<Entry>>>,
++    hits: Option<AtomicUsize>,
++    _memory: crate::preparation::Reservation,
++}
++
++pub(super) const fn span_len() -> usize {
++    // Width three has 57 partial rounds in the recognized permutation.
++    3 * (7 * 3 + 57)
++}
++
++impl CompletedSpans {
++    pub(crate) fn new() -> Option<Self> {
++        static ENABLED: OnceLock<bool> = OnceLock::new();
++        if !*ENABLED.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_POSEIDON_SOURCES").is_some()) {
++            return None;
++        }
++        debug_assert_eq!(span_len(), 3 * (7 * 3 + parameters(3).0));
++        let bytes = SLOTS * std::mem::size_of::<Mutex<Option<Entry>>>();
++        let memory = crate::preparation::Reservation::analysis(Some(bytes))?;
++        let mut slots = Vec::new();
++        slots.try_reserve_exact(SLOTS).ok()?;
++        slots.resize_with(SLOTS, || Mutex::new(None));
++        Some(Self {
++            hash: ahash::RandomState::new(),
++            slots,
++            hits: std::env::var_os("ZOPRO_TRIAL_POSEIDON_SOURCE_TRACE")
++                .map(|_| AtomicUsize::new(0)),
++            _memory: memory,
++        })
++    }
++
++    pub(super) fn index(&self, state: &[Fr; 3]) -> usize {
++        let words = state.map(|v| v.0);
++        self.hash.hash_one(words) as usize & (SLOTS - 1)
++    }
++
++    pub(super) fn lookup(&self, index: usize, state: &[Fr; 3]) -> Option<Entry> {
++        let entry = (*self.slots[index].try_lock().ok()?)?;
++        if &entry.state != state {
++            return None;
++        }
++        if let Some(hits) = &self.hits {
++            hits.fetch_add(1, Ordering::Relaxed);
++        }
++        Some(entry)
++    }
++
++    /// Caller has finished writing this recognized span into the single-writer
++    /// solution arrays. The task storage must belong to the enclosing Plan.
++    pub(super) unsafe fn publish(&self, index: usize, state: [Fr; 3], task: &[u32]) {
++        if let Ok(mut entry) = self.slots[index].try_lock() {
++            if entry.is_none() {
++                *entry = Some(Entry {
++                    state,
++                    task: task.as_ptr(),
++                });
++            }
++        }
++    }
++
++    pub(crate) fn report(&self) {
++        if let Some(hits) = &self.hits {
++            eprintln!("POSEIDON_SOURCE_REUSE {}", hits.load(Ordering::Relaxed));
++        }
++    }
++}
++
++impl Entry {
++    /// The caller is inside the same execution that owns the immutable schedule.
++    pub(super) unsafe fn task<'solve>(&self) -> &'solve [u32] {
++        unsafe { core::slice::from_raw_parts(self.task, span_len()) }
++    }
++}
+--- a/crates/zopro-core/src/solver/sparse_poseidon/tests.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon/tests.rs
+@@ -140,6 +140,7 @@
+     let mut b = a.clone();
+     let mut c = if materialize { a.clone() } else { Vec::new() };
+     let v = View {
++        completed_poseidon: core::ptr::null(),
+         w: w.as_mut_ptr(),
+         a: a.as_mut_ptr(),
+         b: b.as_mut_ptr(),
+@@ -323,3 +324,56 @@
+         assert_eq!(pack_three(v), None);
+     }
+ }
++
++#[test]
++fn completed_source_replay_writes_destination_addresses_and_orientation() {
++    let (partial, _) = parameters(3);
++    let n = 7 * 3 + partial;
++    let plan = fixture(3, n, &vec![Vec::new(); n], false);
++    let encode = |base: usize, normal: bool| {
++        let mut task = vec![0; 3 * n];
++        for k in 3..n {
++            // Source and destination occupy different ranges, with distinct
++            // mappings for temporary inputs, constraint rows and output wires.
++            let [f, m, l] = positions(3, partial, k);
++            task[f] = EMIT_MARK | if normal { EMIT_NORMAL } else { 0 } | (base + k) as u32;
++            task[m] = pack_three([base + 3 * k, base + 3 * k + 1, base + 3 * k + 2]).unwrap();
++            task[l] = pack_three([base + n + 3 * k, base + n + 3 * k + 1, base + n + 3 * k + 2]).unwrap();
++        }
++        task
++    };
++    let source = encode(0, true);
++    let destination = encode(4 * n, false);
++    for materialize in [false, true] {
++        let mut w = vec![Fr::ZERO; 8 * n];
++        let mut a = vec![Fr::ZERO; 7 * n];
++        let mut b = a.clone();
++        let mut c = a.clone();
++        let view = View {
++            w: w.as_mut_ptr(),
++            a: a.as_mut_ptr(),
++            b: b.as_mut_ptr(),
++            c: if materialize { c.as_mut_ptr() } else { core::ptr::null_mut() },
++            completed_poseidon: core::ptr::null(),
++        };
++        for k in 3..n {
++            let x = Fr::from(k as u64) - Fr::from(4u64);
++            unsafe { plan.emit_poseidon(&source, 3, partial, k, x, view) };
++        }
++        unsafe { plan.replay_poseidon(&destination, &source, partial, view) };
++        for k in 3..n {
++            let x = Fr::from(k as u64) - Fr::from(4u64);
++            let square = x * x;
++            let fourth = square * square;
++            let fifth = fourth * x;
++            let base = 4 * n;
++            let row = base + 3 * k;
++            let wire = base + n + 3 * k;
++            assert_eq!(w[base + k], x);
++            assert_eq!(w[wire..wire + 3], [square, fourth, fifth]);
++            assert_eq!(a[row..row + 3], [x, square, fourth]);
++            assert_eq!(b[row..row + 3], [x, square, x]);
++            assert_eq!(c[row..row + 3], if materialize { [square, fourth, fifth] } else { [Fr::ZERO; 3] });
++        }
++    }
++}
