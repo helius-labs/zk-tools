@@ -1,0 +1,327 @@
+--- /dev/null
++++ b/crates/zopro-core/src/curve_work.rs
+@@ -0,0 +1,70 @@
++//! Operation accounting for one diagnostic proof at a time.
++use std::sync::atomic::{AtomicBool, AtomicU64, Ordering::Relaxed};
++
++static CAPTURE: AtomicBool = AtomicBool::new(false);
++static METRICS: [AtomicU64; 24] = [const { AtomicU64::new(0) }; 24];
++
++pub(crate) fn begin() {
++    assert!(!CAPTURE.swap(true, Relaxed));
++    assert!(METRICS.iter().all(|m| m.load(Relaxed)==0));
++}
++
++pub(crate) fn end() {
++    assert!(CAPTURE.swap(false, Relaxed));
++    let values=METRICS.iter().map(|m| m.swap(0, Relaxed).to_string()).collect::<Vec<_>>();
++    eprintln!("ZP896_COUNTS {}", values.join(" "));
++}
++
++fn record<const N: usize>(offset: usize, values: [usize; N]) {
++    if CAPTURE.load(Relaxed) {
++        for (count, add) in METRICS[offset..offset+N].iter().zip(values) {
++            count.fetch_add(add as u64, Relaxed);
++        }
++    }
++}
++
++#[derive(Default)]
++pub(crate) struct Window {
++    pub(crate) terms: usize,
++    pub(crate) first: usize,
++    pub(crate) equal: usize,
++    pub(crate) opposite: usize,
++    pub(crate) spills: usize,
++    pub(crate) projective_adds: usize,
++    pub(crate) updates: usize,
++    pub(crate) batches: usize,
++    pub(crate) tails: usize,
++}
++
++impl Window {
++    pub(crate) fn batch(&mut self, n: usize) {
++        self.updates += n;
++        self.batches += 1;
++        self.tails += n % 8;
++    }
++
++    pub(crate) fn finish(&self, affine: usize, projective: usize) {
++        record(0, [1, affine, self.terms, self.first, self.equal, self.opposite, self.spills,
++                   self.projective_adds, self.updates, self.batches, self.tails, projective]);
++    }
++}
++
++pub(crate) fn merge(pairs: usize, exceptional: usize) {
++    record(12, [pairs, exceptional]);
++}
++
++pub(crate) fn tree_layer(pairs: usize, full: usize) {
++    record(14, [1, pairs, pairs-full]);
++}
++
++pub(crate) fn weighted(buckets: usize) {
++    record(17, [1, buckets]);
++}
++
++pub(crate) fn index(input: usize) {
++    record(19, [1, input]);
++}
++
++pub(crate) fn grouping(input: usize, terms: usize, classes: usize) {
++    record(21, [input, terms, classes]);
++}
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -37,6 +37,13 @@
+ #[cfg(test)]
+ mod testing;
+ pub mod verify;
++mod curve_work;
++
++#[doc(hidden)]
++pub fn begin_curve_work_capture() { curve_work::begin(); }
++
++#[doc(hidden)]
++pub fn end_curve_work_capture() { curve_work::end(); }
+ #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+ mod four_by_two_probe;
+ 
+--- a/crates/zopro-core/src/four_by_two_probe.rs
++++ b/crates/zopro-core/src/four_by_two_probe.rs
+@@ -25,6 +25,10 @@
+         static MODE: OnceLock<Option<String>> = OnceLock::new();
+         match MODE.get_or_init(|| std::env::var("ZOPRO_891_REPLAY").ok()).as_deref() {
+             Some("all") => true,
++            Some("only-a") => !matches!(self, Self::A),
++            Some("only-k") => !matches!(self, Self::K),
++            Some("only-h") => !matches!(self, Self::H),
++            Some("only-b2") => !matches!(self, Self::B2),
+             Some("kh") => matches!(self, Self::K | Self::H),
+             Some("a") => matches!(self, Self::A),
+             Some("b2") => matches!(self, Self::B2),
+--- a/crates/zopro-bench/examples/cpu-sdk.rs
++++ b/crates/zopro-bench/examples/cpu-sdk.rs
+@@ -103,9 +103,16 @@
+     let pool_before = pool_counters.as_ref().map(placement::PoolCpu::snapshot).transpose()?;
+     let before = perf::Usage::now()?;
+     let loop_started = Instant::now();
++    let capture = std::env::var_os("ZOPRO_896_CENSUS").is_some();
+     for _ in 0..rounds {
++        if capture {
++            zopro_prover::zopro_core::begin_curve_work_capture();
++        }
+         let started = Instant::now();
+         let proof = sdk.prove(&request)?;
++        if capture {
++            zopro_prover::zopro_core::end_curve_work_capture();
++        }
+         samples.push(started.elapsed().as_secs_f64() * 1000.0);
+         last = Some(proof);
+     }
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -161,6 +161,7 @@
+     C::Base: BatchInverse,
+ {
+     assert_eq!(bases.len(), groups.len, "validated MSM dimensions");
++    crate::curve_work::grouping(bases.len(), groups.order.len(), groups.values.len());
+     let bases = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
+     msm_raw(&bases, &groups.values)
+ }
+@@ -546,6 +547,7 @@
+         if digit == 0 || base.is_identity() {
+             continue;
+         }
++        w.work.terms += 1;
+         debug_assert!(!POSITIVE || digit >= 0);
+         let bucket = if POSITIVE {
+             digit as usize - 1
+@@ -596,6 +598,7 @@
+     {
+         w.affine[i] = point;
+     }
++    w.work.finish(w.affine.len(), w.projective.len());
+     w.affine
+ }
+ 
+@@ -609,16 +612,19 @@
+         .zip(right.par_chunks(512))
+         .for_each(|(left, right)| {
+             let mut pairs = Vec::with_capacity(left.len());
++            let mut exceptional = 0;
+             for (i, (a, &b)) in left.iter_mut().zip(right).enumerate() {
+                 if a.is_identity() {
+                     *a = b;
+                 } else if b.is_identity() {
+                 } else if a.x == b.x {
++                    exceptional += 1;
+                     *a = (*a + b).to_affine();
+                 } else {
+                     pairs.push((i as u32, b));
+                 }
+             }
++            crate::curve_work::merge(pairs.len(), exceptional);
+             if !pairs.is_empty() {
+                 BatchAdd::<C>::default().apply(left, &pairs);
+             }
+@@ -785,6 +791,7 @@
+     packed: BatchAdd<C>,
+     use_packed: bool,
+     defer_sign: bool,
++    work: crate::curve_work::Window,
+ }
+ 
+ impl<C: CurveConfig> Window<C>
+@@ -805,6 +812,7 @@
+             packed: BatchAdd::default(),
+             use_packed: crate::simd::cpu_option("ZOPRO_CPU_PACKED"),
+             defer_sign: false,
++            work: Default::default(),
+         }
+     }
+ 
+@@ -825,14 +833,17 @@
+         let negative=encoded>>31!=0;
+         let current = &mut self.affine[bucket];
+         if current.is_identity() {
++            self.work.first += 1;
+             *current = if negative {-point}else{point};
+             return;
+         }
+         if current.x == point.x {
+             let point=if negative {-point}else{point};
+             if current.y == point.y {
++                self.work.equal += 1;
+                 self.add_projective(bucket, point);
+             } else {
++                self.work.opposite += 1;
+                 *current = Affine::<C>::IDENTITY;
+             }
+             return;
+@@ -850,6 +861,7 @@
+             self.projective_buckets.push(bucket);
+             self.projective.push(point.to_projective());
+         } else {
++            self.work.projective_adds += 1;
+             self.projective[index as usize] += point;
+         }
+     }
+@@ -860,6 +872,7 @@
+         if self.batch.is_empty() {
+             return;
+         }
++        self.work.batch(self.batch.len());
+         if self.defer_sign && self.use_packed {
+             self.packed.apply_signed(&mut self.affine,&self.batch);
+             for (index,_)in &self.batch {self.busy[(index&0x7fffffff)as usize/64]=0;}
+@@ -914,6 +927,7 @@
+ 
+     /// The queue's points into the projective buckets, unbatched.
+     fn flush_queue(&mut self) {
++        self.work.spills += self.queue.len();
+         for i in 0..self.queue.len() {
+             let (bucket, point) = self.queue[i];
+             self.add_projective((bucket&0x7fffffff)as usize, if bucket>>31!=0{-point}else{point});
+--- a/crates/zopro-core/src/msm_affine/borrowed_pending.rs
++++ b/crates/zopro-core/src/msm_affine/borrowed_pending.rs
+@@ -28,6 +28,7 @@
+     batch: Vec<(u32, &'a Affine<C>)>,
+     queue: Vec<(u32, &'a Affine<C>)>,
+     packed: BatchAdd<C>,
++    work: crate::curve_work::Window,
+ }
+ impl<'a, C: CurveConfig<Base = Fq>> Window<'a, C> {
+     fn new(half: usize, size: usize) -> Self {
+@@ -40,6 +41,7 @@
+             batch: Vec::with_capacity(size),
+             queue: Vec::with_capacity(size),
+             packed: BatchAdd::default(),
++            work: Default::default(),
+         }
+     }
+     #[inline(always)]
+@@ -53,6 +55,7 @@
+             self.projective_buckets.push(bucket);
+             self.projective.push(point.to_projective());
+         } else {
++            self.work.projective_adds += 1;
+             self.projective[index as usize] += point;
+         }
+     }
+@@ -62,14 +65,17 @@
+         let negative = encoded >> 31 != 0;
+         let current = &mut self.affine[bucket];
+         if current.is_identity() {
++            self.work.first += 1;
+             *current = if negative { -*point } else { *point };
+             return;
+         }
+         if current.x == point.x {
+             let signed = if negative { -*point } else { *point };
+             if current.y == signed.y {
++                self.work.equal += 1;
+                 self.projective(bucket, signed);
+             } else {
++                self.work.opposite += 1;
+                 *current = Affine::<C>::IDENTITY;
+             }
+             return;
+@@ -81,6 +87,7 @@
+         if self.batch.is_empty() {
+             return;
+         }
++        self.work.batch(self.batch.len());
+         self.packed
+             .apply_signed_borrowed(&mut self.affine, &self.batch);
+         #[cfg(zopro_dense_busy_reset)]
+@@ -107,6 +114,7 @@
+         }
+     }
+     fn flush_queue(&mut self) {
++        self.work.spills += self.queue.len();
+         for i in 0..self.queue.len() {
+             let (encoded, point) = self.queue[i];
+             self.projective(
+@@ -129,6 +137,7 @@
+             if d == 0 || point.is_identity() {
+                 continue;
+             }
++            self.work.terms += 1;
+             let bucket = d.unsigned_abs() as usize - 1;
+             let encoded = bucket as u32 | if d < 0 { 1 << 31 } else { 0 };
+             if self.busy(bucket) {
+@@ -160,6 +169,7 @@
+         {
+             self.affine[i] = p;
+         }
++        self.work.finish(self.affine.len(), self.projective.len());
+         self.affine
+     }
+ }
+--- a/crates/zopro-core/src/msm.rs
++++ b/crates/zopro-core/src/msm.rs
+@@ -278,6 +278,7 @@
+ where
+     C::Base: BatchInverse,
+ {
++    crate::curve_work::index(order.len());
+     #[cfg(zopro_indexed_tile_bundles)]
+     if crate::simd::cpu_option("ZOPRO_CPU_INDEXED_TILE_BUNDLES") {
+         if let Some(out)=indexed_tiles::try_reduce::<C>(bases,order,starts){return out;}
+@@ -318,6 +319,7 @@
+ where
+     C::Base: BatchInverse,
+ {
++    crate::curve_work::weighted(buckets.len());
+     #[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+     if let Some(result)=paired_weighted::try_weighted(buckets){return result;}
+     const GROUP: usize = 256;
+@@ -487,6 +489,7 @@
+     let m = s.pairs.len();
+     let use_prefix = F::<C>::TREE_PREFIX && m >= 32;
+     let full = m / LANES * LANES;
++    crate::curve_work::tree_layer(m, full);
+     s.groups.clear();
+     if !use_prefix {s.groups.reserve_exact(full / LANES);}
+ 

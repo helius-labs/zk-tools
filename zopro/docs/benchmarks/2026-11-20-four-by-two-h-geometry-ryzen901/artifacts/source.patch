@@ -1,0 +1,210 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -196,6 +196,10 @@
+ }
+ 
+ #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++#[path = "msm_affine/h_flex_trial.rs"]
++mod h_flex_trial;
++
++#[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+ pub(super) fn try_h_window_layout(
+     bases: &[zopro_bn254::G1Affine],
+     scalars: &mut [Fr],
+@@ -211,6 +215,17 @@
+     let (unsigned_bits, ordinary_parts) = unsigned_geometry::<zopro_bn254::G1Config>(n);
+     if unsigned_bits != 12 || ordinary_parts != 2 {
+         return None;
++    }
++    if let Some(layout) = h_flex_trial::Layout::from_name(mode) {
++        let bytes = workspace::h_flex_trial(layout.widths, layout.signed, workers)?;
++        let _scratch = crate::preparation::Reservation::analysis(Some(bytes))?;
++        if let Some(groups) = group_witness(scalars) {
++            return Some(msm_grouped(bases, &groups));
++        }
++        if std::env::var_os("ZOPRO_897_TRACE").is_some() {
++            eprintln!("ZP901_LAYOUT {mode} {n} {} {} {bytes}", layout.widths.len(), layout.signed);
++        }
++        return Some(h_flex_trial::evaluate(bases, canonical(scalars), layout));
+     }
+     let (width, signed, parts) = match mode {
+         "unsigned12" => (12, false, 2),
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -198,6 +198,20 @@
+     let windows = (Fr::MODULUS_BITS as usize + usize::from(signed)).div_ceil(bits);
+     let ordered = vector::<Option<Projective<G1Config>>>(windows, false)?;
+     add(add(profile.held, ordered)?, mul(profile.leaf, add(main, front)?)?)
++}
++
++/// Complete two-range scratch forecast for the selected H geometry.
++pub(super) fn h_flex_trial(widths: &[usize], signed: bool, workers: usize) -> Option<usize> {
++    let mut held = vector::<Projective<G1Config>>(widths.len(), false)?;
++    let mut leaf = 0;
++    for &bits in widths {
++        let magnitude = bits.checked_sub(usize::from(signed))?;
++        let slots = 1usize.checked_shl(magnitude as u32)?;
++        let profile = shape::<G1Config>(slots, 1, 2, batch_size(magnitude + 1).max(32))?;
++        held = add(held, profile.held)?;
++        leaf = leaf.max(profile.leaf);
++    }
++    add(held, mul(leaf, workers)?)
+ }
+ 
+ /// Extra positive growth over the ordinary raw H query at this worker count.
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/h_flex_trial.rs
+@@ -0,0 +1,153 @@
++use super::{affine_buckets, batch_size, fill_window, fill_window_impl, merge_buckets};
++use rayon::prelude::*;
++use zopro_bn254::{Fr, G1Affine, G1Config, G1Projective};
++
++pub(super) struct Layout {
++    pub(super) widths: &'static [usize],
++    pub(super) signed: bool,
++}
++
++impl Layout {
++    pub(super) fn from_name(name: &str) -> Option<Self> {
++        // Two unsigned ways to cover exactly 254 bits in 21 passes.
++        const MERGED_TOP: [usize; 21] = [
++            12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 14,
++        ];
++        const REBALANCED_TOP: [usize; 21] = [
++            12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13,
++        ];
++        // Eight wider and eleven narrower windows, with a final sign overlap.
++        const MIXED_SIGNED: [usize; 19] = [
++            14, 13, 14, 13, 13, 14, 13, 14, 13, 13, 14, 13, 14, 13, 13, 14, 13, 14, 13,
++        ];
++        let (widths, signed): (&[usize], _) = match name {
++            "merged-top" => (&MERGED_TOP, false),
++            "rebalanced-top" => (&REBALANCED_TOP, false),
++            "mixed-signed" => (&MIXED_SIGNED, true),
++            _ => return None,
++        };
++        Some(Self { widths, signed })
++    }
++}
++
++#[inline(always)]
++fn bits(words: &[u64; 4], offset: usize, width: usize) -> u64 {
++    let limb = offset / 64;
++    let shift = offset % 64;
++    let mut value = words[limb] >> shift;
++    if shift + width > 64 {
++        value |= words[limb + 1] << (64 - shift);
++    }
++    value & ((1 << width) - 1)
++}
++
++#[inline(always)]
++fn booth(words: &[u64; 4], offset: usize, width: usize) -> i16 {
++    let value = if offset == 0 {
++        bits(words, offset, width) << 1
++    } else {
++        bits(words, offset - 1, width + 1)
++    };
++    (((value + 1) >> 1) as i64 - ((value >> width) << width) as i64) as i16
++}
++
++#[inline(never)]
++fn evaluate_impl<const SIGNED: bool>(
++    bases: &[G1Affine],
++    scalars: &[[u64; 4]],
++    widths: &[usize],
++) -> G1Projective {
++    assert_eq!(bases.len(), scalars.len());
++    let mut windows = [(0usize, 0usize); 21];
++    let mut width_total = 0;
++    for ((offset, width), &bits) in windows.iter_mut().zip(widths) {
++        *offset = width_total;
++        *width = bits;
++        width_total += bits;
++    }
++    assert_eq!(width_total, Fr::MODULUS_BITS as usize + usize::from(SIGNED));
++    let middle = bases.len().div_ceil(2);
++    let sums: Vec<_> = windows[..widths.len()]
++        .par_iter()
++        .map(|&(offset, width)| {
++            let fill = |p: &[G1Affine], w: &[[u64; 4]]| {
++                if SIGNED {
++                    let digits = w.iter().map(|s| booth(s, offset, width));
++                    affine_buckets(fill_window(p, digits, width, batch_size(width).max(32)))
++                } else {
++                    let digits = w.iter().map(|s| bits(s, offset, width) as i16);
++                    affine_buckets(fill_window_impl::<G1Config, false, true>(
++                        p,
++                        digits,
++                        width + 1,
++                        batch_size(width + 1).max(32),
++                    ))
++                }
++            };
++            let (mut a, b) = rayon::join(
++                || fill(&bases[..middle], &scalars[..middle]),
++                || fill(&bases[middle..], &scalars[middle..]),
++            );
++            merge_buckets(&mut a, &b);
++            crate::msm::weighted_affine(&a)
++        })
++        .collect();
++    let mut sum = *sums.last().unwrap();
++    for (i, &width) in widths[..widths.len() - 1].iter().enumerate().rev() {
++        for _ in 0..width {
++            sum = sum.double();
++        }
++        sum += sums[i];
++    }
++    sum
++}
++
++pub(super) fn evaluate(bases: &[G1Affine], words: &[[u64; 4]], layout: Layout) -> G1Projective {
++    if layout.signed {
++        evaluate_impl::<true>(bases, words, layout.widths)
++    } else {
++        evaluate_impl::<false>(bases, words, layout.widths)
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn h_trial_matches_independent_scalar_oracle() {
++        let mut bases = Vec::new();
++        let mut scalars = Vec::new();
++        let mut reference = Fr::ZERO;
++        let mut state = 0xa45425b636bce480u64;
++        for i in 0..269u64 {
++            let raw: [u8; 64] = std::array::from_fn(|_| {
++                state ^= state << 13;
++                state ^= state >> 7;
++                state ^= state << 17;
++                state as u8
++            });
++            let value = match i % 13 {
++                0 => Fr::ZERO,
++                1 => -Fr::ONE,
++                2 => Fr::from(2u64).pow(&[i % 254]),
++                3 => -Fr::from(2u64).pow(&[i % 254]),
++                _ => Fr::from_random_bytes(&raw),
++            };
++            let generator_scalar = match i % 5 {
++                0 => Fr::ZERO,
++                1 => -Fr::from(i + 1),
++                2 => Fr::ONE,
++                _ => Fr::from(i + 1),
++            };
++            bases.push((G1Affine::GENERATOR * generator_scalar).to_affine());
++            scalars.push(value.to_canonical());
++            reference += generator_scalar * value;
++        }
++        let oracle = (G1Affine::GENERATOR * reference).to_affine();
++        for mode in ["merged-top", "rebalanced-top", "mixed-signed"] {
++            let layout = Layout::from_name(mode).unwrap();
++            assert_eq!(evaluate(&bases, &scalars, layout).to_affine(), oracle);
++        }
++    }
++}
