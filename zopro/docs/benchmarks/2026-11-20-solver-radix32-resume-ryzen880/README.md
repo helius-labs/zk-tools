@@ -8,6 +8,8 @@ The Ryzen pools use 24 main and eight frontend logical CPUs. Timed arms prime th
 
 Early staging did not consistently improve all three required controls across all four inputs.
 
+The same-build ordinary control was 4.70–6.27% slower than release in the paired comparisons. Early versus late estimates the placement effect within the trial binary. The comparison against release combines the placement effect with the shift in the ordinary control.
+
 | Input | Mode | Proof ms | Paired vs ordinary | Paired vs release | Paired vs pilot | Paired vs late | CPU ms / proof | Minor faults / proof | Peak MiB |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | catalog | release | 13.565 | -5.90% (8/8) | +0.00% (0/8) | -2.16% (8/8) | -5.91% (8/8) | 292.1 | 920 | 201.8 |
