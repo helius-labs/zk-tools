@@ -102,6 +102,8 @@ The primary request is the original benchmark input. The held-out request uses a
 
 The faster prover column compares the two displayed medians of warm timing blocks. On the 5×2 primary request, Aeglos led by 0.142 ms and each prover won two of the four blocks. Across the full scorecard, comparing the block-by-block ratios gave Zopro a lower paired median on both requests for all 41 shapes. Zopro won every timed block on both requests for 34 shapes.
 
+The 1×16 profile peaks below 1×8 because it uses a fused K/H calculation. On 1×16, keeping the worker settings fixed and replacing the two separate G1 sums with one shared bucket set brought primary peak memory from 165.2 MiB to 91.0 MiB. The 1×8 row uses a different profile. [Matched 1×16 measurements](../2026-11-20-geometry-placement-c7a1027/README.md)
+
 The original 41-shape run and the later follow-ups used different Zopro profiles. The CSV and JSON include paired percentages and win counts. The benchmark runs linked in the table include the raw timing blocks. [Original full-catalog baseline](../2026-11-20-all-shapes-c7a979/README.md) · [Earlier 5×2 confirmation](../2026-11-19-equal-core-scorecard707/README.md)
 
 [Download CSV](artifacts/scorecard.csv) · [Scorecard JSON](artifacts/scorecard.json) · [Concurrent proof benchmark](../2026-11-20-c7a-concurrent-proofs/README.md) · [M5 reference comparisons](../2026-11-20-geometry-placement-c7a1027/README.md#all-eight-supplied-m5-references)
