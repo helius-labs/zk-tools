@@ -1,0 +1,138 @@
+--- a/crates/zopro-core/src/msm/g2_borrowed.rs
++++ b/crates/zopro-core/src/msm/g2_borrowed.rs
+@@ -1,6 +1,56 @@
+ //! Signed borrowed G2 prefix, retaining accepted arithmetic and scratch.
+ use super::*;
++
++#[cfg(target_arch = "x86_64")]
++fn prefetch_distance() -> usize {
++    static CONFIG: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
++    *CONFIG.get_or_init(|| {
++        let distance = match std::env::var("ZOPRO_906_G2_PREFETCH").as_deref() {
++            Ok("one") => 1,
++            Ok("two") => 2,
++            _ => 0,
++        };
++        if std::env::var_os("ZOPRO_906_TRACE").is_some() {
++            eprintln!("ZP906_PREFETCH {distance}");
++        }
++        distance
++    })
++}
++
++#[cfg(target_arch = "x86_64")]
++#[inline(always)]
++fn prefetch_points<C: CurveConfig<Base = Fq2>, const XY: bool>(
++    buckets: &[Affine<C>],
++    group: &[(u32, &Affine<C>)],
++) {
++    use std::arch::x86_64::{_MM_HINT_T0, _mm_prefetch};
++
++    for &(encoded, incoming) in group {
++        for point in [&buckets[(encoded & 0x7fffffff) as usize], incoming] {
++            let x = std::ptr::addr_of!(point.x).cast::<i8>();
++            let y = std::ptr::addr_of!(point.y).cast::<i8>();
++            // SAFETY: Both references come from admissible batch entries.
++            // Each coordinate contains two 32-byte field elements.
++            unsafe {
++                _mm_prefetch::<_MM_HINT_T0>(x);
++                _mm_prefetch::<_MM_HINT_T0>(x.add(63));
++                if XY {
++                    _mm_prefetch::<_MM_HINT_T0>(y.add(63));
++                }
++            }
++        }
++    }
++}
++
+ pub(super) fn apply<C: CurveConfig<Base = Fq2>, const FAST: bool>(
++    buckets: &mut [Affine<C>],
++    batch: &[(u32, &Affine<C>)],
++    s: &mut Fq2AddScratch,
++) {
++    apply_impl::<C, FAST, 0>(buckets, batch, s);
++}
++
++fn apply_impl<C: CurveConfig<Base = Fq2>, const FAST: bool, const DISTANCE: usize>(
+     buckets: &mut [Affine<C>],
+     batch: &[(u32, &Affine<C>)],
+     s: &mut Fq2AddScratch,
+@@ -10,6 +60,13 @@
+     s.prefix_records.clear();
+     s.prefix_records.reserve(full / LANES);
+     for k in (0..full).step_by(LANES) {
++        #[cfg(target_arch = "x86_64")]
++        if DISTANCE != 0 {
++            let next = k + DISTANCE * LANES;
++            if next < full {
++                prefetch_points::<C, false>(buckets, &batch[next..next + LANES]);
++            }
++        }
+         let ax = fq2_pack(core::array::from_fn(|i| {
+             buckets[(batch[k + i].0 & 0x7fffffff) as usize].x
+         }));
+@@ -49,6 +106,11 @@
+             prefix_tail_inverse(FqBatch::new(&inverse),full)
+         };
+     for j in (0..full / LANES).rev() {
++        #[cfg(target_arch = "x86_64")]
++        if DISTANCE != 0 && j >= DISTANCE {
++            let next = (j - DISTANCE) * LANES;
++            prefetch_points::<C, true>(buckets, &batch[next..next + LANES]);
++        }
+         let k = j * LANES;
+         let a: [Affine<C>; LANES] =
+             core::array::from_fn(|i| buckets[(batch[k + i].0 & 0x7fffffff) as usize]);
+@@ -97,6 +159,12 @@
+         batch: &[(u32, &Affine<C>)],
+     ) {
+         if self.direct && self.fq2.canonical && self.fq2.vector_inverse && self.fq2.prefix_enabled {
++            #[cfg(target_arch = "x86_64")]
++            match prefetch_distance() {
++                1 => return apply_impl::<C, true, 1>(buckets, batch, &mut self.fq2),
++                2 => return apply_impl::<C, true, 2>(buckets, batch, &mut self.fq2),
++                _ => {}
++            }
+             return apply::<C, true>(buckets, batch, &mut self.fq2);
+         }
+         let owned: Vec<_> = batch
+@@ -110,6 +178,39 @@
+ mod tests {
+     use super::*;
+     use zopro_bn254::G2Config;
++    #[cfg(target_arch = "x86_64")]
++    #[test]
++    fn prefetch_distances_preserve_bucket_outputs() {
++        let g = Projective::<G2Config>::generator();
++        let points = |offset| {
++            Projective::<G2Config>::batch_to_affine(
++                &(0..384).map(|i| g * Fr::from(offset + 17 * i)).collect::<Vec<_>>(),
++            )
++        };
++        let initial = points(12345u64);
++        let incoming = points(3_000_001u64);
++        for length in [0, 7, 8, 15, 16, 17, 24, 31, 63, 200, 352, 383] {
++            let batch = incoming[..length]
++                .iter()
++                .enumerate()
++                .rev()
++                .map(|(i, p)| ((i as u32) | if i % 3 == 1 { 1 << 31 } else { 0 }, p))
++                .collect::<Vec<_>>();
++            let mut expected = initial.clone();
++            let mut ahead_one = initial.clone();
++            let mut ahead_two = initial.clone();
++            let make = || Fq2AddScratch { canonical: true, vector_inverse: true, ..Default::default() };
++            let (mut first, mut second, mut third) = (make(), make(), make());
++            for _ in 0..3 {
++                apply_impl::<G2Config, true, 0>(&mut expected, &batch, &mut first);
++                apply_impl::<G2Config, true, 1>(&mut ahead_one, &batch, &mut second);
++                apply_impl::<G2Config, true, 2>(&mut ahead_two, &batch, &mut third);
++                assert_eq!(ahead_one, expected);
++                assert_eq!(ahead_two, expected);
++            }
++        }
++    }
++
+     #[test]
+     fn signed_borrowed_prefix_tails_and_reuse() {
+         let g = Projective::<G2Config>::generator();
