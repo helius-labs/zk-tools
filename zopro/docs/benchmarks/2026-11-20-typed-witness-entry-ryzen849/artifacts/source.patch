@@ -1,0 +1,195 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -859,6 +859,39 @@
+     #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+     lagrange: Option<lagrange::Queries>,
+ }
++#[derive(Clone, Copy)]
++enum SolverWitness<'a> {
++    Encoded(&'a [u8]),
++    Fields(&'a [Fr]),
++}
++
++impl<'a> SolverWitness<'a> {
++    fn fields(self) -> Result<std::borrow::Cow<'a, [Fr]>, String> {
++        match self {
++            Self::Encoded(bytes) if bytes.len().is_multiple_of(32) => {
++                Ok(std::borrow::Cow::Owned(frs(bytes)))
++            }
++            Self::Encoded(_) => Err("invalid witness encoding".into()),
++            Self::Fields(fields) => Ok(std::borrow::Cow::Borrowed(fields)),
++        }
++    }
++}
++
++#[cfg(test)]
++#[test]
++fn solver_witness_borrows_montgomery_fields_and_checks_byte_boundary() {
++    use std::borrow::Cow;
++
++    let fields = [Fr::ZERO, Fr::ONE, -Fr::ONE, Fr::from_u64(753)];
++    let bytes: Vec<_> = fields.iter().flat_map(|f| f.0.iter().flat_map(|x| x.to_le_bytes())).collect();
++    let borrowed = SolverWitness::Fields(&fields).fields().unwrap();
++    assert!(matches!(borrowed, Cow::Borrowed(slice) if slice.as_ptr()==fields.as_ptr()));
++    let decoded = SolverWitness::Encoded(&bytes).fields().unwrap();
++    assert!(matches!(decoded, Cow::Owned(values) if values == fields));
++    assert_eq!(SolverWitness::Encoded(&bytes[..bytes.len()-1]).fields().unwrap_err(),
++               "invalid witness encoding");
++}
++
+ #[wasm_bindgen]
+ impl Key {
+     #[wasm_bindgen(constructor)]
+@@ -1101,9 +1134,9 @@
+     }
+     /// `solve_parts` for hosts outside JavaScript, with a plain error.
+     pub fn solve(&self, witness: &[u8]) -> Result<Vec<u8>, String> {
+-        self.solve_inner(witness, false)
+-    }
+-    fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<Vec<u8>, String> {
++        self.solve_inner(SolverWitness::Encoded(witness), false)
++    }
++    fn solve_inner(&self, witness: SolverWitness<'_>, omit_b: bool) -> Result<Vec<u8>, String> {
+         #[cfg(all(zopro_small_core_entry, zopro_real_kh, target_arch="x86_64",
+             target_os="linux", target_feature="avx512ifma", target_feature="avx512vl",
+             target_feature="avx512dq", feature="ifma8", not(no_ifma)))]
+@@ -1126,10 +1159,8 @@
+         }
+         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
+         let plan = self.solver.as_ref().ok_or("no prepared solver")?;
+-        if !witness.len().is_multiple_of(32) {
+-            return Err("invalid witness encoding".into());
+-        }
+         let started = crate::time::Instant::now();
++        let witness = witness.fields()?;
+         let slots: &[usize] = &[];
+         #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+         let slots = self
+@@ -1146,7 +1177,7 @@
+         if self.canonical_wires && !self.has_gpu() && affine_msm() && self.equal_witness.is_none() {
+             if let Some(queries)=&self.lagrange {
+                 if let Some(folded)=&queries.folded {
+-                    return self.solve_canonical_wires(plan,&frs(witness),materialize_c,queries,folded,omit_b,_reclaim.as_ref());
++                    return self.solve_canonical_wires(plan,&witness,materialize_c,queries,folded,omit_b,_reclaim.as_ref());
+                 }
+             }
+         }
+@@ -1159,7 +1190,7 @@
+         #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+         let instruction_pool = None;
+         let solver::Solution { mut w, a, b, c } = plan.solve_with_pool(
+-            &frs(witness), self.domain, slots, materialize_c, instruction_pool,
++            &witness, self.domain, slots, materialize_c, instruction_pool,
+         )?;
+         if let Some(scope) = &_reclaim { scope.release_unused(&mut w); }
+         let started = trace("solve", started);
+@@ -2484,6 +2515,14 @@
+         witness: &[u8],
+         fixed: &groth16::PreparedFixedPoints,
+     ) -> Result<Vec<u8>, String> {
++        self.solve_rerandomized_inner(SolverWitness::Encoded(witness), fixed)
++    }
++
++    fn solve_rerandomized_inner(
++        &self,
++        witness: SolverWitness<'_>,
++        fixed: &groth16::PreparedFixedPoints,
++    ) -> Result<Vec<u8>, String> {
+         if self.has_gpu() {
+             return Err("randomized solving requires the CPU".into());
+         }
+@@ -2587,11 +2626,28 @@
+     /// Generate a fresh CPU proof. Point decoding retains all checks except a
+     /// subgroup check certified from this key's exact immutable G2 population.
+     pub fn solve_rerandomized_output(&self,witness:&[u8],fixed:&groth16::PreparedFixedPoints)->Result<generated_proof::GeneratedProof,String>{
++        self.generated_cpu_proof(SolverWitness::Encoded(witness), fixed)
++    }
++
++    /// Generate a fresh CPU proof from witness elements already in Montgomery form.
++    pub fn solve_rerandomized_fields(
++        &self,
++        witness: &[Fr],
++        fixed: &groth16::PreparedFixedPoints,
++    ) -> Result<generated_proof::GeneratedProof, String> {
++        self.generated_cpu_proof(SolverWitness::Fields(witness), fixed)
++    }
++
++    fn generated_cpu_proof(
++        &self,
++        witness: SolverWitness<'_>,
++        fixed: &groth16::PreparedFixedPoints,
++    ) -> Result<generated_proof::GeneratedProof, String> {
+         let eligible=false;
+         #[cfg(all(target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",feature="ifma8",not(no_ifma)))]
+         let eligible=!self.has_gpu()&&self.b2.len()<65536&&std::env::var("ZOPRO_BENCH_CERTIFIED_OUTPUT").as_deref()==Ok("1");
+         let certified=eligible&&self.generated_g2.check(&self.b2,false)&&fixed.generated_g2_certified();
+-        Ok(generated_proof::GeneratedProof::new(self.solve_rerandomized(witness,fixed)?,certified))
++        Ok(generated_proof::GeneratedProof::new(self.solve_rerandomized_inner(witness,fixed)?,certified))
+     }
+ }
+ 
+--- a/crates/zopro-prover/src/lib.rs
++++ b/crates/zopro-prover/src/lib.rs
+@@ -252,7 +252,10 @@
+     /// is returned; a GPU proof that fails, or fails to verify, is proved
+     /// again on the CPU, and the GPU is let go.
+     pub fn prove(&mut self, witness: &[Fr]) -> Result<Proved, Error> {
+-        let encoded = self.encode(witness)?;
++        self.check_witness_len(witness)?;
++        static FIELDS: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++        let fields = *FIELDS.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_TYPED_WITNESS").is_some());
++        let mut encoded = (!fields).then(|| witness::encode(witness));
+         loop {
+             if !self.key.has_gpu() {
+                 let started = zopro_core::time::Instant::now();
+@@ -260,8 +263,14 @@
+                 let mut prove_ms = 0;
+                 let mut verify_started = started;
+                 let mut generate = || {
+-                    let raw = self.key.solve_rerandomized_output(&encoded, &self.fixed)
+-                        .map_err(Error::Prove)?;
++                    let raw = if fields {
++                        if std::env::var_os("ZOPRO_TRIAL_TYPED_WITNESS_TRACE").is_some() {
++                            eprintln!("TYPED_WITNESS {}", witness.len());
++                        }
++                        self.key.solve_rerandomized_fields(witness, &self.fixed)
++                    } else {
++                        self.key.solve_rerandomized_output(encoded.as_deref().unwrap(), &self.fixed)
++                    }.map_err(Error::Prove)?;
+                     prove_ms = started.elapsed().as_millis() as u64;
+                     verify_started = zopro_core::time::Instant::now();
+                     raw.into_proof().map_err(|_| Error::Unverified)
+@@ -286,8 +295,9 @@
+                     verify_ms: verify_started.elapsed().as_millis() as u64,
+                 });
+             }
++            let encoded = encoded.get_or_insert_with(|| witness::encode(witness));
+             let started = zopro_core::time::Instant::now();
+-            let parts = match self.key.solve(&encoded) {
++            let parts = match self.key.solve(encoded) {
+                 Ok(parts) => parts,
+                 Err(error) if self.key.has_gpu() => {
+                     log::warn!("zopro: the GPU failed ({error}); proving on the CPU from now on");
+@@ -360,7 +370,13 @@
+         self.verifying_key.verify(proof, public)
+     }
+ 
++    #[cfg(target_arch = "wasm32")]
+     fn encode(&self, witness: &[Fr]) -> Result<Vec<u8>, Error> {
++        self.check_witness_len(witness)?;
++        Ok(witness::encode(witness))
++    }
++
++    fn check_witness_len(&self, witness: &[Fr]) -> Result<(), Error> {
+         if witness.len() != self.names.len() {
+             return Err(Error::Witness(format!(
+                 "the key takes {} inputs, not {}",
+@@ -368,7 +384,7 @@
+                 witness.len()
+             )));
+         }
+-        Ok(witness::encode(witness))
++        Ok(())
+     }
+ }
+ 
