@@ -1,0 +1,437 @@
+--- a/crates/zopro-bn254/src/ifma8.rs
++++ b/crates/zopro-bn254/src/ifma8.rs
+@@ -336,6 +336,41 @@
+             Self(out, PhantomData)
+         }
+     }
++    /// Multiply normalized input below 2p by -2^shift. The result is
++    /// in (0, 2p], with 2p representing zero. Intended for final add/sub;
++    /// adding a normalized value below 2p leaves less than 4p.
++    #[inline(always)]
++    pub fn negative_power_of_two(&self, shift: u32) -> Self {
++        assert!(shift <= 28);
++        unsafe {
++            let zero = Self::splat(0);
++            let mask = Self::splat(MASK);
++            let left = Self::splat(u64::from(shift));
++            let right = Self::splat(52 - u64::from(shift));
++            // For k=2^shift, this is precisely floor(k*mu/2^28)
++            // from mul_u28, with the same underestimate bound.
++            let mu = const { small_reciprocal(C::P) };
++            let reciprocal = Self::splat(mu >> (28 - shift));
++            let q = _mm512_add_epi64(_mm512_madd52hi_epu64(zero, self.0[4], reciprocal), Self::splat(2));
++            let p = split(C::P).map(Self::splat);
++            let mut out = [zero; 5];
++            let mut carry = zero;
++            for j in 0..5 {
++                let shifted = _mm512_and_si512(_mm512_sllv_epi64(self.0[j], left), mask);
++                let lo = _mm512_sub_epi64(_mm512_madd52lo_epu64(zero, p[j], q), shifted);
++                let hi = _mm512_sub_epi64(
++                    _mm512_madd52hi_epu64(zero, p[j], q),
++                    _mm512_srlv_epi64(self.0[j], right),
++                );
++                let value = _mm512_add_epi64(lo, carry);
++                out[j] = _mm512_and_si512(value, mask);
++                carry = _mm512_add_epi64(hi, _mm512_srai_epi64::<52>(value));
++            }
++            debug_assert_eq!(_mm512_cmpneq_epi64_mask(carry, zero), 0);
++            Self(out, PhantomData)
++        }
++    }
++
+     #[inline(always)]
+     pub fn mul(&self, b: &Self) -> Self {
+         self.product::<false>(b, self, b)
+--- a/crates/zopro-core/src/fft/pair/euler_center.rs
++++ b/crates/zopro-core/src/fft/pair/euler_center.rs
+@@ -1,5 +1,78 @@
+ //! Apply both local transforms and the Euler weights in one expanded leaf.
+ use super::*;
++
++#[derive(Clone, Copy)]
++enum Center {
++    Ordinary,
++    Paired(Pair),
++    Shift(Pair),
++}
++
++fn center_mode() -> u8 {
++    static CONFIG: std::sync::OnceLock<u8> = std::sync::OnceLock::new();
++    *CONFIG.get_or_init(|| match std::env::var("ZOPRO_908_CENTER").as_deref() {
++        Ok("fused") => 1,
++        Ok("paired") => 2,
++        Ok("shift") => 3,
++        _ => 0,
++    })
++}
++
++pub(super) fn legacy_leaf_enabled(plan: &Plan) -> bool {
++    (8192..=1 << 26).contains(&plan.n) && plan.roots.single.is_none() && center_mode() != 0
++}
++
++fn center_selection(plan: &Plan) -> Center {
++    let mode = center_mode();
++    if std::env::var_os("ZOPRO_908_TRACE").is_some() {
++        eprintln!("ZP908_CENTER {mode}");
++    }
++    // The diagonal factors must stay below 2^28 in mul_u28.
++    if mode < 2 || plan.n > (1 << 26) {
++        return Center::Ordinary;
++    }
++    let fourth_root = plan.inverse_roots.pair.get()[1];
++    let coefficient = Pair::new(&[fourth_root * Fr::from((plan.n / 2) as u64); 8]);
++    if mode == 3 {
++        Center::Shift(coefficient)
++    } else {
++        Center::Paired(coefficient)
++    }
++}
++
++/// Both halves use the same form. The last two root products in each
++/// four-point group are the negatives of the first two. Interleave the
++/// independent differences from two groups for a single full-vector product.
++#[inline(always)]
++fn paired_center<const SHIFT: bool>(
++    a: &mut Pair,
++    b: &mut Pair,
++    da: u64,
++    db: u64,
++    half: u64,
++    root: &Pair,
++) {
++    let prev = Pair::shuffle_pair::<3, 0, 7, 4>(a, b);
++    let next = Pair::shuffle_pair::<1, 2, 5, 6>(a, b);
++    let neighbor = prev.sub(&next).mul(root);
++
++    let even = Pair::shuffle_pair::<0, 2, 4, 6>(a, b);
++    let odd = Pair::shuffle_pair::<1, 3, 5, 7>(a, b);
++    let pair_sum = even.add(&odd);
++    let other = Pair::shuffle_pair::<1, 0, 3, 2>(&pair_sum, &pair_sum);
++    let sum = pair_sum.add(&other);
++    let (positive, negative) = if SHIFT {
++        let negative_sum = sum.negative_power_of_two(half.ilog2());
++        (negative_sum.add(&neighbor), negative_sum.sub(&neighbor))
++    } else {
++        let sum = sum.mul_u28(&[half; 8]);
++        (neighbor.sub(&sum), Pair::zero().sub(&neighbor.add(&sum)))
++    };
++    let ca = Pair::shuffle_pair::<0, 1, 4, 5>(&positive, &negative);
++    let cb = Pair::shuffle_pair::<2, 3, 6, 7>(&positive, &negative);
++    *a = a.mul_u28(&[da; 8]).add(&ca);
++    *b = b.mul_u28(&[db; 8]).add(&cb);
++}
+ 
+ // Leave the adjacent sum and difference lanes together between the two transforms.
+ // Their natural coefficient indices differ by N/2 in bit-reversed DIF order.
+@@ -40,7 +113,7 @@
+     *b = Pair::shuffle_pair::<2, 3, 6, 7>(&sum, &diff);
+ }
+ 
+-fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize, method: &Center) {
+     // The ordinary transform expands the same bounded leaf separately in each direction.
+     let mut expanded: Vec<_> = values.iter().map(PairStorage::load).collect();
+     let mut gap = expanded.len() / 2;
+@@ -53,10 +126,17 @@
+         gap /= 2;
+         layer += 1;
+     }
+-    let inv = broadcast(&plan.inverse_roots.pair);
+-    let fwd = broadcast(&plan.roots.pair);
+-    for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
+-        center(a, b, &inv, &fwd, first + 2 * i, plan.n.ilog2() as usize);
++    let log = plan.n.ilog2() as usize;
++    match method {
++        Center::Ordinary => {
++            let inv = broadcast(&plan.inverse_roots.pair);
++            let fwd = broadcast(&plan.roots.pair);
++            for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
++                center(a, b, &inv, &fwd, first + 2 * i, log);
++            }
++        }
++        Center::Paired(root) => apply_paired::<false>(&mut expanded, first, log, root),
++        Center::Shift(root) => apply_paired::<true>(&mut expanded, first, log, root),
+     }
+     gap = 1;
+     while gap < expanded.len() {
+@@ -72,9 +152,18 @@
+     }
+ }
+ 
+-fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++fn apply_paired<const SHIFT: bool>(values: &mut [Pair], first: usize, log: usize, root: &Pair) {
++    let half = 1u64 << (log - 1);
++    for (i, [a, b]) in values.as_chunks_mut::<2>().0.iter_mut().enumerate() {
++        let q = bit_reverse(first + 2 * i, log - 2) as u64;
++        let r = bit_reverse(first + 2 * i + 1, log - 2) as u64;
++        paired_center::<SHIFT>(a, b, 4 * q + 4 * half, 4 * r + 4 * half, half, root);
++    }
++}
++
++fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize, method: &Center) {
+     if values.len() <= 1024 {
+-        return leaf(plan, values, level, first);
++        return leaf(plan, values, level, first, method);
+     }
+     columns::<false>(values, &plan.inverse_roots, level);
+     let size = values.len() / 32;
+@@ -82,13 +171,18 @@
+         .par_chunks_exact_mut(size)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, level + 5, first + i * size);
++            transform(plan, part, level + 5, first + i * size, method);
+         });
+     columns::<true>(values, &plan.roots, level);
+ }
+ 
+ #[inline(never)]
+-pub(super) fn from_inputs(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
++pub(super) fn from_inputs(
++    plan: &Plan,
++    a: &[Fr],
++    b: &[Fr],
++    storage: Vec<PackedPair>,
++) -> Vec<PackedPair> {
+     let mut values = prepare_columns(plan, a, b, storage);
+     columns::<true>(&mut values, &plan.roots, 0);
+     values
+@@ -96,14 +190,33 @@
+ 
+ fn prepare_columns(plan: &Plan, a: &[Fr], b: &[Fr], storage: Vec<PackedPair>) -> Vec<PackedPair> {
+     let mut values = input_columns::first_layer(plan, a, b, storage);
++    transform_inner_columns(plan, &mut values);
++    values
++}
++
++/// Retain the ordinary packing pass and outer stored column kernels.
++/// Only the inner inverse/diagonal/forward sequence is combined.
++pub(super) fn transform_ordinary_layout(plan: &Plan, values: &mut [PackedPair]) {
++    columns::<false>(values, &plan.inverse_roots, 0);
++    transform_inner_columns(plan, values);
++    columns::<true>(values, &plan.roots, 0);
++}
++
++fn transform_inner_columns(plan: &Plan, values: &mut [PackedPair]) {
+     let width = values.len() / 32;
++    let method = center_selection(plan);
++    static CLOCK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    let clock = (*CLOCK.get_or_init(|| std::env::var_os("ZOPRO_908_CLOCK").is_some()))
++        .then(std::time::Instant::now);
+     values
+         .par_chunks_exact_mut(width)
+         .enumerate()
+         .for_each(|(i, part)| {
+-            transform(plan, part, 5, i * width);
++            transform(plan, part, 5, i * width, &method);
+         });
+-    values
++    if let Some(start) = clock {
++        eprintln!("ZP908_CENTER_NS {}", start.elapsed().as_nanos());
++    }
+ }
+ 
+ // The 32 output stripes share a column index. Split each stripe at the
+@@ -111,12 +224,7 @@
+ type PackedRows<'a> = [&'a [PackedPair]; 32];
+ type OutputRows<'a> = [&'a mut [Fr]; 32];
+ 
+-pub(super) fn emit_products(
+-    plan: &Plan,
+-    a: &mut [Fr],
+-    b: &[Fr],
+-    storage: Vec<PackedPair>,
+-) {
++pub(super) fn emit_products(plan: &Plan, a: &mut [Fr], b: &[Fr], storage: Vec<PackedPair>) {
+     let values = prepare_columns(plan, a, b, storage);
+     let width = values.len() / 32;
+     let mut stripes = values.chunks_exact(width);
+@@ -129,7 +237,10 @@
+         stripe
+     });
+     debug_assert!(remaining.is_empty());
+-    let cutoff = width.div_ceil(2 * rayon::current_num_threads()).max(8).next_power_of_two();
++    let cutoff = width
++        .div_ceil(2 * rayon::current_num_threads())
++        .max(8)
++        .next_power_of_two();
+     emit_range(&plan.roots, width, 0, inputs, outputs, b, cutoff);
+ }
+ 
+@@ -161,7 +272,17 @@
+     let right_outputs = right_outputs.map(Option::unwrap);
+     rayon::join(
+         || emit_range(roots, width, start, left_inputs, left_outputs, b, cutoff),
+-        || emit_range(roots, width, start + mid, right_inputs, right_outputs, b, cutoff),
++        || {
++            emit_range(
++                roots,
++                width,
++                start + mid,
++                right_inputs,
++                right_outputs,
++                b,
++                cutoff,
++            )
++        },
+     );
+ }
+ 
+@@ -187,7 +308,9 @@
+         let first = transform(j);
+         let second = transform(j + 1);
+         for (i, stripe) in outputs.iter_mut().enumerate() {
+-            let Some(out) = stripe.get_mut(4 * j..) else { break };
++            let Some(out) = stripe.get_mut(4 * j..) else {
++                break;
++            };
+             let n = out.len().min(8);
+             if n == 0 {
+                 break;
+@@ -199,8 +322,12 @@
+             let (da1, db1) = second[i].halves();
+             let da = Pair::from_halves(&da0, &da1);
+             let db = Pair::from_halves(&db0, &db1);
+-            let aa = Pair::new(&core::array::from_fn(|k| out.get(k).copied().unwrap_or(Fr::ZERO)));
+-            let bb = Pair::new(&core::array::from_fn(|k| b.get(b_start + k).copied().unwrap_or(Fr::ZERO)));
++            let aa = Pair::new(&core::array::from_fn(|k| {
++                out.get(k).copied().unwrap_or(Fr::ZERO)
++            }));
++            let bb = Pair::new(&core::array::from_fn(|k| {
++                b.get(b_start + k).copied().unwrap_or(Fr::ZERO)
++            }));
+             out.copy_from_slice(&da.sum2(&bb, &aa, &db).get()[..n]);
+         }
+     }
+@@ -211,7 +338,10 @@
+     use super::*;
+     #[test]
+     fn fused_columns_product_matches_materialized_derivatives() {
+-        let workers = rayon::ThreadPoolBuilder::new().num_threads(4).build().unwrap();
++        let workers = rayon::ThreadPoolBuilder::new()
++            .num_threads(4)
++            .build()
++            .unwrap();
+         workers.install(|| {
+             for n in [8192usize, 32768, 262144] {
+                 for cached in [false, true] {
+@@ -225,7 +355,8 @@
+                         plan.roots.columns.clear();
+                     }
+                     for (na, nb) in [(0, 0), (1, 9), (n / 2 + 3, n - 5), (n, n)] {
+-                        let mut a: Vec<_> = (0..na).map(|i| Fr::from(i as u64 + 1).pow(&[3])).collect();
++                        let mut a: Vec<_> =
++                            (0..na).map(|i| Fr::from(i as u64 + 1).pow(&[3])).collect();
+                         let b: Vec<_> = (0..nb).map(|i| Fr::from(i as u64 + 9).square()).collect();
+                         a.resize(na.max(nb), Fr::ZERO);
+                         let values = from_inputs(&plan, &a, &b, Vec::with_capacity(n / 4));
+@@ -292,7 +423,7 @@
+                     *v = PackedPair::store(v.load().mul_u28(&factors));
+                 }
+                 stored_transform::<PackedPair, true>(&mut expect, &plan.roots, 0);
+-                transform(&plan, &mut got, 0, 0);
++                transform(&plan, &mut got, 0, 0, &center_selection(&plan));
+                 for (a, b) in got.iter().zip(&expect) {
+                     assert_eq!(a.load().get(), b.load().get());
+                 }
+@@ -310,3 +441,86 @@
+         v20, v21, v22, v23, v24, v25, v26, v27, v28, v29, v30, v31, roots, level,
+     );
+ }
++
++#[cfg(test)]
++#[test]
++fn paired_circulant_center_matches_scalar_dft() {
++    let mut rng = crate::testing::Seeded::new(0x907c_0117);
++    for log in [3usize, 8, 15, 16, 17, 25, 26] {
++        let n = 1u64 << log;
++        for root_power in [1u64, 3] {
++            let i = Fr::root_of_unity(4).unwrap().pow(&[root_power]);
++            let coefficient = Pair::new(&[i * Fr::from(n / 2); 8]);
++            for sample in 0..32 {
++                let q = (17 * sample + 1) % (n / 4);
++                let r = (63 * sample + 2) % (n / 4);
++                let make = |rng: &mut crate::testing::Seeded| -> [Fr; 8] {
++                    core::array::from_fn(|j| {
++                        if sample % 4 == j as u64 % 4 {
++                            Fr::ZERO
++                        } else {
++                            rng.fr()
++                        }
++                    })
++                };
++                let original_a = make(&mut rng);
++                let original_b = make(&mut rng);
++                let mut a = Pair::new(&original_a);
++                let mut b = Pair::new(&original_b);
++                paired_center::<true>(
++                    &mut a,
++                    &mut b,
++                    4 * q + 2 * n,
++                    4 * r + 2 * n,
++                    n / 2,
++                    &coefficient,
++                );
++                for (out, input, offset) in [(a, original_a, q), (b, original_b, r)] {
++                    let exact = core::array::from_fn(|j| {
++                        let row = j % 4;
++                        let start = j - row;
++                        (0..4)
++                            .map(|k| {
++                                let inverse = (0..4)
++                                    .map(|t| input[start + t] * i.pow(&[(t * k) as u64]))
++                                    .fold(Fr::ZERO, |s, x| s + x);
++                                inverse
++                                    * Fr::from(offset + n / 4 * k as u64)
++                                    * i.pow(&[((4 - row) * k) as u64])
++                            })
++                            .fold(Fr::ZERO, |s, x| s + x)
++                    });
++                    assert_eq!(out.get(), exact);
++                }
++            }
++        }
++    }
++}
++
++#[cfg(test)]
++#[test]
++fn negative_power_scaling_matches_field_and_handles_zero_edge() {
++    let mut rng = crate::testing::Seeded::new(0x3a55_9080);
++    for shift in 0..=28 {
++        for block in 0..64 {
++            let data = core::array::from_fn(|i| match (i + block) % 8 {
++                0 => Fr::ZERO,
++                1 => Fr::ONE,
++                2 => -Fr::ONE,
++                _ => rng.fr(),
++            });
++            let value = Pair::new(&data).add(&Pair::new(&data));
++            let scale = Fr::from(1u64 << shift);
++            let result = value.negative_power_of_two(shift);
++            assert_eq!(
++                result.add(&Pair::zero()).get(),
++                data.map(|x| -(x + x) * scale)
++            );
++            let check = Pair::new(&[Fr::from(7); 8]);
++            assert_eq!(
++                result.sub(&check).get(),
++                data.map(|x| -(x + x) * scale - Fr::from(7))
++            );
++        }
++    }
++}
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1810,6 +1810,11 @@
+             }
+             PackedPair::store(Pair::new(&lanes))
+         }).collect();
++        if euler_center::legacy_leaf_enabled(plan) {
++            euler_center::transform_ordinary_layout(plan, &mut values);
++            euler_combine_products(&mut a, &b, &values);
++            return a;
++        }
+         stored_transform::<PackedPair, false>(&mut values, &plan.inverse_roots, 0);
+         values
+     };
