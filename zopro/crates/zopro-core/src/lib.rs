@@ -821,6 +821,32 @@ impl Points<'_> {
         }
         Ok(counts)
     }
+
+    /// Validate a key's shape and FFT parameters without decoding its points.
+    fn validate_shape(&self, domain_params: &[u8]) -> Result<([usize; 5], [Fr; 3]), &'static str> {
+        let counts = self.counts()?;
+        if counts[1] != counts[4] || domain_params.len() != 64 {
+            return Err("invalid gnark key dimensions");
+        }
+        let domain = counts[3] + 1;
+        if !domain.is_power_of_two() {
+            return Err("invalid gnark FFT domain");
+        }
+        if domain.trailing_zeros() > Fr::TWO_ADICITY {
+            return Err("unsupported FFT domain");
+        }
+        let params = frs(domain_params);
+        let (generator, coset) = (params[0], params[1]);
+        if generator.is_zero() {
+            return Err("invalid FFT generator");
+        }
+        if coset.is_zero() {
+            return Err("invalid FFT coset");
+        }
+        let denominator = fft::denominator(domain, coset).ok_or("invalid quotient denominator")?;
+        Ok((counts, [generator, coset, denominator]))
+    }
+
     fn g1(&self, i: usize) -> Result<Store<G1Affine>, &'static str> {
         match self {
             Points::Kernel(v) => Ok(Store::Owned(g1s(v[i]))),
@@ -840,6 +866,39 @@ impl Points<'_> {
 /// A caller-owned Rayon pool for canonical witness and FFT preparation.
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 pub use rayon::ThreadPool as FrontendThreadPool;
+
+#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+fn select_solver_pool<'a>(
+    solver: Option<&'a FrontendThreadPool>,
+    frontend: Option<&'a FrontendThreadPool>,
+    use_frontend: bool,
+) -> Option<&'a FrontendThreadPool> {
+    let workers = rayon::current_num_threads();
+    let smaller = |pool: &&FrontendThreadPool| pool.current_num_threads() < workers;
+    solver
+        .filter(smaller)
+        .or_else(|| frontend.filter(|pool| use_frontend && smaller(pool)))
+}
+
+#[cfg(all(test, target_os = "linux", target_arch = "x86_64"))]
+#[test]
+fn explicit_solver_pool_takes_precedence_over_frontend() {
+    let pool = |threads| rayon::ThreadPoolBuilder::new().num_threads(threads).build().unwrap();
+    let current = pool(4);
+    let solver = pool(1);
+    let frontend = pool(2);
+    let selected = |solver, use_frontend| {
+        current.install(|| {
+            select_solver_pool(solver, Some(&frontend), use_frontend)
+                .map(FrontendThreadPool::current_num_threads)
+        })
+    };
+    assert_eq!(selected(Some(&solver), false), Some(1));
+    assert_eq!(selected(Some(&solver), true), Some(1));
+    assert_eq!(selected(Some(&current), true), Some(2));
+    assert_eq!(selected(Some(&current), false), None);
+    assert_eq!(selected(None, false), None);
+}
 
 #[cfg(all(
     zopro_resource_schedule,
@@ -1270,16 +1329,15 @@ impl Key {
             }
         }
         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-        let instruction_pool = self
-            .solver_pool
-            .as_deref()
-            .filter(|pool| pool.current_num_threads() < rayon::current_num_threads())
-            .or(self.frontend_pool.as_deref())
-            .filter(|pool| {
-                !self.has_gpu()
-                    && pool.current_num_threads() < rayon::current_num_threads()
-                    && std::env::var("ZOPRO_CPU_SOLVER_FRONTEND").as_deref() == Ok("1")
-            });
+        let instruction_pool = if self.has_gpu() {
+            None
+        } else {
+            select_solver_pool(
+                self.solver_pool.as_deref(),
+                self.frontend_pool.as_deref(),
+                std::env::var_os("ZOPRO_CPU_SOLVER_FRONTEND").is_some_and(|value| value == "1"),
+            )
+        };
         #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
         let instruction_pool = None;
         let solver::Solution { mut w, a, b, c } = plan.solve_with_pool(
@@ -1630,30 +1688,11 @@ impl Key {
         domain_params: &[u8],
         basis_only: bool,
     ) -> Result<Key, &'static str> {
-        let [a, b, k, z, b2] = points.counts()?;
-        if b != b2 || domain_params.len() != 64 {
-            return Err("invalid gnark key dimensions");
-        }
-        let n = z + 1;
-        if !n.is_power_of_two() {
-            return Err("invalid gnark FFT domain");
-        }
-        let params = frs(domain_params);
-        if n.trailing_zeros() > Fr::TWO_ADICITY {
-            return Err("unsupported FFT domain");
-        }
-        if params[0].is_zero() {
-            return Err("invalid FFT generator");
-        }
-        if params[1].is_zero() {
-            return Err("invalid FFT coset");
-        }
-        let domain = n;
-        let den = (params[1].pow(&[n as u64]) - Fr::ONE)
-            .inverse()
-            .ok_or("invalid quotient denominator")?;
+        let ([a, b, k, z, b2], [generator, coset, denominator]) =
+            points.validate_shape(domain_params)?;
+        let domain = z + 1;
         let started = crate::time::Instant::now();
-        let plan = fft::Plan::new(n, params[0], params[1], den);
+        let plan = fft::Plan::new(domain, generator, coset, denominator);
         trace("plan", started);
         let lengths = [a, b, k];
         // One vector at a time: decoded, handed to the GPU, dropped. A GPU

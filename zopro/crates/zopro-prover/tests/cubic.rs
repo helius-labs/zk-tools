@@ -222,6 +222,20 @@ fn writes_dump_directly_without_intermediate_point_copies() {
 }
 
 #[test]
+fn rejects_mismatched_dump_queries_before_writing() {
+    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/cubic");
+    let dump = Dump::read(&dir).unwrap();
+    let mut parts = dump.parts("cubic");
+    parts.b2 = &parts.b2[..parts.b2.len() - 128];
+    let mut output = Vec::new();
+    assert_eq!(
+        Prover::write_dump_image(&parts, &mut output).unwrap_err(),
+        "invalid gnark key dimensions"
+    );
+    assert!(output.is_empty());
+}
+
+#[test]
 fn parses_values() {
     use zopro_prover::witness::parse_value;
     assert_eq!(parse_value("35"), Some(Fr::from(35u64)));

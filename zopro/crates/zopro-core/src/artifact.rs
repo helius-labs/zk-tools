@@ -93,6 +93,7 @@ impl Parts<'_> {
     /// A raw image stores the compiled solver separately. Its header needs
     /// no duplicate deflated source program or coefficient table.
     pub fn image_head(&self) -> Result<Vec<u8>, String> {
+        Points::Kernel([self.a, self.b, self.k, self.z, self.b2]).validate_shape(self.domain)?;
         pack_head_inner(self, false)
     }
 
