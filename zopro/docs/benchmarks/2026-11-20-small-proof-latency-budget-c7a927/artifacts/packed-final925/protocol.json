@@ -1,0 +1,21 @@
+{
+  "shape": "1x2",
+  "inputs": [
+    "catalog",
+    "heldout",
+    "v27"
+  ],
+  "modes": [
+    "release",
+    "ordinary",
+    "final",
+    "aeglos"
+  ],
+  "blocks": 12,
+  "rounds": 17,
+  "prior_local_commit": "220e2ec219b74bed65ac027d24f2dba62b0e841c",
+  "hardware": "c7a.24xlarge with 96 physical cores. Zopro 80 main and 16 frontend. Prepared Aeglos all 96.",
+  "advance": "Lower paired medians with >=9/12 wins over frozen and same-build ordinary on all three inputs. Same-build ordinary within 2% of frozen on all three inputs.",
+  "correctness": "Gnark independently verifies each export against the pinned key and pinned public digest. Aeglos must report prepared cache hits.",
+  "reference": "M5 CPU 37 ms and Metal 24 ms. Goal <=3.7 ms. No new timing is recorded during packaging."
+}

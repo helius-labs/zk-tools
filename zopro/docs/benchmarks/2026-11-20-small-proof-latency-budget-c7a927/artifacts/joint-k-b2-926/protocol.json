@@ -1,0 +1,42 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "ordinary",
+    "f",
+    "d",
+    "7",
+    "5",
+    "0"
+  ],
+  "replays": {
+    "f": [],
+    "d": [
+      "k"
+    ],
+    "7": [
+      "b2"
+    ],
+    "5": [
+      "k",
+      "b2"
+    ],
+    "0": [
+      "a",
+      "k",
+      "h",
+      "b2"
+    ]
+  },
+  "blocks": 12,
+  "rounds": 13,
+  "hardware": "C7a.24xlarge, 64 main and 32 frontend physical cores, exact frozen 854 seeded settings.",
+  "correctness": "Every replay compares full canonical scalars and base identity. Three primes, independent Gnark verification of every export. Separate trace checks every expected replayed query and exact hits.",
+  "calibration": "Absolute paired median <=2% for ordinary vs frozen and all-active mask f vs ordinary on each input.",
+  "interaction": "Within each block compute K-only latency + B2-only latency - all-active latency - joint K/B2 replay latency. Report individual and joint changes on each input. Report joint replay times relative to 10.9 ms and all-active times relative to 109 ms M5 CPU and 48 ms Metal.",
+  "scope": "The replay deltas are diagnostic only. Only real, unmodified proofs are eligible for the 10\u00d7 M5 table. This is the C7a confirmation of part of the Ryzen factorial."
+}
