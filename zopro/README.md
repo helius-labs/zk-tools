@@ -93,6 +93,11 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
   lockfile) and requests, 1 → 2 to 24 → 2 by default: a key's first load,
   its later loads, the memory it holds, and each proof's time and peak.
 
+On native CPU builds, `ZOPRO_CPU_GROUP_G2=1` opts into combining G2 bases
+that share the same nonzero witness scalar. The prover uses the existing
+MSM when there are too few repeated scalars or grouping would need over
+32 MiB of temporary buffers per proof. It uses the existing proving keys.
+
 ## Safety
 
 A GPU can compute wrong results (two iPhones' did, from a threadgroup size

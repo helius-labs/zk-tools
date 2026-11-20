@@ -10,6 +10,9 @@
 use rayon::prelude::*;
 use zopro_bn254::{Affine, CurveConfig, Field, Fr, Projective};
 
+mod grouped_g2;
+pub(super) use grouped_g2::msm as grouped_g2;
+
 /// The window width, over the widths whose signed digits fit an i16. The
 /// work is the windows' sum of n batch additions and 2^c bucket sums, a
 /// sum (projective) weighing two additions, as single-threaded G2 MSMs on
