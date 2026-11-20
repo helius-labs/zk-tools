@@ -12,7 +12,7 @@ The primary request is the original benchmark input. The held-out request uses a
 |---|---:|---:|---|---:|---:|---|
 | 1×2 | 7.765 | 8.190 | Zopro | 45.2 | 458.9 | [48+48, two G2 ranges](../2026-11-20-geometry-placement-c7a1027/README.md) |
 | 1×4 | 8.716 | 9.732 | Zopro | 54.2 | 584.3 | [48+32, fused K/H](../2026-11-20-geometry-placement-c7a1027/README.md) |
-| 1×8 | 10.374 | 10.616 | Zopro | 138.2 | 690.7 | [32+64, concurrent scalar preparation](../2026-11-20-g2-joint-placement-c7a1016/README.md) |
+| 1×8 | 10.012 | 10.748 | Zopro | 78.3 | 691.0 | [32+64, fused K/H](../2026-11-20-one-input-kh-fusion-c7a1036/README.md) |
 | 1×16 | 11.702 | 12.394 | Zopro | 91.0 | 825.7 | [40+40, G1 width 13, fused K/H](../2026-11-20-geometry-placement-c7a1027/README.md) |
 | 2×2 | 10.291 | 11.775 | Zopro | 78.9 | 814.5 | [32+32](../2026-11-20-geometry-placement-c7a1027/README.md) |
 | 2×4 | 11.161 | 12.325 | Zopro | 186.1 | 821.6 | [64+32, fused leaf and verifier](../2026-11-20-scoped-sdk-transfer-c7a1007/README.md) |
@@ -58,7 +58,7 @@ The primary request is the original benchmark input. The held-out request uses a
 |---|---:|---:|---|---:|---:|
 | 1×2 | 7.685 | 8.162 | Zopro | 48.2 | 458.8 |
 | 1×4 | 8.718 | 9.609 | Zopro | 57.3 | 584.0 |
-| 1×8 | 10.326 | 10.681 | Zopro | 139.1 | 690.2 |
+| 1×8 | 9.984 | 10.715 | Zopro | 74.6 | 689.5 |
 | 1×16 | 11.668 | 12.392 | Zopro | 89.5 | 831.0 |
 | 2×2 | 10.310 | 11.853 | Zopro | 74.5 | 812.5 |
 | 2×4 | 11.186 | 12.335 | Zopro | 191.5 | 828.4 |
@@ -102,7 +102,7 @@ The primary request is the original benchmark input. The held-out request uses a
 
 The faster prover column compares the two displayed medians of warm timing blocks. On the 5×2 primary request, Aeglos led by 0.142 ms and each prover won two of the four blocks. Across the full scorecard, comparing the block-by-block ratios gave Zopro a lower paired median on both requests for all 41 shapes. Zopro won every timed block on both requests for 34 shapes.
 
-The 1×16 profile peaks below 1×8 because it uses a fused K/H calculation. On 1×16, keeping the worker settings fixed and replacing the two separate G1 sums with one shared bucket set brought primary peak memory from 165.2 MiB to 91.0 MiB. The 1×8 row uses a different profile. [Matched 1×16 measurements](../2026-11-20-geometry-placement-c7a1027/README.md)
+The earlier 1×8 profile peaked at 138.2 MiB. With the same worker layout, K/H fusion brought the new 1×8 result to 78.3 MiB. K/H fusion also brought the 1×16 primary peak from 165.2 MiB to 91.0 MiB at fixed placement. [Matched 1×8 measurements](../2026-11-20-one-input-kh-fusion-c7a1036/README.md) · [Matched 1×16 measurements](../2026-11-20-geometry-placement-c7a1027/README.md)
 
 The original 41-shape run and the later follow-ups used different Zopro profiles. The CSV and JSON include paired percentages and win counts. The benchmark runs linked in the table include the raw timing blocks. [Original full-catalog baseline](../2026-11-20-all-shapes-c7a979/README.md) · [Earlier 5×2 confirmation](../2026-11-19-equal-core-scorecard707/README.md)
 
