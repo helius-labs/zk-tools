@@ -1,0 +1,25 @@
+{
+  "goal": "Identify whether exact equal Poseidon origins can share execution under the solver schedule.",
+  "shapes": [
+    "4x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "copies": 2,
+  "proofs": 4,
+  "exact_records": {
+    "b2": {
+      "original": "/home/ubuntu/src/zopro-perf-work/g2-prepared-quartets935/catalog-quartets.bin",
+      "sha256": "9c022a053c7a2577597f24b8d0c9bc218052517f1f9fca62bfb55081b667a329"
+    },
+    "k": {
+      "original": "/home/ubuntu/src/zopro-perf-work/joint-prepared-quartets936/projected-k-quartets.bin",
+      "sha256": "1b8d640f5a973adc617c44c43549c3ef6bb88e140ae70e5e7aa6307d075abe41"
+    }
+  },
+  "image": "47cfe0cf92649ed00c9bcd0fc7862c891f463acafa9c00c104ad7bbde58034ab",
+  "check": "For every candidate quartet, compare the actual four scalar values and verify the K wire projection. For all compatible Poseidon spans, require matching widths and round coordinates. Assert that matching complete first-round states predict equal output scalars.",
+  "output": "Counts and schedule coordinates only. No coefficients, state values or timings are published."
+}
