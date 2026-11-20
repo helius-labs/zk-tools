@@ -1,0 +1,464 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -412,6 +412,7 @@
+     // A replacement for one oversized serial component. Local waves join
+     // before advancing; the component's external inputs are already ready.
+     refined: FxMap<usize, Vec<Vec<Vec<u32>>>>,
++    b2_suffix: Option<(usize, usize)>,
+     _reservation: Option<crate::preparation::Reservation>,
+ }
+ 
+@@ -1276,6 +1277,18 @@
+         materialize_c: bool,
+         pool: Option<&rayon::ThreadPool>,
+     ) -> Result<Solution, String> {
++        self.solve_with_b2_visit(witness, domain, slots, materialize_c, pool, None)
++    }
++
++    fn solve_with_b2_visit(
++        &self,
++        witness: &[Fr],
++        domain: usize,
++        slots: &[usize],
++        materialize_c: bool,
++        pool: Option<&rayon::ThreadPool>,
++        visit: Option<(&Schedule, Option<usize>, &(dyn Fn(View) + Sync))>,
++    ) -> Result<Solution, String> {
+         if witness.len() != self.n_inputs - 1 {
+             return Err("invalid witness size".into());
+         }
+@@ -1307,7 +1320,13 @@
+             c: if materialize_c { c.as_mut_ptr() } else { core::ptr::null_mut() },
+         };
+         // The instruction executor joins every worker before these buffers are used again.
+-        let execute = || unsafe { self.execute_instructions(view) };
++        let execute = || unsafe {
++            match visit {
++                Some((schedule, band, consume)) =>
++                    self.execute_schedule_b2(schedule, view, Some((band, consume))),
++                None => self.execute_instructions(view),
++            }
++        };
+         match pool {
+             Some(pool) => pool.install(execute)?,
+             None => execute()?,
+@@ -1332,6 +1351,66 @@
+         w.extend(selected);
+         crate::trace("solve-copy", started);
+         Ok(Solution { w, a, b, c })
++    }
++
++    #[cfg(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    pub(crate) fn solve_and_stage_b2(
++        &self,
++        witness: &[Fr],
++        domain: usize,
++        slots: &[usize],
++        materialize_c: bool,
++        bases: &[zopro_bn254::G2Affine],
++        offsets: Option<&crate::public_wire_offsets::Offsets>,
++        grouping: bool,
++        early: bool,
++    ) -> Result<(Solution, Option<crate::msm_affine::StagedB2>), String> {
++        let epochs = solve_epochs();
++        let staged = (epochs > 0 && bases.len() == self.b_indices.len())
++            .then(|| self.schedule.get_or_init(|| self.build_schedule(epochs)))
++            .and_then(|schedule| {
++                let (start, ready) = schedule.b2_suffix?;
++                let reservation = crate::msm_affine::reserve_staged_b2(bases.len())?;
++                Some((schedule, start, ready, reservation))
++            });
++        let Some((schedule, start, ready, reservation)) = staged else {
++            return self.solve_in_with_slots(witness, domain, slots, materialize_c).map(|s| (s, None));
++        };
++        let result = std::sync::OnceLock::new();
++        let consume = |view: View| {
++            use rayon::prelude::*;
++            let indices = &self.b_indices[start..];
++            let mut words = vec![[0; 4]; indices.len()];
++            let gather = |view: View, wire: usize| {
++                // The suffix certificate and the joined bands guarantee that
++                // all these wires have been written and remain immutable.
++                unsafe { *view.w.add(wire) }
++            };
++            words.par_chunks_mut(256).zip(indices.par_chunks(256)).for_each(|(out, indices)| {
++                let mut fixed = offsets.into_iter()
++                    .flat_map(|offsets| offsets.from_wire(indices[0] as usize)).peekable();
++                for (out, &wire) in out.iter_mut().zip(indices) {
++                    let wire = wire as usize;
++                    while fixed.peek().is_some_and(|&(i, _)| i < wire) {
++                        fixed.next();
++                    }
++                    let mut scalar = gather(view, wire);
++                    if fixed.peek().is_some_and(|&(i, _)| i == wire) {
++                        scalar -= fixed.next().unwrap().1;
++                    }
++                    *out = scalar.to_canonical();
++                }
++            });
++            let buckets = crate::msm_affine::stage_b2_range(&bases[start..], words, grouping);
++            assert!(result.set(buckets).is_ok());
++            if std::env::var_os("ZOPRO_TRIAL_B2_SUFFIX_TRACE").is_some() {
++                eprintln!("STAGED_B2_SUFFIX {} {} {}", if early { "early" } else { "late" }, ready, bases.len() - start);
++            }
++        };
++        let solution = self.solve_with_b2_visit(witness, domain, slots, materialize_c, None,
++            Some((schedule, early.then_some(ready), &consume)))?;
++        let buckets = result.into_inner().expect("one staged suffix");
++        Ok((solution, Some(crate::msm_affine::StagedB2::new(start, buckets, reservation))))
+     }
+ 
+     /// The caller owns all four buffers until the instruction workers have joined.
+@@ -1541,18 +1620,70 @@
+     }
+     fn build_schedule_with_workspace(&self,epochs:usize,workspace:Option<usize>,exact:bool)->Schedule {
+         let mut schedule=self.build_schedule_before_poseidon(epochs,workspace,exact);
++        #[cfg(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++        if std::env::var_os("ZOPRO_TRIAL_B2_SUFFIX").is_some() {
++            schedule.b2_suffix = self.ready_b2_suffix(&schedule);
++        }
+         #[cfg(zopro_resource_schedule)] self.tag_poseidon(&mut schedule);
+         schedule
+     }
++    #[cfg(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++    fn ready_b2_suffix(&self, schedule: &Schedule) -> Option<(usize, usize)> {
++        let count = self.b_indices.len();
++        if !(16_384..65_536).contains(&count) || !(2..255).contains(&schedule.epochs.len()) {
++            return None;
++        }
++        let _charge = crate::preparation::Reservation::analysis(Some(self.n_wires.checked_add(64)?))?;
++        let mut producer = vec![u8::MAX; self.n_wires];
++        producer[..self.n_inputs].fill(0);
++        for (band, tasks) in schedule.epochs.iter().enumerate() {
++            let mut record = |wire: usize| -> Option<()> {
++                let slot = producer.get_mut(wire)?;
++                if *slot != u8::MAX {
++                    return None;
++                }
++                *slot = band as u8;
++                Some(())
++            };
++            for &id in tasks.iter().flatten() {
++                match self.ops.get(id as usize)? {
++                    Op::Constraint(step) => {
++                        if let Some(assignment) = &step.assignment {
++                            record(assignment.wire())?;
++                        }
++                    }
++                    Op::Hint(hint) => {
++                        for wire in hint.outputs() {
++                            record(wire)?;
++                        }
++                    }
++                }
++            }
++        }
++        if self.b_indices.iter().any(|&wire| producer[wire as usize] == u8::MAX) {
++            return None;
++        }
++        // Select the first outer band with at least one eighth of the query
++        // available as a contiguous suffix. The remainder stays contiguous.
++        for band in 0..schedule.epochs.len() - 1 {
++            let start = self.b_indices.iter().rposition(|&wire| producer[wire as usize] as usize > band)
++                .map_or(0, |i| i + 1);
++            if start >= 4096 && count - start >= (count / 8).max(4096) {
++                return Some((start, band));
++            }
++        }
++        None
++    }
++
+     fn build_schedule_before_poseidon(&self,epochs:usize,workspace:Option<usize>,exact:bool)->Schedule {
+         #[cfg(all(zopro_bounded_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+         if std::env::var("ZOPRO_CPU_BOUNDED_SCHEDULE").as_deref()==Ok("1") {
+             let local=std::env::var("ZOPRO_SOLVE_LOCAL_BANDS").ok().and_then(|v|v.parse::<usize>().ok()).unwrap_or(if crate::simd::cpu_option("ZOPRO_SOLVE_LOCAL"){8}else{0}).min(1024);
+             let minimum=std::env::var("ZOPRO_SOLVE_LOCAL_MIN_OPS").ok().and_then(|v|v.parse::<usize>().ok()).unwrap_or(4096).max(32);
+-            if local!=1 {return (if exact {bounded::build_with_workspace(self,epochs,local,minimum,workspace)}else{bounded::build(self,epochs,local,minimum)}).unwrap_or(Schedule{epochs:Vec::new(),refined:FxMap::default(),_reservation:None});}
++            if local!=1 {return (if exact {bounded::build_with_workspace(self,epochs,local,minimum,workspace)}else{bounded::build(self,epochs,local,minimum)}).unwrap_or(Schedule{epochs:Vec::new(),refined:FxMap::default(),b2_suffix:None,_reservation:None});}
+         }
+         let Some(reservation) = crate::preparation::Reservation::acquire(self.n_constraints, self.preparation_peak()) else {
+-            return Schedule { _reservation: None, epochs: Vec::new(), refined: FxMap::default() };
++            return Schedule { _reservation: None, epochs: Vec::new(), refined: FxMap::default(), b2_suffix: None };
+         };
+         let local = std::env::var("ZOPRO_SOLVE_LOCAL_BANDS")
+             .ok()
+@@ -1672,7 +1803,7 @@
+                 }
+             }
+         }
+-        Schedule { _reservation: None, epochs, refined }
++        Schedule { _reservation: None, epochs, refined, b2_suffix: None }
+     }
+ 
+     /// Split a component into local dependency bands. Parent components
+@@ -1739,6 +1870,12 @@
+     /// Every read is initialized, and the schedule orders all writers
+     /// before readers. Distinct tasks write disjoint wires, slots and rows.
+     unsafe fn execute_schedule(&self, schedule: &Schedule, v: View) -> Result<(), String> {
++        unsafe { self.execute_schedule_b2(schedule, v, None) }
++    }
++
++    unsafe fn execute_schedule_b2(
++        &self, schedule: &Schedule, v: View, stage: Option<(Option<usize>, &(dyn Fn(View) + Sync))>,
++    ) -> Result<(), String> {
+         let claims = solver_task_claims();
+         let serial = |task: &[u32]| -> Result<(), String> {
+             #[cfg(zopro_resource_schedule)]
+@@ -1754,7 +1891,7 @@
+             }
+             Ok(())
+         };
+-        for epoch in &schedule.epochs {
++        let run_epoch = |epoch: &[Vec<u32>]| {
+             visit_solver_tasks(epoch, claims, |task| {
+                 if let Some(waves) = schedule.refined.get(&(task[0] as usize)) {
+                     for wave in waves {
+@@ -1764,7 +1901,17 @@
+                 } else {
+                     serial(task)
+                 }
+-            })?;
++            })
++        };
++        for (i, epoch) in schedule.epochs.iter().enumerate() {
++            match stage {
++                Some((Some(ready), consume)) if i == ready + 1 =>
++                    rayon::join(|| run_epoch(epoch), || consume(v)).0?,
++                _ => run_epoch(epoch)?,
++            }
++        }
++        if let Some((None, consume)) = stage {
++            consume(v);
+         }
+         Ok(())
+     }
+--- a/crates/zopro-core/src/solver/bounded.rs
++++ b/crates/zopro-core/src/solver/bounded.rs
+@@ -359,6 +359,7 @@
+     Some(Schedule {
+         epochs,
+         refined,
++        b2_suffix: None,
+         _reservation: Some(reservation),
+     })
+ }
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1758,6 +1758,92 @@
+         None => crate::msm_raw_b2(bases, words),
+     }
+ }
++#[cfg(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++mod staged_b2 {
++    use super::*;
++    use zopro_bn254::{G2Affine, G2Projective};
++    const WIDTH: usize = 12;
++
++    pub(crate) struct StagedB2 {
++        end: usize,
++        buckets: Vec<Vec<G2Affine>>,
++        _reservation: crate::preparation::Reservation,
++    }
++
++    pub(crate) fn reserve_staged_b2(len: usize) -> Option<crate::preparation::Reservation> {
++        crate::preparation::Reservation::analysis(
++            workspace::grouped_auxiliary_window_bytes(len, rayon::current_num_threads()),
++        )
++    }
++
++    impl StagedB2 {
++        pub(crate) fn new(end: usize, buckets: Vec<Vec<G2Affine>>, reservation: crate::preparation::Reservation) -> Self {
++            Self { end, buckets, _reservation: reservation }
++        }
++
++        pub(crate) fn end(&self) -> usize { self.end }
++
++        pub(crate) fn finish(self, bases: &[G2Affine], words: &mut [[u64; 4]], grouping: bool) -> G2Projective {
++            let end = self.end;
++            let bases = &bases[..end];
++            assert_eq!(bases.len(), words.len());
++            let remainder = stage_b2_borrowed(bases, words, grouping);
++            g2_phi::join_bucket_ranges(self.buckets, remainder, WIDTH)
++        }
++    }
++
++    pub(crate) fn stage_b2_range(bases: &[G2Affine], mut values: Vec<[u64; 4]>, grouping: bool) -> Vec<Vec<G2Affine>> {
++        stage_b2_borrowed(bases, &mut values, grouping)
++    }
++
++    fn stage_b2_borrowed(bases: &[G2Affine], values: &mut [[u64; 4]], grouping: bool) -> Vec<Vec<G2Affine>> {
++        let groups = (grouping && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
++            .then(|| grouping::groups_with_diversity_check(values)).flatten();
++        if let Some(mut groups) = groups {
++            let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
++            return g2_phi::range_buckets(&points, &mut groups.values, WIDTH);
++        }
++        g2_phi::range_buckets(bases, values, WIDTH)
++    }
++
++    #[cfg(test)]
++    #[test]
++    fn staged_suffix_buckets_match_generator_sum() {
++        let generator = G2Affine::GENERATOR;
++        let n = 4157;
++        let mut point = G2Projective::IDENTITY;
++        let mut weights = Vec::new();
++        let mut expected = Fr::ZERO;
++        let mut points = Vec::new();
++        for i in 0..n {
++            point += generator;
++            points.push(if i % 17 == 0 { G2Projective::IDENTITY } else { point });
++            let weight = match i % 7 {
++                0 => Fr::ZERO,
++                1 | 2 => Fr::from(1234u64),
++                3 | 4 => -Fr::from(1234u64),
++                _ => Fr::from(i as u64).pow(&[25]),
++            };
++            weights.push(weight.to_canonical());
++            if i % 17 != 0 {
++                expected += weight * Fr::from((i + 1) as u64);
++            }
++        }
++        let points = G2Projective::batch_to_affine(&points);
++        for cut in [1024, 2049, 3659] {
++            for grouping in [false, true] {
++                let mut prefix = weights[..cut].to_vec();
++                let suffix = stage_b2_range(&points[cut..], weights[cut..].to_vec(), grouping);
++                let staged = StagedB2::new(cut, suffix, reserve_staged_b2(n).unwrap());
++                assert_eq!(staged.finish(&points, &mut prefix, grouping).to_affine(), (generator * expected).to_affine());
++            }
++        }
++    }
++}
++
++#[cfg(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++pub(crate) use staged_b2::{StagedB2, reserve_staged_b2, stage_b2_range};
++
+ #[cfg(test)]
+ mod exclusive_g2_tests {
+     use super::*;
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -212,6 +212,23 @@
+         short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+     }
+     from_split(bases, short, bits, parts)
++}
++
++pub(super) fn range_buckets(bases: &[G2Affine], values: &mut [[u64; 4]], bits: usize) -> Vec<Vec<G2Affine>> {
++    assert_eq!(bases.len(), values.len());
++    values.par_iter_mut().with_min_len(128).for_each(|value| *value = phi_split(*value));
++    (0..127usize.div_ceil(bits)).into_par_iter().map(|w| hb_window(bases, values, w, bits)).collect()
++}
++
++pub(super) fn join_bucket_ranges(
++    first: Vec<Vec<G2Affine>>, second: Vec<Vec<G2Affine>>, bits: usize,
++) -> G2Projective {
++    assert_eq!(first.len(), second.len());
++    let sums: Vec<_> = first.into_par_iter().zip(second).map(|(mut a, b)| {
++        merge_buckets(&mut a, &b);
++        crate::msm::weighted_affine(&a)
++    }).collect();
++    fold_windows(&sums, bits)
+ }
+ 
+ pub(super) fn from_split(
+@@ -241,6 +258,10 @@
+             crate::msm::weighted_affine(&combined)
+         })
+         .collect();
++    fold_windows(&sums, bits)
++}
++
++fn fold_windows(sums: &[G2Projective], bits: usize) -> G2Projective {
+     let mut result = G2Projective::IDENTITY;
+     for sum in sums.iter().rev() {
+         for _ in 0..bits {
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2344,7 +2344,21 @@
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         let offsets=self.wire_offsets.as_ref().filter(|_|omit_b);
+         let prepare = || -> Result<_, String> {
+-            let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
++            #[cfg(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++            let (solution, staged) = match std::env::var("ZOPRO_TRIAL_B2_SUFFIX").as_deref() {
++                Ok(mode @ ("early" | "late")) if omit_b =>
++                    plan.solve_and_stage_b2(witness, self.domain, &folded.slots, materialize_c,
++                        &self.b2, offsets.map(Box::as_ref), self.exclusive_g2_grouping, mode == "early")?,
++                _ => (plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?, None),
++            };
++            #[cfg(not(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++            let solution = plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
++            let solver::Solution{mut w,a,b,c}=solution;
++            #[cfg(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++            let end = staged.as_ref().map_or(plan.b_indices.len(), |s| s.end());
++            #[cfg(not(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++            let end = plan.b_indices.len();
++            let b_indices = &plan.b_indices[..end];
+             if let Some(scope) = reclaim { scope.release_unused(&mut w); }
+             drop(c);
+             // The correction consumes Montgomery public values before the one
+@@ -2353,18 +2367,21 @@
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             if let Some(offsets)=offsets {offsets.apply(&mut w);}
+             let (sa_vec,sb_vec):(Vec<_>,Vec<_>)=if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
+-                fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)
++                fused_canonical_gather::prepare(&mut w,&plan.a_indices,b_indices)
+             } else {
+                 let words=canonical(&mut w);
+                 #[cfg(not(zopro_bounded_gather))]
+-                {rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect())}
++                {rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||b_indices.par_iter().map(|&i|words[i as usize]).collect())}
+                 #[cfg(zopro_bounded_gather)]
+-                {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
++                {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,b_indices))}
+             };
+             let product = queries.product_values(&self.plan, a, b, None);
+-            Ok((w, sa_vec, sb_vec, product, correction))
++            #[cfg(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++            return Ok((w, sa_vec, sb_vec, product, correction, staged));
++            #[cfg(not(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma))))]
++            Ok((w, sa_vec, sb_vec, product, correction, ()))
+         };
+-        let (w, sa_vec, mut sb_vec, mut product, correction) =
++        let (w, sa_vec, mut sb_vec, mut product, correction, staged) =
+             if let Some(pool) = self
+                 .frontend_pool
+                 .as_ref()
+@@ -2413,6 +2430,10 @@
+             let ((ar,kh),bs2)=rayon::join(
+                 || rayon::join(a, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
+                 || {
++                    #[cfg(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++                    if let Some(staged) = staged {
++                        return staged.finish(&self.b2, sb, self.exclusive_g2_grouping);
++                    }
+                     if (1024..65536).contains(&self.b2.len()) {
+                         msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping)
+                     } else {
+@@ -2445,6 +2466,10 @@
+                         )
+                     },
+                     || {
++                        #[cfg(all(zopro_g2_horner_buckets,zopro_resource_schedule,feature="ifma8",target_os="linux",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
++                        if let Some(staged) = staged {
++                            return (G1Projective::IDENTITY, staged.finish(&self.b2, sb, self.exclusive_g2_grouping));
++                        }
+                         if omit_b && (1024..65536).contains(&self.b2.len()) {
+                             return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping));
+                         }
+--- a/crates/zopro-core/src/public_wire_offsets.rs
++++ b/crates/zopro-core/src/public_wire_offsets.rs
+@@ -34,6 +34,11 @@
+             };
+             *value += row.scalar;
+         }
++    }
++
++    pub(crate) fn from_wire(&self, wire: usize) -> impl Iterator<Item = (usize, Fr)> + '_ {
++        let start = self.rows.partition_point(|row| row.wire < wire);
++        self.rows[start..].iter().map(|row| (row.wire, row.scalar))
+     }
+ 
+     pub fn apply(&self, wires: &mut [Fr]) {
