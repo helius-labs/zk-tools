@@ -1,0 +1,131 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2343,19 +2343,19 @@
+         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         let offsets=self.wire_offsets.as_ref().filter(|_|omit_b);
++        let montgomery = omit_b && std::env::var_os("ZOPRO_TRIAL_MONTGOMERY_CURVES").is_some();
+         let prepare = || -> Result<_, String> {
+             let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
+             if let Some(scope) = reclaim { scope.release_unused(&mut w); }
+             drop(c);
+-            // The correction consumes Montgomery public values before the one
+-            // in-place conversion. All later accesses to w use canonical words.
++            // Public correction always uses the original field representation.
+             let correction=folded.public_term(&w[..plan.n_public]);
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             if let Some(offsets)=offsets {offsets.apply(&mut w);}
+-            let (sa_vec,sb_vec):(Vec<_>,Vec<_>)=if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
++            let (sa_vec,sb_vec):(Vec<_>,Vec<_>)=if !montgomery && std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
+                 fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)
+             } else {
+-                let words=canonical(&mut w);
++                let words = if montgomery { montgomery_words(&w) } else { canonical(&mut w) };
+                 #[cfg(not(zopro_bounded_gather))]
+                 {rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect())}
+                 #[cfg(zopro_bounded_gather)]
+@@ -2374,9 +2374,17 @@
+             } else {
+                 prepare()?
+             };
+-        // SAFETY: both branches converted every Fr in place to canonical limbs.
+-        // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
+-        let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
++        // This view uses the same representation as the gathered A and B2 words.
++        let words = montgomery_words(&w);
++        let inverse_r = if montgomery { Fr::from_montgomery([1, 0, 0, 0]) } else { Fr::ONE };
++        let h_words = |h: &mut [Fr]| {
++            if !montgomery {
++                canonical(h);
++            }
++        };
++        if montgomery && std::env::var_os("ZOPRO_TRIAL_MONTGOMERY_CURVES_TRACE").is_some() {
++            eprintln!("MONTGOMERY_CURVES {} {} {} {}", sa_vec.len(), sb_vec.len(), w.len(), product.len());
++        }
+         let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
+         let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
+         #[cfg(all(zopro_real_kh, zopro_resource_schedule))]
+@@ -2411,7 +2419,10 @@
+                 msm(&self.a[..], sa)
+             };
+             let ((ar,kh),bs2)=rayon::join(
+-                || rayon::join(a, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
++                || rayon::join(a, || {
++                    h_words(h);
++                    msm_affine::fused_kh::fused(k, sk, z, montgomery_words(h), 13)
++                }),
+                 || {
+                     if (1024..65536).contains(&self.b2.len()) {
+                         msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping)
+@@ -2422,6 +2433,11 @@
+                             |g|msm_grouped_b2(&self.b2,g))
+                     }
+                 });
++            let ((ar, kh), bs2) = if montgomery {
++                rayon::join(|| rayon::join(|| ar * inverse_r, || kh * inverse_r), || bs2 * inverse_r)
++            } else {
++                ((ar, kh), bs2)
++            };
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             let (ar,kh,bs2)=offsets.map_or((ar,kh,bs2), |o| (ar+o.a,kh+o.k,bs2+o.b2));
+             let mut out=Vec::with_capacity(384);
+@@ -2436,10 +2452,11 @@
+                         rayon::join(
+                             || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+                             || {
+-                                if montgomery_h {
++                                if montgomery_h && !montgomery {
+                                     msm_affine::msm_montgomery(z, h)
+                                 } else {
+-                                    msm(z, canonical(h))
++                                    h_words(h);
++                                    msm(z, montgomery_words(h))
+                                 }
+                             },
+                         )
+@@ -2470,10 +2487,45 @@
+                 )
+         };
+ 
++        let (((ar, kr), hz), bs2) = if montgomery {
++            rayon::join(
++                || rayon::join(|| rayon::join(|| ar * inverse_r, || kr * inverse_r), || hz * inverse_r),
++                || bs2 * inverse_r,
++            )
++        } else {
++            (((ar, kr), hz), bs2)
++        };
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         let (ar,kr,bs2)=offsets.map_or((ar,kr,bs2), |o| (ar+o.a,kr+o.k,bs2+o.b2));
+         let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(out)
+     }
++}
++
++#[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
++fn montgomery_words(values: &[Fr]) -> &[[u64; 4]] {
++    // SAFETY: the native field is repr(transparent) over four initialized
++    // limbs. This shared view cannot outlive the input borrow.
++    unsafe { std::slice::from_raw_parts(values.as_ptr().cast::<[u64; 4]>(), values.len()) }
++}
++
++#[cfg(all(test, target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
++#[test]
++fn montgomery_curve_witnesses_have_one_common_factor() {
++    let mut rng = testing::Seeded::new(0x8721_2b9e);
++    let mut scalars = vec![Fr::ZERO, Fr::ONE, -Fr::ONE];
++    scalars.extend((0..18).map(|_| rng.fr()));
++    let inverse_r = Fr::from_montgomery([1, 0, 0, 0]);
++    let mut direct = Fr::ZERO;
++    let mut encoded = Fr::ZERO;
++    for (i, (&scalar, &words)) in scalars.iter().zip(montgomery_words(&scalars)).enumerate() {
++        let factor = Fr::from(i as u64 + 1);
++        direct += scalar * factor;
++        encoded += Fr::from_canonical(words).unwrap() * factor;
++    }
++    assert_eq!((G1Affine::GENERATOR * direct).to_affine(),
++               ((G1Affine::GENERATOR * encoded) * inverse_r).to_affine());
++    assert_eq!((G2Affine::GENERATOR * direct).to_affine(),
++               ((G2Affine::GENERATOR * encoded) * inverse_r).to_affine());
+ }
+ 
+ impl Key {
