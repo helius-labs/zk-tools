@@ -1,0 +1,285 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -820,6 +820,8 @@
+     grouped_b2_serial_preparation: bool,
+     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+     grouped_b2_poseidon_origins: bool,
++    #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++    b2_quartets: std::sync::OnceLock<Option<msm::b2_quartets::Quartets>>,
+     basis_only: bool,
+     // Audited native workspace, or conservative prompt release when unknown.
+     proof_workspace: Option<usize>,
+@@ -1536,6 +1538,8 @@
+             grouped_b2_serial_preparation: false,
+             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+             grouped_b2_poseidon_origins: false,
++            #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++            b2_quartets: std::sync::OnceLock::new(),
+             basis_only,
+             #[cfg(gpu_any)]
+             gpu: built_gpu.map(|gpu| GpuHold(std::sync::Arc::new(gpu))),
+@@ -2139,6 +2143,15 @@
+                             let sum = msm_affine::owned_grouped_phi(&self.b2, groups, pool);
+                             return (G1Projective::IDENTITY, sum);
+                         }
++                        #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++                        if omit_b && (65_536..131_072).contains(&self.b2.len()) {
++                            if let Some(prepared) = self.b2_quartets.get_or_init(|| {
++                                msm::b2_quartets::Quartets::build(&self.b2)
++                            }).as_ref() {
++                                let result = msm_affine::g2_query_prepared_quartets(&self.b2, &groups, prepared);
++                                return (G1Projective::IDENTITY, result);
++                            }
++                        }
+                         rayon::join(
+                             || if omit_b { G1Projective::IDENTITY } else { msm_grouped(&self.b[..], &groups) },
+                             || msm_grouped_b2(&self.b2[..], &groups),
+--- a/crates/zopro-core/src/msm.rs
++++ b/crates/zopro-core/src/msm.rs
+@@ -2378,3 +2378,6 @@
+ 
+ #[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+ mod paired_weighted;
++
++#[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++pub(crate) mod b2_quartets;
+--- /dev/null
++++ b/crates/zopro-core/src/msm/b2_quartets.rs
+@@ -0,0 +1,221 @@
++//! Bounded, key-local sums of four bases. Exact coefficient classes
++//! are checked against the prepared indices on every proof.
++use super::{affine, limbs, reduce_layer, LimbPoint, Scratch};
++use crate::preparation::Reservation;
++use rayon::prelude::*;
++use std::io::Read;
++use zopro_bn254::{Fq2, G2Affine, G2Config, G2Projective};
++
++const MAX_QUARTETS: usize = 20_000;
++const TILE: usize = 256;
++const MISSING: u16 = u16::MAX;
++
++pub(crate) struct Quartets {
++    rows: Vec<[u32; 4]>,
++    by_first: Vec<u16>,
++    sums: Vec<G2Affine>,
++    _reservation: Reservation,
++}
++
++impl Quartets {
++    pub(crate) fn build(bases: &[G2Affine]) -> Option<Self> {
++        let config = std::env::var_os("ZOPRO_935_B2_QUARTETS")?;
++        let start = std::time::Instant::now();
++        let mut file = std::fs::File::open(config).ok()?;
++        let mut header = [0u8; 16];
++        file.read_exact(&mut header).ok()?;
++        if &header[..8] != b"ZPQ93500" {
++            return None;
++        }
++        let n = u32::from_le_bytes(header[8..12].try_into().ok()?) as usize;
++        let count = u32::from_le_bytes(header[12..16].try_into().ok()?) as usize;
++        if n != bases.len() || !(1..=MAX_QUARTETS).contains(&count) {
++            return None;
++        }
++        let retained = n * std::mem::size_of::<u16>()
++            + count * (std::mem::size_of::<[u32; 4]>() + std::mem::size_of::<G2Affine>());
++        // During construction one tile of projectives and its normalization
++        // buffers coexist with the final sums and the input validation map.
++        let scratch = n + TILE * std::mem::size_of::<G2Projective>() * 6;
++        let reservation = Reservation::analysis(retained.checked_add(scratch))?;
++        let mut rows = Vec::with_capacity(count);
++        let mut by_first = vec![MISSING; n];
++        let mut seen = vec![false; n];
++        for i in 0..count {
++            let mut bytes = [0u8; 16];
++            file.read_exact(&mut bytes).ok()?;
++            let row: [u32; 4] = core::array::from_fn(|j| {
++                u32::from_le_bytes(bytes[j * 4..(j + 1) * 4].try_into().unwrap())
++            });
++            if row.windows(2).any(|pair| pair[0] >= pair[1]) || row[3] as usize >= n {
++                return None;
++            }
++            for &index in &row {
++                if std::mem::replace(&mut seen[index as usize], true) {
++                    return None;
++                }
++            }
++            by_first[row[0] as usize] = i as u16;
++            rows.push(row);
++        }
++        if file.read(&mut [0; 1]).ok()? != 0 {
++            return None;
++        }
++        drop(seen);
++        let mut sums = Vec::with_capacity(count);
++        let mut projectives = Vec::with_capacity(TILE);
++        for chunk in rows.chunks(TILE) {
++            projectives.clear();
++            projectives.extend(chunk.iter().map(|r| {
++                let [a, b, c, d] = r.map(|i| bases[i as usize]);
++                (a + b) + (c + d)
++            }));
++            sums.extend(G2Projective::batch_to_affine(&projectives));
++        }
++        drop(projectives);
++        if std::env::var_os("ZOPRO_935_TRACE").is_some() {
++            eprintln!(
++                "ZP935_BUILD {count} {retained} {}",
++                start.elapsed().as_nanos()
++            );
++        }
++        #[cfg(zopro_live_preparation_charge)]
++        let reservation = reservation.retain(Some(retained));
++        Some(Self {
++            rows,
++            by_first,
++            sums,
++            _reservation: reservation,
++        })
++    }
++
++    #[inline]
++    fn lookup(&self, indices: &[u32]) -> Option<G2Affine> {
++        if indices.len() != 4 {
++            return None;
++        }
++        let i = self.by_first[indices[0] as usize] as usize;
++        (self.rows.get(i)?.as_slice() == indices).then(|| self.sums[i])
++    }
++
++    pub(crate) fn reduce(
++        &self,
++        bases: &[G2Affine],
++        order: &[u32],
++        starts: &[usize],
++        counts: &[usize],
++    ) -> Vec<G2Affine> {
++        let trace = std::env::var_os("ZOPRO_935_TRACE").is_some();
++        let hits = std::sync::atomic::AtomicUsize::new(0);
++        let n = counts.len();
++        let mut result = Vec::<G2Affine>::with_capacity(n);
++        result.spare_capacity_mut()[..n]
++            .par_chunks_mut(TILE)
++            .enumerate()
++            .for_each_init(
++                || (Vec::<LimbPoint<Fq2>>::new(), Scratch::<G2Config>::default()),
++                |(points, scratch), (i, output)| {
++                    let first = i * TILE;
++                    points.clear();
++                    let mut local_starts = [0; TILE];
++                    let mut local_counts = [0; TILE];
++                    let mut cached = [false; TILE];
++                    let mut found = 0;
++                    for (j, out) in output.iter_mut().enumerate() {
++                        let class = first + j;
++                        let indices = &order[starts[class]..starts[class + 1]];
++                        if let Some(sum) = self.lookup(indices) {
++                            out.write(sum);
++                            cached[j] = true;
++                            found += 1;
++                        } else {
++                            local_starts[j] = points.len();
++                            local_counts[j] = counts[class];
++                            points.extend(
++                                indices
++                                    .iter()
++                                    .map(|&index| limbs::<G2Config>(bases[index as usize])),
++                            );
++                        }
++                    }
++                    let local_starts = &local_starts[..output.len()];
++                    let local_counts = &mut local_counts[..output.len()];
++                    while local_counts.iter().any(|&count| count > 1) {
++                        reduce_layer(points, local_starts, local_counts, scratch);
++                    }
++                    for (j, out) in output.iter_mut().enumerate() {
++                        if !cached[j] {
++                            out.write(if local_counts[j] == 0 {
++                                G2Affine::IDENTITY
++                            } else {
++                                affine::<G2Config>(points[local_starts[j]])
++                            });
++                        }
++                    }
++                    if trace {
++                        hits.fetch_add(found, std::sync::atomic::Ordering::Relaxed);
++                    }
++                },
++            );
++        // SAFETY: the completed indexed pass assigned all n output slots.
++        unsafe { result.set_len(n) };
++        if trace {
++            eprintln!(
++                "ZP935_HITS {} {n}",
++                hits.load(std::sync::atomic::Ordering::Relaxed)
++            );
++        }
++        result
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use zopro_bn254::Fr;
++
++    #[test]
++    fn verified_quartets_and_mismatched_classes_match_ordinary_reduction() {
++        let mut rng = crate::testing::Seeded::new(0x925363ab);
++        // Include identities, duplicates and negatives, as well as unrelated bases.
++        let bases: Vec<_> = (0..1024)
++            .map(|j| match j % 7 {
++                0 => G2Affine::IDENTITY,
++                1 | 2 => G2Affine::GENERATOR,
++                3 => -G2Affine::GENERATOR,
++                _ => (G2Affine::GENERATOR * (rng.fr() + Fr::ONE)).to_affine(),
++            })
++            .collect();
++        let rows = vec![[0, 1, 2, 3], [4, 5, 6, 7]];
++        let mut by_first = vec![MISSING; bases.len()];
++        by_first[0] = 0;
++        by_first[4] = 1;
++        let sums = rows
++            .iter()
++            .map(|r| {
++                r.iter()
++                    .map(|&i| bases[i as usize].to_projective())
++                    .sum::<G2Projective>()
++                    .to_affine()
++            })
++            .collect();
++        let prepared = Quartets {
++            rows,
++            by_first,
++            sums,
++            _reservation: Reservation::analysis(Some(0)).unwrap(),
++        };
++        let mut order = vec![0, 1, 2, 3, 4, 5, 6, 8];
++        let mut starts = vec![0, 4, 8];
++        let mut counts = vec![4, 4];
++        for i in 9..bases.len() {
++            order.push(i as u32);
++            counts.push(1);
++            starts.push(order.len());
++        }
++        assert!(prepared.lookup(&order[..4]).is_some());
++        assert!(prepared.lookup(&order[4..8]).is_none());
++        let expected = super::super::group_affine(&bases, &order, &starts, &counts);
++        assert_eq!(prepared.reduce(&bases, &order, &starts, &counts), expected);
++    }
++}
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1848,3 +1848,13 @@
+ 
+ #[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+ mod dense_h;
++
++#[cfg(all(zopro_resource_schedule, feature = "ifma8", target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++pub(super) fn g2_query_prepared_quartets(
++    bases: &[zopro_bn254::G2Affine],
++    groups: &ScalarGroups,
++    prepared: &crate::msm::b2_quartets::Quartets,
++) -> zopro_bn254::G2Projective {
++    let points = prepared.reduce(bases, &groups.order, &groups.starts, &groups.counts);
++    msm_raw(&points, &groups.values)
++}
