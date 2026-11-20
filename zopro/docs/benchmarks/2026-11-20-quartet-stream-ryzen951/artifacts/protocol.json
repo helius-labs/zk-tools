@@ -1,0 +1,21 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "ordinary",
+    "prior",
+    "marker",
+    "stream"
+  ],
+  "blocks": 8,
+  "rounds": 17,
+  "placement": "24 main and 8 frontend Ryzen logical CPUs, pinned seeded 4x2 schedule.",
+  "calibration": "Same-build ordinary within 2% of frozen. Same-build marker path within 2% of prior.",
+  "qualification": "Stream needs lower paired medians and six of eight wins against frozen, same-build ordinary, previous direct build and same-build marker path on both inputs.",
+  "correctness": "Trace all compacted term counts, full accepted memberships, and bounded capacity fallbacks. Every export independently verified.",
+  "source": "6fc18257ae6d0f84ebf9b4c8512f3d10f3035b3ca87915c77930bbe483bd3aba"
+}
