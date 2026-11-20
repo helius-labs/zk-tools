@@ -1,0 +1,255 @@
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -1104,6 +1104,16 @@
+         self.solve_inner(witness, false)
+     }
+     fn solve_inner(&self, witness: &[u8], omit_b: bool) -> Result<Vec<u8>, String> {
++        self.solve_inner_parts(witness, omit_b, false).map(|parts| match parts {
++            CpuProofParts::Raw(parts) => parts,
++            CpuProofParts::Fused { .. } => unreachable!("raw proof parts requested"),
++        })
++    }
++
++    fn solve_inner_parts(
++        &self, witness: &[u8], omit_b: bool, fused_points: bool,
++    ) -> Result<CpuProofParts, String> {
++        let _ = fused_points;
+         #[cfg(all(zopro_small_core_entry, zopro_real_kh, target_arch="x86_64",
+             target_os="linux", target_feature="avx512ifma", target_feature="avx512vl",
+             target_feature="avx512dq", feature="ifma8", not(no_ifma)))]
+@@ -1121,7 +1131,7 @@
+             }
+             return rayon::join(||{
+                 assert!(rayon::current_thread_index().is_some());
+-                self.solve_inner(witness,omit_b)
++                self.solve_inner_parts(witness, omit_b, fused_points)
+             },||()).0;
+         }
+         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
+@@ -1146,7 +1156,7 @@
+         if self.canonical_wires && !self.has_gpu() && affine_msm() && self.equal_witness.is_none() {
+             if let Some(queries)=&self.lagrange {
+                 if let Some(folded)=&queries.folded {
+-                    return self.solve_canonical_wires(plan,&frs(witness),materialize_c,queries,folded,omit_b,_reclaim.as_ref());
++                    return self.solve_canonical_wires(plan,&frs(witness),materialize_c,queries,folded,omit_b,_reclaim.as_ref(),fused_points);
+                 }
+             }
+         }
+@@ -1182,6 +1192,7 @@
+             offsets.restore_public(public);
+         }
+         self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
++            .map(CpuProofParts::Raw)
+     }
+     pub fn commitment(
+         &self,
+@@ -2337,7 +2348,8 @@
+ 
+ #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ impl Key {
+-    fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>)->Result<Vec<u8>,String>{
++    fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>, fused_points: bool)->Result<CpuProofParts,String>{
++        let _ = fused_points;
+         #[cfg(not(zopro_bounded_gather))]
+         use rayon::prelude::*;
+         use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
+@@ -2424,10 +2436,14 @@
+                 });
+             #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+             let (ar,kh,bs2)=offsets.map_or((ar,kh,bs2), |o| (ar+o.a,kh+o.k,bs2+o.b2));
++            let kh = kh + correction;
++            if fused_points && omit_b {
++                return Ok(CpuProofParts::Fused { ar, kh, bs2 });
++            }
+             let mut out=Vec::with_capacity(384);
+-            for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY] {output_g1(&mut out,point);}
++            for point in [ar,G1Projective::IDENTITY,kh,G1Projective::IDENTITY] {output_g1(&mut out,point);}
+             output_g2(&mut out,bs2);
+-            return Ok(out);
++            return Ok(CpuProofParts::Raw(out));
+         }
+         let (((ar,kr),hz),(bs1,bs2))={
+         let montgomery_h=h.len()>=(1<<18)&&crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
+@@ -2472,7 +2488,7 @@
+ 
+         #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
+         let (ar,kr,bs2)=offsets.map_or((ar,kr,bs2), |o| (ar+o.a,kr+o.k,bs2+o.b2));
+-        let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(out)
++        let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(CpuProofParts::Raw(out))
+     }
+ }
+ 
+@@ -2583,6 +2599,12 @@
+ mod fused_canonical_gather;
+ 
+ pub mod generated_proof;
++
++enum CpuProofParts {
++    Raw(Vec<u8>),
++    Fused { ar: G1Projective, kh: G1Projective, bs2: G2Projective },
++}
++
+ impl Key {
+     /// Generate a fresh CPU proof. Point decoding retains all checks except a
+     /// subgroup check certified from this key's exact immutable G2 population.
+@@ -2591,6 +2613,25 @@
+         #[cfg(all(target_arch="x86_64",target_os="linux",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",feature="ifma8",not(no_ifma)))]
+         let eligible=!self.has_gpu()&&self.b2.len()<65536&&std::env::var("ZOPRO_BENCH_CERTIFIED_OUTPUT").as_deref()==Ok("1");
+         let certified=eligible&&self.generated_g2.check(&self.b2,false)&&fixed.generated_g2_certified();
++        if eligible {
++            if let Some(mode) = generated_proof::typed_mode() {
++                if !fixed.rerandomization_key_valid() {
++                    return Err("zero delta in proving key".into());
++                }
++                let parts = self.solve_inner_parts(witness, true, mode != "final")?;
++                let batch = mode == "batch";
++                let (proof, direct) = match parts {
++                    CpuProofParts::Raw(parts) => (fixed.typed_rerandomized_parts(&parts, batch), false),
++                    CpuProofParts::Fused { ar, kh, bs2 } => (fixed.typed_rerandomized(ar, kh, bs2, batch), true),
++                };
++                if let Some(proof) = proof {
++                    generated_proof::trace_typed(mode, direct, certified);
++                    return Ok(generated_proof::GeneratedProof::typed(proof, certified));
++                }
++                let fallback = self.solve_inner(witness, false)?;
++                return Ok(generated_proof::GeneratedProof::new(fixed.assemble_nonzero(&fallback), certified));
++            }
++        }
+         Ok(generated_proof::GeneratedProof::new(self.solve_rerandomized(witness,fixed)?,certified))
+     }
+ }
+--- a/crates/zopro-core/src/generated_proof.rs
++++ b/crates/zopro-core/src/generated_proof.rs
+@@ -6,14 +6,50 @@
+ /// A generated raw proof with a private construction certificate.
+ /// External raw proof parsing never consumes this certificate.
+ pub struct GeneratedProof {
+-    raw: Vec<u8>,
++    output: GeneratedOutput,
+     g2_certified: bool,
+ }
++
++enum GeneratedOutput {
++    Raw(Vec<u8>),
++    Typed(crate::verify::Proof),
++}
++
++pub(crate) fn typed_mode() -> Option<&'static str> {
++    static MODE: OnceLock<Option<String>> = OnceLock::new();
++    MODE.get_or_init(|| std::env::var("ZOPRO_898_TYPED").ok())
++        .as_deref()
++        .filter(|mode| matches!(*mode, "final" | "projective" | "batch"))
++}
++
++pub(crate) fn trace_typed(mode: &str, direct: bool, certified: bool) {
++    if std::env::var_os("ZOPRO_898_TRACE").is_some() {
++        eprintln!("ZP898_TYPED {mode} {direct} {certified}");
++    }
++}
+ impl GeneratedProof {
+-    pub(crate) fn new(raw: Vec<u8>, g2_certified: bool) -> Self { Self { raw, g2_certified } }
++    pub(crate) fn new(raw: Vec<u8>, g2_certified: bool) -> Self {
++        Self { output: GeneratedOutput::Raw(raw), g2_certified }
++    }
++
++    pub(crate) fn typed(proof: crate::verify::Proof, g2_certified: bool) -> Self {
++        Self { output: GeneratedOutput::Typed(proof), g2_certified }
++    }
++
+     pub fn into_proof(self) -> Result<crate::verify::Proof, &'static str> {
+         if self.g2_certified { probe::fast(); }
+-        crate::verify::Proof::from_generated_raw(&self.raw, self.g2_certified)
++        match self.output {
++            GeneratedOutput::Raw(raw) => crate::verify::Proof::from_generated_raw(&raw, self.g2_certified),
++            GeneratedOutput::Typed(proof) => {
++                if !proof.ar.is_on_curve() || !proof.krs.is_on_curve()
++                    || !proof.bs.is_on_curve()
++                    || (!self.g2_certified && !proof.bs.is_in_subgroup())
++                {
++                    return Err("generated proof point failed validation");
++                }
++                Ok(proof)
++            }
++        }
+     }
+ }
+ 
+--- a/crates/zopro-core/src/groth16.rs
++++ b/crates/zopro-core/src/groth16.rs
+@@ -349,6 +349,44 @@
+         let v = uniform_fr();
+         self.rerandomized_with(parts, u, v)
+     }
++    pub(crate) fn typed_rerandomized_parts(&self, parts: &[u8], batch: bool) -> Option<crate::verify::Proof> {
++        assert_eq!(parts.len(), 384);
++        let a = decode_g1(&parts[..64])[0].to_projective();
++        let kh = decode_g1(&parts[128..192])[0].to_projective() + decode_g1(&parts[192..256])[0];
++        let b = decode_g2(&parts[256..384])[0].to_projective();
++        self.typed_rerandomized(a, kh, b, batch)
++    }
++
++    pub(crate) fn typed_rerandomized(
++        &self, a: G1Projective, kh: G1Projective, b: G2Projective, batch: bool,
++    ) -> Option<crate::verify::Proof> {
++        let a = a + self.0.fixed.alpha;
++        if a.is_identity() {
++            return None;
++        }
++        let u = loop {
++            let value = uniform_fr();
++            if !value.is_zero() {
++                break value;
++            }
++        };
++        let v = uniform_fr();
++        self.typed_outputs(a, kh, b + self.0.fixed.beta2, u, v, batch)
++    }
++
++    fn typed_outputs(
++        &self, a: G1Projective, kh: G1Projective, b: G2Projective, u: Fr, v: Fr, batch: bool,
++    ) -> Option<crate::verify::Proof> {
++        let (ar, krs, bs) = self.windowed_outputs(a, b, kh, u, u.inverse()?, v);
++        let (ar, krs) = if batch {
++            let points = G1Projective::batch_to_affine(&[ar, krs]);
++            (points[0], points[1])
++        } else {
++            (ar.to_affine(), krs.to_affine())
++        };
++        Some(crate::verify::Proof { ar, krs, bs: bs.to_affine() })
++    }
++
+     fn rerandomized_with(&self, parts: &[u8], u: Fr, v: Fr) -> Option<Vec<u8>> {
+         assert_eq!(parts.len(), 384);
+         let inverse = u.inverse()?;
+@@ -485,3 +523,31 @@
+ include!("groth16_rerandomize.rs");
+ 
+ impl PreparedFixedPoints{pub(crate)fn generated_g2_certified(&self)->bool{self.0.generated_g2.check(&[self.0.fixed.beta2,self.0.fixed.delta2],true)}}
++
++#[cfg(test)]
++#[test]
++fn typed_handoff_matches_raw_with_identical_blinding() {
++    use crate::verify::Proof;
++    let g1 = G1Affine::GENERATOR;
++    let g2 = G2Affine::GENERATOR;
++    let fixed = FixedPoints { alpha: g1, beta: g1, delta: g1, beta2: g2, delta2: g2 };
++    let prepared = PreparedFixedPoints::new(fixed);
++    let a = (g1 * Fr::from(8u64)).double();
++    let c = (g1 * Fr::from(13u64)).double();
++    let b = (g2 * Fr::from(19u64)).double();
++    let mut parts = Vec::new();
++    for value in [a, G1Projective::IDENTITY, c, G1Projective::IDENTITY] {
++        crate::output_g1(&mut parts, value);
++    }
++    crate::output_g2(&mut parts, b);
++    for u in [Fr::ONE, -Fr::ONE, Fr::from(13u64)] {
++        for v in [Fr::ZERO, -Fr::ONE, Fr::from(29u64)] {
++            let raw = prepared.rerandomized_with(&parts, u, v).unwrap();
++            for batch in [false, true] {
++                let direct = prepared.typed_outputs(a + g1, c, b + g2, u, v, batch).unwrap();
++                assert_eq!(direct, Proof::from_raw(&raw).unwrap());
++            }
++        }
++    }
++    assert!(prepared.typed_rerandomized(-g1.to_projective(), c, b, true).is_none());
++}
