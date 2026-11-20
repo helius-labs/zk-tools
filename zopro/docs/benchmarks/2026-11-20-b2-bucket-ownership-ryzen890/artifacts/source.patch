@@ -1,0 +1,402 @@
+--- a/crates/zopro-core/src/msm.rs
++++ b/crates/zopro-core/src/msm.rs
+@@ -312,6 +312,33 @@
+     group_affine(&partials, &partial_order, &partial_starts, &counts)
+ }
+ 
++#[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++pub(super) fn weighted_tile<C: CurveConfig>(buckets: &[Affine<C>]) -> (Projective<C>, Affine<C>)
++where
++    C::Base: BatchInverse,
++{
++    debug_assert_eq!(buckets.len(), WEIGHTED_TILE);
++    let mut tree = vec![LimbPoint::<C::Base>::infinity(); 2 * buckets.len() - 1];
++    fill_weighted_tile(&mut tree, &mut Scratch::<C>::default(), buckets)
++}
++
++pub(super) const WEIGHTED_TILE: usize = 256;
++
++fn fill_weighted_tile<C: CurveConfig>(
++    tree: &mut [LimbPoint<C::Base>],
++    scratch: &mut Scratch<C>,
++    buckets: &[Affine<C>],
++) -> (Projective<C>, Affine<C>)
++where
++    C::Base: BatchInverse,
++{
++    for (out, &point) in tree.iter_mut().zip(buckets) {
++        *out = limbs::<C>(point);
++    }
++    let weighted = weighted_sum(tree, buckets.len(), scratch);
++    (weighted, affine::<C>(tree[0]))
++}
++
+ /// Reduces already accumulated affine buckets through the same weighted
+ /// affine tree used by the lane MSM, splitting work into cache-sized groups.
+ pub(super) fn weighted_affine<C: CurveConfig>(buckets: &[Affine<C>]) -> Projective<C>
+@@ -320,23 +347,23 @@
+ {
+     #[cfg(all(zopro_paired_weighted,zopro_resource_schedule,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+     if let Some(result)=paired_weighted::try_weighted(buckets){return result;}
+-    const GROUP: usize = 256;
+     let partials: Vec<_> = buckets
+-        .par_chunks(GROUP)
++        .par_chunks(WEIGHTED_TILE)
+         .map_init(
+             || (Vec::<LimbPoint<C::Base>>::new(), Scratch::<C>::default()),
+             |(tree, scratch), buckets| {
+                 let n = buckets.len();
+                 tree.resize(2 * n - 1, LimbPoint::<C::Base>::infinity());
+-                for (out, &point) in tree.iter_mut().zip(buckets) {
+-                    *out = limbs::<C>(point);
+-                }
+-                // weighted_sum writes every internal tree slot before reading it.
+-                let weighted = weighted_sum(tree, n, scratch);
+-                (weighted, affine::<C>(tree[0]))
++                fill_weighted_tile(tree, scratch, buckets)
+             },
+         )
+         .collect();
++    combine_weighted_tiles(partials)
++}
++
++pub(super) fn combine_weighted_tiles<C: CurveConfig>(
++    partials: Vec<(Projective<C>, Affine<C>)>,
++) -> Projective<C> {
+     let mut sum = Projective::<C>::IDENTITY;
+     let mut offset = Projective::<C>::IDENTITY;
+     let mut running = Projective::<C>::IDENTITY;
+@@ -345,7 +372,7 @@
+         offset += running;
+         running += total;
+     }
+-    for _ in 0..GROUP.ilog2() {
++    for _ in 0..WEIGHTED_TILE.ilog2() {
+         offset = offset.double();
+     }
+     sum + offset
+--- a/crates/zopro-core/src/msm_affine/g2_borrowed.rs
++++ b/crates/zopro-core/src/msm_affine/g2_borrowed.rs
+@@ -185,6 +185,131 @@
+     s.feed(bases, short, false, w, bits, size);
+     Some(s.finish())
+ }
++#[cfg(zopro_resource_schedule)]
++pub(super) use ownership::{available as ownership_available, window as owned_window};
++
++#[cfg(zopro_resource_schedule)]
++mod ownership {
++    use super::{component, BatchAdd, Window, BETA};
++    use crate::msm::{combine_weighted_tiles, weighted_tile, WEIGHTED_TILE};
++    use rayon::prelude::*;
++    use std::ops::Range;
++    use zopro_bn254::{G2Affine, G2Config, G2Projective};
++
++    const NEGATIVE: u32 = 1 << 31;
++    const INDEX_MASK: u32 = NEGATIVE - 1;
++
++    pub(in super::super) fn available() -> bool {
++        BatchAdd::<G2Config>::default().borrowed_g2_enabled()
++    }
++
++    fn bucket(digit: i16, offset: usize) -> usize {
++        offset + digit.unsigned_abs() as usize - 1
++    }
++
++    // Pack both component histograms in one index stream. Each entry retains
++    // the original key order within its bucket and a separate sign bit.
++    fn order(short: &[[u64; 4]], w: usize, bits: usize) -> Option<(Vec<u32>, Vec<usize>)> {
++        let half = 1 << (bits - 1);
++        let mut counts = vec![0usize; 2 * half];
++        for words in short {
++            for (high, offset) in [(true, 0), (false, half)] {
++                let digit = component(words, high, w, bits);
++                if digit != 0 {
++                    counts[bucket(digit, offset)] += 1;
++                }
++            }
++        }
++        // Avoid a long sequence of nearly empty inversion batches on a
++        // highly skewed window. The original point partitions spread it out.
++        let limit = (4 * short.len().div_ceil(half)).max(32);
++        if counts.iter().any(|count| *count > limit) {
++            return None;
++        }
++        let mut starts = Vec::with_capacity(2 * half + 1);
++        starts.push(0);
++        for count in counts {
++            starts.push(starts.last().unwrap() + count);
++        }
++        let mut next = starts[..2 * half].to_vec();
++        let mut order = vec![0; *starts.last().unwrap()];
++        for (i, words) in short.iter().enumerate() {
++            for (high, offset) in [(true, 0), (false, half)] {
++                let digit = component(words, high, w, bits);
++                if digit != 0 {
++                    let dest = bucket(digit, offset);
++                    order[next[dest]] = i as u32 | (u32::from(digit < 0) << 31);
++                    next[dest] += 1;
++                }
++            }
++        }
++        Some((order, starts))
++    }
++
++    impl<'a> Window<'a> {
++        fn feed_layers(
++            &mut self,
++            bases: &'a [G2Affine],
++            order: &[u32],
++            starts: &[usize],
++            active: &mut Vec<(u32, Range<usize>)>,
++        ) {
++            active.extend(starts.windows(2).enumerate().filter_map(|(bucket, pair)| {
++                (pair[0] < pair[1]).then_some((bucket as u32, pair[0]..pair[1]))
++            }));
++            let size = self.batch.capacity();
++            while !active.is_empty() {
++                // Each active bucket contributes at most one operand in a
++                // layer. Execute its pending update before the next layer.
++                active.retain_mut(|(bucket, range)| {
++                    let operand = order[range.start];
++                    range.start += 1;
++                    let point = &bases[(operand & INDEX_MASK) as usize];
++                    if !point.is_identity() {
++                        self.add(*bucket | (operand & NEGATIVE), point);
++                        if self.batch.len() == size {
++                            self.execute();
++                        }
++                    }
++                    range.start != range.end
++                });
++                self.execute();
++            }
++        }
++    }
++
++    pub(in super::super) fn window(
++        bases: &[G2Affine],
++        short: &[[u64; 4]],
++        w: usize,
++        bits: usize,
++    ) -> Option<G2Projective> {
++        let half = 1 << (bits - 1);
++        let (order, starts) = order(short, w, bits)?;
++        let partials: Vec<_> = (0..half / WEIGHTED_TILE)
++            .into_par_iter()
++            .map(|tile| {
++                let start = tile * WEIGHTED_TILE;
++                let end = start + WEIGHTED_TILE;
++                let mut state = Window::new(WEIGHTED_TILE, WEIGHTED_TILE, BatchAdd::default());
++                let mut active = Vec::with_capacity(WEIGHTED_TILE);
++                state.feed_layers(bases, &order, &starts[start..=end], &mut active);
++                for p in &mut state.affine {
++                    if !p.is_identity() {
++                        p.x = p.x.mul_by_fp(&BETA);
++                    }
++                }
++                for p in &mut state.projective {
++                    p.x = p.x.mul_by_fp(&BETA);
++                }
++                state.feed_layers(bases, &order, &starts[half + start..=half + end], &mut active);
++                weighted_tile(&state.finish())
++            })
++            .collect();
++        Some(combine_weighted_tiles(partials))
++    }
++}
++
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1711,6 +1711,10 @@
+     );
+     // Group index vectors have dropped. Keep the reservation through the MSM.
+     #[cfg(all(zopro_resource_schedule, target_os = "linux"))]
++    if let Some(result) = g2_phi::try_owned_from_split(&points, &values) {
++        return result;
++    }
++    #[cfg(all(zopro_resource_schedule, target_os = "linux"))]
+     if let Some(pool) = frontend.filter(|p| p.current_num_threads() < rayon::current_num_threads()) {
+         let bytes =
+             workspace::grouped_auxiliary_window_bytes(values.len(), pool.current_num_threads());
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -200,7 +200,11 @@
+     parts: usize,
+     serial: bool,
+ ) -> G2Projective {
+-    assert_eq!(bases.len(), short.len());
++    decompose(short, serial);
++    from_split(bases, short, bits, parts)
++}
++
++fn decompose(short: &mut [[u64; 4]], serial: bool) {
+     if serial {
+         for word in short.iter_mut() {
+             *word = phi_split(*word);
+@@ -211,7 +215,6 @@
+         #[cfg(not(zopro_phi_grain))]
+         short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+     }
+-    from_split(bases, short, bits, parts)
+ }
+ 
+ pub(super) fn from_split(
+@@ -220,12 +223,34 @@
+     bits: usize,
+     parts: usize,
+ ) -> G2Projective {
++    from_split_layout(bases, short, bits, parts, false)
++}
++
++fn from_split_layout(
++    bases: &[G2Affine],
++    short: &[[u64; 4]],
++    bits: usize,
++    parts: usize,
++    owned_buckets: bool,
++) -> G2Projective {
+     assert_eq!(bases.len(), short.len());
++    #[cfg(not(zopro_resource_schedule))]
++    let _ = owned_buckets;
+     let chunk = bases.len().div_ceil(parts);
+     let windows = 127usize.div_ceil(bits);
+     let sums: Vec<_> = (0..windows)
+         .into_par_iter()
+         .map(|w| {
++            #[cfg(zopro_resource_schedule)]
++            if owned_buckets && w + 1 < windows {
++                let result = super::g2_borrowed::owned_window(bases, short, w, bits);
++                if std::env::var_os("ZOPRO_TRIAL_B2_OWNER_TRACE").is_some() {
++                    eprintln!("B2_BUCKET_WINDOW {bits} {w} {}", result.is_some());
++                }
++                if let Some(result) = result {
++                    return result;
++                }
++            }
+             let mut buckets: Vec<_> = (0..parts)
+                 .into_par_iter()
+                 .map(|part| {
+@@ -251,10 +276,46 @@
+     result
+ }
+ 
++#[cfg(zopro_resource_schedule)]
++fn trial_layout(n: usize) -> Option<(usize, bool, crate::preparation::Reservation)> {
++    let (bits, owners) = match std::env::var("ZOPRO_TRIAL_B2_OWNER").as_deref() {
++        Ok("point11") => (11, false),
++        Ok("owner11") => (11, true),
++        Ok("owner12") => (12, true),
++        _ => return None,
++    };
++    if owners && !super::g2_borrowed::ownership_available() {
++        return None;
++    }
++    let workers = rayon::current_num_threads();
++    let bytes = if owners {
++        super::workspace::ownership_bytes(n, bits, workers)
++    } else {
++        super::workspace::four_range_growth(n, workers)
++    };
++    let reservation = crate::preparation::Reservation::analysis(bytes)?;
++    if std::env::var_os("ZOPRO_TRIAL_B2_OWNER_TRACE").is_some() {
++        eprintln!("B2_BUCKET_OWNER {bits} {owners} {n}");
++    }
++    Some((bits, owners, reservation))
++}
++
++#[cfg(all(zopro_resource_schedule, target_os = "linux"))]
++pub(super) fn try_owned_from_split(bases: &[G2Affine], short: &[[u64; 4]]) -> Option<G2Projective> {
++    let (bits, owners, _reservation) = trial_layout(bases.len())?;
++    Some(from_split_layout(bases, short, bits, if bits == 11 { 4 } else { 2 }, owners))
++}
++
+ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Projective {
+     assert_eq!(bases.len(), words.len());
+     if !(MIN_QUERY..MAX_QUERY).contains(&bases.len()) {
+         return super::g2_horner::raw(bases, words);
++    }
++    #[cfg(zopro_resource_schedule)]
++    if let Some((bits, owners, _reservation)) = trial_layout(bases.len()) {
++        let serial = bits == 11 && std::env::var("ZOPRO_CPU_G2_DECOMPOSITION").as_deref() == Ok("serial");
++        decompose(words, serial);
++        return from_split_layout(bases, words, bits, if bits == 11 { 4 } else { 2 }, owners);
+     }
+     #[cfg(zopro_resource_schedule)]
+     if rayon::current_num_threads() >= 32
+@@ -272,6 +333,46 @@
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    #[cfg(zopro_resource_schedule)]
++    #[test]
++    fn bucket_owners_match_generator_oracle() {
++        use rayon::ThreadPoolBuilder;
++        assert!(super::super::g2_borrowed::ownership_available());
++        let generator = G2Projective::generator();
++        for n in [0, 17, 263, 2037, 8193] {
++            let coefficients: Vec<_> = (0..n)
++                .map(|i| match i % 7 {
++                    0 => Fr::ZERO,
++                    1 | 2 => Fr::ONE,
++                    3 => -Fr::ONE,
++                    _ => Fr::from((i + 5) as u64),
++                })
++                .collect();
++            let points = G2Projective::batch_to_affine(
++                &coefficients.iter().map(|s| generator * *s).collect::<Vec<_>>(),
++            );
++            let weights: Vec<_> = (0..n)
++                .map(|i| match i % 5 {
++                    0 => Fr::ZERO,
++                    1 => Fr::ONE,
++                    2 => -Fr::ONE,
++                    3 => Fr::from((i + 123) as u64).pow(&[127]),
++                    _ => -Fr::from((i + 7) as u64).pow(&[109]),
++                })
++                .collect();
++            let expected = generator * weights.iter().zip(&coefficients)
++                .fold(Fr::ZERO, |sum, (&weight, &point)| sum + weight * point);
++            let words: Vec<_> = weights.iter().map(|s| phi_split(s.to_canonical())).collect();
++            for workers in [1, 4] {
++                ThreadPoolBuilder::new().num_threads(workers).build().unwrap().install(|| {
++                    for (bits, parts) in [(11, 4), (12, 2)] {
++                        assert_eq!(from_split_layout(&points, &words, bits, parts, true), expected);
++                    }
++                });
++            }
++        }
++    }
++
+     #[test]
+     fn decomposition_and_endomorphism_match_independent_field_oracles() {
+         let lambda = Fr::from_decimal("4407920970296243842393367215006156084916469457145843978461");
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -272,6 +272,23 @@
+         proposed.held.saturating_sub(original.held),
+         mul(proposed.leaf.saturating_sub(original.leaf), workers)?,
+     )
++}
++
++/// Request-local digit indices and owner scratch. Reserve the entire trial
++/// because owners can be live beside the existing leading-window reducers.
++#[cfg(zopro_g2_horner_buckets)]
++pub(super) fn ownership_bytes(n: usize, bits: usize, workers: usize) -> Option<usize> {
++    const TILE: usize = crate::msm::WEIGHTED_TILE;
++    let windows = 127usize.div_ceil(bits);
++    let bins = 1usize.checked_shl(bits as u32)?;
++    // Counts, starts and scatter cursors can coexist during the build.
++    let index = add(vector::<u32>(mul(2, n)?, false)?,
++                    mul(vector::<usize>(add(bins, 1)?, false)?, 3)?)?;
++    let active = vector::<(u32, std::ops::Range<usize>)>(TILE, false)?;
++    let leaf = add(add(window::<G2Config>(TILE, TILE)?, active)?,
++                   crate::msm::workspace_weighted::<G2Config>(TILE)?)?;
++    let leading = four_range_growth(n, workers)?;
++    add(leading, add(mul(index, windows - 1)?, mul(workers, leaf)?)?)
+ }
+ 
+ /// Workspace for streaming both private and H queries into the same buckets.
