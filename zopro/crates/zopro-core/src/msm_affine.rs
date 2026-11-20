@@ -1571,36 +1571,20 @@ mod tests {
             let scalars: Vec<_> = (0..512)
                 .map(|i| choices[i % choices.len()].to_canonical())
                 .collect();
-            let groups = group_scalars(&bases, &scalars);
-            #[cfg(any(target_os = "linux", target_os = "android"))]
-            {
-                let (grouped, values) = groups.expect("repeated scalars");
-                assert_eq!(
-                    msm_raw(&grouped, &values).to_affine(),
-                    msm_raw(&bases, &scalars).to_affine()
-                );
-            }
-            // Without an OS headroom estimate, optional grouping declines;
-            // the complete MSM oracle checks the fallback below.
-            #[cfg(not(any(target_os = "linux", target_os = "android")))]
-            assert!(groups.is_none());
+            let (grouped, values) = group_scalars(&bases, &scalars).expect("repeated scalars");
+            assert_eq!(
+                msm_raw(&grouped, &values).to_affine(),
+                msm_raw(&bases, &scalars).to_affine()
+            );
             let witness: Vec<_> = (0..512).map(|i| choices[i % choices.len()]).collect();
             let expected = zopro_bn254::curve::msm(&bases, &witness).to_affine();
             assert_eq!(msm(&bases, &witness).to_affine(), expected);
             let mut in_place = witness.clone();
             assert_eq!(msm_in_place(&bases, &mut in_place).to_affine(), expected);
             let zero = vec![[0; 4]; 512];
-            let groups = group_scalars(&bases, &zero);
-            #[cfg(any(target_os = "linux", target_os = "android"))]
-            {
-                let (grouped, values) = groups.unwrap();
-                assert!(grouped.is_empty() && values.is_empty());
-            }
-            #[cfg(not(any(target_os = "linux", target_os = "android")))]
-            {
-                assert!(groups.is_none());
-                assert_eq!(msm_raw(&bases, &zero).to_affine(), Affine::<C>::IDENTITY);
-            }
+            let (grouped, values) = group_scalars(&bases, &zero).unwrap();
+            assert!(grouped.is_empty() && values.is_empty());
+            assert_eq!(msm_raw(&bases, &zero).to_affine(), Affine::<C>::IDENTITY);
         }
         check::<G1Config>();
         check::<G2Config>();
