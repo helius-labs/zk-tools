@@ -2,9 +2,12 @@
 //! the client checks every proof it hands out, and encodes it as gnark's
 //! verifier and the chain read it.
 use zopro_bn254::{
-    pairing::{final_exponentiation, multi_miller_loop, pairing, G2Prepared},
+    pairing::{final_exponentiation_with_packing, multi_miller_loop, pairing, G2Prepared},
     Fq, Fq12, Fq2, Fr, G1Affine, G1Projective, G2Affine,
 };
+
+#[cfg(test)]
+use zopro_bn254::pairing::final_exponentiation;
 
 use crate::decompress::{coordinate, largest, largest2};
 
@@ -90,6 +93,7 @@ pub struct VerifyingKey {
     k: Vec<G1Affine>,
     /// Fixed-base windows, excluding the constant input.
     k_windows: Option<Vec<G1Affine>>,
+    packed_final_exponentiation: bool,
 }
 
 /// A raw verifying key's alpha, beta and delta, which a proving key's
@@ -146,6 +150,7 @@ impl VerifyingKey {
             .then(|| prepare_public_windows(&k[1..]));
         Ok(Self {
             k_windows,
+            packed_final_exponentiation: false,
             negative_alpha_beta: pairing(&-alpha, &beta2),
             gamma2: G2Prepared::new(&gamma2),
             delta2: G2Prepared::new(&delta2),
@@ -167,6 +172,11 @@ impl VerifyingKey {
             scalars.extend_from_slice(public);
             zopro_bn254::curve::msm(&self.k, &scalars).to_affine()
         }
+    }
+
+    /// Opt into packed cyclotomic squaring for verification on native IFMA builds.
+    pub fn set_packed_final_exponentiation(&mut self, enabled: bool) {
+        self.packed_final_exponentiation = enabled;
     }
 
     /// Verify a freshly produced proof while its public input is available.
@@ -193,8 +203,11 @@ impl VerifyingKey {
         };
         let (proved, public_value) = rayon::join(|| generate().map(proof_terms), public_term);
         let (proof, abcd) = proved?;
-        Ok((final_exponentiation(abcd * public_value) == Some(self.negative_alpha_beta))
-            .then_some(proof))
+        let pairing = final_exponentiation_with_packing(
+            abcd * public_value,
+            self.packed_final_exponentiation,
+        );
+        Ok((pairing == Some(self.negative_alpha_beta)).then_some(proof))
     }
 
     /// Whether `proof` proves `public`: e(Ar, Bs) = e(alpha, beta)
@@ -210,10 +223,12 @@ impl VerifyingKey {
             (inputs, &self.gamma2),
             (proof.krs, &self.delta2),
         ];
-        final_exponentiation(proof_miller_product(
+        let product = proof_miller_product(
             &pairs,
             crate::simd::cpu_option("ZOPRO_CPU_VERIFY_PARALLEL"),
-        )) == Some(self.negative_alpha_beta)
+        );
+        final_exponentiation_with_packing(product, self.packed_final_exponentiation)
+            == Some(self.negative_alpha_beta)
     }
 }
 
@@ -433,7 +448,9 @@ mod overlap_tests {
         let proof =
             Proof::from_raw(include_bytes!("../tests/fixtures/transfer-2x2.proof")).unwrap();
         let input = crate::decode_frs(include_bytes!("../tests/fixtures/transfer-2x2.public"))[0];
-        for workers in [1, 4] {
+        for (workers, packed) in [(1, false), (4, false), (1, true), (4, true)] {
+            let mut key = key.clone();
+            key.set_packed_final_exponentiation(packed);
             let pool = rayon::ThreadPoolBuilder::new()
                 .num_threads(workers)
                 .build()
@@ -447,6 +464,8 @@ mod overlap_tests {
                     rayon::join(|| run(&[input], proof), || run(&[input + Fr::ONE], proof));
                 assert_eq!(correct, Some(proof));
                 assert_eq!(altered, None);
+                assert!(key.verify(&proof, &[input]));
+                assert!(!key.verify(&proof, &[input + Fr::ONE]));
                 assert_eq!(run(&[], proof), None);
                 for p in [
                     Proof {

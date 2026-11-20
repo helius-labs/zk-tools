@@ -88,6 +88,12 @@ pub struct Prover {
 }
 
 impl Prover {
+    /// Opt into packed cyclotomic squaring during proof verification on
+    /// native AVX-512 IFMA builds. This uses no extra key tables.
+    pub fn set_packed_final_exponentiation(&mut self, enabled: bool) {
+        self.verifying_key.set_packed_final_exponentiation(enabled);
+    }
+
     /// Share a smaller Rayon pool across provers for native IFMA canonical
     /// witness solving and FFT preparation. With `ZOPRO_CPU_SOLVER_FRONTEND=1`,
     /// general CPU solver instructions also use this pool. With

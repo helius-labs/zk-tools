@@ -75,6 +75,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok("0") | Err(std::env::VarError::NotPresent) => {}
         _ => return Err("Euler FFT leaf fusion must be 0 or 1".into()),
     }
+    match std::env::var("ZOPRO_BENCH_PACKED_FINAL_EXPONENTIATION").as_deref() {
+        Ok("1") => prover.set_packed_final_exponentiation(true),
+        Ok("0") | Err(std::env::VarError::NotPresent) => {}
+        _ => return Err("packed final exponentiation must be 0 or 1".into()),
+    }
     if let Some(path) = std::env::var_os("ZOPRO_BENCH_WIRE_FILE") {
         let file = fs::File::open(path)?;
         // The benchmark owns the immutable input during preparation.
