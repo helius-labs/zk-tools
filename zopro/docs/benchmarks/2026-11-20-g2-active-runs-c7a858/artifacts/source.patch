@@ -1,0 +1,202 @@
+--- a/crates/zopro-core/src/msm_affine/g2_borrowed.rs
++++ b/crates/zopro-core/src/msm_affine/g2_borrowed.rs
+@@ -1,5 +1,6 @@
+ //! Proof-local borrowed pending operands for ordinary G2 phi windows.
+ use super::{batch_size, digit};
++use core::ops::Range;
+ use crate::msm::BatchAdd;
+ use zopro_bn254::{Field, Fq, G2Affine, G2Config, G2Projective};
+ const BETA: Fq = Fq::from_decimal(
+@@ -15,6 +16,34 @@
+         d
+     }
+ }
++#[derive(Default)]
++pub(super) struct ActiveRuns {
++    pub(super) component: [Vec<Range<usize>>; 2],
++}
++
++impl ActiveRuns {
++    pub(super) fn prepare(bases: &[G2Affine], short: &[[u64; 4]], skip_zero: bool) -> Self {
++        assert_eq!(bases.len(), short.len());
++        let mut result = Self::default();
++        let mut begin = [None; 2];
++        for (i, (p, words)) in bases.iter().zip(short).enumerate() {
++            let valid = !p.is_identity();
++            for side in 0..2 {
++                let nonzero = words[side * 2] != 0 || words[side * 2 + 1] & (u64::MAX >> 1) != 0;
++                if valid && (!skip_zero || nonzero) {
++                    if begin[side].is_none() { begin[side] = Some(i); }
++                } else if let Some(start) = begin[side].take() {
++                    result.component[side].push(start..i);
++                }
++            }
++        }
++        for (runs, begin) in result.component.iter_mut().zip(begin) {
++            if let Some(start) = begin { runs.push(start..bases.len()); }
++        }
++        result
++    }
++}
++
+ struct Window<'a> {
+     affine: Vec<G2Affine>,
+     projective: Vec<G2Projective>,
+@@ -112,7 +141,8 @@
+         }
+         self.queue.clear();
+     }
+-    fn feed(
++    #[inline]
++    fn feed_slice<const SELECTED: bool>(
+         &mut self,
+         bases: &'a [G2Affine],
+         short: &[[u64; 4]],
+@@ -123,7 +153,7 @@
+     ) {
+         for (p, s) in bases.iter().zip(short) {
+             let d = component(s, high, w, bits);
+-            if d == 0 || p.is_identity() {
++            if d == 0 || (!SELECTED && p.is_identity()) {
+                 continue;
+             }
+             let b = d.unsigned_abs() as usize - 1;
+@@ -140,6 +170,18 @@
+                 self.execute();
+                 self.take_from_queue();
+             }
++        }
++    }
++    fn feed(
++        &mut self, bases: &'a [G2Affine], short: &[[u64; 4]], high: bool,
++        w: usize, bits: usize, size: usize, selected: Option<&ActiveRuns>,
++    ) {
++        if let Some(runs) = selected {
++            for range in &runs.component[usize::from(high)] {
++                self.feed_slice::<true>(&bases[range.clone()], &short[range.clone()], high, w, bits, size);
++            }
++        } else {
++            self.feed_slice::<false>(bases, short, high, w, bits, size);
+         }
+         self.execute();
+         self.flush_queue();
+@@ -165,6 +207,7 @@
+     short: &[[u64; 4]],
+     w: usize,
+     bits: usize,
++    selected: Option<&ActiveRuns>,
+ ) -> Option<Vec<G2Affine>> {
+     let packed = BatchAdd::default();
+     if !packed.borrowed_g2_enabled() {
+@@ -172,7 +215,7 @@
+     }
+     let size = batch_size(bits).max(32);
+     let mut s = Window::new(1 << (bits - 1), size, packed);
+-    s.feed(bases, short, true, w, bits, size);
++    s.feed(bases, short, true, w, bits, size, selected);
+     debug_assert!(s.batch.is_empty() && s.queue.is_empty());
+     for p in &mut s.affine {
+         if !p.is_identity() {
+@@ -182,13 +225,32 @@
+     for p in &mut s.projective {
+         p.x = p.x.mul_by_fp(&BETA);
+     }
+-    s.feed(bases, short, false, w, bits, size);
++    s.feed(bases, short, false, w, bits, size, selected);
+     Some(s.finish())
+ }
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+     use zopro_bn254::Fr;
++    #[test]
++    fn selected_component_runs_preserve_every_borrowed_bucket() {
++        use super::super::g2_phi::phi_split;
++
++        let mut seed = 0x241dc5624240cafa;
++        let bases: Vec<_> = (0..1027).map(|i|
++            if i % 11 == 0 { G2Affine::IDENTITY }
++            else { (G2Affine::GENERATOR * Fr::from(i as u64 + 1)).to_affine() }).collect();
++        let words: Vec<_> = (0..bases.len()).map(|i| phi_split((match i % 7 {
++            0 => Fr::ZERO, 1 => Fr::ONE, 2 => -Fr::ONE, _ => random(&mut seed),
++        }).to_canonical())).collect();
++        for skip in [false, true] {
++            let runs = ActiveRuns::prepare(&bases, &words, skip);
++            for (w,bits) in [(0, 11), (1, 12), (5, 12), (8, 11)] {
++                let expected = try_window(&bases, &words, w, bits, None).unwrap();
++                assert_eq!(try_window(&bases, &words, w, bits, Some(&runs)).unwrap(), expected);
++            }
++        }
++    }
+     fn random(seed: &mut u64) -> Fr {
+         let mut b = [0; 32];
+         for c in b.chunks_mut(8) {
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -129,7 +129,10 @@
+     merge_buckets(&mut reduced, &negative);
+     reduced
+ }
+-fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> Vec<G2Affine> {
++fn hb_window(
++    bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize,
++    selected: Option<&super::g2_borrowed::ActiveRuns>,
++) -> Vec<G2Affine> {
+     if w + 1 == 127usize.div_ceil(bits) && 126 - w * bits <= 8 {
+         let top = 126 - w * bits;
+         // Each component's temporary index/tree workspace is released before the next.
+@@ -144,7 +147,7 @@
+         return high;
+     }
+     #[cfg(all(zopro_g2_horner_buckets,feature="ifma8",target_arch="x86_64",target_feature="avx512ifma",target_feature="avx512vl",target_feature="avx512dq",not(no_ifma)))]
+-    if let Some(value) = super::g2_borrowed::try_window(bases, short, w, bits) {
++    if let Some(value) = super::g2_borrowed::try_window(bases, short, w, bits, selected) {
+         return value;
+     }
+     let size = batch_size(bits).max(32);
+@@ -222,6 +225,35 @@
+ ) -> G2Projective {
+     assert_eq!(bases.len(), short.len());
+     let chunk = bases.len().div_ceil(parts);
++    #[cfg(zopro_resource_schedule)]
++    let selection = {
++        static MODE: std::sync::OnceLock<Option<bool>> = std::sync::OnceLock::new();
++        let mode = *MODE.get_or_init(|| match std::env::var("ZOPRO_TRIAL_G2_ACTIVE_RUNS").as_deref() {
++            Ok("identities") => Some(false),
++            Ok("components") => Some(true),
++            _ => None,
++        });
++        mode.filter(|_| (MIN_QUERY..MAX_QUERY).contains(&bases.len()) && (1..=4).contains(&parts))
++            .and_then(|skip| {
++                let budget = super::workspace::vector::<core::ops::Range<usize>>(chunk.div_ceil(2), true)?
++                    .checked_mul(2 * parts)?.checked_add(1024)?;
++                let charge = crate::preparation::Reservation::analysis(Some(budget))?;
++                let ranges: Vec<_> = (0..parts).into_par_iter().map(|part| {
++                    let start = (part * chunk).min(bases.len());
++                    let end = (start + chunk).min(bases.len());
++                    super::g2_borrowed::ActiveRuns::prepare(&bases[start..end], &short[start..end], skip)
++                }).collect();
++                if std::env::var_os("ZOPRO_TRIAL_G2_ACTIVE_TRACE").is_some() {
++                    let entries: usize = ranges.iter().flat_map(|p| p.component.iter()).map(Vec::len).sum();
++                    let terms: usize = ranges.iter().flat_map(|p| p.component.iter().flatten())
++                        .map(|r| r.end - r.start).sum();
++                    eprintln!("G2_ACTIVE_RUNS {} {parts} {entries} {terms} {skip}", bases.len());
++                }
++                Some((ranges,charge))
++            })
++    };
++    #[cfg(not(zopro_resource_schedule))]
++    let selection: Option<(Vec<super::g2_borrowed::ActiveRuns>, ())> = None;
+     let windows = 127usize.div_ceil(bits);
+     let sums: Vec<_> = (0..windows)
+         .into_par_iter()
+@@ -231,7 +263,8 @@
+                 .map(|part| {
+                     let start = (part * chunk).min(bases.len());
+                     let end = (start + chunk).min(bases.len());
+-                    hb_window(&bases[start..end], &short[start..end], w, bits)
++                    hb_window(&bases[start..end], &short[start..end], w, bits,
++                              selection.as_ref().map(|(ranges,_)| &ranges[part]))
+                 })
+                 .collect();
+             let mut combined = buckets.swap_remove(0);
