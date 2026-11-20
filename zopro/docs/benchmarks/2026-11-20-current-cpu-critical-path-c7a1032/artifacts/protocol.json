@@ -1,0 +1,108 @@
+{
+  "root": "/opt/zopro-critical1032",
+  "blocks": 4,
+  "profiles": {
+    "1x2": [
+      "geometry-placement-c7a1027",
+      "two"
+    ],
+    "2x2": [
+      "geometry-placement-c7a1027",
+      "exact"
+    ],
+    "4x2": [
+      "idle-core-width-c7a1024",
+      "exact"
+    ],
+    "8x2": [
+      "grouped-sdk-epoch-c7a1011",
+      "balanced"
+    ]
+  },
+  "probes": {
+    "0a413b159872218fe22f35fe21dc062e192936846d041f94255b163172d72f94": {
+      "path": "/opt/zopro-critical1032/traced/sdk-0",
+      "plain": "/opt/zopro-critical1032/payload/geometry-placement-c7a1027/bin/exact-sdk",
+      "group": "zp1032_0",
+      "sites": {
+        "proof": "0x559980",
+        "generate": "0x54ede0",
+        "core": "0x497600",
+        "solver": "0x44d170",
+        "quotient": "0x4a0c70",
+        "g1": "0x1e4310",
+        "groups": "0x49fe80",
+        "g2": "0x4b6300",
+        "g2windows": "0x4bccb0",
+        "g2grouped": "0x4bbb60",
+        "g2owned": "0x4bb3c0",
+        "tiled_g1": "0x4f4700",
+        "prepare_pair": "0x188ac0",
+        "miller": "0x1bf8a0",
+        "final_packed": "0x1c9b10",
+        "final_scalar": "0x1c36a0"
+      },
+      "symbols": {
+        "proof": "<zopro_zolana::Prover>::prove",
+        "generate": "<zopro_prover::Prover>::prove::{closure#0}",
+        "core": "<zopro_core::Key>::solve_inner",
+        "solver": "<zopro_core::solver::Plan>::solve_with_pool",
+        "quotient": "<zopro_core::lagrange::Queries>::product_values",
+        "g1": "zopro_core::msm_affine::msm_canonical::<zopro_bn254::curve::G1Config>",
+        "groups": "<zopro_core::Key>::cpu_msms",
+        "g2": "zopro_core::msm_affine::g2_query_exclusive",
+        "g2windows": "zopro_core::msm_affine::g2_phi::from_split",
+        "g2grouped": "zopro_core::msm_affine::g2_query_grouped",
+        "g2owned": "zopro_core::msm_affine::owned_grouped_phi",
+        "tiled_g1": "zopro_core::msm_affine::grouping::tiled::prove::<zopro_bn254::curve::G1Config>",
+        "prepare_pair": "<zopro_bn254::pairing::G2Prepared>::new",
+        "miller": "zopro_bn254::pairing::multi_miller_loop",
+        "final_packed": "zopro_bn254::pairing::final_exponentiation_impl::<true>",
+        "final_scalar": "zopro_bn254::pairing::final_exponentiation_impl::<false>"
+      }
+    },
+    "4bf5d58ecf1be9689abe7ff33e6182190f931ba0aaa155f7d202e531e99fc187": {
+      "path": "/opt/zopro-critical1032/traced/sdk-1",
+      "plain": "/opt/zopro-critical1032/payload/idle-core-width-c7a1024/bin/integrated-sdk",
+      "group": "zp1032_1",
+      "sites": {
+        "proof": "0x53ce60",
+        "generate": "0x5324f0",
+        "core": "0x4848c0",
+        "solver": "0x43ba10",
+        "quotient": "0x48e7f0",
+        "g1": "0x1de940",
+        "groups": "0x48da00",
+        "g2": "0x4a3270",
+        "g2windows": "0x4a98e0",
+        "g2grouped": "0x4a88a0",
+        "g2owned": "0x4a8100",
+        "tiled_g1": "0x4e02f0",
+        "prepare_pair": "0x1830f0",
+        "miller": "0x1b9ed0",
+        "final_packed": "0x1c4140",
+        "final_scalar": "0x1bdcd0"
+      },
+      "symbols": {
+        "proof": "<zopro_zolana::Prover>::prove",
+        "generate": "<zopro_prover::Prover>::prove::{closure#0}",
+        "core": "<zopro_core::Key>::solve_inner",
+        "solver": "<zopro_core::solver::Plan>::solve_with_pool",
+        "quotient": "<zopro_core::lagrange::Queries>::product_values",
+        "g1": "zopro_core::msm_affine::msm_canonical::<zopro_bn254::curve::G1Config>",
+        "groups": "<zopro_core::Key>::cpu_msms",
+        "g2": "zopro_core::msm_affine::g2_query_exclusive",
+        "g2windows": "zopro_core::msm_affine::g2_phi::from_split",
+        "g2grouped": "zopro_core::msm_affine::g2_query_grouped",
+        "g2owned": "zopro_core::msm_affine::owned_grouped_phi",
+        "tiled_g1": "zopro_core::msm_affine::grouping::tiled::prove::<zopro_bn254::curve::G1Config>",
+        "prepare_pair": "<zopro_bn254::pairing::G2Prepared>::new",
+        "miller": "zopro_bn254::pairing::multi_miller_loop",
+        "final_packed": "zopro_bn254::pairing::final_exponentiation_impl::<true>",
+        "final_scalar": "zopro_bn254::pairing::final_exponentiation_impl::<false>"
+      }
+    }
+  },
+  "prime": 3,
+  "mode": "Uprobes on byte-identical copies with independent plain controls."
+}
