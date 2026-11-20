@@ -1,0 +1,62 @@
+{
+  "shape": "4x2",
+  "root": "/opt/zopro-solver949",
+  "modes": [
+    "frozen",
+    "disabled",
+    "enabled",
+    "prior"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "workers": 64,
+  "frontend": [
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95
+  ],
+  "physical_cache_groups": 8,
+  "rounds": 17,
+  "blocks": 12,
+  "placements": {
+    "frozen": "Exact seeded SDK with 32 frontend solver workers.",
+    "disabled": "Current SDK with the new caller-supplied pool absent.",
+    "enabled": "Current SDK with caller-supplied 16-core instruction pool and 64+32 curve placement.",
+    "prior": "Byte-exact verified 946 solver16 candidate."
+  },
+  "calibration": "Absolute paired median <=2% for same-build disabled vs frozen on each input.",
+  "qualification": "Faster paired median and at least 9/12 repeats vs both controls on each fixture.",
+  "correctness": "Fixed wires and matching public inputs, fresh external Gnark verification for each exported proof.",
+  "source_patch": "a3720253289e4066186558160a3e80c92a440d342404721e4b753dab08f37e57"
+}
