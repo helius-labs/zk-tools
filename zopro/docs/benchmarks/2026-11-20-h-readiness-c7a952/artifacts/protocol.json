@@ -1,0 +1,60 @@
+{
+  "shape": "4x2",
+  "root": "/opt/zopro-hready952",
+  "modes": [
+    "frozen",
+    "ordinary",
+    "trace"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "workers": 64,
+  "frontend": [
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95
+  ],
+  "physical_cache_groups": 8,
+  "rounds": 13,
+  "blocks": 8,
+  "placements": {
+    "frozen": "Byte-exact 946 solver16 with the usual full H query.",
+    "ordinary": "Same-build 64+32 with 16 solver workers and tracing off.",
+    "trace": "Record final-output leaf entry, completion and H query entry."
+  },
+  "calibration": "Absolute paired median <=2% for ordinary vs frozen and <=3% for trace vs ordinary on each input.",
+  "diagnostics": "Count final H coefficients by leaf. Measure time from coefficient readiness to final emission return, and the normal H start relative to the quotient return.",
+  "correctness": "Fixed wires and matching public inputs, fresh external Gnark verification for each exported proof.",
+  "source_patch": "2421b09ab5ba80e232104b4776d088a9f5bcf6de7b05d599e946ad7866dde52e"
+}
