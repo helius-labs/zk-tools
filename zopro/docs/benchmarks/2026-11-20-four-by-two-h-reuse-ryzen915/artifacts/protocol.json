@@ -1,0 +1,21 @@
+{
+  "purpose": "Estimate the H curve work removable by forming a point sum once for multiple equal nonzero digit columns.",
+  "fixtures": [
+    "catalog",
+    "heldout"
+  ],
+  "repeated_processes": 2,
+  "sdk_primes": 3,
+  "capture_index": 3,
+  "query": "explicit H boundary",
+  "models": [
+    "two ranges, full columns first without short-column selection",
+    "two ranges, full columns then short-column selection",
+    "one hypothetical range, full columns then short-column selection"
+  ],
+  "rounds": 3,
+  "selection": "Each generation pairs consecutive available rows in equal digit-pair classes in fixed column order. A row is used at most once per generation. Reuse all matching nonzero digits in an admitted pair.",
+  "metrics": "Formation uses one point addition. Residual arrivals, bucket occupancy and exact scalar reconstruction are validated. One-generation full-column class tickets and eligible short-column rows are optimistic allowance for disjoint pairs only.",
+  "limitation": "Unweighted generic group-operation counts, excluding packing, recoding, task ordering, point lifetimes, and wall time. No latency claim. The independent verifier accepts every exported proof from the capture processes.",
+  "interpretation": "Prioritize a curve-work prototype if the fixed two-range schedule removes at least ten percent of the original H generic bucket-accumulation additions on both inputs before charging routing or memory overhead."
+}

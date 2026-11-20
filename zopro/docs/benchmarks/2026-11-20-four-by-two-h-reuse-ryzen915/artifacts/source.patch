@@ -1,0 +1,64 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -372,6 +372,27 @@
+     let n = bases.len();
+     if n < 256 {
+         return bases.iter().zip(scalars).map(|(p, s)| p.mul_limbs(s)).sum();
++    }
++    if let Some(path) = crate::four_by_two_probe::h_capture_path() {
++        use std::io::{BufWriter, Write};
++        use std::sync::atomic::{AtomicUsize, Ordering};
++
++        static CALLS: AtomicUsize = AtomicUsize::new(0);
++        if CALLS.fetch_add(1, Ordering::Relaxed) == 3 {
++            let file = std::fs::OpenOptions::new().write(true).create_new(true).open(path).unwrap();
++            let mut out = BufWriter::new(file);
++            out.write_all(b"ZPH91500").unwrap();
++            for word in [bits, parts, n] {
++                out.write_all(&(word as u64).to_le_bytes()).unwrap();
++            }
++            for (base, scalar) in bases.iter().zip(scalars) {
++                out.write_all(&[u8::from(!base.is_identity())]).unwrap();
++                for word in scalar {
++                    out.write_all(&word.to_le_bytes()).unwrap();
++                }
++            }
++            out.flush().unwrap();
++        }
+     }
+     let parts = parts.clamp(1, 32);
+     let part = n.div_ceil(parts);
+--- a/crates/zopro-core/src/four_by_two_probe.rs
++++ b/crates/zopro-core/src/four_by_two_probe.rs
+@@ -78,6 +78,15 @@
+     _reservation: Reservation,
+ }
+ 
++
++thread_local! {
++    static IN_H: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
++}
++
++pub(crate) fn h_capture_path() -> Option<std::ffi::OsString> {
++    if IN_H.get() { std::env::var_os("ZOPRO_915_H_DIGITS") } else { None }
++}
++
+ pub(crate) fn g1(
+     query: Query, origin: Option<Instant>, base: usize, scalars: &mut [Fr],
+     compute: impl FnOnce(&mut [Fr]) -> G1Projective,
+@@ -91,7 +100,14 @@
+         Query::H => &H,
+         _ => unreachable!(),
+     };
+-    run(cell, query, origin, base, scalars, compute)
++    if matches!(query, Query::H) {
++        assert!(!IN_H.replace(true));
++        let result = run(cell, query, origin, base, scalars, compute);
++        assert!(IN_H.replace(false));
++        result
++    } else {
++        run(cell, query, origin, base, scalars, compute)
++    }
+ }
+ 
+ pub(crate) fn b2(
