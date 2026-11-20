@@ -130,6 +130,18 @@ impl Prover {
         self.key.set_euler_fft_leaf_fusion(enabled);
     }
 
+    /// Set a caller-owned pool for CPU witness instructions.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_solver_pool(&mut self, pool: Option<std::sync::Arc<zopro_core::FrontendThreadPool>>) {
+        self.key.set_solver_pool(pool);
+    }
+
+    /// Reduce eligible grouped query points within the CPU scratch budget.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_grouped_point_tiling(&mut self, enabled: bool) {
+        self.key.set_grouped_point_tiling(enabled);
+    }
+
     /// Run the large native IFMA G1 K query on the attached frontend pool.
     /// Enable per key when the caller uses disjoint cores. Dispatch checks
     /// the workspace budget. Disabled by default.

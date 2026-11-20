@@ -117,6 +117,8 @@ pub(crate) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
     )
 }
 
+#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+pub(super) mod tiled;
 mod diversity;
 pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");

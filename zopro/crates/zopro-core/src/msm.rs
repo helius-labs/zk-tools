@@ -216,6 +216,43 @@ where
     )
 }
 
+const CLASS_TILE: usize = 256;
+#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+pub(super) mod class_tiles;
+
+fn reduce_class_tile<C: CurveConfig, F: Fn(u32)->Affine<C>>(
+    get: &F, order: &[u32], starts: &[usize], counts: &[usize],
+    output: &mut [core::mem::MaybeUninit<Affine<C>>],
+    (points, scratch): &mut (Vec<LimbPoint<C::Base>>, Scratch<C>),
+)
+where C::Base: BatchInverse {
+    let offset = starts[0];
+    let end = starts[output.len()];
+    points.clear();
+    points.reserve_exact(end - offset);
+    for &index in &order[offset..end] {
+        points.push(limbs::<C>(get(index)));
+    }
+    let mut local_starts = [0usize; CLASS_TILE];
+    let mut local_counts = [0usize; CLASS_TILE];
+    for j in 0..output.len() {
+        local_starts[j] = starts[j] - offset;
+        local_counts[j] = counts[j];
+    }
+    let local_starts = &local_starts[..output.len()];
+    let local_counts = &mut local_counts[..output.len()];
+    while local_counts.iter().any(|&count| count > 1) {
+        reduce_layer(points, local_starts, local_counts, scratch);
+    }
+    for (j, out) in output.iter_mut().enumerate() {
+        out.write(if local_counts[j] == 0 {
+            Affine::IDENTITY
+        } else {
+            affine::<C>(points[local_starts[j]])
+        });
+    }
+}
+
 fn group_affine_impl<C: CurveConfig, F: Fn(u32) -> Affine<C> + Sync>(
     get: F,
     order: &[u32],
@@ -225,41 +262,17 @@ fn group_affine_impl<C: CurveConfig, F: Fn(u32) -> Affine<C> + Sync>(
 where
     C::Base: BatchInverse,
 {
-    const GROUP: usize = 256;
     let n = counts.len();
     let mut result: Vec<Affine<C>> = Vec::with_capacity(n);
     result.spare_capacity_mut()[..n]
-        .par_chunks_mut(GROUP)
+        .par_chunks_mut(CLASS_TILE)
         .enumerate()
         .for_each_init(
             || (Vec::<LimbPoint<C::Base>>::new(), Scratch::<C>::default()),
-            |(points, scratch), (i, output)| {
-                let first = i * GROUP;
-                let offset = starts[first];
-                let end = starts[first + output.len()];
-                points.clear();
-                points.reserve_exact(end - offset);
-                for &index in &order[offset..end] {
-                    points.push(limbs::<C>(get(index)));
-                }
-                let mut local_starts = [0usize; GROUP];
-                let mut local_counts = [0usize; GROUP];
-                for j in 0..output.len() {
-                    local_starts[j] = starts[first + j] - offset;
-                    local_counts[j] = counts[first + j];
-                }
-                let local_starts = &local_starts[..output.len()];
-                let local_counts = &mut local_counts[..output.len()];
-                while local_counts.iter().any(|&count| count > 1) {
-                    reduce_layer(points, local_starts, local_counts, scratch);
-                }
-                for (j, out) in output.iter_mut().enumerate() {
-                    out.write(if local_counts[j] == 0 {
-                        Affine::IDENTITY
-                    } else {
-                        affine::<C>(points[local_starts[j]])
-                    });
-                }
+            |state, (i, output)| {
+                let first = i * CLASS_TILE;
+                let end = first + output.len();
+                reduce_class_tile(&get, order, &starts[first..=end], &counts[first..end], output, state);
             },
         );
     // SAFETY: the completed indexed parallel pass wrote all n output slots

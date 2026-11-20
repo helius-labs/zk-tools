@@ -31,6 +31,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let prover = {
         let mut prover = prover;
         prover.set_frontend_pool(frontend);
+        prover.set_solver_pool(placement::configure_solver()?);
+        if std::env::var("ZOPRO_BENCH_GROUPED_POINT_TILING").as_deref() == Ok("1") {
+            prover.set_grouped_point_tiling(true);
+        }
         match std::env::var("ZOPRO_BENCH_GROUPED_G2_FRONTEND").as_deref() {
             Ok("1") => prover.set_grouped_g2_on_frontend(true),
             Ok("0") | Err(std::env::VarError::NotPresent) => {}

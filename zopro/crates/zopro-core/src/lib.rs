@@ -810,6 +810,10 @@ pub struct Key {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     frontend_pool: Option<std::sync::Arc<FrontendThreadPool>>,
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    solver_pool: Option<std::sync::Arc<FrontendThreadPool>>,
+    #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+    grouped_point_tiling: bool,
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     grouped_g2_on_frontend: bool,
     exclusive_g2_grouping: bool,
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
@@ -1151,7 +1155,9 @@ impl Key {
             }
         }
         #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-        let instruction_pool = self.frontend_pool.as_deref().filter(|pool| {
+        let instruction_pool = self.solver_pool.as_deref()
+            .filter(|pool| pool.current_num_threads() < rayon::current_num_threads())
+            .or(self.frontend_pool.as_deref()).filter(|pool| {
             !self.has_gpu()
                 && pool.current_num_threads() < rayon::current_num_threads()
                 && std::env::var("ZOPRO_CPU_SOLVER_FRONTEND").as_deref() == Ok("1")
@@ -1525,6 +1531,10 @@ impl Key {
         let mut key = Self {
             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
             frontend_pool: None,
+            #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+            solver_pool: None,
+            #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+            grouped_point_tiling: false,
             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
             grouped_g2_on_frontend: false,
             exclusive_g2_grouping: true,
@@ -2045,6 +2055,15 @@ impl Key {
                 return ((ar, bs1), (kr, (hz, bs2)));
             }
             use msm_affine::{canonical, group_witness, msm_grouped, msm_in_place as msm, msm_raw};
+            let compute_a = || {
+                #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+                if self.grouped_point_tiling {
+                    if let Some(sum) = msm_affine::tiled_grouped_msm(&self.a, sa, 32) {
+                        return sum;
+                    }
+                }
+                msm(&self.a, sa)
+            };
             let compute_k = || {
                 #[cfg(all(
                     zopro_resource_schedule,
@@ -2068,6 +2087,11 @@ impl Key {
                             if std::env::var_os("ZOPRO_K_FRONTEND_TRACE").is_some() {
                                 eprintln!("K_FRONTEND {} {workers}", sk.len());
                             }
+                            if self.grouped_point_tiling {
+                                if let Some(sum) = msm_affine::tiled_grouped_msm(k, sk, 16) {
+                                    return Some(sum);
+                                }
+                            }
                             Some(msm(k, &mut *sk))
                         });
                         if let Some(result) = result {
@@ -2080,7 +2104,7 @@ impl Key {
             let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
                 || {
                     rayon::join(
-                        || rayon::join(|| msm(&self.a[..], sa), compute_k),
+                        || rayon::join(compute_a, compute_k),
                         || {
                             if montgomery_h {
                                 msm_affine::msm_montgomery(z, h)
@@ -2094,6 +2118,14 @@ impl Key {
                     if omit_b && (1024..65536).contains(&self.b2.len()) {
                         let words=msm_affine::canonical_exclusive(sb);
                         return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping));
+                    }
+                    #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+                    if self.grouped_point_tiling && omit_b && !self.grouped_b2_poseidon_origins
+                        && std::env::var("ZOPRO_CPU_GROUPED_G2_PHI").as_deref() != Ok("1")
+                    {
+                        if let Some(sum) = msm_affine::tiled_grouped_msm(&self.b2, sb, 16) {
+                            return (G1Projective::IDENTITY, sum);
+                        }
                     }
                     let serial = {
                         #[cfg(all(
@@ -2626,6 +2658,19 @@ impl Key {
     /// Disabled by default.
     pub fn set_raw_g1_a_on_frontend(&mut self, enabled: bool) {
         self.raw_g1_a_on_frontend = enabled;
+    }
+
+    /// Set a caller-owned CPU solver pool independently of the frontend.
+    pub fn set_solver_pool(&mut self, pool: Option<std::sync::Arc<FrontendThreadPool>>) {
+        self.solver_pool = pool;
+    }
+
+    /// Reduce eligible grouped query points in parallel tiles under the CPU scratch budget.
+    pub fn set_grouped_point_tiling(&mut self, enabled: bool) {
+        #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+        { self.grouped_point_tiling = enabled; }
+        #[cfg(not(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64")))]
+        let _ = enabled;
     }
 
     /// Use the smaller caller-attached pool for the large native G1 K query.

@@ -121,6 +121,27 @@ pub(super) fn configure() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std:
     Ok(frontend)
 }
 
+pub(super) fn configure_solver() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std::error::Error>> {
+    let list = match env::var("ZOPRO_BENCH_SOLVER_CPUS") {
+        Ok(list) => list,
+        Err(env::VarError::NotPresent) => return Ok(None),
+        Err(error) => return Err(error.into()),
+    };
+    let allowed = allowed_cpus()?;
+    let front = parse_cpus(&env::var("ZOPRO_BENCH_FRONT_CPUS")?, &allowed, "frontend")?;
+    let prep = parse_cpus(&list, &front, "preparation")?;
+    if prep.len() >= front.len() {
+        return Err("preparation CPU list must be a proper subset of frontend CPUs".into());
+    }
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(prep.len()).build()?;
+    let cpus: io::Result<Vec<_>> = pool
+        .broadcast(|ctx| pin(prep[ctx.index()]))
+        .into_iter()
+        .collect();
+    println!("SOLVER_CPUS {}", serde_json::to_string(&cpus?)?);
+    Ok(Some(Arc::new(pool)))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

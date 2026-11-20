@@ -13,6 +13,8 @@ use zopro_bn254::{Affine, CurveConfig, Field, Fr, Projective};
 mod grouping_cost;
 pub(super) mod borrowed_pending;
 mod grouping;
+#[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+pub(super) use grouping::tiled::prove as tiled_grouped_msm;
 pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
 #[cfg(zopro_resource_schedule)]
 pub(super) use grouping::group_witness_b2_origins;

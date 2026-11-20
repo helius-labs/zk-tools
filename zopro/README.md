@@ -129,8 +129,18 @@ and the product FFT when it is smaller than the main Rayon pool. The same
 restores the main pool. Single-proof latency and concurrent throughput can
 favor different pool sizes.
 
+With `ZOPRO_CPU_SOLVER_FRONTEND=1`, `Prover::set_solver_pool(Some(pool))`
+lets the general CPU witness path use a smaller caller-owned pool. This
+lets a server use different worker counts for witness instructions and
+frontend curve work. `Prover::set_grouped_point_tiling(true)` requests
+parallel point reduction for eligible grouped A, K, and B2 queries.
+The prover checks its per-proof scratch budget and uses ordinary grouping
+when the tiled route is unavailable.
+
 The Linux x86-64 `cpu-sdk` benchmark accepts a comma-separated list of
 logical CPU IDs in `ZOPRO_BENCH_FRONT_CPUS`, one per frontend worker.
+`ZOPRO_BENCH_SOLVER_CPUS` selects a subset of those CPUs for witness
+instructions, and `ZOPRO_BENCH_GROUPED_POINT_TILING=1` enables tiling.
 `ZOPRO_BENCH_WORKER_PLACEMENT=fixed` pins main workers in ascending order
 within the process affinity mask. The benchmark prints the resulting CPU
 IDs in worker order. On a Ryzen 9950X with 32 main workers, 2×2 used eight
