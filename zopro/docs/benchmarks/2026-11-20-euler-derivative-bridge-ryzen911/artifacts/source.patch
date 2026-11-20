@@ -1,0 +1,351 @@
+--- a/crates/zopro-core/src/fft/pair/sequential_euler.rs
++++ b/crates/zopro-core/src/fft/pair/sequential_euler.rs
+@@ -21,15 +21,63 @@
+     }
+ }
+ 
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++enum Schedule {
++    Fixed,
++    Adaptive,
++    Bridge,
++}
++
++impl Schedule {
++    fn selected() -> Self {
++        static MODE: std::sync::OnceLock<Schedule> = std::sync::OnceLock::new();
++        *MODE.get_or_init(|| match std::env::var("ZOPRO_911_WIDE_PASSES").as_deref() {
++            Ok("adaptive") => Self::Adaptive,
++            Ok("bridge") => Self::Bridge,
++            _ => Self::Fixed,
++        })
++    }
++
++    fn tile(self, width: usize, workers: usize) -> usize {
++        match self {
++            Self::Fixed => 32,
++            _ => (width / workers.max(1).next_power_of_two()).clamp(1, 32),
++        }
++    }
++}
++
++#[inline(always)]
++fn column_butterflies<const FORWARD: bool>(
++    values: &mut [Pair; 32],
++    roots: &Twiddles,
++    level: usize,
++    column: usize,
++    width: usize,
++) {
++    for order in 0..5 {
++        let stage = if FORWARD { 4 - order } else { order };
++        let gap = 16 >> stage;
++        let layer = &roots.layers[level + stage];
++        for block in values.chunks_exact_mut(2 * gap) {
++            let (lo, hi) = block.split_at_mut(gap);
++            for j in 0..gap {
++                let w = root(layer, j * width + column);
++                (lo[j], hi[j]) = apply_pair::<FORWARD>(lo[j], hi[j], &w);
++            }
++        }
++    }
++}
++
+ fn column_range<const FORWARD: bool>(
+     mut stripes: [&mut [PackedPair]; 32],
+     roots: &Twiddles,
+     level: usize,
+     start: usize,
+     width: usize,
++    tile: usize,
+ ) {
+     let count = stripes[0].len();
+-    if count > 32 {
++    if count > tile {
+         let mid = count / 2;
+         let left = core::array::from_fn(|i| {
+             let stripe = core::mem::take(&mut stripes[i]);
+@@ -38,36 +86,31 @@
+             left
+         });
+         rayon::join(
+-            || column_range::<FORWARD>(left, roots, level, start, width),
+-            || column_range::<FORWARD>(stripes, roots, level, start + mid, width),
++            || column_range::<FORWARD>(left, roots, level, start, width, tile),
++            || column_range::<FORWARD>(stripes, roots, level, start + mid, width, tile),
+         );
+         return;
+     }
+     for column in 0..count {
+         let mut values: [Pair; 32] = core::array::from_fn(|i| stripes[i][column].load());
+-        for order in 0..5 {
+-            let stage = if FORWARD { 4 - order } else { order };
+-            let gap = 16 >> stage;
+-            let layer = &roots.layers[level + stage];
+-            for block in values.chunks_exact_mut(2 * gap) {
+-                let (lo, hi) = block.split_at_mut(gap);
+-                for j in 0..gap {
+-                    let w = root(layer, j * width + start + column);
+-                    (lo[j], hi[j]) = apply_pair::<FORWARD>(lo[j], hi[j], &w);
+-                }
+-            }
+-        }
++        column_butterflies::<FORWARD>(&mut values, roots, level, start + column, width);
+         for (stripe, value) in stripes.iter_mut().zip(values) {
+             stripe[column] = PackedPair::store(value);
+         }
+     }
+ }
+ 
+-fn columns<const FORWARD: bool>(values: &mut [PackedPair], roots: &Twiddles, level: usize) {
++fn columns<const FORWARD: bool>(
++    values: &mut [PackedPair],
++    roots: &Twiddles,
++    level: usize,
++    schedule: Schedule,
++) {
+     let width = values.len() / 32;
+     let mut stripes = values.chunks_exact_mut(width);
+     let stripes = core::array::from_fn(|_| stripes.next().unwrap());
+-    column_range::<FORWARD>(stripes, roots, level, 0, width);
++    let tile = schedule.tile(width, rayon::current_num_threads());
++    column_range::<FORWARD>(stripes, roots, level, 0, width, tile);
+ }
+ 
+ // Repack two eight-row groups as dual four-lane halves through the
+@@ -152,19 +195,111 @@
+     }
+ }
+ 
+-fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
+-    if values.len() <= 1024 {
+-        return leaf(plan, values, level, first);
+-    }
+-    columns::<false>(values, &plan.inverse_roots, level);
++fn inner_columns(
++    plan: &Plan,
++    values: &mut [PackedPair],
++    level: usize,
++    first: usize,
++    schedule: Schedule,
++) {
+     let width = values.len() / 32;
+     values
+         .par_chunks_exact_mut(width)
+         .enumerate()
+         .for_each(|(i, stripe)| {
+-            transform(plan, stripe, level + 5, first + i * width);
+-        });
+-    columns::<true>(values, &plan.roots, level);
++            transform(plan, stripe, level + 5, first + i * width, schedule);
++        });
++}
++
++fn transform(
++    plan: &Plan,
++    values: &mut [PackedPair],
++    level: usize,
++    first: usize,
++    schedule: Schedule,
++) {
++    if values.len() <= 1024 {
++        return leaf(plan, values, level, first);
++    }
++    columns::<false>(values, &plan.inverse_roots, level, schedule);
++    inner_columns(plan, values, level, first, schedule);
++    columns::<true>(values, &plan.roots, level, schedule);
++}
++
++// Complete the outer forward transform for B, emit A*D(B), and feed
++// the original A lanes through their first five inverse layers.
++fn bridge_range(
++    plan: &Plan,
++    mut workspace: [&mut [PackedPair]; 32],
++    mut a: [&mut [Fr]; 32],
++    start: usize,
++    width: usize,
++    tile: usize,
++) {
++    let count = workspace[0].len();
++    if count > tile {
++        let mid = count / 2;
++        let left_workspace = core::array::from_fn(|i| {
++            let (left, right) = core::mem::take(&mut workspace[i]).split_at_mut(mid);
++            workspace[i] = right;
++            left
++        });
++        let left_a = core::array::from_fn(|i| {
++            let stripe = core::mem::take(&mut a[i]);
++            let (left, right) = stripe.split_at_mut((8 * mid).min(stripe.len()));
++            a[i] = right;
++            left
++        });
++        rayon::join(
++            || bridge_range(plan, left_workspace, left_a, start, width, tile),
++            || bridge_range(plan, workspace, a, start + mid, width, tile),
++        );
++        return;
++    }
++    for column in 0..count {
++        let mut values: [Pair; 32] = core::array::from_fn(|i| workspace[i][column].load());
++        column_butterflies::<true>(&mut values, &plan.roots, 0, start + column, width);
++        for (value, stripe) in values.iter_mut().zip(&mut a) {
++            if let Some(out) = stripe.get_mut(8 * column..) {
++                let rows = out.len().min(8);
++                let out = &mut out[..rows];
++                let original = load(out, 0);
++                let product = value.mul(&original).get();
++                out.copy_from_slice(&product[..rows]);
++                *value = original;
++            } else {
++                *value = Pair::zero();
++            }
++        }
++        column_butterflies::<false>(&mut values, &plan.inverse_roots, 0, start + column, width);
++        for (stripe, value) in workspace.iter_mut().zip(values) {
++            stripe[column] = PackedPair::store(value);
++        }
++    }
++}
++
++fn bridge_derivatives(
++    plan: &Plan,
++    workspace: &mut [PackedPair],
++    mut a: &mut [Fr],
++    schedule: Schedule,
++) {
++    let width = workspace.len() / 32;
++    let tile = schedule.tile(width, rayon::current_num_threads());
++    columns::<false>(workspace, &plan.inverse_roots, 0, schedule);
++    inner_columns(plan, workspace, 0, 0, schedule);
++    let mut stripes = workspace.chunks_exact_mut(width);
++    let stripes = core::array::from_fn(|_| stripes.next().unwrap());
++    let output = core::array::from_fn(|_| {
++        let count = a.len().min(8 * width);
++        let (stripe, tail) = core::mem::take(&mut a).split_at_mut(count);
++        a = tail;
++        stripe
++    });
++    debug_assert!(a.is_empty());
++    bridge_range(plan, stripes, output, 0, width, tile);
++    inner_columns(plan, workspace, 0, 0, schedule);
++    columns::<true>(workspace, &plan.roots, 0, schedule);
+ }
+ 
+ #[inline(always)]
+@@ -178,7 +313,11 @@
+     }
+ }
+ 
+-pub(super) fn product(plan: &Plan, mut a: Vec<Fr>, b: &[Fr]) -> Vec<Fr> {
++pub(super) fn product(plan: &Plan, a: Vec<Fr>, b: &[Fr]) -> Vec<Fr> {
++    run_product(plan, a, b, Schedule::selected())
++}
++
++fn run_product(plan: &Plan, mut a: Vec<Fr>, b: &[Fr], schedule: Schedule) -> Vec<Fr> {
+     assert!(plan.n >= 16 && plan.twisted.is_none() && plan.roots.single.is_none());
+     assert!(a.len() <= plan.n && b.len() <= plan.n);
+     let count = a.len().max(b.len());
+@@ -193,21 +332,26 @@
+         .into_par_iter()
+         .map(|i| PackedPair::store(load(b, 8 * i)))
+         .collect();
+-    transform(plan, &mut workspace, 0, 0);
+-    let packs = count.div_ceil(8);
+-    let (active, pad) = workspace.split_at_mut(packs);
+-    active
+-        .par_iter_mut()
+-        .zip(a.par_chunks_mut(8))
+-        .for_each(|(slot, out)| {
+-            let primal = load(out, 0);
+-            let product = slot.load().mul(&primal).get();
+-            out.copy_from_slice(&product[..out.len()]);
+-            *slot = PackedPair::store(primal);
+-        });
+-    pad.par_iter_mut()
+-        .for_each(|slot| *slot = PackedPair::store(Pair::zero()));
+-    transform(plan, &mut workspace, 0, 0);
++    let bridged = schedule == Schedule::Bridge && workspace.len() > 1024;
++    if bridged {
++        bridge_derivatives(plan, &mut workspace, &mut a, schedule);
++    } else {
++        transform(plan, &mut workspace, 0, 0, schedule);
++        let packs = count.div_ceil(8);
++        let (active, pad) = workspace.split_at_mut(packs);
++        active
++            .par_iter_mut()
++            .zip(a.par_chunks_mut(8))
++            .for_each(|(slot, out)| {
++                let primal = load(out, 0);
++                let product = slot.load().mul(&primal).get();
++                out.copy_from_slice(&product[..out.len()]);
++                *slot = PackedPair::store(primal);
++            });
++        pad.par_iter_mut()
++            .for_each(|slot| *slot = PackedPair::store(Pair::zero()));
++        transform(plan, &mut workspace, 0, 0, schedule);
++    }
+     a.par_chunks_mut(8)
+         .zip(workspace.par_iter())
+         .enumerate()
+@@ -224,6 +368,12 @@
+     }
+     if std::env::var_os("ZOPRO_910_TRACE").is_some() {
+         eprintln!("ZP910_PACKS {} {count}", workspace.len());
++        let workers = rayon::current_num_threads();
++        let width = workspace.len() / 32;
++        eprintln!(
++            "ZP911_COLUMNS {schedule:?} {width} {workers} {} {bridged}",
++            schedule.tile(width, workers)
++        );
+     }
+     a
+ }
+@@ -263,13 +413,41 @@
+                 let expected = (0..n)
+                     .map(|i| scale * (da[i] * b0[i] + a0[i] * db[i]))
+                     .collect::<Vec<_>>();
+-                assert_eq!(product(&plan, a0, &b0), expected);
+-                assert!(product(&plan, Vec::new(), &[]).is_empty());
+-                let count = n / 2 + 3;
+-                assert!(product(&plan, Vec::new(), &b0[..count])
+-                    .iter()
+-                    .all(|x| *x == Fr::ZERO));
++                for schedule in [Schedule::Fixed, Schedule::Adaptive, Schedule::Bridge] {
++                    assert_eq!(run_product(&plan, a0.clone(), &b0, schedule), expected);
++                    assert!(run_product(&plan, Vec::new(), &[], schedule).is_empty());
++                    let count = n / 2 + 3;
++                    assert!(run_product(&plan, Vec::new(), &b0[..count], schedule)
++                        .iter()
++                        .all(|x| *x == Fr::ZERO));
++                }
+             }
+         }
+     });
+ }
++
++#[cfg(test)]
++#[test]
++fn bridge_matches_fixed_on_different_nonzero_prefixes() {
++    let n = 32768;
++    let root = Fr::root_of_unity(n).unwrap().pow(&[3]);
++    let coset = Fr::from(5u64);
++    let mut plan = Plan::new(n, root, coset, denominator(n, coset).unwrap());
++    plan.prepare_euler_basis();
++    let mut rng = crate::testing::Seeded::new(0x9191_7231_0091);
++    let a: Vec<_> = (0..n).map(|_| rng.fr()).collect();
++    let b: Vec<_> = (0..n).map(|_| rng.fr()).collect();
++    for workers in [1, 5, 24] {
++        let pool = rayon::ThreadPoolBuilder::new()
++            .num_threads(workers)
++            .build()
++            .unwrap();
++        pool.install(|| {
++            for (la, lb) in [(3, n - 5), (n / 2 + 7, n / 3), (n * 3 / 4 - 1, n - 3)] {
++                let expected = run_product(&plan, a[..la].to_vec(), &b[..lb], Schedule::Fixed);
++                let actual = run_product(&plan, a[..la].to_vec(), &b[..lb], Schedule::Bridge);
++                assert_eq!(actual, expected, "workers={workers} lengths={la},{lb}");
++            }
++        });
++    }
++}
