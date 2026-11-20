@@ -1,0 +1,50 @@
+{
+  "shapes": [
+    "4x2",
+    "8x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "archive",
+    "ordinary",
+    "late",
+    "early"
+  ],
+  "panels": {
+    "route": [
+      1,
+      2,
+      [
+        "late",
+        "early",
+        "denied"
+      ]
+    ],
+    "timing": [
+      4,
+      13,
+      [
+        "archive",
+        "ordinary",
+        "late",
+        "early"
+      ]
+    ]
+  },
+  "layouts": [
+    12,
+    24
+  ],
+  "build": {
+    "executable": "10667a6e1d08792fa25a35a3113cedc82a96734574a691dee692d124402f150f",
+    "source_patch": "0971483a92d2105523bbf9c556046bca1764c5039707c35a117e6cf17286a73b",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/msm_affine/workspace.rs"
+    ]
+  },
+  "scope": "Test early and late grouped B2 on the same frontend pool with the main pool doing G1. Use disjoint physical 12+4 and logical 24+8."
+}
