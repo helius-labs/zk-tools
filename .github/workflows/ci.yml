@@ -22,6 +22,54 @@ jobs:
         with:
           workspaces: zopro
       - run: cargo test --workspace --release
+  ifma:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUSTFLAGS: -C target-feature=+adx,+avx2,+avx512dq,+avx512ifma,+avx512vl
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: zopro
+      - name: Select IFMA executor
+        shell: bash
+        env:
+          # Download and checksum from Intel's SDE release page.
+          SDE_URL: https://downloadmirror.intel.com/924984/sde-external-10.13.1-2026-07-28-lin.tar.xz
+          SDE_SHA256: 94e97d623fec54385686e1e7ba65ebc9941748c05ee451423948334892bf2b50
+        run: |
+          flags=$(awk '/^flags[[:space:]]*:/ { print; exit }' /proc/cpuinfo)
+          native=true
+          for feature in adx avx2 f16c fma avx512f avx512dq avx512ifma avx512vl; do
+            if [[ " $flags " != *" $feature "* ]]; then
+              native=false
+            fi
+          done
+          if [[ "$native" == true ]]; then
+            echo "Running IFMA tests on hardware"
+          else
+            echo "Running IFMA tests with Intel SDE"
+            sde_dir="$RUNNER_TEMP/zopro-sde"
+            mkdir -p "$sde_dir"
+            curl --fail --silent --show-error --location --retry 3 "$SDE_URL" -o "$sde_dir/release.tar.xz"
+            printf '%s  %s\n' "$SDE_SHA256" "$sde_dir/release.tar.xz" | sha256sum -c -
+            tar -xJf "$sde_dir/release.tar.xz" -C "$sde_dir" --strip-components=1
+            echo "CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER=$sde_dir/sde64 -icx --" >> "$GITHUB_ENV"
+          fi
+      - name: Test IFMA release build
+        shell: bash
+        run: |
+          args=()
+          if [[ -n "${CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER:-}" ]]; then
+            # The allocator test starts the test binary outside Cargo's runner.
+            # The portable CPU job covers it on every host.
+            args+=(--skip alloc::linux::tests::allocator_policy)
+          fi
+          cargo test --locked --release --target x86_64-unknown-linux-gnu \
+            -p zopro-bn254 -p zopro-core -p zopro-prover --features zopro-core/ifma8 \
+            --lib --tests -- "${args[@]}"
   metal:
     runs-on: macos-latest
     steps:
