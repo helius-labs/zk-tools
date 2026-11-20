@@ -1,0 +1,79 @@
+{
+  "root": "/opt/zopro-group-solver1006",
+  "shapes": [
+    "4x2",
+    "8x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "main72-solve12",
+    "main72-solve16",
+    "main72-solve20",
+    "main72-solve22",
+    "main64-solve20",
+    "main64-solve24",
+    "main80-solve12",
+    "main80-solve14",
+    "aeglos"
+  ],
+  "layouts": {
+    "main72-solve12": [
+      72,
+      12,
+      false
+    ],
+    "main72-solve16": [
+      72,
+      16,
+      false
+    ],
+    "main72-solve20": [
+      72,
+      20,
+      false
+    ],
+    "main72-solve22": [
+      72,
+      22,
+      false
+    ],
+    "main64-solve20": [
+      64,
+      20,
+      false
+    ],
+    "main64-solve24": [
+      64,
+      24,
+      false
+    ],
+    "main80-solve12": [
+      80,
+      12,
+      false
+    ],
+    "main80-solve14": [
+      80,
+      14,
+      false
+    ]
+  },
+  "blocks": 10,
+  "executable": "4bf5d58ecf1be9689abe7ff33e6182190f931ba0aaa155f7d202e531e99fc187",
+  "reference": {
+    "4x2": {
+      "cpu_ms": 109,
+      "metal_ms": 48
+    },
+    "8x2": {
+      "cpu_ms": 189,
+      "metal_ms": 74
+    }
+  },
+  "scope": "Match the archived 72+24 solver16 profiles against adjacent main and solver widths with the same tiled executable and the same shape-specific FFT and verifier settings.",
+  "gate": "Require at least seven of ten paired wins against main72-solve16 on both requests. Report whether each median meets 10\u00d7 on CPU and Metal independently."
+}
