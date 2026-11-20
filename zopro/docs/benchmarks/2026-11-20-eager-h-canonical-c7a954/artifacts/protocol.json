@@ -1,0 +1,62 @@
+{
+  "shape": "4x2",
+  "root": "/opt/zopro-hcanon954",
+  "modes": [
+    "frozen",
+    "ordinary",
+    "scalar",
+    "packed"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "workers": 64,
+  "frontend": [
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95
+  ],
+  "physical_cache_groups": 8,
+  "rounds": 17,
+  "blocks": 12,
+  "choices": {
+    "frozen": "Byte-exact 946 solver16 with the usual field-valued H query.",
+    "ordinary": "Current executable, with the unchanged field-valued emission and H path.",
+    "scalar": "Convert final emitted H coefficients to canonical form using scalar arithmetic.",
+    "packed": "Use packed IFMA reduction and canonical export at emission."
+  },
+  "calibration": "Absolute paired median within 2% of frozen on each input.",
+  "qualification": "Lower paired median and at least nine of twelve wins against both controls on both public inputs. Prefer packed to scalar using the same incremental threshold when both qualify.",
+  "correctness": "Fixed wires and matching public inputs, fresh external Gnark verification for each exported proof.",
+  "source_patch": "2930e9ec7097c2b279a72c87f9f1f581999fe81882195cb111384860aa179fde"
+}
