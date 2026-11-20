@@ -1,5 +1,7 @@
 # Joint indexed leading window for 1×2 B2 on C7a
 
+The release and same-build ordinary controls used two G2 ranges. The later four-range confirmation compares both settings on the same host. [Four-range confirmation](../2026-11-20-b2-joint-top-c7a889/README.md)
+
 The [Ryzen trial](../2026-11-20-b2-joint-top-ryzen887/README.md) found a 1×2 benefit from processing both signed G2 components together in the leading window. This run uses the same executable on c7a.24xlarge. The joint modes count and scatter both components together and weight the merged leading window once. The `12x3` control retains separate component reductions with the same three-range geometry. The `11x4` control uses four 11-bit ranges.
 
 Zopro uses 80 main and 16 frontend physical cores, and prepared Aeglos uses all 96. Each process primes three proofs and times thirteen. Each principal transaction has eight paired blocks and each additional transaction has four. A joint mode advances with a lower paired median and at least six wins per principal input and three per additional input against its Zopro controls. All 175 exports independently verified. Separate probes confirmed the selected routes and the fallback at zero optional workspace. The temporary instance and storage were removed.

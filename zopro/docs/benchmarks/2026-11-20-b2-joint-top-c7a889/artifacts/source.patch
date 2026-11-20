@@ -1,0 +1,237 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -1715,12 +1715,16 @@
+         let bytes =
+             workspace::grouped_auxiliary_window_bytes(values.len(), pool.current_num_threads());
+         if let Some(_scratch) = crate::preparation::Reservation::analysis(bytes) {
+-            return pool.install(|| g2_phi::from_split(&points, &values, 12, 2));
+-        }
+-    }
++            return pool.install(|| g2_phi::grouped_from_split(&points, &values));
++        }
++    }
++    #[cfg(all(zopro_resource_schedule, target_os = "linux"))]
++    return g2_phi::grouped_from_split(&points, &values);
+     #[cfg(not(all(zopro_resource_schedule, target_os = "linux")))]
+-    let _ = frontend;
+-    g2_phi::from_split(&points, &values, 12, 2)
++    {
++        let _ = frontend;
++        g2_phi::from_split(&points, &values, 12, 2)
++    }
+ }
+ 
+ // The four-query CPU prover gives up these proof-local scalar words.
+--- a/crates/zopro-core/src/msm_affine/g2_phi.rs
++++ b/crates/zopro-core/src/msm_affine/g2_phi.rs
+@@ -129,6 +129,61 @@
+     merge_buckets(&mut reduced, &negative);
+     reduced
+ }
++// Both signed components share the input scan and the indexed reduction.
++fn joint_top(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> Vec<G2Affine> {
++    let n = 1 << (126 - w * bits);
++    let index = |d: i16, plane: usize| {
++        d.unsigned_abs() as usize - 1 + (2 * plane + usize::from(d < 0)) * n
++    };
++    let bins = |words: &[u64; 4]| [hb_digit(words, true, w, bits), hb_digit(words, false, w, bits)];
++    let mut counts = vec![0usize; 4 * n];
++    for (base, words) in bases.iter().zip(short) {
++        if !base.is_identity() {
++            for (plane, d) in bins(words).into_iter().enumerate() {
++                if d != 0 {
++                    debug_assert!(d.unsigned_abs() as usize <= n);
++                    counts[index(d, plane)] += 1;
++                }
++            }
++        }
++    }
++    let mut starts = Vec::with_capacity(counts.len() + 1);
++    starts.push(0);
++    for count in counts {
++        starts.push(starts.last().unwrap() + count);
++    }
++    let mut positions = starts[..4 * n].to_vec();
++    let mut order = vec![0u32; *starts.last().unwrap()];
++    for (i, (base, words)) in bases.iter().zip(short).enumerate() {
++        if !base.is_identity() {
++            for (plane, d) in bins(words).into_iter().enumerate() {
++                if d != 0 {
++                    let bin = index(d, plane);
++                    order[positions[bin]] = i as u32;
++                    positions[bin] += 1;
++                }
++            }
++        }
++    }
++    drop(positions);
++    let mut sums = crate::msm::reduce_indexed_buckets(bases, &order, &starts);
++    let mut negative_low = sums.split_off(3 * n);
++    let mut low = sums.split_off(2 * n);
++    let mut negative_high = sums.split_off(n);
++    for point in negative_high.iter_mut().chain(&mut negative_low) {
++        point.y = -point.y;
++    }
++    merge_buckets(&mut sums, &negative_high);
++    merge_buckets(&mut low, &negative_low);
++    for point in &mut sums {
++        if !point.is_identity() {
++            point.x = point.x.mul_by_fp(&BETA);
++        }
++    }
++    merge_buckets(&mut sums, &low);
++    sums
++}
++
+ fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> Vec<G2Affine> {
+     if w + 1 == 127usize.div_ceil(bits) && 126 - w * bits <= 8 {
+         let top = 126 - w * bits;
+@@ -200,7 +255,11 @@
+     parts: usize,
+     serial: bool,
+ ) -> G2Projective {
+-    assert_eq!(bases.len(), short.len());
++    decompose(short, serial);
++    from_split(bases, short, bits, parts)
++}
++
++fn decompose(short: &mut [[u64; 4]], serial: bool) {
+     if serial {
+         for word in short.iter_mut() {
+             *word = phi_split(*word);
+@@ -211,7 +270,6 @@
+         #[cfg(not(zopro_phi_grain))]
+         short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+     }
+-    from_split(bases, short, bits, parts)
+ }
+ 
+ pub(super) fn from_split(
+@@ -219,6 +277,12 @@
+     short: &[[u64; 4]],
+     bits: usize,
+     parts: usize,
++) -> G2Projective {
++    from_split_layout(bases, short, bits, parts, false)
++}
++
++fn from_split_layout(
++    bases: &[G2Affine], short: &[[u64; 4]], bits: usize, parts: usize, combined_top: bool,
+ ) -> G2Projective {
+     assert_eq!(bases.len(), short.len());
+     let chunk = bases.len().div_ceil(parts);
+@@ -226,6 +290,9 @@
+     let sums: Vec<_> = (0..windows)
+         .into_par_iter()
+         .map(|w| {
++            if combined_top && w + 1 == windows && 126 - w * bits <= 8 {
++                return crate::msm::weighted_affine(&joint_top(bases, short, w, bits));
++            }
+             let mut buckets: Vec<_> = (0..parts)
+                 .into_par_iter()
+                 .map(|part| {
+@@ -251,10 +318,40 @@
+     result
+ }
+ 
++#[cfg(zopro_resource_schedule)]
++fn trial_geometry(n: usize) -> Option<(usize, usize, bool, crate::preparation::Reservation)> {
++    let (bits, parts, joint) = match std::env::var("ZOPRO_TRIAL_B2_TOP").as_deref() {
++        Ok("12x3") => (12, 3, false),
++        Ok("12x2-joint") => (12, 2, true),
++        Ok("12x3-joint") => (12, 3, true),
++        Ok("11x4") => (11, 4, false),
++        _ => return None,
++    };
++    let bytes = super::workspace::trial_top_growth(n, rayon::current_num_threads(), bits, parts, joint);
++    let reserve = crate::preparation::Reservation::analysis(bytes)?;
++    if std::env::var_os("ZOPRO_TRIAL_B2_TOP_TRACE").is_some() {
++        eprintln!("B2_TOP_GEOMETRY {bits} {parts} {joint} {n}");
++    }
++    Some((bits, parts, joint, reserve))
++}
++
++#[cfg(all(zopro_resource_schedule, target_os = "linux"))]
++pub(super) fn grouped_from_split(bases: &[G2Affine], short: &[[u64; 4]]) -> G2Projective {
++    if let Some((bits, parts, joint, _reserve)) = trial_geometry(bases.len()) {
++        return from_split_layout(bases, short, bits, parts, joint);
++    }
++    from_split(bases, short, 12, 2)
++}
++
+ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Projective {
+     assert_eq!(bases.len(), words.len());
+     if !(MIN_QUERY..MAX_QUERY).contains(&bases.len()) {
+         return super::g2_horner::raw(bases, words);
++    }
++    #[cfg(zopro_resource_schedule)]
++    if let Some((bits, parts, joint, _reserve)) = trial_geometry(bases.len()) {
++        decompose(words, false);
++        return from_split_layout(bases, words, bits, parts, joint);
+     }
+     #[cfg(zopro_resource_schedule)]
+     if rayon::current_num_threads() >= 32
+@@ -272,6 +369,38 @@
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    #[test]
++    fn combined_top_matches_original_and_generator_oracle() {
++        let generator = G2Affine::GENERATOR;
++        for n in [1, 79, 1031, 4159] {
++            let mut point = G2Projective::IDENTITY;
++            let mut points = Vec::new();
++            let mut words = Vec::new();
++            let mut expected = Fr::ZERO;
++            for i in 0..n {
++                point += generator;
++                let weight = match i % 5 {
++                    0 => Fr::ZERO,
++                    1 => -Fr::ONE,
++                    2 => -(Fr::from(i as u64 + 3).pow(&[111])),
++                    _ => Fr::from(i as u64 + 7).pow(&[101]),
++                };
++                points.push(if i % 17 == 0 { G2Projective::IDENTITY } else { point });
++                words.push(weight.to_canonical());
++                if i % 17 != 0 {
++                    expected += weight * Fr::from(i as u64 + 1);
++                }
++            }
++            let points = G2Projective::batch_to_affine(&points);
++            decompose(&mut words, false);
++            assert_eq!(joint_top(&points, &words, 10, 12), hb_window(&points, &words, 10, 12));
++            for parts in [2, 3] {
++                assert_eq!(from_split_layout(&points, &words, 12, parts, true).to_affine(),
++                    (generator * expected).to_affine());
++            }
++        }
++    }
++
+     #[test]
+     fn decomposition_and_endomorphism_match_independent_field_oracles() {
+         let lambda = Fr::from_decimal("4407920970296243842393367215006156084916469457145843978461");
+--- a/crates/zopro-core/src/msm_affine/workspace.rs
++++ b/crates/zopro-core/src/msm_affine/workspace.rs
+@@ -272,6 +272,22 @@
+         proposed.held.saturating_sub(original.held),
+         mul(proposed.leaf.saturating_sub(original.leaf), workers)?,
+     )
++}
++
++#[cfg(zopro_g2_horner_buckets)]
++pub(super) fn trial_top_growth(
++    n: usize, workers: usize, bits: usize, parts: usize, joint: bool,
++) -> Option<usize> {
++    let ordinary = hb_windows::<G2Config>(n, 12, 2)?;
++    let mut trial = hb_windows::<G2Config>(n, bits, parts)?;
++    if joint {
++        let top_bits = 126 - (127usize.div_ceil(bits) - 1) * bits;
++        let merged = top::<G2Config>(n.checked_mul(2)?, top_bits + 2)?;
++        trial.held = add(trial.held, add(merged.held, vector::<Affine<G2Config>>(4 << top_bits, false)?)?)?;
++        trial.leaf = trial.leaf.max(merged.leaf);
++    }
++    add(trial.held.saturating_sub(ordinary.held),
++        mul(trial.leaf.saturating_sub(ordinary.leaf), workers)?)
+ }
+ 
+ /// Workspace for streaming both private and H queries into the same buckets.
