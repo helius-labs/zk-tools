@@ -1,0 +1,44 @@
+--- a/crates/zopro-core/src/four_by_two_probe.rs
++++ b/crates/zopro-core/src/four_by_two_probe.rs
+@@ -106,6 +106,7 @@
+     cell: &OnceLock<Option<Frozen<T>>>, query: Query, origin: Option<Instant>,
+     base: usize, scalars: &mut [Fr], compute: impl FnOnce(&mut [Fr]) -> T,
+ ) -> T {
++    capture_relation_scalars(query, scalars);
+     let start = origin.map(|t| t.elapsed());
+     let result = if query.replay_enabled() {
+         replay(cell, query, base, scalars, compute)
+@@ -147,3 +148,33 @@
+     }
+     compute.unwrap()(scalars)
+ }
++
++/// Read the exact scalar input to K or B2 on the fourth proof in a process.
++fn capture_relation_scalars(query: Query, scalars: &[Fr]) {
++    use std::io::{BufWriter, Write};
++    use std::sync::atomic::{AtomicUsize, Ordering};
++    static K: AtomicUsize = AtomicUsize::new(0);
++    static B2: AtomicUsize = AtomicUsize::new(0);
++    let counter = match query {
++        Query::K => &K,
++        Query::B2 => &B2,
++        _ => return,
++    };
++    let Some(dir) = std::env::var_os("ZOPRO_918_CAPTURE_DIR") else {
++        return;
++    };
++    if counter.fetch_add(1, Ordering::Relaxed) != 3 {
++        return;
++    }
++    let path = std::path::PathBuf::from(dir).join(query.name());
++    let file = std::fs::OpenOptions::new().write(true).create_new(true).open(path).unwrap();
++    let mut out = BufWriter::new(file);
++    out.write_all(b"ZPS91800").unwrap();
++    out.write_all(&(scalars.len() as u64).to_le_bytes()).unwrap();
++    for value in scalars {
++        for limb in value.0 {
++            out.write_all(&limb.to_le_bytes()).unwrap();
++        }
++    }
++    out.flush().unwrap();
++}

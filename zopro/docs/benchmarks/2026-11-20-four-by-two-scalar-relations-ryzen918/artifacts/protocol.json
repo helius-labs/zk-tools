@@ -1,0 +1,21 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "queries": [
+    "k",
+    "b2"
+  ],
+  "captures_per_input": 2,
+  "sdk_primes": 3,
+  "proof_used": 4,
+  "scalar_identity": "byte-equal raw Montgomery inputs across independent proof processes",
+  "accepted_relations": "child = sign*2^exponent*parent+offset modulo the BN254 scalar field; signs \u00b11, exponents 0..3, offsets -2..2",
+  "cost": "For each removed class, subtract one group merge, exponent doublings and the direct correction add/double cost. Count each as one operation.",
+  "selection": "Evaluate sign only, dyadic, offset and combined families. Descending net savings with deterministic tie breaks and disjoint endpoints.",
+  "bound": "Relax disjointness and parent retention for the selected arithmetic model. Sum the best positive net saving for each possible removed child.",
+  "criterion": "Prefer implementing this route only if modeled net savings approach 10% of post-grouping digit arrivals for both queries on both inputs.",
+  "limitation": "Exact field identity and synthetic weighted-sum check. No latency measurement, actual curve addition count or production change."
+}
