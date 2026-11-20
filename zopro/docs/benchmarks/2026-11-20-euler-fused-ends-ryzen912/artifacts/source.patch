@@ -1,0 +1,290 @@
+--- a/crates/zopro-core/src/fft/pair/sequential_euler.rs
++++ b/crates/zopro-core/src/fft/pair/sequential_euler.rs
+@@ -1,5 +1,6 @@
+ //! One compact derivative workspace, reused for B and then A.
+ use super::*;
++use core::mem::MaybeUninit;
+ 
+ pub(super) fn enabled() -> bool {
+     static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+@@ -26,6 +27,8 @@
+     Fixed,
+     Adaptive,
+     Bridge,
++    Emit,
++    Ends,
+ }
+ 
+ impl Schedule {
+@@ -34,6 +37,8 @@
+         *MODE.get_or_init(|| match std::env::var("ZOPRO_911_WIDE_PASSES").as_deref() {
+             Ok("adaptive") => Self::Adaptive,
+             Ok("bridge") => Self::Bridge,
++            Ok("emit") => Self::Emit,
++            Ok("ends") => Self::Ends,
+             _ => Self::Fixed,
+         })
+     }
+@@ -226,6 +231,116 @@
+     columns::<true>(values, &plan.roots, level, schedule);
+ }
+ 
++fn split_stripes<'a, T>(stripes: &mut [&'a mut [T]; 32], mid: usize) -> [&'a mut [T]; 32] {
++    core::array::from_fn(|i| {
++        let stripe = core::mem::take(&mut stripes[i]);
++        let (left, right) = stripe.split_at_mut(mid.min(stripe.len()));
++        stripes[i] = right;
++        left
++    })
++}
++
++fn output_stripes(mut out: &mut [Fr], width: usize) -> [&mut [Fr]; 32] {
++    let stripes = core::array::from_fn(|_| {
++        let count = out.len().min(8 * width);
++        let (stripe, tail) = core::mem::take(&mut out).split_at_mut(count);
++        out = tail;
++        stripe
++    });
++    debug_assert!(out.is_empty());
++    stripes
++}
++
++fn input_range(
++    plan: &Plan,
++    b: &[Fr],
++    mut workspace: [&mut [MaybeUninit<PackedPair>]; 32],
++    start: usize,
++    width: usize,
++    tile: usize,
++) {
++    let count = workspace[0].len();
++    if count > tile {
++        let mid = count / 2;
++        let left = split_stripes(&mut workspace, mid);
++        rayon::join(
++            || input_range(plan, b, left, start, width, tile),
++            || input_range(plan, b, workspace, start + mid, width, tile),
++        );
++        return;
++    }
++    for column in 0..count {
++        let index = start + column;
++        let mut values = core::array::from_fn(|i| load(b, 8 * (i * width + index)));
++        column_butterflies::<false>(&mut values, &plan.inverse_roots, 0, index, width);
++        for (stripe, value) in workspace.iter_mut().zip(values) {
++            stripe[column].write(PackedPair::store(value));
++        }
++    }
++}
++
++fn inverse_input(plan: &Plan, b: &[Fr], schedule: Schedule) -> Vec<PackedPair> {
++    let count = plan.n / 8;
++    let width = count / 32;
++    let tile = schedule.tile(width, rayon::current_num_threads());
++    let mut workspace = Vec::with_capacity(count);
++    let mut stripes = workspace.spare_capacity_mut()[..count].chunks_exact_mut(width);
++    let stripes = core::array::from_fn(|_| stripes.next().unwrap());
++    input_range(plan, b, stripes, 0, width, tile);
++    // SAFETY: The joined disjoint tasks write each of the count slots.
++    unsafe { workspace.set_len(count) };
++    workspace
++}
++
++fn output_range(
++    plan: &Plan,
++    workspace: [&[PackedPair]; 32],
++    mut a: [&mut [Fr]; 32],
++    b: &[Fr],
++    start: usize,
++    width: usize,
++    tile: usize,
++) {
++    let count = workspace[0].len();
++    if count > tile {
++        let mid = count / 2;
++        let left_a = split_stripes(&mut a, 8 * mid);
++        let left_workspace = core::array::from_fn(|i| &workspace[i][..mid]);
++        let right_workspace = core::array::from_fn(|i| &workspace[i][mid..]);
++        rayon::join(
++            || output_range(plan, left_workspace, left_a, b, start, width, tile),
++            || output_range(plan, right_workspace, a, b, start + mid, width, tile),
++        );
++        return;
++    }
++    for column in 0..count {
++        let index = start + column;
++        let mut values = core::array::from_fn(|i| workspace[i][column].load());
++        column_butterflies::<true>(&mut values, &plan.roots, 0, index, width);
++        for (row, (value, stripe)) in values.into_iter().zip(&mut a).enumerate() {
++            let offset = 8 * column;
++            if offset >= stripe.len() {
++                continue;
++            }
++            let count = (stripe.len() - offset).min(8);
++            let out = &mut stripe[offset..offset + count];
++            let result = value
++                .mul(&load(b, 8 * (row * width + index)))
++                .add(&load(out, 0))
++                .get();
++            out.copy_from_slice(&result[..count]);
++        }
++    }
++}
++
++fn emit_result(plan: &Plan, workspace: &[PackedPair], a: &mut [Fr], b: &[Fr], schedule: Schedule) {
++    let width = workspace.len() / 32;
++    let mut stripes = workspace.chunks_exact(width);
++    let strips = core::array::from_fn(|_| stripes.next().unwrap());
++    let tile = schedule.tile(width, rayon::current_num_threads());
++    output_range(plan, strips, output_stripes(a, width), b, 0, width, tile);
++}
++
+ // Complete the outer forward transform for B, emit A*D(B), and feed
+ // the original A lanes through their first five inverse layers.
+ fn bridge_range(
+@@ -239,17 +354,8 @@
+     let count = workspace[0].len();
+     if count > tile {
+         let mid = count / 2;
+-        let left_workspace = core::array::from_fn(|i| {
+-            let (left, right) = core::mem::take(&mut workspace[i]).split_at_mut(mid);
+-            workspace[i] = right;
+-            left
+-        });
+-        let left_a = core::array::from_fn(|i| {
+-            let stripe = core::mem::take(&mut a[i]);
+-            let (left, right) = stripe.split_at_mut((8 * mid).min(stripe.len()));
+-            a[i] = right;
+-            left
+-        });
++        let left_workspace = split_stripes(&mut workspace, mid);
++        let left_a = split_stripes(&mut a, 8 * mid);
+         rayon::join(
+             || bridge_range(plan, left_workspace, left_a, start, width, tile),
+             || bridge_range(plan, workspace, a, start + mid, width, tile),
+@@ -281,25 +387,20 @@
+ fn bridge_derivatives(
+     plan: &Plan,
+     workspace: &mut [PackedPair],
+-    mut a: &mut [Fr],
++    a: &mut [Fr],
+     schedule: Schedule,
++    fused_input: bool,
+ ) {
+     let width = workspace.len() / 32;
+     let tile = schedule.tile(width, rayon::current_num_threads());
+-    columns::<false>(workspace, &plan.inverse_roots, 0, schedule);
++    if !fused_input {
++        columns::<false>(workspace, &plan.inverse_roots, 0, schedule);
++    }
+     inner_columns(plan, workspace, 0, 0, schedule);
+     let mut stripes = workspace.chunks_exact_mut(width);
+     let stripes = core::array::from_fn(|_| stripes.next().unwrap());
+-    let output = core::array::from_fn(|_| {
+-        let count = a.len().min(8 * width);
+-        let (stripe, tail) = core::mem::take(&mut a).split_at_mut(count);
+-        a = tail;
+-        stripe
+-    });
+-    debug_assert!(a.is_empty());
+-    bridge_range(plan, stripes, output, 0, width, tile);
++    bridge_range(plan, stripes, output_stripes(a, width), 0, width, tile);
+     inner_columns(plan, workspace, 0, 0, schedule);
+-    columns::<true>(workspace, &plan.roots, 0, schedule);
+ }
+ 
+ #[inline(always)]
+@@ -328,13 +429,24 @@
+     static CLOCK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+     let clock = (*CLOCK.get_or_init(|| std::env::var_os("ZOPRO_910_CLOCK").is_some()))
+         .then(std::time::Instant::now);
+-    let mut workspace: Vec<PackedPair> = (0..plan.n / 8)
+-        .into_par_iter()
+-        .map(|i| PackedPair::store(load(b, 8 * i)))
+-        .collect();
+-    let bridged = schedule == Schedule::Bridge && workspace.len() > 1024;
++    let outer_columns = plan.n / 8 > 1024;
++    let fused_input = outer_columns && schedule == Schedule::Ends;
++    let fused_output = outer_columns && matches!(schedule, Schedule::Emit | Schedule::Ends);
++    let mut workspace = if fused_input {
++        inverse_input(plan, b, schedule)
++    } else {
++        (0..plan.n / 8)
++            .into_par_iter()
++            .map(|i| PackedPair::store(load(b, 8 * i)))
++            .collect()
++    };
++    let bridged =
++        outer_columns && matches!(schedule, Schedule::Bridge | Schedule::Emit | Schedule::Ends);
+     if bridged {
+-        bridge_derivatives(plan, &mut workspace, &mut a, schedule);
++        bridge_derivatives(plan, &mut workspace, &mut a, schedule, fused_input);
++        if !fused_output {
++            columns::<true>(&mut workspace, &plan.roots, 0, schedule);
++        }
+     } else {
+         transform(plan, &mut workspace, 0, 0, schedule);
+         let packs = count.div_ceil(8);
+@@ -352,17 +464,21 @@
+             .for_each(|slot| *slot = PackedPair::store(Pair::zero()));
+         transform(plan, &mut workspace, 0, 0, schedule);
+     }
+-    a.par_chunks_mut(8)
+-        .zip(workspace.par_iter())
+-        .enumerate()
+-        .for_each(|(i, (out, derivative))| {
+-            let result = derivative
+-                .load()
+-                .mul(&load(b, 8 * i))
+-                .add(&load(out, 0))
+-                .get();
+-            out.copy_from_slice(&result[..out.len()]);
+-        });
++    if fused_output {
++        emit_result(plan, &workspace, &mut a, b, schedule);
++    } else {
++        a.par_chunks_mut(8)
++            .zip(workspace.par_iter())
++            .enumerate()
++            .for_each(|(i, (out, derivative))| {
++                let result = derivative
++                    .load()
++                    .mul(&load(b, 8 * i))
++                    .add(&load(out, 0))
++                    .get();
++                out.copy_from_slice(&result[..out.len()]);
++            });
++    }
+     if let Some(start) = clock {
+         eprintln!("ZP910_FFT_NS {}", start.elapsed().as_nanos());
+     }
+@@ -374,6 +490,7 @@
+             "ZP911_COLUMNS {schedule:?} {width} {workers} {} {bridged}",
+             schedule.tile(width, workers)
+         );
++        eprintln!("ZP912_BOUNDARIES {fused_input} {fused_output}");
+     }
+     a
+ }
+@@ -413,7 +530,7 @@
+                 let expected = (0..n)
+                     .map(|i| scale * (da[i] * b0[i] + a0[i] * db[i]))
+                     .collect::<Vec<_>>();
+-                for schedule in [Schedule::Fixed, Schedule::Adaptive, Schedule::Bridge] {
++                for schedule in [Schedule::Fixed, Schedule::Emit, Schedule::Ends] {
+                     assert_eq!(run_product(&plan, a0.clone(), &b0, schedule), expected);
+                     assert!(run_product(&plan, Vec::new(), &[], schedule).is_empty());
+                     let count = n / 2 + 3;
+@@ -445,8 +562,10 @@
+         pool.install(|| {
+             for (la, lb) in [(3, n - 5), (n / 2 + 7, n / 3), (n * 3 / 4 - 1, n - 3)] {
+                 let expected = run_product(&plan, a[..la].to_vec(), &b[..lb], Schedule::Fixed);
+-                let actual = run_product(&plan, a[..la].to_vec(), &b[..lb], Schedule::Bridge);
+-                assert_eq!(actual, expected, "workers={workers} lengths={la},{lb}");
++                for schedule in [Schedule::Bridge, Schedule::Emit, Schedule::Ends] {
++                    let actual = run_product(&plan, a[..la].to_vec(), &b[..lb], schedule);
++                    assert_eq!(actual, expected, "workers={workers} lengths={la},{lb}");
++                }
+             }
+         });
+     }
