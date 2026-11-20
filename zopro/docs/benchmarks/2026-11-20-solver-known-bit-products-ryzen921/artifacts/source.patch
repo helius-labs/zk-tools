@@ -1,0 +1,295 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -11,6 +11,7 @@
+ use std::collections::HashMap;
+ use std::hash::{BuildHasherDefault, Hasher};
+ use std::ops::Range;
++mod bit_products;
+ 
+ // Interning a wide circuit's prefixes hashes millions of small keys; the
+ // standard map's SipHash is most of that time. Keys here are not chosen by
+@@ -119,6 +120,7 @@
+ enum Expression {
+     Zero,
+     Wire(u32),
++    Bit(u32),
+     Constant(u32),
+     Term(u32),
+     Sum(u32, u32),
+@@ -267,7 +269,7 @@
+     for op in ops.iter() {
+         if let Op::Constraint(step) = op {
+             for expression in &step.expressions {
+-                if let Expression::Wire(wire) = expression {
++                if let Expression::Wire(wire) | Expression::Bit(wire) = expression {
+                     if *wire as usize >= n_wires {
+                         readers[*wire as usize - n_wires] = 2;
+                     }
+@@ -303,7 +305,7 @@
+     for op in ops.iter_mut() {
+         if let Op::Constraint(step) = op {
+             for expression in &mut step.expressions {
+-                if let Expression::Wire(wire) = expression {
++                if let Expression::Wire(wire) | Expression::Bit(wire) = expression {
+                     if *wire as usize >= n_wires {
+                         *wire = slot_of[*wire as usize - n_wires];
+                     }
+@@ -929,6 +931,8 @@
+             definite: std::sync::OnceLock::new(),
+         };
+         plan.compact_coefficients();
++        #[cfg(zopro_resource_schedule)]
++        bit_products::prepare(&mut plan);
+         Ok(plan)
+     }
+ 
+@@ -1021,7 +1025,7 @@
+                     for expression in &step.expressions {
+                         let (tag, a, b) = match expression {
+                             Expression::Zero => (0, 0, 0),
+-                            Expression::Wire(v) => (1, *v as usize, 0),
++                            Expression::Wire(v) | Expression::Bit(v) => (1, *v as usize, 0),
+                             Expression::Constant(v) => (2, *v as usize, 0),
+                             Expression::Term(v) => (3, *v as usize, 0),
+                             Expression::Sum(start, end) => (4, *start as usize, *end as usize),
+@@ -1243,6 +1247,8 @@
+             definite: std::sync::OnceLock::new(),
+         };
+         plan.compact_coefficients();
++        #[cfg(zopro_resource_schedule)]
++        bit_products::prepare(&mut plan);
+         Ok(plan)
+     }
+ 
+@@ -1408,7 +1414,7 @@
+             };
+             match &step.expressions[2] {
+                 Expression::Zero => (),
+-                Expression::Wire(wire) => emit(*wire as usize, Fr::ONE),
++                Expression::Wire(wire) | Expression::Bit(wire) => emit(*wire as usize, Fr::ONE),
+                 Expression::Constant(coefficient) => emit(0, self.coefficients[*coefficient as usize]),
+                 Expression::Term(term) => {
+                     let term = &self.terms[*term as usize];
+@@ -1503,7 +1509,7 @@
+                     for expression in &step.expressions {
+                         let initialized = match expression {
+                             Expression::Zero | Expression::Constant(_) => true,
+-                            Expression::Wire(wire) => ready[*wire as usize],
++                            Expression::Wire(wire) | Expression::Bit(wire) => ready[*wire as usize],
+                             Expression::Term(term) => ready[self.terms[*term as usize].wire()],
+                             Expression::Sum(start, end) => self.terms[range_of((*start, *end))].iter().all(|t| ready[t.wire()]),
+                         };
+@@ -1739,6 +1745,7 @@
+     /// Every read is initialized, and the schedule orders all writers
+     /// before readers. Distinct tasks write disjoint wires, slots and rows.
+     unsafe fn execute_schedule(&self, schedule: &Schedule, v: View) -> Result<(), String> {
++        let started = bit_products::schedule_clock();
+         let claims = solver_task_claims();
+         let serial = |task: &[u32]| -> Result<(), String> {
+             #[cfg(zopro_resource_schedule)]
+@@ -1766,6 +1773,7 @@
+                 }
+             })?;
+         }
++        bit_products::schedule_report(started);
+         Ok(())
+     }
+ 
+@@ -1783,7 +1791,7 @@
+                 }
+                 for expression in &step.expressions {
+                     match expression {
+-                        Expression::Wire(wire) => out.push(*wire as usize),
++                        Expression::Wire(wire) | Expression::Bit(wire) => out.push(*wire as usize),
+                         Expression::Term(term) => out.push(self.terms[*term as usize].wire()),
+                         Expression::Sum(start, end) => out.extend(
+                             self.terms[range_of((*start, *end))].iter().map(|t| t.wire()),
+@@ -1911,7 +1919,7 @@
+         for (value, expression) in values.iter_mut().zip(&step.expressions) {
+             *value = match expression {
+                 Expression::Zero => Fr::ZERO,
+-                Expression::Wire(wire) => get(*wire as usize),
++                Expression::Wire(wire) | Expression::Bit(wire) => get(*wire as usize),
+                 Expression::Constant(coefficient) => self.coefficients[*coefficient as usize],
+                 Expression::Term(term) => term_value(&self.terms[*term as usize]),
+                 Expression::Sum(start, end) => {
+@@ -1945,7 +1953,7 @@
+                     }
+                 }
+                 _ => {
+-                    let product = values[0] * values[1];
++                    let product = bit_products::multiply(&step.expressions, values[0], values[1]);
+                     let term = product - values[2];
+                     values[2] = product;
+                     term
+@@ -1959,7 +1967,7 @@
+                     _ => term * self.inverses.get(assignment.inverse),
+                 },
+             );
+-        } else if values[0] * values[1] != values[2] {
++        } else if bit_products::multiply(&step.expressions, values[0], values[1]) != values[2] {
+             return Err(fail());
+         }
+         // SAFETY: each constraint's row is written by its own op only.
+@@ -2040,7 +2048,7 @@
+         fn expr(key: &mut Vec<u32>, e: &Expression, p: &Plan) {
+             match e {
+                 Expression::Zero => key.push(0),
+-                Expression::Wire(w) => key.extend([1, (*w == 0) as u32]),
++                Expression::Wire(w) | Expression::Bit(w) => key.extend([1, (*w == 0) as u32]),
+                 Expression::Constant(c) => key.extend([2, *c]),
+                 Expression::Term(t) => {
+                     key.push(3);
+--- a/crates/zopro-core/src/solver/bounded.rs
++++ b/crates/zopro-core/src/solver/bounded.rs
+@@ -34,7 +34,7 @@
+                         count,
+                         match e {
+                             Expression::Zero | Expression::Constant(_) => 0,
+-                            Expression::Wire(_) | Expression::Term(_) => 1,
++                            Expression::Wire(_) | Expression::Bit(_) | Expression::Term(_) => 1,
+                             Expression::Sum(a, b) => (b - a) as usize,
+                         },
+                     )?;
+--- a/crates/zopro-core/src/solver/sparse_poseidon.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon.rs
+@@ -40,7 +40,7 @@
+     }
+ }
+ fn wire(e: &Expression) -> Option<usize> {
+-    if let Expression::Wire(w) = e {
++    if let Expression::Wire(w) | Expression::Bit(w) = e {
+         Some(*w as usize)
+     } else {
+         None
+--- /dev/null
++++ b/crates/zopro-core/src/solver/bit_products.rs
+@@ -0,0 +1,128 @@
++//! Use exact zero/one selection for products of bit-hint outputs.
++use super::{Expression, Fr};
++#[cfg(zopro_resource_schedule)]
++use super::{HintKind, Op, Plan};
++use std::sync::atomic::{AtomicUsize, Ordering};
++use std::sync::OnceLock;
++
++static BIT_PRODUCTS: AtomicUsize = AtomicUsize::new(0);
++
++fn trace() -> bool {
++    static TRACE: OnceLock<bool> = OnceLock::new();
++    *TRACE.get_or_init(|| std::env::var_os("ZOPRO_921_BIT_TRACE").is_some())
++}
++
++pub(super) fn schedule_clock() -> Option<crate::time::Instant> {
++    static CLOCK: OnceLock<bool> = OnceLock::new();
++    CLOCK
++        .get_or_init(|| std::env::var_os("ZOPRO_921_CLOCK").is_some())
++        .then(crate::time::Instant::now)
++}
++
++pub(super) fn schedule_report(started: Option<crate::time::Instant>) {
++    if let Some(t) = started {
++        eprintln!("ZP921_SOLVE {}", t.elapsed().as_nanos());
++    }
++    if trace() {
++        eprintln!("ZP921_PRODUCTS {}", BIT_PRODUCTS.swap(0, Ordering::Relaxed));
++    }
++}
++
++#[cfg(zopro_resource_schedule)]
++pub(super) fn prepare(plan: &mut Plan) {
++    static ENABLED: OnceLock<bool> = OnceLock::new();
++    if !*ENABLED.get_or_init(|| std::env::var("ZOPRO_921_BIT_SOLVER").as_deref() == Ok("1")) {
++        return;
++    }
++    let Some(_scratch) = crate::preparation::Reservation::analysis(plan.n_wires.checked_add(64))
++    else {
++        return;
++    };
++    let mut bits = vec![false; plan.n_wires];
++    let mut selected = 0;
++    for op in &mut plan.ops {
++        match op {
++            Op::Hint(hint) => bits[hint.outputs()].fill(matches!(hint.kind, HintKind::Bits)),
++            Op::Constraint(step) => {
++                let product = step.assignment.as_ref().is_none_or(|a| a.side() == 2);
++                if product {
++                    let mut selected_here = false;
++                    for e in &mut step.expressions[..2] {
++                        if let Expression::Wire(wire) = *e {
++                            if bits.get(wire as usize) == Some(&true) {
++                                *e = Expression::Bit(wire);
++                                selected_here = true;
++                            }
++                        }
++                    }
++                    selected += usize::from(selected_here);
++                }
++                if let Some(a) = &step.assignment {
++                    let is_bit = |e: &Expression| {
++                        matches!(
++                            e,
++                            Expression::Bit(_)
++                                | Expression::Zero
++                                | Expression::Constant(0 | 1)
++                                | Expression::Wire(0)
++                        )
++                    };
++                    bits[a.wire()] = product
++                        && a.coefficient() == 1
++                        && matches!(step.expressions[2], Expression::Zero)
++                        && step.expressions[..2].iter().all(is_bit);
++                }
++            }
++        }
++    }
++    if trace() {
++        eprintln!("ZP921_PLAN {selected}");
++    }
++}
++
++#[inline]
++fn bit_product(bit: Fr, other: Fr) -> Fr {
++    if trace() {
++        BIT_PRODUCTS.fetch_add(1, Ordering::Relaxed);
++    }
++    if bit == Fr::ZERO {
++        Fr::ZERO
++    } else if bit == Fr::ONE {
++        other
++    } else {
++        // Keep field semantics even when a supplied image's data flow has
++        // a value outside the expected bit range.
++        bit * other
++    }
++}
++
++#[inline]
++pub(super) fn multiply(expressions: &[Expression; 3], a: Fr, b: Fr) -> Fr {
++    if matches!(expressions[1], Expression::Bit(_)) {
++        bit_product(b, a)
++    } else if matches!(expressions[0], Expression::Bit(_)) {
++        bit_product(a, b)
++    } else {
++        a * b
++    }
++}
++
++#[cfg(test)]
++#[test]
++fn known_bit_products_match_generic_field_multiplication() {
++    let left = [Expression::Bit(1), Expression::Wire(2), Expression::Zero];
++    let right = [Expression::Wire(1), Expression::Bit(2), Expression::Zero];
++    let both = [Expression::Bit(1), Expression::Bit(2), Expression::Zero];
++    for a in [Fr::ZERO, Fr::ONE, -Fr::ONE, Fr::from(12345)] {
++        for b in [Fr::ZERO, Fr::ONE, -Fr::ONE, Fr::from(678901)] {
++            for tags in [&left, &right, &both] {
++                assert_eq!(multiply(tags, a, b), a * b);
++            }
++        }
++    }
++}
++
++const _: () = {
++    // The tag reuses the existing expression discriminant.
++    assert!(core::mem::size_of::<Expression>() == 12);
++};

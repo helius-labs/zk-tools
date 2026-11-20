@@ -1,0 +1,56 @@
+{
+  "shape": [
+    "1x2",
+    "2x2",
+    "4x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "main_cpus": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "frontend_cpus": [
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "change": "Mark multiplicands from bit hints and bit-valued assignments, then select zero or the other operand with exact general fallback.",
+  "warmups": 3,
+  "timing_rounds": 17,
+  "timing_blocks": 8,
+  "solver_clock_rounds": 7,
+  "solver_clock_blocks": 3,
+  "qualification": "Fresh ordinary calibrates within 2% absolute paired median against release on each input. Candidate needs lower paired median and six wins out of eight against both controls on both inputs.",
+  "correctness": "All exports independently checked. Route probes compare actual selected operations with plan tags and check proof success without the optional workspace.",
+  "code": "The original serialized image and representation size stay unchanged; runtime side tags are reconstructed from each loaded plan."
+}
