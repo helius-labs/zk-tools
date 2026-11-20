@@ -1,0 +1,63 @@
+{
+  "shapes": [
+    "1x2",
+    "2x2",
+    "1x8",
+    "1x16"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "archived-late",
+    "archived-early",
+    "integrated-late",
+    "integrated-early"
+  ],
+  "panels": {
+    "route": [
+      1,
+      2,
+      [
+        "integrated-late",
+        "integrated-early",
+        "integrated-denied"
+      ]
+    ],
+    "timing": [
+      4,
+      13,
+      [
+        "archived-late",
+        "archived-early",
+        "integrated-late",
+        "integrated-early"
+      ]
+    ]
+  },
+  "layouts": {
+    "1x2": 12,
+    "2x2": 12,
+    "1x8": 8,
+    "1x16": 8
+  },
+  "sites": {
+    "prove": "0x559980",
+    "g2": "0x4b6300",
+    "quotient": "0x4a0c70"
+  },
+  "group": "zp999",
+  "build": {
+    "executable": "1d79919565d668af48c92904ee0886e8d52f373bfbd2f0d5cbe7a03c4f6e5fc5",
+    "source_patch": "c68a1ed8c24059c2614ecab23adb7a3d2a9441cde5994b16b1abf5de780bd7e8",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/msm_affine/workspace.rs",
+      "crates/zopro-prover/src/lib.rs",
+      "crates/zopro-bench/examples/cpu-sdk.rs",
+      "crates/zopro-bench/examples/support/placement.rs"
+    ]
+  },
+  "scope": "Test the paired Rust SDK migration of the scoped exclusive G2 path and trace quotient overlap on byte-identical executables."
+}
