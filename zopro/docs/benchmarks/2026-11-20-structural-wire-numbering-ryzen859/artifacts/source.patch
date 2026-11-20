@@ -1,0 +1,307 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -1,3 +1,5 @@
++mod value_numbering;
++
+ // Copyright 2020-2025 Consensys Software Inc.
+ // Licensed under Apache-2.0; see LICENSE-APACHE.
+ // Modified for Mopro: prepare a validated execution plan for gnark R1CS
+@@ -1327,6 +1329,9 @@
+         // Retain this proof's allocation until its MSMs finish instead of
+         // copying the wires into another allocation.
+         let started = crate::trace("solve-execute", started);
++        if std::env::var_os("ZOPRO_TRIAL_WIRE_NUMBERING").is_some() {
++            self.report_wire_numbering(&w, slots);
++        }
+         let selected: Vec<_> = slots.iter().map(|&slot| w[slot]).collect();
+         w.truncate(self.n_wires);
+         w.extend(selected);
+--- /dev/null
++++ b/crates/zopro-core/src/solver/value_numbering.rs
+@@ -0,0 +1,286 @@
++use super::*;
++
++#[derive(Clone, Copy, PartialEq, Eq, Hash)]
++enum Node {
++    Input(usize),
++    Constant(Fr),
++    Add(u32, u32),
++    Multiply(u32, u32),
++    Inverse(u32),
++    Bit(u32, usize),
++    DivideMinus(u32, u32, u32),
++}
++
++#[derive(Default)]
++struct Numbering {
++    ids: FxMap<Node, u32>,
++    nodes: Vec<Node>,
++}
++
++impl Numbering {
++    fn intern(&mut self, node: Node) -> u32 {
++        let next = u32::try_from(self.nodes.len()).expect("bounded diagnostic");
++        let id = *self.ids.entry(node).or_insert(next);
++        if id == next {
++            self.nodes.push(node);
++        }
++        id
++    }
++
++    fn constant(&self, id: u32) -> Option<Fr> {
++        if let Node::Constant(v) = self.nodes[id as usize] {
++            Some(v)
++        } else {
++            None
++        }
++    }
++
++    fn add(&mut self, a: u32, b: u32) -> u32 {
++        match (self.constant(a), self.constant(b)) {
++            (Some(a), Some(b)) => self.intern(Node::Constant(a + b)),
++            (Some(Fr::ZERO), _) => b,
++            (_, Some(Fr::ZERO)) => a,
++            _ => self.intern(Node::Add(a.min(b), a.max(b))),
++        }
++    }
++
++    fn mul(&mut self, a: u32, b: u32) -> u32 {
++        match (self.constant(a), self.constant(b)) {
++            (Some(a), Some(b)) => self.intern(Node::Constant(a * b)),
++            (Some(Fr::ONE), _) => b,
++            (_, Some(Fr::ONE)) => a,
++            (Some(Fr::ZERO), _) => a,
++            (_, Some(Fr::ZERO)) => b,
++            _ => self.intern(Node::Multiply(a.min(b), a.max(b))),
++        }
++    }
++
++    fn scale(&mut self, a: u32, factor: Fr) -> u32 {
++        let f = self.intern(Node::Constant(factor));
++        self.mul(a, f)
++    }
++
++    fn sub(&mut self, a: u32, b: u32) -> u32 {
++        if a == b {
++            return self.intern(Node::Constant(Fr::ZERO));
++        }
++        let negative = self.scale(b, -Fr::ONE);
++        self.add(a, negative)
++    }
++
++    fn divide_minus(&mut self, num: u32, den: u32, partial: u32) -> u32 {
++        match self.constant(den) {
++            Some(Fr::ZERO) => self.intern(Node::Constant(Fr::ZERO)),
++            Some(d) => {
++                let quotient = self.scale(num, d.inverse().unwrap());
++                self.sub(quotient, partial)
++            }
++            None => self.intern(Node::DivideMinus(num, den, partial)),
++        }
++    }
++}
++
++impl Plan {
++    fn number_term(
++        &self,
++        term: &Term,
++        wires: &[Option<u32>],
++        table: &mut Numbering,
++    ) -> Option<u32> {
++        Some(table.scale(wires[term.wire()]?, self.coefficients[term.coefficient()]))
++    }
++
++    fn number_terms(
++        &self,
++        terms: &[Term],
++        wires: &[Option<u32>],
++        table: &mut Numbering,
++    ) -> Option<u32> {
++        let mut values = Vec::with_capacity(terms.len());
++        for term in terms {
++            values.push(self.number_term(term, wires, table)?);
++        }
++        values.sort_unstable();
++        let mut sum = table.intern(Node::Constant(Fr::ZERO));
++        for val in values {
++            sum = table.add(sum, val);
++        }
++        Some(sum)
++    }
++
++    fn structural_wire_numbers(&self) -> Option<(Vec<Option<u32>>, Numbering)> {
++        if self.ops.len() > 200_000 || self.n_wires.checked_add(self.n_slots)? > 400_000 {
++            return None;
++        }
++        let mut table = Numbering::default();
++        let mut wires = vec![None; self.n_wires + self.n_slots];
++        wires[0] = Some(table.intern(Node::Constant(Fr::ONE)));
++        for (i, slot) in wires[..self.n_inputs].iter_mut().enumerate().skip(1) {
++            *slot = Some(table.intern(Node::Input(i)));
++        }
++        let zero = table.intern(Node::Constant(Fr::ZERO));
++        for op in &self.ops {
++            match op {
++                Op::Hint(hint) => {
++                    let value = self.number_terms(&self.terms[hint.input()], &wires, &mut table)?;
++                    for (offset, wire) in hint.outputs().enumerate() {
++                        let id = match (hint.kind, table.constant(value)) {
++                            (HintKind::InvZero, Some(v)) => {
++                                table.intern(Node::Constant(v.inverse().unwrap_or(Fr::ZERO)))
++                            }
++                            (HintKind::InvZero, None) => table.intern(Node::Inverse(value)),
++                            (HintKind::Bits, Some(v)) => {
++                                let bit = (v.to_canonical()[offset / 64] >> (offset % 64)) & 1;
++                                table.intern(Node::Constant(Fr::from(bit)))
++                            }
++                            (HintKind::Bits, None) => table.intern(Node::Bit(value, offset)),
++                        };
++                        if wires[wire].replace(id).is_some() {
++                            return None;
++                        }
++                    }
++                }
++                Op::Constraint(step) => {
++                    let mut slot = self.n_wires + step.first_slot();
++                    let mut chain = zero;
++                    for sum in &self.sums[step.sums()] {
++                        let term = self.number_term(&sum.term, &wires, &mut table)?;
++                        chain = match sum.previous() {
++                            Previous::None => term,
++                            Previous::Chain => table.add(chain, term),
++                            Previous::Slot(p) => table.add(wires[p]?, term),
++                        };
++                        if sum.stored() {
++                            if wires[slot].replace(chain).is_some() {
++                                return None;
++                            }
++                            slot += 1;
++                        }
++                    }
++                    if let Some(assignment) = &step.assignment {
++                        let mut values = [zero; 3];
++                        for (dest, expr) in values.iter_mut().zip(&step.expressions) {
++                            *dest = match *expr {
++                                Expression::Zero => zero,
++                                Expression::Wire(wire) => wires[wire as usize]?,
++                                Expression::Constant(c) => {
++                                    table.intern(Node::Constant(self.coefficients[c as usize]))
++                                }
++                                Expression::Term(term) => self.number_term(
++                                    &self.terms[term as usize],
++                                    &wires,
++                                    &mut table,
++                                )?,
++                                Expression::Sum(start, end) => self.number_terms(
++                                    &self.terms[range_of((start, end))],
++                                    &wires,
++                                    &mut table,
++                                )?,
++                            };
++                        }
++                        let term = match assignment.side() {
++                            side @ 0..=1 => {
++                                table.divide_minus(values[2], values[1 - side], values[side])
++                            }
++                            _ => {
++                                let product = table.mul(values[0], values[1]);
++                                table.sub(product, values[2])
++                            }
++                        };
++                        let factor = match assignment.coefficient() {
++                            1 => Fr::ONE,
++                            3 => -Fr::ONE,
++                            _ => self.inverses.get(assignment.inverse),
++                        };
++                        let id = table.scale(term, factor);
++                        if wires[assignment.wire()].replace(id).is_some() {
++                            return None;
++                        }
++                    }
++                }
++            }
++        }
++        Some((wires, table))
++    }
++
++    pub(super) fn report_wire_numbering(&self, values: &[Fr], stored: &[usize]) {
++        let Some((wires, table)) = self.structural_wire_numbers() else {
++            eprintln!("WIRE_NUMBERING_DECLINED {}", self.n_wires);
++            return;
++        };
++        let queries = [
++            (
++                "A",
++                self.a_indices
++                    .iter()
++                    .map(|&i| i as usize)
++                    .collect::<Vec<_>>(),
++            ),
++            (
++                "B2",
++                self.b_indices
++                    .iter()
++                    .map(|&i| i as usize)
++                    .collect::<Vec<_>>(),
++            ),
++            (
++                "K",
++                (self.n_public..self.n_wires)
++                    .chain(stored.iter().copied())
++                    .collect(),
++            ),
++        ];
++        for (name, indexes) in queries {
++            let mut structural = FxMap::default();
++            let mut dynamic = std::collections::HashSet::new();
++            let mut known_zero = 0;
++            let mut observed_zero = 0;
++            for i in indexes.iter().copied() {
++                let id = wires[i].expect("assigned query operand");
++                let value = values[i];
++                match structural.entry(id) {
++                    std::collections::hash_map::Entry::Occupied(existing) => {
++                        assert_eq!(*existing.get(), value)
++                    }
++                    std::collections::hash_map::Entry::Vacant(entry) => {
++                        entry.insert(value);
++                    }
++                }
++                if let Some(constant) = table.constant(id) {
++                    assert_eq!(value, constant);
++                    known_zero += usize::from(constant == Fr::ZERO);
++                }
++                if value == Fr::ZERO {
++                    observed_zero += 1;
++                } else {
++                    dynamic.insert(value);
++                }
++            }
++            eprintln!(
++                "WIRE_NUMBERING {} {} {} {} {} {}",
++                name,
++                indexes.len(),
++                structural.len(),
++                dynamic.len(),
++                known_zero,
++                observed_zero
++            );
++        }
++    }
++}
++
++#[cfg(test)]
++#[test]
++fn exact_numbering_shares_commutative_nodes_and_solver_zero_cases() {
++    let mut model = Numbering::default();
++    let x = model.intern(Node::Input(1));
++    let y = model.intern(Node::Input(2));
++    let zero = model.intern(Node::Constant(Fr::ZERO));
++    let one = model.intern(Node::Constant(Fr::ONE));
++    assert_eq!(model.mul(x, y), model.mul(y, x));
++    assert_eq!(model.add(x, y), model.add(y, x));
++    assert_eq!(model.sub(x, x), zero);
++    assert_eq!(model.mul(one, y), y);
++    assert_eq!(model.divide_minus(x, zero, y), zero);
++    assert_eq!(model.divide_minus(x, one, y), model.sub(x, y));
++}
