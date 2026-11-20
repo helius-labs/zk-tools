@@ -161,20 +161,22 @@ impl Usage {
         }
         Ok(Self(unsafe { usage.assume_init() }))
     }
-    pub fn difference(&self, before: &Self) -> serde_json::Value {
-        let ms = |time: libc::timeval| time.tv_sec as f64 * 1000. + time.tv_usec as f64 / 1000.;
+    pub fn max_rss_kib(&self) -> u64 {
         let peak = self.0.ru_maxrss as u64;
-        let peak = if cfg!(target_vendor = "apple") {
+        if cfg!(target_vendor = "apple") {
             peak / 1024
         } else {
             peak
-        };
+        }
+    }
+    pub fn difference(&self, before: &Self) -> serde_json::Value {
+        let ms = |time: libc::timeval| time.tv_sec as f64 * 1000. + time.tv_usec as f64 / 1000.;
         serde_json::json!({"user_cpu_ms":ms(self.0.ru_utime)-ms(before.0.ru_utime),
             "system_cpu_ms":ms(self.0.ru_stime)-ms(before.0.ru_stime),
             "minor_faults":self.0.ru_minflt-before.0.ru_minflt,
             "voluntary_switches":self.0.ru_nvcsw-before.0.ru_nvcsw,
             "involuntary_switches":self.0.ru_nivcsw-before.0.ru_nivcsw,
-            "whole_process_maxrss_kib":peak})
+            "whole_process_maxrss_kib":self.max_rss_kib()})
     }
 }
 

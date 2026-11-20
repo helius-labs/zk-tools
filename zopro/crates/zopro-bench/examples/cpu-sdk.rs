@@ -111,11 +111,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut sdk = zopro_zolana::Prover::new(prover)?;
     let request = fs::read_to_string(&args[2])?;
     let ready_ms = process_started.elapsed().as_secs_f64() * 1000.0;
+    let export_first = args.get(4).is_some()
+        && std::env::var("ZOPRO_BENCH_EXPORT_FIRST").as_deref() == Ok("1");
+    let mut first_proof = None;
+    let mut first_rss = None;
     let mut first_verified_ms = None;
     for index in 0..priming {
-        std::hint::black_box(sdk.prove(&request)?);
+        let proof = std::hint::black_box(sdk.prove(&request)?);
         if index == 0 {
             first_verified_ms = Some(process_started.elapsed().as_secs_f64() * 1000.0);
+            if export_first {
+                first_rss = Some(perf::Usage::now()?.max_rss_kib());
+                first_proof = Some((proof.proof, proof.public_inputs));
+            }
         }
     }
     let mut samples = Vec::with_capacity(rounds);
@@ -131,6 +139,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let finished = Instant::now();
         if first_verified_ms.is_none() {
             first_verified_ms = Some(finished.duration_since(process_started).as_secs_f64() * 1000.0);
+            if export_first {
+                first_rss = Some(perf::Usage::now()?.max_rss_kib());
+                first_proof = Some((proof.proof.clone(), proof.public_inputs.clone()));
+            }
         }
         samples.push(finished.duration_since(started).as_secs_f64() * 1000.0);
         last = Some(proof);
@@ -146,6 +158,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let proof = last.as_ref().unwrap();
         fs::write(directory.join("0.proof"), &proof.proof)?;
         fs::write(directory.join("0.public"), &proof.public_inputs)?;
+        if let Some((proof, public_inputs)) = first_proof {
+            fs::write(directory.join("first.proof"), proof)?;
+            fs::write(directory.join("first.public"), public_inputs)?;
+        }
     }
     for (round, ms) in samples.into_iter().enumerate() {
         println!("SAMPLE {}", serde_json::json!({"round": round, "ms": ms}));
@@ -155,6 +171,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     summary["priming"] = priming.into();
     summary["ready_from_main_ms"] = ready_ms.into();
     summary["first_verified_from_main_ms"] = first_verified_ms.unwrap().into();
+    if let Some(peak) = first_rss {
+        summary["first_maxrss_kib"] = peak.into();
+    }
     summary["workers"] = rayon::current_num_threads().into();
     summary["loop_wall_ms"] = loop_wall_ms.into();
     println!("SUMMARY {summary}");
