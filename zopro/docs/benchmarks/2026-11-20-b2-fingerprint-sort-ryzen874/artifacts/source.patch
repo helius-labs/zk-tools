@@ -1,0 +1,293 @@
+--- a/crates/zopro-core/src/msm_affine/grouping.rs
++++ b/crates/zopro-core/src/msm_affine/grouping.rs
+@@ -20,19 +20,19 @@
+ /// Group before converting representations, so only distinct witness
+ /// scalars need Montgomery reduction. The grouping is fresh per proof.
+ pub(crate) fn group_witness(scalars: &[Fr]) -> Option<ScalarGroups> {
+-    group_witness_inner::<false>(scalars, None)
++    group_witness_inner::<false, false>(scalars, None)
+ }
+ 
+ pub(crate) fn group_witness_serial_b2(scalars: &[Fr]) -> Option<ScalarGroups> {
+-    group_witness_inner::<true>(scalars, None)
++    group_witness_inner::<true, false>(scalars, None)
+ }
+ 
+ #[cfg(zopro_resource_schedule)]
+ pub(crate) fn group_witness_b2_origins(scalars: &[Fr], origins: &B2Origins, serial: bool) -> Option<ScalarGroups> {
+     if serial {
+-        group_witness_inner::<true>(scalars, Some(origins))
+-    } else {
+-        group_witness_inner::<false>(scalars, Some(origins))
++        group_witness_inner::<true, false>(scalars, Some(origins))
++    } else {
++        group_witness_inner::<false, false>(scalars, Some(origins))
+     }
+ }
+ 
+@@ -41,7 +41,7 @@
+ #[cfg(not(zopro_resource_schedule))]
+ type Origins<'a> = Option<&'a ()>;
+ 
+-fn group_witness_inner<const SERIAL_B2: bool>(scalars: &[Fr], origins: Origins<'_>) -> Option<ScalarGroups> {
++fn group_witness_inner<const SERIAL_B2: bool, const SORTED: bool>(scalars: &[Fr], origins: Origins<'_>) -> Option<ScalarGroups> {
+     if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
+         return None;
+     }
+@@ -50,7 +50,7 @@
+     let words =
+         unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
+     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+-    let mut groups = group_with_gate::<false, SERIAL_B2>(words, zero_aware, origins)?;
++    let mut groups = group_with_gate::<false, SERIAL_B2, SORTED>(words, zero_aware, origins)?;
+     let convert = |value: &mut [u64; 4]| {
+         *value = Fr::from_montgomery(*value).to_canonical();
+     };
+@@ -118,9 +118,48 @@
+ }
+ 
+ mod diversity;
++mod fingerprint;
++
++pub(super) fn groups_exclusive_b2(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
++    clock_b2_groups(scalars.len(), || {
++        if (1024..65_536).contains(&scalars.len()) && fingerprint_enabled() {
++            let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
++            group_with_gate::<true, false, true>(scalars, zero_aware, None)
++        } else {
++            groups_with_diversity_check(scalars)
++        }
++    })
++}
++
++fn clock_b2_groups(n: usize, group: impl FnOnce() -> Option<ScalarGroups>) -> Option<ScalarGroups> {
++    let started = std::env::var_os("ZOPRO_TRIAL_B2_FINGERPRINT_TRACE").is_some()
++        .then(crate::time::Instant::now);
++    let result = group();
++    if let Some(started) = started {
++        let classes = result.as_ref().map_or(0, |groups| groups.values.len());
++        eprintln!("B2_GROUP_CLOCK {n} {classes} {}", started.elapsed().as_nanos());
++    }
++    result
++}
++
++fn fingerprint_enabled() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_B2_FINGERPRINT_SORT").is_some())
++}
++
++#[cfg(all(target_os = "linux", target_arch = "x86_64"))]
++pub(crate) fn group_witness_exclusive_b2(scalars: &[Fr], serial: bool) -> Option<ScalarGroups> {
++    let sorted = (65_536..262_144).contains(&scalars.len()) && fingerprint_enabled();
++    clock_b2_groups(scalars.len(), || match (sorted, serial) {
++        (true, true) => group_witness_inner::<true, true>(scalars, None),
++        (true, false) => group_witness_inner::<false, true>(scalars, None),
++        (false, true) => group_witness_serial_b2(scalars),
++        (false, false) => group_witness(scalars),
++    })
++}
+ pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+-    group_with_gate::<true, false>(scalars, zero_aware, None)
++    group_with_gate::<true, false, false>(scalars, zero_aware, None)
+ }
+ 
+ type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
+@@ -179,10 +218,10 @@
+ }
+ 
+ fn scalar_groups_policy(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
+-    group_with_gate::<false, false>(scalars, zero_aware, None)
+-}
+-
+-fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(scalars: &[[u64; 4]], zero_aware: bool, origins: Origins<'_>) -> Option<ScalarGroups> {
++    group_with_gate::<false, false, false>(scalars, zero_aware, None)
++}
++
++fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool, const SORTED: bool>(scalars: &[[u64; 4]], zero_aware: bool, origins: Origins<'_>) -> Option<ScalarGroups> {
+     if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
+         return None;
+     }
+@@ -215,16 +254,27 @@
+         0
+     };
+     let mut classes = vec![u32::MAX; scalars.len()];
++    let sorted = if SORTED {
++        let memory = grouping_cost::vector::<u64>(scalars.len(), false);
++        crate::preparation::Reservation::analysis(memory)
++            .and_then(|_scratch| fingerprint::classify(scalars, &mut classes))
++    } else {
++        None
++    };
++    if SORTED && sorted.is_some() && std::env::var_os("ZOPRO_TRIAL_B2_FINGERPRINT_TRACE").is_some() {
++        eprintln!("B2_FINGERPRINT_SORT {}", scalars.len());
++    }
++    let ordinary = || classify_nonzero(scalars, &mut classes, capacity, ahash::RandomState::new());
+     #[cfg(zopro_resource_schedule)]
+     let (values, counts) = if let Some(plan) = origins {
+         let room = capacity.min(plan.residual().div_ceil(3));
+         let aliases = plan.aliases(scalars)?;
+         classify_nonzero_origins(scalars, &mut classes, room, ahash::RandomState::new(), aliases)
+     } else {
+-        classify_nonzero(scalars, &mut classes, capacity, ahash::RandomState::new())
++        sorted.unwrap_or_else(ordinary)
+     };
+     #[cfg(not(zopro_resource_schedule))]
+-    let (values, counts) = classify_nonzero(scalars, &mut classes, capacity, ahash::RandomState::new());
++    let (values, counts) = sorted.unwrap_or_else(ordinary);
+     if values.len() * 100 > scalars.len() * percent {
+         return None;
+     }
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/grouping/fingerprint.rs
+@@ -0,0 +1,119 @@
++//! Compact parallel fingerprint ordering, followed by exact equality checks.
++use rayon::prelude::*;
++
++type Words = [u64; 4];
++const MAX_DISTINCT_PER_FINGERPRINT: usize = 8;
++const MISSING: u32 = u32::MAX;
++
++fn fingerprint([a, b, c, d]: Words) -> u32 {
++    let x = a ^ b.rotate_left(11) ^ c.rotate_left(23) ^ d.rotate_left(37);
++    (x ^ (x >> 32)) as u32
++}
++
++pub(super) fn classify(scalars: &[Words], classes: &mut [u32]) -> Option<(Vec<Words>, Vec<usize>)> {
++    classify_with(scalars, classes, fingerprint)
++}
++
++fn classify_with(
++    scalars: &[Words],
++    classes: &mut [u32],
++    fingerprint: impl Fn(Words) -> u32,
++) -> Option<(Vec<Words>, Vec<usize>)> {
++    assert_eq!(scalars.len(), classes.len());
++    assert!(scalars.len() < MISSING as usize);
++    let mut keys = Vec::with_capacity(scalars.len());
++    for (i, &value) in scalars.iter().enumerate() {
++        if value != [0; 4] {
++            keys.push(((fingerprint(value) as u64) << 32) | i as u64);
++        }
++    }
++    keys.par_sort_unstable();
++
++    // The tie-breaker is the original position. Every representative is
++    // the first occurrence, even if multiple values share a fingerprint.
++    let mut previous = None;
++    let mut representatives = [0u32; MAX_DISTINCT_PER_FINGERPRINT];
++    let mut count = 0;
++    for &key in &keys {
++        let hash = (key >> 32) as u32;
++        if previous != Some(hash) {
++            previous = Some(hash);
++            count = 0;
++        }
++        let index = key as u32;
++        let value = &scalars[index as usize];
++        let representative = representatives[..count]
++            .iter()
++            .copied()
++            .find(|&i| scalars[i as usize] == *value);
++        classes[index as usize] = match representative {
++            Some(i) => i,
++            None => {
++                *representatives.get_mut(count)? = index;
++                count += 1;
++                index
++            }
++        };
++    }
++
++    keys.clear();
++    keys.resize(scalars.len(), u64::MAX);
++    let mut values = Vec::new();
++    let mut counts = Vec::new();
++    for (i, label) in classes.iter_mut().enumerate() {
++        if *label == MISSING {
++            continue;
++        }
++        let assigned = &mut keys[*label as usize];
++        if *assigned == u64::MAX {
++            *assigned = values.len() as u64;
++            values.push(scalars[i]);
++            counts.push(0);
++        }
++        *label = *assigned as u32;
++        counts[*assigned as usize] += 1;
++    }
++    Some((values, counts))
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::testing::Seeded;
++
++    #[test]
++    fn fingerprint_order_preserves_exact_class_order() {
++        let mut rng = Seeded::new(0x2ab3_4c92);
++        let distinct: Vec<_> = (0..13_017).map(|_| rng.fr().to_canonical()).collect();
++        for n in [0, 11, 1025, 52_274] {
++            let scalars: Vec<_> = (0..n)
++                .map(|i| {
++                    if i % 19 == 0 {
++                        [0; 4]
++                    } else {
++                        distinct[i * 179 % distinct.len()]
++                    }
++                })
++                .collect();
++            let mut expected = vec![MISSING; n];
++            let ordinary = super::super::classify_nonzero(
++                &scalars,
++                &mut expected,
++                0,
++                ahash::RandomState::new(),
++            );
++            let mut labels = vec![MISSING; n];
++            assert_eq!(classify(&scalars, &mut labels).unwrap(), ordinary);
++            assert_eq!(labels, expected);
++        }
++        let collision = [[1, 0, 0, 0], [1, 3, 0, 0], [1, 0, 0, 0], [0; 4]];
++        let mut labels = [MISSING; 4];
++        assert_eq!(
++            classify_with(&collision, &mut labels, |_| 7).unwrap().1,
++            vec![2, 1]
++        );
++        assert_eq!(labels, [0, 1, 0, MISSING]);
++        let many: Vec<_> = (1..=10).map(|i| [i, 0, 0, 0]).collect();
++        assert!(classify_with(&many, &mut [MISSING; 10], |_| 12).is_none());
++    }
++}
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -17,7 +17,7 @@
+ #[cfg(zopro_resource_schedule)]
+ pub(super) use grouping::group_witness_b2_origins;
+ #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+-pub(super) use grouping::group_witness_serial_b2;
++pub(super) use grouping::group_witness_exclusive_b2;
+ 
+ #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
+ mod g2_horner;
+@@ -1732,7 +1732,7 @@
+ ) -> zopro_bn254::G2Projective {
+     assert_eq!(bases.len(), words.len());
+     let groups = (grouping && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
+-        .then(|| grouping::groups_with_diversity_check(words))
++        .then(|| grouping::groups_exclusive_b2(words))
+         .flatten();
+     #[cfg(all(
+         zopro_g2_horner_buckets,
+--- a/crates/zopro-core/src/lib.rs
++++ b/crates/zopro-core/src/lib.rs
+@@ -2110,7 +2110,7 @@
+                         { false }
+                     };
+                     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+-                    let ordinary = || if serial { msm_affine::group_witness_serial_b2(sb) } else { group_witness(sb) };
++                    let ordinary = || if omit_b { msm_affine::group_witness_exclusive_b2(sb, serial) } else { group_witness(sb) };
+                     #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
+                     let groups = if omit_b && (65_536..262_144).contains(&sb.len())
+                         && self.grouped_b2_poseidon_origins
