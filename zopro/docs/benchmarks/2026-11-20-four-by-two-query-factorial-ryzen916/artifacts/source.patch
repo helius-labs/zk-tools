@@ -1,0 +1,20 @@
+--- a/crates/zopro-core/src/four_by_two_probe.rs
++++ b/crates/zopro-core/src/four_by_two_probe.rs
+@@ -24,6 +24,17 @@
+     fn replay_enabled(self) -> bool {
+         static MODE: OnceLock<Option<String>> = OnceLock::new();
+         match MODE.get_or_init(|| std::env::var("ZOPRO_891_REPLAY").ok()).as_deref() {
++            Some(mask) if mask.starts_with("active=") => {
++                let active = u8::from_str_radix(&mask[7..], 16).expect("valid active query mask");
++                assert!(active < 16);
++                let bit = match self {
++                    Self::A => 1,
++                    Self::K => 2,
++                    Self::H => 4,
++                    Self::B2 => 8,
++                };
++                active & bit == 0
++            }
+             Some("all") => true,
+             Some("kh") => matches!(self, Self::K | Self::H),
+             Some("a") => matches!(self, Self::A),

@@ -1,0 +1,122 @@
+{
+  "purpose": "Measure how joint replay of exact MSM results changes 4x2 critical-path latency.",
+  "affinity": {
+    "main": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23
+    ],
+    "frontend": [
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31
+    ]
+  },
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "request_matches": "Reuse checks the base identity and every scalar after priming.",
+  "query_bits": {
+    "a": 1,
+    "k": 2,
+    "h": 4,
+    "b2": 8
+  },
+  "subsets": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "priming": 3,
+  "panels": {
+    "timing": {
+      "blocks": 8,
+      "rounds": 13,
+      "profiles": [
+        "frozen",
+        "ordinary",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "a",
+        "b",
+        "c",
+        "d",
+        "e",
+        "f"
+      ]
+    },
+    "clock": {
+      "blocks": 3,
+      "rounds": 7,
+      "profiles": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "a",
+        "b",
+        "c",
+        "d",
+        "e",
+        "f"
+      ]
+    }
+  },
+  "calibration": "Within each input, absolute paired median percentage difference <=2% for ordinary vs frozen and mask f vs ordinary, computed from process means.",
+  "inference": "Use matched blocks for single and grouped removal deltas, and for K/B2 joint saving minus the two single savings. If either calibration fails, show descriptive measurements only. Separate traced panel cross-checks every replay hit and reports per-query elapsed spans.",
+  "scope": "Measurements on Ryzen only. Replayed queries skip work using exact stored results, so derived sensitivities are diagnostic. No replay timing enters the 10x M5 scorecard."
+}
