@@ -1,0 +1,219 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -1813,46 +1813,25 @@
+         }
+     }
+ 
+-    /// One op, reading and writing through `v`.
+-    ///
+-    /// # Safety
+-    /// `v` points at the solve's vectors, and every wire the op reads is
+-    /// written (by an earlier op of the same thread, or before the epoch).
+-    unsafe fn run(&self, op: &Op, v: View) -> Result<(), String> {
++    #[inline(always)]
++    unsafe fn read_term(&self, term: &Term, v: View) -> Fr {
++        let get = |i: usize| unsafe { *v.w.add(i) };
++        if term.wire() == 0 {
++            return self.coefficients[term.coefficient()];
++        }
++        match term.coefficient() {
++            1 => get(term.wire()),
++            2 => get(term.wire()).double(),
++            3 => -get(term.wire()),
++            _ => self.coefficients[term.coefficient()] * get(term.wire()),
++        }
++    }
++
++    #[inline(always)]
++    unsafe fn evaluate_sums(&self, step: &Step, v: View) -> Fr {
+         let get = |i: usize| unsafe { *v.w.add(i) };
+         let set = |i: usize, value: Fr| unsafe { *v.w.add(i) = value };
+-        let term_value = |term: &Term| -> Fr {
+-            if term.wire() == 0 {
+-                return self.coefficients[term.coefficient()];
+-            }
+-            match term.coefficient() {
+-                1 => get(term.wire()),
+-                2 => get(term.wire()).double(),
+-                3 => -get(term.wire()),
+-                _ => self.coefficients[term.coefficient()] * get(term.wire()),
+-            }
+-        };
+-        let step = match op {
+-            Op::Constraint(step) => step,
+-            Op::Hint(hint) => {
+-                let mut value = Fr::ZERO;
+-                for term in &self.terms[hint.input()] {
+-                    value += term_value(term);
+-                }
+-                match hint.kind {
+-                    HintKind::InvZero => {
+-                        set(hint.outputs().start, value.inverse().unwrap_or(Fr::ZERO))
+-                    }
+-                    HintKind::Bits => {
+-                        let bits = value.to_canonical();
+-                        for (i, wire) in hint.outputs().enumerate() {
+-                            set(wire, if (bits[i / 64] >> (i % 64)) & 1 == 1 { Fr::ONE } else { Fr::ZERO });
+-                        }
+-                    }
+-                }
+-                return Ok(());
+-            }
+-        };
++        let term_value = |term: &Term| unsafe { self.read_term(term, v) };
+         let mut slot = self.n_wires + step.first_slot();
+         let mut chain = Fr::ZERO;
+         let sums = &self.sums[step.sums()];
+@@ -1907,6 +1886,40 @@
+             }
+             i += 1;
+         }
++        chain
++    }
++
++    /// One op, reading and writing through `v`.
++    ///
++    /// # Safety
++    /// `v` points at the solve's vectors, and every wire the op reads is
++    /// written (by an earlier op of the same thread, or before the epoch).
++    unsafe fn run(&self, op: &Op, v: View) -> Result<(), String> {
++        let get = |i: usize| unsafe { *v.w.add(i) };
++        let set = |i: usize, value: Fr| unsafe { *v.w.add(i) = value };
++        let term_value = |term: &Term| unsafe { self.read_term(term, v) };
++        let step = match op {
++            Op::Constraint(step) => step,
++            Op::Hint(hint) => {
++                let mut value = Fr::ZERO;
++                for term in &self.terms[hint.input()] {
++                    value += term_value(term);
++                }
++                match hint.kind {
++                    HintKind::InvZero => {
++                        set(hint.outputs().start, value.inverse().unwrap_or(Fr::ZERO))
++                    }
++                    HintKind::Bits => {
++                        let bits = value.to_canonical();
++                        for (i, wire) in hint.outputs().enumerate() {
++                            set(wire, if (bits[i / 64] >> (i % 64)) & 1 == 1 { Fr::ONE } else { Fr::ZERO });
++                        }
++                    }
++                }
++                return Ok(());
++            }
++        };
++        unsafe { self.evaluate_sums(step, v) };
+         let mut values = [Fr::ZERO; 3];
+         for (value, expression) in values.iter_mut().zip(&step.expressions) {
+             *value = match expression {
+--- a/crates/zopro-core/src/solver/sparse_poseidon.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon.rs
+@@ -386,6 +386,10 @@
+             }
+             return Ok(());
+         }
++        static FAST_FIRST: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++        let fast_first = *FAST_FIRST.get_or_init(|| {
++            std::env::var_os("ZOPRO_TRIAL_POSEIDON_FIRST_ROUND").is_some_and(|v| v == "1")
++        });
+         let mut pos = 0;
+         while pos < task.len() {
+             let t = (task[pos] >> 28) as usize;
+@@ -397,7 +401,7 @@
+             } else {
+                 let (partial, a) = parameters(t);
+                 unsafe {
+-                    self.run_poseidon(&task[pos..], t, partial, a, v)?;
++                    self.run_poseidon(&task[pos..], t, partial, a, v, fast_first)?;
+                 }
+                 pos += 3 * (7 * t + partial);
+             }
+@@ -454,6 +458,55 @@
+         }
+         fifth
+     }
++    // The span recognizer certifies all three products and their exact sources.
++    // The first passes still run in lane order because sums can read earlier wires.
++    unsafe fn first_round(&self, task: &[u32], t: usize, v: View, state: &mut [Fr; 13]) {
++        let mut inputs = [Fr::ZERO; 13];
++        let mut squares = [Fr::ZERO; 13];
++        let write = |step: &Step, left: Fr, right: Fr, product: Fr| {
++            let row = step.constraint();
++            let wire = step.assignment.as_ref().unwrap().wire();
++            unsafe {
++                *v.w.add(wire) = product;
++                *v.a.add(row) = left;
++                *v.b.add(row) = right;
++                if !v.c.is_null() {
++                    *v.c.add(row) = product;
++                }
++            }
++        };
++        for i in 0..t {
++            let a = step(self, task[i]).unwrap();
++            let x = unsafe { self.evaluate_sums(a, v) };
++            let square = x.square();
++            inputs[i] = x;
++            squares[i] = square;
++            write(a, x, x, square);
++        }
++        for i in 0..t {
++            let b = step(self, task[t + i]).unwrap();
++            let c = step(self, task[2 * t + i]).unwrap();
++            let square = squares[i];
++            let fourth = square.square();
++            let x = inputs[i];
++            let fifth = fourth * x;
++            write(b, square, square, fourth);
++            let x_first = wire(&c.expressions[0]) == Some(
++                self.n_wires + step(self, task[i]).unwrap().first_slot()
++            );
++            if x_first {
++                write(c, x, fourth, fifth);
++            } else {
++                write(c, fourth, x, fifth);
++            }
++            state[i] = fifth;
++        }
++        static TRACE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++        if *TRACE.get_or_init(|| std::env::var_os("ZOPRO_TRIAL_POSEIDON_FIRST_ROUND_TRACE").is_some()) {
++            eprintln!("POSEIDON_FIRST_ROUND {t}");
++        }
++    }
++
+     unsafe fn run_poseidon(
+         &self,
+         task: &[u32],
+@@ -461,20 +514,25 @@
+         partial: usize,
+         a: &[Fr],
+         v: View,
++        fast_first: bool,
+     ) -> Result<(), String> {
+-        for &id in &task[..3 * t] {
+-            unsafe {
+-                self.run(&self.ops[(id & INDEX) as usize], v)?;
+-            }
+-        }
+         let count = 8 * t + partial;
+         let mds = count;
+         let pre = mds + t * t;
+         let sparse = pre + t * t;
+         let mut s = [Fr::ZERO; 13];
+-        for (i, x) in s[..t].iter_mut().enumerate() {
+-            let row = step(self, task[2 * t + i]).unwrap();
+-            *x = unsafe { *v.w.add(row.assignment.as_ref().unwrap().wire()) };
++        if fast_first {
++            unsafe { self.first_round(task, t, v, &mut s) };
++        } else {
++            for &id in &task[..3 * t] {
++                unsafe {
++                    self.run(&self.ops[(id & INDEX) as usize], v)?;
++                }
++            }
++            for (i, x) in s[..t].iter_mut().enumerate() {
++                let row = step(self, task[2 * t + i]).unwrap();
++                *x = unsafe { *v.w.add(row.assignment.as_ref().unwrap().wire()) };
++            }
+         }
+         fn dense(s: &mut [Fr; 13], t: usize, a: &[Fr], offset: usize) {
+             let mut next = [Fr::ZERO; 13];
