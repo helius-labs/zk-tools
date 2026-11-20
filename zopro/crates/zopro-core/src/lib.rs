@@ -1639,12 +1639,21 @@ impl Key {
         if affine_msm() {
             use msm_affine::{canonical, msm_canonical as msm};
             let (sa, sb, sk, h) = (canonical(sa), canonical(sb), canonical(sk), canonical(h));
+            let group_g2 = std::env::var_os("ZOPRO_CPU_GROUP_G2").is_some_and(|v| v == "1");
+            let b2 = || {
+                if group_g2 {
+                    if let Some(sum) = msm_affine::grouped_g2(&self.b2, sb) {
+                        return sum;
+                    }
+                }
+                msm(&self.b2, sb)
+            };
             return rayon::join(
                 || rayon::join(|| msm(&self.a[..], sa), || msm(&self.b[..], sb)),
                 || {
                     rayon::join(
                         || msm(&self.k[..], sk),
-                        || rayon::join(|| msm(&self.z[..], h), || msm(&self.b2[..], sb)),
+                        || rayon::join(|| msm(&self.z[..], h), b2),
                     )
                 },
             );
