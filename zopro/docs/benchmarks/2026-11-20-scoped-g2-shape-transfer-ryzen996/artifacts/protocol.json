@@ -1,0 +1,59 @@
+{
+  "shapes": [
+    "1x2",
+    "2x2",
+    "1x4",
+    "2x4",
+    "2x8"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "late",
+    "early"
+  ],
+  "main": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "front": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "panels": {
+    "route": [
+      1,
+      2,
+      [
+        "late",
+        "early",
+        "denied"
+      ]
+    ],
+    "timing": [
+      4,
+      13,
+      [
+        "late",
+        "early"
+      ]
+    ]
+  },
+  "scope": "Run exactly the existing exclusive G2 MSM on a disjoint frontend pool while the main pool computes the quotient and G1 point sums. Check transfer to five additional circuits with the exact archived images and public inputs.",
+  "local_placement": "Eight physical Ryzen cores per pool with SMT siblings excluded.",
+  "gate": "Transfer screen. Route checks and full verification determine eligibility. Local timing does not decide C7a performance."
+}
