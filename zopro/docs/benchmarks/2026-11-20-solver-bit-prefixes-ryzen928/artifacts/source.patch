@@ -1,0 +1,577 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -11,6 +11,8 @@
+ use std::collections::HashMap;
+ use std::hash::{BuildHasherDefault, Hasher};
+ use std::ops::Range;
++#[cfg(zopro_resource_schedule)]
++mod bit_prefixes;
+ 
+ // Interning a wide circuit's prefixes hashes millions of small keys; the
+ // standard map's SipHash is most of that time. Keys here are not chosen by
+@@ -398,6 +400,8 @@
+     schedule: std::sync::OnceLock<Schedule>,
+     #[cfg(zopro_resource_schedule)]
+     b2_origins: std::sync::OnceLock<Option<B2Origins>>,
++    #[cfg(zopro_resource_schedule)]
++    bit_prefixes: Option<bit_prefixes::Prefixes>,
+     definite: std::sync::OnceLock<bool>,
+ }
+ 
+@@ -926,9 +930,13 @@
+             schedule: std::sync::OnceLock::new(),
+             #[cfg(zopro_resource_schedule)]
+             b2_origins: std::sync::OnceLock::new(),
++            #[cfg(zopro_resource_schedule)]
++            bit_prefixes: None,
+             definite: std::sync::OnceLock::new(),
+         };
+         plan.compact_coefficients();
++        #[cfg(zopro_resource_schedule)]
++        bit_prefixes::prepare(&mut plan);
+         Ok(plan)
+     }
+ 
+@@ -1240,9 +1248,13 @@
+             schedule: std::sync::OnceLock::new(),
+             #[cfg(zopro_resource_schedule)]
+             b2_origins: std::sync::OnceLock::new(),
++            #[cfg(zopro_resource_schedule)]
++            bit_prefixes: None,
+             definite: std::sync::OnceLock::new(),
+         };
+         plan.compact_coefficients();
++        #[cfg(zopro_resource_schedule)]
++        bit_prefixes::prepare(&mut plan);
+         Ok(plan)
+     }
+ 
+@@ -1336,6 +1348,8 @@
+ 
+     /// The caller owns all four buffers until the instruction workers have joined.
+     unsafe fn execute_instructions(&self, view: View) -> Result<(), String> {
++        #[cfg(zopro_resource_schedule)]
++        let clock = bit_prefixes::start_clock();
+         let epochs = solve_epochs();
+         if epochs == 0 || self.ops.len() < 4096 {
+             for op in &self.ops {
+@@ -1372,6 +1386,8 @@
+                 }
+             }
+         }
++        #[cfg(zopro_resource_schedule)]
++        bit_prefixes::finish(clock);
+         Ok(())
+     }
+ 
+@@ -1854,8 +1870,87 @@
+             }
+         };
+         let mut slot = self.n_wires + step.first_slot();
+-        let mut chain = Fr::ZERO;
+         let sums = &self.sums[step.sums()];
++        #[cfg(zopro_resource_schedule)]
++        if let Some(spans) = self.bit_prefixes.as_ref().and_then(|p| p.for_step(step, sums.len())) {
++            bit_prefixes::evaluate(self, spans, sums, v, slot, &term_value);
++        } else {
++            self.fold_sums(sums, Fr::ZERO, &mut slot, &get, &set, &term_value);
++        }
++        #[cfg(not(zopro_resource_schedule))]
++        self.fold_sums(sums, Fr::ZERO, &mut slot, &get, &set, &term_value);
++        let mut values = [Fr::ZERO; 3];
++        for (value, expression) in values.iter_mut().zip(&step.expressions) {
++            *value = match expression {
++                Expression::Zero => Fr::ZERO,
++                Expression::Wire(wire) => get(*wire as usize),
++                Expression::Constant(coefficient) => self.coefficients[*coefficient as usize],
++                Expression::Term(term) => term_value(&self.terms[*term as usize]),
++                Expression::Sum(start, end) => {
++                    let mut sum = Fr::ZERO;
++                    for term in &self.terms[range_of((*start, *end))] {
++                        sum += term_value(term);
++                    }
++                    sum
++                }
++            };
++        }
++        let fail = || format!("constraint #{} is not satisfied", step.constraint());
++        if let Some(assignment) = &step.assignment {
++            let term = match assignment.side() {
++                0 | 1 => {
++                    let other = values[1 - assignment.side()];
++                    if other == Fr::ZERO {
++                        if values[2] != Fr::ZERO {
++                            return Err(fail());
++                        }
++                        Fr::ZERO
++                    } else {
++                        let quotient = if other == Fr::ONE {
++                            values[2]
++                        } else {
++                            values[2] * other.inverse().unwrap()
++                        };
++                        let term = quotient - values[assignment.side()];
++                        values[assignment.side()] = quotient;
++                        term
++                    }
++                }
++                _ => {
++                    let product = values[0] * values[1];
++                    let term = product - values[2];
++                    values[2] = product;
++                    term
++                }
++            };
++            set(
++                assignment.wire(),
++                match assignment.coefficient() {
++                    1 => term,
++                    3 => -term,
++                    _ => term * self.inverses.get(assignment.inverse),
++                },
++            );
++        } else if values[0] * values[1] != values[2] {
++            return Err(fail());
++        }
++        // SAFETY: each constraint's row is written by its own op only.
++        unsafe {
++            *v.a.add(step.constraint()) = values[0];
++            *v.b.add(step.constraint()) = values[1];
++            if !v.c.is_null() {
++                *v.c.add(step.constraint()) = values[2];
++            }
++        }
++        Ok(())
++    }
++
++    #[inline(always)]
++    fn fold_sums(
++        &self, sums: &[Sum], mut chain: Fr, slot: &mut usize,
++        get: &impl Fn(usize) -> Fr, set: &impl Fn(usize, Fr),
++        term_value: &impl Fn(&Term) -> Fr,
++    ) -> Fr {
+         let mut i = 0;
+         while i < sums.len() {
+             let first = &sums[i];
+@@ -1902,75 +1997,12 @@
+                 Previous::Slot(previous) => get(previous) + term,
+             };
+             if last.stored() {
+-                set(slot, chain);
+-                slot += 1;
++                set(*slot, chain);
++                *slot += 1;
+             }
+             i += 1;
+         }
+-        let mut values = [Fr::ZERO; 3];
+-        for (value, expression) in values.iter_mut().zip(&step.expressions) {
+-            *value = match expression {
+-                Expression::Zero => Fr::ZERO,
+-                Expression::Wire(wire) => get(*wire as usize),
+-                Expression::Constant(coefficient) => self.coefficients[*coefficient as usize],
+-                Expression::Term(term) => term_value(&self.terms[*term as usize]),
+-                Expression::Sum(start, end) => {
+-                    let mut sum = Fr::ZERO;
+-                    for term in &self.terms[range_of((*start, *end))] {
+-                        sum += term_value(term);
+-                    }
+-                    sum
+-                }
+-            };
+-        }
+-        let fail = || format!("constraint #{} is not satisfied", step.constraint());
+-        if let Some(assignment) = &step.assignment {
+-            let term = match assignment.side() {
+-                0 | 1 => {
+-                    let other = values[1 - assignment.side()];
+-                    if other == Fr::ZERO {
+-                        if values[2] != Fr::ZERO {
+-                            return Err(fail());
+-                        }
+-                        Fr::ZERO
+-                    } else {
+-                        let quotient = if other == Fr::ONE {
+-                            values[2]
+-                        } else {
+-                            values[2] * other.inverse().unwrap()
+-                        };
+-                        let term = quotient - values[assignment.side()];
+-                        values[assignment.side()] = quotient;
+-                        term
+-                    }
+-                }
+-                _ => {
+-                    let product = values[0] * values[1];
+-                    let term = product - values[2];
+-                    values[2] = product;
+-                    term
+-                }
+-            };
+-            set(
+-                assignment.wire(),
+-                match assignment.coefficient() {
+-                    1 => term,
+-                    3 => -term,
+-                    _ => term * self.inverses.get(assignment.inverse),
+-                },
+-            );
+-        } else if values[0] * values[1] != values[2] {
+-            return Err(fail());
+-        }
+-        // SAFETY: each constraint's row is written by its own op only.
+-        unsafe {
+-            *v.a.add(step.constraint()) = values[0];
+-            *v.b.add(step.constraint()) = values[1];
+-            if !v.c.is_null() {
+-                *v.c.add(step.constraint()) = values[2];
+-            }
+-        }
+-        Ok(())
++        chain
+     }
+ 
+     fn evaluate_term(&self, term: &Term, w: &[Fr]) -> Fr {
+@@ -2453,6 +2485,8 @@
+                 schedule: std::sync::OnceLock::new(),
+                 #[cfg(zopro_resource_schedule)]
+                 b2_origins: std::sync::OnceLock::new(),
++            #[cfg(zopro_resource_schedule)]
++            bit_prefixes: None,
+                 definite: std::sync::OnceLock::new(),
+             }
+         }
+--- /dev/null
++++ b/crates/zopro-core/src/solver/bit_prefixes.rs
+@@ -0,0 +1,321 @@
++//! Reconstruct a signed binary prefix from existing bit-hint wires.
++use super::{Fr, FxMap, HintKind, Op, Plan, Previous, Step, Sum, Term, View};
++use crate::preparation::Reservation;
++use crate::time::Instant;
++use std::sync::atomic::{AtomicUsize, Ordering};
++use std::sync::OnceLock;
++
++const MIN_TERMS: usize = 8;
++const MAX_SHIFT: usize = 252;
++const MAX_SPANS: usize = 4096;
++static RUNS: AtomicUsize = AtomicUsize::new(0);
++static TERMS: AtomicUsize = AtomicUsize::new(0);
++
++#[derive(Clone, Copy)]
++pub(super) struct Span {
++    start: u32,
++    end: u32,
++    first: u8,
++    descending: bool,
++    negative: bool,
++}
++
++pub(super) struct Prefixes {
++    rows: FxMap<u32, Vec<Span>>,
++    _workspace: Reservation,
++}
++
++fn enabled() -> bool {
++    static VALUE: OnceLock<bool> = OnceLock::new();
++    *VALUE.get_or_init(|| std::env::var("ZOPRO_928_BITS").as_deref() == Ok("1"))
++}
++
++fn trace() -> bool {
++    static VALUE: OnceLock<bool> = OnceLock::new();
++    *VALUE.get_or_init(|| std::env::var_os("ZOPRO_928_TRACE").is_some())
++}
++
++pub(super) fn start_clock() -> Option<Instant> {
++    static CLOCK: OnceLock<bool> = OnceLock::new();
++    CLOCK
++        .get_or_init(|| std::env::var_os("ZOPRO_928_CLOCK").is_some())
++        .then(Instant::now)
++}
++
++pub(super) fn finish(clock: Option<Instant>) {
++    if let Some(clock) = clock {
++        eprintln!("ZP928_SOLVE {}", clock.elapsed().as_nanos());
++    }
++    if trace() {
++        eprintln!(
++            "ZP928_RUN {} {}",
++            RUNS.swap(0, Ordering::Relaxed),
++            TERMS.swap(0, Ordering::Relaxed)
++        );
++    }
++}
++
++fn unsigned_power(value: Fr) -> Option<usize> {
++    let words = value.to_canonical();
++    if words.iter().map(|limb| limb.count_ones()).sum::<u32>() != 1 {
++        return None;
++    }
++    let limb = words.iter().position(|&limb| limb != 0).unwrap();
++    let shift = 64 * limb + words[limb].trailing_zeros() as usize;
++    (shift <= MAX_SHIFT).then_some(shift)
++}
++
++fn signed_power(value: Fr) -> i16 {
++    if let Some(shift) = unsigned_power(value) {
++        shift as i16 + 1
++    } else if let Some(shift) = unsigned_power(-value) {
++        -(shift as i16 + 1)
++    } else {
++        0
++    }
++}
++
++fn runs(sums: &[Sum], powers: &[i16], bits: &[bool]) -> Vec<Span> {
++    let power = |i: usize| {
++        let sum = &sums[i];
++        if bits[sum.term.wire()] {
++            powers[sum.term.coefficient()]
++        } else {
++            0
++        }
++    };
++    let mut spans = Vec::new();
++    let mut start = 0;
++    while start + MIN_TERMS <= sums.len() {
++        let first = power(start);
++        let next = power(start + 1);
++        let stride = next - first;
++        if first == 0 || next == 0 || first.signum() != next.signum() || stride.abs() != 1 {
++            start += 1;
++            continue;
++        }
++        let mut end = start + 1;
++        let mut expected = next;
++        while end < sums.len()
++            && expected != 0
++            && expected.signum() == first.signum()
++            && !sums[end - 1].stored()
++            && matches!(sums[end].previous(), Previous::Chain)
++            && power(end) == expected
++        {
++            end += 1;
++            expected += stride;
++        }
++        if end - start >= MIN_TERMS {
++            spans.push(Span {
++                start: start as u32,
++                end: end as u32,
++                first: (first.unsigned_abs() - 1) as u8,
++                descending: stride.signum() != first.signum(),
++                negative: first < 0,
++            });
++            start = end;
++        } else {
++            start += 1;
++        }
++    }
++    spans
++}
++
++pub(super) fn prepare(plan: &mut Plan) {
++    if !enabled() || plan.n_constraints > (1 << 20) || !plan.definitely_writes_all() {
++        return;
++    }
++    let Some(_analysis) = Reservation::analysis(
++        plan.n_wires
++            .checked_add(plan.coefficients.len().saturating_mul(2)),
++    ) else {
++        return;
++    };
++    let Some(workspace) = Reservation::acquire(plan.n_constraints, Some(MAX_SPANS * 96)) else {
++        return;
++    };
++    let powers: Vec<_> = plan
++        .coefficients
++        .iter()
++        .copied()
++        .map(signed_power)
++        .collect();
++    let mut bits = vec![false; plan.n_wires];
++    let mut rows = FxMap::default();
++    let mut count = 0;
++    let mut total = 0;
++    for op in &plan.ops {
++        match op {
++            Op::Hint(hint) => bits[hint.outputs()].fill(matches!(hint.kind, HintKind::Bits)),
++            Op::Constraint(step) => {
++                let spans = runs(&plan.sums[step.sums()], &powers, &bits);
++                if let Some(assignment) = &step.assignment {
++                    bits[assignment.wire()] = false;
++                }
++                if spans.is_empty() {
++                    continue;
++                }
++                count += spans.len();
++                if count > MAX_SPANS {
++                    return;
++                }
++                total += spans.iter().map(|r| r.end - r.start).sum::<u32>() as usize;
++                rows.insert(step.constraint, spans);
++            }
++        }
++    }
++    if !rows.is_empty() {
++        let _ = plan.definite.set(true);
++        if trace() {
++            eprintln!("ZP928_PLAN {count} {total}");
++        }
++        plan.bit_prefixes = Some(Prefixes {
++            rows,
++            _workspace: workspace,
++        });
++    }
++}
++
++impl Span {
++    fn pack(self, values: impl Iterator<Item = Fr>) -> Option<Fr> {
++        let mut words = [0; 4];
++        for (i, value) in values.enumerate() {
++            let shift = if self.descending {
++                self.first as usize - i
++            } else {
++                self.first as usize + i
++            };
++            if value == Fr::ONE {
++                words[shift / 64] |= 1 << (shift % 64);
++            } else if value != Fr::ZERO {
++                return None;
++            }
++        }
++        let value = Fr::from_canonical(words)
++            .expect("unsigned values through bit 252 are below Fr modulus");
++        Some(if self.negative { -value } else { value })
++    }
++}
++
++impl Prefixes {
++    #[inline]
++    pub(super) fn for_step(&self, step: &Step, len: usize) -> Option<&[Span]> {
++        if len < MIN_TERMS {
++            return None;
++        }
++        self.rows.get(&step.constraint).map(Vec::as_slice)
++    }
++}
++
++pub(super) fn evaluate(
++    plan: &Plan,
++    spans: &[Span],
++    sums: &[Sum],
++    view: View,
++    mut slot: usize,
++    term_value: &impl Fn(&Term) -> Fr,
++) {
++    let get = |i: usize| unsafe { *view.w.add(i) };
++    let set = |i: usize, value: Fr| unsafe { *view.w.add(i) = value };
++    let mut start = 0;
++    let mut chain = Fr::ZERO;
++    for &span in spans {
++        chain = plan.fold_sums(
++            &sums[start..span.start as usize],
++            chain,
++            &mut slot,
++            &get,
++            &set,
++            term_value,
++        );
++        let terms = &sums[span.start as usize..span.end as usize];
++        if let Some(value) = span.pack(terms.iter().map(|sum| get(sum.term.wire()))) {
++            chain = match terms[0].previous() {
++                Previous::None => value,
++                Previous::Chain => chain + value,
++                Previous::Slot(previous) => get(previous) + value,
++            };
++            if terms.last().unwrap().stored() {
++                set(slot, chain);
++                slot += 1;
++            }
++            if trace() {
++                RUNS.fetch_add(1, Ordering::Relaxed);
++                TERMS.fetch_add(terms.len(), Ordering::Relaxed);
++            }
++        } else {
++            chain = plan.fold_sums(terms, chain, &mut slot, &get, &set, term_value);
++        }
++        start = span.end as usize;
++    }
++    plan.fold_sums(&sums[start..], chain, &mut slot, &get, &set, term_value);
++}
++
++#[cfg(test)]
++mod tests {
++    use super::super::{CHAIN, NONE, STORED};
++    use super::*;
++
++    #[test]
++    fn pack_matches_field_sum_in_both_directions_and_signs() {
++        for n in [8, 63, 64, 65, 126, 127, 128, 253] {
++            for descending in [false, true] {
++                for negative in [false, true] {
++                    let lo = 253 - n;
++                    let first = if descending { 252 } else { lo };
++                    let span = Span {
++                        start: 0,
++                        end: n as u32,
++                        first: first as u8,
++                        descending,
++                        negative,
++                    };
++                    for setting in 0..4 {
++                        let values = (0..n).map(|i| {
++                            if (i + setting) % 5 < setting {
++                                Fr::ONE
++                            } else {
++                                Fr::ZERO
++                            }
++                        });
++                        let reference =
++                            values.clone().enumerate().fold(Fr::ZERO, |s, (i, value)| {
++                                let shift = if descending { first - i } else { first + i };
++                                let weighted = Fr::from(2u64).pow(&[shift as u64]) * value;
++                                s + if negative { -weighted } else { weighted }
++                            });
++                        assert_eq!(span.pack(values), Some(reference));
++                    }
++                    assert!(span.pack(std::iter::once(Fr::from(2u64))).is_none());
++                }
++            }
++        }
++    }
++
++    #[test]
++    fn runs_respect_stores_dependency_and_bit_tags() {
++        let sums: Vec<_> = (0..30)
++            .map(|i| Sum {
++                previous: if i == 0 {
++                    NONE
++                } else if i == 9 {
++                    CHAIN | STORED
++                } else if i == 20 {
++                    42
++                } else {
++                    CHAIN
++                },
++                term: Term::new(i, i),
++            })
++            .collect();
++        let powers: Vec<_> = (1..=30i16).collect();
++        let mut bits = vec![true; 30];
++        bits[18] = false;
++        let spans = runs(&sums, &powers, &bits);
++        assert_eq!(
++            spans.iter().map(|s| (s.start, s.end)).collect::<Vec<_>>(),
++            [(0, 10), (10, 18), (20, 30)]
++        );
++    }
++}
+--- a/crates/zopro-core/src/solver/sparse_poseidon/tests.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon/tests.rs
+@@ -105,6 +105,7 @@
+         fuse_sums: 2,
+         schedule: std::sync::OnceLock::new(),
+         b2_origins: std::sync::OnceLock::new(),
++        bit_prefixes: None,
+         definite: std::sync::OnceLock::new(),
+     }
+ }
