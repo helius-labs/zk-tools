@@ -1,0 +1,47 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "ordinary",
+    "b2",
+    "both"
+  ],
+  "blocks": 12,
+  "rounds": 17,
+  "prepared_plan": {
+    "source_image": "47cfe0cf92649ed00c9bcd0fc7862c891f463acafa9c00c104ad7bbde58034ab",
+    "k": {
+      "n": 97075,
+      "count": 17611,
+      "sha256": "1b8d640f5a973adc617c44c43549c3ef6bb88e140ae70e5e7aa6307d075abe41"
+    },
+    "b2": {
+      "n": 95537,
+      "count": 17611,
+      "sha256": "9c022a053c7a2577597f24b8d0c9bc218052517f1f9fca62bfb55081b667a329"
+    },
+    "expected": {
+      "catalog": {
+        "k": 17611,
+        "b2": 17611,
+        "k_classes": 29828,
+        "b2_classes": 29738
+      },
+      "heldout": {
+        "k": 16897,
+        "b2": 16897,
+        "k_classes": 30052,
+        "b2_classes": 29961
+      }
+    }
+  },
+  "hardware": "C7a.24xlarge, 64 main and 32 frontend physical cores, exact frozen seeded settings.",
+  "correctness": "Verify every exported proof with pinned Gnark and the same image and public digest. Trace both hit totals, invalid K with valid B2, and zero optional budget.",
+  "calibration": "Absolute paired median <=2% for ordinary vs frozen on each input.",
+  "qualification": "Lower paired medians with at least nine of twelve wins on each fixture vs exact frozen and same-build ordinary. Prefer both only if incremental vs B2 on each fixture clears the same threshold.",
+  "score": "Measure score eligibility on exact original input and report 109 ms M5 CPU, 48 ms Metal, and target 10.9 ms."
+}

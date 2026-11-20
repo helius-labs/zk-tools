@@ -1,0 +1,59 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "prior-b2",
+    "prior-both",
+    "ordinary",
+    "late-b2",
+    "late-both",
+    "early-b2",
+    "early-both"
+  ],
+  "main": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "frontend": [
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "warmups": 3,
+  "timed_rounds": 17,
+  "blocks": 8,
+  "mechanism": "Test every raw coefficient in each planned quartet for exact equality, then submit one prepared sum index instead of four raw indices. Other raw terms enter ordinary exact classification.",
+  "qualify": "Ordinary vs frozen must calibrate within 2% per input. An early mode needs a lower paired median and at least six of eight wins on both inputs against frozen, ordinary, its same-build late mode and the matching exact prior SDK. To prefer the joint early mode it must also clear early B2 by that margin.",
+  "routes": "Separate traced captures compare builds, old exact class counts, new four-equal counts and hash input sizes against the archived captures. Negative tests deny optional memory or provide an invalid K plan while B2 remains valid."
+}
