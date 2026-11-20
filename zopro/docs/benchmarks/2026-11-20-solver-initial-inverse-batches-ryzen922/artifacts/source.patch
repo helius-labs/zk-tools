@@ -1,0 +1,352 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -11,6 +11,7 @@
+ use std::collections::HashMap;
+ use std::hash::{BuildHasherDefault, Hasher};
+ use std::ops::Range;
++mod initial_inverses;
+ 
+ // Interning a wide circuit's prefixes hashes millions of small keys; the
+ // standard map's SipHash is most of that time. Keys here are not chosen by
+@@ -360,6 +361,8 @@
+     InvZero,
+     // std/math/bits.nBits: the low bits of the input, least significant first.
+     Bits,
++    // Runtime-only mark. Reads and writes remain part of the original plan.
++    EarlyInvZero,
+ }
+ struct Hint {
+     kind: HintKind,
+@@ -399,6 +402,7 @@
+     #[cfg(zopro_resource_schedule)]
+     b2_origins: std::sync::OnceLock<Option<B2Origins>>,
+     definite: std::sync::OnceLock<bool>,
++    early_inverses: Option<initial_inverses::Prepared>,
+ }
+ 
+ /// Bands of dependency depth (epochs), each a list of tasks: the connected
+@@ -927,8 +931,10 @@
+             #[cfg(zopro_resource_schedule)]
+             b2_origins: std::sync::OnceLock::new(),
+             definite: std::sync::OnceLock::new(),
++            early_inverses: None,
+         };
+         plan.compact_coefficients();
++        initial_inverses::prepare(&mut plan);
+         Ok(plan)
+     }
+ 
+@@ -1004,7 +1010,10 @@
+                 Op::Hint(hint) => {
+                     for v in [
+                         1,
+-                        hint.kind as usize,
++                        match hint.kind {
++                            HintKind::InvZero | HintKind::EarlyInvZero => 0,
++                            HintKind::Bits => 1,
++                        },
+                         hint.input().start,
+                         hint.input().end,
+                         hint.outputs().start,
+@@ -1241,8 +1250,10 @@
+             #[cfg(zopro_resource_schedule)]
+             b2_origins: std::sync::OnceLock::new(),
+             definite: std::sync::OnceLock::new(),
++            early_inverses: None,
+         };
+         plan.compact_coefficients();
++        initial_inverses::prepare(&mut plan);
+         Ok(plan)
+     }
+ 
+@@ -1336,6 +1347,12 @@
+ 
+     /// The caller owns all four buffers until the instruction workers have joined.
+     unsafe fn execute_instructions(&self, view: View) -> Result<(), String> {
++        let started = initial_inverses::clock();
++        if let Some(early) = &self.early_inverses {
++            // SAFETY: each selected hint reads only initialized inputs and
++            // writes its own separately validated destination.
++            unsafe { early.run(self, view) };
++        }
+         let epochs = solve_epochs();
+         if epochs == 0 || self.ops.len() < 4096 {
+             for op in &self.ops {
+@@ -1372,6 +1389,7 @@
+                 }
+             }
+         }
++        initial_inverses::report(started);
+         Ok(())
+     }
+ 
+@@ -1835,6 +1853,9 @@
+         let step = match op {
+             Op::Constraint(step) => step,
+             Op::Hint(hint) => {
++                if matches!(hint.kind, HintKind::EarlyInvZero) {
++                    return Ok(());
++                }
+                 let mut value = Fr::ZERO;
+                 for term in &self.terms[hint.input()] {
+                     value += term_value(term);
+@@ -1843,6 +1864,7 @@
+                     HintKind::InvZero => {
+                         set(hint.outputs().start, value.inverse().unwrap_or(Fr::ZERO))
+                     }
++                    HintKind::EarlyInvZero => unreachable!("already consumed before the schedule"),
+                     HintKind::Bits => {
+                         let bits = value.to_canonical();
+                         for (i, wire) in hint.outputs().enumerate() {
+@@ -2067,7 +2089,7 @@
+                             key.extend([
+                                 0,
+                                 match h.kind {
+-                                    HintKind::InvZero => 0,
++                                    HintKind::InvZero | HintKind::EarlyInvZero => 0,
+                                     HintKind::Bits => 1,
+                                 },
+                                 h.input().len() as u32,
+@@ -2454,6 +2476,7 @@
+                 #[cfg(zopro_resource_schedule)]
+                 b2_origins: std::sync::OnceLock::new(),
+                 definite: std::sync::OnceLock::new(),
++                early_inverses: None,
+             }
+         }
+         fn verify(plan: &Plan, schedule: &Schedule) {
+--- /dev/null
++++ b/crates/zopro-core/src/solver/initial_inverses.rs
+@@ -0,0 +1,222 @@
++//! Evaluate independent input-only inversion hints before launching the solver bands.
++use super::{Fr, Hint, HintKind, Op, Plan, View};
++use rayon::prelude::*;
++use std::sync::OnceLock;
++
++const CHUNK: usize = 32;
++
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum Mode {
++    Scalar,
++    Batch,
++    Parallel,
++}
++
++fn mode() -> Option<Mode> {
++    static MODE: OnceLock<Option<Mode>> = OnceLock::new();
++    *MODE.get_or_init(|| match std::env::var("ZOPRO_922_INV").as_deref() {
++        Ok("scalar") => Some(Mode::Scalar),
++        Ok("batch") => Some(Mode::Batch),
++        Ok("parallel") => Some(Mode::Parallel),
++        _ => None,
++    })
++}
++
++fn trace() -> bool {
++    static TRACE: OnceLock<bool> = OnceLock::new();
++    *TRACE.get_or_init(|| std::env::var_os("ZOPRO_922_TRACE").is_some())
++}
++
++pub(super) fn clock() -> Option<crate::time::Instant> {
++    static CLOCK: OnceLock<bool> = OnceLock::new();
++    CLOCK
++        .get_or_init(|| std::env::var_os("ZOPRO_922_CLOCK").is_some())
++        .then(crate::time::Instant::now)
++}
++
++pub(super) fn report(started: Option<crate::time::Instant>) {
++    if let Some(t) = started {
++        eprintln!("ZP922_SOLVE {}", t.elapsed().as_nanos());
++    }
++}
++
++pub(super) struct Prepared {
++    mode: Mode,
++    hints: Vec<u32>,
++    _reservation: crate::preparation::Reservation,
++}
++
++fn input_only(hint: &Hint, plan: &Plan) -> bool {
++    matches!(hint.kind, HintKind::InvZero)
++        && hint.outputs().len() == 1
++        && plan.terms[hint.input()]
++            .iter()
++            .all(|term| term.wire() < plan.n_inputs)
++}
++
++pub(super) fn prepare(plan: &mut Plan) {
++    let Some(mode) = mode() else {
++        return;
++    };
++    if plan.ops.len() > u32::MAX as usize
++        || !*plan.definite.get_or_init(|| plan.definitely_writes_all())
++    {
++        return;
++    }
++    let count = plan
++        .ops
++        .iter()
++        .filter(|op| matches!(op, Op::Hint(h) if input_only(h, plan)))
++        .count();
++    if count < 2 {
++        return;
++    }
++    let bytes = count
++        .checked_mul(core::mem::size_of::<u32>())
++        .and_then(|n| n.checked_add(64));
++    let Some(reservation) = crate::preparation::Reservation::analysis(bytes) else {
++        return;
++    };
++    let mut hints = Vec::with_capacity(count);
++    for (i, op) in plan.ops.iter().enumerate() {
++        if matches!(op, Op::Hint(h) if input_only(h,plan)) {
++            hints.push(i as u32);
++        }
++    }
++    for &id in &hints {
++        let Op::Hint(hint) = &mut plan.ops[id as usize] else {
++            unreachable!();
++        };
++        hint.kind = HintKind::EarlyInvZero;
++    }
++    if trace() {
++        eprintln!("ZP922_PLAN {mode:?} {count}");
++    }
++    plan.early_inverses = Some(Prepared {
++        mode,
++        hints,
++        _reservation: reservation,
++    });
++}
++
++fn batch_inverse(values: &mut [Fr]) {
++    let mut prefix = [Fr::ONE; CHUNK];
++    let mut product = Fr::ONE;
++    for (i, &value) in values.iter().enumerate() {
++        if value != Fr::ZERO && value != Fr::ONE {
++            prefix[i] = product;
++            product *= value;
++        }
++    }
++    let Some(mut inverse) = product.inverse() else {
++        values
++            .iter_mut()
++            .for_each(|v| *v = v.inverse().unwrap_or(Fr::ZERO));
++        return;
++    };
++    for (i, value) in values.iter_mut().enumerate().rev() {
++        if *value != Fr::ZERO && *value != Fr::ONE {
++            let original = *value;
++            *value = inverse * prefix[i];
++            inverse *= original;
++        }
++    }
++}
++
++impl Prepared {
++    /// # Safety
++    /// Only the original inputs are read. Definite assignment guarantees
++    /// distinct outputs, so each chunk can publish its own results.
++    pub(super) unsafe fn run(&self, plan: &Plan, v: View) {
++        let started = clock();
++        let process = |chunk: &[u32]| -> (usize, usize) {
++            let v = v;
++            let mut values = [Fr::ZERO; CHUNK];
++            let mut outputs = [0usize; CHUNK];
++            for (idx, &id) in chunk.iter().enumerate() {
++                let Op::Hint(hint) = &plan.ops[id as usize] else {
++                    unreachable!();
++                };
++                let mut value = Fr::ZERO;
++                for term in &plan.terms[hint.input()] {
++                    let coefficient = term.coefficient();
++                    let wire = term.wire();
++                    // SAFETY: every selected input wire was checked against n_inputs.
++                    let term = if wire == 0 {
++                        plan.coefficients[coefficient]
++                    } else {
++                        let input = unsafe { *v.w.add(wire) };
++                        match coefficient {
++                            1 => input,
++                            2 => input.double(),
++                            3 => -input,
++                            _ => plan.coefficients[coefficient] * input,
++                        }
++                    };
++                    value += term;
++                }
++                values[idx] = value;
++                outputs[idx] = hint.outputs().start;
++            }
++            let active = &mut values[..chunk.len()];
++            let nonzero = if trace() {
++                active.iter().filter(|&&v| v != Fr::ZERO).count()
++            } else {
++                0
++            };
++            if self.mode == Mode::Scalar {
++                active
++                    .iter_mut()
++                    .for_each(|v| *v = v.inverse().unwrap_or(Fr::ZERO));
++            } else {
++                batch_inverse(active);
++            }
++            for (&wire, &value) in outputs.iter().zip(active.iter()) {
++                // SAFETY: every hint output is unique across the program.
++                unsafe { *v.w.add(wire) = value };
++            }
++            (1, nonzero)
++        };
++        let add =
++            |(groups_a, values_a), (groups_b, values_b)| (groups_a + groups_b, values_a + values_b);
++        let (chunks, nonzero) = if self.mode == Mode::Parallel {
++            self.hints
++                .par_chunks(CHUNK)
++                .map(process)
++                .reduce(|| (0, 0), add)
++        } else {
++            self.hints.chunks(CHUNK).map(process).fold((0, 0), add)
++        };
++        if trace() {
++            eprintln!(
++                "ZP922_BATCH {:?} {} {chunks} {nonzero}",
++                self.mode,
++                self.hints.len()
++            );
++        }
++        if let Some(t) = started {
++            eprintln!("ZP922_EARLY {}", t.elapsed().as_nanos());
++        }
++    }
++}
++
++#[cfg(test)]
++#[test]
++fn zero_aware_initial_inversion_matches_scalar() {
++    for n in 0..=CHUNK {
++        for pattern in 0..5 {
++            let mut f: Vec<_> = (0..n)
++                .map(|i| match pattern {
++                    0 => Fr::ZERO,
++                    1 => Fr::ONE,
++                    2 if i % 2 == 0 => Fr::ZERO,
++                    3 if i % 3 == 0 => Fr::ONE,
++                    _ => Fr::from((i * 11871 + 2) as u64),
++                })
++                .collect();
++            let expected: Vec<_> = f.iter().map(|v| v.inverse().unwrap_or(Fr::ZERO)).collect();
++            batch_inverse(&mut f);
++            assert_eq!(f, expected);
++        }
++    }
++}
+--- a/crates/zopro-core/src/solver/sparse_poseidon/tests.rs
++++ b/crates/zopro-core/src/solver/sparse_poseidon/tests.rs
+@@ -106,6 +106,7 @@
+         schedule: std::sync::OnceLock::new(),
+         b2_origins: std::sync::OnceLock::new(),
+         definite: std::sync::OnceLock::new(),
++        early_inverses: None,
+     }
+ }
+ fn execute(
