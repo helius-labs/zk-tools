@@ -1,0 +1,20 @@
+{
+  "commit": "39cf839aefc82954a41e29234957d99d50c67e0b",
+  "binary": "1d39f5efa58f8e61706d5b0bb56da3f76dba5b744af3d9aacfeb5152388a525f",
+  "patch": "55fb5033248e480c0ee541614cafa3e17cd706b2fea0837542f341df2d1dab3c",
+  "env": {
+    "RUSTFLAGS": "-C target-cpu=znver4 --cfg zopro_horizontal_limb_sum --cfg zopro_g2_horner_buckets --cfg zopro_booth_digits --cfg zopro_live_preparation_charge --cfg zopro_folded_query_reclaim --cfg zopro_bounded_schedule --cfg zopro_resource_schedule --cfg zopro_real_kh --cfg zopro_euler_leading_weights --cfg zopro_cios_cancel_carry --cfg zopro_euler_pointwise8 --cfg zopro_direct_chain_inverse --cfg zopro_gcd_balanced_runs --cfg zopro_canonical_task_grain --cfg zopro_small_core_entry --cfg zopro_g2_prefix_records --cfg zopro_dense_busy_reset --check-cfg=cfg(zopro_phi_grain) --cfg zopro_phi_grain --check-cfg=cfg(zopro_g2_coordinate_leaf) --cfg zopro_indexed_tile_bundles --cfg zopro_coalesce_probe --check-cfg=cfg(zopro_indexed_tile_bundles) --check-cfg=cfg(zopro_coalesce_probe) --cfg zopro_paired_weighted --check-cfg=cfg(zopro_paired_weighted)",
+    "RUSTUP_TOOLCHAIN": "1.98.1-x86_64-unknown-linux-gnu"
+  },
+  "files": [
+    "crates/zopro-bn254/src/pairing.rs",
+    "crates/zopro-bn254/src/pairing_cyclotomic.rs",
+    "crates/zopro-core/src/verify.rs",
+    "crates/zopro-prover/src/lib.rs",
+    "crates/zopro-bench/examples/cpu-sdk.rs"
+  ],
+  "native_tests": {
+    "native-bn254.log": "53f7c39a822480d05bd682def300b7eebd81224fd75cee4bbecbd571731d0b7b",
+    "native-verify.log": "711344a3dc1be6eae923caca13ac8406eca9bc1344d94a306c6e9d30150458b1"
+  }
+}

@@ -1,0 +1,386 @@
+--- a/crates/zopro-bn254/src/pairing.rs
++++ b/crates/zopro-bn254/src/pairing.rs
+@@ -3,6 +3,16 @@
+ //! coefficients, the loop over the signed digits of 6x + 2, and the final
+ //! exponentiation's easy part and Fuentes-Castañeda et al.'s hard part.
+ use crate::{curve::PSI_X, curve::PSI_Y, Fq, Fq12, Fq2, G1Affine, G2Affine};
++
++#[cfg(all(
++    target_arch = "x86_64",
++    target_feature = "avx512ifma",
++    target_feature = "avx512vl",
++    target_feature = "avx512dq",
++    not(no_ifma)
++))]
++#[path = "pairing_cyclotomic.rs"]
++mod cyclotomic;
+ 
+ /// The BN parameter x (positive for BN254).
+ const X: u64 = 4965661367192848881;
+@@ -143,24 +153,55 @@
+ }
+ 
+ /// f^x, then inverted (x is positive): the hard part's f^-x.
+-fn exp_by_neg_x(f: Fq12) -> Fq12 {
++#[inline(always)]
++fn exp_by_neg_x<const PACKED: bool>(f: Fq12) -> Fq12 {
++    #[cfg(all(
++    target_arch = "x86_64",
++    target_feature = "avx512ifma",
++    target_feature = "avx512vl",
++    target_feature = "avx512dq",
++    not(no_ifma)
++))]
++    if PACKED {
++        return cyclotomic::pow(f, X).conjugate();
++    }
+     f.cyclotomic_pow_u64(X).conjugate()
+ }
+ 
+ /// f^((p^12 - 1) / r), `None` for zero.
+ pub fn final_exponentiation(f: Fq12) -> Option<Fq12> {
++    final_exponentiation_impl::<false>(f)
++}
++
++/// Compute the final exponentiation with optional packed cyclotomic squaring.
++/// Builds without AVX-512 IFMA, VL and DQ use scalar arithmetic.
++pub fn final_exponentiation_with_packing(f: Fq12, packed: bool) -> Option<Fq12> {
++    if packed && cfg!(all(
++    target_arch = "x86_64",
++    target_feature = "avx512ifma",
++    target_feature = "avx512vl",
++    target_feature = "avx512dq",
++    not(no_ifma)
++)) {
++        return final_exponentiation_impl::<true>(f);
++    }
++    final_exponentiation(f)
++}
++
++#[inline(never)]
++fn final_exponentiation_impl<const PACKED: bool>(f: Fq12) -> Option<Fq12> {
+     let f1 = f.conjugate();
+     let f2 = f.inverse()?;
+     let mut r = f1 * f2;
+     let f2 = r;
+     r = r.frobenius(2) * f2;
+-    let y0 = exp_by_neg_x(r);
++    let y0 = exp_by_neg_x::<PACKED>(r);
+     let y1 = y0.cyclotomic_square();
+     let y2 = y1.cyclotomic_square();
+     let y3 = y2 * y1;
+-    let y4 = exp_by_neg_x(y3);
++    let y4 = exp_by_neg_x::<PACKED>(y3);
+     let y5 = y4.cyclotomic_square();
+-    let y6 = exp_by_neg_x(y5);
++    let y6 = exp_by_neg_x::<PACKED>(y5);
+     let y3 = y3.conjugate();
+     let y6 = y6.conjugate();
+     let y7 = y6 * y4;
+--- /dev/null
++++ b/crates/zopro-bn254/src/pairing_cyclotomic.rs
+@@ -0,0 +1,182 @@
++//! Square the three Fq4 coordinate pairs of one cyclotomic Fq12.
++//! Each of the first six lanes holds one Fq coefficient of three Fq2 values.
++use crate::{ifma8::Ifma8, Fq, Fq12, Fq2, Fq6, FqConfig};
++use core::{arch::x86_64::*, marker::PhantomData};
++
++type Eight = Ifma8<FqConfig>;
++const IMAGINARY: u8 = 0b1010_1010;
++
++#[derive(Clone, Copy)]
++struct CoordinatePairs {
++    a: Eight,
++    b: Eight,
++}
++
++#[inline(always)]
++fn permute2(a: Eight, b: Eight, lanes: [i64; 8]) -> Eight {
++    // SAFETY: this module is compiled only on AVX-512 IFMA/VL/DQ. All
++    // operations preserve the normalized vector digits and Montgomery radix.
++    unsafe {
++        let indices = _mm512_loadu_si512(lanes.as_ptr().cast());
++        Ifma8(
++            core::array::from_fn(|i| _mm512_permutex2var_epi64(a.0[i], indices, b.0[i])),
++            PhantomData,
++        )
++    }
++}
++
++#[inline(always)]
++fn select(a: Eight, b: Eight, use_b: u8) -> Eight {
++    // SAFETY: see permute2.
++    unsafe {
++        Ifma8(
++            core::array::from_fn(|i| _mm512_mask_blend_epi64(use_b, a.0[i], b.0[i])),
++            PhantomData,
++        )
++    }
++}
++
++#[inline(always)]
++fn swap(x: Eight) -> Eight {
++    // SAFETY: see permute2.
++    unsafe {
++        let indices = _mm512_set_epi64(6, 7, 4, 5, 2, 3, 0, 1);
++        Ifma8(
++            x.0.map(|word| _mm512_permutexvar_epi64(indices, word)),
++            PhantomData,
++        )
++    }
++}
++
++#[inline(always)]
++fn square_pairs(x: Eight) -> Eight {
++    let other = swap(x);
++    let left = select(x.add(&other), x.add(&x), IMAGINARY);
++    let right = select(x.sub(&other), other, IMAGINARY);
++    left.mul(&right)
++}
++
++#[inline(always)]
++fn nonresidue(x: Eight) -> Eight {
++    let nine = x.mul_u28(&[9; 8]);
++    let other = swap(x);
++    select(nine.sub(&other), nine.add(&other), IMAGINARY)
++}
++
++#[inline(always)]
++fn adjust(x: Eight, old: Eight, positive: u8) -> Eight {
++    let twice = old.add(&old);
++    let triple = x.mul_u28(&[3; 8]);
++    select(triple.sub(&twice), triple.add(&twice), positive)
++}
++
++impl CoordinatePairs {
++    #[inline]
++    fn new(x: Fq12) -> Self {
++        let pack = |x: Fq2, y: Fq2, z: Fq2| {
++            Eight::new(&[x.c0, x.c1, y.c0, y.c1, z.c0, z.c1, Fq::ZERO, Fq::ZERO])
++        };
++        Self {
++            a: pack(x.c0.c0, x.c1.c0, x.c0.c1),
++            b: pack(x.c1.c1, x.c0.c2, x.c1.c2),
++        }
++    }
++
++    #[inline]
++    fn get(self) -> Fq12 {
++        let a = self.a.get();
++        let b = self.b.get();
++        Fq12::new(
++            Fq6::new(
++                Fq2::new(a[0], a[1]),
++                Fq2::new(a[4], a[5]),
++                Fq2::new(b[2], b[3]),
++            ),
++            Fq6::new(
++                Fq2::new(a[2], a[3]),
++                Fq2::new(b[0], b[1]),
++                Fq2::new(b[4], b[5]),
++            ),
++        )
++    }
++
++    #[inline(never)]
++    fn square(self) -> Self {
++        let aa = square_pairs(self.a);
++        let bb = square_pairs(self.b);
++        let real = aa.add(&nonresidue(bb));
++        let imaginary = square_pairs(self.a.add(&self.b)).sub(&aa).sub(&bb);
++        let scaled_imaginary = nonresidue(imaginary);
++        let a = permute2(real, scaled_imaginary, [0, 1, 12, 13, 2, 3, 6, 7]);
++        let b = permute2(real, imaginary, [8, 9, 4, 5, 10, 11, 6, 7]);
++        Self {
++            a: adjust(a, self.a, 0b0000_1100),
++            b: adjust(b, self.b, 0b0011_0011),
++        }
++    }
++}
++
++// Fq12 multiplication retains the existing scalar implementation. Keep
++// vectors live between consecutive squarings of the same element.
++#[inline(never)]
++pub(super) fn pow(x: Fq12, exponent: u64) -> Fq12 {
++    if exponent == 0 {
++        return Fq12::ONE;
++    }
++    let mut power = CoordinatePairs::new(x);
++    for bit in (0..(63 - exponent.leading_zeros())).rev() {
++        power = power.square();
++        if (exponent >> bit) & 1 != 0 {
++            power = CoordinatePairs::new(power.get() * x);
++        }
++    }
++    power.get()
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::Fr;
++    use crate::{
++        pairing::{
++            final_exponentiation, final_exponentiation_with_packing, multi_miller_loop, G2Prepared,
++        },
++        G1Affine, G2Affine,
++    };
++
++    #[test]
++    fn packed_cyclotomic_squares_and_powers_match_scalar() {
++        assert_eq!(final_exponentiation_with_packing(Fq12::default(), true), None);
++        let g1 = G1Affine::GENERATOR;
++        let g2 = G2Affine::GENERATOR;
++        let mut seed = 0x53c078976ccd96b9u64;
++        for index in 0..24 {
++            let f = if index == 0 {
++                Fq12::ONE
++            } else {
++                let p = g1.mul(&Fr::from_u64(index)).to_affine();
++                let q = g2.mul(&Fr::from_u64(87 - index)).to_affine();
++                multi_miller_loop(&[(p, &G2Prepared::new(&q))])
++            };
++            assert_eq!(
++                final_exponentiation_with_packing(f, true),
++                final_exponentiation(f)
++            );
++            let unitary = f.conjugate() * f.inverse().unwrap();
++            let x = unitary.frobenius(2) * unitary;
++            let mut reference = x;
++            let mut packed = CoordinatePairs::new(x);
++            for _ in 0..96 {
++                packed = packed.square();
++                reference = reference.square();
++                assert_eq!(packed.get(), reference);
++            }
++            seed ^= seed << 13;
++            seed ^= seed >> 7;
++            seed ^= seed << 17;
++            for exponent in [0, 1, 2, 3, 4965661367192848881, u64::MAX, seed] {
++                assert_eq!(pow(x, exponent), x.pow_u64(exponent));
++            }
++        }
++    }
++}
+--- a/crates/zopro-core/src/verify.rs
++++ b/crates/zopro-core/src/verify.rs
+@@ -2,9 +2,12 @@
+ //! the client checks every proof it hands out, and encodes it as gnark's
+ //! verifier and the chain read it.
+ use zopro_bn254::{
+-    pairing::{final_exponentiation, multi_miller_loop, pairing, G2Prepared},
++    pairing::{final_exponentiation_with_packing, multi_miller_loop, pairing, G2Prepared},
+     Fq, Fq12, Fq2, Fr, G1Affine, G1Projective, G2Affine,
+ };
++
++#[cfg(test)]
++use zopro_bn254::pairing::final_exponentiation;
+ 
+ use crate::decompress::{coordinate, largest, largest2};
+ 
+@@ -90,6 +93,7 @@
+     k: Vec<G1Affine>,
+     /// Fixed-base windows, excluding the constant input.
+     k_windows: Option<Vec<G1Affine>>,
++    packed_final_exponentiation: bool,
+ }
+ 
+ /// A raw verifying key's alpha, beta and delta, which a proving key's
+@@ -146,6 +150,7 @@
+             .then(|| prepare_public_windows(&k[1..]));
+         Ok(Self {
+             k_windows,
++            packed_final_exponentiation: false,
+             negative_alpha_beta: pairing(&-alpha, &beta2),
+             gamma2: G2Prepared::new(&gamma2),
+             delta2: G2Prepared::new(&delta2),
+@@ -167,6 +172,11 @@
+             scalars.extend_from_slice(public);
+             zopro_bn254::curve::msm(&self.k, &scalars).to_affine()
+         }
++    }
++
++    /// Opt into packed cyclotomic squaring for verification on native IFMA builds.
++    pub fn set_packed_final_exponentiation(&mut self, enabled: bool) {
++        self.packed_final_exponentiation = enabled;
+     }
+ 
+     /// Verify a freshly produced proof while its public input is available.
+@@ -193,8 +203,11 @@
+         };
+         let (proved, public_value) = rayon::join(|| generate().map(proof_terms), public_term);
+         let (proof, abcd) = proved?;
+-        Ok((final_exponentiation(abcd * public_value) == Some(self.negative_alpha_beta))
+-            .then_some(proof))
++        let pairing = final_exponentiation_with_packing(
++            abcd * public_value,
++            self.packed_final_exponentiation,
++        );
++        Ok((pairing == Some(self.negative_alpha_beta)).then_some(proof))
+     }
+ 
+     /// Whether `proof` proves `public`: e(Ar, Bs) = e(alpha, beta)
+@@ -210,10 +223,12 @@
+             (inputs, &self.gamma2),
+             (proof.krs, &self.delta2),
+         ];
+-        final_exponentiation(proof_miller_product(
++        let product = proof_miller_product(
+             &pairs,
+             crate::simd::cpu_option("ZOPRO_CPU_VERIFY_PARALLEL"),
+-        )) == Some(self.negative_alpha_beta)
++        );
++        final_exponentiation_with_packing(product, self.packed_final_exponentiation)
++            == Some(self.negative_alpha_beta)
+     }
+ }
+ 
+@@ -433,7 +448,9 @@
+         let proof =
+             Proof::from_raw(include_bytes!("../tests/fixtures/transfer-2x2.proof")).unwrap();
+         let input = crate::decode_frs(include_bytes!("../tests/fixtures/transfer-2x2.public"))[0];
+-        for workers in [1, 4] {
++        for (workers, packed) in [(1, false), (4, false), (1, true), (4, true)] {
++            let mut key = key.clone();
++            key.set_packed_final_exponentiation(packed);
+             let pool = rayon::ThreadPoolBuilder::new()
+                 .num_threads(workers)
+                 .build()
+@@ -447,6 +464,8 @@
+                     rayon::join(|| run(&[input], proof), || run(&[input + Fr::ONE], proof));
+                 assert_eq!(correct, Some(proof));
+                 assert_eq!(altered, None);
++                assert!(key.verify(&proof, &[input]));
++                assert!(!key.verify(&proof, &[input + Fr::ONE]));
+                 assert_eq!(run(&[], proof), None);
+                 for p in [
+                     Proof {
+--- a/crates/zopro-prover/src/lib.rs
++++ b/crates/zopro-prover/src/lib.rs
+@@ -88,6 +88,12 @@
+ }
+ 
+ impl Prover {
++    /// Opt into packed cyclotomic squaring during proof verification on
++    /// native AVX-512 IFMA builds. This uses no extra key tables.
++    pub fn set_packed_final_exponentiation(&mut self, enabled: bool) {
++        self.verifying_key.set_packed_final_exponentiation(enabled);
++    }
++
+     /// Share a smaller Rayon pool across provers for native IFMA canonical
+     /// witness solving and FFT preparation. With `ZOPRO_CPU_SOLVER_FRONTEND=1`,
+     /// general CPU solver instructions also use this pool. With
+--- a/crates/zopro-bench/examples/cpu-sdk.rs
++++ b/crates/zopro-bench/examples/cpu-sdk.rs
+@@ -70,6 +70,11 @@
+         prover
+     };
+     let mut prover = prover;
++    match std::env::var("ZOPRO_BENCH_PACKED_FINAL_EXPONENTIATION").as_deref() {
++        Ok("1") => prover.set_packed_final_exponentiation(true),
++        Ok("0") | Err(std::env::VarError::NotPresent) => {}
++        _ => return Err("packed final exponentiation must be 0 or 1".into()),
++    }
+     if let Some(path) = std::env::var_os("ZOPRO_BENCH_WIRE_FILE") {
+         let file = fs::File::open(path)?;
+         // The benchmark owns the immutable input during preparation.

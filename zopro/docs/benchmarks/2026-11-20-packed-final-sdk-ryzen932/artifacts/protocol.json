@@ -1,0 +1,55 @@
+{
+  "inputs": [
+    "catalog",
+    "heldout",
+    "v27"
+  ],
+  "modes": [
+    "release",
+    "ordinary",
+    "packed",
+    "trial"
+  ],
+  "warmups": 3,
+  "rounds": 17,
+  "blocks": 8,
+  "main": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "frontend": [
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "qualify": "Same-build ordinary must reproduce frozen release within 2% paired median on each fixture. SDK packed mode must lower the paired median and win at least six of eight blocks against both same-build ordinary and frozen release on each fixture.",
+  "confirm": "The prior trial with packed final alone uses the same tasks and settings to characterize executable layout effects. Treat it as a separate exploratory reference.",
+  "correctness": "Independently verify the proof and public digest exported by every timed process against its pinned Gnark key."
+}
