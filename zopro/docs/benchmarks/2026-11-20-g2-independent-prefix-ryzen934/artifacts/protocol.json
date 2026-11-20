@@ -1,0 +1,56 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "ordinary",
+    "single",
+    "double"
+  ],
+  "main": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "frontend": [
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "warmups": 3,
+  "timed_rounds": 17,
+  "blocks": 8,
+  "lane_work": "On complete G2 prefix batches with at least four eight-lane groups, use one optimized chain or two independent interleaved chains. Both skip three packed multiplications net per batch compared with the ordinary chain and share one inversion. Two chains shorten the dependent sequence without changing stored records.",
+  "qualify": "Frozen vs ordinary must calibrate within 2% on both inputs. An opt-in needs lower paired medians with at least six of eight wins against both controls on both inputs. Double must also meet the same criterion against single before preferring it to single.",
+  "route": "Separate untimed exports confirm both trial routes run and ordinary and disabled-prefix paths bypass the trial.",
+  "proof": "All process exports independently checked with Gnark and the pinned source image and request digest."
+}
