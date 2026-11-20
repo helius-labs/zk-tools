@@ -805,12 +805,21 @@ impl Points<'_> {
 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
 pub use rayon::ThreadPool as FrontendThreadPool;
 
+#[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+struct ExclusiveG2Pool {
+    workers: std::sync::Arc<FrontendThreadPool>,
+    scratch_bytes: usize,
+    overlap_quotient: bool,
+}
+
 #[wasm_bindgen]
 pub struct Key {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     frontend_pool: Option<std::sync::Arc<FrontendThreadPool>>,
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     solver_pool: Option<std::sync::Arc<FrontendThreadPool>>,
+    #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+    exclusive_g2_pool: Option<ExclusiveG2Pool>,
     #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
     grouped_point_tiling: bool,
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
@@ -1533,6 +1542,8 @@ impl Key {
             frontend_pool: None,
             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
             solver_pool: None,
+            #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+            exclusive_g2_pool: None,
             #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
             grouped_point_tiling: false,
             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
@@ -2369,100 +2380,227 @@ mod bounded_gather;
 
 #[cfg(all(target_arch = "x86_64", target_os = "linux", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
 impl Key {
-    fn solve_canonical_wires(&self,plan:&solver::Plan,witness:&[Fr],materialize_c:bool,queries:&lagrange::Queries,folded:&lagrange::Folded,omit_b:bool,reclaim:Option<&alloc::ProofScope>)->Result<Vec<u8>,String>{
+    fn solve_canonical_wires(
+        &self,
+        plan: &solver::Plan,
+        witness: &[Fr],
+        materialize_c: bool,
+        queries: &lagrange::Queries,
+        folded: &lagrange::Folded,
+        omit_b: bool,
+        reclaim: Option<&alloc::ProofScope>,
+    ) -> Result<Vec<u8>, String> {
+        use msm_affine::{canonical, msm_canonical as msm, msm_grouped, msm_raw, scalar_groups};
         #[cfg(not(zopro_bounded_gather))]
         use rayon::prelude::*;
-        use msm_affine::{canonical,msm_canonical as msm,msm_grouped,msm_raw,scalar_groups};
-        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
-        let offsets=self.wire_offsets.as_ref().filter(|_|omit_b);
+        #[cfg(all(
+            zopro_resource_schedule,
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_os = "linux",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        let offsets = self.wire_offsets.as_ref().filter(|_| omit_b);
         let prepare = || -> Result<_, String> {
-            let solver::Solution{mut w,a,b,c}=plan.solve_in_with_slots(witness,self.domain,&folded.slots,materialize_c)?;
-            if let Some(scope) = reclaim { scope.release_unused(&mut w); }
+            let solver::Solution { mut w, a, b, c } =
+                plan.solve_in_with_slots(witness, self.domain, &folded.slots, materialize_c)?;
+            if let Some(scope) = reclaim {
+                scope.release_unused(&mut w);
+            }
             drop(c);
             // The correction consumes Montgomery public values before the one
             // in-place conversion. All later accesses to w use canonical words.
-            let correction=folded.public_term(&w[..plan.n_public]);
-            #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
-            if let Some(offsets)=offsets {offsets.apply(&mut w);}
-            let (sa_vec,sb_vec):(Vec<_>,Vec<_>)=if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref()==Ok("1") {
-                fused_canonical_gather::prepare(&mut w,&plan.a_indices,&plan.b_indices)
-            } else {
-                let words=canonical(&mut w);
-                #[cfg(not(zopro_bounded_gather))]
-                {rayon::join(||plan.a_indices.par_iter().map(|&i|words[i as usize]).collect(),||plan.b_indices.par_iter().map(|&i|words[i as usize]).collect())}
-                #[cfg(zopro_bounded_gather)]
-                {rayon::join(||bounded_gather::gather(words,&plan.a_indices),||bounded_gather::gather(words,&plan.b_indices))}
-            };
-            let product = queries.product_values(&self.plan, a, b, None);
-            Ok((w, sa_vec, sb_vec, product, correction))
-        };
-        let (w, sa_vec, mut sb_vec, mut product, correction) =
-            if let Some(pool) = self
-                .frontend_pool
-                .as_ref()
-                .filter(|p| p.current_num_threads() < rayon::current_num_threads())
-            {
-                pool.install(prepare)?
-            } else {
-                prepare()?
-            };
-        // SAFETY: both branches converted every Fr in place to canonical limbs.
-        // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
-        let words=unsafe {std::slice::from_raw_parts(w.as_ptr().cast::<[u64;4]>(),w.len())};
-        let (sa,sb,sk)=(&sa_vec[..],&mut sb_vec[..],&words[plan.n_public..]);
-        let count=product.len();let (h,z,k)=(&mut product[..],&queries.product[..count],&folded.private[..]);
-        #[cfg(all(zopro_real_kh, zopro_resource_schedule))]
-        // A single weighted sum is valid when B1 is omitted and H has unit scale.
-        let medium = if omit_b && queries.product_scale == Fr::ONE
-            && (1024..65536).contains(&k.len()) && (1024..65536).contains(&z.len())
-            && k.len() + z.len() >= 65536
-            && std::env::var("ZOPRO_CPU_MEDIUM_KH").as_deref() == Ok("1")
-        {
-            crate::preparation::Reservation::analysis(msm_affine::workspace::medium_kh_bytes(k.len(), z.len()))
-        } else { None };
-        #[cfg(all(zopro_real_kh, not(zopro_resource_schedule)))]
-        let medium: Option<()> = None;
-        #[cfg(all(zopro_real_kh, feature = "ifma8", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
-        if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len()) || medium.is_some() {
-            if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
-                eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+            let correction = folded.public_term(&w[..plan.n_public]);
+            #[cfg(all(
+                zopro_resource_schedule,
+                feature = "ifma8",
+                target_arch = "x86_64",
+                target_os = "linux",
+                target_feature = "avx512ifma",
+                target_feature = "avx512vl",
+                target_feature = "avx512dq",
+                not(no_ifma)
+            ))]
+            if let Some(offsets) = offsets {
+                offsets.apply(&mut w);
             }
-            let a = || {
-                #[cfg(zopro_resource_schedule)]
-                if self.raw_g1_a_on_frontend {
-                    if let Some(pool) = self.frontend_pool.as_ref().filter(|pool| {
-                        pool.current_num_threads() < rayon::current_num_threads()
-                    }) {
-                        if let Some(_scratch) = crate::preparation::Reservation::analysis(
-                            msm_affine::workspace::frontend_g1_bytes(sa.len(), pool.current_num_threads(), false),
-                        ) {
-                            return pool.install(|| msm_raw(&self.a[..], sa));
+            let (sa_vec, sb_vec): (Vec<_>, Vec<_>) =
+                if std::env::var("ZOPRO_BENCH_FUSED_PREPARATION").as_deref() == Ok("1") {
+                    fused_canonical_gather::prepare(&mut w, &plan.a_indices, &plan.b_indices)
+                } else {
+                    let words = canonical(&mut w);
+                    #[cfg(not(zopro_bounded_gather))]
+                    {
+                        rayon::join(
+                            || {
+                                plan.a_indices
+                                    .par_iter()
+                                    .map(|&i| words[i as usize])
+                                    .collect()
+                            },
+                            || {
+                                plan.b_indices
+                                    .par_iter()
+                                    .map(|&i| words[i as usize])
+                                    .collect()
+                            },
+                        )
+                    }
+                    #[cfg(zopro_bounded_gather)]
+                    {
+                        rayon::join(
+                            || bounded_gather::gather(words, &plan.a_indices),
+                            || bounded_gather::gather(words, &plan.b_indices),
+                        )
+                    }
+                };
+            Ok((w, sa_vec, sb_vec, a, b, correction))
+        };
+        let exclusive_g2 = |words: &mut [[u64; 4]]| {
+            #[cfg(all(
+                zopro_resource_schedule,
+                zopro_g2_horner_buckets,
+                feature = "ifma8",
+                target_os = "linux",
+                target_arch = "x86_64",
+                target_feature = "avx512ifma",
+                target_feature = "avx512vl",
+                target_feature = "avx512dq",
+                not(no_ifma)
+            ))]
+            if let Some(placement) = &self.exclusive_g2_pool {
+                if let Some(_scratch) =
+                    preparation::Reservation::analysis(Some(placement.scratch_bytes))
+                {
+                    return placement.workers.install(|| self.exclusive_g2(words));
+                }
+            }
+            self.exclusive_g2(words)
+        };
+        let finish = |w: Vec<Fr>,
+                      sa_vec: Vec<[u64; 4]>,
+                      mut sb_vec: Vec<[u64; 4]>,
+                      mut product: Vec<Fr>,
+                      correction,
+                      defer_g2: bool|
+         -> Vec<u8> {
+            // SAFETY: both branches converted every Fr in place to canonical limbs.
+            // Fr is repr(transparent) over four u64 words; the shared view ends before w drops.
+            let words =
+                unsafe { std::slice::from_raw_parts(w.as_ptr().cast::<[u64; 4]>(), w.len()) };
+            let (sa, sb, sk) = (&sa_vec[..], &mut sb_vec[..], &words[plan.n_public..]);
+            let count = product.len();
+            let (h, z, k) = (
+                &mut product[..],
+                &queries.product[..count],
+                &folded.private[..],
+            );
+            #[cfg(all(zopro_real_kh, zopro_resource_schedule))]
+            // A single weighted sum is valid when B1 is omitted and H has unit scale.
+            let medium = if omit_b
+                && queries.product_scale == Fr::ONE
+                && (1024..65536).contains(&k.len())
+                && (1024..65536).contains(&z.len())
+                && k.len() + z.len() >= 65536
+                && std::env::var("ZOPRO_CPU_MEDIUM_KH").as_deref() == Ok("1")
+            {
+                crate::preparation::Reservation::analysis(msm_affine::workspace::medium_kh_bytes(
+                    k.len(),
+                    z.len(),
+                ))
+            } else {
+                None
+            };
+            #[cfg(all(zopro_real_kh, not(zopro_resource_schedule)))]
+            let medium: Option<()> = None;
+            #[cfg(all(
+                zopro_real_kh,
+                feature = "ifma8",
+                target_arch = "x86_64",
+                target_feature = "avx512ifma",
+                target_feature = "avx512vl",
+                target_feature = "avx512dq",
+                not(no_ifma)
+            ))]
+            if msm_affine::fused_kh::eligible(omit_b, queries.product_scale, k.len(), z.len())
+                || medium.is_some()
+            {
+                if std::env::var_os("ZOPRO_FUSED_KH_TRACE").is_some() {
+                    eprintln!("FUSED_KH k={} h={} width=13", k.len(), z.len());
+                }
+                let a = || {
+                    #[cfg(zopro_resource_schedule)]
+                    if self.raw_g1_a_on_frontend && !defer_g2 {
+                        if let Some(pool) = self.frontend_pool.as_ref().filter(|pool| {
+                            pool.current_num_threads() < rayon::current_num_threads()
+                        }) {
+                            if let Some(_scratch) = crate::preparation::Reservation::analysis(
+                                msm_affine::workspace::frontend_g1_bytes(
+                                    sa.len(),
+                                    pool.current_num_threads(),
+                                    false,
+                                ),
+                            ) {
+                                return pool.install(|| msm_raw(&self.a[..], sa));
+                            }
                         }
                     }
+                    msm(&self.a[..], sa)
+                };
+                let ((ar, kh), bs2) = rayon::join(
+                    || {
+                        rayon::join(a, || {
+                            msm_affine::fused_kh::fused(k, sk, z, canonical(h), 13)
+                        })
+                    },
+                    || {
+                        if defer_g2 {
+                            G2Projective::IDENTITY
+                        } else if (1024..65536).contains(&self.b2.len()) {
+                            exclusive_g2(sb)
+                        } else {
+                            let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                                .then(|| scalar_groups(sb))
+                                .flatten();
+                            groups.as_ref().map_or_else(
+                                || msm_raw_b2(&self.b2, sb),
+                                |g| msm_grouped_b2(&self.b2, g),
+                            )
+                        }
+                    },
+                );
+                #[cfg(all(
+                    zopro_resource_schedule,
+                    feature = "ifma8",
+                    target_arch = "x86_64",
+                    target_os = "linux",
+                    target_feature = "avx512ifma",
+                    target_feature = "avx512vl",
+                    target_feature = "avx512dq",
+                    not(no_ifma)
+                ))]
+                let (ar, kh, bs2) =
+                    offsets.map_or((ar, kh, bs2), |o| (ar + o.a, kh + o.k, bs2 + o.b2));
+                let mut out = Vec::with_capacity(384);
+                for point in [
+                    ar,
+                    G1Projective::IDENTITY,
+                    kh + correction,
+                    G1Projective::IDENTITY,
+                ] {
+                    output_g1(&mut out, point);
                 }
-                msm(&self.a[..], sa)
-            };
-            let ((ar,kh),bs2)=rayon::join(
-                || rayon::join(a, || msm_affine::fused_kh::fused(k,sk,z,canonical(h),13)),
-                || {
-                    if (1024..65536).contains(&self.b2.len()) {
-                        msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping)
-                    } else {
-                        let groups=crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
-                            .then(||scalar_groups(sb)).flatten();
-                        groups.as_ref().map_or_else(||msm_raw_b2(&self.b2,sb),
-                            |g|msm_grouped_b2(&self.b2,g))
-                    }
-                });
-            #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
-            let (ar,kh,bs2)=offsets.map_or((ar,kh,bs2), |o| (ar+o.a,kh+o.k,bs2+o.b2));
-            let mut out=Vec::with_capacity(384);
-            for point in [ar,G1Projective::IDENTITY,kh+correction,G1Projective::IDENTITY] {output_g1(&mut out,point);}
-            output_g2(&mut out,bs2);
-            return Ok(out);
-        }
-        let (((ar,kr),hz),(bs1,bs2))={
-        let montgomery_h=h.len()>=(1<<18)&&crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
+                if !defer_g2 {
+                    output_g2(&mut out, bs2);
+                }
+                return out;
+            }
+            let (((ar, kr), hz), (bs1, bs2)) = {
+                let montgomery_h =
+                    h.len() >= (1 << 18) && crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H");
                 rayon::join(
                     || {
                         rayon::join(
@@ -2478,14 +2616,23 @@ impl Key {
                     },
                     || {
                         if omit_b && (1024..65536).contains(&self.b2.len()) {
-                            return (G1Projective::IDENTITY,msm_affine::g2_query_exclusive(&self.b2, sb, self.exclusive_g2_grouping));
+                            return (
+                                G1Projective::IDENTITY,
+                                if defer_g2 {
+                                    G2Projective::IDENTITY
+                                } else {
+                                    exclusive_g2(sb)
+                                },
+                            );
                         }
                         let groups = crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
                             .then(|| scalar_groups(sb))
                             .flatten();
                         rayon::join(
                             || {
-                                if omit_b { return G1Projective::IDENTITY; }
+                                if omit_b {
+                                    return G1Projective::IDENTITY;
+                                }
                                 groups.as_ref().map_or_else(
                                     || msm_raw(&self.b[..], sb),
                                     |g| msm_grouped(&self.b[..], g),
@@ -2500,11 +2647,89 @@ impl Key {
                         )
                     },
                 )
+            };
+
+            #[cfg(all(
+                zopro_resource_schedule,
+                feature = "ifma8",
+                target_arch = "x86_64",
+                target_os = "linux",
+                target_feature = "avx512ifma",
+                target_feature = "avx512vl",
+                target_feature = "avx512dq",
+                not(no_ifma)
+            ))]
+            let (ar, kr, bs2) = offsets.map_or((ar, kr, bs2), |o| (ar + o.a, kr + o.k, bs2 + o.b2));
+            let mut out = Vec::with_capacity(384);
+            for point in [ar, bs1, kr + correction, queries.finish_product(hz)] {
+                output_g1(&mut out, point);
+            }
+            if !defer_g2 {
+                output_g2(&mut out, bs2);
+            }
+            out
         };
 
-        #[cfg(all(zopro_resource_schedule, feature="ifma8", target_arch="x86_64", target_os="linux", target_feature="avx512ifma", target_feature="avx512vl", target_feature="avx512dq", not(no_ifma)))]
-        let (ar,kr,bs2)=offsets.map_or((ar,kr,bs2), |o| (ar+o.a,kr+o.k,bs2+o.b2));
-        let mut out=Vec::with_capacity(384);for point in [ar,bs1,kr+correction,queries.finish_product(hz)]{output_g1(&mut out,point);}output_g2(&mut out,bs2);Ok(out)
+        let frontend = self
+            .frontend_pool
+            .as_ref()
+            .filter(|pool| pool.current_num_threads() < rayon::current_num_threads());
+
+        #[cfg(all(
+            zopro_resource_schedule,
+            zopro_g2_horner_buckets,
+            feature = "ifma8",
+            target_os = "linux",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        if omit_b {
+            if let Some(placement) = self
+                .exclusive_g2_pool
+                .as_ref()
+                .filter(|placement| placement.overlap_quotient)
+            {
+                if let Some(_scratch) =
+                    preparation::Reservation::analysis(Some(placement.scratch_bytes))
+                {
+                    let prepared = match frontend {
+                        Some(pool) => pool.install(prepare),
+                        None => prepare(),
+                    };
+                    let (w, sa, mut sb, a, b, correction) = prepared?;
+                    let mut g2 = G2Projective::IDENTITY;
+                    let mut out = placement.workers.in_place_scope(|scope| {
+                        let g2 = &mut g2;
+                        scope.spawn(move |_| *g2 = self.exclusive_g2(&mut sb));
+                        let product = queries.product_values(&self.plan, a, b, None);
+                        finish(w, sa, Vec::new(), product, correction, true)
+                    });
+                    if let Some(offsets) = offsets {
+                        g2 += offsets.b2;
+                    }
+                    output_g2(&mut out, g2);
+                    return Ok(out);
+                }
+            }
+        }
+
+        let prepare_with_quotient = || {
+            let (w, sa, sb, a, b, correction) = prepare()?;
+            let product = queries.product_values(&self.plan, a, b, None);
+            Ok::<_, String>((w, sa, sb, product, correction))
+        };
+        let (w, sa, sb, product, correction) = match frontend {
+            Some(pool) => pool.install(prepare_with_quotient),
+            None => prepare_with_quotient(),
+        }?;
+        Ok(finish(w, sa, sb, product, correction, false))
+    }
+
+    fn exclusive_g2(&self, words: &mut [[u64; 4]]) -> G2Projective {
+        msm_affine::g2_query_exclusive(&self.b2, words, self.exclusive_g2_grouping)
     }
 }
 
@@ -2658,6 +2883,27 @@ impl Key {
     /// Disabled by default.
     pub fn set_raw_g1_a_on_frontend(&mut self, enabled: bool) {
         self.raw_g1_a_on_frontend = enabled;
+    }
+
+    /// Attach a caller-owned pool on disjoint cores for the small exclusive G2 query.
+    /// With quotient overlap enabled, G2 starts once the canonical scalars are ready.
+    /// The prover reserves scratch for each request before dispatching.
+    pub fn set_exclusive_g2_pool(
+        &mut self,
+        pool: Option<std::sync::Arc<FrontendThreadPool>>,
+        overlap_quotient: bool,
+    ) {
+        #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+        {
+            self.exclusive_g2_pool = pool.and_then(|workers| {
+                let scratch_bytes = workers.install(|| {
+                    msm_affine::workspace::auxiliary_g2(self.b2.len(), rayon::current_num_threads())
+                })?;
+                Some(ExclusiveG2Pool { workers, scratch_bytes, overlap_quotient })
+            });
+        }
+        #[cfg(not(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma))))]
+        let _ = (pool, overlap_quotient);
     }
 
     /// Set a caller-owned CPU solver pool independently of the frontend.

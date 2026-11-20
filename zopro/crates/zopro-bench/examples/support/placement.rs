@@ -68,13 +68,18 @@ fn main_cpus(list: Option<&str>, allowed: &[usize], workers: usize) -> Result<Ve
     Ok(cpus)
 }
 
-pub(super) fn configure() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std::error::Error>> {
+pub(super) fn configure(
+    dedicated_g2: bool,
+) -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std::error::Error>> {
     let fixed = match env::var("ZOPRO_BENCH_WORKER_PLACEMENT").as_deref() {
         Ok("fixed") => true,
         Ok("unbound") | Err(env::VarError::NotPresent) => false,
         _ => return Err("worker placement must be fixed or unbound".into()),
     };
     let list = env::var_os("ZOPRO_BENCH_FRONT_CPUS");
+    if dedicated_g2 && (!fixed || list.is_none()) {
+        return Err("exclusive G2 placement requires two fixed worker pools".into());
+    }
     let main_list = match env::var("ZOPRO_BENCH_MAIN_CPUS") {
         Ok(list) => Some(list),
         Err(env::VarError::NotPresent) => None,
@@ -97,7 +102,14 @@ pub(super) fn configure() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std:
             &allowed,
             "frontend",
         )?;
-        if ids.len() >= main_width {
+        if dedicated_g2
+            && main
+                .as_ref()
+                .is_some_and(|cpus| ids.iter().any(|id| cpus.contains(id)))
+        {
+            return Err("exclusive G2 requires disjoint worker placement".into());
+        }
+        if ids.len() >= main_width && !dedicated_g2 {
             return Err("the frontend pool must be smaller than the main pool".into());
         }
         let pool = rayon::ThreadPoolBuilder::new()
@@ -121,7 +133,8 @@ pub(super) fn configure() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std:
     Ok(frontend)
 }
 
-pub(super) fn configure_solver() -> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std::error::Error>> {
+pub(super) fn configure_solver()
+-> Result<Option<Arc<rayon::ThreadPool>>, Box<dyn std::error::Error>> {
     let list = match env::var("ZOPRO_BENCH_SOLVER_CPUS") {
         Ok(list) => list,
         Err(env::VarError::NotPresent) => return Ok(None),
@@ -133,7 +146,9 @@ pub(super) fn configure_solver() -> Result<Option<Arc<rayon::ThreadPool>>, Box<d
     if prep.len() >= front.len() {
         return Err("preparation CPU list must be a proper subset of frontend CPUs".into());
     }
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(prep.len()).build()?;
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(prep.len())
+        .build()?;
     let cpus: io::Result<Vec<_>> = pool
         .broadcast(|ctx| pin(prep[ctx.index()]))
         .into_iter()

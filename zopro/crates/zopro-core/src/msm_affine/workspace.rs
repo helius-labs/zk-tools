@@ -402,6 +402,16 @@ where
     })
 }
 
+/// Additional scratch for the exclusive G2 query running alongside the main pool.
+#[cfg(zopro_g2_horner_buckets)]
+pub(crate) fn auxiliary_g2(n: usize, workers: usize) -> Option<usize> {
+    if !(1024..65536).contains(&n) || workers == 0 {
+        return None;
+    }
+    let profile = envelope::<G2Config>(n, true, true)?;
+    add(profile.held, mul(profile.leaf, workers)?)
+}
+
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Geometry {
     pub wires: usize,

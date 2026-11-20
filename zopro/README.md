@@ -137,10 +137,21 @@ parallel point reduction for eligible grouped A, K, and B2 queries.
 The prover checks its per-proof scratch budget and uses ordinary grouping
 when the tiled route is unavailable.
 
+On Linux x86-64 builds with the native IFMA path,
+`Prover::set_exclusive_g2_pool(Some(pool), true)` starts eligible small G2
+queries as soon as their canonical scalars are ready. The main Rayon pool
+continues with the quotient and G1. Assign the G2 pool and main pool
+disjoint CPU masks. The G2 query uses the ordinary route when its scratch
+reservation is declined. Use `false` to start the dedicated G2 work after
+the quotient, or `None` to detach the pool.
+
 The Linux x86-64 `cpu-sdk` benchmark accepts a comma-separated list of
 logical CPU IDs in `ZOPRO_BENCH_FRONT_CPUS`, one per frontend worker.
 `ZOPRO_BENCH_SOLVER_CPUS` selects a subset of those CPUs for witness
 instructions, and `ZOPRO_BENCH_GROUPED_POINT_TILING=1` enables tiling.
+`ZOPRO_BENCH_EXCLUSIVE_G2_SCHEDULE=early` or `late` uses the frontend pool
+for exclusive G2. Both settings require fixed placement and disjoint
+main and frontend CPU masks.
 `ZOPRO_BENCH_WORKER_PLACEMENT=fixed` pins main workers in ascending order
 within the process affinity mask. The benchmark prints the resulting CPU
 IDs in worker order. On a Ryzen 9950X with 32 main workers, 2×2 used eight

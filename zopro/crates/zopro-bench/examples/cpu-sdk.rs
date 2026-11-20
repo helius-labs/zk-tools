@@ -21,7 +21,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     let mut profile = perf::Control::from_env()?;
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-    let frontend = placement::configure()?;
+    let exclusive_g2 = match std::env::var("ZOPRO_BENCH_EXCLUSIVE_G2_SCHEDULE").as_deref() {
+        Ok("early") => Some(true),
+        Ok("late") => Some(false),
+        Err(std::env::VarError::NotPresent) => None,
+        _ => return Err("exclusive G2 schedule must be early or late".into()),
+    };
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    let frontend = placement::configure(exclusive_g2.is_some())?;
     let file = fs::File::open(&args[1])?;
     // SAFETY: the caller keeps this trusted key image unchanged for the run.
     let image = unsafe { memmap2::Mmap::map(&file)? };
@@ -30,6 +37,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     let prover = {
         let mut prover = prover;
+        if let Some(overlap) = exclusive_g2 {
+            prover.set_exclusive_g2_pool(frontend.clone(), overlap);
+        }
         prover.set_frontend_pool(frontend);
         prover.set_solver_pool(placement::configure_solver()?);
         if std::env::var("ZOPRO_BENCH_GROUPED_POINT_TILING").as_deref() == Ok("1") {

@@ -130,6 +130,17 @@ impl Prover {
         self.key.set_euler_fft_leaf_fusion(enabled);
     }
 
+    /// Attach a disjoint worker pool for a small exclusive G2 query.
+    /// Enable quotient overlap to start G2 before the product FFT.
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    pub fn set_exclusive_g2_pool(
+        &mut self,
+        pool: Option<std::sync::Arc<zopro_core::FrontendThreadPool>>,
+        overlap_quotient: bool,
+    ) {
+        self.key.set_exclusive_g2_pool(pool, overlap_quotient);
+    }
+
     /// Set a caller-owned pool for CPU witness instructions.
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     pub fn set_solver_pool(&mut self, pool: Option<std::sync::Arc<zopro_core::FrontendThreadPool>>) {
