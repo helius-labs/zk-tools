@@ -1,0 +1,323 @@
+--- a/crates/zopro-core/src/fft/pair.rs
++++ b/crates/zopro-core/src/fft/pair.rs
+@@ -1,6 +1,7 @@
+ //! Two independent transforms share the lower/upper four IFMA lanes.
+ mod input_columns;
+ mod euler_center;
++mod sequential_euler;
+ use super::*;
+ use zopro_bn254::{ifma8::Ifma8, FrConfig};
+ type Pair = Ifma8<FrConfig>;
+@@ -1768,13 +1769,33 @@
+ // Unnormalized inverse FFT means the returned prefix is
+ // n * (E(A) * B + A * E(B)), where E(f) = X f'.
+ pub(super) fn euler_product_study(
+-    plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>, pool: Option<&rayon::ThreadPool>,
++    plan: &Plan, a: Vec<Fr>, b: Vec<Fr>, pool: Option<&rayon::ThreadPool>,
+ ) -> Vec<Fr> {
++    static CLOCK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    let clock = (*CLOCK.get_or_init(|| std::env::var_os("ZOPRO_910_TOTAL_CLOCK").is_some()))
++        .then(std::time::Instant::now);
++    let output = euler_product_inner(plan, a, b, pool);
++    if let Some(start) = clock {
++        eprintln!("ZP910_TOTAL_NS {}", start.elapsed().as_nanos());
++    }
++    output
++}
++
++fn euler_product_inner(plan: &Plan, mut a: Vec<Fr>, b: Vec<Fr>, pool: Option<&rayon::ThreadPool>) -> Vec<Fr> {
+     assert!(plan.n >= 8 && a.len() <= plan.n && b.len() <= plan.n);
+     assert!(!plan.released && plan.twisted.is_none());
+     let count = a.len().max(b.len());
+     a.resize(count, Fr::ZERO);
+     if count == 0 { return a; }
++    if (8192..=1 << 26).contains(&plan.n)
++        && plan.roots.single.is_none() && sequential_euler::enabled()
++    {
++        let compute = move || sequential_euler::product(plan, a, &b);
++        return match pool {
++            Some(pool) => pool.install(compute),
++            None => compute(),
++        };
++    }
+     let packed_inputs = plan.n >= 8192
+         && std::env::var("ZOPRO_CPU_FFT_INPUT_COLUMNS").as_deref() == Ok("1");
+     if packed_inputs && plan.n <= (1 << 28) && plan.roots.single.is_none()
+--- /dev/null
++++ b/crates/zopro-core/src/fft/pair/sequential_euler.rs
+@@ -0,0 +1,275 @@
++//! One compact derivative workspace, reused for B and then A.
++use super::*;
++
++pub(super) fn enabled() -> bool {
++    static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    *ENABLED.get_or_init(|| std::env::var("ZOPRO_910_SEQUENTIAL_EULER").as_deref() == Ok("1"))
++}
++
++#[inline(always)]
++fn root(layer: &[Quad], index: usize) -> Pair {
++    Quad::pair(&layer[2 * index], &layer[2 * index + 1])
++}
++
++#[inline(always)]
++fn apply_pair<const FORWARD: bool>(a: Pair, b: Pair, root: &Pair) -> (Pair, Pair) {
++    if FORWARD {
++        let product = b.mul(root);
++        (a.add(&product), a.sub(&product))
++    } else {
++        (a.add(&b), a.sub(&b).mul(root))
++    }
++}
++
++fn column_range<const FORWARD: bool>(
++    mut stripes: [&mut [PackedPair]; 32],
++    roots: &Twiddles,
++    level: usize,
++    start: usize,
++    width: usize,
++) {
++    let count = stripes[0].len();
++    if count > 32 {
++        let mid = count / 2;
++        let left = core::array::from_fn(|i| {
++            let stripe = core::mem::take(&mut stripes[i]);
++            let (left, right) = stripe.split_at_mut(mid);
++            stripes[i] = right;
++            left
++        });
++        rayon::join(
++            || column_range::<FORWARD>(left, roots, level, start, width),
++            || column_range::<FORWARD>(stripes, roots, level, start + mid, width),
++        );
++        return;
++    }
++    for column in 0..count {
++        let mut values: [Pair; 32] = core::array::from_fn(|i| stripes[i][column].load());
++        for order in 0..5 {
++            let stage = if FORWARD { 4 - order } else { order };
++            let gap = 16 >> stage;
++            let layer = &roots.layers[level + stage];
++            for block in values.chunks_exact_mut(2 * gap) {
++                let (lo, hi) = block.split_at_mut(gap);
++                for j in 0..gap {
++                    let w = root(layer, j * width + start + column);
++                    (lo[j], hi[j]) = apply_pair::<FORWARD>(lo[j], hi[j], &w);
++                }
++            }
++        }
++        for (stripe, value) in stripes.iter_mut().zip(values) {
++            stripe[column] = PackedPair::store(value);
++        }
++    }
++}
++
++fn columns<const FORWARD: bool>(values: &mut [PackedPair], roots: &Twiddles, level: usize) {
++    let width = values.len() / 32;
++    let mut stripes = values.chunks_exact_mut(width);
++    let stripes = core::array::from_fn(|_| stripes.next().unwrap());
++    column_range::<FORWARD>(stripes, roots, level, 0, width);
++}
++
++// Repack two eight-row groups as dual four-lane halves through the
++// terminal butterflies. All sixteen lanes carry independent field values.
++#[inline(always)]
++fn center(
++    a: &mut Pair,
++    b: &mut Pair,
++    inverse_four: &Pair,
++    forward_four: &Pair,
++    inverse_two: &Pair,
++    forward_two: &Pair,
++    base: usize,
++    log: usize,
++) {
++    let (al, ah) = a.halves();
++    let (bl, bh) = b.halves();
++    let left = Pair::from_halves(&al, &bl);
++    let right = Pair::from_halves(&ah, &bh);
++    let (mut left, mut right) = apply_pair::<false>(left, right, inverse_four);
++    dif_within(&mut left, &mut right, inverse_two);
++    let weights = |offset| {
++        core::array::from_fn(|i| bit_reverse(base + (i / 4) * 8 + i % 4 + offset, log) as u64)
++    };
++    left = left.mul_u28(&weights(0));
++    right = right.mul_u28(&weights(4));
++    dit_within(&mut left, &mut right, forward_two, None);
++    let (left, right) = apply_pair::<true>(left, right, forward_four);
++    let (al, bl) = left.halves();
++    let (ah, bh) = right.halves();
++    *a = Pair::from_halves(&al, &ah);
++    *b = Pair::from_halves(&bl, &bh);
++}
++
++fn leaf(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++    let mut expanded: Vec<Pair> = values.iter().map(PairStorage::load).collect();
++    let mut gap = expanded.len() / 2;
++    let mut layer = level;
++    while gap > 0 {
++        let roots = &plan.inverse_roots.layers[layer];
++        for block in expanded.chunks_exact_mut(2 * gap) {
++            let (lo, hi) = block.split_at_mut(gap);
++            for j in 0..gap {
++                (lo[j], hi[j]) = apply_pair::<false>(lo[j], hi[j], &root(roots, j));
++            }
++        }
++        layer += 1;
++        gap /= 2;
++    }
++
++    let inverse_four = broadcast(&plan.inverse_roots.layers.last().unwrap()[0]);
++    let forward_four = broadcast(&plan.roots.layers.last().unwrap()[0]);
++    let inverse_two = broadcast(&plan.inverse_roots.pair);
++    let forward_two = broadcast(&plan.roots.pair);
++    for (i, [a, b]) in expanded.as_chunks_mut::<2>().0.iter_mut().enumerate() {
++        center(
++            a,
++            b,
++            &inverse_four,
++            &forward_four,
++            &inverse_two,
++            &forward_two,
++            8 * (first + 2 * i),
++            plan.n.ilog2() as usize,
++        );
++    }
++
++    gap = 1;
++    while gap < expanded.len() {
++        layer -= 1;
++        let roots = &plan.roots.layers[layer];
++        for block in expanded.chunks_exact_mut(2 * gap) {
++            let (lo, hi) = block.split_at_mut(gap);
++            for j in 0..gap {
++                (lo[j], hi[j]) = apply_pair::<true>(lo[j], hi[j], &root(roots, j));
++            }
++        }
++        gap *= 2;
++    }
++    for (dst, packed) in values.iter_mut().zip(expanded) {
++        *dst = PackedPair::store(packed);
++    }
++}
++
++fn transform(plan: &Plan, values: &mut [PackedPair], level: usize, first: usize) {
++    if values.len() <= 1024 {
++        return leaf(plan, values, level, first);
++    }
++    columns::<false>(values, &plan.inverse_roots, level);
++    let width = values.len() / 32;
++    values
++        .par_chunks_exact_mut(width)
++        .enumerate()
++        .for_each(|(i, stripe)| {
++            transform(plan, stripe, level + 5, first + i * width);
++        });
++    columns::<true>(values, &plan.roots, level);
++}
++
++#[inline(always)]
++fn load(values: &[Fr], start: usize) -> Pair {
++    if let Some(full) = values.get(start..start + 8) {
++        Pair::new(full.try_into().unwrap())
++    } else {
++        Pair::new(&core::array::from_fn(|i| {
++            values.get(start + i).copied().unwrap_or(Fr::ZERO)
++        }))
++    }
++}
++
++pub(super) fn product(plan: &Plan, mut a: Vec<Fr>, b: &[Fr]) -> Vec<Fr> {
++    assert!(plan.n >= 16 && plan.twisted.is_none() && plan.roots.single.is_none());
++    assert!(a.len() <= plan.n && b.len() <= plan.n);
++    let count = a.len().max(b.len());
++    a.resize(count, Fr::ZERO);
++    if count == 0 {
++        return a;
++    }
++    static CLOCK: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
++    let clock = (*CLOCK.get_or_init(|| std::env::var_os("ZOPRO_910_CLOCK").is_some()))
++        .then(std::time::Instant::now);
++    let mut workspace: Vec<PackedPair> = (0..plan.n / 8)
++        .into_par_iter()
++        .map(|i| PackedPair::store(load(b, 8 * i)))
++        .collect();
++    transform(plan, &mut workspace, 0, 0);
++    let packs = count.div_ceil(8);
++    let (active, pad) = workspace.split_at_mut(packs);
++    active
++        .par_iter_mut()
++        .zip(a.par_chunks_mut(8))
++        .for_each(|(slot, out)| {
++            let primal = load(out, 0);
++            let product = slot.load().mul(&primal).get();
++            out.copy_from_slice(&product[..out.len()]);
++            *slot = PackedPair::store(primal);
++        });
++    pad.par_iter_mut()
++        .for_each(|slot| *slot = PackedPair::store(Pair::zero()));
++    transform(plan, &mut workspace, 0, 0);
++    a.par_chunks_mut(8)
++        .zip(workspace.par_iter())
++        .enumerate()
++        .for_each(|(i, (out, derivative))| {
++            let result = derivative
++                .load()
++                .mul(&load(b, 8 * i))
++                .add(&load(out, 0))
++                .get();
++            out.copy_from_slice(&result[..out.len()]);
++        });
++    if let Some(start) = clock {
++        eprintln!("ZP910_FFT_NS {}", start.elapsed().as_nanos());
++    }
++    if std::env::var_os("ZOPRO_910_TRACE").is_some() {
++        eprintln!("ZP910_PACKS {} {count}", workspace.len());
++    }
++    a
++}
++
++#[cfg(test)]
++#[test]
++fn sequential_euler_matches_independent_polynomials_and_empty_inputs() {
++    let pool = rayon::ThreadPoolBuilder::new()
++        .num_threads(4)
++        .build()
++        .unwrap();
++    pool.install(|| {
++        for n in [16usize, 32, 128, 8192, 32768, 65536, 131072, 262144] {
++            for orientation in [1u64, 3] {
++                let root = Fr::root_of_unity(n).unwrap().pow(&[orientation]);
++                let coset = Fr::from(5u64);
++                let mut plan = Plan::new(n, root, coset, denominator(n, coset).unwrap());
++                plan.prepare_euler_basis();
++                let evaluate = |terms: &[(usize, u64)], derivative| {
++                    let mut out = vec![Fr::ZERO; n];
++                    for &(k, c) in terms {
++                        let delta = root.pow(&[k as u64]);
++                        let mut value =
++                            Fr::from(c) * Fr::from(if derivative { k as u64 } else { 1 });
++                        for x in &mut out {
++                            *x += value;
++                            value *= delta;
++                        }
++                    }
++                    out
++                };
++                let a = [(0, 1), (1, 17), (n / 2 + 1, 3), (n - 1, 31)];
++                let b = [(2, 5), (n / 3, 213), (n - 2, 71)];
++                let (a0, b0) = (evaluate(&a, false), evaluate(&b, false));
++                let (da, db) = (evaluate(&a, true), evaluate(&b, true));
++                let scale = Fr::from(n as u64);
++                let expected = (0..n)
++                    .map(|i| scale * (da[i] * b0[i] + a0[i] * db[i]))
++                    .collect::<Vec<_>>();
++                assert_eq!(product(&plan, a0, &b0), expected);
++                assert!(product(&plan, Vec::new(), &[]).is_empty());
++                let count = n / 2 + 3;
++                assert!(product(&plan, Vec::new(), &b0[..count])
++                    .iter()
++                    .all(|x| *x == Fr::ZERO));
++            }
++        }
++    });
++}
