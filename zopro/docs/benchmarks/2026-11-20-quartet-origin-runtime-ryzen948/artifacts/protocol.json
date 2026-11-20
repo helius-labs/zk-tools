@@ -1,0 +1,21 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "ordinary",
+    "prior",
+    "exact",
+    "shared"
+  ],
+  "blocks": 8,
+  "rounds": 17,
+  "placement": "24 main and 8 frontend Ryzen logical CPUs, pinned seeded 4x2 schedule.",
+  "calibration": "Same-build ordinary within 2% of frozen. Same-build exact compacted path within 2% of prior.",
+  "qualification": "Shared compares with frozen, same-build ordinary, previous compacted executable and same-build direct checks for lower paired medians and six of eight wins on both inputs.",
+  "correctness": "Separate traced proofs compare every certified quartet with the original exact scalar predicate. Check offset-free route, zero optional budget, and invalid K count with valid B2. All exports verified independently.",
+  "source": "04796bb8692e4bfb28f270405ead110b94608faa1491c370217a05b5f030141b"
+}
