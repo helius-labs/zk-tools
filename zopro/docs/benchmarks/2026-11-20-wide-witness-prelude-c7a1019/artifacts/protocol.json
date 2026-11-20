@@ -1,0 +1,140 @@
+{
+  "shapes": [
+    "1x4",
+    "1x16",
+    "2x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "layouts": {
+    "1x4": {
+      "exact": [
+        56,
+        "exact"
+      ],
+      "control56": [
+        56,
+        "ordinary"
+      ],
+      "ins56": [
+        56,
+        "instructions"
+      ],
+      "control48": [
+        48,
+        "ordinary"
+      ],
+      "ins48": [
+        48,
+        "instructions"
+      ],
+      "control40": [
+        40,
+        "ordinary"
+      ],
+      "ins40": [
+        40,
+        "instructions"
+      ],
+      "aeglos": [
+        96,
+        "aeglos"
+      ]
+    },
+    "1x16": {
+      "exact": [
+        32,
+        "exact"
+      ],
+      "control32": [
+        32,
+        "ordinary"
+      ],
+      "ins32": [
+        32,
+        "instructions"
+      ],
+      "all32": [
+        32,
+        "all"
+      ],
+      "control40": [
+        40,
+        "ordinary"
+      ],
+      "ins40": [
+        40,
+        "instructions"
+      ],
+      "all40": [
+        40,
+        "all"
+      ],
+      "aeglos": [
+        96,
+        "aeglos"
+      ]
+    },
+    "2x2": {
+      "exact": [
+        32,
+        "exact"
+      ],
+      "control32": [
+        32,
+        "ordinary"
+      ],
+      "ins32": [
+        32,
+        "instructions"
+      ],
+      "all32": [
+        32,
+        "all"
+      ],
+      "aeglos": [
+        96,
+        "aeglos"
+      ]
+    }
+  },
+  "root": "/opt/zopro-wide-prelude1019",
+  "panels": {
+    "timing": [
+      8,
+      17
+    ],
+    "route": [
+      2,
+      5
+    ]
+  },
+  "reference": {
+    "2x2": {
+      "cpu_ms": 59,
+      "metal_ms": 30
+    }
+  },
+  "build": {
+    "executable": "0a413b159872218fe22f35fe21dc062e192936846d041f94255b163172d72f94",
+    "source_patch": "6a30406f5ea48abca00ba234b588e1d7dd3904820956a5c2e1d1524901acf8cf",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/msm_affine/workspace.rs",
+      "crates/zopro-prover/src/lib.rs",
+      "crates/zopro-bench/examples/cpu-sdk.rs",
+      "crates/zopro-bench/examples/support/placement.rs"
+    ]
+  },
+  "trial_build": {
+    "executable": "85ab482726508bf0db36aedf45dfe241789dfef86ccc3ca65270d2fbbc516c83",
+    "source_patch": "10b30e17e5fabe0d36579540719f0e14be32414834e52e0038475ecdc1076d3e",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/solver.rs"
+    ]
+  },
+  "scope": "Confirm the Ryzen wider-pool witness result on the remaining C7a shapes."
+}
