@@ -871,13 +871,13 @@ pub use rayon::ThreadPool as FrontendThreadPool;
 fn select_solver_pool<'a>(
     solver: Option<&'a FrontendThreadPool>,
     frontend: Option<&'a FrontendThreadPool>,
-    use_frontend: bool,
+    use_frontend: impl FnOnce() -> bool,
 ) -> Option<&'a FrontendThreadPool> {
-    let workers = rayon::current_num_threads();
-    let smaller = |pool: &&FrontendThreadPool| pool.current_num_threads() < workers;
+    let smaller =
+        |pool: &&FrontendThreadPool| pool.current_num_threads() < rayon::current_num_threads();
     solver
         .filter(smaller)
-        .or_else(|| frontend.filter(|pool| use_frontend && smaller(pool)))
+        .or_else(|| frontend.filter(smaller).filter(|_| use_frontend()))
 }
 
 #[cfg(all(test, target_os = "linux", target_arch = "x86_64"))]
@@ -889,7 +889,7 @@ fn explicit_solver_pool_takes_precedence_over_frontend() {
     let frontend = pool(2);
     let selected = |solver, use_frontend| {
         current.install(|| {
-            select_solver_pool(solver, Some(&frontend), use_frontend)
+            select_solver_pool(solver, Some(&frontend), || use_frontend)
                 .map(FrontendThreadPool::current_num_threads)
         })
     };
@@ -898,6 +898,12 @@ fn explicit_solver_pool_takes_precedence_over_frontend() {
     assert_eq!(selected(Some(&current), true), Some(2));
     assert_eq!(selected(Some(&current), false), None);
     assert_eq!(selected(None, false), None);
+    current.install(|| {
+        let selected = select_solver_pool(Some(&solver), Some(&frontend), || {
+            panic!("explicit solver selection must skip the frontend flag")
+        });
+        assert_eq!(selected.map(FrontendThreadPool::current_num_threads), Some(1));
+    });
 }
 
 #[cfg(all(
@@ -1335,7 +1341,7 @@ impl Key {
             select_solver_pool(
                 self.solver_pool.as_deref(),
                 self.frontend_pool.as_deref(),
-                std::env::var_os("ZOPRO_CPU_SOLVER_FRONTEND").is_some_and(|value| value == "1"),
+                || std::env::var_os("ZOPRO_CPU_SOLVER_FRONTEND").is_some_and(|value| value == "1"),
             )
         };
         #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
