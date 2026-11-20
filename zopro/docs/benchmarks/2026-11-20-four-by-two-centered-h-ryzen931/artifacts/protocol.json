@@ -1,0 +1,54 @@
+{
+  "shape": "4x2",
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "ordinary",
+    "unsigned12",
+    "centered"
+  ],
+  "main": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23
+  ],
+  "front": [
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31
+  ],
+  "point_policy": "Uses the same 22 radix-4096 columns, two ranges for full columns, original point buffers and existing indexed leading reduction.",
+  "change": "During canonical conversion, center scalars at half the field modulus and store a sign in their unused high bit. Signed full buckets reuse deferred Y negation. The leading column now needs only magnitudes 0 or 1 and reduces positive and negative index lists separately.",
+  "gate": "Frozen and ordinary within 2% in paired median on each input. Centered needs lower paired medians and at least six of eight wins against frozen, ordinary and explicit unsigned12 on each input.",
+  "main_capture": "Eight counterbalanced blocks with three primes and 17 measured calls. The separate three clocked blocks prime three calls and measure seven.",
+  "proof": "All 88 exports independently verified. Route probes compare exact observed counts to the model and exercise optional workspace denial."
+}

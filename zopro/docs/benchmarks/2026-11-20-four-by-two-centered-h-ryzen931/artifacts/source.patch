@@ -1,0 +1,212 @@
+--- a/crates/zopro-core/src/msm_affine.rs
++++ b/crates/zopro-core/src/msm_affine.rs
+@@ -196,6 +196,9 @@
+ }
+ 
+ #[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
++mod centered_h;
++
++#[cfg(all(zopro_resource_schedule, zopro_g2_horner_buckets, feature = "ifma8", target_os = "linux", target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", not(no_ifma)))]
+ pub(super) fn try_h_window_layout(
+     bases: &[zopro_bn254::G1Affine],
+     scalars: &mut [Fr],
+@@ -214,6 +217,7 @@
+     }
+     let (width, signed, parts) = match mode {
+         "unsigned12" => (12, false, 2),
++        "centered" if crate::simd::cpu_option("ZOPRO_CPU_TOP_TREE") => (12, false, 2),
+         "unsigned12-one" => (12, false, 1),
+         "signed13" => (13, true, 2),
+         "unsigned13" => (13, false, 2),
+@@ -229,6 +233,9 @@
+     }
+     if std::env::var_os("ZOPRO_897_TRACE").is_some() {
+         eprintln!("ZP897_LAYOUT {mode} {n} {width} {signed} {parts} {bytes}");
++    }
++    if mode == "centered" {
++        return Some(centered_h::run(bases, scalars));
+     }
+     let words = canonical(scalars);
+     if signed {
+--- /dev/null
++++ b/crates/zopro-core/src/msm_affine/centered_h.rs
+@@ -0,0 +1,179 @@
++//! Use centered Fr magnitudes and fold their signs into the existing H inputs.
++use super::*;
++use zopro_bn254::{G1Affine, G1Projective};
++
++const SIGN: u64 = 1 << 63;
++const WIDTH: usize = 12;
++const FULL: usize = 21;
++const HALF: [u64; 4] = [
++    (Fr::MODULUS[0] >> 1) | (Fr::MODULUS[1] << 63),
++    (Fr::MODULUS[1] >> 1) | (Fr::MODULUS[2] << 63),
++    (Fr::MODULUS[2] >> 1) | (Fr::MODULUS[3] << 63),
++    Fr::MODULUS[3] >> 1,
++];
++
++fn center(words: &mut [u64; 4]) {
++    if words.iter().rev().cmp(HALF.iter().rev()).is_le() {
++        return;
++    }
++    let mut borrow = false;
++    for (digit, modulus) in words.iter_mut().zip(Fr::MODULUS) {
++        let (partial, underflow) = modulus.overflowing_sub(*digit);
++        let (value, carry) = partial.overflowing_sub(u64::from(borrow));
++        *digit = value;
++        borrow = underflow || carry;
++    }
++    debug_assert!(!borrow);
++    words[3] |= SIGN;
++}
++
++#[inline(always)]
++fn centered_digit(words: &[u64; 4], window: usize) -> i16 {
++    debug_assert!(window < FULL);
++    let digit = unsigned_digit(words, window, WIDTH);
++    if words[3] & SIGN == 0 {
++        digit
++    } else {
++        -digit
++    }
++}
++
++fn top(bases: &[G1Affine], words: &[[u64; 4]]) -> G1Projective {
++    let mut counts = [0usize; 2];
++    let top = |w: &[u64; 4]| (w[3] >> 60) & 7;
++    for (base, coefficient) in bases.iter().zip(words) {
++        let digit = top(coefficient);
++        debug_assert!(digit <= 1);
++        if digit != 0 && !base.is_identity() {
++            counts[usize::from(coefficient[3] & SIGN != 0)] += 1;
++        }
++    }
++    if counts == [0, 0] {
++        return G1Projective::IDENTITY;
++    }
++    let starts = [0, counts[0], counts.iter().sum()];
++    let mut positions = [0, starts[1]];
++    let mut order = vec![0u32; starts[2]];
++    for (i, (base, coefficient)) in bases.iter().zip(words).enumerate() {
++        if top(coefficient) != 0 && !base.is_identity() {
++            let b = usize::from(coefficient[3] & SIGN != 0);
++            order[positions[b]] = i as u32;
++            positions[b] += 1;
++        }
++    }
++    if std::env::var_os("ZOPRO_931_TRACE").is_some() {
++        eprintln!("ZP931_TOP {} {}", counts[0], counts[1]);
++    }
++    let sums = crate::msm::reduce_indexed_buckets(bases, &order, &starts);
++    sums[0] + (-sums[1])
++}
++
++pub(super) fn run(bases: &[G1Affine], scalars: &mut [Fr]) -> G1Projective {
++    scalars.par_iter_mut().with_min_len(128).for_each(|value| {
++        let mut words = value.to_canonical();
++        center(&mut words);
++        *value = Fr::from_montgomery(words);
++    });
++    // The H coefficients are consumed by this query, exactly as in canonical().
++    // The field type is repr(transparent) over its four limbs.
++    let words =
++        unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
++    evaluate(bases, words)
++}
++
++fn evaluate(bases: &[G1Affine], words: &[[u64; 4]]) -> G1Projective {
++    let size = batch_size(WIDTH + 1).max(32);
++    let part = bases.len().div_ceil(2);
++    let sums: Vec<_> = (0..=FULL)
++        .into_par_iter()
++        .map(|w| {
++            if w == FULL {
++                return top(bases, words);
++            }
++            let mut buckets: Vec<_> = (0..2)
++                .into_par_iter()
++                .map(|p| {
++                    let range = p * part..((p + 1) * part).min(bases.len());
++                    let digits = words[range.clone()].iter().map(|x| centered_digit(x, w));
++                    affine_buckets(fill_window(&bases[range], digits, WIDTH + 1, size))
++                })
++                .collect();
++            let mut combined = buckets.swap_remove(0);
++            merge_buckets(&mut combined, &buckets[0]);
++            crate::msm::weighted_affine(&combined)
++        })
++        .collect();
++    let mut result = G1Projective::IDENTITY;
++    for sum in sums.into_iter().rev() {
++        for _ in 0..WIDTH {
++            result = result.double();
++        }
++        result += sum;
++    }
++    result
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn centered_h_matches_independent_scalar_oracle() {
++        let rand = |num: usize| {
++            if num % 11 == 0 {
++                Fr::ZERO
++            } else if num % 7 == 0 {
++                -Fr::ONE
++            } else if num % 5 == 0 {
++                Fr::from(2u64).pow(&[252 + num as u64 % 2])
++            } else {
++                let seed = Fr::from(num as u64 * 601 + 1);
++                let x = seed.pow(&[17]);
++                if num % 3 == 0 {
++                    -x
++                } else {
++                    x
++                }
++            }
++        };
++        let mut bases = Vec::new();
++        let mut words = Vec::new();
++        let mut expected = Fr::ZERO;
++        for i in 0..277 {
++            let scalar = rand(i);
++            let weight = if i % 13 == 0 {
++                Fr::ZERO
++            } else {
++                Fr::from(i as u64 * 13 + 9)
++            };
++            bases.push((G1Affine::GENERATOR * weight).to_affine());
++            words.push(scalar);
++            expected += weight * scalar;
++        }
++        assert_eq!(
++            run(&bases, &mut words).to_affine(),
++            (G1Affine::GENERATOR * expected).to_affine()
++        );
++    }
++
++    #[test]
++    fn centered_words_under_half_match_the_original_field_values() {
++        let half = Fr::from_canonical(HALF).unwrap();
++        for field in [
++            Fr::ZERO,
++            Fr::ONE,
++            -Fr::ONE,
++            half - Fr::ONE,
++            half,
++            half + Fr::ONE,
++        ] {
++            let mut words = field.to_canonical();
++            center(&mut words);
++            let negative = words[3] & SIGN != 0;
++            words[3] &= !SIGN;
++            assert!(words.iter().rev().cmp(HALF.iter().rev()).is_le());
++            let abs = Fr::from_canonical(words).unwrap();
++            assert_eq!(if negative { -abs } else { abs }, field);
++        }
++    }
++}
