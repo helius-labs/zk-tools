@@ -1,0 +1,98 @@
+--- a/crates/zopro-core/src/solver.rs
++++ b/crates/zopro-core/src/solver.rs
+@@ -470,6 +470,84 @@
+         }
+         Ok(())
+     })
++}
++
++#[derive(Clone, Copy)]
++enum SlotRetention {
++    Copy,
++    Compact,
++    Runs,
++}
++
++fn solver_slot_retention() -> SlotRetention {
++    static RETENTION: std::sync::OnceLock<SlotRetention> = std::sync::OnceLock::new();
++    *RETENTION.get_or_init(|| match std::env::var("ZOPRO_TRIAL_SOLVER_SLOTS").as_deref() {
++        Ok("compact") => SlotRetention::Compact,
++        Ok("runs") => SlotRetention::Runs,
++        _ => SlotRetention::Copy,
++    })
++}
++
++fn retain_solver_slots(w: &mut Vec<Fr>, wires: usize, slots: &[usize], mode: SlotRetention) {
++    if slots.is_empty() {
++        w.truncate(wires);
++        return;
++    }
++    let ordered = !matches!(mode, SlotRetention::Copy)
++        && slots[0] >= wires
++        && slots[slots.len() - 1] < w.len()
++        && slots.windows(2).all(|p| p[0] < p[1]);
++    if !ordered {
++        let selected: Vec<_> = slots.iter().map(|&slot| w[slot]).collect();
++        w.truncate(wires);
++        w.extend(selected);
++        return;
++    }
++    // Sources increase and every source index is at or above its target.
++    // Previously moved values cannot obscure an unread source.
++    match mode {
++        SlotRetention::Compact => {
++            for (offset, &source) in slots.iter().enumerate() {
++                w[wires + offset] = w[source];
++            }
++        }
++        SlotRetention::Runs => {
++            let mut begin = 0;
++            while begin < slots.len() {
++                let source = slots[begin];
++                let mut end = begin + 1;
++                while end < slots.len() && slots[end] - source == end - begin {
++                    end += 1;
++                }
++                let target = wires + begin;
++                if source != target {
++                    w.copy_within(source..source + (end - begin), target);
++                }
++                begin = end;
++            }
++        }
++        SlotRetention::Copy => unreachable!("ordered compaction requires an in-place mode"),
++    }
++    if std::env::var_os("ZOPRO_TRIAL_SOLVER_SLOTS_TRACE").is_some() {
++        eprintln!("SLOT_COMPACTION {} {} {}", wires, slots.len(), w.len());
++    }
++    w.truncate(wires + slots.len());
++}
++
++#[cfg(test)]
++#[test]
++fn folded_slot_compaction_matches_copy_for_all_slot_orders() {
++    let base: Vec<_> = (0..1024).map(Fr::from_u64).collect();
++    for slots in [&[][..], &[64, 65, 68, 69, 70, 511, 1023], &[68, 65, 66, 69, 68, 25],
++                  &[0], &[64], &(64..1024).collect::<Vec<_>>()] {
++        let mut expected=base.clone();
++        retain_solver_slots(&mut expected, 64, slots, SlotRetention::Copy);
++        for mode in [SlotRetention::Compact, SlotRetention::Runs] {
++            let mut actual=base.clone();
++            retain_solver_slots(&mut actual, 64, slots, mode);
++            assert_eq!(actual,expected);
++        }
++    }
+ }
+ 
+ /// Epochs of the parallel solve (ZOPRO_SOLVE_EPOCHS; 0 solves on one
+@@ -1312,9 +1390,7 @@
+         // Retain this proof's allocation until its MSMs finish instead of
+         // copying the wires into another allocation.
+         let started = crate::trace("solve-execute", started);
+-        let selected: Vec<_> = slots.iter().map(|&slot| w[slot]).collect();
+-        w.truncate(self.n_wires);
+-        w.extend(selected);
++        retain_solver_slots(&mut w, self.n_wires, slots, solver_slot_retention());
+         crate::trace("solve-copy", started);
+         Ok(Solution { w, a, b, c })
+     }
