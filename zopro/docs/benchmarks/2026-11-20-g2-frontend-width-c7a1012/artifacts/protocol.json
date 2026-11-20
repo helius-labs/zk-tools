@@ -1,0 +1,77 @@
+{
+  "shapes": [
+    "1x4",
+    "1x8",
+    "1x16",
+    "2x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "port",
+    "advance8",
+    "advance16",
+    "group-off",
+    "coarse",
+    "coarse-control",
+    "aeglos"
+  ],
+  "layouts": {
+    "1x4": 64,
+    "1x8": 48,
+    "1x16": 48,
+    "2x2": 48
+  },
+  "root": "/opt/zopro-g2-front1012",
+  "build": {
+    "executable": "0a413b159872218fe22f35fe21dc062e192936846d041f94255b163172d72f94",
+    "source_patch": "6a30406f5ea48abca00ba234b588e1d7dd3904820956a5c2e1d1524901acf8cf",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/msm_affine/workspace.rs",
+      "crates/zopro-prover/src/lib.rs",
+      "crates/zopro-bench/examples/cpu-sdk.rs",
+      "crates/zopro-bench/examples/support/placement.rs"
+    ]
+  },
+  "trial_build": {
+    "executable": "afafe2bd73cd62e5e9f9a47364f990a2005e9eaea1a1eec8dde2cb0f9b8ab531",
+    "source_patch": "7a4eabf4266b21148dceded1177b101db526aa66b9ef8a5b475ce66787948178",
+    "files": [
+      "crates/zopro-core/src/lib.rs",
+      "crates/zopro-core/src/msm_affine/workspace.rs",
+      "crates/zopro-prover/src/lib.rs",
+      "crates/zopro-bench/examples/cpu-sdk.rs",
+      "crates/zopro-bench/examples/support/placement.rs",
+      "crates/zopro-core/src/msm_affine.rs",
+      "crates/zopro-core/src/msm_affine/g2_phi.rs"
+    ]
+  },
+  "panels": {
+    "timing": [
+      8,
+      17,
+      [
+        "frozen",
+        "port",
+        "advance8",
+        "advance16",
+        "group-off",
+        "coarse",
+        "coarse-control",
+        "aeglos"
+      ]
+    ]
+  },
+  "blocks": 8,
+  "reference": {
+    "2x2": {
+      "cpu_ms": 59,
+      "metal_ms": 30
+    }
+  },
+  "scope": "Measure independent G2 placement, grouping bypass and overlapping scalar preparation against the exact scoped SDK and Aeglos."
+}
