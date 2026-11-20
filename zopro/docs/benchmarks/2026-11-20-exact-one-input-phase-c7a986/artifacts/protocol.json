@@ -1,0 +1,74 @@
+{
+  "shapes": [
+    "1x4",
+    "1x8",
+    "1x16"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "plain",
+    "trace",
+    "aeglos"
+  ],
+  "root": "/opt/zopro-exact-phase986",
+  "blocks": 5,
+  "phase_scope": "Exact powered-on warm SDK proofs with Linux ELF entry and return probes, paired with an uninstrumented byte-identical executable and prepared Aeglos.",
+  "source": "979 exact profiles and both pinned inputs",
+  "probe": {
+    "2439592e837997706bbb74cdf950fc13488cb7e1644558823585780a5791e132": {
+      "path": "/opt/zopro-exact-phase986/traced/sdk-0",
+      "group": "zp986_0",
+      "sites": {
+        "prove": "0x513ee0",
+        "solve": "0x4236c0",
+        "quotient": "0x476010",
+        "query": "0x475220",
+        "canonical": "0x472ad0",
+        "g2exclusive": "0x4ada20",
+        "g2grouped": "0x243660",
+        "g1raw": "0x1d0120",
+        "g1grouped": "0x1d0000"
+      },
+      "symbols": {
+        "prove": "<zopro_zolana::Prover>::prove",
+        "solve": "<zopro_core::solver::Plan>::solve_with_pool",
+        "quotient": "<zopro_core::lagrange::Queries>::product_values",
+        "query": "<zopro_core::Key>::cpu_msms",
+        "canonical": "<zopro_core::Key>::solve_canonical_wires",
+        "g2exclusive": "zopro_core::msm_affine::g2_query_exclusive",
+        "g2grouped": "zopro_core::msm_affine::msm_grouped::<zopro_bn254::curve::G2Config>",
+        "g1raw": "zopro_core::msm_affine::msm_raw::<zopro_bn254::curve::G1Config>",
+        "g1grouped": "zopro_core::msm_affine::msm_grouped::<zopro_bn254::curve::G1Config>"
+      }
+    },
+    "49fbd10240302b76df70693d99ab68e7bfdde4e24ced17a764a11e571cd72b8d": {
+      "path": "/opt/zopro-exact-phase986/traced/sdk-1",
+      "group": "zp986_1",
+      "sites": {
+        "prove": "0x526070",
+        "solve": "0x4249d0",
+        "quotient": "0x477310",
+        "query": "0x476520",
+        "canonical": "0x473dd0",
+        "g2exclusive": "0x48a490",
+        "g2grouped": "0x244970",
+        "g1raw": "0x1d1430",
+        "g1grouped": "0x1d1310"
+      },
+      "symbols": {
+        "prove": "<zopro_zolana::Prover>::prove",
+        "solve": "<zopro_core::solver::Plan>::solve_with_pool",
+        "quotient": "<zopro_core::lagrange::Queries>::product_values",
+        "query": "<zopro_core::Key>::cpu_msms",
+        "canonical": "<zopro_core::Key>::solve_canonical_wires",
+        "g2exclusive": "zopro_core::msm_affine::g2_query_exclusive",
+        "g2grouped": "zopro_core::msm_affine::msm_grouped::<zopro_bn254::curve::G2Config>",
+        "g1raw": "zopro_core::msm_affine::msm_raw::<zopro_bn254::curve::G1Config>",
+        "g1grouped": "zopro_core::msm_affine::msm_grouped::<zopro_bn254::curve::G1Config>"
+      }
+    }
+  }
+}
