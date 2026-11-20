@@ -1,0 +1,61 @@
+{
+  "root": "/opt/zopro-group-epoch1011",
+  "shapes": [
+    "4x2",
+    "8x2"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "control",
+    "balanced",
+    "alternate",
+    "epochs3",
+    "epochs5",
+    "epochs2",
+    "aeglos"
+  ],
+  "layouts": {
+    "control": [
+      null,
+      4
+    ],
+    "balanced": [
+      "balanced",
+      4
+    ],
+    "alternate": [
+      "alternate",
+      4
+    ],
+    "epochs3": [
+      null,
+      3
+    ],
+    "epochs5": [
+      null,
+      5
+    ],
+    "epochs2": [
+      null,
+      2
+    ]
+  },
+  "blocks": 10,
+  "executable": "4bf5d58ecf1be9689abe7ff33e6182190f931ba0aaa155f7d202e531e99fc187",
+  "reference": {
+    "4x2": {
+      "cpu_ms": 109,
+      "metal_ms": 48
+    },
+    "8x2": {
+      "cpu_ms": 189,
+      "metal_ms": 74
+    }
+  },
+  "scope": "Compare LLC-balanced and alternate solver masks and two, three, four, and five witness-schedule epochs on the selected 72+24 layout.",
+  "gate": "Require at least seven of ten paired wins against the same-host selected control on both requests. Report whether each median meets 10\u00d7 on CPU and Metal independently."
+}
