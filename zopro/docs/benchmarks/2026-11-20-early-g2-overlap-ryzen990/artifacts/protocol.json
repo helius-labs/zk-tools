@@ -1,0 +1,64 @@
+{
+  "shapes": [
+    "1x8",
+    "1x16"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "pinned",
+    "late",
+    "early"
+  ],
+  "main": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "front": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+  ],
+  "panels": {
+    "route": [
+      1,
+      1,
+      [
+        "early",
+        "denied"
+      ]
+    ],
+    "timing": [
+      8,
+      17,
+      [
+        "pinned",
+        "late",
+        "early"
+      ]
+    ],
+    "clock": [
+      3,
+      13,
+      [
+        "early"
+      ]
+    ]
+  },
+  "scope": "Run exactly the existing exclusive G2 MSM on a disjoint frontend pool while the main pool computes the quotient, then join the point into the ordinary proof.",
+  "local_placement": "Eight physical Ryzen cores per pool with SMT siblings excluded.",
+  "gate": "Negative paired medians and at least six of eight wins vs both controls, with same-build late within 2% of pinned and a verified early/denied route on both inputs."
+}
