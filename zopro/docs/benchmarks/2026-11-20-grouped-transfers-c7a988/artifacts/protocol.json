@@ -1,0 +1,50 @@
+{
+  "shapes": [
+    "3x2",
+    "3x4",
+    "4x4",
+    "4x8"
+  ],
+  "inputs": [
+    "catalog",
+    "heldout"
+  ],
+  "modes": [
+    "frozen",
+    "modern",
+    "tiled",
+    "aeglos"
+  ],
+  "clocked": [
+    "modern",
+    "tiled"
+  ],
+  "root": "/opt/zopro-grouped-tiles988",
+  "blocks": 8,
+  "clock_blocks": 3,
+  "expected": {
+    "3x2": [
+      "b2",
+      "k"
+    ],
+    "3x4": [
+      "b2",
+      "k"
+    ],
+    "4x4": [
+      "a",
+      "b2",
+      "k"
+    ],
+    "4x8": [
+      "a",
+      "b2",
+      "k"
+    ]
+  },
+  "source_patch": "bf40b14c3d8a9541628b9964565f43db43e880383e7317979449968a73f99169",
+  "exact_executable": "168d5d854baae00956fa14d694844a5dbb7a22bd88828dec5827546753f8ef69",
+  "scope": "Transfer the already verified 985 grouped profile to four additional gaps with matching point-tile eligibility, with and without A/K/B2 tiles, against exact 979 controls.",
+  "gate": "Each candidate needs negative paired medians and at least six of eight wins per input against frozen. Tiles also compare against modern. Compare all against prepared Aeglos.",
+  "correctness": "Independent Gnark verification, exact class memberships and per-lane curve results, and optional scratch denial."
+}
