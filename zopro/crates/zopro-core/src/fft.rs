@@ -218,7 +218,7 @@ impl Twiddles {
             single: None,
         }
     }
-    /// Each packed five-stage column reads31 roots. Store those roots
+    /// Each packed five-stage column reads 31 roots. Store those roots
     /// together so large transforms read one contiguous region per column.
     #[allow(dead_code)]
     fn prepare_columns(&mut self) {
@@ -234,6 +234,20 @@ impl Twiddles {
         else {
             return;
         };
+        let columns = self.column_roots();
+        #[cfg(zopro_live_preparation_charge)]
+        let reservation = reservation.retain(
+            crate::preparation::allocation_bytes(&columns).and_then(|outer| {
+                columns.iter().try_fold(outer, |bytes, roots| {
+                    bytes.checked_add(crate::preparation::allocation_bytes(roots)?)
+                })
+            }),
+        );
+        self.columns = columns;
+        self.reservations.push(reservation);
+    }
+
+    fn column_roots(&self) -> Vec<Vec<Quad>> {
         let mut columns = vec![Vec::new(); self.layers.len()];
         for level in (0..self.layers.len()).step_by(5) {
             if level + 4 >= self.layers.len() {
@@ -259,16 +273,7 @@ impl Twiddles {
             assert_eq!(roots.len(), 31 * q);
             columns[level] = roots;
         }
-        #[cfg(zopro_live_preparation_charge)]
-        let reservation = reservation.retain(
-            crate::preparation::allocation_bytes(&columns).and_then(|outer| {
-                columns.iter().try_fold(outer, |bytes, roots| {
-                    bytes.checked_add(crate::preparation::allocation_bytes(roots)?)
-                })
-            }),
-        );
-        self.columns = columns;
-        self.reservations.push(reservation);
+        columns
     }
     /// Fold coefficient weights g^i into the DIT butterfly twiddles.
     /// Layer k contributes g^(2^k) for the coefficient's kth bit.

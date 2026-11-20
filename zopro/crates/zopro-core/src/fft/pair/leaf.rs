@@ -240,13 +240,13 @@ mod tests {
                             check::<Pair>(&plan, root, false, 37);
                         }
                         if n == 262144 {
-                            // Each builder's peak may consume the entire existing optional
-                            // budget. Exercise admitted directions one at a time.
-                            plan.roots.prepare_columns();
+                            // Exercise cached arithmetic independently from the
+                            // process-wide preparation budget used by other tests.
+                            plan.roots.columns = plan.roots.column_roots();
                             assert!(!plan.roots.columns.is_empty());
                             check::<PackedPair>(&plan, root, false, 61);
                             plan.roots = make_roots(root);
-                            plan.inverse_roots.prepare_columns();
+                            plan.inverse_roots.columns = plan.inverse_roots.column_roots();
                             assert!(!plan.inverse_roots.columns.is_empty());
                             check::<PackedPair>(&plan, root, false, 79);
                         }
