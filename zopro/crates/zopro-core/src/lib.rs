@@ -352,6 +352,9 @@ fn sort_pool(gpu_digits: bool) -> &'static rayon::ThreadPool {
     })
 }
 
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+const APPLE_SMALL_PAIRED_G1_WORKERS: usize = 11;
+
 /// Pool sizes used by the overlapping CPU and Metal MSM schedules.
 #[cfg(any(gpu, all(target_os = "macos", target_arch = "aarch64")))]
 fn apple_msm_pool(threads: usize) -> Option<&'static rayon::ThreadPool> {
@@ -2508,7 +2511,9 @@ impl Key {
                         && msm_affine::apple_fused_kh_enabled(self.k.len(), self.domain - 1)
                         && msm_affine::apple_g2_three_parts_enabled()
                     {
-                        if let Some((g1, g2)) = apple_msm_pool(11).zip(apple_msm_pool(7)) {
+                        if let Some((g1, g2)) = apple_msm_pool(APPLE_SMALL_PAIRED_G1_WORKERS)
+                            .zip(apple_msm_pool(18 - APPLE_SMALL_PAIRED_G1_WORKERS))
+                        {
                             return Some((g1, g2, true));
                         }
                     }

@@ -502,6 +502,17 @@ pub(super) fn fused_g1_msm(
         if h.len() == (1 << 15) - 1 {
             #[cfg(feature = "trace")]
             log::info!("ZOPRO_TRACE cpu-fused-kh-small-windows");
+            if rayon::current_num_threads() == crate::APPLE_SMALL_PAIRED_G1_WORKERS {
+                // The paired quotient schedule leaves enough workers for one
+                // task per wide window, so this proof skips range merges.
+                #[cfg(feature = "trace")]
+                log::info!("ZOPRO_TRACE cpu-fused-kh-wide-single-range");
+                return g1_endomorphism_msm::<1, 2, 9, true>(
+                    queries,
+                    WIDE_FUSED_G1_WIDTHS,
+                    |width| batch_size(width) * 2 / 3,
+                );
+            }
             return g1_endomorphism_msm::<3, 2, 10, true>(queries, THREE_PART_WIDTHS, batch_size);
         }
     }
@@ -707,6 +718,12 @@ mod tests {
         );
         assert_eq!(
             g1_endomorphism_msm::<3, 2, 10, true>(queries, THREE_PART_WIDTHS, batch_size),
+            expected
+        );
+        assert_eq!(
+            g1_endomorphism_msm::<1, 2, 9, true>(queries, WIDE_FUSED_G1_WIDTHS, |width| {
+                batch_size(width) * 2 / 3
+            }),
             expected
         );
         for split in [0, 1, 255, 511, 512] {
