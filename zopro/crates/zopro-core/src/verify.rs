@@ -200,6 +200,18 @@ impl VerifyingKey {
             );
             (proof, ab * cd)
         };
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        let (proved, public_value) = {
+            // Keep generation on the caller. Metal waits for scoped threads
+            // that need the Rayon pool to prepare its work.
+            let mut public_value = Fq12::ONE;
+            let proved = rayon::in_place_scope(|scope| {
+                scope.spawn(|_| public_value = public_term());
+                generate().map(proof_terms)
+            });
+            (proved, public_value)
+        };
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
         let (proved, public_value) = rayon::join(|| generate().map(proof_terms), public_term);
         let (proof, abcd) = proved?;
         let pairing = final_exponentiation_with_packing(
@@ -444,6 +456,15 @@ mod overlap_tests {
         let proof =
             Proof::from_raw(include_bytes!("../tests/fixtures/transfer-2x2.proof")).unwrap();
         let input = crate::decode_frs(include_bytes!("../tests/fixtures/transfer-2x2.public"))[0];
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        {
+            let caller = std::thread::current().id();
+            let result = key.verify_during_generation(&[input], || {
+                assert_eq!(std::thread::current().id(), caller);
+                Ok::<_, ()>(proof)
+            });
+            assert_eq!(result, Ok(Some(proof)));
+        }
         for (workers, packed) in [(1, false), (4, false), (1, true), (4, true)] {
             let mut key = key.clone();
             key.set_packed_final_exponentiation(packed);

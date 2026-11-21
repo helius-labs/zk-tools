@@ -853,19 +853,52 @@ where
     left.par_chunks_mut(512)
         .zip(right.par_chunks(512))
         .for_each(|(left, right)| {
-            let mut pairs = Vec::with_capacity(left.len());
-            for (i, (a, &b)) in left.iter_mut().zip(right).enumerate() {
-                if a.is_identity() {
-                    *a = b;
-                } else if b.is_identity() {
-                } else if a.x == b.x {
-                    *a = (*a + b).to_affine();
-                } else {
-                    pairs.push((i as u32, b));
-                }
-            }
+            let pairs = bucket_pairs(left, right, |point| *point);
             if !pairs.is_empty() {
                 BatchAdd::<C>::default().apply(left, &pairs);
+            }
+        });
+}
+
+// Handle exceptional sums before putting distinct-x pairs into a shared inversion.
+fn bucket_pairs<'a, C: CurveConfig, P>(
+    left: &mut [Affine<C>],
+    right: &'a [Affine<C>],
+    point: impl Fn(&'a Affine<C>) -> P,
+) -> Vec<(u32, P)> {
+    let mut pairs = Vec::with_capacity(left.len());
+    for (i, (a, b)) in left.iter_mut().zip(right).enumerate() {
+        if a.is_identity() {
+            *a = *b;
+        } else if b.is_identity() {
+        } else if a.x == b.x {
+            *a = (*a + *b).to_affine();
+        } else {
+            pairs.push((i as u32, point(b)));
+        }
+    }
+    pairs
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn merge_g2_buckets_scalar(left: &mut [zopro_bn254::G2Affine], right: &[zopro_bn254::G2Affine]) {
+    assert_eq!(left.len(), right.len());
+    const CHUNK: usize = 512;
+    left.par_chunks_mut(CHUNK)
+        .zip(right.par_chunks(CHUNK))
+        .for_each(|(left, right)| {
+            let pairs = bucket_pairs(left, right, |point| point);
+            if !pairs.is_empty() {
+                let mut busy = [0u64; CHUNK / 64];
+                let mut denominators = Vec::with_capacity(pairs.len());
+                let mut prefixes = Vec::with_capacity(pairs.len());
+                apply_scalar_batch::<zopro_bn254::G2Config, _, false>(
+                    left,
+                    &mut busy,
+                    &pairs,
+                    &mut denominators,
+                    &mut prefixes,
+                );
             }
         });
 }

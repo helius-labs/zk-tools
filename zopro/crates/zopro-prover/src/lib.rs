@@ -317,15 +317,29 @@ impl Prover {
                     verify_started = zopro_core::time::Instant::now();
                     Proof::from_raw(&raw).map_err(|_| Error::Unverified)
                 };
-                #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
-                let verified = if self.overlap_verification && self.public <= 16 {
-                    self.verifying_key
-                        .verify_during_generation(public, generate)
-                } else {
-                    generate()
-                        .map(|proof| self.verifying_key.verify(&proof, public).then_some(proof))
+                #[cfg(any(
+                    all(target_os = "macos", target_arch = "aarch64"),
+                    all(target_os = "linux", target_arch = "x86_64")
+                ))]
+                let verified = {
+                    // The verifier can compute its public term before the proof is ready.
+                    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+                    let overlap = self.public <= 16
+                        && std::env::var("ZOPRO_CPU_VERIFY_OVERLAP").as_deref() != Ok("0")
+                        && self.key.prefer_verification_overlap();
+                    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+                    let overlap = self.overlap_verification && self.public <= 16;
+                    if overlap {
+                        self.verifying_key.verify_during_generation(public, generate)
+                    } else {
+                        generate()
+                            .map(|proof| self.verifying_key.verify(&proof, public).then_some(proof))
+                    }
                 };
-                #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
+                #[cfg(not(any(
+                    all(target_os = "macos", target_arch = "aarch64"),
+                    all(target_os = "linux", target_arch = "x86_64")
+                )))]
                 let verified = generate()
                     .map(|proof| self.verifying_key.verify(&proof, public).then_some(proof));
                 let proof = match verified {

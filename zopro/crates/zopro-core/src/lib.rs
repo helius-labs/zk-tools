@@ -3400,6 +3400,14 @@ impl Key {
         !self.has_gpu() || cfg!(all(gpu, target_os = "macos", target_arch = "aarch64"))
     }
 
+    // Large CPU proofs benefit from keeping the shared pool focused on
+    // proving. Metal and smaller CPU proofs benefit from starting verification early.
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[doc(hidden)]
+    pub fn prefer_verification_overlap(&self) -> bool {
+        (self.has_gpu() || self.domain <= (1 << 16)) && rayon::current_num_threads() > 1
+    }
+
     /// Return a freshly randomized raw Groth16 proof on a supported backend.
     /// The ordinary five-part solving APIs retain their complete outputs.
     pub fn solve_rerandomized(

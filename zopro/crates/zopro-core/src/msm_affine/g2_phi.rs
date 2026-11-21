@@ -241,6 +241,9 @@ pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Proj
     short.par_iter_mut().for_each(|s| *s = phi_split(*s));
     let windows = window_offsets(BALANCED_WIDTHS);
     let mid = bases.len().div_ceil(2);
+    let scalar_merge = bases.len() <= (1 << 15)
+        && rayon::current_num_threads() == 6
+        && std::env::var("ZOPRO_CPU_G2_SCALAR_MERGE").as_deref() != Ok("0");
     let sums: Vec<_> = windows
         .into_par_iter()
         .map(|(offset, width)| {
@@ -255,7 +258,11 @@ pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Proj
                 affine_buckets(state.inner)
             };
             let (mut left, right) = rayon::join(|| part(0, mid), || part(mid, bases.len()));
-            merge_buckets(&mut left, &right);
+            if scalar_merge {
+                super::merge_g2_buckets_scalar(&mut left, &right);
+            } else {
+                merge_buckets(&mut left, &right);
+            }
             crate::msm::weighted_affine(&left)
         })
         .collect();
@@ -553,7 +560,12 @@ mod tests {
             }
             words.push(scalar.to_canonical());
         }
-        assert_eq!(balanced_msm(&bases, &mut words), G2Affine::GENERATOR * expected);
+        let expected = G2Affine::GENERATOR * expected;
+        for workers in [1, 6] {
+            let pool = rayon::ThreadPoolBuilder::new().num_threads(workers).build().unwrap();
+            let mut scalars = words.clone();
+            assert_eq!(pool.install(|| balanced_msm(&bases, &mut scalars)), expected);
+        }
     }
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
