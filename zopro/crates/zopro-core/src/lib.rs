@@ -351,18 +351,20 @@ fn sort_pool(gpu_digits: bool) -> &'static rayon::ThreadPool {
     })
 }
 
-/// Run G2 on a separate pool while the witness queries compact and sort
-/// their scalars on wide Apple silicon Macs.
-#[cfg(gpu)]
-fn compact_metal_g2_pool() -> &'static rayon::ThreadPool {
-    static POOL: std::sync::OnceLock<rayon::ThreadPool> = std::sync::OnceLock::new();
-    POOL.get_or_init(|| {
+/// Pool sizes used by the overlapping CPU and Metal MSM schedules.
+#[cfg(any(gpu, all(target_os = "macos", target_arch = "aarch64")))]
+fn apple_msm_pool(threads: usize) -> Option<&'static rayon::ThreadPool> {
+    static SIX: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
+    static TWELVE: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
+    let pool = if threads == 6 { &SIX } else { &TWELVE };
+    pool.get_or_init(|| {
         rayon::ThreadPoolBuilder::new()
-            .num_threads(12)
-            .thread_name(|i| format!("zopro-metal-g2-{i}"))
+            .num_threads(threads)
+            .thread_name(move |i| format!("zopro-msm-{threads}-{i}"))
             .build()
-            .expect("Metal G2 pool")
+            .ok()
     })
+    .as_ref()
 }
 
 /// The share of the G2 MSM's points a wgpu GPU takes (ZOPRO_G2_GPU_SHARE,
@@ -1981,14 +1983,17 @@ impl Key {
             let group = omit_b
                 && cfg!(all(target_os = "macos", target_arch = "aarch64"))
                 && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
-            let compact_overlap = group
+            let compact_pool = (group
                 && self.domain == (1 << 16)
                 && self.gpu_quotient
                 && gpu.b2.is_none()
                 && rayon::current_num_threads() >= 18
                 && crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
                 && std::env::var("ZOPRO_METAL_COMPACT_OVERLAP").as_deref() != Ok("0")
-                && msm_affine::metal_compact_candidate(sa);
+                && msm_affine::metal_compact_candidate(sa))
+            .then(|| apple_msm_pool(12))
+            .flatten();
+            let compact_overlap = compact_pool.is_some();
             #[cfg(feature = "trace")]
             if compact_overlap {
                 log::info!("ZOPRO_TRACE metal-compact-overlap");
@@ -2102,8 +2107,8 @@ impl Key {
                         }
                         let started = crate::time::Instant::now();
                         let g2 = || msm_g2(self.cpu_b2(cut), &sb[cut..]);
-                        let bs2 = if compact_overlap {
-                            compact_metal_g2_pool().install(g2)
+                        let bs2 = if let Some(pool) = compact_pool {
+                            pool.install(g2)
                         } else {
                             g2()
                         };
@@ -2371,6 +2376,60 @@ impl Key {
             }
             output_g2(&mut out, bs2);
             return Ok(out);
+        }
+
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        {
+            // Overlap the G2 query with the quotient and G1 queries while
+            // keeping eighteen workers in total on wide Apple silicon Macs.
+            let use_partition = omit_b
+                && affine_msm()
+                && self.equal_witness.is_none()
+                && self.domain == (1 << 15)
+                && ((1 << 14)..(1 << 16)).contains(&self.b2.len())
+                && rayon::current_num_threads() >= 18
+                && std::env::var("ZOPRO_CPU_MSM_OVERLAP").as_deref() != Ok("0")
+                && std::env::var("ZOPRO_TRACE_MSMS").as_deref() != Ok("1");
+            let pools = use_partition
+                .then(|| apple_msm_pool(12).zip(apple_msm_pool(6)))
+                .flatten();
+            if let Some((g1, g2)) = pools {
+                use msm_affine::{
+                    canonical, canonical_exclusive, g2_query_exclusive, msm_canonical,
+                };
+                let ((ar, kr, hz), bs2) = std::thread::scope(|scope| {
+                    let b2 = scope.spawn(|| {
+                        g2.install(|| {
+                            g2_query_exclusive(
+                                &self.b2,
+                                canonical_exclusive(sb),
+                                self.exclusive_g2_grouping,
+                            )
+                        })
+                    });
+                    let grouped = g1.install(|| {
+                        let started = crate::time::Instant::now();
+                        let mut h = self.quotient(a, b, c);
+                        let started = trace("quotient", started);
+                        let ((ar, kr), hz) = rayon::join(
+                            || rayon::join(
+                                || msm_canonical(&self.a, canonical(sa)),
+                                || msm_canonical(&self.k, canonical(sk)),
+                            ),
+                            || msm_canonical(&self.z, canonical(&mut h)),
+                        );
+                        trace("cpu-g1-msms", started);
+                        (ar, kr, hz)
+                    });
+                    (grouped, b2.join().expect("CPU G2 MSM"))
+                });
+                let mut out = Vec::with_capacity(384);
+                for point in [ar, G1Projective::IDENTITY, kr, hz] {
+                    output_g1(&mut out, point);
+                }
+                output_g2(&mut out, bs2);
+                return Ok(out);
+            }
         }
 
         let started = crate::time::Instant::now();
