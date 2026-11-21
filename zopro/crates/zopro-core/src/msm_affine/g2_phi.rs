@@ -242,20 +242,29 @@ fn component_digit_at(s: &[u64; 4], high: bool, offset: usize, width: usize) -> 
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
+    if bases.len() <= (1 << 15)
+        && rayon::current_num_threads() == 6
+        && std::env::var("ZOPRO_CPU_G2_SCALAR_MERGE").as_deref() != Ok("0")
+        && std::env::var("ZOPRO_CPU_G2_THREE_PARTS").as_deref() != Ok("0")
+    {
+        return three_part_msm(bases, short);
+    }
+    two_part_msm(bases, short)
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn two_part_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
     assert_eq!(bases.len(), short.len());
     short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+    let windows = window_offsets(BALANCED_WIDTHS);
+    let mid = bases.len().div_ceil(2);
     let scalar_merge = bases.len() <= (1 << 15)
         && rayon::current_num_threads() == 6
         && std::env::var("ZOPRO_CPU_G2_SCALAR_MERGE").as_deref() != Ok("0");
-    let three_parts = scalar_merge
-        && std::env::var("ZOPRO_CPU_G2_THREE_PARTS").as_deref() != Ok("0");
-    let widths = if three_parts { THREE_PART_WIDTHS } else { BALANCED_WIDTHS };
-    let mid = bases.len().div_ceil(2);
-    let sums: Vec<_> = window_offsets(widths)
+    let sums: Vec<_> = windows
         .into_par_iter()
         .map(|(offset, width)| {
             let size = batch_size(width);
-            let size = if three_parts { size * 2 / 3 } else { size };
             let part = |start: usize, end: usize| {
                 let points = &bases[start..end];
                 let words = &short[start..end];
@@ -265,22 +274,6 @@ pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Proj
                 state.feed(points, words.iter().map(|s| component_digit_at(s, false, offset, width)));
                 affine_buckets(state.inner)
             };
-            if three_parts {
-                let chunk = bases.len().div_ceil(3);
-                let mut parts: Vec<_> = (0..3)
-                    .into_par_iter()
-                    .map(|i| {
-                        let start = (i * chunk).min(bases.len());
-                        let end = ((i + 1) * chunk).min(bases.len());
-                        part(start, end)
-                    })
-                    .collect();
-                let mut left = parts.swap_remove(0);
-                for right in parts {
-                    super::merge_g2_buckets_scalar(&mut left, &right);
-                }
-                return crate::msm::weighted_affine(&left);
-            }
             let (mut left, right) = rayon::join(|| part(0, mid), || part(mid, bases.len()));
             if scalar_merge {
                 super::merge_g2_buckets_scalar(&mut left, &right);
@@ -291,7 +284,7 @@ pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Proj
         })
         .collect();
     let mut result = G2Projective::IDENTITY;
-    for (width, sum) in widths.into_iter().zip(sums).rev() {
+    for (width, sum) in BALANCED_WIDTHS.into_iter().zip(sums).rev() {
         for _ in 0..width {
             result = result.double();
         }
@@ -299,6 +292,49 @@ pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Proj
     }
     result
 }
+
+// Keep the small-query layout out of the two-part hot path.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[inline(never)]
+fn three_part_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
+    assert_eq!(bases.len(), short.len());
+    short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+    let chunk = bases.len().div_ceil(3);
+    let sums: Vec<_> = window_offsets(THREE_PART_WIDTHS)
+        .into_par_iter()
+        .map(|(offset, width)| {
+            let size = batch_size(width) * 2 / 3;
+            let mut parts: Vec<_> = (0..3)
+                .into_par_iter()
+                .map(|i| {
+                    let start = (i * chunk).min(bases.len());
+                    let end = ((i + 1) * chunk).min(bases.len());
+                    let points = &bases[start..end];
+                    let words = &short[start..end];
+                    let mut state = super::borrowed_scalar::Borrowed::new(width, size);
+                    state.feed(points, words.iter().map(|s| component_digit_at(s, true, offset, width)));
+                    phi_buckets(&mut state.inner);
+                    state.feed(points, words.iter().map(|s| component_digit_at(s, false, offset, width)));
+                    affine_buckets(state.inner)
+                })
+                .collect();
+            let mut left = parts.swap_remove(0);
+            for right in parts {
+                super::merge_g2_buckets_scalar(&mut left, &right);
+            }
+            crate::msm::weighted_affine(&left)
+        })
+        .collect();
+    let mut result = G2Projective::IDENTITY;
+    for (width, sum) in THREE_PART_WIDTHS.into_iter().zip(sums).rev() {
+        for _ in 0..width {
+            result = result.double();
+        }
+        result += sum;
+    }
+    result
+}
+
 
 pub(super) fn hb_raw(
     bases: &[G2Affine],
