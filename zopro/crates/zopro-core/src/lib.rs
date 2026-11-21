@@ -318,6 +318,7 @@ struct Gpu {
     /// the rest, which is all the key keeps of the vector.
     b2_cut: usize,
     quotient: std::sync::Mutex<zopro_metal::Quotient>,
+    derive_c: bool,
 }
 #[cfg(gpu_wgpu)]
 struct Gpu {
@@ -707,6 +708,7 @@ impl GpuBuilder {
             z,
             b2: self.b2.map(std::sync::Mutex::new),
             b2_cut: self.b2_cut,
+            derive_c: self.quotient.can_derive_c(),
             quotient: std::sync::Mutex::new(self.quotient),
         }
     }
@@ -1364,11 +1366,15 @@ impl Key {
         };
         #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
         let instruction_pool = None;
+        #[cfg(gpu)]
+        let derive_c = self.gpu_quotient && self.gpu.as_ref().is_some_and(|gpu| gpu.derive_c);
+        #[cfg(not(gpu))]
+        let derive_c = false;
         let solver::Solution { mut w, a, b, c } = plan.solve_with_pool(
             &frs(witness),
             self.domain,
             slots,
-            materialize_c,
+            materialize_c && !derive_c,
             instruction_pool,
         )?;
         if let Some(scope) = &_reclaim {
@@ -1423,6 +1429,7 @@ impl Key {
             // The folded public term still needs the original public values.
             offsets.restore_public(public);
         }
+        let c = (!derive_c).then_some(c);
         self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
     }
     pub fn commitment(
@@ -1466,7 +1473,9 @@ impl Key {
         }
         let _reclaim = (!self.has_gpu()).then(|| alloc::ProofScope::enter(self.proof_workspace));
         let (mut sa, mut sb, mut sk) = (frs(sa), frs(sb), frs(sk));
-        self.compute_parts(&mut sa, &mut sb, &mut sk, frs(a), frs(b), frs(c), None, false)
+        self.compute_parts(
+            &mut sa, &mut sb, &mut sk, frs(a), frs(b), Some(frs(c)), None, false,
+        )
             .map_err(|e| JsError::new(&e))
     }
 }
@@ -1928,6 +1937,7 @@ impl Key {
     }
     /// The proof's parts from the solve's MSM scalars, which the CPU's MSMs
     /// take over (natively, as canonical limbs in place), and its a, b, c.
+    /// For a validated solver's inputs, Metal can reconstruct missing c.
     fn compute_parts(
         &self,
         sa: &mut [Fr],
@@ -1935,7 +1945,7 @@ impl Key {
         sk: &mut [Fr],
         a: Vec<Fr>,
         b: Vec<Fr>,
-        c: Vec<Fr>,
+        c: Option<Vec<Fr>>,
         public: Option<&[Fr]>,
         omit_b: bool,
     ) -> Result<Vec<u8>, String> {
@@ -1960,9 +1970,14 @@ impl Key {
                 && quotient.as_ref().is_some_and(|q| q.can_recode_msm())
                 && std::env::var("ZOPRO_METAL_QUOTIENT_DIGITS").as_deref() != Ok("0"))
             .then(|| gpu.z.lock().unwrap().scalar_window_width());
-            let pending = quotient.as_mut().map(|q| match digit_width {
-                Some(width) => q.start_for_msm(&a, &b, &c, width),
-                None => q.start(&a, &b, &c),
+            let pending = quotient.as_mut().map(|q| match (c.as_deref(), digit_width) {
+                (None, width) => {
+                    #[cfg(feature = "trace")]
+                    log::info!("ZOPRO_TRACE metal-quotient-derive-c");
+                    q.start_derived(&a, &b, width)
+                }
+                (Some(c), Some(width)) => q.start_for_msm(&a, &b, c, width),
+                (Some(c), None) => q.start(&a, &b, c),
             });
             // The GPU has its copy of a, b and c: the CPU's go now rather
             // than after the MSMs (48 MB at 16 -> 2).
@@ -1970,7 +1985,7 @@ impl Key {
                 drop((a, b, c));
                 None
             } else {
-                Some((a, b, c))
+                Some((a, b, c.ok_or("CPU quotient requires C evaluations")?))
             };
             let (quotient_tx, quotient_rx) = std::sync::mpsc::channel::<()>();
             // A quotient on the CPU holds nothing up.
@@ -2177,6 +2192,7 @@ impl Key {
             output_g2(&mut out, bs2);
             return Ok(out);
         }
+        let c = c.ok_or("derived C requires a Metal quotient")?;
         #[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
         if let Some(gpu) = &self.gpu {
             let (sa, sb, sk) = (&*sa, &*sb, &*sk);

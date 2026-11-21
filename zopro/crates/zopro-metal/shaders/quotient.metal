@@ -28,13 +28,15 @@ inline uint pass_index(constant PassArgs &a, uint g, uint m, uint c) {
   return (block << (a.levels + a.stride_log)) + j0 + c + (m << a.stride_log);
 }
 
-template <bool DIT>
+template <bool DIT, bool DERIVE_C = false>
 inline void fr_pass(device fr_t *values, device const fr_t *roots,
                     constant PassArgs &a, threadgroup fr_t *tile, uint t,
                     uint g, uint threads) {
   const uint cols_mask = (1u << a.cols_log) - 1;
-  for (uint e = t; e < 2 * threads; e += threads)
-    tile[e] = values[pass_index(a, g, e >> a.cols_log, e & cols_mask)];
+  for (uint e = t; e < 2 * threads; e += threads) {
+    const uint i = pass_index(a, g, e >> a.cols_log, e & cols_mask);
+    tile[e] = DERIVE_C ? fr_mul(values[i], values[a.n + i]) : values[i];
+  }
   threadgroup_barrier(mem_flags::mem_threadgroup);
   const uint c = t & cols_mask;
   const uint q = t >> a.cols_log;
@@ -63,8 +65,9 @@ inline void fr_pass(device fr_t *values, device const fr_t *roots,
     }
     threadgroup_barrier(mem_flags::mem_threadgroup);
   }
+  device fr_t *output = values + (DERIVE_C ? 2 * a.n : 0);
   for (uint e = t; e < 2 * threads; e += threads)
-    values[pass_index(a, g, e >> a.cols_log, e & cols_mask)] = tile[e];
+    output[pass_index(a, g, e >> a.cols_log, e & cols_mask)] = tile[e];
 }
 
 kernel void fr_dif_pass(device fr_t *values [[buffer(0)]],
@@ -75,6 +78,18 @@ kernel void fr_dif_pass(device fr_t *values [[buffer(0)]],
                         uint g [[threadgroup_position_in_grid]],
                         uint threads [[threads_per_threadgroup]]) {
   fr_pass<false>(values, roots, a, tile, t, g, threads);
+}
+
+// When the host solver has checked every row, C(i) = A(i) * B(i).
+// Construct C while loading its first inverse-transform tile.
+kernel void fr_dif_derive_c(device fr_t *values [[buffer(0)]],
+                           device const fr_t *roots [[buffer(1)]],
+                           constant PassArgs &a [[buffer(2)]],
+                           threadgroup fr_t *tile [[threadgroup(0)]],
+                           uint t [[thread_position_in_threadgroup]],
+                           uint g [[threadgroup_position_in_grid]],
+                           uint threads [[threads_per_threadgroup]]) {
+  fr_pass<false, true>(values, roots, a, tile, t, g, threads);
 }
 
 kernel void fr_dit_pass(device fr_t *values [[buffer(0)]],

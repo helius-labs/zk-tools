@@ -100,6 +100,7 @@ pub struct Quotient {
     queue: CommandQueue,
     dif: ComputePipelineState,
     dit: ComputePipelineState,
+    derive_c: Option<ComputePipelineState>,
     /// The DIF passes, widest gaps first; the DIT passes run them reversed.
     passes: Vec<Pass>,
     scale: ComputePipelineState,
@@ -196,11 +197,24 @@ impl Quotient {
             .max_total_threads_per_threadgroup()
             .min(dit.max_total_threads_per_threadgroup());
         let passes = plan_passes(log_n, limit);
+        let derive_c = if cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            && n >= (1 << 18)
+            && std::env::var("ZOPRO_METAL_DERIVE_C").as_deref() != Ok("0")
+        {
+            passes.first().and_then(|pass| {
+                let kernel = pipeline("fr_dif_derive_c").ok()?;
+                let threads = 1 << (pass.levels + pass.cols_log - 1);
+                (threads <= kernel.max_total_threads_per_threadgroup()).then_some(kernel)
+            })
+        } else {
+            None
+        };
         Ok((
             Self {
                 queue: crate::queue(&device),
                 dif,
                 dit,
+                derive_c,
                 passes,
                 scale,
                 product,
@@ -236,7 +250,7 @@ impl Quotient {
     /// The quotient submitted to the GPU, for [`Quotient::finish`]: what is
     /// queued after it runs after it.
     pub fn start(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> PendingQuotient {
-        objc::rc::autoreleasepool(|| self.start_in_pool(a, b, c, None))
+        objc::rc::autoreleasepool(|| self.start_in_pool(a, b, Some(c), None))
     }
 
     pub fn can_recode_msm(&self) -> bool {
@@ -247,7 +261,18 @@ impl Quotient {
     /// Queue the quotient followed by recoding for the MSM's window width.
     pub fn start_for_msm(&mut self, a: &[Fr], b: &[Fr], c: &[Fr], width: usize) -> PendingQuotient {
         assert!(self.can_recode_msm() && (7..=15).contains(&width));
-        objc::rc::autoreleasepool(|| self.start_in_pool(a, b, c, Some(width)))
+        objc::rc::autoreleasepool(|| self.start_in_pool(a, b, Some(c), Some(width)))
+    }
+
+    pub fn can_derive_c(&self) -> bool {
+        self.derive_c.is_some()
+    }
+
+    /// For a validated solver's row values, derive C = A * B on the GPU.
+    pub fn start_derived(&mut self, a: &[Fr], b: &[Fr], width: Option<usize>) -> PendingQuotient {
+        assert!(self.can_derive_c());
+        assert!(width.is_none_or(|w| self.can_recode_msm() && (7..=15).contains(&w)));
+        objc::rc::autoreleasepool(|| self.start_in_pool(a, b, None, width))
     }
 
     pub fn finish(&mut self, pending: PendingQuotient) -> Result<Vec<Fr>, String> {
@@ -277,16 +302,18 @@ impl Quotient {
         &mut self,
         a: &[Fr],
         b: &[Fr],
-        c: &[Fr],
+        c: Option<&[Fr]>,
         width: Option<usize>,
     ) -> PendingQuotient {
         let n = self.n;
         // SAFETY: abc holds 3n Fr in shared storage; the GPU is idle on it.
         let values =
             unsafe { std::slice::from_raw_parts_mut(self.abc.contents() as *mut Fr, 3 * n) };
-        for (slot, source) in values.chunks_exact_mut(n).zip([a, b, c]) {
-            slot[..source.len()].copy_from_slice(source);
-            slot[source.len()..].fill(Fr::from(0u64));
+        for (slot, source) in values.chunks_exact_mut(n).zip([Some(a), Some(b), c]) {
+            if let Some(source) = source {
+                slot[..source.len()].copy_from_slice(source);
+                slot[source.len()..].fill(Fr::ZERO);
+            }
         }
         let command = self.queue.new_command_buffer();
         let scatter = width
@@ -305,13 +332,24 @@ impl Quotient {
                 }
             });
         let encoder = command.new_compute_command_encoder();
+        let c_offset = (2 * n * 32) as u64;
+        if c.is_none() {
+            let kernel = self.derive_c.as_ref().expect("quotient C derivation");
+            let (first, rest) = self.passes.split_first().expect("derive C transforms");
+            self.pass(encoder, kernel, 0, &self.inverse_roots, first);
+            for pass in rest {
+                self.pass(encoder, &self.dif, c_offset, &self.inverse_roots, pass);
+            }
+        }
         for vector in 0..2 {
             let offset = (vector * n * 32) as u64;
             self.dif_all(encoder, offset, &self.inverse_roots);
             self.scale_by(encoder, offset, &self.forward_weights, &self.scale);
             self.dit_all(encoder, offset, &self.roots);
         }
-        self.dif_all(encoder, (2 * n * 32) as u64, &self.inverse_roots);
+        if c.is_some() {
+            self.dif_all(encoder, c_offset, &self.inverse_roots);
+        }
         encoder.set_compute_pipeline_state(&self.product);
         encoder.set_buffer(0, Some(&self.abc), 0);
         let count = n as u32;
