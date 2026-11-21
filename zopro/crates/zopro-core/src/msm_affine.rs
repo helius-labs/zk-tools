@@ -196,6 +196,26 @@ where
     msm_raw(&bases, &groups.values)
 }
 
+#[cfg(gpu)]
+pub(super) fn group_for_metal(
+    bases: &[zopro_bn254::G1Affine],
+    scalars: &[Fr],
+) -> Option<(
+    Vec<zopro_bn254::G1Affine>,
+    Vec<[u64; 4]>,
+    crate::preparation::Reservation,
+)> {
+    if bases.len() != scalars.len() || bases.len() < (1 << 16) {
+        return None;
+    }
+    let groups = group_witness(scalars)?;
+    if groups.values.is_empty() {
+        return None;
+    }
+    let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
+    Some((points, groups.values, groups._reservation))
+}
+
 fn msm_grouped_prepared<C: CurveConfig>(
     bases: &[Affine<C>],
     sums: &[Affine<C>],

@@ -1960,12 +1960,25 @@ impl Key {
                         gpu.b.lock().unwrap(),
                         gpu.k.lock().unwrap(),
                     );
-                    let sorted_a = a.sort_now(sa);
+                    let group = omit_b
+                        && cfg!(all(target_os = "macos", target_arch = "aarch64"))
+                        && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
+                    let grouped_a = group
+                        .then(|| msm_affine::group_for_metal(&self.a, sa))
+                        .flatten();
+                    let grouped_k = group
+                        .then(|| msm_affine::group_for_metal(&self.k, sk))
+                        .flatten();
+                    let sorted_a = grouped_a.is_none().then(|| a.sort_now(sa));
                     let sorted_b = (!omit_b).then(|| b.sort_now(sb));
-                    let sorted_k = k.sort_now(sk);
+                    let sorted_k = grouped_k.is_none().then(|| k.sort_now(sk));
                     drop(sorted_tx);
                     let _ = quotient_rx.recv();
-                    let pa = a.submit_sorted(sorted_a);
+                    let pa = if let Some((points, words, _charge)) = &grouped_a {
+                        a.start_grouped(points, words)
+                    } else {
+                        a.submit_sorted(sorted_a.unwrap())
+                    };
                     let pb = sorted_b.map(|sorted| b.submit_sorted(sorted));
                     let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
                     let pb2 = b2.as_mut().map(|b2| {
@@ -1980,7 +1993,11 @@ impl Key {
                             b2.start(&mine)
                         }
                     });
-                    let pk = k.submit_sorted(sorted_k);
+                    let pk = if let Some((points, words, _charge)) = &grouped_k {
+                        k.start_grouped(points, words)
+                    } else {
+                        k.submit_sorted(sorted_k.unwrap())
+                    };
                     let (ar, t) = a.finish(pa)?;
                     gpu_trace("a", t.sort_ms, t.gpu_ms);
                     let bs1 = if let Some(pb) = pb {
