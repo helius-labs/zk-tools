@@ -351,6 +351,20 @@ fn sort_pool(gpu_digits: bool) -> &'static rayon::ThreadPool {
     })
 }
 
+/// Run G2 on a separate pool while the witness queries compact and sort
+/// their scalars on wide Apple silicon Macs.
+#[cfg(gpu)]
+fn compact_metal_g2_pool() -> &'static rayon::ThreadPool {
+    static POOL: std::sync::OnceLock<rayon::ThreadPool> = std::sync::OnceLock::new();
+    POOL.get_or_init(|| {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(12)
+            .thread_name(|i| format!("zopro-metal-g2-{i}"))
+            .build()
+            .expect("Metal G2 pool")
+    })
+}
+
 /// The share of the G2 MSM's points a wgpu GPU takes (ZOPRO_G2_GPU_SHARE,
 /// else measured best: on an M5 Pro through wgpu, and none with the
 /// pre-compiled kernels, where the OnePlus 13's Adreno is the critical path
@@ -1930,8 +1944,9 @@ impl Key {
             // thread of their own so that their waits hold no rayon worker,
             // while the GPU also takes the quotient and the pool computes
             // G2 when it is not on the GPU; Z's MSM follows the quotient.
-            // The sorts run on the pool, so a CPU G2 MSM starts only once
-            // they are done: otherwise it starves them for its whole run.
+            // The CPU G2 MSM normally starts after the sorts have finished
+            // on their shared pool. Compact witness queries can use a
+            // separate pool so their compaction overlaps G2.
             let (sorted_tx, sorted_rx) = std::sync::mpsc::channel::<()>();
             // The quotient has the GPU to itself: Z's sort and MSM wait for
             // it, the others for nothing, so they are submitted once it is
@@ -1963,14 +1978,26 @@ impl Key {
                 && !self.profiled.swap(true, std::sync::atomic::Ordering::Relaxed);
             #[cfg(not(feature = "trace"))]
             let profile = false;
+            let group = omit_b
+                && cfg!(all(target_os = "macos", target_arch = "aarch64"))
+                && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
+            let compact_overlap = group
+                && self.domain == (1 << 16)
+                && self.gpu_quotient
+                && gpu.b2.is_none()
+                && rayon::current_num_threads() >= 18
+                && crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                && std::env::var("ZOPRO_METAL_COMPACT_OVERLAP").as_deref() != Ok("0")
+                && msm_affine::metal_compact_candidate(sa);
+            #[cfg(feature = "trace")]
+            if compact_overlap {
+                log::info!("ZOPRO_TRACE metal-compact-overlap");
+            }
             let (h, (ar, bs1, kr, bs2, hz)) = std::thread::scope(|scope| -> Result<_, String> {
                 let msms = scope.spawn(move || -> Result<_, String> {
                     // Each MSM is submitted as soon as it is sorted, so the
                     // host sorts the next while the GPU runs it. G2 B can
                     // reuse the sorted runs when G1 B is present.
-                    let group = omit_b
-                        && cfg!(all(target_os = "macos", target_arch = "aarch64"))
-                        && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
                     let host_grouped = group
                         && gpu.b2.is_none()
                         && self.gpu_quotient
@@ -1979,15 +2006,17 @@ impl Key {
                         && std::env::var("ZOPRO_METAL_HOST_GROUPED").as_deref() != Ok("0");
                     let group_a = || {
                         group
-                            .then(|| msm_affine::group_for_metal(&self.a, sa))
+                            .then(|| msm_affine::group_for_metal(&self.a, sa, compact_overlap))
                             .flatten()
                     };
                     let group_k = || {
                         group
-                            .then(|| msm_affine::group_for_metal(&self.k, sk))
+                            .then(|| msm_affine::group_for_metal(&self.k, sk, compact_overlap))
                             .flatten()
                     };
-                    let (grouped_a, grouped_k) = if host_grouped {
+                    let (grouped_a, grouped_k) = if compact_overlap {
+                        sort_pool(true).install(|| rayon::join(group_a, group_k))
+                    } else if host_grouped {
                         rayon::join(group_a, group_k)
                     } else {
                         (group_a(), group_k())
@@ -2011,9 +2040,18 @@ impl Key {
                         gpu.b.lock().unwrap(),
                         gpu.k.lock().unwrap(),
                     );
-                    let sorted_a = grouped_a.is_none().then(|| a.sort_now(sa));
-                    let sorted_b = (!omit_b).then(|| b.sort_now(sb));
-                    let sorted_k = grouped_k.is_none().then(|| k.sort_now(sk));
+                    let (a_msm, b_msm, k_msm) = (&mut *a, &mut *b, &mut *k);
+                    let mut sort = || {
+                        let sorted_a = grouped_a.is_none().then(|| a_msm.sort_now(sa));
+                        let sorted_b = (!omit_b).then(|| b_msm.sort_now(sb));
+                        let sorted_k = grouped_k.is_none().then(|| k_msm.sort_now(sk));
+                        (sorted_a, sorted_b, sorted_k)
+                    };
+                    let (sorted_a, sorted_b, sorted_k) = if compact_overlap {
+                        sort_pool(true).install(sort)
+                    } else {
+                        sort()
+                    };
                     drop(sorted_tx);
                     let _ = quotient_rx.recv();
                     let pa = if let Some((points, words, _charge)) = &grouped_a {
@@ -2059,9 +2097,16 @@ impl Key {
                 let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
                 let cpu_b2 = (cut < sb.len()).then(|| {
                     scope.spawn(move || {
-                        let _ = sorted_rx.recv();
+                        if !compact_overlap {
+                            let _ = sorted_rx.recv();
+                        }
                         let started = crate::time::Instant::now();
-                        let bs2 = msm_g2(self.cpu_b2(cut), &sb[cut..]);
+                        let g2 = || msm_g2(self.cpu_b2(cut), &sb[cut..]);
+                        let bs2 = if compact_overlap {
+                            compact_metal_g2_pool().install(g2)
+                        } else {
+                            g2()
+                        };
                         trace("cpu-msm-b2", started);
                         bs2
                     })

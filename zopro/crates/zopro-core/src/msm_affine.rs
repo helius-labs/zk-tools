@@ -198,16 +198,30 @@ where
     msm_raw(&bases, &groups.values)
 }
 
+/// A small sample screens out witness queries with too few repeats to
+/// benefit from the extra compaction and GPU upload.
+#[cfg(gpu)]
+pub(super) fn metal_compact_candidate(scalars: &[Fr]) -> bool {
+    if scalars.len() < (1 << 14) {
+        return false;
+    }
+    let stride = scalars.len().div_ceil(2048);
+    let unique: ahash::AHashSet<_> = scalars.iter().step_by(stride).collect();
+    unique.len() * 4 <= scalars.len().div_ceil(stride) * 3
+}
+
 #[cfg(gpu)]
 pub(super) fn group_for_metal(
     bases: &[zopro_bn254::G1Affine],
     scalars: &[Fr],
+    compact_overlap: bool,
 ) -> Option<(
     Vec<zopro_bn254::G1Affine>,
     Vec<[u64; 4]>,
     crate::preparation::Reservation,
 )> {
-    if bases.len() != scalars.len() || bases.len() < (1 << 16) {
+    let min = if compact_overlap { 1 << 14 } else { 1 << 16 };
+    if bases.len() != scalars.len() || bases.len() < min {
         return None;
     }
     let groups = group_witness_for::<zopro_bn254::G1Config>(scalars)?;
