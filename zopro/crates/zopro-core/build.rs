@@ -21,6 +21,7 @@ fn main() {
         "zopro_small_core_entry",
     ];
     let arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+    let os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     let features = std::env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
     let ifma8 = std::env::var_os("CARGO_FEATURE_IFMA8").is_some();
     let disabled = std::env::var_os("CARGO_CFG_NO_IFMA").is_some();
@@ -32,14 +33,13 @@ fn main() {
             .all(|needed| features.split(',').any(|feature| feature == *needed));
     for path in ifma_paths {
         println!("cargo::rustc-check-cfg=cfg({path})");
-        if native_ifma {
+        if native_ifma || (path == "zopro_bounded_schedule" && os == "macos" && arch == "aarch64") {
             println!("cargo::rustc-cfg={path}");
         }
     }
     println!("cargo::rustc-check-cfg=cfg(gpu)");
     println!("cargo::rustc-check-cfg=cfg(gpu_wgpu)");
     println!("cargo::rustc-check-cfg=cfg(gpu_any)");
-    let os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     let apple = os == "macos" || os == "ios";
     let metal = std::env::var_os("CARGO_FEATURE_METAL").is_some() && apple;
     let wgpu = std::env::var_os("CARGO_FEATURE_WGPU").is_some() && !metal;

@@ -5,15 +5,7 @@
 // arkworks field arithmetic. The arithmetic follows constraint/bn254/solver.go's
 // solveR1C and solveHintGeneric semantics.
 
-#[cfg(all(
-    zopro_bounded_schedule,
-    feature = "ifma8",
-    target_arch = "x86_64",
-    target_feature = "avx512ifma",
-    target_feature = "avx512vl",
-    target_feature = "avx512dq",
-    not(no_ifma)
-))]
+#[cfg(zopro_bounded_schedule)]
 mod bounded;
 use zopro_bn254::Fr;
 use std::collections::HashMap;
@@ -425,6 +417,7 @@ pub(crate) struct Plan {
 /// program order, which is a topological order. gnark's own levels are too
 /// narrow for this (a median of 16 ops at 8 -> 2 over 8036 levels), but
 /// the circuits' notes and hashes are largely independent until late.
+#[derive(Default)]
 struct Schedule {
     epochs: Vec<Vec<Vec<u32>>>,
     // A replacement for one oversized serial component. Local waves join
@@ -1605,7 +1598,10 @@ impl Plan {
         } else {
             crate::preparation::Reservation::acquire(self.n_constraints, peak)
         };
-        #[cfg(not(zopro_resource_schedule))]
+        #[cfg(all(not(zopro_resource_schedule), zopro_bounded_schedule))]
+        let reservation =
+            crate::preparation::Reservation::acquire_solver_schedule(self.n_constraints, peak);
+        #[cfg(not(any(zopro_resource_schedule, zopro_bounded_schedule)))]
         let reservation = crate::preparation::Reservation::acquire(self.n_constraints, peak);
         let Some(_reservation) = reservation else {
             return false;
@@ -1719,6 +1715,10 @@ impl Plan {
         workspace: Option<usize>,
         exact: bool,
     ) -> Schedule {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64", zopro_bounded_schedule))]
+        if std::env::var("ZOPRO_CPU_BOUNDED_SCHEDULE").as_deref() != Ok("0") {
+            return bounded::build(self, epochs, 0, 0).unwrap_or_default();
+        }
         #[cfg(all(
             zopro_bounded_schedule,
             feature = "ifma8",
@@ -2856,6 +2856,13 @@ mod tests {
         }
         let plan = plan(128);
         assert!(plan.definitely_writes_all());
+        #[cfg(all(target_os = "macos", target_arch = "aarch64", zopro_bounded_schedule))]
+        {
+            let schedule = bounded::build(&plan, 4, 0, 0).expect("bounded schedule");
+            verify(&plan, &schedule);
+            let expected = run(&plan, None, Fr::ONE, false, true);
+            assert_eq!(run(&plan, Some(&schedule), Fr::ONE, false, true), expected);
+        }
         for outer in [1, 2, 4] {
             for local in [0, 1, 2, 4, 8, 64] {
                 let schedule = plan.build_schedule_with_refinement(outer, local, 16, 0);

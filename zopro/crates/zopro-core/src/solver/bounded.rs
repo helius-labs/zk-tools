@@ -272,7 +272,7 @@ pub(super) fn build_with_workspace(
     epochs: usize,
     local: usize,
     minimum: usize,
-    workspace: Option<usize>,
+    _workspace: Option<usize>,
 ) -> Option<Schedule> {
     let n = plan.ops.len();
     let values = add(plan.n_wires, plan.n_slots)?;
@@ -295,13 +295,13 @@ pub(super) fn build_with_workspace(
     let mut reservation = {
         #[cfg(zopro_resource_schedule)]
         if std::env::var("ZOPRO_CPU_RESOURCE_SCHEDULE").as_deref() == Ok("1") {
-            Reservation::schedule(plan.n_constraints, Some(initial), workspace)?
+            Reservation::schedule(plan.n_constraints, Some(initial), _workspace)?
         } else {
-            Reservation::acquire(plan.n_constraints, Some(initial))?
+            Reservation::acquire_solver_schedule(plan.n_constraints, Some(initial))?
         }
         #[cfg(not(zopro_resource_schedule))]
         {
-            Reservation::acquire(plan.n_constraints, Some(initial))?
+            Reservation::acquire_solver_schedule(plan.n_constraints, Some(initial))?
         }
     };
     let mut scratch = Scratch {
@@ -350,7 +350,6 @@ pub(super) fn build_with_workspace(
     }
     // Release construction credit only after every index/read buffer drops.
     drop(scratch);
-    #[cfg(zopro_live_preparation_charge)]
     let reservation = reservation.retain(Some(retained));
     if std::env::var_os("ZOPRO_CPU_BOUNDED_SCHEDULE_TRACE").is_some() {
         eprintln!("BOUNDED_SCHEDULE ops={n} values={values} peak_charge={peak_charge} retained_charge={retained} epochs={} refined={}",epochs.len(),refined.len());

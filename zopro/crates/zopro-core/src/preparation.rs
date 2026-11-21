@@ -60,29 +60,13 @@ impl Reservation {
         let _admission = ADMISSION.lock().ok()?;
         reserve(&RESERVED, peak, resource_limit_now()?).then(|| Self(peak, 0))
     }
-    #[cfg(all(
-        zopro_bounded_schedule,
-        feature = "ifma8",
-        target_arch = "x86_64",
-        target_feature = "avx512ifma",
-        target_feature = "avx512vl",
-        target_feature = "avx512dq",
-        not(no_ifma)
-    ))]
+    #[cfg(zopro_bounded_schedule)]
     pub(crate) fn bytes(&self) -> usize {
         self.0
     }
     // Extend the original charge through a second allocation phase. The
     // selected policy and shared process-wide charges are checked before growth.
-    #[cfg(all(
-        zopro_bounded_schedule,
-        feature = "ifma8",
-        target_arch = "x86_64",
-        target_feature = "avx512ifma",
-        target_feature = "avx512vl",
-        target_feature = "avx512dq",
-        not(no_ifma)
-    ))]
+    #[cfg(zopro_bounded_schedule)]
     pub(crate) fn increase(&mut self, domain: usize, extra: usize) -> bool {
         if extra == 0 {
             return true;
@@ -104,7 +88,7 @@ impl Reservation {
             self.0 = total;
             return true;
         }
-        let Some(added) = Self::acquire(domain, Some(extra)) else {
+        let Some(added) = Self::acquire_solver_schedule(domain, Some(extra)) else {
             return false;
         };
         self.0 = total;
@@ -113,13 +97,30 @@ impl Reservation {
     }
     /// Call only after builder temporaries have dropped, with all retained
     /// allocation capacities counted. Invalid estimates keep the peak charge.
-    #[cfg(zopro_live_preparation_charge)]
+    #[cfg(any(zopro_bounded_schedule, zopro_live_preparation_charge))]
     pub(crate) fn retain(mut self, bytes: Option<usize>) -> Self {
         retain_charge(&RESERVED, &mut self.0, bytes);
         self
     }
 
     pub(crate) fn acquire(domain: usize, peak: Option<usize>) -> Option<Self> {
+        Self::acquire_with_headroom(domain, peak, headroom)
+    }
+
+    #[cfg(zopro_bounded_schedule)]
+    pub(crate) fn acquire_solver_schedule(domain: usize, peak: Option<usize>) -> Option<Self> {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        let available = macos_free_memory;
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        let available = headroom;
+        Self::acquire_with_headroom(domain, peak, available)
+    }
+
+    fn acquire_with_headroom(
+        domain: usize,
+        peak: Option<usize>,
+        available: fn() -> Option<usize>,
+    ) -> Option<Self> {
         if domain > MAX_DOMAIN {
             return None;
         }
@@ -139,7 +140,7 @@ impl Reservation {
         }
         #[cfg(zopro_resource_schedule)]
         let _admission = ADMISSION.lock().ok()?;
-        let limit = limit.min(headroom()? / 4);
+        let limit = limit.min(available()? / 4);
         #[cfg(zopro_resource_schedule)]
         let limit = if WORKSPACES.load(Ordering::Acquire) == 0 {
             limit
@@ -158,13 +159,36 @@ impl Drop for Reservation {
     }
 }
 
-#[cfg(zopro_live_preparation_charge)]
+#[cfg(any(zopro_bounded_schedule, zopro_live_preparation_charge))]
 fn retain_charge(counter: &AtomicUsize, charge: &mut usize, bytes: Option<usize>) {
     if let Some(bytes) = bytes.filter(|&bytes| bytes <= *charge) {
         let released = *charge - bytes;
         *charge = bytes;
         counter.fetch_sub(released, Ordering::AcqRel);
     }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64", zopro_bounded_schedule))]
+fn macos_free_memory() -> Option<usize> {
+    // Use free pages to bound optional preparation on unified memory.
+    let mut pages = 0u32;
+    let mut len = core::mem::size_of_val(&pages);
+    // SAFETY: the sysctl output points to len bytes of writable storage.
+    let status = unsafe {
+        libc::sysctlbyname(
+            c"vm.page_free_count".as_ptr(),
+            (&mut pages as *mut u32).cast(),
+            &mut len,
+            core::ptr::null_mut(),
+            0,
+        )
+    };
+    if status != 0 || len != core::mem::size_of_val(&pages) {
+        return None;
+    }
+    // SAFETY: sysconf reads the page size and takes no pointers.
+    let page_size = usize::try_from(unsafe { libc::sysconf(libc::_SC_PAGESIZE) }).ok()?;
+    (pages as usize).checked_mul(page_size)
 }
 
 // Account allocation capacities, with a small per-allocation margin. Required
