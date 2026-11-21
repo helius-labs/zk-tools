@@ -205,7 +205,10 @@ fn macos_free_memory() -> Option<usize> {
 
 // Account allocation capacities, with a small per-allocation margin. Required
 // key/proof workspace and allocator-wide overhead remain outside this budget.
-#[cfg(zopro_live_preparation_charge)]
+#[cfg(any(
+    zopro_live_preparation_charge,
+    all(target_os = "macos", target_arch = "aarch64", gpu)
+))]
 pub(crate) fn allocation_bytes<T>(values: &Vec<T>) -> Option<usize> {
     let bytes = values.capacity().checked_mul(core::mem::size_of::<T>())?;
     bytes.checked_add(if bytes == 0 { 0 } else { 64 })

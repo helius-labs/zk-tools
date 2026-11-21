@@ -2585,7 +2585,14 @@ impl Key {
                     #[cfg(all(not(zopro_resource_schedule), target_os = "linux", target_arch = "x86_64"))]
                     let groups = ordinary();
                     #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
-                    let groups = { let _ = serial; group_witness(sb) };
+                    let groups = {
+                        let _ = serial;
+                        if omit_b {
+                            msm_affine::group_witness_for::<zopro_bn254::G2Config>(sb)
+                        } else {
+                            group_witness(sb)
+                        }
+                    };
                     if let Some(groups) = groups {
                         #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64", target_feature = "avx512ifma", target_feature = "avx512vl", target_feature = "avx512dq", feature = "ifma8", not(no_ifma)))]
                         if omit_b

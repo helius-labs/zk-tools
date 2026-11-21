@@ -93,8 +93,30 @@ pub(super) fn peak(n: usize, percent: usize) -> Option<usize> {
     )
 }
 
-pub(super) fn reserve(n: usize, percent: usize) -> Option<crate::preparation::Reservation> {
-    let peak = peak(n, percent);
+pub(super) type Peak = fn(usize, usize) -> Option<usize>;
+
+/// Cost model for a group used by one curve. Other hosts retain their
+/// existing admission limits.
+pub(super) fn peak_for<C: CurveConfig>(n: usize, percent: usize) -> Option<usize>
+where
+    C::Base: BatchInverse,
+{
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    {
+        if percent > 100 {
+            return None;
+        }
+        let u = n.checked_mul(percent)?.checked_div(100)?;
+        if u == 0 {
+            return None;
+        }
+        Some(limits::<C>(n, u)?.0)
+    }
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    peak(n, percent)
+}
+
+pub(super) fn reserve(n: usize, peak: Option<usize>) -> Option<crate::preparation::Reservation> {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     let reservation = crate::preparation::Reservation::scalar_grouping(peak);
     #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]

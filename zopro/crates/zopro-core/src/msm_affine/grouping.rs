@@ -6,7 +6,7 @@ use super::grouping_cost;
 #[cfg(zopro_resource_schedule)]
 use crate::solver::{B2Origins, RuntimeAliases};
 use rayon::prelude::*;
-use zopro_bn254::Fr;
+use zopro_bn254::{CurveConfig, Fr};
 
 pub(crate) struct ScalarGroups {
     pub(super) len: usize,
@@ -20,11 +20,18 @@ pub(crate) struct ScalarGroups {
 /// Group before converting representations, so only distinct witness
 /// scalars need Montgomery reduction. The grouping is fresh per proof.
 pub(crate) fn group_witness(scalars: &[Fr]) -> Option<ScalarGroups> {
-    group_witness_inner::<false>(scalars, None)
+    group_witness_inner::<false>(scalars, None, grouping_cost::peak)
+}
+
+pub(crate) fn group_witness_for<C: CurveConfig>(scalars: &[Fr]) -> Option<ScalarGroups>
+where
+    C::Base: crate::msm::BatchInverse,
+{
+    group_witness_inner::<false>(scalars, None, grouping_cost::peak_for::<C>)
 }
 
 pub(crate) fn group_witness_serial_b2(scalars: &[Fr]) -> Option<ScalarGroups> {
-    group_witness_inner::<true>(scalars, None)
+    group_witness_inner::<true>(scalars, None, grouping_cost::peak)
 }
 
 #[cfg(zopro_resource_schedule)]
@@ -34,9 +41,9 @@ pub(crate) fn group_witness_b2_origins(
     serial: bool,
 ) -> Option<ScalarGroups> {
     if serial {
-        group_witness_inner::<true>(scalars, Some(origins))
+        group_witness_inner::<true>(scalars, Some(origins), grouping_cost::peak)
     } else {
-        group_witness_inner::<false>(scalars, Some(origins))
+        group_witness_inner::<false>(scalars, Some(origins), grouping_cost::peak)
     }
 }
 
@@ -48,6 +55,7 @@ type Origins<'a> = Option<&'a ()>;
 fn group_witness_inner<const SERIAL_B2: bool>(
     scalars: &[Fr],
     origins: Origins<'_>,
+    peak: grouping_cost::Peak,
 ) -> Option<ScalarGroups> {
     if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
         return None;
@@ -57,7 +65,7 @@ fn group_witness_inner<const SERIAL_B2: bool>(
     let words =
         unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
-    let mut groups = group_with_gate::<false, SERIAL_B2>(words, zero_aware, origins)?;
+    let mut groups = group_with_gate::<false, SERIAL_B2>(words, zero_aware, origins, peak)?;
     let convert = |value: &mut [u64; 4]| {
         *value = Fr::from_montgomery(*value).to_canonical();
     };
@@ -163,9 +171,14 @@ pub(crate) fn scalar_groups(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
 mod diversity;
 #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
 pub(super) mod tiled;
-pub(super) fn groups_with_diversity_check(scalars: &[[u64; 4]]) -> Option<ScalarGroups> {
+pub(super) fn groups_with_diversity_check<C: CurveConfig>(
+    scalars: &[[u64; 4]],
+) -> Option<ScalarGroups>
+where
+    C::Base: crate::msm::BatchInverse,
+{
     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
-    group_with_gate::<true, false>(scalars, zero_aware, None)
+    group_with_gate::<true, false>(scalars, zero_aware, None, grouping_cost::peak_for::<C>)
 }
 
 type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
@@ -224,13 +237,14 @@ fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSampl
 }
 
 fn scalar_groups_policy(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
-    group_with_gate::<false, false>(scalars, zero_aware, None)
+    group_with_gate::<false, false>(scalars, zero_aware, None, grouping_cost::peak)
 }
 
 fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(
     scalars: &[[u64; 4]],
     zero_aware: bool,
     origins: Origins<'_>,
+    peak: grouping_cost::Peak,
 ) -> Option<ScalarGroups> {
     if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
         return None;
@@ -246,15 +260,15 @@ fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(
     #[cfg(zopro_resource_schedule)]
     let reservation = match origins {
         Some(plan) => crate::preparation::Reservation::analysis(grouping_cost::add(
-            grouping_cost::peak(scalars.len(), percent)?,
+            peak(scalars.len(), percent)?,
             plan.scratch_bytes()?,
         ))?,
-        None => grouping_cost::reserve(scalars.len(), percent)?,
+        None => grouping_cost::reserve(scalars.len(), peak(scalars.len(), percent))?,
     };
     #[cfg(not(zopro_resource_schedule))]
     let reservation = {
         let _ = origins;
-        grouping_cost::reserve(scalars.len(), percent)?
+        grouping_cost::reserve(scalars.len(), peak(scalars.len(), percent))?
     };
     // Bound the initial allocation by the sample and by the grouping
     // cutoff. Small high-diversity inputs otherwise grow and rehash the

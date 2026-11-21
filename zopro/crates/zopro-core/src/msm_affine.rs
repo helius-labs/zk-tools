@@ -19,7 +19,7 @@ pub(super) use grouping::group_witness_b2_origins;
 pub(super) use grouping::group_witness_serial_b2;
 #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
 pub(super) use grouping::tiled::prove as tiled_grouped_msm;
-pub(super) use grouping::{group_witness, scalar_groups, ScalarGroups};
+pub(super) use grouping::{group_witness, group_witness_for, scalar_groups, ScalarGroups};
 
 #[cfg(all(
     zopro_g2_horner_buckets,
@@ -140,7 +140,7 @@ where
     C::Base: BatchInverse,
 {
     if scalars.len() >= (1 << 16) {
-        if let Some(groups) = group_witness(scalars) {
+        if let Some(groups) = group_witness_for::<C>(scalars) {
             return msm_grouped(bases, &groups);
         }
         let canonical: Vec<[u64; 4]> = scalars.par_iter().map(Fr::to_canonical).collect();
@@ -177,7 +177,7 @@ where
     C::Base: BatchInverse,
 {
     if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
-        if let Some(groups) = grouping::groups_with_diversity_check(canonical) {
+        if let Some(groups) = grouping::groups_with_diversity_check::<C>(canonical) {
             return msm_grouped(bases, &groups);
         }
     }
@@ -208,12 +208,30 @@ pub(super) fn group_for_metal(
     if bases.len() != scalars.len() || bases.len() < (1 << 16) {
         return None;
     }
-    let groups = group_witness(scalars)?;
+    let groups = group_witness_for::<zopro_bn254::G1Config>(scalars)?;
     if groups.values.is_empty() {
         return None;
     }
-    let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
-    Some((points, groups.values, groups._reservation))
+    let ScalarGroups {
+        values,
+        order,
+        starts,
+        counts,
+        _reservation: reservation,
+        ..
+    } = groups;
+    let points = crate::msm::group_affine(bases, &order, &starts, &counts);
+    drop((order, starts, counts));
+    // Release compaction scratch credit before the other queries start.
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    let reservation = {
+        use crate::preparation::allocation_bytes;
+        let retained = allocation_bytes(&points)
+            .zip(allocation_bytes(&values))
+            .and_then(|(points, values)| points.checked_add(values));
+        reservation.retain(retained)
+    };
+    Some((points, values, reservation))
 }
 
 fn msm_grouped_prepared<C: CurveConfig>(
@@ -239,7 +257,7 @@ pub(super) fn msm_in_place<C: CurveConfig>(bases: &[Affine<C>], scalars: &mut [F
 where
     C::Base: BatchInverse,
 {
-    if let Some(groups) = group_witness(scalars) {
+    if let Some(groups) = group_witness_for::<C>(scalars) {
         msm_grouped(bases, &groups)
     } else {
         msm_raw(bases, canonical(scalars))
@@ -1112,7 +1130,7 @@ impl EqualLayout {
                 return None;
             }
             let n = scalars.len();
-            let reservation = grouping_cost::reserve(n, 100)?;
+            let reservation = grouping_cost::reserve(n, grouping_cost::peak(n, 100))?;
             let values = scalars.par_iter().map(Fr::to_canonical).collect();
             ScalarGroups {
                 _reservation: reservation,
@@ -1936,7 +1954,7 @@ pub(super) fn g2_query_exclusive(
 ) -> zopro_bn254::G2Projective {
     assert_eq!(bases.len(), words.len());
     let groups = (grouping && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
-        .then(|| grouping::groups_with_diversity_check(words))
+        .then(|| grouping::groups_with_diversity_check::<zopro_bn254::G2Config>(words))
         .flatten();
     #[cfg(any(
         all(target_os = "macos", target_arch = "aarch64"),
