@@ -32,12 +32,58 @@ pub struct PendingQuotient {
 /// Signed MSM digits produced by a completed quotient command.
 pub struct QuotientDigits {
     buffer: Buffer,
+    pub(super) scatter: Option<DigitScatter>,
     pub(super) n: usize,
     pub(super) width: usize,
     windows: usize,
 }
 
+pub(super) struct DigitScatter {
+    pub(super) counts: Buffer,
+    pipeline: ComputePipelineState,
+}
+
+impl DigitScatter {
+    pub(super) fn encode(
+        &self,
+        encoder: &ComputeCommandEncoderRef,
+        digits: &QuotientDigits,
+        starts: &Buffer,
+        positions: &Buffer,
+        sorted: &Buffer,
+    ) {
+        let args = digits.scatter_args();
+        encoder.set_compute_pipeline_state(&self.pipeline);
+        encoder.set_buffer(0, Some(&digits.buffer), 0);
+        encoder.set_buffer(1, Some(starts), 0);
+        encoder.set_buffer(2, Some(&self.counts), 0);
+        encoder.set_buffer(3, Some(positions), 0);
+        encoder.set_buffer(4, Some(sorted), 0);
+        encoder.set_bytes(5, 16, args.as_ptr().cast());
+        digits.dispatch(encoder, &self.pipeline);
+    }
+}
+
 impl QuotientDigits {
+    fn scatter_args(&self) -> [u32; 4] {
+        [
+            self.n as u32,
+            1 << (self.width - 1),
+            self.windows as u32,
+            crate::DIGIT_CHUNK as u32,
+        ]
+    }
+
+    fn dispatch(&self, encoder: &ComputeCommandEncoderRef, pipeline: &ComputePipelineState) {
+        let group = (pipeline.thread_execution_width() * 4)
+            .min(pipeline.max_total_threads_per_threadgroup())
+            .min(self.n as u64);
+        encoder.dispatch_threads(
+            MTLSize::new(self.n as u64, self.windows as u64, 1),
+            MTLSize::new(group, 1, 1),
+        );
+    }
+
     pub(super) fn as_slice(&self) -> &[i16] {
         // SAFETY: the buffer was uniquely allocated for this command, which
         // has completed before the digits can be read.
@@ -60,6 +106,7 @@ pub struct Quotient {
     product: ComputePipelineState,
     finish_quotient: ComputePipelineState,
     encode_digits: Option<ComputePipelineState>,
+    sort_digits: Option<[ComputePipelineState; 2]>,
     n: usize,
     roots: Buffer,
     inverse_roots: Buffer,
@@ -134,6 +181,15 @@ impl Quotient {
         let encode_digits = cfg!(all(target_os = "macos", target_arch = "aarch64"))
             .then(|| pipeline("fr_quotient_digits").ok())
             .flatten();
+        let sort_digits = encode_digits.as_ref().and_then(|_| {
+            if std::env::var("ZOPRO_METAL_GPU_SCATTER").as_deref() == Ok("0") {
+                return None;
+            }
+            Some([
+                pipeline("fr_digit_counts").ok()?,
+                pipeline("fr_digit_scatter").ok()?,
+            ])
+        });
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         let log_n = n.trailing_zeros();
         let limit = dif
@@ -150,6 +206,7 @@ impl Quotient {
                 product,
                 finish_quotient,
                 encode_digits,
+                sort_digits,
                 n,
                 roots: upload(&device, roots),
                 inverse_roots: upload(&device, inverse_roots),
@@ -232,6 +289,21 @@ impl Quotient {
             slot[source.len()..].fill(Fr::from(0u64));
         }
         let command = self.queue.new_command_buffer();
+        let scatter = width
+            .zip(self.sort_digits.as_ref())
+            .map(|(width, [_, pipeline])| {
+                let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
+                // The last counter records out-of-range digits.
+                let count = windows * (1usize << (width - 1)) + 1;
+                let counts = crate::shared(self.abc.device(), count * 4);
+                let blit = command.new_blit_command_encoder();
+                blit.fill_buffer(&counts, metal::NSRange::new(0, counts.length()), 0);
+                blit.end_encoding();
+                DigitScatter {
+                    counts,
+                    pipeline: pipeline.clone(),
+                }
+            });
         let encoder = command.new_compute_command_encoder();
         for vector in 0..2 {
             let offset = (vector * n * 32) as u64;
@@ -260,7 +332,22 @@ impl Quotient {
             encoder.set_buffer(1, Some(&buffer), 0);
             encoder.set_bytes(2, 16, args.as_ptr() as *const c_void);
             self.dispatch(encoder, pipeline, n);
-            QuotientDigits { buffer, n, width, windows }
+            let digits = QuotientDigits {
+                buffer,
+                scatter,
+                n,
+                width,
+                windows,
+            };
+            if let (Some(scatter), Some([pipeline, _])) = (&digits.scatter, &self.sort_digits) {
+                let args = digits.scatter_args();
+                encoder.set_compute_pipeline_state(pipeline);
+                encoder.set_buffer(0, Some(&digits.buffer), 0);
+                encoder.set_buffer(1, Some(&scatter.counts), 0);
+                encoder.set_bytes(2, 16, args.as_ptr().cast());
+                digits.dispatch(encoder, pipeline);
+            }
+            digits
         });
         encoder.end_encoding();
         command.commit();

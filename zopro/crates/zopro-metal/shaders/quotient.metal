@@ -146,3 +146,45 @@ kernel void fr_quotient_digits(device const fr_t *coefficients [[buffer(0)]],
     digits[base * windows + w * len + i - base] = short(int(digit) - int(carry * radix));
   }
 }
+
+// Match the recoder's block layout while reading a contiguous run for
+// each window. Retain the digits for the scatter, or for the host fallback.
+kernel void fr_digit_counts(device const short *digits [[buffer(0)]],
+                            device atomic_uint *counts [[buffer(1)]],
+                            constant uint4 &args [[buffer(2)]],
+                            uint2 tid [[thread_position_in_grid]]) {
+  const uint i = tid.x, w = tid.y;
+  const uint n = args.x, buckets = args.y, windows = args.z, chunk = args.w;
+  if (i >= n || w >= windows)
+    return;
+  const uint base = (i / chunk) * chunk;
+  const uint len = min(chunk, n - base);
+  const uint b = uint(abs(int(digits[base * windows + w * len + i - base])));
+  if (b != 0) {
+    const uint index = b <= buckets ? w * buckets + b - 1 : windows * buckets;
+    atomic_fetch_add_explicit(&counts[index], 1u, memory_order_relaxed);
+  }
+}
+
+kernel void fr_digit_scatter(device const short *digits [[buffer(0)]],
+                             device const uint *starts [[buffer(1)]],
+                             device const uint *counts [[buffer(2)]],
+                             device atomic_uint *offsets [[buffer(3)]],
+                             device uint *sorted [[buffer(4)]],
+                             constant uint4 &args [[buffer(5)]],
+                             uint2 tid [[thread_position_in_grid]]) {
+  const uint n = args.x, buckets = args.y, windows = args.z, chunk = args.w;
+  const uint i = tid.x, w = tid.y;
+  if (i >= n || w >= windows)
+    return;
+  const uint base = (i / chunk) * chunk;
+  const uint len = min(chunk, n - base);
+  const int d = int(digits[base * windows + w * len + i - base]);
+  const uint b = uint(abs(d));
+  if (b != 0 && b <= buckets) {
+    const uint index = w * buckets + b - 1;
+    const uint offset = atomic_fetch_add_explicit(&offsets[index], 1u, memory_order_relaxed);
+    if (offset < counts[index])
+      sorted[starts[index] + offset] = i | (d < 0 ? 0x80000000u : 0u);
+  }
+}

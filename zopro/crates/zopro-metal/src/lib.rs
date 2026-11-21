@@ -428,7 +428,7 @@ pub struct Msm<C: Curve> {
     _curve: std::marker::PhantomData<C>,
 }
 
-fn shared(device: &Device, bytes: usize) -> Buffer {
+fn shared(device: &metal::DeviceRef, bytes: usize) -> Buffer {
     device.new_buffer(bytes.max(16) as u64, MTLResourceOptions::StorageModeShared)
 }
 
@@ -645,10 +645,44 @@ impl<C: Curve> Msm<C> {
         self.width
     }
 
-    /// Count and scatter digits that the quotient already recoded on the GPU.
+    /// Plan the MSM from its GPU histogram, or sort the recoded digits on
+    /// the host if the quotient only produced digits.
     pub fn start_quotient_digits(&mut self, digits: &QuotientDigits) -> Result<Pending, String> {
         assert_eq!((digits.n, digits.width), (self.n, self.width));
         let started = Instant::now();
+        if let Some(scatter) = &digits.scatter {
+            // SAFETY: the quotient command finished before returning these
+            // digits. The histogram contains one counter per bucket and a
+            // final counter for invalid digits.
+            let counts = unsafe {
+                std::slice::from_raw_parts(
+                    scatter.counts.contents().cast::<u32>(),
+                    self.counts.len() + 1,
+                )
+            };
+            let (&invalid, counts) = counts.split_last().unwrap();
+            if invalid != 0 {
+                return Err("MSM digit exceeds its window".into());
+            }
+            self.counts.copy_from_slice(counts);
+            for (w, (starts, counts)) in self
+                .starts
+                .chunks_mut(self.half)
+                .zip(counts.chunks(self.half))
+                .enumerate()
+            {
+                let mut at = 0usize;
+                for (start, &count) in starts.iter_mut().zip(counts) {
+                    *start = (w * self.n + at) as u32;
+                    at = at.checked_add(count as usize).ok_or("invalid MSM histogram")?;
+                    if at > self.n {
+                        return Err("invalid MSM histogram".into());
+                    }
+                }
+            }
+            self.sorted_for_original_bases = true;
+            return Ok(autoreleasepool(|| self.submit_in_pool(started, None, Some(digits))));
+        }
         self.scatter_digits(self.n, digits.as_slice())?;
         self.sorted_for_original_bases = true;
         Ok(self.submit(started))
@@ -674,7 +708,7 @@ impl<C: Curve> Msm<C> {
         self.sort_words(scalars, |words| *words);
         self.sorted_for_original_bases = false;
         // Metal's retained command buffer owns its input until completion.
-        autoreleasepool(|| self.submit_in_pool(started, Some(&buffer)))
+        autoreleasepool(|| self.submit_in_pool(started, Some(&buffer), None))
     }
 
     fn upload_bases(device: &Device, bases: &[C::Affine]) -> Buffer {
@@ -719,10 +753,15 @@ impl<C: Curve> Msm<C> {
         // Command buffers and encoders are autoreleased, and a Rust thread
         // has no pool: without one each proof leaked them, and with them
         // every buffer of the key, until an iPhone's GPU ran out.
-        autoreleasepool(|| self.submit_in_pool(started, None))
+        autoreleasepool(|| self.submit_in_pool(started, None, None))
     }
 
-    fn submit_in_pool(&mut self, started: Instant, bases: Option<&Buffer>) -> Pending {
+    fn submit_in_pool(
+        &mut self,
+        started: Instant,
+        bases: Option<&Buffer>,
+        digits: Option<&QuotientDigits>,
+    ) -> Pending {
         let chunks: Vec<Vec<usize>> = (0..self.windows.div_ceil(self.chunk_windows))
             .map(|chunk| {
                 let first = chunk * self.chunk_windows;
@@ -739,8 +778,23 @@ impl<C: Curve> Msm<C> {
             metal::NSRange::new(0, self.bucket_bytes as u64),
             0,
         );
+        let scatter = digits.and_then(|digits| {
+            let scatter = digits.scatter.as_ref()?;
+            let bytes = self.starts.len() * 4;
+            let starts = self.device.new_buffer_with_data(
+                self.starts.as_ptr().cast(),
+                bytes as u64,
+                MTLResourceOptions::StorageModeShared,
+            );
+            let positions = shared(&self.device, bytes);
+            blit.fill_buffer(&positions, metal::NSRange::new(0, bytes as u64), 0);
+            Some((scatter, digits, starts, positions))
+        });
         blit.end_encoding();
         let encoder = command.new_compute_command_encoder();
+        if let Some((scatter, digits, starts, positions)) = scatter {
+            scatter.encode(encoder, digits, &starts, &positions, &self.sorted);
+        }
         // Chunks run in order and share the trees; the dispatches of one
         // are complete before the next begins.
         for (chunk, levels) in chunks.iter().enumerate() {
