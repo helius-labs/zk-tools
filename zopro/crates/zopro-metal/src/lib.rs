@@ -322,6 +322,17 @@ pub trait Curve:
     fn encode(point: &Self::Affine, out: &mut Vec<u8>);
     /// An xyzz point (x, y, zz, zzz) as a Jacobian one (x zz, y zzz, zz).
     fn xyzz_to_projective(bytes: &[u8]) -> Self;
+    #[doc(hidden)]
+    fn reduce_host_window(buckets: &[u8]) -> Self {
+        let mut running = Self::IDENTITY;
+        let mut sum = Self::IDENTITY;
+        for point in buckets.chunks_exact(Self::XYZZ_BYTES).rev() {
+            running += Self::xyzz_to_projective(point);
+            sum += running;
+        }
+        sum
+    }
+
 }
 
 fn fq_bytes(v: &Fq, out: &mut Vec<u8>) {
@@ -358,6 +369,83 @@ impl Curve for G1Projective {
             return Self::IDENTITY;
         }
         Self::new(x * zz, y * zzz, zz)
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn reduce_host_window(buckets: &[u8]) -> Self {
+        // Keep the GPU's coordinates through the weighted sum.
+        let mut running = HostBucket::ZERO;
+        let mut sum = HostBucket::ZERO;
+        for bytes in buckets.chunks_exact(Self::XYZZ_BYTES).rev() {
+            let point = HostBucket {
+                x: fq(&bytes[..32]),
+                y: fq(&bytes[32..64]),
+                zz: fq(&bytes[64..96]),
+                zzz: fq(&bytes[96..]),
+            };
+            running = running.add(point);
+            sum = sum.add(running);
+        }
+        sum.projective()
+    }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[derive(Clone, Copy)]
+struct HostBucket {
+    x: Fq,
+    y: Fq,
+    zz: Fq,
+    zzz: Fq,
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+impl HostBucket {
+    const ZERO: Self = Self {
+        x: Fq::ZERO,
+        y: Fq::ZERO,
+        zz: Fq::ZERO,
+        zzz: Fq::ZERO,
+    };
+
+    fn projective(self) -> G1Projective {
+        G1Projective::new(self.x * self.zz, self.y * self.zzz, self.zz)
+    }
+
+    fn add(self, other: Self) -> Self {
+        if self.zz.is_zero() {
+            return other;
+        }
+        if other.zz.is_zero() {
+            return self;
+        }
+        let u = self.x * other.zz;
+        let s = self.y * other.zzz;
+        let dx = other.x * self.zz - u;
+        let dy = other.y * self.zzz - s;
+        if dx.is_zero() {
+            if !dy.is_zero() {
+                return Self::ZERO;
+            }
+            let d = self.projective().double();
+            let zz = d.z.square();
+            return Self {
+                x: d.x,
+                y: d.y,
+                zz,
+                zzz: zz * d.z,
+            };
+        }
+        let pp = dx.square();
+        let ppp = dx * pp;
+        let q = u * pp;
+        let x = dy.square() - ppp - q - q;
+        Self {
+            x,
+            y: (q - x) * dy - s * ppp,
+            zz: (self.zz * other.zz) * pp,
+            zzz: (self.zzz * other.zzz) * ppp,
+        }
     }
 }
 
@@ -574,10 +662,20 @@ impl<C: Curve> Msm<C> {
         // its own first shard, or every bucket's run split, whichever is
         // more. Chunks of windows keep each tree under TREE_MB.
         let per_window = n.div_ceil(FIRST_SHARD) + half;
+        // Dense G1 queries benefit from processing more windows per
+        // dispatch on Apple silicon Macs.
+        let default_tree_mb = if cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            && !C::G2
+            && n >= (1 << 18)
+        {
+            24
+        } else {
+            TREE_MB
+        };
         let tree_cap = std::env::var("ZOPRO_METAL_TREE_MB")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(TREE_MB)
+            .unwrap_or(default_tree_mb)
             << 20;
         let chunk_windows = (tree_cap / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
@@ -977,18 +1075,12 @@ impl<C: Curve> Msm<C> {
             let sums: Vec<C> = (0..self.windows)
                 .into_par_iter()
                 .map(|window| {
-                    let (mut running, mut sum) = (C::IDENTITY, C::IDENTITY);
-                    for m in (0..half).rev() {
-                        let at = (window * half + m) * xyzz;
-                        // SAFETY: the completed command buffer copied the
-                        // buckets, `windows * half` points, into `host`.
-                        let point = unsafe {
-                            std::slice::from_raw_parts((buckets + at) as *const u8, xyzz)
-                        };
-                        running += C::xyzz_to_projective(point);
-                        sum += running;
-                    }
-                    sum
+                    let at = window * half * xyzz;
+                    // SAFETY: the completed command copied every window's XYZZ buckets to host.
+                    let values = unsafe {
+                        std::slice::from_raw_parts((buckets + at) as *const u8, half * xyzz)
+                    };
+                    C::reduce_host_window(values)
                 })
                 .collect();
             for sum in sums.into_iter().rev() {
@@ -1281,6 +1373,27 @@ mod tests {
             let mut msm = Msm::<C>::new(bases).expect("msm").0;
             Box::new(move |scalars: &[Fr]| msm.msm(scalars).expect("gpu msm").0)
         })
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[test]
+    fn host_bucket_sum_handles_rescaled_points_and_cancellation() {
+        let g = G1Affine::GENERATOR;
+        let points = [G1Affine::IDENTITY, g, -g, -g, g, g];
+        let mut buckets = Vec::new();
+        for (i, p) in points.iter().enumerate() {
+            let z = if p.is_identity() { Fq::ZERO } else { Fq::from(i as u64 + 2) };
+            let zz = z.square();
+            let zzz = zz * z;
+            for v in [p.x * zz, p.y * zzz, zz, zzz] {
+                fq_bytes(&v, &mut buckets);
+            }
+        }
+        let weights: [Fr; 6] = core::array::from_fn(|i| Fr::from(i as u64 + 1));
+        assert_eq!(
+            G1Projective::reduce_host_window(&buckets),
+            zopro_bn254::curve::msm(&points, &weights),
+        );
     }
 
     #[test]
