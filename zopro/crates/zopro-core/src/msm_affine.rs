@@ -2223,6 +2223,37 @@ pub(super) fn apple_b2_from_fr(
     )
 }
 
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn apple_b2_borrowed_groups(
+    bases: &[zopro_bn254::G2Affine],
+    mut groups: ScalarGroups,
+) -> zopro_bn254::G2Projective {
+    // Classify the singletons as references to the key. Only the repeated
+    // classes need a point sum and storage owned by this proof.
+    let duplicates = groups.order.len() - groups.values.len();
+    let mut starts = Vec::with_capacity(duplicates + 1);
+    let mut order = Vec::with_capacity(2 * duplicates);
+    let mut counts = Vec::with_capacity(duplicates);
+    starts.push(0);
+    for (i, &count) in groups.counts.iter().enumerate() {
+        if count > 1 {
+            order.extend_from_slice(&groups.order[groups.starts[i]..groups.starts[i + 1]]);
+            starts.push(order.len());
+            counts.push(count);
+        }
+    }
+    let sums = crate::msm::group_affine(bases, &order, &starts, &counts);
+    let mut summed = sums.iter();
+    let points: Vec<_> = groups.counts.iter().enumerate().map(|(i, &count)| {
+        if count == 1 {
+            &bases[groups.order[groups.starts[i]] as usize]
+        } else {
+            summed.next().expect("non-singleton sum")
+        }
+    }).collect();
+    g2_phi::three_part_msm(&points, &mut groups.values)
+}
+
 fn g2_exclusive_with_groups<'a>(
     bases: &[zopro_bn254::G2Affine],
     groups: Option<ScalarGroups>,
@@ -2265,6 +2296,17 @@ fn g2_exclusive_with_groups<'a>(
         if let Some(mut g) = groups {
             if !(1024..65536).contains(&g.values.len()) {
                 return crate::msm_grouped_b2(bases, &g);
+            }
+            #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+            if three_parts && rayon::current_num_threads() == 7
+                && ((1 << 14)..(1 << 15)).contains(&g.values.len())
+                // Few repeated classes keep the references and their
+                // temporary index arrays within the grouping reservation.
+                && g.order.len() - g.values.len() <= g.values.len() / 8
+                && borrowed_scalar::enabled()
+                && std::env::var("ZOPRO_CPU_G2_BALANCED").as_deref() != Ok("0")
+            {
+                return apple_b2_borrowed_groups(bases, g);
             }
             let points = crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts);
             return compute(&points, &mut g.values);

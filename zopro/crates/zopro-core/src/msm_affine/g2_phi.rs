@@ -296,7 +296,9 @@ fn two_part_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
 // Keep the small-query layout out of the two-part hot path.
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[inline(never)]
-pub(super) fn three_part_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
+pub(super) fn three_part_msm<B: std::borrow::Borrow<G2Affine> + Sync>(
+    bases: &[B], short: &mut [[u64; 4]],
+) -> G2Projective {
     assert_eq!(bases.len(), short.len());
     short.par_iter_mut().for_each(|s| *s = phi_split(*s));
     let chunk = bases.len().div_ceil(3);
@@ -312,9 +314,14 @@ pub(super) fn three_part_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Pr
                     let points = &bases[start..end];
                     let words = &short[start..end];
                     let mut state = super::borrowed_scalar::Borrowed::new(width, size);
-                    state.feed(points, words.iter().map(|s| component_digit_at(s, true, offset, width)));
+                    let pairs = |high| {
+                        points.iter().map(std::borrow::Borrow::borrow)
+                            .zip(words.iter().map(move |s| component_digit_at(s, high, offset, width)))
+                    };
+                    let loose = points.len() < (1 << 16);
+                    state.feed_pairs(pairs(true), loose);
                     phi_buckets(&mut state.inner);
-                    state.feed(points, words.iter().map(|s| component_digit_at(s, false, offset, width)));
+                    state.feed_pairs(pairs(false), loose);
                     affine_buckets(state.inner)
                 })
                 .collect();

@@ -77,8 +77,13 @@ where
     }
 
     pub(super) fn feed(&mut self, bases: &'a [Affine<C>], digits: impl Iterator<Item = i16>) {
-        let loose = bases.len() < (1 << 16);
-        for (point, d) in bases.iter().zip(digits) {
+        self.feed_pairs(bases.iter().zip(digits), bases.len() < (1 << 16));
+    }
+
+    pub(super) fn feed_pairs(
+        &mut self, pairs: impl Iterator<Item = (&'a Affine<C>, i16)>, loose: bool,
+    ) {
+        for (point, d) in pairs {
             if d == 0 || point.is_identity() {
                 continue;
             }
