@@ -22,7 +22,10 @@ use objc::{msg_send, sel, sel_impl};
 use rayon::prelude::*;
 
 pub mod quotient;
-pub use quotient::{Quotient, Weights};
+pub use quotient::{Quotient, QuotientDigits, Weights};
+
+// Matching block layout for the host and GPU digit producers.
+const DIGIT_CHUNK: usize = 4096;
 
 /// The shaders as a library: the metallib build.rs compiled, else compiled
 /// from source now. The G2 kernels are instantiated only when asked for:
@@ -80,11 +83,19 @@ pub(crate) fn pipeline(
     Ok(state)
 }
 
+fn fused_g1_enabled() -> bool {
+    cfg!(all(target_os = "macos", target_arch = "aarch64"))
+        && std::env::var("ZOPRO_METAL_FUSED_MIXED").as_deref() != Ok("0")
+}
+
 /// Compiles the library and builds the G1 MSM and quotient pipelines, so
 /// that the first key load does not: an app can call it at start.
 pub fn warm() -> Result<(), String> {
     autoreleasepool(|| {
         let device = Device::system_default().ok_or("no Metal device")?;
+        if fused_g1_enabled() {
+            let _ = pipeline(&device, false, "shards_first_g1_fused");
+        }
         for name in [
             G1Projective::FIRST,
             G1Projective::TREE,
@@ -92,7 +103,7 @@ pub fn warm() -> Result<(), String> {
             "fr_dif_pass",
             "fr_dit_pass",
             "fr_scale",
-            "fr_pointwise",
+            "fr_product",
         ] {
             pipeline(&device, false, name)?;
         }
@@ -231,7 +242,7 @@ pub(crate) const SHADER: &str = concat!(
 );
 /// Window width by point count, as the CPU MSM's: wider windows mean fewer
 /// bucket additions and more buckets to reduce (and, here, to zero).
-fn width_for(n: usize) -> usize {
+fn width_for(n: usize, default_cap: usize) -> usize {
     let width = match n {
         0..=1023 => 7,
         1024..=4095 => 9,
@@ -247,7 +258,7 @@ fn width_for(n: usize) -> usize {
     let cap = std::env::var("ZOPRO_GPU_WIDTH")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(13)
+        .unwrap_or(default_cap)
         .clamp(7, 15);
     width.min(cap)
 }
@@ -319,6 +330,17 @@ pub trait Curve:
     fn encode(point: &Self::Affine, out: &mut Vec<u8>);
     /// An xyzz point (x, y, zz, zzz) as a Jacobian one (x zz, y zzz, zz).
     fn xyzz_to_projective(bytes: &[u8]) -> Self;
+    #[doc(hidden)]
+    fn reduce_host_window(buckets: &[u8]) -> Self {
+        let mut running = Self::IDENTITY;
+        let mut sum = Self::IDENTITY;
+        for point in buckets.chunks_exact(Self::XYZZ_BYTES).rev() {
+            running += Self::xyzz_to_projective(point);
+            sum += running;
+        }
+        sum
+    }
+
 }
 
 fn fq_bytes(v: &Fq, out: &mut Vec<u8>) {
@@ -355,6 +377,83 @@ impl Curve for G1Projective {
             return Self::IDENTITY;
         }
         Self::new(x * zz, y * zzz, zz)
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn reduce_host_window(buckets: &[u8]) -> Self {
+        // Keep the GPU's coordinates through the weighted sum.
+        let mut running = HostBucket::ZERO;
+        let mut sum = HostBucket::ZERO;
+        for bytes in buckets.chunks_exact(Self::XYZZ_BYTES).rev() {
+            let point = HostBucket {
+                x: fq(&bytes[..32]),
+                y: fq(&bytes[32..64]),
+                zz: fq(&bytes[64..96]),
+                zzz: fq(&bytes[96..]),
+            };
+            running = running.add(point);
+            sum = sum.add(running);
+        }
+        sum.projective()
+    }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[derive(Clone, Copy)]
+struct HostBucket {
+    x: Fq,
+    y: Fq,
+    zz: Fq,
+    zzz: Fq,
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+impl HostBucket {
+    const ZERO: Self = Self {
+        x: Fq::ZERO,
+        y: Fq::ZERO,
+        zz: Fq::ZERO,
+        zzz: Fq::ZERO,
+    };
+
+    fn projective(self) -> G1Projective {
+        G1Projective::new(self.x * self.zz, self.y * self.zzz, self.zz)
+    }
+
+    fn add(self, other: Self) -> Self {
+        if self.zz.is_zero() {
+            return other;
+        }
+        if other.zz.is_zero() {
+            return self;
+        }
+        let u = self.x * other.zz;
+        let s = self.y * other.zzz;
+        let dx = other.x * self.zz - u;
+        let dy = other.y * self.zzz - s;
+        if dx.is_zero() {
+            if !dy.is_zero() {
+                return Self::ZERO;
+            }
+            let d = self.projective().double();
+            let zz = d.z.square();
+            return Self {
+                x: d.x,
+                y: d.y,
+                zz,
+                zzz: zz * d.z,
+            };
+        }
+        let pp = dx.square();
+        let ppp = dx * pp;
+        let q = u * pp;
+        let x = dy.square() - ppp - q - q;
+        Self {
+            x,
+            y: (q - x) * dy - s * ppp,
+            zz: (self.zz * other.zz) * pp,
+            zzz: (self.zzz * other.zzz) * ppp,
+        }
     }
 }
 
@@ -399,15 +498,17 @@ pub struct Msm<C: Curve> {
     tree_pipeline: ComputePipelineState,
     /// The window reduction on the GPU; none where neither kernel builds
     /// (G2 on an A12Z exceeds the shader stack), and the host reduces
-    /// `host_buckets`, the buckets copied out of the shared scratch.
+    /// `host_buckets`, the buckets this MSM writes directly.
     reduce: Option<ComputePipelineState>,
     host_buckets: Option<Buffer>,
     bases: Buffer,
     n: usize,
     sorted: Buffer,
+    sorted_for_original_bases: bool,
     /// Windows per chunk: the shard trees are sized for one chunk and
     /// reused, which bounds the GPU memory a wide key takes.
     chunk_windows: usize,
+    first_shard: usize,
     /// Per chunk and level: shard starts, counts and destinations.
     levels: Vec<Vec<[Buffer; 3]>>,
     /// The shard trees and the buckets, shared with the key's other MSMs.
@@ -424,7 +525,7 @@ pub struct Msm<C: Curve> {
     _curve: std::marker::PhantomData<C>,
 }
 
-fn shared(device: &Device, bytes: usize) -> Buffer {
+fn shared(device: &metal::DeviceRef, bytes: usize) -> Buffer {
     device.new_buffer(bytes.max(16) as u64, MTLResourceOptions::StorageModeShared)
 }
 
@@ -509,28 +610,49 @@ impl<C: Curve> Msm<C> {
         bases: &[C::Affine],
         scratch: std::sync::Arc<Scratch>,
     ) -> Result<(Self, f64), String> {
+        Self::new_in_with_width_cap(bases, scratch, 13)
+    }
+
+    /// As `new_in`, with a caller-specified, overridable default window cap.
+    #[doc(hidden)]
+    pub fn new_in_with_width_cap(
+        bases: &[C::Affine],
+        scratch: std::sync::Arc<Scratch>,
+        default_cap: usize,
+    ) -> Result<(Self, f64), String> {
         // Building a pipeline autoreleases objects that hold on to the
         // device's memory; a thread without a pool leaked them per key.
-        autoreleasepool(|| Self::new_in_pool(bases, scratch))
+        autoreleasepool(|| Self::new_in_pool(bases, scratch, default_cap))
     }
 
     fn new_in_pool(
         bases: &[C::Affine],
         scratch: std::sync::Arc<Scratch>,
+        default_cap: usize,
     ) -> Result<(Self, f64), String> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
         let pipeline = |name: &str| pipeline(&device, C::G2, name);
-        let first = pipeline(C::FIRST)?;
+        let first = if bases.len() >= (1 << 15) && C::FIRST == G1Projective::FIRST
+            && fused_g1_enabled()
+        {
+            pipeline("shards_first_g1_fused").or_else(|_| pipeline(C::FIRST))?
+        } else {
+            pipeline(C::FIRST)?
+        };
         let tree_pipeline = pipeline(C::TREE)?;
-        // The windows reduce on the host on iOS: a GPU reduction kernel
-        // holds its threads' spilled registers in memory the driver charges
-        // to the app from its first run (the SIMD-group one 185 MB on an M5
-        // Pro, the threadgroup one 70 MB on an iPad Pro's A12Z), and the host
-        // reduced 16 -> 2 on that iPad as fast (on the M5 Pro, 3-6 % slower).
+        // The windows reduce on the host on iOS and Apple silicon Macs.
+        // A GPU reduction kernel holds spilled registers in memory the driver charges
+        // to the app from its first run. With the four-query prover on M5
+        // Pro, host reduction cut both latency and footprint on 2x2 and 12x2.
         // ZOPRO_METAL_HOST_REDUCE=1 or 0 says where anywhere.
-        let host = std::env::var("ZOPRO_METAL_HOST_REDUCE")
-            .map_or(cfg!(target_os = "ios"), |v| v == "1");
+        let host = std::env::var("ZOPRO_METAL_HOST_REDUCE").map_or(
+            cfg!(any(
+                target_os = "ios",
+                all(target_os = "macos", target_arch = "aarch64")
+            )),
+            |v| v == "1",
+        );
         // SIMD-group shuffles need an A13's GPU or later
         // (ZOPRO_METAL_TG_REDUCE=1 takes the fallback anywhere).
         let forced = std::env::var("ZOPRO_METAL_TG_REDUCE").is_ok_and(|v| v == "1");
@@ -556,43 +678,32 @@ impl<C: Curve> Msm<C> {
             },
         };
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
-        // Encoded straight into the buffer, a block of points at a time: a
-        // whole host copy of the vector per key load left the allocator
-        // holding hundreds of MB.
-        let bases_buffer = shared(&device, bases.len() * C::AFFINE_BYTES);
-        let mut raw = Vec::with_capacity(4096 * C::AFFINE_BYTES);
-        for (block, points) in bases.chunks(4096).enumerate() {
-            raw.clear();
-            for p in points {
-                C::encode(p, &mut raw);
-            }
-            // SAFETY: the shared buffer is the vector's size and no GPU work
-            // uses it yet; each block lands at its own offset.
-            unsafe {
-                std::ptr::copy_nonoverlapping(
-                    raw.as_ptr(),
-                    (bases_buffer.contents() as *mut u8).add(block * 4096 * C::AFFINE_BYTES),
-                    raw.len(),
-                );
-            }
-        }
+        let bases_buffer = Self::upload_bases(&device, bases);
         let n = bases.len();
-        let width = width_for(n);
+        let width = width_for(n, default_cap);
         let half = 1 << (width - 1);
         let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
         let buckets = windows * half;
         // The most shards a level can have for one window: every pair in
         // its own first shard, or every bucket's run split, whichever is
         // more. Chunks of windows keep each tree under TREE_MB.
-        let per_window = n.div_ceil(FIRST_SHARD) + half;
+        let dense = cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            && !C::G2 && n >= (1 << 18);
+        // Shorter first shards let more threads cooperate on a large
+        // G1 bucket. The tree budget still bounds the resulting scratch.
+        let first_shard = if dense { 22 } else { FIRST_SHARD };
+        let per_window = n.div_ceil(first_shard) + half;
+        let default_tree_mb = if dense { 24 } else { TREE_MB };
         let tree_cap = std::env::var("ZOPRO_METAL_TREE_MB")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(TREE_MB)
+            .unwrap_or(default_tree_mb)
             << 20;
         let chunk_windows = (tree_cap / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
-        scratch.reserve(&device, most * C::XYZZ_BYTES, buckets * C::XYZZ_BYTES);
+        let bucket_bytes = buckets * C::XYZZ_BYTES;
+        let shared_bucket_bytes = if reduce.is_some() { bucket_bytes } else { 0 };
+        scratch.reserve(&device, most * C::XYZZ_BYTES, shared_bucket_bytes);
         let reduce_shape = {
             let per_window = half.min(REDUCE_THREADS_PER_WINDOW);
             let allowed = reduce.as_ref().map_or(REDUCE_GROUP, |r| {
@@ -613,11 +724,13 @@ impl<C: Curve> Msm<C> {
                 half,
                 windows,
                 chunk_windows,
+                first_shard,
                 queue: queue(&device),
                 sorted: shared(&device, n * windows * 4),
+                sorted_for_original_bases: false,
                 levels: Vec::new(),
                 scratch,
-                bucket_bytes: buckets * C::XYZZ_BYTES,
+                bucket_bytes,
                 sums: shared(&device, windows * reduce_shape[3] * C::XYZZ_BYTES),
                 reduce_shape,
                 counts: vec![0; buckets],
@@ -625,9 +738,7 @@ impl<C: Curve> Msm<C> {
                 _curve: std::marker::PhantomData,
                 first,
                 tree_pipeline,
-                host_buckets: reduce
-                    .is_none()
-                    .then(|| shared(&device, buckets * C::XYZZ_BYTES)),
+                host_buckets: reduce.is_none().then(|| shared(&device, bucket_bytes)),
                 reduce,
                 bases: bases_buffer,
                 n,
@@ -651,6 +762,53 @@ impl<C: Curve> Msm<C> {
         self.submit(started)
     }
 
+    pub fn scalar_window_width(&self) -> usize {
+        self.width
+    }
+
+    /// Plan the MSM from its GPU histogram, or sort the recoded digits on
+    /// the host if the quotient only produced digits.
+    pub fn start_quotient_digits(&mut self, digits: &QuotientDigits) -> Result<Pending, String> {
+        assert_eq!((digits.n, digits.width), (self.n, self.width));
+        let started = Instant::now();
+        if let Some(scatter) = &digits.scatter {
+            // SAFETY: the quotient command finished before returning these
+            // digits. The histogram contains one counter per bucket and a
+            // final counter for invalid digits.
+            let counts = unsafe {
+                std::slice::from_raw_parts(
+                    scatter.counts.contents().cast::<u32>(),
+                    self.counts.len() + 1,
+                )
+            };
+            let (&invalid, counts) = counts.split_last().unwrap();
+            if invalid != 0 {
+                return Err("MSM digit exceeds its window".into());
+            }
+            self.counts.copy_from_slice(counts);
+            for (w, (starts, counts)) in self
+                .starts
+                .chunks_mut(self.half)
+                .zip(counts.chunks(self.half))
+                .enumerate()
+            {
+                let mut at = 0usize;
+                for (start, &count) in starts.iter_mut().zip(counts) {
+                    *start = (w * self.n + at) as u32;
+                    at = at.checked_add(count as usize).ok_or("invalid MSM histogram")?;
+                    if at > self.n {
+                        return Err("invalid MSM histogram".into());
+                    }
+                }
+            }
+            self.sorted_for_original_bases = true;
+            return Ok(autoreleasepool(|| self.submit_in_pool(started, None, Some(digits))));
+        }
+        self.scatter_digits(self.n, digits.as_slice())?;
+        self.sorted_for_original_bases = true;
+        Ok(self.submit(started))
+    }
+
     /// The first half of [`Msm::start`]: the scalars sorted, for
     /// [`Msm::submit_sorted`] once the GPU should take them.
     pub fn sort_now(&mut self, scalars: &[Fr]) -> Sorted {
@@ -658,6 +816,41 @@ impl<C: Curve> Msm<C> {
         let started = Instant::now();
         self.sort(scalars);
         Sorted { started }
+    }
+
+    /// Start an MSM with a compact list of points and canonical scalars.
+    /// The original bases and the size of this MSM's scratch stay intact.
+    pub fn start_grouped(&mut self, bases: &[C::Affine], scalars: &[[u64; 4]]) -> Pending {
+        let n = bases.len();
+        assert!(n != 0 && n <= self.n);
+        assert_eq!(n, scalars.len());
+        let started = Instant::now();
+        let buffer = Self::upload_bases(&self.device, bases);
+        self.sort_words(scalars, |words| *words);
+        self.sorted_for_original_bases = false;
+        // Metal's retained command buffer owns its input until completion.
+        autoreleasepool(|| self.submit_in_pool(started, Some(&buffer), None))
+    }
+
+    fn upload_bases(device: &Device, bases: &[C::Affine]) -> Buffer {
+        // Encode a block at a time so loading a key needs no full host copy.
+        let buffer = shared(device, bases.len() * C::AFFINE_BYTES);
+        let mut bytes = Vec::with_capacity(4096 * C::AFFINE_BYTES);
+        for (i, block) in bases.chunks(4096).enumerate() {
+            bytes.clear();
+            for point in block {
+                C::encode(point, &mut bytes);
+            }
+            // SAFETY: this is a fresh shared buffer with space for all points.
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    bytes.as_ptr(),
+                    (buffer.contents() as *mut u8).add(i * 4096 * C::AFFINE_BYTES),
+                    bytes.len(),
+                );
+            }
+        }
+        buffer
     }
 
     pub fn submit_sorted(&mut self, sorted: Sorted) -> Pending {
@@ -668,10 +861,12 @@ impl<C: Curve> Msm<C> {
     /// (G1 B and G2 B share theirs): its sorted runs, no sort.
     pub fn start_sorted_as<D: Curve>(&mut self, other: &Msm<D>) -> Pending {
         assert_eq!((other.n, other.width), (self.n, self.width));
+        assert!(other.sorted_for_original_bases);
         let started = Instant::now();
         self.sorted = other.sorted.clone();
         self.counts.clone_from(&other.counts);
         self.starts.clone_from(&other.starts);
+        self.sorted_for_original_bases = true;
         self.submit(started)
     }
 
@@ -679,10 +874,15 @@ impl<C: Curve> Msm<C> {
         // Command buffers and encoders are autoreleased, and a Rust thread
         // has no pool: without one each proof leaked them, and with them
         // every buffer of the key, until an iPhone's GPU ran out.
-        autoreleasepool(|| self.submit_in_pool(started))
+        autoreleasepool(|| self.submit_in_pool(started, None, None))
     }
 
-    fn submit_in_pool(&mut self, started: Instant) -> Pending {
+    fn submit_in_pool(
+        &mut self,
+        started: Instant,
+        bases: Option<&Buffer>,
+        digits: Option<&QuotientDigits>,
+    ) -> Pending {
         let chunks: Vec<Vec<usize>> = (0..self.windows.div_ceil(self.chunk_windows))
             .map(|chunk| {
                 let first = chunk * self.chunk_windows;
@@ -692,15 +892,29 @@ impl<C: Curve> Msm<C> {
         let sort_ms = elapsed(started);
         let command = self.queue.new_command_buffer();
         let scratch = self.scratch.0.lock().unwrap();
+        // The host reads its own buckets after completion, while the next
+        // command may already be using the shared trees.
+        let buckets = self.host_buckets.as_ref().unwrap_or(&scratch.buckets);
         // Empty buckets stay at infinity.
         let blit = command.new_blit_command_encoder();
-        blit.fill_buffer(
-            &scratch.buckets,
-            metal::NSRange::new(0, self.bucket_bytes as u64),
-            0,
-        );
+        blit.fill_buffer(buckets, metal::NSRange::new(0, self.bucket_bytes as u64), 0);
+        let scatter = digits.and_then(|digits| {
+            let scatter = digits.scatter.as_ref()?;
+            let bytes = self.starts.len() * 4;
+            let starts = self.device.new_buffer_with_data(
+                self.starts.as_ptr().cast(),
+                bytes as u64,
+                MTLResourceOptions::StorageModeShared,
+            );
+            let positions = shared(&self.device, bytes);
+            blit.fill_buffer(&positions, metal::NSRange::new(0, bytes as u64), 0);
+            Some((scatter, digits, starts, positions))
+        });
         blit.end_encoding();
         let encoder = command.new_compute_command_encoder();
+        if let Some((scatter, digits, starts, positions)) = scatter {
+            scatter.encode(encoder, digits, &starts, &positions, &self.sorted);
+        }
         // Chunks run in order and share the trees; the dispatches of one
         // are complete before the next begins.
         for (chunk, levels) in chunks.iter().enumerate() {
@@ -713,7 +927,7 @@ impl<C: Curve> Msm<C> {
                 };
                 encoder.set_compute_pipeline_state(pipeline);
                 if level == 0 {
-                    encoder.set_buffer(0, Some(&self.bases), 0);
+                    encoder.set_buffer(0, Some(bases.unwrap_or(&self.bases)), 0);
                     encoder.set_buffer(1, Some(&self.sorted), 0);
                 } else {
                     encoder.set_buffer(0, Some(&scratch.tree[(level - 1) % 2]), 0);
@@ -723,7 +937,7 @@ impl<C: Curve> Msm<C> {
                 encoder.set_buffer(3, Some(count), 0);
                 encoder.set_buffer(4, Some(dst), 0);
                 let out = if level == last {
-                    &scratch.buckets
+                    buckets
                 } else {
                     &scratch.tree[level % 2]
                 };
@@ -738,15 +952,9 @@ impl<C: Curve> Msm<C> {
         // a full SIMD group and no more than the kernel's registers allow on
         // this GPU (a power of two, since `leaf` is a shift).
         if self.reduce.is_some() {
-            self.encode_reduce(encoder, &scratch.buckets);
+            self.encode_reduce(encoder, buckets);
         }
         encoder.end_encoding();
-        // The host reduces its own copy: the next MSM reuses the scratch.
-        if let Some(host) = &self.host_buckets {
-            let blit = command.new_blit_command_encoder();
-            blit.copy_from_buffer(&scratch.buckets, 0, host, 0, self.bucket_bytes as u64);
-            blit.end_encoding();
-        }
         command.commit();
         Pending {
             command: command.to_owned(),
@@ -772,6 +980,7 @@ impl<C: Curve> Msm<C> {
                 })
                 .collect();
             let scratch = self.scratch.0.lock().unwrap();
+            let buckets = self.host_buckets.as_ref().unwrap_or(&scratch.buckets);
             let run = |encode: &dyn Fn(&metal::ComputeCommandEncoderRef)| -> f64 {
                 let command = self.queue.new_command_buffer();
                 let encoder = command.new_compute_command_encoder();
@@ -812,7 +1021,7 @@ impl<C: Curve> Msm<C> {
                         encoder.set_buffer(3, Some(count), 0);
                         encoder.set_buffer(4, Some(dst), 0);
                         let out = if level == last {
-                            &scratch.buckets
+                            buckets
                         } else {
                             &scratch.tree[level % 2]
                         };
@@ -840,7 +1049,7 @@ impl<C: Curve> Msm<C> {
                     self.width, self.windows
                 );
             };
-            let reduce_ms = run(&|encoder| self.encode_reduce(encoder, &scratch.buckets));
+            let reduce_ms = run(&|encoder| self.encode_reduce(encoder, buckets));
             let threads = self.reduce_shape[1];
             format!(
                 "first {first_ms:.1} ms ({first_shards} shards, limit {}) tree {tree_ms:.1} ms ({tree_shards} shards, limit {}) reduce {reduce_ms:.1} ms ({threads} threads/window, limit {}) width {} windows {}",
@@ -883,18 +1092,12 @@ impl<C: Curve> Msm<C> {
             let sums: Vec<C> = (0..self.windows)
                 .into_par_iter()
                 .map(|window| {
-                    let (mut running, mut sum) = (C::IDENTITY, C::IDENTITY);
-                    for m in (0..half).rev() {
-                        let at = (window * half + m) * xyzz;
-                        // SAFETY: the completed command buffer copied the
-                        // buckets, `windows * half` points, into `host`.
-                        let point = unsafe {
-                            std::slice::from_raw_parts((buckets + at) as *const u8, xyzz)
-                        };
-                        running += C::xyzz_to_projective(point);
-                        sum += running;
-                    }
-                    sum
+                    let at = window * half * xyzz;
+                    // SAFETY: the completed command wrote the window's XYZZ buckets.
+                    let values = unsafe {
+                        std::slice::from_raw_parts((buckets + at) as *const u8, half * xyzz)
+                    };
+                    C::reduce_host_window(values)
                 })
                 .collect();
             for sum in sums.into_iter().rev() {
@@ -926,7 +1129,7 @@ impl<C: Curve> Msm<C> {
 
     /// The levels of shards over the sorted runs of a chunk of windows,
     /// written to the chunk's level buffers; returns each level's shard
-    /// count. Level 0 splits bucket runs of base points into FIRST_SHARD;
+    /// count. Level 0 splits bucket runs of base points into first_shard;
     /// each later level splits the previous level's contiguous shard ranges
     /// into SHARD, until every bucket has one, which the last level writes
     /// to the bucket's place.
@@ -939,56 +1142,62 @@ impl<C: Curve> Msm<C> {
             .map(|(s, c)| (*s, *c))
             .collect();
         let mut shard_counts = Vec::new();
+        let mut next = Vec::new();
         let mut level = 0;
         if self.levels.len() <= chunk {
             self.levels.push(Vec::new());
         }
+        let most = self.chunk_windows * (self.n.div_ceil(self.first_shard) + self.half);
         loop {
-            let size = if level == 0 { FIRST_SHARD } else { SHARD } as u32;
+            let size = if level == 0 { self.first_shard } else { SHARD } as u32;
             let last = runs.iter().all(|(_, c)| *c <= size);
-            let mut start = Vec::new();
-            let mut count = Vec::new();
-            let mut dst = Vec::new();
-            let mut next = Vec::with_capacity(buckets);
-            for (b, (run_start, run_count)) in runs.iter().enumerate() {
-                let first = start.len() as u32;
-                let mut at = 0;
-                while at < *run_count {
-                    let len = size.min(run_count - at);
-                    start.push(run_start + at);
-                    count.push(len);
-                    dst.push(if last {
-                        (first_bucket + b) as u32
-                    } else {
-                        first + (at / size)
-                    });
-                    at += len;
-                }
-                next.push((first, start.len() as u32 - first));
-            }
             if self.levels[chunk].len() <= level {
-                let most = self.chunk_windows * (self.n.div_ceil(FIRST_SHARD) + self.half);
                 self.levels[chunk].push([
                     shared(&self.device, most * 4),
                     shared(&self.device, most * 4),
                     shared(&self.device, most * 4),
                 ]);
             }
-            for (buffer, data) in self.levels[chunk][level].iter().zip([&start, &count, &dst]) {
-                // SAFETY: each level buffer holds `most` u32s, at least data.len().
+            let [starts, counts, destinations] = self.levels[chunk][level].each_ref().map(|buffer| {
+                // SAFETY: each buffer independently holds most u32 slots.
+                // This MSM has finished using the buffers from its previous
+                // execution before the next plan writes them.
                 unsafe {
-                    std::ptr::copy_nonoverlapping(
-                        data.as_ptr(),
-                        buffer.contents() as *mut u32,
-                        data.len(),
+                    std::slice::from_raw_parts_mut(
+                        buffer.contents().cast::<std::mem::MaybeUninit<u32>>(),
+                        most,
                     )
-                };
+                }
+            });
+            if !last {
+                next.reserve(buckets);
             }
-            shard_counts.push(start.len());
+            let mut cursor = 0;
+            for (b, &(run_start, run_count)) in runs.iter().enumerate() {
+                let first = cursor as u32;
+                let mut at = 0;
+                while at < run_count {
+                    let len = size.min(run_count - at);
+                    starts[cursor].write(run_start + at);
+                    counts[cursor].write(len);
+                    destinations[cursor].write(if last {
+                        (first_bucket + b) as u32
+                    } else {
+                        cursor as u32
+                    });
+                    cursor += 1;
+                    at += len;
+                }
+                if !last {
+                    next.push((first, cursor as u32 - first));
+                }
+            }
+            shard_counts.push(cursor);
             if last {
                 return shard_counts;
             }
-            runs = next;
+            std::mem::swap(&mut runs, &mut next);
+            next.clear();
             level += 1;
         }
     }
@@ -996,22 +1205,27 @@ impl<C: Curve> Msm<C> {
     /// Digits, counts and the scatter: digits in parallel over scalars,
     /// then one window per task writing its own segment of the buffers.
     fn sort(&mut self, scalars: &[Fr]) {
-        let (width, windows, half) = (self.width, self.windows, self.half);
+        assert_eq!(scalars.len(), self.n);
+        self.sort_words(scalars, Fr::to_canonical);
+        self.sorted_for_original_bases = true;
+    }
+
+    fn sort_words<S: Sync>(&mut self, scalars: &[S], words: impl Fn(&S) -> [u64; 4] + Sync) {
+        let (width, windows) = (self.width, self.windows);
         let radix = 1u64 << width;
         let mask = radix - 1;
-        let n = self.n;
+        let n = scalars.len();
         // In chunks of scalars, window-major within each: a window's pass
         // reads its runs rather than every row (a 2^21-point Z sort took
         // 60-110 ms reading all of them).
-        const CHUNK: usize = 4096;
         let mut digits = vec![0i16; n * windows];
         digits
-            .par_chunks_mut(CHUNK * windows)
-            .zip(scalars.par_chunks(CHUNK))
+            .par_chunks_mut(DIGIT_CHUNK * windows)
+            .zip(scalars.par_chunks(DIGIT_CHUNK))
             .for_each(|(block, chunk)| {
                 let len = chunk.len();
                 for (i, s) in chunk.iter().enumerate() {
-                    let words = s.to_canonical();
+                    let words = words(s);
                     let mut carry = 0u64;
                     for w in 0..windows {
                         let offset = w * width;
@@ -1026,14 +1240,19 @@ impl<C: Curve> Msm<C> {
                     }
                 }
             });
+        self.scatter_digits(n, &digits).expect("host recoding");
+    }
+
+    fn scatter_digits(&mut self, n: usize, digits: &[i16]) -> Result<(), &'static str> {
+        let (windows, half) = (self.windows, self.half);
         // Window w's digits, chunk by chunk, with the chunk's first index.
         let runs = |w: usize| {
             digits
-                .chunks(CHUNK * windows)
+                .chunks(DIGIT_CHUNK * windows)
                 .enumerate()
                 .map(move |(c, block)| {
                     let len = block.len() / windows;
-                    (c * CHUNK, &block[w * len..(w + 1) * len])
+                    (c * DIGIT_CHUNK, &block[w * len..(w + 1) * len])
                 })
         };
         // SAFETY: the buffer holds n * windows u32s, shared storage, and
@@ -1046,12 +1265,14 @@ impl<C: Curve> Msm<C> {
             .zip(self.starts.par_chunks_mut(half))
             .zip(self.counts.par_chunks_mut(half))
             .enumerate()
-            .for_each(|(w, ((sorted, starts), counts))| {
+            .try_for_each(|(w, ((sorted, starts), counts))| {
                 counts.fill(0);
                 for (_, run) in runs(w) {
                     for &d in run {
                         if d != 0 {
-                            counts[d.unsigned_abs() as usize - 1] += 1;
+                            let count = counts.get_mut(d.unsigned_abs() as usize - 1)
+                                .ok_or("MSM digit exceeds its window")?;
+                            *count += 1;
                         }
                     }
                 }
@@ -1072,7 +1293,8 @@ impl<C: Curve> Msm<C> {
                         }
                     }
                 }
-            });
+                Ok(())
+            })
     }
 
     pub fn device_name(&self) -> String {
@@ -1176,13 +1398,69 @@ mod tests {
         })
     }
 
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[test]
+    fn host_bucket_sum_handles_rescaled_points_and_cancellation() {
+        let g = G1Affine::GENERATOR;
+        let points = [G1Affine::IDENTITY, g, -g, -g, g, g];
+        let mut buckets = Vec::new();
+        for (i, p) in points.iter().enumerate() {
+            let z = if p.is_identity() { Fq::ZERO } else { Fq::from(i as u64 + 2) };
+            let zz = z.square();
+            let zzz = zz * z;
+            for v in [p.x * zz, p.y * zzz, zz, zzz] {
+                fq_bytes(&v, &mut buckets);
+            }
+        }
+        let weights: [Fr; 6] = core::array::from_fn(|i| Fr::from(i as u64 + 1));
+        assert_eq!(
+            G1Projective::reduce_host_window(&buckets),
+            zopro_bn254::curve::msm(&points, &weights),
+        );
+    }
+
     #[test]
     fn g1_msms_match_the_reference() {
         check::<G1Config>(&[1, 7, 100, 3000, 20000]);
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        check::<G1Config>(&[32768]);
     }
 
     #[test]
     fn g2_msms_match_the_reference() {
         check::<G2Config>(&[1, 100, 3000]);
+    }
+
+    #[test]
+    fn grouped_msm_preserves_the_original_bases() {
+        if metal::Device::system_default().is_none() {
+            eprintln!("no GPU: skipped");
+            return;
+        }
+        let mut rng = StdRng::seed_from_u64(19);
+        let bases = points::<G1Config>(257, &mut rng);
+        let compact = points::<G1Config>(63, &mut rng);
+        let weights = scalars(compact.len(), true, &mut rng);
+        let words: Vec<_> = weights.iter().map(Fr::to_canonical).collect();
+        let (mut msm, _) = G1Msm::new(&bases).unwrap();
+        let pending = msm.start_grouped(&compact, &words);
+        let (got, _) = msm.finish(pending).unwrap();
+        assert_eq!(got, zopro_bn254::curve::msm(&compact, &weights));
+
+        let weights = scalars(bases.len(), false, &mut rng);
+        let (got, _) = msm.msm(&weights).unwrap();
+        assert_eq!(got, zopro_bn254::curve::msm(&bases, &weights));
+    }
+
+    #[test]
+    fn invalid_gpu_digits_return_an_error() {
+        if metal::Device::system_default().is_none() {
+            eprintln!("no GPU: skipped");
+            return;
+        }
+        let (mut msm, _) = G1Msm::new(&[G1Affine::GENERATOR]).unwrap();
+        let mut digits = vec![0; msm.windows];
+        digits[0] = i16::MAX;
+        assert_eq!(msm.scatter_digits(1, &digits), Err("MSM digit exceeds its window"));
     }
 }

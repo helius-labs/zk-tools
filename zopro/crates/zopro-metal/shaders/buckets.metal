@@ -4,11 +4,11 @@
 // weight that plus one.
 constant uint bucket_sign = 0x80000000u;
 
-template <typename E>
+template <typename E, bool FUSED = false>
 inline affine_t<E> signed_base(device const affine_t<E> *bases, uint encoded) {
   affine_t<E> point = bases[encoded & ~bucket_sign];
   if (encoded & bucket_sign)
-    point.y = e_neg(point.y);
+    point.y = FUSED ? e_neg_fast(point.y) : e_neg(point.y);
   return point;
 }
 
@@ -16,7 +16,7 @@ inline affine_t<E> signed_base(device const affine_t<E> *bases, uint encoded) {
 // level by level until every bucket holds one point: the first level reads
 // the sorted base indices, later levels the previous level's sums. Shard s
 // covers source[start[s]..start[s] + count[s]) and writes out[dst[s]].
-template <typename E>
+template <typename E, bool FUSED = false>
 inline void shards_first(device const affine_t<E> *bases, device const uint *sorted,
                          device const uint *start, device const uint *count,
                          device const uint *dst, device xyzz_t<E> *out, uint shards,
@@ -25,14 +25,14 @@ inline void shards_first(device const affine_t<E> *bases, device const uint *sor
     return;
   const uint begin = start[s];
   const uint end = begin + count[s];
-  xyzz_t<E> acc = xyzz_from_affine(signed_base(bases, sorted[begin]));
+  xyzz_t<E> acc = xyzz_from_affine(signed_base<E, FUSED>(bases, sorted[begin]));
   uint i = begin + 1;
   if (i < end) {
-    acc = xyzz_add_affine_pair(acc, signed_base(bases, sorted[i]));
+    acc = xyzz_add_affine_pair(acc, signed_base<E, FUSED>(bases, sorted[i]));
     i++;
   }
   for (; i < end; i++)
-    acc = xyzz_add_mixed(acc, signed_base(bases, sorted[i]));
+    acc = xyzz_add_mixed<E, FUSED>(acc, signed_base<E, FUSED>(bases, sorted[i]));
   out[dst[s]] = acc;
 }
 
@@ -202,3 +202,16 @@ struct ReduceArgs {
   }
 
 BUCKET_KERNELS(fp_t, g1)
+
+
+kernel void shards_first_g1_fused(
+    device const affine_t<fp_t> *bases [[buffer(0)]],
+    device const uint *sorted [[buffer(1)]],
+    device const uint *start [[buffer(2)]],
+    device const uint *count [[buffer(3)]],
+    device const uint *dst [[buffer(4)]],
+    device xyzz_t<fp_t> *out [[buffer(5)]],
+    constant uint &shards [[buffer(6)]],
+    uint s [[thread_position_in_grid]]) {
+  shards_first<fp_t, true>(bases, sorted, start, count, dst, out, shards, s);
+}

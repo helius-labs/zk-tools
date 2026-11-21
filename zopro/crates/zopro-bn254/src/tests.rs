@@ -121,6 +121,7 @@ fn scalar_field() {
     for _ in 0..500 {
         let (a, b) = (ark::Fr::rand(&mut rng), ark::Fr::rand(&mut rng));
         assert_eq!(fr(a) * fr(b), fr(a * b));
+        assert_eq!(fr(a).square(), fr(a.square()));
         assert_eq!(fr(a) + fr(b), fr(a + b));
         assert_eq!(fr(a) - fr(b), fr(a - b));
         assert_eq!(fr(a).inverse(), a.inverse().map(fr));
@@ -144,6 +145,7 @@ fn quadratic_extension() {
             assert_eq!(fq2(*a) - fq2(*b), fq2(*a - b));
         }
         assert_eq!(fq2(*a).square(), fq2(a.square()));
+        assert_eq!(fq2(*a).norm(), fq(a.norm()));
         assert_eq!(fq2(*a).inverse(), a.inverse().map(fq2));
         assert_eq!(fq2(*a).frobenius(1), fq2(a.frobenius_map(1)));
         let ours = fq2(*a).sqrt();
@@ -158,6 +160,22 @@ fn quadratic_extension() {
             fq2(*a).mul_by_nonresidue(),
             fq2(*a * ark::Fq2::new(ark::Fq::from(9u64), ark::Fq::ONE))
         );
+    }
+}
+
+#[test]
+fn quadratic_square_with_large_montgomery_limbs() {
+    let mut max = Fq::MODULUS;
+    max[0] -= 1;
+    let near_max = Fq::from_montgomery(max);
+    max[0] -= 1;
+    let values = [Fq::ZERO, Fq::ONE, Fq::from_montgomery(max), near_max];
+    for x in values {
+        for y in values {
+            let a = Fq2::new(x, y);
+            assert_eq!(a.square(), a * a);
+            assert_eq!(a.norm(), x.square() + y.square());
+        }
     }
 }
 
@@ -193,6 +211,46 @@ fn tower() {
         assert_eq!(
             fq12(x).mul_by_034(&fq2(c0), &fq2(c1), &fq2(c4)),
             fq12(expected)
+        );
+    }
+}
+
+#[test]
+fn cyclotomic_arithmetic_matches_general_field_operations() {
+    let mut rng = ark_std::test_rng();
+    let mut values = vec![ark::Fq12::ONE];
+    for _ in 0..96 {
+        let raw = ark::Fq12::rand(&mut rng);
+        let easy = raw.frobenius_map(6) * raw.inverse().unwrap();
+        values.push(easy.frobenius_map(2) * easy);
+    }
+    for x in values {
+        for x in [x, x.frobenius_map(6), x * x.frobenius_map(1)] {
+            let ours = fq12(x);
+            assert_eq!(ours.cyclotomic_square(), ours.square());
+            assert_eq!(ours.cyclotomic_square(), fq12(x.square()));
+            for exponent in [0, 1, 2, 3, 4965661367192848881, u64::MAX] {
+                assert_eq!(ours.cyclotomic_pow_u64(exponent), fq12(x.pow([exponent])));
+            }
+        }
+    }
+}
+
+#[test]
+fn final_exponentiation_matches_its_general_square_reference() {
+    let mut rng = ark_std::test_rng();
+    let mut values = vec![ark::Fq12::ZERO, ark::Fq12::ONE, -ark::Fq12::ONE];
+    values.extend((0..128).map(|_| ark::Fq12::rand(&mut rng)));
+    for x in values {
+        let ours = fq12(x);
+        assert_eq!(
+            pairing::final_exponentiation(ours),
+            pairing::final_exponentiation_reference(ours)
+        );
+        assert_eq!(
+            pairing::final_exponentiation(ours),
+            ark::Bn254::final_exponentiation(ark_ec::pairing::MillerLoopOutput(x))
+                .map(|x| fq12(x.0))
         );
     }
 }
@@ -258,6 +316,50 @@ fn g2_subgroup() {
 }
 
 #[test]
+fn short_g2_subgroup_matches_independent_checks() {
+    use crate::{FpConfig, FrConfig};
+    fn check(p: ark::G2Affine) {
+        let ours = g2(p);
+        assert!(ours.is_on_curve());
+        const SIX_X_SQUARED: [u64; 2] = [17887900258952609094, 8020209761171036667];
+        let old =
+            ours.is_identity() || ours.mul_limbs(&SIX_X_SQUARED) == ours.psi().to_projective();
+        let full_order = ours.mul_limbs(&FrConfig::P).is_identity();
+        let reference = p.is_in_correct_subgroup_assuming_on_curve();
+        assert_eq!(ours.is_in_subgroup(), old);
+        assert_eq!(ours.is_in_subgroup(), full_order);
+        assert_eq!(ours.is_in_subgroup(), reference);
+        let z = Fq2::new(Fq::from(7u64), Fq::from(11u64));
+        let scaled = if ours.is_identity() {
+            G2Projective::IDENTITY
+        } else {
+            G2Projective::new(ours.x * z.square(), ours.y * z.square() * z, z)
+        };
+        assert_eq!(scaled.psi().to_affine(), ours.psi());
+    }
+    let mut rng = ark_std::test_rng();
+    check(ark::G2Affine::zero());
+    check(ark::G2Projective::generator().into_affine());
+    check((-ark::G2Projective::generator()).into_affine());
+    for _ in 0..64 {
+        check(ark::G2Projective::rand(&mut rng).into_affine());
+    }
+    let mut outside = 0;
+    for _ in 0..256 {
+        if let Some(p) = ark::G2Affine::get_point_from_x_unchecked(ark::Fq2::rand(&mut rng), false)
+        {
+            outside += usize::from(!p.is_in_correct_subgroup_assuming_on_curve());
+            check(p);
+            check(-p);
+            // Multiplication by r keeps only the cofactor component.
+            let torsion = p.mul_bigint(FrConfig::P).into_affine();
+            check(torsion);
+        }
+    }
+    assert!(outside > 0);
+}
+
+#[test]
 fn pairings() {
     let mut rng = ark_std::test_rng();
     for _ in 0..8 {
@@ -277,4 +379,43 @@ fn pairings() {
     assert!(pairing::pairing_product_is_one(&[(left, &right), (third, &gen)]));
     assert!(!pairing::pairing_product_is_one(&[(left, &right), (left, &gen)]));
     let _ = ark_fq;
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+#[test]
+fn apple_affine_signed_difference_preserves_loose_product_bounds() {
+    use crate::{FpConfig, FqConfig, arm64, portable};
+    const P: [u64; 4] = FqConfig::P;
+    const P2: [u64; 4] = portable::add4(P, P).0;
+    const INV: u64 = FqConfig::INV;
+    let inputs = [
+        Fq::ZERO,
+        Fq::ONE,
+        -Fq::ONE,
+        Fq::from_montgomery([1, 0, 0, 0]),
+        Fq::from_montgomery([u64::MAX, 0, 0, 0]),
+        Fq::from_montgomery([0, 1, 0, 0]),
+        Fq::from_montgomery(portable::sub4(P, [1, 0, 0, 0]).0),
+    ];
+    for a in inputs {
+        for b in inputs {
+            for negative in [false, true] {
+                let difference = arm64::affine_signed_difference(a.0, b.0, negative, P);
+                let signed_b = if negative { -b } else { b };
+                let expected = signed_b - a;
+                assert_ne!(difference, [0; 4]);
+                assert!(!portable::less(P2, difference));
+                for scale in inputs {
+                    let loose = portable::add4(scale.0, P).0;
+                    for (limbs, scale) in [(loose, scale), (P2, Fq::ZERO)] {
+                        let result = arm64::multiply_loose(difference, limbs, P, INV);
+                        assert!(portable::less(result, P2));
+                        let normalized = Fq::from_montgomery(arm64::reduce_once(result, P));
+                        assert_eq!(normalized, expected * scale);
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(arm64::affine_signed_difference([0; 4], [0; 4], true, P), P2);
 }

@@ -363,14 +363,35 @@ impl G2Affine {
         Self::new(self.x.conjugate() * PSI_X, self.y.conjugate() * PSI_Y)
     }
 
-    /// In the prime-order subgroup, for a point on the curve: psi(P) =
-    /// [6 x^2] P (El Housni, Guillevic and Piellard), as arkworks checks.
+    /// For a point on the curve, [r]P = 0 iff
+    /// [x+1]P + psi([x]P) + psi^2([x]P) = psi^3([2x]P).
+    /// The short relation is the check used by gnark-crypto (ePrint 2022/348,
+    /// sections 3 and 5.1); it needs only a 64-bit seed multiplication.
     pub fn is_in_subgroup(&self) -> bool {
-        const SIX_X_SQUARED: [u64; 2] = [17887900258952609094, 8020209761171036667];
+        const X: u64 = 4965661367192848881;
         if self.is_identity() {
             return true;
         }
-        self.mul_limbs(&SIX_X_SQUARED) == self.psi().to_projective()
+        let mut a = G2Projective::IDENTITY;
+        for bit in (0..64).rev() {
+            a = a.double();
+            if X >> bit & 1 != 0 {
+                a = a.add_affine(self);
+            }
+        }
+        let b = a.psi();
+        let c = b.psi();
+        a.add_affine(self) + b + c == c.psi().double()
+    }
+}
+
+impl G2Projective {
+    pub(crate) fn psi(&self) -> Self {
+        Self::new(
+            self.x.conjugate() * PSI_X,
+            self.y.conjugate() * PSI_Y,
+            self.z.conjugate(),
+        )
     }
 }
 
@@ -436,4 +457,54 @@ pub fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projective<C>
         result += sum;
     }
     result
+}
+
+/// Add a batch of signed bases to distinct finite buckets with distinct x
+/// coordinates. Partial products stay below 2p. Normalize only before the
+/// inversion and when producing affine points for the next batch.
+#[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+#[doc(hidden)]
+pub fn batch_affine_loose<C: CurveConfig<Base = Fq>>(
+    affine: &mut [Affine<C>],
+    busy: &mut [u64],
+    batch: &[(u32, &Affine<C>)],
+    denominators: &mut Vec<Fq>,
+    prefixes: &mut Vec<Fq>,
+) {
+    use crate::{FpConfig, FqConfig, arm64, portable};
+    const P: [u64; 4] = FqConfig::P;
+    const P2: [u64; 4] = portable::add4(P, P).0;
+    const INV: u64 = FqConfig::INV;
+    let mul = |a, b| arm64::multiply_loose(a, b, P, INV);
+    let sub = |a, b| arm64::sub(a, b, P2);
+    let norm = |a| Fq::from_montgomery(arm64::reduce_once(a, P));
+    denominators.clear();
+    prefixes.clear();
+    let mut product = Fq::ONE.0;
+    for &(encoded, point) in batch {
+        let bucket = (encoded & 0x7fff_ffff) as usize;
+        let current = &affine[bucket];
+        let d = sub(point.x.0, current.x.0);
+        let dy = arm64::affine_signed_difference(current.y.0, point.y.0, encoded >> 31 != 0, P);
+        // Fold the numerator into the preceding product. Multiplying by
+        // the running inverse in the reverse pass gives the slope.
+        // Both scratch arrays hold loose limbs and are read only as limbs.
+        denominators.push(Fq::from_montgomery(d));
+        prefixes.push(Fq::from_montgomery(mul(dy, product)));
+        product = mul(product, d);
+    }
+    let mut inverse = norm(product).inverse().expect("distinct x in a batch").0;
+    for (j, &(encoded, point)) in batch.iter().enumerate().rev() {
+        let bucket = (encoded & 0x7fff_ffff) as usize;
+        let current = &mut affine[bucket];
+        let lambda = mul(inverse, prefixes[j].0);
+        inverse = mul(inverse, denominators[j].0);
+        let sq = arm64::square_loose(lambda, P, INV);
+        // Both affine x coordinates are canonical, so their sum is below 2p.
+        let x = sub(sq, portable::add4(current.x.0, point.x.0).0);
+        let y = sub(mul(lambda, sub(current.x.0, x)), current.y.0);
+        *current = Affine::new(norm(x), norm(y));
+        busy[bucket / 64] = 0;
+    }
+    prefixes.clear();
 }

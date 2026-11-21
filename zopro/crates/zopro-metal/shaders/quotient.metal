@@ -28,13 +28,15 @@ inline uint pass_index(constant PassArgs &a, uint g, uint m, uint c) {
   return (block << (a.levels + a.stride_log)) + j0 + c + (m << a.stride_log);
 }
 
-template <bool DIT>
+template <bool DIT, bool DERIVE_C = false>
 inline void fr_pass(device fr_t *values, device const fr_t *roots,
                     constant PassArgs &a, threadgroup fr_t *tile, uint t,
                     uint g, uint threads) {
   const uint cols_mask = (1u << a.cols_log) - 1;
-  for (uint e = t; e < 2 * threads; e += threads)
-    tile[e] = values[pass_index(a, g, e >> a.cols_log, e & cols_mask)];
+  for (uint e = t; e < 2 * threads; e += threads) {
+    const uint i = pass_index(a, g, e >> a.cols_log, e & cols_mask);
+    tile[e] = DERIVE_C ? fr_mul(values[i], values[a.n + i]) : values[i];
+  }
   threadgroup_barrier(mem_flags::mem_threadgroup);
   const uint c = t & cols_mask;
   const uint q = t >> a.cols_log;
@@ -63,8 +65,9 @@ inline void fr_pass(device fr_t *values, device const fr_t *roots,
     }
     threadgroup_barrier(mem_flags::mem_threadgroup);
   }
+  device fr_t *output = values + (DERIVE_C ? 2 * a.n : 0);
   for (uint e = t; e < 2 * threads; e += threads)
-    values[pass_index(a, g, e >> a.cols_log, e & cols_mask)] = tile[e];
+    output[pass_index(a, g, e >> a.cols_log, e & cols_mask)] = tile[e];
 }
 
 kernel void fr_dif_pass(device fr_t *values [[buffer(0)]],
@@ -75,6 +78,18 @@ kernel void fr_dif_pass(device fr_t *values [[buffer(0)]],
                         uint g [[threadgroup_position_in_grid]],
                         uint threads [[threads_per_threadgroup]]) {
   fr_pass<false>(values, roots, a, tile, t, g, threads);
+}
+
+// When the host solver has checked every row, C(i) = A(i) * B(i).
+// Construct C while loading its first inverse-transform tile.
+kernel void fr_dif_derive_c(device fr_t *values [[buffer(0)]],
+                           device const fr_t *roots [[buffer(1)]],
+                           constant PassArgs &a [[buffer(2)]],
+                           threadgroup fr_t *tile [[threadgroup(0)]],
+                           uint t [[thread_position_in_threadgroup]],
+                           uint g [[threadgroup_position_in_grid]],
+                           uint threads [[threads_per_threadgroup]]) {
+  fr_pass<false, true>(values, roots, a, tile, t, g, threads);
 }
 
 kernel void fr_dit_pass(device fr_t *values [[buffer(0)]],
@@ -98,10 +113,93 @@ kernel void fr_scale(device fr_t *values [[buffer(0)]],
     values[i] = fr_mul(fr_mul(values[i], lows[i & ((1u << low_bits) - 1)]), chunks[i >> low_bits]);
 }
 
-// a, b, c each n long, consecutive: a = a b - c.
-kernel void fr_pointwise(device fr_t *abc [[buffer(0)]],
-                         constant uint &n [[buffer(2)]],
-                         uint i [[thread_position_in_grid]]) {
+// A and B are in coset evaluation form, C is in coefficient form.
+kernel void fr_product(device fr_t *abc [[buffer(0)]],
+                       constant uint &n [[buffer(2)]],
+                       uint i [[thread_position_in_grid]]) {
   if (i < n)
-    abc[i] = fr_sub(fr_mul(abc[i], abc[n + i]), abc[2 * n + i]);
+    abc[i] = fr_mul(abc[i], abc[n + i]);
+}
+
+// The inverse transforms are unnormalized. The reverse weights combine
+// n^-1, the quotient denominator, and the inverse coset powers. C was
+// transformed on the original domain and takes only the constant weight.
+kernel void fr_finish_quotient(device fr_t *abc [[buffer(0)]],
+                              device const fr_t *lows [[buffer(1)]],
+                              constant uint &n [[buffer(2)]],
+                              device const fr_t *chunks [[buffer(3)]],
+                              constant uint &low_bits [[buffer(4)]],
+                              uint i [[thread_position_in_grid]]) {
+  if (i < n) {
+    const fr_t product = fr_mul(fr_mul(abc[i], lows[i & ((1u << low_bits) - 1)]),
+                                chunks[i >> low_bits]);
+    abc[i] = fr_sub(product, fr_mul(abc[2 * n + i], chunks[0]));
+  }
+}
+
+// Store signed digits window-major within each block of consecutive scalars.
+kernel void fr_quotient_digits(device const fr_t *coefficients [[buffer(0)]],
+                              device short *digits [[buffer(1)]],
+                              constant uint4 &args [[buffer(2)]],
+                              uint i [[thread_position_in_grid]]) {
+  const uint n = args.x, width = args.y, windows = args.z, chunk = args.w;
+  if (i >= n)
+    return;
+  const uint base = (i / chunk) * chunk;
+  const uint len = min(chunk, n - base);
+  const uint radix = 1u << width;
+  const fr_t words = fr_to_canon(coefficients[i]);
+  uint carry = 0;
+  for (uint w = 0; w < windows; w++) {
+    const uint offset = w * width;
+    const uint word = offset / 32, shift = offset % 32;
+    uint digit = words.v[word] >> shift;
+    if (shift + width > 32 && word < 7)
+      digit |= words.v[word + 1] << (32 - shift);
+    digit = (digit & (radix - 1)) + carry;
+    carry = (digit + radix / 2) >> width;
+    digits[base * windows + w * len + i - base] = short(int(digit) - int(carry * radix));
+  }
+}
+
+// Match the recoder's block layout while reading a contiguous run for
+// each window. Retain the digits for the scatter, or for the host fallback.
+kernel void fr_digit_counts(device const short *digits [[buffer(0)]],
+                            device atomic_uint *counts [[buffer(1)]],
+                            constant uint4 &args [[buffer(2)]],
+                            uint2 tid [[thread_position_in_grid]]) {
+  const uint i = tid.x, w = tid.y;
+  const uint n = args.x, buckets = args.y, windows = args.z, chunk = args.w;
+  if (i >= n || w >= windows)
+    return;
+  const uint base = (i / chunk) * chunk;
+  const uint len = min(chunk, n - base);
+  const uint b = uint(abs(int(digits[base * windows + w * len + i - base])));
+  if (b != 0) {
+    const uint index = b <= buckets ? w * buckets + b - 1 : windows * buckets;
+    atomic_fetch_add_explicit(&counts[index], 1u, memory_order_relaxed);
+  }
+}
+
+kernel void fr_digit_scatter(device const short *digits [[buffer(0)]],
+                             device const uint *starts [[buffer(1)]],
+                             device const uint *counts [[buffer(2)]],
+                             device atomic_uint *offsets [[buffer(3)]],
+                             device uint *sorted [[buffer(4)]],
+                             constant uint4 &args [[buffer(5)]],
+                             uint2 tid [[thread_position_in_grid]]) {
+  const uint n = args.x, buckets = args.y, windows = args.z, chunk = args.w;
+  const uint i = tid.x, w = tid.y;
+  if (i >= n || w >= windows)
+    return;
+  const uint base = (i / chunk) * chunk;
+  const uint len = min(chunk, n - base);
+  const int d = int(digits[base * windows + w * len + i - base]);
+  const uint b = uint(abs(d));
+  if (b != 0 && b <= buckets) {
+    const uint index = w * buckets + b - 1;
+    const uint offset = atomic_fetch_add_explicit(&offsets[index], 1u, memory_order_relaxed);
+    if (offset < counts[index])
+      sorted[starts[index] + offset] = i | (d < 0 ? 0x80000000u : 0u);
+  }
 }

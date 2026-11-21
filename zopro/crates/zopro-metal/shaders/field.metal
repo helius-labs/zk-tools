@@ -437,6 +437,47 @@ inline fp_t fp_mul(fp_t a, fp_t b) { return field_mul(a, b, FP_Q, FP_INV); }
 // G1's point arithmetic (e_mul, e_square on fp_t).
 inline fp_t fp_mul_g1(fp_t a, fp_t b) { return field_mul_rolled(a, b, FP_Q, FP_INV); }
 inline fp_t fp_square_g1(fp_t a) { return field_square(a, FP_Q, FP_INV); }
+inline fp_t fp_neg_fast(fp_t a) {
+  const uint mask = 0u - uint(!fp_is_zero(a));
+  fp_t r;
+  uint borrow = 0;
+  for (int j = 0; j < 8; j++) {
+    const ulong x = (ulong)(FP_Q[j] & mask) - a.v[j] - borrow;
+    r.v[j] = uint(x);
+    borrow = uint(x >> 63);
+  }
+  return r;
+}
+
+// Two products with one Montgomery reduction. For inputs below p < 2^254,
+// the final carry fits in 32 bits and the unreduced result is below 1.5p.
+inline fp_t fp_sum2_g1(fp_t a, fp_t b, fp_t c, fp_t d) {
+  uint t[8];
+  for (int j = 0; j < 8; j++)
+    t[j] = 0;
+#pragma clang loop unroll(disable)
+  for (int i = 0; i < 8; i++) {
+    const uint bi = b.v[i], di = d.v[i];
+    ulong A = (ulong)a.v[0] * bi + t[0];
+    ulong D = (ulong)c.v[0] * di + (uint)A;
+    const uint m = (uint)D * FP_INV;
+    ulong C = ((ulong)m * FP_Q[0] + (uint)D) >> 32;
+    A >>= 32;
+    D >>= 32;
+    for (int j = 1; j < 8; j++) {
+      A = (ulong)a.v[j] * bi + t[j] + A;
+      D = (ulong)c.v[j] * di + (uint)A + D;
+      C = (ulong)m * FP_Q[j] + (uint)D + C;
+      t[j - 1] = (uint)C;
+      A >>= 32;
+      D >>= 32;
+      C >>= 32;
+    }
+    t[7] = (uint)(C + A + D);
+  }
+  return field_reduce_once<fp_t>(t, FP_Q);
+}
+
 inline fp_t fp_double(fp_t a) { return fp_add(a, a); }
 inline fp_t fp_triple(fp_t a) { return fp_add(fp_add(a, a), a); }
 inline fp_t fp_inv(fp_t a) {

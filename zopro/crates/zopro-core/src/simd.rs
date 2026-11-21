@@ -2,9 +2,9 @@
 // mont29_simd.s (scripts/mont29_simd.py) runs zopro-bn254's mont29
 // multiplication on four lanes, and this module adds, subtracts and
 // shuffles in the same lane form; elsewhere the lanes run one by one.
-use zopro_bn254::{Fq, FpConfig, FqConfig, Fr, FrConfig};
 #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))]
 use core::marker::PhantomData;
+use zopro_bn254::{FpConfig, Fq, FqConfig, Fr, FrConfig};
 
 /// A BN254 field the generated multiplication covers.
 #[cfg_attr(
@@ -12,6 +12,15 @@ use core::marker::PhantomData;
     allow(dead_code)
 )]
 pub(crate) trait Mont29: Copy + zopro_bn254::Field {
+    type Config: FpConfig;
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    type Native: NativeVector<Self>;
     fn modulus() -> [u64; 4];
     fn repr(self) -> [u64; 4];
     fn from_repr(repr: [u64; 4]) -> Self;
@@ -19,6 +28,15 @@ pub(crate) trait Mont29: Copy + zopro_bn254::Field {
     const CORE: unsafe extern "C" fn(*const u32, *const u32, *mut u32);
 }
 impl Mont29 for Fq {
+    type Config = FqConfig;
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    type Native = zopro_bn254::ifma::Ifma<FqConfig, true>;
     #[inline(always)]
     fn modulus() -> [u64; 4] {
         FqConfig::P
@@ -35,6 +53,15 @@ impl Mont29 for Fq {
     const CORE: unsafe extern "C" fn(*const u32, *const u32, *mut u32) = lanes::mont29_mul4_fq;
 }
 impl Mont29 for Fr {
+    type Config = FrConfig;
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    type Native = zopro_bn254::ifma::Ifma<FrConfig, false>;
     #[inline(always)]
     fn modulus() -> [u64; 4] {
         FrConfig::P
@@ -56,14 +83,399 @@ impl Mont29 for Fr {
 /// splits and joins its operands once rather than at every product; values
 /// stay reduced. Elsewhere it holds the four elements.
 #[derive(Clone, Copy)]
-#[cfg_attr(not(all(target_arch = "wasm32", target_feature = "simd128")), repr(transparent))]
+#[cfg(not(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+)))]
+#[cfg_attr(
+    not(all(target_arch = "wasm32", target_feature = "simd128")),
+    repr(transparent)
+)]
 pub(crate) struct Lanes<F: Mont29>(
     #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))] [core::arch::wasm32::v128; 9],
     #[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))] [F; 4],
     #[cfg(all(target_arch = "wasm32", target_feature = "simd128"))] PhantomData<F>,
 );
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+#[derive(Clone, Copy)]
+pub(crate) struct Lanes<F: Mont29>(F::Native, core::marker::PhantomData<F>);
+
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+impl<F: Mont29> Lanes<F> {
+    #[inline(always)]
+    pub(crate) fn new(a: &[F; 4]) -> Self {
+        Self(F::Native::new(a), core::marker::PhantomData)
+    }
+    #[inline(always)]
+    pub(crate) fn get(&self) -> [F; 4] {
+        self.0.get()
+    }
+    #[inline(always)]
+    pub(crate) fn one() -> Self {
+        Self(F::Native::one(), core::marker::PhantomData)
+    }
+    #[inline(always)]
+    pub(crate) fn zero() -> Self {
+        Self(F::Native::zero(), core::marker::PhantomData)
+    }
+    #[inline(always)]
+    pub(crate) fn mul(&self, b: &Self) -> Self {
+        Self(self.0.mul(&b.0), core::marker::PhantomData)
+    }
+    #[inline(always)]
+    pub(crate) fn sum2(&self, b: &Self, c: &Self, d: &Self) -> Self {
+        Self(self.0.sum2(&b.0, &c.0, &d.0), core::marker::PhantomData)
+    }
+    #[inline(always)]
+    pub(crate) fn difference2(&self, b: &Self, c: &Self, d: &Self) -> Self {
+        Self(
+            self.0.difference2(&b.0, &c.0, &d.0),
+            core::marker::PhantomData,
+        )
+    }
+    #[inline(always)]
+    pub(crate) fn add(&self, b: &Self) -> Self {
+        Self(self.0.add(&b.0), core::marker::PhantomData)
+    }
+    #[inline(always)]
+    pub(crate) fn sub(&self, b: &Self) -> Self {
+        Self(self.0.sub(&b.0), core::marker::PhantomData)
+    }
+    #[inline(always)]
+    pub(crate) fn shuffle<const I0: usize, const I1: usize, const I2: usize, const I3: usize>(
+        a: &Self,
+        b: &Self,
+    ) -> Self {
+        Self(
+            F::Native::shuffle::<I0, I1, I2, I3>(&a.0, &b.0),
+            core::marker::PhantomData,
+        )
+    }
+}
+
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+pub(crate) trait NativeVector<F: Mont29>: Copy + Send + Sync {
+    fn new(a: &[F; 4]) -> Self;
+    fn get(&self) -> [F; 4];
+    fn one() -> Self;
+    fn zero() -> Self;
+    fn mul(&self, b: &Self) -> Self;
+    fn sum2(&self, b: &Self, c: &Self, d: &Self) -> Self;
+    fn difference2(&self, b: &Self, c: &Self, d: &Self) -> Self;
+    fn add(&self, b: &Self) -> Self;
+    fn sub(&self, b: &Self) -> Self;
+    fn shuffle<const A: usize, const B: usize, const C: usize, const D: usize>(
+        a: &Self,
+        b: &Self,
+    ) -> Self;
+}
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+impl<F: Mont29, const MIXED: bool> NativeVector<F> for zopro_bn254::ifma::Ifma<F::Config, MIXED> {
+    #[inline(always)]
+    fn new(a: &[F; 4]) -> Self {
+        Self::new(&a.map(|v| zopro_bn254::Fp::from_montgomery(v.repr())))
+    }
+    #[inline(always)]
+    fn get(&self) -> [F; 4] {
+        self.get().map(|v| F::from_repr(v.0))
+    }
+    #[inline(always)]
+    fn one() -> Self {
+        Self::one()
+    }
+    #[inline(always)]
+    fn zero() -> Self {
+        Self::zero()
+    }
+    #[inline(always)]
+    fn mul(&self, b: &Self) -> Self {
+        self.mul(b)
+    }
+    #[inline(always)]
+    fn sum2(&self, b: &Self, c: &Self, d: &Self) -> Self {
+        self.sum2(b, c, d)
+    }
+    #[inline(always)]
+    fn difference2(&self, b: &Self, c: &Self, d: &Self) -> Self {
+        self.difference2(b, c, d)
+    }
+    #[inline(always)]
+    fn add(&self, b: &Self) -> Self {
+        self.add(b)
+    }
+    #[inline(always)]
+    fn sub(&self, b: &Self) -> Self {
+        self.sub(b)
+    }
+    #[inline(always)]
+    fn shuffle<const A: usize, const B: usize, const C: usize, const D: usize>(
+        a: &Self,
+        b: &Self,
+    ) -> Self {
+        Self::shuffle::<A, B, C, D>(a, b)
+    }
+}
+
 pub(crate) type FqLanes = Lanes<Fq>;
 pub(crate) type FrLanes = Lanes<Fr>;
+
+#[cfg(all(
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+impl FrLanes {
+    #[inline(always)]
+    pub(crate) fn pair(a: &Self, b: &Self) -> zopro_bn254::ifma8::Ifma8<FrConfig> {
+        zopro_bn254::ifma8::Ifma8::from_halves(&a.0, &b.0)
+    }
+    #[inline(always)]
+    pub(crate) fn unpair(pair: &zopro_bn254::ifma8::Ifma8<FrConfig>) -> (Self, Self) {
+        let (a, b) = pair.halves();
+        (
+            Self(a, core::marker::PhantomData),
+            Self(b, core::marker::PhantomData),
+        )
+    }
+}
+
+#[cfg(not(all(
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+)))]
+pub(crate) type FqBatch = FqLanes;
+#[cfg(not(all(
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+)))]
+pub(crate) const BATCH_LANES: usize = 4;
+#[cfg(all(
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+pub(crate) const BATCH_LANES: usize = 8;
+#[cfg(all(
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+#[derive(Clone, Copy)]
+pub(crate) struct FqBatch(zopro_bn254::ifma8::Ifma8<FqConfig, true>);
+#[cfg(all(
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+impl FqBatch {
+    #[inline(always)]
+    pub(crate) fn signed_difference_scaled(&self, ay: &Self, scale: &Self, negative: u8) -> Self {
+        Self(self.0.signed_difference_scaled(&ay.0, &scale.0, negative))
+    }
+    #[inline(always)]
+    pub(crate) fn new(a: &[Fq; 8]) -> Self {
+        Self(zopro_bn254::ifma8::Ifma8::new(a))
+    }
+    #[inline(always)]
+    pub(crate) fn get(&self) -> [Fq; 8] {
+        self.0.get()
+    }
+    /// Invert eight nonzero values with a product tree and one scalar inverse.
+    #[inline]
+    pub(crate) fn inverse_nonzero(&self) -> Self {
+        use zopro_bn254::ifma8::Ifma8;
+        let swapped = Self(Ifma8::shuffle_pair::<1, 0, 3, 2>(&self.0, &self.0));
+        let pairs = self.mul(&swapped);
+        let other_pair = Self(Ifma8::shuffle_pair::<2, 3, 0, 1>(&pairs.0, &pairs.0));
+        let quads = pairs.mul(&other_pair);
+        let products = quads.get();
+        let inverse = (products[0] * products[4]).inverse().unwrap();
+        let (lo, hi) = quads.0.halves();
+        let other_quad = Self(Ifma8::from_halves(&hi, &lo));
+        Self::new(&[inverse; 8])
+            .mul(&other_quad)
+            .mul(&other_pair)
+            .mul(&swapped)
+    }
+    #[cfg(all(
+        feature = "ifma8",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    #[inline(always)]
+    pub(crate) fn mul_div16(&self, b: &Self) -> Self {
+        Self(self.0.mul_div16(&b.0))
+    }
+    #[cfg(all(
+        feature = "ifma8",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    #[inline(always)]
+    pub(crate) fn sum2_div16(&self, b: &Self, c: &Self, d: &Self) -> Self {
+        Self(self.0.sum2_div16(&b.0, &c.0, &d.0))
+    }
+    #[cfg(all(
+        feature = "ifma8",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    #[inline(always)]
+    pub(crate) fn difference2_div16(&self, b: &Self, c: &Self, d: &Self) -> Self {
+        Self(self.0.difference2_div16(&b.0, &c.0, &d.0))
+    }
+    #[cfg(all(
+        feature = "ifma8",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    #[inline(always)]
+    pub(crate) fn signed_difference_scaled_div16(
+        &self,
+        ay: &Self,
+        scale: &Self,
+        negative: u8,
+    ) -> Self {
+        Self(
+            self.0
+                .signed_difference_scaled_div16(&ay.0, &scale.0, negative),
+        )
+    }
+    #[cfg(all(
+        feature = "ifma8",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    /// Invert eight nonzero values with a product tree and one scalar inverse.
+    #[inline]
+    pub(crate) fn inverse_nonzero_scaled16(&self) -> Self {
+        use zopro_bn254::ifma8::Ifma8;
+        let swapped = Self(Ifma8::shuffle_pair::<1, 0, 3, 2>(&self.0, &self.0));
+        let pairs = self.mul(&swapped);
+        let other_pair = Self(Ifma8::shuffle_pair::<2, 3, 0, 1>(&pairs.0, &pairs.0));
+        let quads = pairs.mul(&other_pair);
+        let products = quads.get();
+        let inverse = zopro_bn254::uniform_prefix::div16_root(products[0] * products[4])
+            .inverse()
+            .unwrap();
+        let (lo, hi) = quads.0.halves();
+        let other_quad = Self(Ifma8::from_halves(&hi, &lo));
+        Self::new(&[inverse; 8])
+            .mul(&other_quad)
+            .mul(&other_pair)
+            .mul(&swapped)
+    }
+
+    #[inline(always)]
+    pub(crate) fn one() -> Self {
+        Self(zopro_bn254::ifma8::Ifma8::one())
+    }
+    #[inline(always)]
+    pub(crate) fn zero() -> Self {
+        Self(zopro_bn254::ifma8::Ifma8::zero())
+    }
+    #[inline(always)]
+    pub(crate) fn mul(&self, b: &Self) -> Self {
+        Self(self.0.mul(&b.0))
+    }
+    #[inline(always)]
+    pub(crate) fn add(&self, b: &Self) -> Self {
+        Self(self.0.add(&b.0))
+    }
+    #[inline(always)]
+    pub(crate) fn sub(&self, b: &Self) -> Self {
+        Self(self.0.sub(&b.0))
+    }
+    #[inline(always)]
+    pub(crate) fn add_canonical(&self, b: &Self) -> Self {
+        Self(self.0.add_canonical(&b.0))
+    }
+    #[inline(always)]
+    pub(crate) fn sub_canonical(&self, b: &Self) -> Self {
+        Self(self.0.sub_canonical(&b.0))
+    }
+    #[inline(always)]
+    pub(crate) fn signed_difference_canonical(&self, ay: &Self, negative: u8) -> Self {
+        Self(self.0.signed_difference_canonical(&ay.0, negative))
+    }
+    #[inline(always)]
+    pub(crate) fn sum2(&self, b: &Self, c: &Self, d: &Self) -> Self {
+        Self(self.0.sum2(&b.0, &c.0, &d.0))
+    }
+    #[inline(always)]
+    pub(crate) fn difference2(&self, b: &Self, c: &Self, d: &Self) -> Self {
+        Self(self.0.difference2(&b.0, &c.0, &d.0))
+    }
+    #[inline(always)]
+    pub(crate) fn load(a: [&FqLimbs; 8]) -> Self {
+        Self::new(&a.map(|v| v.0))
+    }
+    #[inline(always)]
+    pub(crate) fn store(&self) -> [FqLimbs; 8] {
+        self.get().map(FqLimbs)
+    }
+}
 
 /// `a[i] * b[i]` in Fq for four lanes.
 #[inline(always)]
@@ -71,7 +483,16 @@ pub(crate) fn fq_mul4(a: &[Fq; 4], b: &[Fq; 4]) -> [Fq; 4] {
     FqLanes::new(a).mul(&FqLanes::new(b)).get()
 }
 
-#[cfg(not(all(target_arch = "wasm32", target_feature = "simd128")))]
+#[cfg(not(any(
+    all(target_arch = "wasm32", target_feature = "simd128"),
+    all(
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    )
+)))]
 impl<F: Mont29> Lanes<F> {
     #[inline(always)]
     pub(crate) fn new(a: &[F; 4]) -> Self {
@@ -197,11 +618,11 @@ impl FqLimbs {
 impl FqLanes {
     #[inline(always)]
     pub(crate) fn load(a: [&FqLimbs; 4]) -> Self {
-        Self(a.map(|limbs| limbs.0))
+        Self::new(&a.map(|limbs| limbs.0))
     }
     #[inline(always)]
     pub(crate) fn store(&self) -> [FqLimbs; 4] {
-        self.0.map(FqLimbs)
+        self.get().map(FqLimbs)
     }
 }
 
@@ -419,5 +840,72 @@ mod lanes {
             v128_and(v128_or(u32x4_shr(t[j], 24), i32x4_shl(t[j + 1], 5)), mask)
         });
         reduce(v, p)
+    }
+}
+
+/// Environment overrides for CPU paths with architecture-specific defaults.
+pub(crate) fn cpu_option(name: &str) -> bool {
+    let ifma = cfg!(all(
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ));
+    let apple_grouping = cfg!(all(target_os = "macos", target_arch = "aarch64"))
+        && name == "ZOPRO_CPU_DEDUP";
+    std::env::var(name).map_or(ifma || apple_grouping, |v| v != "0")
+}
+
+#[cfg(all(
+    test,
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+#[test]
+fn packed_inverses_match_scalar_inverses() {
+    for seed in 1..33u64 {
+        let values = core::array::from_fn(|i| match i {
+            0 => Fq::ONE,
+            1 => -Fq::ONE,
+            _ => Fq::from(seed + i as u64).pow(&[127]),
+        });
+        let inverses = FqBatch::new(&values).inverse_nonzero().get();
+        for i in 0..8 {
+            assert_eq!(inverses[i], values[i].inverse().unwrap());
+        }
+    }
+}
+
+#[cfg(all(
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+pub(crate) type UncarriedXSum = zopro_bn254::ifma8::UncarriedSum8<FqConfig, true>;
+#[cfg(all(
+    feature = "ifma8",
+    target_arch = "x86_64",
+    target_feature = "avx512ifma",
+    target_feature = "avx512vl",
+    target_feature = "avx512dq",
+    not(no_ifma)
+))]
+impl FqBatch {
+    #[inline(always)]
+    pub(crate) fn uncarried_xsum(a: &Self, b: &Self) -> UncarriedXSum {
+        // Host X imports and all canonical .get() bucket writes are below p.
+        UncarriedXSum::from_canonical(&a.0, &b.0)
+    }
+    #[inline(always)]
+    pub(crate) fn subtract_uncarried_xsum(&self, sum: &UncarriedXSum) -> Self {
+        Self(sum.subtract_from(&self.0))
     }
 }
