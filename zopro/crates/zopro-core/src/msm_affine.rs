@@ -11,6 +11,8 @@ use crate::msm::{BatchAdd, BatchInverse};
 use rayon::prelude::*;
 use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fr, Projective};
 pub(super) mod borrowed_pending;
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+mod borrowed_scalar;
 mod grouping;
 mod grouping_cost;
 #[cfg(zopro_resource_schedule)]
@@ -615,6 +617,12 @@ fn fill_window<C: CurveConfig>(
 where
     C::Base: BatchInverse,
 {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    if borrowed_scalar::enabled() {
+        let mut state = borrowed_scalar::Borrowed::new(width, size);
+        state.feed(bases, digits);
+        return state.inner;
+    }
     if crate::simd::cpu_option("ZOPRO_CPU_MASKED_SIGN") {
         fill_window_impl::<C, true, false>(bases, digits, width, size)
     } else {
@@ -946,24 +954,31 @@ where
     }
     #[inline(always)]
     fn add_signed(&mut self, encoded: u32, point: Affine<C>) {
+        if self.stage_pending(encoded, &point) {
+            self.batch.push((encoded, point));
+        }
+    }
+
+    #[inline(always)]
+    fn stage_pending(&mut self, encoded: u32, point: &Affine<C>) -> bool {
         let bucket = (encoded & 0x7fffffff) as usize;
         let negative = encoded >> 31 != 0;
         let current = &mut self.affine[bucket];
         if current.is_identity() {
-            *current = if negative {-point}else{point};
-            return;
+            *current = if negative { -*point } else { *point };
+            return false;
         }
         if current.x == point.x {
-            let point=if negative {-point}else{point};
+            let point=if negative { -*point } else { *point };
             if current.y == point.y {
                 self.add_projective(bucket, point);
             } else {
                 *current = Affine::<C>::IDENTITY;
             }
-            return;
+            return false;
         }
         self.busy[bucket / 64] |= 1 << (bucket % 64);
-        self.batch.push((encoded, point));
+        true
     }
 
     /// Most buckets never need the exceptional projective path. Keep only
@@ -1009,30 +1024,13 @@ where
             self.batch.clear();
             return;
         }
-        self.denominators.clear();
-        self.prefixes.clear();
-        // G2 uses the denominators' norms so its batch also inverts in Fq.
-        let mut product = Fq::ONE;
-        for (bucket, point) in &self.batch {
-            let denominator = point.x - self.affine[*bucket as usize].x;
-            self.prefixes
-                .push(C::Base::prefix(&mut product, denominator));
-            self.denominators.push(denominator);
-        }
-        let mut inverse = product.inverse().expect("distinct x in a batch");
-        for j in (0..self.batch.len()).rev() {
-            let (bucket, point) = self.batch[j];
-            let denominator = self.denominators[j];
-            let mut prefix = self.prefixes[j];
-            C::Base::reverse(&mut inverse, denominator, &mut prefix);
-            let lambda_denominator = C::Base::denominator_inverse(denominator, prefix);
-            let current = &mut self.affine[bucket as usize];
-            let lambda = (point.y - current.y) * lambda_denominator;
-            let x = lambda.square() - current.x - point.x;
-            let y = lambda * (current.x - x) - current.y;
-            *current = Affine::<C>::new(x, y);
-            self.busy[bucket as usize / 64] = 0;
-        }
+        apply_scalar_batch::<C, _, false>(
+            &mut self.affine,
+            &mut self.busy,
+            &self.batch,
+            &mut self.denominators,
+            &mut self.prefixes,
+        );
         self.batch.clear();
     }
 
@@ -1058,6 +1056,43 @@ where
             );
         }
         self.queue.clear();
+    }
+}
+
+fn apply_scalar_batch<C: CurveConfig, P: std::borrow::Borrow<Affine<C>>, const SIGNED: bool>(
+    affine: &mut [Affine<C>],
+    busy: &mut [u64],
+    batch: &[(u32, P)],
+    denominators: &mut Vec<C::Base>,
+    prefixes: &mut Vec<<C::Base as BatchInverse>::Product>,
+) where
+    C::Base: BatchInverse,
+{
+    let index = |encoded: u32| if SIGNED { encoded & 0x7fff_ffff } else { encoded } as usize;
+    denominators.clear();
+    prefixes.clear();
+    // G2 uses the denominators' norms so its batch also inverts in Fq.
+    let mut product = Fq::ONE;
+    for (encoded, point) in batch {
+        let denominator = point.borrow().x - affine[index(*encoded)].x;
+        prefixes.push(C::Base::prefix(&mut product, denominator));
+        denominators.push(denominator);
+    }
+    let mut inverse = product.inverse().expect("distinct x in a batch");
+    for (j, (encoded, point)) in batch.iter().enumerate().rev() {
+        let bucket = index(*encoded);
+        let denominator = denominators[j];
+        let mut prefix = prefixes[j];
+        C::Base::reverse(&mut inverse, denominator, &mut prefix);
+        let lambda_denominator = C::Base::denominator_inverse(denominator, prefix);
+        let point = point.borrow();
+        let current = &mut affine[bucket];
+        let y = if SIGNED && *encoded >> 31 != 0 { -point.y } else { point.y };
+        let lambda = (y - current.y) * lambda_denominator;
+        let x = lambda.square() - current.x - point.x;
+        let y = lambda * (current.x - x) - current.y;
+        *current = Affine::<C>::new(x, y);
+        busy[bucket / 64] = 0;
     }
 }
 

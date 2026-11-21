@@ -153,6 +153,14 @@ fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> V
         return value;
     }
     let size = batch_size(bits).max(32);
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    if super::borrowed_scalar::enabled() {
+        let mut state = super::borrowed_scalar::Borrowed::new(bits, size);
+        state.feed(bases, short.iter().map(|s| hb_digit(s, true, w, bits)));
+        phi_buckets(&mut state.inner);
+        state.feed(bases, short.iter().map(|s| hb_digit(s, false, w, bits)));
+        return affine_buckets(state.inner);
+    }
     let mut state = fill_window_impl::<G2Config, false, false>(
         bases,
         short.iter().map(|s| hb_digit(s, true, w, bits)),
@@ -160,14 +168,7 @@ fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> V
         size,
     );
     assert!(state.batch.is_empty() && state.queue.is_empty());
-    for p in &mut state.affine {
-        if !p.is_identity() {
-            p.x = p.x.mul_by_fp(&BETA);
-        }
-    }
-    for p in &mut state.projective {
-        p.x = p.x.mul_by_fp(&BETA);
-    }
+    phi_buckets(&mut state);
     for (base, d) in bases
         .iter()
         .zip(short.iter().map(|s| hb_digit(s, false, w, bits)))
@@ -193,6 +194,16 @@ fn hb_window(bases: &[G2Affine], short: &[[u64; 4]], w: usize, bits: usize) -> V
     state.execute();
     state.flush_queue();
     affine_buckets(state)
+}
+fn phi_buckets(state: &mut super::Window<G2Config>) {
+    for p in &mut state.affine {
+        if !p.is_identity() {
+            p.x = p.x.mul_by_fp(&BETA);
+        }
+    }
+    for p in &mut state.projective {
+        p.x = p.x.mul_by_fp(&BETA);
+    }
 }
 pub(super) fn hb_raw(
     bases: &[G2Affine],
