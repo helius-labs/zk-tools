@@ -108,6 +108,7 @@ fn zeros(n: usize) -> Option<Vec<Fr>> {
 }
 struct Pattern {
     t: usize,
+    #[cfg(any(test, not(all(target_os = "macos", target_arch = "aarch64"))))]
     partial: usize,
     n: usize,
     d: usize,
@@ -200,6 +201,7 @@ impl Pattern {
         assert_eq!(c, count);
         Some(Self {
             t,
+            #[cfg(any(test, not(all(target_os = "macos", target_arch = "aarch64"))))]
             partial,
             n,
             d,
@@ -243,32 +245,45 @@ impl Pattern {
         }
         true
     }
+    #[cfg(any(test, not(all(target_os = "macos", target_arch = "aarch64"))))]
     fn tag(&self, p: &Plan, task: &mut [u32]) -> usize {
-        let mut pos = 0;
-        let mut count = 0;
-        let mut meta = [Meta::default(); MAX_N];
-        while pos + 3 * self.n <= task.len() {
-            let tagged = (task[pos] >> 28) as usize;
-            if tagged != 0 {
-                let (partial, _) = parameters(tagged);
-                pos += 3 * (7 * tagged + partial);
-                continue;
-            }
-            if shape(p, &task[pos..], self.t, self.partial, &mut meta)
-                && self.recognizes(p, &task[pos..], &meta)
-            {
-                task[pos] |= (self.t as u32) << 28;
-                count += 1;
-                pos += 3 * self.n;
-            } else {
-                pos += 1;
-            }
-        }
-        if count != 0 {
-            task[0] |= TASK;
-        }
-        count
+        tag_spans(p, task, self.t, self.partial, |span, meta| {
+            self.recognizes(p, span, meta)
+        })
     }
+}
+
+fn tag_spans(
+    p: &Plan,
+    task: &mut [u32],
+    t: usize,
+    partial: usize,
+    recognizes: impl Fn(&[u32], &[Meta; MAX_N]) -> bool,
+) -> usize {
+    let span_len = 3 * (7 * t + partial);
+    let mut pos = 0;
+    let mut count = 0;
+    let mut meta = [Meta::default(); MAX_N];
+    while pos + span_len <= task.len() {
+        let span = &task[pos..];
+        let tagged = (span[0] >> 28) as usize;
+        if tagged != 0 {
+            let (partial, _) = parameters(tagged);
+            pos += 3 * (7 * tagged + partial);
+            continue;
+        }
+        if shape(p, span, t, partial, &mut meta) && recognizes(span, &meta) {
+            task[pos] |= (t as u32) << 28;
+            count += 1;
+            pos += span_len;
+        } else {
+            pos += 1;
+        }
+    }
+    if count != 0 {
+        task[0] |= TASK;
+    }
+    count
 }
 const EMIT_MARK: u32 = 1 << 31;
 const EMIT_NORMAL: u32 = 1 << 30;
@@ -340,32 +355,85 @@ fn compile_emits(plan: &Plan, task: &mut [u32]) -> usize {
 }
 
 impl Plan {
-    pub(super) fn tag_poseidon(&self, s: &mut Schedule) {
-        if self.ops.len() > INDEX as usize
-            || s.epochs.is_empty()
-            || !crate::simd::cpu_option("ZOPRO_CPU_SPARSE_POSEIDON")
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    pub(super) fn apple_poseidon_epochs(&self) -> Option<usize> {
+        if rayon::current_num_threads() < 16
+            || std::env::var("ZOPRO_CPU_BOUNDED_SCHEDULE").as_deref() == Ok("0")
+            || std::env::var("ZOPRO_CPU_SPARSE_POSEIDON").as_deref() == Ok("0")
         {
-            return;
+            return None;
         }
-        let Some(_reservation) = crate::preparation::Reservation::analysis(Some(SCRATCH)) else {
-            return;
+        // These bands keep more of each hash within one task on the two
+        // small proof domains. Other domains retain the general schedule.
+        match self.n_constraints {
+            16385..=32768 => Some(4),
+            32769..=65536 => Some(8),
+            _ => None,
+        }
+    }
+
+    pub(super) fn tag_poseidon(&self, s: &mut Schedule) -> bool {
+        if self.ops.len() > INDEX as usize || s.epochs.is_empty() {
+            return false;
+        }
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        if !s.refined.is_empty() {
+            return false;
+        }
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        if !crate::simd::cpu_option("ZOPRO_CPU_SPARSE_POSEIDON") {
+            return false;
+        }
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        let reservation = crate::preparation::Reservation::scalar_grouping(Some(SCRATCH));
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        let reservation = crate::preparation::Reservation::analysis(Some(SCRATCH));
+        let Some(_reservation) = reservation else {
+            return false;
         };
         let mut counts = [0usize; 14];
         for t in 2..=13 {
             let (partial, a) = parameters(t);
-            let Some(pattern) = Pattern::new(t, partial, a) else {
-                break;
-            };
-            for task in s.epochs.iter_mut().flatten() {
-                if !s.refined.contains_key(&((task[0] & INDEX) as usize)) {
+            #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+            {
+                use rayon::prelude::*;
+                // Initialize the symbolic matrix once, only after a task
+                // matches the operation shape. Leaf tasks are independent.
+                let pattern = std::sync::OnceLock::new();
+                counts[t] = s
+                    .epochs
+                    .par_iter_mut()
+                    .flat_map_iter(|epoch| epoch)
+                    .map(|task| {
+                        tag_spans(self, task, t, partial, |span, meta| {
+                            pattern
+                                .get_or_init(|| Pattern::new(t, partial, a))
+                                .as_ref()
+                                .is_some_and(|p| p.recognizes(self, span, meta))
+                        })
+                    })
+                    .sum();
+            }
+            #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+            {
+                let Some(pattern) = Pattern::new(t, partial, a) else {
+                    break;
+                };
+                for task in s.epochs.iter_mut().flatten() {
+                    if !s.refined.contains_key(&((task[0] & INDEX) as usize)) {
+                        counts[t] += pattern.tag(self, task);
+                    }
+                }
+                for task in s.refined.values_mut().flatten().flatten() {
                     counts[t] += pattern.tag(self, task);
                 }
             }
-            for task in s.refined.values_mut().flatten().flatten() {
-                counts[t] += pattern.tag(self, task);
-            }
         }
-        if std::env::var("ZOPRO_CPU_POSEIDON_EMIT").as_deref() == Ok("1") {
+        let emit = std::env::var("ZOPRO_CPU_POSEIDON_EMIT");
+        if emit.as_deref() == Ok("1")
+            || (cfg!(all(target_os = "macos", target_arch = "aarch64"))
+                && emit.as_deref() != Ok("0"))
+        {
             for task in s.epochs.iter_mut().flatten() {
                 if !s.refined.contains_key(&((task[0] & INDEX) as usize)) {
                     compile_emits(self, task);
@@ -376,8 +444,9 @@ impl Plan {
             }
         }
         if std::env::var("ZOPRO_CPU_POSEIDON_TRACE").as_deref() == Ok("1") {
-            eprintln!("POSEIDON_SPANS {:?}", counts);
+            eprintln!("POSEIDON_SPANS {counts:?}");
         }
+        counts.into_iter().any(|count| count != 0)
     }
     #[inline(always)]
     pub(super) fn poseidon_task(&self, task: &[u32]) -> bool {
@@ -551,5 +620,7 @@ impl Plan {
 #[cfg(test)]
 mod tests;
 
+#[cfg(zopro_resource_schedule)]
 mod aliases;
+#[cfg(zopro_resource_schedule)]
 pub(crate) use aliases::{B2Origins, RuntimeAliases};

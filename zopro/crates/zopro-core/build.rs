@@ -37,6 +37,14 @@ fn main() {
             println!("cargo::rustc-cfg={path}");
         }
     }
+    println!("cargo::rustc-check-cfg=cfg(zopro_sparse_poseidon)");
+    if native_ifma
+        || (os == "macos"
+            && arch == "aarch64"
+            && std::env::var_os("CARGO_CFG_NO_ASM").is_none())
+    {
+        println!("cargo::rustc-cfg=zopro_sparse_poseidon");
+    }
     println!("cargo::rustc-check-cfg=cfg(no_asm)");
     println!("cargo::rustc-check-cfg=cfg(gpu)");
     println!("cargo::rustc-check-cfg=cfg(gpu_wgpu)");

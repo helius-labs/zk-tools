@@ -1430,7 +1430,7 @@ impl Plan {
                 let claims = solver_task_claims();
                 for epoch in &schedule.epochs {
                     visit_solver_tasks(epoch, claims, |task| {
-                        #[cfg(zopro_resource_schedule)]
+                        #[cfg(zopro_sparse_poseidon)]
                         if self.poseidon_task(task) {
                             // SAFETY: only prepared, encoding-eligible leaves carry tags.
                             return unsafe { self.run_poseidon_task(task, view) };
@@ -1696,6 +1696,13 @@ impl Plan {
 
     /// The epochs and their tasks (see Schedule).
     fn build_schedule(&self, epochs: usize) -> Schedule {
+        #[cfg(all(zopro_sparse_poseidon, target_os = "macos", target_arch = "aarch64"))]
+        {
+            // The shared lazy initializer cannot wait on parallel recognition
+            // while other proof workers wait for the same schedule.
+            self.build_schedule_before_poseidon(epochs, None, false)
+        }
+        #[cfg(not(all(zopro_sparse_poseidon, target_os = "macos", target_arch = "aarch64")))]
         self.build_schedule_with_workspace(epochs, None, false)
     }
     fn build_schedule_with_workspace(
@@ -1704,10 +1711,30 @@ impl Plan {
         workspace: Option<usize>,
         exact: bool,
     ) -> Schedule {
-        let mut schedule = self.build_schedule_before_poseidon(epochs, workspace, exact);
-        #[cfg(zopro_resource_schedule)]
-        self.tag_poseidon(&mut schedule);
-        schedule
+        #[cfg(all(zopro_sparse_poseidon, target_os = "macos", target_arch = "aarch64"))]
+        {
+            if let Some(preferred) = self.apple_poseidon_epochs() {
+                let automatic = epochs == SOLVE_EPOCHS
+                    && std::env::var_os("ZOPRO_SOLVE_EPOCHS").is_none();
+                let mut schedule = self.build_schedule_before_poseidon(
+                    if automatic { preferred } else { epochs },
+                    workspace,
+                    exact,
+                );
+                if self.tag_poseidon(&mut schedule) || !automatic || schedule.epochs.is_empty() {
+                    return schedule;
+                }
+                // A key without recognized spans keeps the general schedule.
+            }
+            return self.build_schedule_before_poseidon(epochs, workspace, exact);
+        }
+        #[cfg(not(all(zopro_sparse_poseidon, target_os = "macos", target_arch = "aarch64")))]
+        {
+            let mut schedule = self.build_schedule_before_poseidon(epochs, workspace, exact);
+            #[cfg(zopro_sparse_poseidon)]
+            self.tag_poseidon(&mut schedule);
+            schedule
+        }
     }
     fn build_schedule_before_poseidon(
         &self,
@@ -1960,7 +1987,7 @@ impl Plan {
     unsafe fn execute_schedule(&self, schedule: &Schedule, v: View) -> Result<(), String> {
         let claims = solver_task_claims();
         let serial = |task: &[u32]| -> Result<(), String> {
-            #[cfg(zopro_resource_schedule)]
+            #[cfg(zopro_sparse_poseidon)]
             if self.poseidon_task(task) {
                 // SAFETY: only prepared, encoding-eligible leaves carry tags.
                 return unsafe { self.run_poseidon_task(task, v) };
@@ -3538,7 +3565,7 @@ impl Plan {
     }
 }
 
-#[cfg(zopro_resource_schedule)]
+#[cfg(zopro_sparse_poseidon)]
 mod sparse_poseidon;
 
 #[cfg(zopro_resource_schedule)]
