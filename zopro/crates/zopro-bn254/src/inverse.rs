@@ -8,6 +8,7 @@ use core::hint::select_unpredictable;
 const BITS: usize = 31;
 const MASK: u64 = (1 << BITS) - 1;
 
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 #[inline(always)]
 fn bit_len(x: &[u64; 4]) -> usize {
     for i in (0..4).rev() {
@@ -18,6 +19,7 @@ fn bit_len(x: &[u64; 4]) -> usize {
     0
 }
 
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
 #[inline(always)]
 fn approximate(x: &[u64; 4], bits: usize) -> u64 {
     if bits <= 64 {
@@ -30,6 +32,39 @@ fn approximate(x: &[u64; 4], bits: usize) -> u64 {
         high |= x[word + 1] << (64 - offset);
     }
     (high << BITS) | (x[0] & MASK)
+}
+
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+#[inline(always)]
+fn approximate_operands(a: &[u64; 4], b: &[u64; 4]) -> Option<(u64, u64)> {
+    let bits = bit_len(a).max(bit_len(b));
+    (bits > 64).then(|| (approximate(a, bits), approximate(b, bits)))
+}
+
+// Use the highest nonzero limb of either operand for both approximations.
+// The high 33 bits start in that limb or span it and the one below.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[inline(always)]
+fn approximate_operands(a: &[u64; 4], b: &[u64; 4]) -> Option<(u64, u64)> {
+    for i in (1..4).rev() {
+        let (a_top, b_top) = (a[i], b[i]);
+        let top = a_top | b_top;
+        if top == 0 {
+            continue;
+        }
+        let leading = top.leading_zeros();
+        let (a_high, b_high) = if leading <= 31 {
+            (a_top >> (31 - leading), b_top >> (31 - leading))
+        } else {
+            let lower = leading - 31;
+            (
+                (a_top << lower) | (a[i - 1] >> (64 - lower)),
+                (b_top << lower) | (b[i - 1] >> (64 - lower)),
+            )
+        };
+        return Some(((a_high << BITS) | (a[0] & MASK), (b_high << BITS) | (b[0] & MASK)));
+    }
+    None
 }
 
 /// The signed 320-bit linear combination. Coefficients have row L1 norm at most 2^62,
@@ -105,20 +140,19 @@ pub(crate) fn inverse<C: FpConfig>(x: &Fp<C>) -> Option<Fp<C>> {
     let mut pending = false;
     let mut matrix = [1i64, 0, 0, 1];
     while a != [0; 4] {
-        let bits = bit_len(&a).max(bit_len(&b));
         // Exact one-word operands finish with ordinary Euclid, applying
         // any pending matrix first to preserve the coefficient invariant.
-        if bits <= 64 {
+        let Some((approx_a, approx_b)) = approximate_operands(&a, &b) else {
             if pending {
                 let old_u = u;
                 u = coefficient_update::<C, 31>(&old_u, &v, matrix[0], matrix[1]);
                 v = coefficient_update::<C, 31>(&old_u, &v, matrix[2], matrix[3]);
             }
             return Some(finish::<C>(a[0], b[0], u, v));
-        }
+        };
         #[cfg(not(zopro_gcd_balanced_runs))]
         let (mut f0, mut g0, mut f1, mut g1) = {
-            let (mut small_a, mut small_b) = (approximate(&a, bits), approximate(&b, bits));
+            let (mut small_a, mut small_b) = (approx_a, approx_b);
             let (mut f0, mut g0, mut f1, mut g1) = (1i64, 0i64, 0i64, 1i64);
             for _ in 0..BITS {
                 // Odd steps set A to |A-B|/2 and B to min(A,B); even
@@ -148,7 +182,7 @@ pub(crate) fn inverse<C: FpConfig>(x: &Fp<C>) -> Option<Fp<C>> {
         };
         #[cfg(zopro_gcd_balanced_runs)]
         let (_, _, mut f0, mut g0, mut f1, mut g1) =
-            zero_run_matrix(approximate(&a, bits), approximate(&b, bits));
+            zero_run_matrix(approx_a, approx_b);
         let old_a = a;
         a = integer_update(&old_a, &b, &mut f0, &mut g0);
         b = integer_update(&old_a, &b, &mut f1, &mut g1);
