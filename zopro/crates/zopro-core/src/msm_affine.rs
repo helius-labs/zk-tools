@@ -340,12 +340,13 @@ where
             .clamp(1, 32);
         return msm_unsigned_raw(bases, canonical, bits, parts);
     }
-    // Small MSMs benefit from shorter streaming tasks on a wide pool.
-    // Keep the large quotient MSM's existing path; splitting it did not
-    // show a repeatable gain. Portable and ARM defaults are unchanged.
-    let default_parts = if (1024..(1 << 18)).contains(&n)
-        && rayon::current_num_threads() >= 16
-        && crate::simd::cpu_option("ZOPRO_CPU_MERGE_SPLIT")
+    // Two ranges give wide Apple silicon pools shorter tasks through the
+    // last window. Cap the range to the query sizes tested on that target.
+    let split_apple = cfg!(all(target_os = "macos", target_arch = "aarch64"))
+        && ((1 << 15)..(1 << 19)).contains(&n);
+    let split_ifma = (1024..(1 << 18)).contains(&n)
+        && crate::simd::cpu_option("ZOPRO_CPU_MERGE_SPLIT");
+    let default_parts = if rayon::current_num_threads() >= 16 && (split_apple || split_ifma)
     {
         2
     } else {
