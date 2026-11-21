@@ -2513,7 +2513,7 @@ impl Key {
                             // The fused sum needs H, but K's grouping depends only on the witness.
                             let (mut h, prepared) = rayon::join(
                                 || self.quotient(a, b, c),
-                                || msm_affine::prepare_apple_k(&self.k, sk),
+                                || msm_affine::prepare_apple_k(&self.k, sk, 0..usize::MAX),
                             );
                             let started = trace("cpu-quotient-and-k-prepare", started);
                             let (ar, kh) = rayon::join(
@@ -2544,8 +2544,51 @@ impl Key {
         }
 
         let started = crate::time::Instant::now();
-        let mut h = self.quotient(a, b, c);
+        let quotient = || self.quotient(a, b, c);
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        let (mut h, prepared) = {
+            let fuse = omit_b
+                && self.domain == (1 << 16)
+                && self.equal_witness.is_none()
+                && sa.len().max(sb.len()).max(sk.len()) < (1 << 16)
+                && affine_msm()
+                && rayon::current_num_threads() >= 18
+                && crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+                && msm_affine::apple_fused_kh_enabled(self.k.len(), self.domain - 1)
+                && std::env::var("ZOPRO_CPU_WITNESS_G1_ENDO").as_deref() != Ok("0")
+                && std::env::var("ZOPRO_TRACE_MSMS").as_deref() != Ok("1");
+            if fuse {
+                // K can be compacted before the quotient supplies H.
+                rayon::join(quotient, || {
+                    msm_affine::prepare_apple_k(&self.k, sk, 1024..32768)
+                })
+            } else {
+                (quotient(), None)
+            }
+        };
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        let mut h = quotient();
         let started = trace("quotient", started);
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        if let Some(prepared) = prepared {
+            use msm_affine::{canonical, canonical_exclusive, g2_query_exclusive, msm_g1_witness};
+            let ((ar, kh), bs2) = rayon::join(
+                || rayon::join(
+                    || msm_g1_witness(&self.a, canonical(sa)),
+                    || msm_affine::apple_fused_kh(&self.k, sk, &self.z, &mut h, Some(prepared)),
+                ),
+                || {
+                    g2_query_exclusive(&self.b2, canonical_exclusive(sb), self.exclusive_g2_grouping)
+                },
+            );
+            trace("msms", started);
+            let mut out = Vec::with_capacity(384);
+            for point in [ar, G1Projective::IDENTITY, kh, G1Projective::IDENTITY] {
+                output_g1(&mut out, point);
+            }
+            output_g2(&mut out, bs2);
+            return Ok(out);
+        }
         // Diagnostic replays need the original field values: cpu_msms consumes
         // scalar storage, including the exclusive G2 decomposition.
         #[cfg(all(feature = "trace", not(target_arch = "wasm32")))]

@@ -209,7 +209,7 @@ pub(super) fn msm_h_in_place(
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 pub(super) fn apple_fused_kh_enabled(k: usize, h: usize) -> bool {
     (1024..65536).contains(&k)
-        && h == (1 << 15) - 1
+        && [(1 << 15) - 1, (1 << 16) - 1].contains(&h)
         && borrowed_scalar::enabled()
         && std::env::var("ZOPRO_CPU_FUSED_KH").as_deref() != Ok("0")
 }
@@ -225,8 +225,12 @@ pub(super) struct PreparedAppleK {
 pub(super) fn prepare_apple_k(
     bases: &[zopro_bn254::G1Affine],
     scalars: &[Fr],
+    accepted_groups: std::ops::Range<usize>,
 ) -> Option<PreparedAppleK> {
     let mut groups = group_witness_for::<zopro_bn254::G1Config>(scalars)?;
+    if !accepted_groups.contains(&groups.values.len()) {
+        return None;
+    }
     let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
     groups.values.par_iter_mut().for_each(|v| *v = g2_phi::phi_split(*v));
     Some(PreparedAppleK { points, groups })
