@@ -206,6 +206,36 @@ pub(super) fn msm_h_in_place(
     msm_canonical(bases, canonical(scalars))
 }
 
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn apple_fused_kh_enabled(k: usize, h: usize) -> bool {
+    (1024..65536).contains(&k)
+        && h == (1 << 15) - 1
+        && borrowed_scalar::enabled()
+        && std::env::var("ZOPRO_CPU_FUSED_KH").as_deref() != Ok("0")
+}
+
+/// Combine the K and H contributions for rerandomized proofs once the
+/// quotient is ready. The scalar arrays belong to this proof.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn apple_fused_kh(
+    k: &[zopro_bn254::G1Affine],
+    sk: &mut [Fr],
+    h: &[zopro_bn254::G1Affine],
+    sh: &mut [Fr],
+) -> zopro_bn254::G1Projective {
+    #[cfg(feature = "trace")]
+    log::info!("ZOPRO_TRACE cpu-fused-kh-endomorphism");
+    let split = |s: &Fr| g2_phi::phi_split(s.to_canonical());
+    let h_words = encode_exclusive(sh, split);
+    if let Some(mut groups) = group_witness_for::<zopro_bn254::G1Config>(sk) {
+        let points = crate::msm::group_affine(k, &groups.order, &groups.starts, &groups.counts);
+        groups.values.par_iter_mut().for_each(|v| *v = g2_phi::phi_split(*v));
+        return g2_phi::fused_g1_msm(&points, &groups.values, h, h_words);
+    }
+    let k_words = encode_exclusive(sk, split);
+    g2_phi::fused_g1_msm(k, k_words, h, h_words)
+}
+
 pub(super) fn msm_grouped<C: CurveConfig>(
     bases: &[Affine<C>],
     groups: &ScalarGroups,

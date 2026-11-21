@@ -343,6 +343,74 @@ pub(super) fn quotient_g1_msm(
     result
 }
 
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn fused_g1_msm(
+    k: &[zopro_bn254::G1Affine],
+    k_short: &[[u64; 4]],
+    h: &[zopro_bn254::G1Affine],
+    h_short: &[[u64; 4]],
+) -> zopro_bn254::G1Projective {
+    use zopro_bn254::G1Projective;
+
+    const BITS: usize = 13;
+    const PARTS: usize = 3;
+    assert_eq!(k.len(), k_short.len());
+    assert_eq!(h.len(), h_short.len());
+    let queries = [(k, k_short), (h, h_short)]
+        .map(|(bases, words)| (bases, words, bases.len().div_ceil(PARTS)));
+    let size = batch_size(BITS);
+    let sums: Vec<_> = (0..127usize.div_ceil(BITS))
+        .into_par_iter()
+        .map(|window| {
+            // Each magnitude fits below 2^126. The final table holds the
+            // remaining bits and the carry from the previous signed digit.
+            let width = BITS.min(127 - window * BITS);
+            let mut partials: Vec<_> = (0..PARTS)
+                .into_par_iter()
+                .map(|part| {
+                    let mut state = super::borrowed_scalar::Borrowed::new(width, size);
+                    for high in [true, false] {
+                        for &(bases, words, chunk) in &queries {
+                            let start = (part * chunk).min(bases.len());
+                            let end = (start + chunk).min(bases.len());
+                            state.feed(
+                                &bases[start..end],
+                                words[start..end].iter().map(|s| hb_digit(s, high, window, BITS)),
+                            );
+                        }
+                        if high {
+                            // Apply the endomorphism to the high component's
+                            // bucket sums before adding the low component.
+                            for point in &mut state.inner.affine {
+                                if !point.is_identity() {
+                                    point.x *= G1_BETA;
+                                }
+                            }
+                            for point in &mut state.inner.projective {
+                                point.x *= G1_BETA;
+                            }
+                        }
+                    }
+                    affine_buckets(state.inner)
+                })
+                .collect();
+            let mut combined = partials.swap_remove(0);
+            for part in partials {
+                merge_buckets(&mut combined, &part);
+            }
+            crate::msm::weighted_affine(&combined)
+        })
+        .collect();
+    let mut result = G1Projective::IDENTITY;
+    for sum in sums.into_iter().rev() {
+        for _ in 0..BITS {
+            result = result.double();
+        }
+        result += sum;
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -377,6 +445,15 @@ mod tests {
             expected += base * s;
         }
         assert_eq!(quotient_g1_msm(&bases, &scalars), expected);
+        for split in [0, 1, 255, 511, 512] {
+            assert_eq!(
+                fused_g1_msm(
+                    &bases[..split], &scalars[..split], &bases[split..], &scalars[split..],
+                ),
+                expected,
+                "split at {split}",
+            );
+        }
     }
 
     #[test]

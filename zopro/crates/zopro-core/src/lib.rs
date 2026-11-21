@@ -2453,13 +2453,22 @@ impl Key {
                         let started = crate::time::Instant::now();
                         let mut h = self.quotient(a, b, c);
                         let started = trace("quotient", started);
-                        let ((ar, kr), hz) = rayon::join(
-                            || rayon::join(
-                                || msm_canonical(&self.a, canonical(sa)),
-                                || msm_canonical(&self.k, canonical(sk)),
-                            ),
-                            || msm_canonical(&self.z, canonical(&mut h)),
-                        );
+                        let ((ar, kr), hz) =
+                            if msm_affine::apple_fused_kh_enabled(self.k.len(), h.len()) {
+                                let (ar, kh) = rayon::join(
+                                    || msm_canonical(&self.a, canonical(sa)),
+                                    || msm_affine::apple_fused_kh(&self.k, sk, &self.z, &mut h),
+                                );
+                                ((ar, kh), G1Projective::IDENTITY)
+                            } else {
+                                rayon::join(
+                                    || rayon::join(
+                                        || msm_canonical(&self.a, canonical(sa)),
+                                        || msm_canonical(&self.k, canonical(sk)),
+                                    ),
+                                    || msm_canonical(&self.z, canonical(&mut h)),
+                                )
+                            };
                         trace("cpu-g1-msms", started);
                         (ar, kr, hz)
                     });
