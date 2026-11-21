@@ -324,15 +324,17 @@ mod tests {
 // A pure g=+2^31 row decodes with the opposite whole-row sign. The existing
 // full integer_update normalizes that sign and both coefficients before
 // matrix composition. No mixed row can reach either ambiguity at this bound.
+#[cfg(zopro_gcd_balanced_runs)]
 #[inline(always)]
-pub(crate) fn decode_row(e: u64) -> (i64, i64) {
+fn decode_row(e: u64) -> (i64, i64) {
     let low = e as u32 as i32 as i64;
     let f = select_unpredictable(e == 1u64 << 31, 1i64 << 31, low);
     let g = (e.wrapping_sub(f as u64) as i64) >> 32;
     (f, g)
 }
+#[cfg(zopro_gcd_balanced_runs)]
 #[inline(always)]
-pub(crate) fn zero_run_matrix(mut a: u64, mut b: u64) -> (u64, u64, i64, i64, i64, i64) {
+fn zero_run_matrix(mut a: u64, mut b: u64) -> (u64, u64, i64, i64, i64, i64) {
     let (mut row0, mut row1) = (1u64, 1u64 << 32);
     let mut remaining = BITS as u32;
     let first = a.trailing_zeros().min(remaining);

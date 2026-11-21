@@ -111,39 +111,20 @@ impl<C: FpConfig> Fp<C> {
         result
     }
 
-    /// The inverse, `None` for zero. x86 batches the binary GCD; other
-    /// targets use the binary extended Euclidean algorithm. Starting from
-    /// 2^512 leaves the inverse in Montgomery form in both cases.
+    /// The inverse, `None` for zero. The fast path batches the binary GCD.
+    /// Starting from 2^512 leaves the inverse in Montgomery form.
     pub fn inverse(&self) -> Option<Self> {
-        #[cfg(all(
-            feature = "fast-inverse",
-            target_arch = "x86_64",
-            target_feature = "bmi2",
-            target_feature = "adx",
-            not(no_asm)
-        ))]
+        #[cfg(zopro_fast_inverse)]
         {
-            return crate::inverse::inverse(self);
+            crate::inverse::inverse(self)
         }
-        #[cfg(not(all(
-            feature = "fast-inverse",
-            target_arch = "x86_64",
-            target_feature = "bmi2",
-            target_feature = "adx",
-            not(no_asm)
-        )))]
+        #[cfg(not(zopro_fast_inverse))]
         {
-            return self.inverse_binary();
+            self.inverse_binary()
         }
     }
 
-    #[cfg(not(all(
-        feature = "fast-inverse",
-        target_arch = "x86_64",
-        target_feature = "bmi2",
-        target_feature = "adx",
-        not(no_asm)
-    )))]
+    #[cfg(not(zopro_fast_inverse))]
     fn inverse_binary(&self) -> Option<Self> {
         if self.is_zero() {
             return None;

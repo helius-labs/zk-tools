@@ -34,13 +34,7 @@ pub mod ifma;
     not(no_ifma)
 ))]
 pub mod ifma8;
-#[cfg(all(
-    feature = "fast-inverse",
-    target_arch = "x86_64",
-    target_feature = "bmi2",
-    target_feature = "adx",
-    not(no_asm)
-))]
+#[cfg(zopro_fast_inverse)]
 mod inverse;
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 mod mont29;
