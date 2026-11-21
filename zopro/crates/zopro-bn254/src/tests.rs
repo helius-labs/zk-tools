@@ -163,6 +163,21 @@ fn quadratic_extension() {
 }
 
 #[test]
+fn quadratic_square_with_large_montgomery_limbs() {
+    let mut max = Fq::MODULUS;
+    max[0] -= 1;
+    let near_max = Fq::from_montgomery(max);
+    max[0] -= 1;
+    let values = [Fq::ZERO, Fq::ONE, Fq::from_montgomery(max), near_max];
+    for x in values {
+        for y in values {
+            let a = Fq2::new(x, y);
+            assert_eq!(a.square(), a * a);
+        }
+    }
+}
+
+#[test]
 fn tower() {
     let mut rng = ark_std::test_rng();
     for _ in 0..100 {

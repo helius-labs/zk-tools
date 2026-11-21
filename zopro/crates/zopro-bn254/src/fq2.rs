@@ -33,8 +33,34 @@ impl Fq2 {
     #[cfg_attr(target_arch = "wasm32", inline(never))]
     #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     pub fn square(&self) -> Self {
-        let product = self.c0 * self.c1;
-        Self::new((self.c0 + self.c1) * (self.c0 - self.c1), product.double())
+        #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+        {
+            use crate::{arm64, portable};
+            const P: [u64; 4] = FqConfig::P;
+            const INV: u64 = FqConfig::INV;
+            let x = self.c0.0;
+            let y = self.c1.0;
+            // Both raw sums are below 2p. Their products with canonical
+            // operands are below pR, so Montgomery reduction can reduce
+            // the outputs directly.
+            let sum = portable::add4(x, y).0;
+            let difference = arm64::sub(x, y, P);
+            let doubled = [
+                x[0] << 1,
+                (x[1] << 1) | (x[0] >> 63),
+                (x[2] << 1) | (x[1] >> 63),
+                (x[3] << 1) | (x[2] >> 63),
+            ];
+            Self::new(
+                Fq::from_montgomery(arm64::multiply(sum, difference, P, INV)),
+                Fq::from_montgomery(arm64::multiply(doubled, y, P, INV)),
+            )
+        }
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64", not(no_asm))))]
+        {
+            let product = self.c0 * self.c1;
+            Self::new((self.c0 + self.c1) * (self.c0 - self.c1), product.double())
+        }
     }
 
     #[inline(always)]

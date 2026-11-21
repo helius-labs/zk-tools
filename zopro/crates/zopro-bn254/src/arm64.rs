@@ -1,9 +1,9 @@
 // Montgomery multiplication on AArch64 with R = 2^256: CIOS over four
 // 64-bit limbs, the reduction interleaved into each row, in assembly so
 // that the products go through MUL and UMULH with one carry chain each.
-// Inputs reduced modulo p, p < 2^254 (both BN254 moduli), so the unreduced
-// result is below 2p and one conditional subtraction reduces it. Generated
-// unrolled: the row shift is a renaming of the accumulator registers.
+// For inputs below 2p and p < 2^254 (both BN254 moduli), the Montgomery
+// result is below p + (2p)^2 / R < 2p. One conditional subtraction reduces
+// it. The unrolled row shift renames the accumulator registers.
 // Where an assembly block reads an operand through a pointer, the pointer
 // lives for the call and the block touches nothing else.
 // A reduction row cancels its low limb. Because the low product is its
