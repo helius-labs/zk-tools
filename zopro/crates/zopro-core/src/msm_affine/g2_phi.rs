@@ -495,18 +495,18 @@ pub(super) fn fused_g1_msm(
             // Wider windows cut the number of passes over the dense quotient.
             #[cfg(feature = "trace")]
             log::info!("ZOPRO_TRACE cpu-fused-kh-wide-windows");
-            return g1_endomorphism_msm::<2, 2, 9>(queries, WIDE_FUSED_G1_WIDTHS, |width| {
+            return g1_endomorphism_msm::<2, 2, 9, true>(queries, WIDE_FUSED_G1_WIDTHS, |width| {
                 batch_size(width) * 2 / 3
             });
         }
         if h.len() == (1 << 15) - 1 {
             #[cfg(feature = "trace")]
             log::info!("ZOPRO_TRACE cpu-fused-kh-small-windows");
-            return g1_endomorphism_msm::<3, 2, 10>(queries, THREE_PART_WIDTHS, batch_size);
+            return g1_endomorphism_msm::<3, 2, 10, true>(queries, THREE_PART_WIDTHS, batch_size);
         }
     }
     let size = batch_size(13);
-    g1_endomorphism_msm::<3, 2, 10>(queries, BALANCED_WIDTHS, |_| size)
+    g1_endomorphism_msm::<3, 2, 10, true>(queries, BALANCED_WIDTHS, |_| size)
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -514,12 +514,23 @@ pub(super) fn witness_g1_msm(
     bases: &[zopro_bn254::G1Affine],
     short: &[[u64; 4]],
 ) -> zopro_bn254::G1Projective {
+    let queries = [(bases, short)];
+    if ((1 << 14)..(1 << 15)).contains(&bases.len())
+        && rayon::current_num_threads() >= 18
+        && std::env::var("ZOPRO_CPU_WITNESS_G1_LAYOUT").as_deref() != Ok("0")
+    {
+        // One point range per window avoids merging the witness buckets
+        // while the pool is also working on the quotient and G2 queries.
+        #[cfg(feature = "trace")]
+        log::info!("ZOPRO_TRACE cpu-g1-witness-single-range");
+        return g1_endomorphism_msm::<1, 1, 10, true>(queries, THREE_PART_WIDTHS, batch_size);
+    }
     let size = batch_size(13);
-    g1_endomorphism_msm::<2, 1, 10>([(bases, short)], SINGLE_G1_WIDTHS, |_| size)
+    g1_endomorphism_msm::<2, 1, 10, false>(queries, SINGLE_G1_WIDTHS, |_| size)
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn g1_endomorphism_msm<const PARTS: usize, const N: usize, const W: usize>(
+fn g1_endomorphism_msm<const PARTS: usize, const N: usize, const W: usize, const MIXED: bool>(
     queries: [(&[zopro_bn254::G1Affine], &[[u64; 4]]); N],
     widths: [usize; W],
     window_batch_size: impl Fn(usize) -> usize + Sync,
@@ -536,7 +547,7 @@ fn g1_endomorphism_msm<const PARTS: usize, const N: usize, const W: usize>(
         .map(|(offset, width)| {
             let size = window_batch_size(width);
             let digit = |word: &[u64; 4], high| {
-                if N == 2 {
+                if MIXED {
                     component_digit_at(word, high, offset, width)
                 } else {
                     hb_digit(word, high, offset / BITS, BITS)
@@ -683,15 +694,19 @@ mod tests {
         }
         assert_eq!(quotient_g1_msm(&bases, &scalars), expected);
         assert_eq!(witness_g1_msm(&bases, &scalars), expected);
+        assert_eq!(
+            g1_endomorphism_msm::<1, 1, 10, true>([(&bases, &scalars)], THREE_PART_WIDTHS, batch_size),
+            expected
+        );
         let queries = [(&bases[..255], &scalars[..255]), (&bases[255..], &scalars[255..])];
         assert_eq!(
-            g1_endomorphism_msm::<2, 2, 9>(queries, WIDE_FUSED_G1_WIDTHS, |width| {
+            g1_endomorphism_msm::<2, 2, 9, true>(queries, WIDE_FUSED_G1_WIDTHS, |width| {
                 batch_size(width) * 2 / 3
             }),
             expected
         );
         assert_eq!(
-            g1_endomorphism_msm::<3, 2, 10>(queries, THREE_PART_WIDTHS, batch_size),
+            g1_endomorphism_msm::<3, 2, 10, true>(queries, THREE_PART_WIDTHS, batch_size),
             expected
         );
         for split in [0, 1, 255, 511, 512] {
