@@ -303,7 +303,7 @@ impl Prover {
     pub fn prove(&mut self, witness: &[Fr]) -> Result<Proved, Error> {
         let encoded = self.encode(witness)?;
         loop {
-            if !self.key.has_gpu() {
+            if self.key.supports_rerandomized_solve() {
                 let started = zopro_core::time::Instant::now();
                 let public = &witness[..self.public];
                 let mut prove_ms = 0;
@@ -320,17 +320,27 @@ impl Prover {
                 #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
                 let verified = if self.overlap_verification && self.public <= 16 {
                     self.verifying_key
-                        .verify_during_generation(public, generate)?
+                        .verify_during_generation(public, generate)
                 } else {
-                    let proof = generate()?;
-                    self.verifying_key.verify(&proof, public).then_some(proof)
+                    generate()
+                        .map(|proof| self.verifying_key.verify(&proof, public).then_some(proof))
                 };
                 #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
-                let verified = {
-                    let proof = generate()?;
-                    self.verifying_key.verify(&proof, public).then_some(proof)
+                let verified = generate()
+                    .map(|proof| self.verifying_key.verify(&proof, public).then_some(proof));
+                let proof = match verified {
+                    Ok(Some(proof)) => proof,
+                    Err(Error::Prove(error)) if self.key.has_gpu() => {
+                        self.fall_back(&format!("the GPU failed ({error})"))?;
+                        continue;
+                    }
+                    Ok(None) | Err(Error::Unverified) if self.key.has_gpu() => {
+                        self.fall_back("a GPU proof did not verify")?;
+                        continue;
+                    }
+                    Ok(None) => return Err(Error::Unverified),
+                    Err(error) => return Err(error),
                 };
-                let proof = verified.ok_or(Error::Unverified)?;
                 return Ok(Proved {
                     proof,
                     public: public.to_vec(),

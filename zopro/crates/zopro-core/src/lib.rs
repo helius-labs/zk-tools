@@ -1953,23 +1953,26 @@ impl Key {
             let (h, (ar, bs1, kr, bs2, hz)) = std::thread::scope(|scope| -> Result<_, String> {
                 let msms = scope.spawn(move || -> Result<_, String> {
                     // Each MSM is submitted as soon as it is sorted, so the
-                    // host sorts the next while the GPU runs it; G2 B shares
-                    // G1 B's scalars, and so its sorted runs.
+                    // host sorts the next while the GPU runs it. G2 B can
+                    // reuse the sorted runs when G1 B is present.
                     let (mut a, mut b, mut k) = (
                         gpu.a.lock().unwrap(),
                         gpu.b.lock().unwrap(),
                         gpu.k.lock().unwrap(),
                     );
-                    let (sorted_a, sorted_b, sorted_k) =
-                        (a.sort_now(sa), b.sort_now(sb), k.sort_now(sk));
+                    let sorted_a = a.sort_now(sa);
+                    let sorted_b = (!omit_b).then(|| b.sort_now(sb));
+                    let sorted_k = k.sort_now(sk);
                     drop(sorted_tx);
                     let _ = quotient_rx.recv();
                     let pa = a.submit_sorted(sorted_a);
-                    let pb = b.submit_sorted(sorted_b);
+                    let pb = sorted_b.map(|sorted| b.submit_sorted(sorted));
                     let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
                     let pb2 = b2.as_mut().map(|b2| {
-                        if gpu.b2_cut == sb.len() {
+                        if gpu.b2_cut == sb.len() && pb.is_some() {
                             b2.start_sorted_as(&*b)
+                        } else if gpu.b2_cut == sb.len() {
+                            b2.start(sb)
                         } else {
                             // The CPU's points weigh nothing here.
                             let mut mine = sb.to_vec();
@@ -1980,8 +1983,13 @@ impl Key {
                     let pk = k.submit_sorted(sorted_k);
                     let (ar, t) = a.finish(pa)?;
                     gpu_trace("a", t.sort_ms, t.gpu_ms);
-                    let (bs1, t) = b.finish(pb)?;
-                    gpu_trace("b", t.sort_ms, t.gpu_ms);
+                    let bs1 = if let Some(pb) = pb {
+                        let (bs1, t) = b.finish(pb)?;
+                        gpu_trace("b", t.sort_ms, t.gpu_ms);
+                        bs1
+                    } else {
+                        G1Projective::IDENTITY
+                    };
                     let bs2 = match (b2.as_mut(), pb2) {
                         (Some(b2), Some(pb2)) => {
                             let (bs2, t) = b2.finish(pb2)?;
@@ -3079,15 +3087,20 @@ impl Key {
         self.plan.set_euler_fft_leaf_fusion(enabled);
     }
 
-    /// Solve on the CPU and return a freshly randomized raw Groth16 proof.
+    /// Whether the active backend supports four-query proving.
+    pub fn supports_rerandomized_solve(&self) -> bool {
+        !self.has_gpu() || cfg!(all(gpu, target_os = "macos", target_arch = "aarch64"))
+    }
+
+    /// Return a freshly randomized raw Groth16 proof on a supported backend.
     /// The ordinary five-part solving APIs retain their complete outputs.
     pub fn solve_rerandomized(
         &self,
         witness: &[u8],
         fixed: &groth16::PreparedFixedPoints,
     ) -> Result<Vec<u8>, String> {
-        if self.has_gpu() {
-            return Err("randomized solving requires the CPU".into());
+        if !self.supports_rerandomized_solve() {
+            return Err("the active backend cannot solve a randomized proof".into());
         }
         if !fixed.rerandomization_key_valid() {
             return Err("zero delta in proving key".into());
