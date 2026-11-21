@@ -664,14 +664,13 @@ impl GpuBuilder {
         self.g1[which] = Some(zopro_metal::G1Msm::new_in(bases, self.scratch.clone())?.0);
         Ok(())
     }
-    /// Whether the GPU took G2: a Mac's does, a phone's leaves it to the CPU.
-    /// How many of the G2 points (the first) the GPU took.
+    /// Upload the GPU's prefix of the G2 query and return its length.
     fn g2(&mut self, bases: &[G2Affine]) -> Result<usize, String> {
         let cut = (bases.len() as f64 * g2_gpu_share()).round() as usize;
         if cut == 0 {
             return Ok(0);
         }
-        self.b2 = Some(zopro_metal::G2Msm::new_in(bases, self.scratch.clone())?.0);
+        self.b2 = Some(zopro_metal::G2Msm::new_in(&bases[..cut], self.scratch.clone())?.0);
         self.b2_cut = cut;
         Ok(cut)
     }
@@ -2027,13 +2026,8 @@ impl Key {
                     let pb2 = b2.as_mut().map(|b2| {
                         if gpu.b2_cut == sb.len() && pb.is_some() {
                             b2.start_sorted_as(&*b)
-                        } else if gpu.b2_cut == sb.len() {
-                            b2.start(sb)
                         } else {
-                            // The CPU's points weigh nothing here.
-                            let mut mine = sb.to_vec();
-                            mine[gpu.b2_cut..].fill(Fr::ZERO);
-                            b2.start(&mine)
+                            b2.start(&sb[..gpu.b2_cut])
                         }
                     });
                     let pk = if let Some((points, words, _charge)) = &grouped_k {

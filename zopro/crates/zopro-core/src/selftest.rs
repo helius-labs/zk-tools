@@ -122,10 +122,16 @@ pub(crate) fn gpu(
     #[cfg(gpu)]
     if let Some(b2) = &gpu.b2 {
         let started = crate::time::Instant::now();
-        let got2 = b2.lock().unwrap().msm(&scalars[..n_b]);
+        let gpu_head = head2.min(gpu.b2_cut);
+        let expected = if gpu_head == head2 {
+            cpu2
+        } else {
+            msm_g2(&b2_head[..gpu_head], &scalars[..gpu_head])
+        };
+        let got2 = b2.lock().unwrap().msm(&scalars[..gpu.b2_cut]);
         msm &= report(
             "gpu-msm-g2",
-            got2.is_ok_and(|(got2, _)| got2 == cpu2),
+            got2.is_ok_and(|(got2, _)| got2 == expected),
             started,
         );
     }
