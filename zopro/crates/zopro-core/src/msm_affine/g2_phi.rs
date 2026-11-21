@@ -409,14 +409,28 @@ pub(super) fn fused_g1_msm(
     h: &[zopro_bn254::G1Affine],
     h_short: &[[u64; 4]],
 ) -> zopro_bn254::G1Projective {
+    g1_endomorphism_msm::<3, 2>([(k, k_short), (h, h_short)])
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn witness_g1_msm(
+    bases: &[zopro_bn254::G1Affine],
+    short: &[[u64; 4]],
+) -> zopro_bn254::G1Projective {
+    g1_endomorphism_msm::<2, 1>([(bases, short)])
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn g1_endomorphism_msm<const PARTS: usize, const N: usize>(
+    queries: [(&[zopro_bn254::G1Affine], &[[u64; 4]]); N],
+) -> zopro_bn254::G1Projective {
     use zopro_bn254::G1Projective;
 
     const BITS: usize = 13;
-    const PARTS: usize = 3;
-    assert_eq!(k.len(), k_short.len());
-    assert_eq!(h.len(), h_short.len());
-    let queries = [(k, k_short), (h, h_short)]
-        .map(|(bases, words)| (bases, words, bases.len().div_ceil(PARTS)));
+    let queries = queries.map(|(bases, words)| {
+        assert_eq!(bases.len(), words.len());
+        (bases, words, bases.len().div_ceil(PARTS))
+    });
     let size = batch_size(BITS);
     let sums: Vec<_> = (0..127usize.div_ceil(BITS))
         .into_par_iter()
@@ -557,6 +571,7 @@ mod tests {
             expected += base * s;
         }
         assert_eq!(quotient_g1_msm(&bases, &scalars), expected);
+        assert_eq!(witness_g1_msm(&bases, &scalars), expected);
         for split in [0, 1, 255, 511, 512] {
             assert_eq!(
                 fused_g1_msm(

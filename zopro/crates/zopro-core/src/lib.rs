@@ -1988,10 +1988,22 @@ impl Key {
             // rather than 45 on an M5 Pro, 54 → 1 merge).
             let started = crate::time::Instant::now();
             let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
-            let digit_width = (self.domain >= (1 << 18)
+            let large_digits = self.domain >= (1 << 18);
+            // At width eight, the device can recode the medium quotient
+            // directly into the small-window MSM layout.
+            let narrow_digits = cfg!(all(target_os = "macos", target_arch = "aarch64"))
+                && omit_b
+                && self.domain == (1 << 16)
+                && rayon::current_num_threads() >= 16;
+            let digit_width = ((large_digits || narrow_digits)
                 && quotient.as_ref().is_some_and(|q| q.can_recode_msm())
                 && std::env::var("ZOPRO_METAL_QUOTIENT_DIGITS").as_deref() != Ok("0"))
-            .then(|| gpu.z.lock().unwrap().scalar_window_width());
+            .then(|| gpu.z.lock().unwrap().scalar_window_width())
+            .filter(|&width| large_digits || width <= 8);
+            #[cfg(feature = "trace")]
+            if narrow_digits && digit_width.is_some() {
+                log::info!("ZOPRO_TRACE metal-small-quotient-digits");
+            }
             let pending = quotient.as_mut().map(|q| match (c.as_deref(), digit_width) {
                 (None, width) => {
                     #[cfg(feature = "trace")]
@@ -2092,6 +2104,21 @@ impl Key {
                     );
                     let (a_msm, b_msm, k_msm) = (&mut *a, &mut *b, &mut *k);
                     let mut sort = || {
+                        // Rerandomization omits B here. Sort the two independent
+                        // witness queries concurrently while the quotient runs.
+                        if group
+                            && self.domain == (1 << 15)
+                            && rayon::current_num_threads() >= 16
+                            && std::env::var("ZOPRO_METAL_PARALLEL_WITNESS_SORT").as_deref() != Ok("0")
+                        {
+                            #[cfg(feature = "trace")]
+                            log::info!("ZOPRO_TRACE metal-parallel-witness-sort");
+                            let (sorted_a, sorted_k) = rayon::join(
+                                || grouped_a.is_none().then(|| a_msm.sort_now(sa)),
+                                || grouped_k.is_none().then(|| k_msm.sort_now(sk)),
+                            );
+                            return (sorted_a, None, sorted_k);
+                        }
                         let sorted_a = grouped_a.is_none().then(|| a_msm.sort_now(sa));
                         let sorted_b = (!omit_b).then(|| b_msm.sort_now(sb));
                         let sorted_k = grouped_k.is_none().then(|| k_msm.sort_now(sk));
@@ -2623,10 +2650,23 @@ impl Key {
                     canonical, msm_canonical as msm, msm_grouped, msm_raw, scalar_groups,
                 };
                 let (sa, sb, sk) = (canonical(sa), msm_affine::canonical_exclusive(sb), canonical(sk));
+                #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+                let endomorphism = omit_b
+                    && !folded_k
+                    && self.domain == (1 << 16)
+                    && rayon::current_num_threads() >= 16
+                    && std::env::var("ZOPRO_CPU_WITNESS_G1_ENDO").as_deref() != Ok("0");
+                let g1_query = |bases: &[G1Affine], scalars| {
+                    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+                    if endomorphism {
+                        return msm_affine::msm_g1_witness(bases, scalars);
+                    }
+                    msm(bases, scalars)
+                };
                 let (((ar, kr), hz), (bs1, bs2)) = rayon::join(
                     || {
                         rayon::join(
-                            || rayon::join(|| msm(&self.a[..], sa), || msm(k, sk)),
+                            || rayon::join(|| g1_query(&self.a, sa), || g1_query(k, sk)),
                             || {
                                 if montgomery_h {
                                     msm_affine::msm_montgomery(z, h)

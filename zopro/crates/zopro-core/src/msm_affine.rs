@@ -236,6 +236,29 @@ pub(super) fn apple_fused_kh(
     g2_phi::fused_g1_msm(k, k_words, h, h_words)
 }
 
+/// Use the shorter endomorphism components after compacting a G1 witness query.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn msm_g1_witness(
+    bases: &[zopro_bn254::G1Affine],
+    words: &[[u64; 4]],
+) -> zopro_bn254::G1Projective {
+    if !borrowed_scalar::enabled() || !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
+        return msm_canonical(bases, words);
+    }
+    let Some(mut groups) = grouping::groups_with_diversity_check::<zopro_bn254::G1Config>(words)
+    else {
+        return msm_raw(bases, words);
+    };
+    if !(1024..32768).contains(&groups.values.len()) {
+        return msm_grouped(bases, &groups);
+    }
+    #[cfg(feature = "trace")]
+    log::info!("ZOPRO_TRACE cpu-g1-witness-endomorphism");
+    let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
+    groups.values.par_iter_mut().for_each(|s| *s = g2_phi::phi_split(*s));
+    g2_phi::witness_g1_msm(&points, &groups.values)
+}
+
 pub(super) fn msm_grouped<C: CurveConfig>(
     bases: &[Affine<C>],
     groups: &ScalarGroups,
