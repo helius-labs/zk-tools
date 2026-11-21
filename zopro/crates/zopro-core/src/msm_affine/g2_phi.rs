@@ -5,9 +5,6 @@ use super::{affine_buckets, batch_size, digit, fill_window_impl, merge_buckets};
 use rayon::prelude::*;
 #[cfg(test)]
 use zopro_bn254::Fr;
-const MIN_QUERY: usize = 1024;
-const MAX_QUERY: usize = 1 << 16;
-
 // Lattice rows (V1X,-V1Y_ABS),(V2X,V2Y) annihilate (1,lambda) mod r.
 // Reciprocals are rounded at 320 bits. Truncating input below bits128/64
 // contributes <2^-62 to coordinate error; including nearest rounding gives
@@ -267,9 +264,10 @@ pub(super) fn from_split(
     result
 }
 
+#[cfg(zopro_g2_horner_buckets)]
 pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Projective {
     assert_eq!(bases.len(), words.len());
-    if !(MIN_QUERY..MAX_QUERY).contains(&bases.len()) {
+    if !(1024..(1 << 16)).contains(&bases.len()) {
         return super::g2_horner::raw(bases, words);
     }
     #[cfg(zopro_resource_schedule)]

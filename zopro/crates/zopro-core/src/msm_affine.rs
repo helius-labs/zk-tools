@@ -1837,14 +1837,17 @@ mod deferred_window_reference_tests {
     }
 }
 
-#[cfg(all(
-    zopro_g2_horner_buckets,
-    target_arch = "x86_64",
-    target_feature = "avx512ifma",
-    target_feature = "avx512vl",
-    target_feature = "avx512dq",
-    feature = "ifma8",
-    not(no_ifma)
+#[cfg(any(
+    all(target_os = "macos", target_arch = "aarch64"),
+    all(
+        zopro_g2_horner_buckets,
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        feature = "ifma8",
+        not(no_ifma)
+    )
 ))]
 mod g2_phi;
 #[cfg(all(
@@ -1932,24 +1935,33 @@ pub(super) fn g2_query_exclusive(
     let groups = (grouping && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
         .then(|| grouping::groups_with_diversity_check(words))
         .flatten();
-    #[cfg(all(
-        zopro_g2_horner_buckets,
-        target_arch = "x86_64",
-        target_feature = "avx512ifma",
-        target_feature = "avx512vl",
-        target_feature = "avx512dq",
-        feature = "ifma8",
-        not(no_ifma)
+    #[cfg(any(
+        all(target_os = "macos", target_arch = "aarch64"),
+        all(
+            zopro_g2_horner_buckets,
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            feature = "ifma8",
+            not(no_ifma)
+        )
     ))]
     if (1024..65536).contains(&bases.len()) {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        let compute = |bases: &[zopro_bn254::G2Affine], words: &mut [[u64; 4]]| {
+            g2_phi::hb_raw(bases, words, 12, 2)
+        };
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        let compute = g2_phi::raw_exclusive;
         if let Some(mut g) = groups {
             if !(1024..65536).contains(&g.values.len()) {
                 return crate::msm_grouped_b2(bases, &g);
             }
             let points = crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts);
-            return g2_phi::raw_exclusive(&points, &mut g.values);
+            return compute(&points, &mut g.values);
         }
-        return g2_phi::raw_exclusive(bases, words);
+        return compute(bases, words);
     }
     match groups {
         Some(g) => crate::msm_grouped_b2(bases, &g),
