@@ -739,7 +739,14 @@ impl Plan {
         if self.small.is_none() && crate::simd::cpu_option("ZOPRO_CPU_QUOTIENT8") {
             return pair::quotient(self, a, b, c);
         }
-        if self.small.is_none() && crate::simd::cpu_option("ZOPRO_CPU_QUOTIENT6") {
+        let six = if cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            && self.n >= (1 << 18)
+        {
+            std::env::var("ZOPRO_CPU_QUOTIENT6").as_deref() != Ok("0")
+        } else {
+            crate::simd::cpu_option("ZOPRO_CPU_QUOTIENT6")
+        };
+        if self.small.is_none() && six {
             return self.quotient_six(a, b, c);
         }
         let (mut a, (b, c)) = rayon::join(
