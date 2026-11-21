@@ -508,6 +508,7 @@ pub struct Msm<C: Curve> {
     /// Windows per chunk: the shard trees are sized for one chunk and
     /// reused, which bounds the GPU memory a wide key takes.
     chunk_windows: usize,
+    first_shard: usize,
     /// Per chunk and level: shard starts, counts and destinations.
     levels: Vec<Vec<[Buffer; 3]>>,
     /// The shard trees and the buckets, shared with the key's other MSMs.
@@ -675,17 +676,13 @@ impl<C: Curve> Msm<C> {
         // The most shards a level can have for one window: every pair in
         // its own first shard, or every bucket's run split, whichever is
         // more. Chunks of windows keep each tree under TREE_MB.
-        let per_window = n.div_ceil(FIRST_SHARD) + half;
-        // Dense G1 queries benefit from processing more windows per
-        // dispatch on Apple silicon Macs.
-        let default_tree_mb = if cfg!(all(target_os = "macos", target_arch = "aarch64"))
-            && !C::G2
-            && n >= (1 << 18)
-        {
-            24
-        } else {
-            TREE_MB
-        };
+        let dense = cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            && !C::G2 && n >= (1 << 18);
+        // Shorter first shards let more threads cooperate on a large
+        // G1 bucket. The tree budget still bounds the resulting scratch.
+        let first_shard = if dense { 22 } else { FIRST_SHARD };
+        let per_window = n.div_ceil(first_shard) + half;
+        let default_tree_mb = if dense { 24 } else { TREE_MB };
         let tree_cap = std::env::var("ZOPRO_METAL_TREE_MB")
             .ok()
             .and_then(|v| v.parse().ok())
@@ -716,6 +713,7 @@ impl<C: Curve> Msm<C> {
                 half,
                 windows,
                 chunk_windows,
+                first_shard,
                 queue: queue(&device),
                 sorted: shared(&device, n * windows * 4),
                 sorted_for_original_bases: false,
@@ -1120,7 +1118,7 @@ impl<C: Curve> Msm<C> {
 
     /// The levels of shards over the sorted runs of a chunk of windows,
     /// written to the chunk's level buffers; returns each level's shard
-    /// count. Level 0 splits bucket runs of base points into FIRST_SHARD;
+    /// count. Level 0 splits bucket runs of base points into first_shard;
     /// each later level splits the previous level's contiguous shard ranges
     /// into SHARD, until every bucket has one, which the last level writes
     /// to the bucket's place.
@@ -1138,9 +1136,9 @@ impl<C: Curve> Msm<C> {
         if self.levels.len() <= chunk {
             self.levels.push(Vec::new());
         }
-        let most = self.chunk_windows * (self.n.div_ceil(FIRST_SHARD) + self.half);
+        let most = self.chunk_windows * (self.n.div_ceil(self.first_shard) + self.half);
         loop {
-            let size = if level == 0 { FIRST_SHARD } else { SHARD } as u32;
+            let size = if level == 0 { self.first_shard } else { SHARD } as u32;
             let last = runs.iter().all(|(_, c)| *c <= size);
             if self.levels[chunk].len() <= level {
                 self.levels[chunk].push([
