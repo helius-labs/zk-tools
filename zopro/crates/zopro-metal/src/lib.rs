@@ -1133,56 +1133,62 @@ impl<C: Curve> Msm<C> {
             .map(|(s, c)| (*s, *c))
             .collect();
         let mut shard_counts = Vec::new();
+        let mut next = Vec::new();
         let mut level = 0;
         if self.levels.len() <= chunk {
             self.levels.push(Vec::new());
         }
+        let most = self.chunk_windows * (self.n.div_ceil(FIRST_SHARD) + self.half);
         loop {
             let size = if level == 0 { FIRST_SHARD } else { SHARD } as u32;
             let last = runs.iter().all(|(_, c)| *c <= size);
-            let mut start = Vec::new();
-            let mut count = Vec::new();
-            let mut dst = Vec::new();
-            let mut next = Vec::with_capacity(buckets);
-            for (b, (run_start, run_count)) in runs.iter().enumerate() {
-                let first = start.len() as u32;
-                let mut at = 0;
-                while at < *run_count {
-                    let len = size.min(run_count - at);
-                    start.push(run_start + at);
-                    count.push(len);
-                    dst.push(if last {
-                        (first_bucket + b) as u32
-                    } else {
-                        first + (at / size)
-                    });
-                    at += len;
-                }
-                next.push((first, start.len() as u32 - first));
-            }
             if self.levels[chunk].len() <= level {
-                let most = self.chunk_windows * (self.n.div_ceil(FIRST_SHARD) + self.half);
                 self.levels[chunk].push([
                     shared(&self.device, most * 4),
                     shared(&self.device, most * 4),
                     shared(&self.device, most * 4),
                 ]);
             }
-            for (buffer, data) in self.levels[chunk][level].iter().zip([&start, &count, &dst]) {
-                // SAFETY: each level buffer holds `most` u32s, at least data.len().
+            let [starts, counts, destinations] = self.levels[chunk][level].each_ref().map(|buffer| {
+                // SAFETY: each buffer independently holds most u32 slots.
+                // This MSM has finished using the buffers from its previous
+                // execution before the next plan writes them.
                 unsafe {
-                    std::ptr::copy_nonoverlapping(
-                        data.as_ptr(),
-                        buffer.contents() as *mut u32,
-                        data.len(),
+                    std::slice::from_raw_parts_mut(
+                        buffer.contents().cast::<std::mem::MaybeUninit<u32>>(),
+                        most,
                     )
-                };
+                }
+            });
+            if !last {
+                next.reserve(buckets);
             }
-            shard_counts.push(start.len());
+            let mut cursor = 0;
+            for (b, &(run_start, run_count)) in runs.iter().enumerate() {
+                let first = cursor as u32;
+                let mut at = 0;
+                while at < run_count {
+                    let len = size.min(run_count - at);
+                    starts[cursor].write(run_start + at);
+                    counts[cursor].write(len);
+                    destinations[cursor].write(if last {
+                        (first_bucket + b) as u32
+                    } else {
+                        cursor as u32
+                    });
+                    cursor += 1;
+                    at += len;
+                }
+                if !last {
+                    next.push((first, cursor as u32 - first));
+                }
+            }
+            shard_counts.push(cursor);
             if last {
                 return shard_counts;
             }
-            runs = next;
+            std::mem::swap(&mut runs, &mut next);
+            next.clear();
             level += 1;
         }
     }
