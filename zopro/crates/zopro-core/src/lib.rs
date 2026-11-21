@@ -1969,20 +1969,49 @@ impl Key {
                     // Each MSM is submitted as soon as it is sorted, so the
                     // host sorts the next while the GPU runs it. G2 B can
                     // reuse the sorted runs when G1 B is present.
+                    let group = omit_b
+                        && cfg!(all(target_os = "macos", target_arch = "aarch64"))
+                        && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
+                    let host_grouped = group
+                        && gpu.b2.is_none()
+                        && self.gpu_quotient
+                        && self.domain >= (1 << 18)
+                        && rayon::current_num_threads() >= 16
+                        && std::env::var("ZOPRO_METAL_HOST_GROUPED").as_deref() != Ok("0");
+                    let group_a = || {
+                        group
+                            .then(|| msm_affine::group_for_metal(&self.a, sa))
+                            .flatten()
+                    };
+                    let group_k = || {
+                        group
+                            .then(|| msm_affine::group_for_metal(&self.k, sk))
+                            .flatten()
+                    };
+                    let (grouped_a, grouped_k) = if host_grouped {
+                        rayon::join(group_a, group_k)
+                    } else {
+                        (group_a(), group_k())
+                    };
+                    // Small compact queries can run alongside the quotient
+                    // and Z MSM on Metal, reducing work on the GPU queue.
+                    if let (true, Some((a, a_words, _)), Some((k, k_words, _))) =
+                        (host_grouped, &grouped_a, &grouped_k)
+                    {
+                        if a.len() <= self.a.len() / 4 && k.len() <= self.k.len() / 4 {
+                            drop(sorted_tx);
+                            let (ar, kr) = rayon::join(
+                                || msm_affine::msm_raw(a, a_words),
+                                || msm_affine::msm_raw(k, k_words),
+                            );
+                            return Ok((ar, G1Projective::IDENTITY, kr, None));
+                        }
+                    }
                     let (mut a, mut b, mut k) = (
                         gpu.a.lock().unwrap(),
                         gpu.b.lock().unwrap(),
                         gpu.k.lock().unwrap(),
                     );
-                    let group = omit_b
-                        && cfg!(all(target_os = "macos", target_arch = "aarch64"))
-                        && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
-                    let grouped_a = group
-                        .then(|| msm_affine::group_for_metal(&self.a, sa))
-                        .flatten();
-                    let grouped_k = group
-                        .then(|| msm_affine::group_for_metal(&self.k, sk))
-                        .flatten();
                     let sorted_a = grouped_a.is_none().then(|| a.sort_now(sa));
                     let sorted_b = (!omit_b).then(|| b.sort_now(sb));
                     let sorted_k = grouped_k.is_none().then(|| k.sort_now(sk));
