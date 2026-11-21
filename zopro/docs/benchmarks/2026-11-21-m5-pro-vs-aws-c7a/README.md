@@ -109,3 +109,16 @@ The last two columns give macOS physical footprint. All columns include initiali
 - **Workloads** used the same 41 circuit shapes and matching Gnark key hashes. The M5 runs used deterministic fixtures exported from the historical Zolana test suite, while AWS used its saved catalog requests. M5 warm time starts with decoding the exported witness and includes proof generation and verification. AWS warm time includes request-level witness construction, proof generation, and verification. [Zopro revision](https://github.com/helius-labs/zk-tools/commit/0904d3119aea84eac2fe9b9d790e0e9d66649b10) · [Zolana fixture revision](https://github.com/helius-labs/zolana/commit/2f1f02bc7ffc05c9a42a7d62e4c2ee4c06c0ec99) · [AWS input and key pins](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/artifacts/pins.json)
 - **Memory** uses the maximum across processes for each configuration. The M5 runner records BSD `time -l` peak RSS and peak memory footprint. These are distinct macOS counters, and RSS can account for mapped pages differently across macOS and Linux. M5 images were prepared before starting the timed process. The CSV labels its first response from an existing mapped image separately from the AWS cold response.
 - **Verification** ran on every M5 proof. The runner checked its public inputs against the fixture and checked that the requested CPU or Metal backend stayed active. The raw blocks record each key hash, archive hash, witness hash, and proof time. [AWS verification ledger](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/artifacts/verification.json)
+
+## M5 Pro follow-up on two large shapes
+
+The follow-up measures scalar grouping that reserves scratch for each phase and splits oversized point groups into bounded tiles. The same M5 Pro ran both builds with the default memory policy. Each value uses three fresh processes per configuration and the same key and witness as the catalog above. Warm time is the median of the process means. Memory is the maximum across processes. [Previous build](https://github.com/helius-labs/zk-tools/commit/06292c48928eb1d19ad409e26cbd923bdaf8bf37) · [Raw follow-up blocks](artifacts/m5-scalar-grouping.jsonl)
+
+| Shape and backend | Previous warm ms | Updated warm ms | Previous RSS MiB | Updated RSS MiB | Previous footprint MiB | Updated footprint MiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 24×2 CPU | 269.0 | 241.6 | 618.8 | 595.3 | 319.3 | 293.3 |
+| 24×2 Metal | 131.4 | 89.0 | 918.6 | 810.7 | 909.7 | 806.1 |
+| 40×2 CPU | 445.9 | 254.4 | 821.5 | 838.8 | 367.8 | 385.0 |
+| 40×2 Metal | 208.1 | 99.2 | 1276.5 | 1143.2 | 1117.0 | 987.6 |
+
+The three 40×2 Metal reductions requested about 21 MiB, 25 MiB, and 40 MiB. Admission depends on the host's free memory and the other queries' live reservations. The raw blocks include the pre-run free-page count and the run with an explicit 145 MiB preparation ceiling.

@@ -87,6 +87,14 @@ pub(super) fn peak(n: usize, percent: usize) -> Option<usize> {
     if u == 0 {
         return None;
     }
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    if n >= crate::msm::apple_class_tiles::MIN_BASES {
+        let workers = rayon::current_num_threads();
+        return add(
+            large_peak::<zopro_bn254::G1Config>(n, u, workers)?,
+            large_peak::<zopro_bn254::G2Config>(n, u, workers)?,
+        );
+    }
     add(
         limits::<zopro_bn254::G1Config>(n, u)?.0,
         limits::<zopro_bn254::G2Config>(n, u)?.0,
@@ -94,6 +102,28 @@ pub(super) fn peak(n: usize, percent: usize) -> Option<usize> {
 }
 
 pub(super) type Peak = fn(usize, usize) -> Option<usize>;
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn large_peak<C: CurveConfig>(n: usize, u: usize, workers: usize) -> Option<usize>
+where
+    C::Base: BatchInverse,
+{
+    let sample = hash_table::<&[u64; 4]>(n.min(2048))?;
+    let vectors = |entries| {
+        add(vector::<[u64; 4]>(entries, true)?, vector::<usize>(entries, true)?)
+    };
+    let indices = vector::<u32>(n, false)?;
+    let starts = vector::<usize>(add(u, 1)?, false)?;
+    // Classification stores only an index in the hash table. Its vectors
+    // can grow before classification discovers that grouping is unhelpful.
+    let classify = add(add(hash_table::<u32>(n)?, mul(vectors(n)?, 2)?)?, indices)?;
+    let lists = add(add(vectors(u)?, mul(starts, 2)?)?, mul(indices, 2)?)?;
+    let reduction = add(
+        add(add(add(vectors(u)?, starts)?, indices)?, vector::<Affine<C>>(u, false)?)?,
+        crate::msm::apple_class_tiles::workspace::<C>(n, workers)?,
+    )?;
+    add(sample, classify.max(lists).max(reduction))
+}
 
 /// Cost model for a group used by one curve. Other hosts retain their
 /// existing admission limits.
@@ -109,6 +139,9 @@ where
         let u = n.checked_mul(percent)?.checked_div(100)?;
         if u == 0 {
             return None;
+        }
+        if n >= crate::msm::apple_class_tiles::MIN_BASES {
+            return large_peak::<C>(n, u, rayon::current_num_threads());
         }
         Some(limits::<C>(n, u)?.0)
     }

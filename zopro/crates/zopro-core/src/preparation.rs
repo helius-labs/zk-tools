@@ -64,6 +64,23 @@ impl Reservation {
         Self::analysis_with_limit(peak, || resource_limit_from(macos_free_memory))
     }
 
+    /// Resize a grouping charge before allocating its next buffers.
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    pub(crate) fn resize_scalar_grouping(&mut self, bytes: Option<usize>) -> Option<()> {
+        let bytes = bytes?;
+        if bytes <= self.0 {
+            retain_charge(&RESERVED, &mut self.0, Some(bytes));
+            return Some(());
+        }
+        let _admission = ADMISSION.lock().ok()?;
+        let limit = resource_limit_from(macos_free_memory)?;
+        if !reserve(&RESERVED, bytes - self.0, limit) {
+            return None;
+        }
+        self.0 = bytes;
+        Some(())
+    }
+
     fn analysis_with_limit(
         peak: Option<usize>,
         limit: impl FnOnce() -> Option<usize>,
@@ -207,7 +224,7 @@ fn macos_free_memory() -> Option<usize> {
 // key/proof workspace and allocator-wide overhead remain outside this budget.
 #[cfg(any(
     zopro_live_preparation_charge,
-    all(target_os = "macos", target_arch = "aarch64", gpu)
+    all(target_os = "macos", target_arch = "aarch64")
 ))]
 pub(crate) fn allocation_bytes<T>(values: &Vec<T>) -> Option<usize> {
     let bytes = values.capacity().checked_mul(core::mem::size_of::<T>())?;

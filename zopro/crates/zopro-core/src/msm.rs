@@ -188,6 +188,10 @@ pub(super) fn group_affine<C: CurveConfig>(
 where
     C::Base: BatchInverse,
 {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    if bases.len() >= apple_class_tiles::MIN_BASES {
+        return apple_class_tiles::group(bases, order, starts, counts);
+    }
     group_affine_impl(|index| bases[index as usize], order, starts, counts)
 }
 
@@ -217,6 +221,8 @@ where
 }
 
 const CLASS_TILE: usize = 256;
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) mod apple_class_tiles;
 #[cfg(all(zopro_resource_schedule, target_os = "linux", target_arch = "x86_64"))]
 pub(super) mod class_tiles;
 

@@ -8,6 +8,9 @@ use crate::solver::{B2Origins, RuntimeAliases};
 use rayon::prelude::*;
 use zopro_bn254::{CurveConfig, Fr};
 
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+mod apple_large;
+
 pub(crate) struct ScalarGroups {
     pub(super) len: usize,
     pub(super) values: Vec<[u64; 4]>,
@@ -27,6 +30,10 @@ pub(crate) fn group_witness_for<C: CurveConfig>(scalars: &[Fr]) -> Option<Scalar
 where
     C::Base: crate::msm::BatchInverse,
 {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    if scalars.len() >= crate::msm::apple_class_tiles::MIN_BASES {
+        return apple_large::group::<C>(scalars);
+    }
     group_witness_inner::<false, false>(scalars, None, grouping_cost::peak_for::<C>, false)
 }
 
@@ -81,12 +88,19 @@ fn group_witness_inner<const SERIAL_B2: bool, const EXCLUSIVE: bool>(
     if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
         return None;
     }
+    let words = scalar_words(scalars);
+    let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
+    let groups = group_with_gate::<EXCLUSIVE, SERIAL_B2>(words, zero_aware, origins, peak, apple_cpu)?;
+    Some(canonicalize::<SERIAL_B2>(groups))
+}
+
+fn scalar_words(scalars: &[Fr]) -> &[[u64; 4]] {
     // SAFETY: Fr is repr(transparent) over four u64 limbs. This shared
     // view only compares/hashes the existing Montgomery representations.
-    let words =
-        unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
-    let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
-    let mut groups = group_with_gate::<EXCLUSIVE, SERIAL_B2>(words, zero_aware, origins, peak, apple_cpu)?;
+    unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) }
+}
+
+fn canonicalize<const SERIAL_B2: bool>(mut groups: ScalarGroups) -> ScalarGroups {
     let convert = |value: &mut [u64; 4]| {
         *value = Fr::from_montgomery(*value).to_canonical();
     };
@@ -100,14 +114,14 @@ fn group_witness_inner<const SERIAL_B2: bool, const EXCLUSIVE: bool>(
     ))]
     if SERIAL_B2 && use_vector_b2_decoding() {
         decode_b2_classes(&mut groups.values);
-        return Some(groups);
+        return groups;
     }
     if SERIAL_B2 {
         groups.values.iter_mut().for_each(convert);
     } else {
         groups.values.par_iter_mut().for_each(convert);
     }
-    Some(groups)
+    groups
 }
 
 #[cfg(all(
@@ -348,15 +362,25 @@ fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(
     if values.len() * 100 > scalars.len() * percent {
         return None;
     }
+    Some(assemble_groups(classes, values, counts, reservation))
+}
+
+fn assemble_groups(
+    classes: Vec<u32>,
+    values: Vec<[u64; 4]>,
+    counts: Vec<usize>,
+    reservation: crate::preparation::Reservation,
+) -> ScalarGroups {
+    let len = classes.len();
     if values.is_empty() {
-        return Some(ScalarGroups {
+        return ScalarGroups {
             _reservation: reservation,
-            len: scalars.len(),
+            len,
             values,
             order: Vec::new(),
             starts: vec![0],
             counts,
-        });
+        };
     }
     let mut starts = Vec::with_capacity(counts.len() + 1);
     starts.push(0);
@@ -373,14 +397,14 @@ fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(
     }
     drop(classes);
     drop(positions);
-    Some(ScalarGroups {
+    ScalarGroups {
         _reservation: reservation,
-        len: scalars.len(),
+        len,
         values,
         order,
         starts,
         counts,
-    })
+    }
 }
 
 // Keep one copy of each full scalar in first-occurrence order. The hash table
