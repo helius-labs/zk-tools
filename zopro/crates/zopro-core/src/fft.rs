@@ -740,7 +740,8 @@ impl Plan {
             return pair::quotient(self, a, b, c);
         }
         let six = if cfg!(all(target_os = "macos", target_arch = "aarch64"))
-            && self.n >= (1 << 18)
+            && (self.n >= (1 << 18)
+                || (self.n == (1 << 16) && rayon::current_num_threads() >= 18))
         {
             std::env::var("ZOPRO_CPU_QUOTIENT6").as_deref() != Ok("0")
         } else {
