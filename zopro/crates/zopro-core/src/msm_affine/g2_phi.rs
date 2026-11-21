@@ -216,7 +216,7 @@ const BALANCED_WIDTHS: [usize; 10] = [13, 13, 13, 13, 13, 13, 13, 13, 11, 12];
 const THREE_PART_WIDTHS: [usize; 10] = [13, 13, 13, 13, 13, 13, 13, 12, 12, 12];
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn window_offsets(widths: [usize; 10]) -> [(usize, usize); 10] {
+fn window_offsets<const N: usize>(widths: [usize; N]) -> [(usize, usize); N] {
     let mut offset = 0;
     widths.map(|width| {
         let at = offset;
@@ -234,9 +234,9 @@ fn component_digit_at(s: &[u64; 4], high: bool, offset: usize, width: usize) -> 
     let scalar = u128::from(s[i]) | (u128::from(s[i + 1] & (u64::MAX >> 1)) << 64);
     let window = if offset == 0 { scalar << 1 } else { scalar >> (offset - 1) } as u16;
     let mask = (1u16 << width) - 1;
-    let magnitude = (((window >> 1) & mask) + (window & 1)) as i16;
-    let subtract = ((window >> width) & 1) as i16 * (1 << width);
-    let digit = magnitude - subtract;
+    let magnitude = ((window >> 1) & mask) + (window & 1);
+    let subtract = ((window >> width) & 1) << width;
+    let digit = magnitude.wrapping_sub(subtract) as i16;
     if s[i + 1] >> 63 != 0 { -digit } else { digit }
 }
 
@@ -475,13 +475,38 @@ pub(super) fn quotient_g1_msm(
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+const WIDE_FUSED_G1_WIDTHS: [usize; 9] = [14, 14, 14, 14, 14, 14, 14, 14, 15];
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+const SINGLE_G1_WIDTHS: [usize; 10] = [13, 13, 13, 13, 13, 13, 13, 13, 13, 10];
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 pub(super) fn fused_g1_msm(
     k: &[zopro_bn254::G1Affine],
     k_short: &[[u64; 4]],
     h: &[zopro_bn254::G1Affine],
     h_short: &[[u64; 4]],
 ) -> zopro_bn254::G1Projective {
-    g1_endomorphism_msm::<3, 2>([(k, k_short), (h, h_short)])
+    let queries = [(k, k_short), (h, h_short)];
+    if ((1 << 14)..(1 << 15)).contains(&k.len())
+        && std::env::var("ZOPRO_CPU_FUSED_KH_GEOMETRY").as_deref() != Ok("0")
+    {
+        if h.len() == (1 << 16) - 1 && rayon::current_num_threads() >= 18 {
+            // Wider windows cut the number of passes over the dense quotient.
+            #[cfg(feature = "trace")]
+            log::info!("ZOPRO_TRACE cpu-fused-kh-wide-windows");
+            return g1_endomorphism_msm::<2, 2, 9>(queries, WIDE_FUSED_G1_WIDTHS, |width| {
+                batch_size(width) * 2 / 3
+            });
+        }
+        if h.len() == (1 << 15) - 1 {
+            #[cfg(feature = "trace")]
+            log::info!("ZOPRO_TRACE cpu-fused-kh-small-windows");
+            return g1_endomorphism_msm::<3, 2, 10>(queries, THREE_PART_WIDTHS, batch_size);
+        }
+    }
+    let size = batch_size(13);
+    g1_endomorphism_msm::<3, 2, 10>(queries, BALANCED_WIDTHS, |_| size)
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -489,12 +514,15 @@ pub(super) fn witness_g1_msm(
     bases: &[zopro_bn254::G1Affine],
     short: &[[u64; 4]],
 ) -> zopro_bn254::G1Projective {
-    g1_endomorphism_msm::<2, 1>([(bases, short)])
+    let size = batch_size(13);
+    g1_endomorphism_msm::<2, 1, 10>([(bases, short)], SINGLE_G1_WIDTHS, |_| size)
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-fn g1_endomorphism_msm<const PARTS: usize, const N: usize>(
+fn g1_endomorphism_msm<const PARTS: usize, const N: usize, const W: usize>(
     queries: [(&[zopro_bn254::G1Affine], &[[u64; 4]]); N],
+    widths: [usize; W],
+    window_batch_size: impl Fn(usize) -> usize + Sync,
 ) -> zopro_bn254::G1Projective {
     use zopro_bn254::G1Projective;
 
@@ -503,17 +531,10 @@ fn g1_endomorphism_msm<const PARTS: usize, const N: usize>(
         assert_eq!(bases.len(), words.len());
         (bases, words, bases.len().div_ceil(PARTS))
     });
-    // The fused query balances its last two window tasks. A single query
-    // keeps thirteen-bit digits followed by the ten remaining bits.
-    let widths = if N == 2 {
-        BALANCED_WIDTHS
-    } else {
-        [BITS, BITS, BITS, BITS, BITS, BITS, BITS, BITS, BITS, 10]
-    };
-    let size = batch_size(BITS);
     let sums: Vec<_> = window_offsets(widths)
         .into_par_iter()
         .map(|(offset, width)| {
+            let size = window_batch_size(width);
             let digit = |word: &[u64; 4], high| {
                 if N == 2 {
                     component_digit_at(word, high, offset, width)
@@ -580,12 +601,14 @@ mod tests {
                 let s = [magnitude as u64, hi, magnitude as u64, hi];
                 for high in [false, true] {
                     let expected = if negative { -(magnitude as i128) } else { magnitude as i128 };
-                    for widths in [BALANCED_WIDTHS, THREE_PART_WIDTHS] {
+                    for widths in [&BALANCED_WIDTHS[..], &THREE_PART_WIDTHS, &WIDE_FUSED_G1_WIDTHS] {
                         let mut result = 0i128;
-                        for (offset, width) in window_offsets(widths) {
+                        let mut offset = 0;
+                        for &width in widths {
                             let digit = component_digit_at(&s, high, offset, width);
                             assert!(digit.unsigned_abs() <= 1 << (width - 1));
                             result += i128::from(digit) << offset;
+                            offset += width;
                         }
                         assert_eq!(result, expected);
                     }
@@ -660,6 +683,17 @@ mod tests {
         }
         assert_eq!(quotient_g1_msm(&bases, &scalars), expected);
         assert_eq!(witness_g1_msm(&bases, &scalars), expected);
+        let queries = [(&bases[..255], &scalars[..255]), (&bases[255..], &scalars[255..])];
+        assert_eq!(
+            g1_endomorphism_msm::<2, 2, 9>(queries, WIDE_FUSED_G1_WIDTHS, |width| {
+                batch_size(width) * 2 / 3
+            }),
+            expected
+        );
+        assert_eq!(
+            g1_endomorphism_msm::<3, 2, 10>(queries, THREE_PART_WIDTHS, batch_size),
+            expected
+        );
         for split in [0, 1, 255, 511, 512] {
             assert_eq!(
                 fused_g1_msm(
