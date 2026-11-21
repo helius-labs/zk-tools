@@ -293,45 +293,106 @@ fn two_part_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
     result
 }
 
+/// Schedule point ranges independently and queue each window's reduction
+/// when its final range finishes. Keep the range order for the merge.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn schedule_windows<P: Send, R: Send + Sync, const PARTS: usize>(
+    windows: &[(usize, usize)],
+    fill: impl Fn(usize, usize, usize) -> P + Sync,
+    reduce: impl Fn(Vec<P>) -> R + Sync,
+    queue_reduction: bool,
+) -> Vec<R> {
+    use std::sync::{Mutex, OnceLock};
+
+    if !queue_reduction {
+        return windows
+            .par_iter()
+            .map(|&(offset, width)| {
+                reduce(
+                    (0..PARTS)
+                        .into_par_iter()
+                        .map(|part| fill(offset, width, part))
+                        .collect(),
+                )
+            })
+            .collect();
+    }
+
+    let empty = || std::array::from_fn::<Option<P>, PARTS, _>(|_| None);
+    let staging: Vec<_> = windows.iter().map(|_| Mutex::new(empty())).collect();
+    let ready: Vec<_> = windows.iter().map(|_| OnceLock::new()).collect();
+    rayon::in_place_scope_fifo(|scope| {
+        for ((&(offset, width), stage), output) in windows.iter().zip(&staging).zip(&ready) {
+            for part in 0..PARTS {
+                let (fill, reduce) = (&fill, &reduce);
+                scope.spawn_fifo(move |scope| {
+                    let points = fill(offset, width, part);
+                    let mut stage = stage.lock().expect("window ranges");
+                    stage[part] = Some(points);
+                    if stage.iter().all(Option::is_some) {
+                        let parts = std::mem::replace(&mut *stage, empty())
+                            .into_iter()
+                            .map(Option::unwrap)
+                            .collect();
+                        drop(stage);
+                        scope.spawn_fifo(move |_| {
+                            assert!(output.set(reduce(parts)).is_ok());
+                        });
+                    }
+                });
+            }
+        }
+    });
+    ready
+        .into_iter()
+        .map(|slot| slot.into_inner().expect("completed window"))
+        .collect()
+}
+
 // Keep the small-query layout out of the two-part hot path.
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[inline(never)]
 pub(super) fn three_part_msm<B: std::borrow::Borrow<G2Affine> + Sync>(
-    bases: &[B], short: &mut [[u64; 4]],
+    bases: &[B],
+    short: &mut [[u64; 4]],
 ) -> G2Projective {
     assert_eq!(bases.len(), short.len());
     short.par_iter_mut().for_each(|s| *s = phi_split(*s));
     let chunk = bases.len().div_ceil(3);
-    let sums: Vec<_> = window_offsets(THREE_PART_WIDTHS)
-        .into_par_iter()
-        .map(|(offset, width)| {
-            let size = batch_size(width) * 2 / 3;
-            let mut parts: Vec<_> = (0..3)
-                .into_par_iter()
-                .map(|i| {
-                    let start = (i * chunk).min(bases.len());
-                    let end = ((i + 1) * chunk).min(bases.len());
-                    let points = &bases[start..end];
-                    let words = &short[start..end];
-                    let mut state = super::borrowed_scalar::Borrowed::new(width, size);
-                    let pairs = |high| {
-                        points.iter().map(std::borrow::Borrow::borrow)
-                            .zip(words.iter().map(move |s| component_digit_at(s, high, offset, width)))
-                    };
-                    let loose = points.len() < (1 << 16);
-                    state.feed_pairs(pairs(true), loose);
-                    phi_buckets(&mut state.inner);
-                    state.feed_pairs(pairs(false), loose);
-                    affine_buckets(state.inner)
-                })
-                .collect();
-            let mut left = parts.swap_remove(0);
-            for right in parts {
-                super::merge_g2_buckets_scalar(&mut left, &right);
-            }
-            crate::msm::weighted_affine(&left)
-        })
-        .collect();
+    let fill = |offset: usize, width: usize, i: usize| {
+        let size = batch_size(width) * 2 / 3;
+        let start = (i * chunk).min(bases.len());
+        let end = ((i + 1) * chunk).min(bases.len());
+        let points = &bases[start..end];
+        let words = &short[start..end];
+        let mut state = super::borrowed_scalar::Borrowed::new(width, size);
+        let pairs = |high| {
+            points.iter().map(std::borrow::Borrow::borrow).zip(
+                words
+                    .iter()
+                    .map(move |s| component_digit_at(s, high, offset, width)),
+            )
+        };
+        let loose = points.len() < (1 << 16);
+        state.feed_pairs(pairs(true), loose);
+        phi_buckets(&mut state.inner);
+        state.feed_pairs(pairs(false), loose);
+        affine_buckets(state.inner)
+    };
+    let reduce = |mut parts: Vec<Vec<G2Affine>>| {
+        let mut left = parts.swap_remove(0);
+        for right in parts {
+            super::merge_g2_buckets_scalar(&mut left, &right);
+        }
+        crate::msm::weighted_affine(&left)
+    };
+    let queue_reduction = rayon::current_num_threads() == 7;
+    let sums = schedule_windows::<_, _, 3>(
+        &window_offsets(THREE_PART_WIDTHS),
+        fill,
+        reduce,
+        queue_reduction,
+    );
     let mut result = G2Projective::IDENTITY;
     for (width, sum) in THREE_PART_WIDTHS.into_iter().zip(sums).rev() {
         for _ in 0..width {
@@ -341,7 +402,6 @@ pub(super) fn three_part_msm<B: std::borrow::Borrow<G2Affine> + Sync>(
     }
     result
 }
-
 
 pub(super) fn hb_raw(
     bases: &[G2Affine],
@@ -571,53 +631,51 @@ fn g1_endomorphism_msm<const PARTS: usize, const N: usize, const W: usize, const
         assert_eq!(bases.len(), words.len());
         (bases, words, bases.len().div_ceil(PARTS))
     });
-    let sums: Vec<_> = window_offsets(widths)
-        .into_par_iter()
-        .map(|(offset, width)| {
-            let size = window_batch_size(width);
-            let digit = |word: &[u64; 4], high| {
-                if MIXED {
-                    component_digit_at(word, high, offset, width)
-                } else {
-                    hb_digit(word, high, offset / BITS, BITS)
-                }
-            };
-            let mut partials: Vec<_> = (0..PARTS)
-                .into_par_iter()
-                .map(|part| {
-                    let mut state = super::borrowed_scalar::Borrowed::new(width, size);
-                    for high in [true, false] {
-                        for &(bases, words, chunk) in &queries {
-                            let start = (part * chunk).min(bases.len());
-                            let end = (start + chunk).min(bases.len());
-                            state.feed(
-                                &bases[start..end],
-                                words[start..end].iter().map(|s| digit(s, high)),
-                            );
-                        }
-                        if high {
-                            // Apply the endomorphism to the high component's
-                            // bucket sums before adding the low component.
-                            for point in &mut state.inner.affine {
-                                if !point.is_identity() {
-                                    point.x *= G1_BETA;
-                                }
-                            }
-                            for point in &mut state.inner.projective {
-                                point.x *= G1_BETA;
-                            }
-                        }
-                    }
-                    affine_buckets(state.inner)
-                })
-                .collect();
-            let mut combined = partials.swap_remove(0);
-            for part in partials {
-                merge_buckets(&mut combined, &part);
+    let fill = |offset: usize, width: usize, part: usize| {
+        let size = window_batch_size(width);
+        let digit = |word: &[u64; 4], high| {
+            if MIXED {
+                component_digit_at(word, high, offset, width)
+            } else {
+                hb_digit(word, high, offset / BITS, BITS)
             }
-            crate::msm::weighted_affine(&combined)
-        })
-        .collect();
+        };
+        let mut state = super::borrowed_scalar::Borrowed::new(width, size);
+        for high in [true, false] {
+            for &(bases, words, chunk) in &queries {
+                let start = (part * chunk).min(bases.len());
+                let end = (start + chunk).min(bases.len());
+                state.feed(
+                    &bases[start..end],
+                    words[start..end].iter().map(|s| digit(s, high)),
+                );
+            }
+            if high {
+                for point in &mut state.inner.affine {
+                    if !point.is_identity() {
+                        point.x *= G1_BETA;
+                    }
+                }
+                for point in &mut state.inner.projective {
+                    point.x *= G1_BETA;
+                }
+            }
+        }
+        affine_buckets(state.inner)
+    };
+    let reduce = |mut partials: Vec<Vec<zopro_bn254::G1Affine>>| {
+        let mut combined = partials.swap_remove(0);
+        for part in partials {
+            merge_buckets(&mut combined, &part);
+        }
+        crate::msm::weighted_affine(&combined)
+    };
+    let queue_reduction = N == 1
+        && PARTS > 1
+        && (16384..32768).contains(&queries[0].0.len())
+        && rayon::current_num_threads() == crate::APPLE_SMALL_PAIRED_G1_WORKERS;
+    let sums =
+        schedule_windows::<_, _, PARTS>(&window_offsets(widths), fill, reduce, queue_reduction);
     let mut result = G1Projective::IDENTITY;
     for (sum, width) in sums.into_iter().zip(widths).rev() {
         for _ in 0..width {
@@ -654,6 +712,26 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[test]
+    fn scheduled_reductions_preserve_window_and_range_order() {
+        let windows = window_offsets(THREE_PART_WIDTHS);
+        let fill = |offset, width, part| (offset, width, part);
+        let expected: Vec<_> = windows
+            .into_iter()
+            .map(|(offset, width)| (0..3).map(|part| (offset, width, part)).collect::<Vec<_>>())
+            .collect();
+        for workers in [1, 7, 11] {
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(workers)
+                .build()
+                .unwrap();
+            let observed =
+                pool.install(|| schedule_windows::<_, _, 3>(&windows, fill, |parts| parts, true));
+            assert_eq!(observed, expected);
         }
     }
 

@@ -122,3 +122,13 @@ The follow-up measures scalar grouping that reserves scratch for each phase and 
 | 40×2 Metal | 208.1 | 99.2 | 1276.5 | 1143.2 | 1117.0 | 987.6 |
 
 The three 40×2 Metal reductions requested about 21 MiB, 25 MiB, and 40 MiB. Admission depends on the host's free memory and the other queries' live reservations. The raw blocks include the pre-run free-page count and the run with an explicit 145 MiB preparation ceiling.
+
+## M5 Pro follow-up on the 1×2 CPU proof
+
+The paired CPU schedule queues reduction after all point ranges for a window finish. The M5 Pro used `zopro-spr` with a mapped raw4 image and the repository's 1×2 request fixture. Each of 32 blocks ran three builds in randomized order. A fresh process primed two proofs and timed six. Warm time is the median of the process medians. Memory is the maximum across processes. [Request fixture](../../../tools/spr/fixtures/transfer-1x2.json) · [Raw blocks](artifacts/m5-1x2-cpu-scheduling.jsonl)
+
+| Build | Warm proof ms | Peak RSS MiB | Peak physical footprint MiB |
+|---|---:|---:|---:|
+| Original PR `87b35e3` | 30.82 | 43.56 | 22.89 |
+| Bounded grouping `70941be` | 17.07 | 73.33 | 52.13 |
+| Queued window reduction | 16.64 | 74.41 | 53.20 |
