@@ -637,6 +637,7 @@ struct GpuBuilder {
     started: crate::time::Instant,
     quotient: zopro_metal::Quotient,
     g1: [Option<zopro_metal::G1Msm>; 4],
+    domain: usize,
     b2: Option<zopro_metal::G2Msm>,
     b2_cut: usize,
     /// The trees and buckets all the key's MSMs share.
@@ -672,13 +673,34 @@ impl GpuBuilder {
             started,
             quotient,
             g1: [None, None, None, None],
+            domain: plan.size(),
             b2: None,
             b2_cut: 0,
             scratch,
         })
     }
     fn g1(&mut self, which: usize, bases: &[G1Affine]) -> Result<(), String> {
-        self.g1[which] = Some(zopro_metal::G1Msm::new_in(bases, self.scratch.clone())?.0);
+        // B1 and B2 can reuse the same sorted runs and must share a width.
+        // On wide Apple silicon hosts, fewer buckets make small G1 queries
+        // cheaper to plan and combine on the CPU.
+        let width = if cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            && rayon::current_num_threads() >= 16
+        {
+            match (self.domain, which) {
+                (32768, 0 | 2 | 3) => Some(9),
+                (65536, 0 | 2 | 3) => Some(8),
+                _ => None,
+            }
+        } else {
+            None
+        };
+        let scratch = self.scratch.clone();
+        let (msm, _) = if let Some(cap) = width {
+            zopro_metal::G1Msm::new_in_with_width_cap(bases, scratch, cap)?
+        } else {
+            zopro_metal::G1Msm::new_in(bases, scratch)?
+        };
+        self.g1[which] = Some(msm);
         Ok(())
     }
     /// Upload the GPU's prefix of the G2 query and return its length.
@@ -2145,6 +2167,14 @@ impl Key {
                                     self.exclusive_g2_grouping,
                                 )
                             } else {
+                                #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+                                if compact_overlap && self.exclusive_g2_grouping && affine_msm() {
+                                    if let Some(sum) =
+                                        msm_affine::try_apple_compact_g2(bases, &sb[cut..])
+                                    {
+                                        return sum;
+                                    }
+                                }
                                 msm_g2(bases, &sb[cut..])
                             }
                         };

@@ -242,7 +242,7 @@ pub(crate) const SHADER: &str = concat!(
 );
 /// Window width by point count, as the CPU MSM's: wider windows mean fewer
 /// bucket additions and more buckets to reduce (and, here, to zero).
-fn width_for(n: usize) -> usize {
+fn width_for(n: usize, default_cap: usize) -> usize {
     let width = match n {
         0..=1023 => 7,
         1024..=4095 => 9,
@@ -258,7 +258,7 @@ fn width_for(n: usize) -> usize {
     let cap = std::env::var("ZOPRO_GPU_WIDTH")
         .ok()
         .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(13)
+        .unwrap_or(default_cap)
         .clamp(7, 15);
     width.min(cap)
 }
@@ -610,14 +610,25 @@ impl<C: Curve> Msm<C> {
         bases: &[C::Affine],
         scratch: std::sync::Arc<Scratch>,
     ) -> Result<(Self, f64), String> {
+        Self::new_in_with_width_cap(bases, scratch, 13)
+    }
+
+    /// As `new_in`, with a caller-specified, overridable default window cap.
+    #[doc(hidden)]
+    pub fn new_in_with_width_cap(
+        bases: &[C::Affine],
+        scratch: std::sync::Arc<Scratch>,
+        default_cap: usize,
+    ) -> Result<(Self, f64), String> {
         // Building a pipeline autoreleases objects that hold on to the
         // device's memory; a thread without a pool leaked them per key.
-        autoreleasepool(|| Self::new_in_pool(bases, scratch))
+        autoreleasepool(|| Self::new_in_pool(bases, scratch, default_cap))
     }
 
     fn new_in_pool(
         bases: &[C::Affine],
         scratch: std::sync::Arc<Scratch>,
+        default_cap: usize,
     ) -> Result<(Self, f64), String> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
@@ -669,7 +680,7 @@ impl<C: Curve> Msm<C> {
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         let bases_buffer = Self::upload_bases(&device, bases);
         let n = bases.len();
-        let width = width_for(n);
+        let width = width_for(n, default_cap);
         let half = 1 << (width - 1);
         let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
         let buckets = windows * half;

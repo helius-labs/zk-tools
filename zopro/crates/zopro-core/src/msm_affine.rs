@@ -248,6 +248,30 @@ where
     msm_raw(&bases, &groups.values)
 }
 
+/// Compact the CPU's G2 query while the small Metal proof runs its G1 work.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn try_apple_compact_g2(
+    bases: &[zopro_bn254::G2Affine],
+    scalars: &[Fr],
+) -> Option<zopro_bn254::G2Projective> {
+    if !(32768..65536).contains(&bases.len())
+        || std::env::var("ZOPRO_METAL_COMPACT_G2").as_deref() == Ok("0")
+    {
+        return None;
+    }
+    let mut groups = group_witness_for::<zopro_bn254::G2Config>(scalars)?;
+    if !((1 << 14)..(1 << 15)).contains(&groups.values.len())
+        || !borrowed_scalar::enabled()
+        || std::env::var("ZOPRO_CPU_G2_BALANCED").as_deref() == Ok("0")
+    {
+        return Some(msm_grouped(bases, &groups));
+    }
+    #[cfg(feature = "trace")]
+    log::info!("ZOPRO_TRACE metal-compact-g2-windows");
+    let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
+    Some(g2_phi::balanced_msm(&points, &mut groups.values))
+}
+
 /// A small sample screens out witness queries with too few repeats to
 /// benefit from the extra compaction and GPU upload.
 #[cfg(gpu)]
