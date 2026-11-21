@@ -90,6 +90,20 @@ impl Fq2 {
         Self::new(eight.c0 + self.c0 - self.c1, eight.c1 + self.c1 + self.c0)
     }
 
+    /// The norm in Fq, c0² + c1².
+    #[inline(always)]
+    pub fn norm(&self) -> Fq {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+        return Fq::from_montgomery(crate::arm64::sum_of_squares(
+            self.c0.0,
+            self.c1.0,
+            FqConfig::P,
+            FqConfig::INV,
+        ));
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64", not(no_asm))))]
+        Fq::sum_of_products(&self.c0, &self.c0, &self.c1, &self.c1)
+    }
+
     pub fn inverse(&self) -> Option<Self> {
         let norm = self.c0.square() + self.c1.square();
         norm.inverse().map(|t| Self::new(self.c0 * t, -(self.c1 * t)))

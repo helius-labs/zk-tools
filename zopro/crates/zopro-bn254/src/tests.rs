@@ -145,6 +145,7 @@ fn quadratic_extension() {
             assert_eq!(fq2(*a) - fq2(*b), fq2(*a - b));
         }
         assert_eq!(fq2(*a).square(), fq2(a.square()));
+        assert_eq!(fq2(*a).norm(), fq(a.norm()));
         assert_eq!(fq2(*a).inverse(), a.inverse().map(fq2));
         assert_eq!(fq2(*a).frobenius(1), fq2(a.frobenius_map(1)));
         let ours = fq2(*a).sqrt();
@@ -173,6 +174,7 @@ fn quadratic_square_with_large_montgomery_limbs() {
         for y in values {
             let a = Fq2::new(x, y);
             assert_eq!(a.square(), a * a);
+            assert_eq!(a.norm(), x.square() + y.square());
         }
     }
 }

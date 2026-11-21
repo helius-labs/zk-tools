@@ -1680,7 +1680,7 @@ impl BatchInverse for Fq2 {
     type Product = [Fq; 2];
     #[inline(always)]
     fn prefix(accumulator: &mut Fq, value: Self) -> Self::Product {
-        let norm = Fq::sum_of_products(&value.c0, &value.c0, &value.c1, &value.c1);
+        let norm = value.norm();
         let prefix = *accumulator;
         *accumulator *= norm;
         [prefix, norm]

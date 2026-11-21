@@ -203,15 +203,10 @@ fn multiply_inner<const NORMALIZE: bool>(a: [u64; 4], b: [u64; 4], p: [u64; 4], 
             "sbcs {l1}, {t0}, {p1}",
             "sbcs {h0}, {t1}, {p2}",
             "sbcs {h1}, {t2}, {p3}",
-            "csel {r0}, {t4}, {l0}, lo",
-            "csel {r1}, {t0}, {l1}, lo",
-            "csel {r2}, {t1}, {h0}, lo",
-            "csel {r3}, {t2}, {h1}, lo",
-            ".else",
-            "mov {r0}, {t4}",
-            "mov {r1}, {t0}",
-            "mov {r2}, {t1}",
-            "mov {r3}, {t2}",
+            "csel {t4}, {t4}, {l0}, lo",
+            "csel {t0}, {t0}, {l1}, lo",
+            "csel {t1}, {t1}, {h0}, lo",
+            "csel {t2}, {t2}, {h1}, lo",
             ".endif",
             normalize = const NORMALIZE as u32,
             a0 = in(reg) a[0],
@@ -232,15 +227,11 @@ fn multiply_inner<const NORMALIZE: bool>(a: [u64; 4], b: [u64; 4], p: [u64; 4], 
             l1 = out(reg) _,
             h0 = out(reg) _,
             h1 = out(reg) _,
-            t0 = out(reg) _,
-            t1 = out(reg) _,
-            t2 = out(reg) _,
+            t0 = out(reg) r1,
+            t1 = out(reg) r2,
+            t2 = out(reg) r3,
             t3 = out(reg) _,
-            t4 = out(reg) _,
-            r0 = lateout(reg) r0,
-            r1 = lateout(reg) r1,
-            r2 = lateout(reg) r2,
-            r3 = lateout(reg) r3,
+            t4 = out(reg) r0,
             options(pure, nomem, nostack),
         );
     }
@@ -815,30 +806,108 @@ pub fn square_loose(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
 #[cfg(target_os = "macos")]
 #[inline(always)]
 fn square_inner<const NORMALIZE: bool>(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
-    let mut product = [0u64; 8];
-    for i in 0..3 {
-        let mut carry = 0u64;
-        for j in i + 1..4 {
-            let limb = a[i] as u128 * a[j] as u128 + product[i + j] as u128 + carry as u128;
-            product[i + j] = limb as u64;
-            carry = (limb >> 64) as u64;
-        }
-        product[i + 4] = carry;
+    redc_inner::<NORMALIZE>(square_wide(a), p, inv)
+}
+
+/// Square four limbs using six off-diagonal products and four squares.
+#[cfg(target_os = "macos")]
+#[inline(always)]
+fn square_wide(a: [u64; 4]) -> [u64; 8] {
+    let (r0, r1, r2, r3, r4, r5, r6, r7): (u64, u64, u64, u64, u64, u64, u64, u64);
+    // SAFETY: the block operates only on its register operands.
+    unsafe {
+        core::arch::asm!(
+            // The off-diagonal products, except a1*a2, have one low and
+            // one high half at each successive limb. Add the high halves.
+            "mul {r1}, {a0}, {a1}",
+            "mul {r2}, {a0}, {a2}",
+            "mul {r3}, {a0}, {a3}",
+            "mul {r4}, {a1}, {a3}",
+            "mul {r5}, {a2}, {a3}",
+            "umulh {h0}, {a0}, {a1}",
+            "umulh {h1}, {a0}, {a2}",
+            "adds {r2}, {r2}, {h0}",
+            "umulh {h0}, {a0}, {a3}",
+            "adcs {r3}, {r3}, {h1}",
+            "umulh {h1}, {a1}, {a3}",
+            "adcs {r4}, {r4}, {h0}",
+            "umulh {h0}, {a2}, {a3}",
+            "adcs {r5}, {r5}, {h1}",
+            "adc {r6}, {h0}, xzr",
+            // Add the remaining cross product at limbs 3 and 4.
+            "mul {h0}, {a1}, {a2}",
+            "umulh {h1}, {a1}, {a2}",
+            "adds {r3}, {r3}, {h0}",
+            "adcs {r4}, {r4}, {h1}",
+            "adcs {r5}, {r5}, xzr",
+            "adc {r6}, {r6}, xzr",
+            // Double the off-diagonal sum and add the diagonal products.
+            "lsr {r7}, {r6}, #63",
+            "extr {r6}, {r6}, {r5}, #63",
+            "extr {r5}, {r5}, {r4}, #63",
+            "extr {r4}, {r4}, {r3}, #63",
+            "extr {r3}, {r3}, {r2}, #63",
+            "extr {r2}, {r2}, {r1}, #63",
+            "lsl {r1}, {r1}, #1",
+            "mul {r0}, {a0}, {a0}",
+            "umulh {h0}, {a0}, {a0}",
+            "mul {h1}, {a1}, {a1}",
+            "adds {r1}, {r1}, {h0}",
+            "umulh {h0}, {a1}, {a1}",
+            "adcs {r2}, {r2}, {h1}",
+            "mul {h1}, {a2}, {a2}",
+            "adcs {r3}, {r3}, {h0}",
+            "umulh {h0}, {a2}, {a2}",
+            "adcs {r4}, {r4}, {h1}",
+            "mul {h1}, {a3}, {a3}",
+            "adcs {r5}, {r5}, {h0}",
+            "umulh {h0}, {a3}, {a3}",
+            "adcs {r6}, {r6}, {h1}",
+            "adc {r7}, {r7}, {h0}",
+            a0 = in(reg) a[0], a1 = in(reg) a[1], a2 = in(reg) a[2], a3 = in(reg) a[3],
+            r0 = out(reg) r0, r1 = out(reg) r1, r2 = out(reg) r2, r3 = out(reg) r3,
+            r4 = out(reg) r4, r5 = out(reg) r5, r6 = out(reg) r6, r7 = out(reg) r7,
+            h0 = out(reg) _, h1 = out(reg) _,
+            options(pure, nomem, nostack),
+        );
     }
-    let mut carry = 0u64;
-    for limb in &mut product {
-        let next = *limb >> 63;
-        *limb = (*limb << 1) | carry;
-        carry = next;
+    [r0, r1, r2, r3, r4, r5, r6, r7]
+}
+
+/// a² + b² with one Montgomery reduction. The inputs are below p,
+/// so the sum of the full squares is below 2p² < pR.
+#[cfg(target_os = "macos")]
+#[inline(always)]
+pub fn sum_of_squares(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
+    redc(add_wide(square_wide(a), square_wide(b)), p, inv)
+}
+
+/// Sum of two raw squares. The caller bounds the total below 2^512.
+#[cfg(target_os = "macos")]
+#[inline(always)]
+fn add_wide(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
+    let mut result = a;
+    // SAFETY: the block operates only on its register operands.
+    unsafe {
+        core::arch::asm!(
+            "adds {a0}, {a0}, {b0}",
+            "adcs {a1}, {a1}, {b1}",
+            "adcs {a2}, {a2}, {b2}",
+            "adcs {a3}, {a3}, {b3}",
+            "adcs {a4}, {a4}, {b4}",
+            "adcs {a5}, {a5}, {b5}",
+            "adcs {a6}, {a6}, {b6}",
+            "adc {a7}, {a7}, {b7}",
+            a0 = inout(reg) result[0], a1 = inout(reg) result[1],
+            a2 = inout(reg) result[2], a3 = inout(reg) result[3],
+            a4 = inout(reg) result[4], a5 = inout(reg) result[5],
+            a6 = inout(reg) result[6], a7 = inout(reg) result[7],
+            b0 = in(reg) b[0], b1 = in(reg) b[1], b2 = in(reg) b[2], b3 = in(reg) b[3],
+            b4 = in(reg) b[4], b5 = in(reg) b[5], b6 = in(reg) b[6], b7 = in(reg) b[7],
+            options(pure, nomem, nostack),
+        );
     }
-    for (i, pair) in product.chunks_exact_mut(2).enumerate() {
-        let low = a[i] as u128 * a[i] as u128 + pair[0] as u128 + carry as u128;
-        let high = (low >> 64) + pair[1] as u128;
-        pair[0] = low as u64;
-        pair[1] = high as u64;
-        carry = (high >> 64) as u64;
-    }
-    redc_inner::<NORMALIZE>(product, p, inv)
+    result
 }
 
 /// Montgomery reduction of a 512-bit t < pR, where R = 2^256.
@@ -848,6 +917,119 @@ pub fn redc(t: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
     redc_inner::<true>(t, p, inv)
 }
 
+// Write the input as lo + hi*R. The cancelling multiple m*p depends
+// only on lo, and (lo + m*p)/R is at most p. Add hi at the end so the
+// four cancellation rows avoid propagating carries through its limbs.
+#[cfg(target_os = "macos")]
+#[inline(always)]
+fn redc_inner<const NORMALIZE: bool>(a: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
+    let (r0, r1, r2, r3): (u64, u64, u64, u64);
+    // SAFETY: all operands are registers.
+    unsafe {
+        core::arch::asm!(
+            "mul {m}, {t0}, {inv}",
+            "mul {l1}, {m}, {p1}",
+            "cmp {t0}, #1",
+            "mul {l0}, {m}, {p2}",
+            "adcs {t1}, {t1}, {l1}",
+            "mul {l1}, {m}, {p3}",
+            "adcs {t2}, {t2}, {l0}",
+            "adcs {t3}, {t3}, {l1}",
+            "adc {t4}, xzr, xzr",
+            "umulh {h0}, {m}, {p0}",
+            "umulh {h1}, {m}, {p1}",
+            "adds {t1}, {t1}, {h0}",
+            "umulh {h0}, {m}, {p2}",
+            "adcs {t2}, {t2}, {h1}",
+            "umulh {h1}, {m}, {p3}",
+            "adcs {t3}, {t3}, {h0}",
+            "adc {t4}, {t4}, {h1}",
+            "mul {m}, {t1}, {inv}",
+            "mul {l1}, {m}, {p1}",
+            "cmp {t1}, #1",
+            "mul {l0}, {m}, {p2}",
+            "adcs {t2}, {t2}, {l1}",
+            "mul {l1}, {m}, {p3}",
+            "adcs {t3}, {t3}, {l0}",
+            "adcs {t4}, {t4}, {l1}",
+            "adc {t0}, xzr, xzr",
+            "umulh {h0}, {m}, {p0}",
+            "umulh {h1}, {m}, {p1}",
+            "adds {t2}, {t2}, {h0}",
+            "umulh {h0}, {m}, {p2}",
+            "adcs {t3}, {t3}, {h1}",
+            "umulh {h1}, {m}, {p3}",
+            "adcs {t4}, {t4}, {h0}",
+            "adc {t0}, {t0}, {h1}",
+            "mul {m}, {t2}, {inv}",
+            "mul {l1}, {m}, {p1}",
+            "cmp {t2}, #1",
+            "mul {l0}, {m}, {p2}",
+            "adcs {t3}, {t3}, {l1}",
+            "mul {l1}, {m}, {p3}",
+            "adcs {t4}, {t4}, {l0}",
+            "adcs {t0}, {t0}, {l1}",
+            "adc {t1}, xzr, xzr",
+            "umulh {h0}, {m}, {p0}",
+            "umulh {h1}, {m}, {p1}",
+            "adds {t3}, {t3}, {h0}",
+            "umulh {h0}, {m}, {p2}",
+            "adcs {t4}, {t4}, {h1}",
+            "umulh {h1}, {m}, {p3}",
+            "adcs {t0}, {t0}, {h0}",
+            "adc {t1}, {t1}, {h1}",
+            "mul {m}, {t3}, {inv}",
+            "mul {l1}, {m}, {p1}",
+            "cmp {t3}, #1",
+            "mul {l0}, {m}, {p2}",
+            "adcs {t4}, {t4}, {l1}",
+            "mul {l1}, {m}, {p3}",
+            "adcs {t0}, {t0}, {l0}",
+            "adcs {t1}, {t1}, {l1}",
+            "adc {t2}, xzr, xzr",
+            "umulh {h0}, {m}, {p0}",
+            "umulh {h1}, {m}, {p1}",
+            "adds {t4}, {t4}, {h0}",
+            "umulh {h0}, {m}, {p2}",
+            "adcs {t0}, {t0}, {h1}",
+            "umulh {h1}, {m}, {p3}",
+            "adcs {t1}, {t1}, {h0}",
+            "adc {t2}, {t2}, {h1}",
+            "adds {t4}, {t4}, {u0}",
+            "adcs {t0}, {t0}, {u1}",
+            "adcs {t1}, {t1}, {u2}",
+            "adc {t2}, {t2}, {u3}",
+            t0 = inout(reg) a[0] => r1,
+            t1 = inout(reg) a[1] => r2,
+            t2 = inout(reg) a[2] => r3,
+            t3 = inout(reg) a[3] => _,
+            t4 = out(reg) r0,
+            u0 = in(reg) a[4],
+            u1 = in(reg) a[5],
+            u2 = in(reg) a[6],
+            u3 = in(reg) a[7],
+            p0 = in(reg) p[0],
+            p1 = in(reg) p[1],
+            p2 = in(reg) p[2],
+            p3 = in(reg) p[3],
+            inv = in(reg) inv,
+            m = out(reg) _,
+            l0 = out(reg) _,
+            l1 = out(reg) _,
+            h0 = out(reg) _,
+            h1 = out(reg) _,
+            options(pure, nomem, nostack),
+        );
+    }
+    let result = [r0, r1, r2, r3];
+    if NORMALIZE {
+        reduce_once(result, p)
+    } else {
+        result
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
 #[inline(always)]
 fn redc_inner<const NORMALIZE: bool>(t: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
     let (r0, r1, r2, r3): (u64, u64, u64, u64);
