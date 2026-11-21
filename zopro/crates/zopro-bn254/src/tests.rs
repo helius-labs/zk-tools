@@ -121,6 +121,7 @@ fn scalar_field() {
     for _ in 0..500 {
         let (a, b) = (ark::Fr::rand(&mut rng), ark::Fr::rand(&mut rng));
         assert_eq!(fr(a) * fr(b), fr(a * b));
+        assert_eq!(fr(a).square(), fr(a.square()));
         assert_eq!(fr(a) + fr(b), fr(a + b));
         assert_eq!(fr(a) - fr(b), fr(a - b));
         assert_eq!(fr(a).inverse(), a.inverse().map(fr));

@@ -82,6 +82,9 @@ impl<C: FpConfig> Fp<C> {
     #[cfg_attr(target_arch = "wasm32", inline)]
     #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     pub fn square(&self) -> Self {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+        return Self(crate::arm64::square(self.0, C::P, C::INV), PhantomData);
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64", not(no_asm))))]
         Self(backend::multiply(self.0, self.0, C::P, C::INV), PhantomData)
     }
 

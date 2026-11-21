@@ -10,21 +10,19 @@
 #[inline(always)]
 pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     let (r0, r1, r2, r3): (u64, u64, u64, u64);
-    // SAFETY: reads the four limbs of `b` through its pointer, which lives
-    // for the call; every other operand is a register.
+    // SAFETY: all operands are registers.
     unsafe {
         core::arch::asm!(
-            "ldr {bi}, [{bp}, #0]",
-            "mul {t0}, {a0}, {bi}",
-            "mul {t1}, {a1}, {bi}",
-            "mul {t2}, {a2}, {bi}",
-            "mul {t3}, {a3}, {bi}",
-            "umulh {h0}, {a0}, {bi}",
-            "umulh {h1}, {a1}, {bi}",
+            "mul {t0}, {a0}, {b0}",
+            "mul {t1}, {a1}, {b0}",
+            "mul {t2}, {a2}, {b0}",
+            "mul {t3}, {a3}, {b0}",
+            "umulh {h0}, {a0}, {b0}",
+            "umulh {h1}, {a1}, {b0}",
             "adds {t1}, {t1}, {h0}",
-            "umulh {h0}, {a2}, {bi}",
+            "umulh {h0}, {a2}, {b0}",
             "adcs {t2}, {t2}, {h1}",
-            "umulh {h1}, {a3}, {bi}",
+            "umulh {h1}, {a3}, {b0}",
             "adcs {t3}, {t3}, {h0}",
             "adc {t4}, {h1}, xzr",
             "mul {m}, {t0}, {inv}",
@@ -45,22 +43,21 @@ pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
             "umulh {h1}, {m}, {p3}",
             "adcs {t3}, {t3}, {h0}",
             "adc {t4}, {t4}, {h1}",
-            "ldr {bi}, [{bp}, #8]",
-            "mul {l0}, {a0}, {bi}",
-            "mul {l1}, {a1}, {bi}",
+            "mul {l0}, {a0}, {b1}",
+            "mul {l1}, {a1}, {b1}",
             "adds {t1}, {t1}, {l0}",
-            "mul {l0}, {a2}, {bi}",
+            "mul {l0}, {a2}, {b1}",
             "adcs {t2}, {t2}, {l1}",
-            "mul {l1}, {a3}, {bi}",
+            "mul {l1}, {a3}, {b1}",
             "adcs {t3}, {t3}, {l0}",
             "adcs {t4}, {t4}, {l1}",
             "adc {t0}, {t0}, xzr",
-            "umulh {h0}, {a0}, {bi}",
-            "umulh {h1}, {a1}, {bi}",
+            "umulh {h0}, {a0}, {b1}",
+            "umulh {h1}, {a1}, {b1}",
             "adds {t2}, {t2}, {h0}",
-            "umulh {h0}, {a2}, {bi}",
+            "umulh {h0}, {a2}, {b1}",
             "adcs {t3}, {t3}, {h1}",
-            "umulh {h1}, {a3}, {bi}",
+            "umulh {h1}, {a3}, {b1}",
             "adcs {t4}, {t4}, {h0}",
             "adc {t0}, {t0}, {h1}",
             "mul {m}, {t1}, {inv}",
@@ -81,22 +78,21 @@ pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
             "umulh {h1}, {m}, {p3}",
             "adcs {t4}, {t4}, {h0}",
             "adc {t0}, {t0}, {h1}",
-            "ldr {bi}, [{bp}, #16]",
-            "mul {l0}, {a0}, {bi}",
-            "mul {l1}, {a1}, {bi}",
+            "mul {l0}, {a0}, {b2}",
+            "mul {l1}, {a1}, {b2}",
             "adds {t2}, {t2}, {l0}",
-            "mul {l0}, {a2}, {bi}",
+            "mul {l0}, {a2}, {b2}",
             "adcs {t3}, {t3}, {l1}",
-            "mul {l1}, {a3}, {bi}",
+            "mul {l1}, {a3}, {b2}",
             "adcs {t4}, {t4}, {l0}",
             "adcs {t0}, {t0}, {l1}",
             "adc {t1}, {t1}, xzr",
-            "umulh {h0}, {a0}, {bi}",
-            "umulh {h1}, {a1}, {bi}",
+            "umulh {h0}, {a0}, {b2}",
+            "umulh {h1}, {a1}, {b2}",
             "adds {t3}, {t3}, {h0}",
-            "umulh {h0}, {a2}, {bi}",
+            "umulh {h0}, {a2}, {b2}",
             "adcs {t4}, {t4}, {h1}",
-            "umulh {h1}, {a3}, {bi}",
+            "umulh {h1}, {a3}, {b2}",
             "adcs {t0}, {t0}, {h0}",
             "adc {t1}, {t1}, {h1}",
             "mul {m}, {t2}, {inv}",
@@ -117,22 +113,21 @@ pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
             "umulh {h1}, {m}, {p3}",
             "adcs {t0}, {t0}, {h0}",
             "adc {t1}, {t1}, {h1}",
-            "ldr {bi}, [{bp}, #24]",
-            "mul {l0}, {a0}, {bi}",
-            "mul {l1}, {a1}, {bi}",
+            "mul {l0}, {a0}, {b3}",
+            "mul {l1}, {a1}, {b3}",
             "adds {t3}, {t3}, {l0}",
-            "mul {l0}, {a2}, {bi}",
+            "mul {l0}, {a2}, {b3}",
             "adcs {t4}, {t4}, {l1}",
-            "mul {l1}, {a3}, {bi}",
+            "mul {l1}, {a3}, {b3}",
             "adcs {t0}, {t0}, {l0}",
             "adcs {t1}, {t1}, {l1}",
             "adc {t2}, {t2}, xzr",
-            "umulh {h0}, {a0}, {bi}",
-            "umulh {h1}, {a1}, {bi}",
+            "umulh {h0}, {a0}, {b3}",
+            "umulh {h1}, {a1}, {b3}",
             "adds {t4}, {t4}, {h0}",
-            "umulh {h0}, {a2}, {bi}",
+            "umulh {h0}, {a2}, {b3}",
             "adcs {t0}, {t0}, {h1}",
-            "umulh {h1}, {a3}, {bi}",
+            "umulh {h1}, {a3}, {b3}",
             "adcs {t1}, {t1}, {h0}",
             "adc {t2}, {t2}, {h1}",
             "mul {m}, {t3}, {inv}",
@@ -165,13 +160,15 @@ pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
             a1 = in(reg) a[1],
             a2 = in(reg) a[2],
             a3 = in(reg) a[3],
-            bp = in(reg) b.as_ptr(),
+            b0 = in(reg) b[0],
+            b1 = in(reg) b[1],
+            b2 = in(reg) b[2],
+            b3 = in(reg) b[3],
             p0 = in(reg) p[0],
             p1 = in(reg) p[1],
             p2 = in(reg) p[2],
             p3 = in(reg) p[3],
             inv = in(reg) inv,
-            bi = out(reg) _,
             m = out(reg) _,
             l0 = out(reg) _,
             l1 = out(reg) _,
@@ -186,7 +183,7 @@ pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
             r1 = lateout(reg) r1,
             r2 = lateout(reg) r2,
             r3 = lateout(reg) r3,
-            options(readonly, nostack),
+            options(pure, nomem, nostack),
         );
     }
     [r0, r1, r2, r3]
@@ -620,83 +617,80 @@ pub fn neg(a: [u64; 4], p: [u64; 4]) -> [u64; 4] {
 #[inline(always)]
 pub fn wide(a: [u64; 4], b: &[u64; 4]) -> [u64; 8] {
     let (t0, t1, t2, t3, t4, t5, t6, t7): (u64, u64, u64, u64, u64, u64, u64, u64);
-    // SAFETY: reads the four limbs of `b` through its pointer, which lives
-    // for the call; every other operand is a register.
+    // SAFETY: all operands are registers.
     unsafe {
         core::arch::asm!(
-            "ldr {bi}, [{bp}, #0]",
-            "mul {t0}, {a0}, {bi}",
-            "mul {t1}, {a1}, {bi}",
-            "mul {t2}, {a2}, {bi}",
-            "mul {t3}, {a3}, {bi}",
-            "umulh {h0}, {a0}, {bi}",
-            "umulh {h1}, {a1}, {bi}",
+            "mul {t0}, {a0}, {b0}",
+            "mul {t1}, {a1}, {b0}",
+            "mul {t2}, {a2}, {b0}",
+            "mul {t3}, {a3}, {b0}",
+            "umulh {h0}, {a0}, {b0}",
+            "umulh {h1}, {a1}, {b0}",
             "adds {t1}, {t1}, {h0}",
-            "umulh {h0}, {a2}, {bi}",
+            "umulh {h0}, {a2}, {b0}",
             "adcs {t2}, {t2}, {h1}",
-            "umulh {h1}, {a3}, {bi}",
+            "umulh {h1}, {a3}, {b0}",
             "adcs {t3}, {t3}, {h0}",
             "adc {t4}, {h1}, xzr",
-            "ldr {bi}, [{bp}, #8]",
-            "mul {l0}, {a0}, {bi}",
-            "mul {l1}, {a1}, {bi}",
+            "mul {l0}, {a0}, {b1}",
+            "mul {l1}, {a1}, {b1}",
             "adds {t1}, {t1}, {l0}",
-            "mul {l0}, {a2}, {bi}",
+            "mul {l0}, {a2}, {b1}",
             "adcs {t2}, {t2}, {l1}",
-            "mul {l1}, {a3}, {bi}",
+            "mul {l1}, {a3}, {b1}",
             "adcs {t3}, {t3}, {l0}",
             "adcs {t4}, {t4}, {l1}",
             "adc {t5}, xzr, xzr",
-            "umulh {h0}, {a0}, {bi}",
-            "umulh {h1}, {a1}, {bi}",
+            "umulh {h0}, {a0}, {b1}",
+            "umulh {h1}, {a1}, {b1}",
             "adds {t2}, {t2}, {h0}",
-            "umulh {h0}, {a2}, {bi}",
+            "umulh {h0}, {a2}, {b1}",
             "adcs {t3}, {t3}, {h1}",
-            "umulh {h1}, {a3}, {bi}",
+            "umulh {h1}, {a3}, {b1}",
             "adcs {t4}, {t4}, {h0}",
             "adc {t5}, {t5}, {h1}",
-            "ldr {bi}, [{bp}, #16]",
-            "mul {l0}, {a0}, {bi}",
-            "mul {l1}, {a1}, {bi}",
+            "mul {l0}, {a0}, {b2}",
+            "mul {l1}, {a1}, {b2}",
             "adds {t2}, {t2}, {l0}",
-            "mul {l0}, {a2}, {bi}",
+            "mul {l0}, {a2}, {b2}",
             "adcs {t3}, {t3}, {l1}",
-            "mul {l1}, {a3}, {bi}",
+            "mul {l1}, {a3}, {b2}",
             "adcs {t4}, {t4}, {l0}",
             "adcs {t5}, {t5}, {l1}",
             "adc {t6}, xzr, xzr",
-            "umulh {h0}, {a0}, {bi}",
-            "umulh {h1}, {a1}, {bi}",
+            "umulh {h0}, {a0}, {b2}",
+            "umulh {h1}, {a1}, {b2}",
             "adds {t3}, {t3}, {h0}",
-            "umulh {h0}, {a2}, {bi}",
+            "umulh {h0}, {a2}, {b2}",
             "adcs {t4}, {t4}, {h1}",
-            "umulh {h1}, {a3}, {bi}",
+            "umulh {h1}, {a3}, {b2}",
             "adcs {t5}, {t5}, {h0}",
             "adc {t6}, {t6}, {h1}",
-            "ldr {bi}, [{bp}, #24]",
-            "mul {l0}, {a0}, {bi}",
-            "mul {l1}, {a1}, {bi}",
+            "mul {l0}, {a0}, {b3}",
+            "mul {l1}, {a1}, {b3}",
             "adds {t3}, {t3}, {l0}",
-            "mul {l0}, {a2}, {bi}",
+            "mul {l0}, {a2}, {b3}",
             "adcs {t4}, {t4}, {l1}",
-            "mul {l1}, {a3}, {bi}",
+            "mul {l1}, {a3}, {b3}",
             "adcs {t5}, {t5}, {l0}",
             "adcs {t6}, {t6}, {l1}",
             "adc {t7}, xzr, xzr",
-            "umulh {h0}, {a0}, {bi}",
-            "umulh {h1}, {a1}, {bi}",
+            "umulh {h0}, {a0}, {b3}",
+            "umulh {h1}, {a1}, {b3}",
             "adds {t4}, {t4}, {h0}",
-            "umulh {h0}, {a2}, {bi}",
+            "umulh {h0}, {a2}, {b3}",
             "adcs {t5}, {t5}, {h1}",
-            "umulh {h1}, {a3}, {bi}",
+            "umulh {h1}, {a3}, {b3}",
             "adcs {t6}, {t6}, {h0}",
             "adc {t7}, {t7}, {h1}",
             a0 = in(reg) a[0],
             a1 = in(reg) a[1],
             a2 = in(reg) a[2],
             a3 = in(reg) a[3],
-            bp = in(reg) b.as_ptr(),
-            bi = out(reg) _,
+            b0 = in(reg) b[0],
+            b1 = in(reg) b[1],
+            b2 = in(reg) b[2],
+            b3 = in(reg) b[3],
             l0 = out(reg) _,
             l1 = out(reg) _,
             h0 = out(reg) _,
@@ -709,10 +703,40 @@ pub fn wide(a: [u64; 4], b: &[u64; 4]) -> [u64; 8] {
             t5 = out(reg) t5,
             t6 = out(reg) t6,
             t7 = out(reg) t7,
-            options(readonly, nostack),
+            options(pure, nomem, nostack),
         );
     }
     [t0, t1, t2, t3, t4, t5, t6, t7]
+}
+
+/// Accumulate the off-diagonal products once, double them and add the squares.
+#[cfg(target_os = "macos")]
+#[inline(always)]
+pub fn square(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
+    let mut product = [0u64; 8];
+    for i in 0..3 {
+        let mut carry = 0u64;
+        for j in i + 1..4 {
+            let limb = a[i] as u128 * a[j] as u128 + product[i + j] as u128 + carry as u128;
+            product[i + j] = limb as u64;
+            carry = (limb >> 64) as u64;
+        }
+        product[i + 4] = carry;
+    }
+    let mut carry = 0u64;
+    for limb in &mut product {
+        let next = *limb >> 63;
+        *limb = (*limb << 1) | carry;
+        carry = next;
+    }
+    for (i, pair) in product.chunks_exact_mut(2).enumerate() {
+        let low = a[i] as u128 * a[i] as u128 + pair[0] as u128 + carry as u128;
+        let high = (low >> 64) + pair[1] as u128;
+        pair[0] = low as u64;
+        pair[1] = high as u64;
+        carry = (high >> 64) as u64;
+    }
+    redc(product, p, inv)
 }
 
 /// The Montgomery reduction of a 512-bit t < p 2^255: t 2^-256 mod p,
