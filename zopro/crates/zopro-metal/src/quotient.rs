@@ -1,8 +1,9 @@
 //! The quotient polynomial's coefficients on the GPU: the three evaluation
-//! vectors are moved to the domain's coset (inverse DIF, scale, forward
-//! DIT), multiplied pointwise, and brought back (inverse DIF, scale by the
-//! denominator), in passes of several radix-2 stages through threadgroup
-//! memory. The tables are the CPU plan's: half the roots of each direction,
+//! vectors A and B are moved to the domain's coset (inverse DIF, scale,
+//! forward DIT), multiplied pointwise, and brought back. C needs only its
+//! inverse DIF because subtraction is linear. The final pass applies the
+//! denominator and subtracts C in coefficient form. The tables are the CPU
+//! plan's: half the roots of each direction,
 //! and the bit-reversed coset weights in two small tables each (Weights).
 use std::{ffi::c_void, time::Instant};
 
@@ -34,7 +35,8 @@ pub struct Quotient {
     /// The DIF passes, widest gaps first; the DIT passes run them reversed.
     passes: Vec<Pass>,
     scale: ComputePipelineState,
-    pointwise: ComputePipelineState,
+    product: ComputePipelineState,
+    finish_quotient: ComputePipelineState,
     n: usize,
     roots: Buffer,
     inverse_roots: Buffer,
@@ -99,11 +101,12 @@ impl Quotient {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
         let pipeline = |name: &str| crate::pipeline(&device, false, name);
-        let (dif, dit, scale, pointwise) = (
+        let (dif, dit, scale, product, finish_quotient) = (
             pipeline("fr_dif_pass")?,
             pipeline("fr_dit_pass")?,
             pipeline("fr_scale")?,
-            pipeline("fr_pointwise")?,
+            pipeline("fr_product")?,
+            pipeline("fr_finish_quotient")?,
         );
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         let log_n = n.trailing_zeros();
@@ -118,7 +121,8 @@ impl Quotient {
                 dit,
                 passes,
                 scale,
-                pointwise,
+                product,
+                finish_quotient,
                 n,
                 roots: upload(&device, roots),
                 inverse_roots: upload(&device, inverse_roots),
@@ -170,19 +174,20 @@ impl Quotient {
         }
         let command = self.queue.new_command_buffer();
         let encoder = command.new_compute_command_encoder();
-        for vector in 0..3 {
+        for vector in 0..2 {
             let offset = (vector * n * 32) as u64;
             self.dif_all(encoder, offset, &self.inverse_roots);
-            self.scale_by(encoder, offset, &self.forward_weights);
+            self.scale_by(encoder, offset, &self.forward_weights, &self.scale);
             self.dit_all(encoder, offset, &self.roots);
         }
-        encoder.set_compute_pipeline_state(&self.pointwise);
+        self.dif_all(encoder, (2 * n * 32) as u64, &self.inverse_roots);
+        encoder.set_compute_pipeline_state(&self.product);
         encoder.set_buffer(0, Some(&self.abc), 0);
         let count = n as u32;
         encoder.set_bytes(2, 4, &count as *const u32 as *const c_void);
-        self.dispatch(encoder, &self.pointwise, n);
+        self.dispatch(encoder, &self.product, n);
         self.dif_all(encoder, 0, &self.inverse_roots);
-        self.scale_by(encoder, 0, &self.reverse_weights);
+        self.scale_by(encoder, 0, &self.reverse_weights, &self.finish_quotient);
         encoder.end_encoding();
         command.commit();
         PendingQuotient {
@@ -247,15 +252,21 @@ impl Quotient {
         }
     }
 
-    fn scale_by(&self, encoder: &ComputeCommandEncoderRef, offset: u64, weights: &[Buffer; 2]) {
-        encoder.set_compute_pipeline_state(&self.scale);
+    fn scale_by(
+        &self,
+        encoder: &ComputeCommandEncoderRef,
+        offset: u64,
+        weights: &[Buffer; 2],
+        pipeline: &ComputePipelineState,
+    ) {
+        encoder.set_compute_pipeline_state(pipeline);
         encoder.set_buffer(0, Some(&self.abc), offset);
         encoder.set_buffer(1, Some(&weights[0]), 0);
         let count = self.n as u32;
         encoder.set_bytes(2, 4, &count as *const u32 as *const c_void);
         encoder.set_buffer(3, Some(&weights[1]), 0);
         encoder.set_bytes(4, 4, &self.low_bits as *const u32 as *const c_void);
-        self.dispatch(encoder, &self.scale, self.n);
+        self.dispatch(encoder, pipeline, self.n);
     }
 }
 

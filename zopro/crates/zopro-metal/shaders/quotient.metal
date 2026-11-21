@@ -98,10 +98,26 @@ kernel void fr_scale(device fr_t *values [[buffer(0)]],
     values[i] = fr_mul(fr_mul(values[i], lows[i & ((1u << low_bits) - 1)]), chunks[i >> low_bits]);
 }
 
-// a, b, c each n long, consecutive: a = a b - c.
-kernel void fr_pointwise(device fr_t *abc [[buffer(0)]],
-                         constant uint &n [[buffer(2)]],
-                         uint i [[thread_position_in_grid]]) {
+// A and B are in coset evaluation form, C is in coefficient form.
+kernel void fr_product(device fr_t *abc [[buffer(0)]],
+                       constant uint &n [[buffer(2)]],
+                       uint i [[thread_position_in_grid]]) {
   if (i < n)
-    abc[i] = fr_sub(fr_mul(abc[i], abc[n + i]), abc[2 * n + i]);
+    abc[i] = fr_mul(abc[i], abc[n + i]);
+}
+
+// The inverse transforms are unnormalized. The reverse weights combine
+// n^-1, the quotient denominator, and the inverse coset powers. C was
+// transformed on the original domain and takes only the constant weight.
+kernel void fr_finish_quotient(device fr_t *abc [[buffer(0)]],
+                              device const fr_t *lows [[buffer(1)]],
+                              constant uint &n [[buffer(2)]],
+                              device const fr_t *chunks [[buffer(3)]],
+                              constant uint &low_bits [[buffer(4)]],
+                              uint i [[thread_position_in_grid]]) {
+  if (i < n) {
+    const fr_t product = fr_mul(fr_mul(abc[i], lows[i & ((1u << low_bits) - 1)]),
+                                chunks[i >> low_bits]);
+    abc[i] = fr_sub(product, fr_mul(abc[2 * n + i], chunks[0]));
+  }
 }
