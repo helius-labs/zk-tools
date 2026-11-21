@@ -800,13 +800,28 @@ impl Plan {
         if twisted.is_some() {
             log::info!("ZOPRO_TRACE cpu-quotient-twisted");
         }
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        let pair_inverse_stages = twisted.is_some()
+            && rayon::current_num_threads() >= 18
+            && std::env::var("ZOPRO_CPU_PAIRED_INVERSE_FFT").as_deref() != Ok("0");
+        let inverse_transform = |values: &mut [Quad]| {
+            #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+            if pair_inverse_stages {
+                return dif_paired_stages(values, &self.inverse_roots, 0);
+            }
+            dif(values, &self.inverse_roots, 0);
+        };
+        #[cfg(all(feature = "trace", target_os = "macos", target_arch = "aarch64"))]
+        if pair_inverse_stages {
+            log::info!("ZOPRO_TRACE cpu-quotient-paired-inverse-fft");
+        }
         let transform = |input: Vec<Fr>| {
             if let Some((roots, _)) = twisted {
                 let mut input = input;
                 assert!(input.len() <= self.n);
                 input.resize(self.n, Fr::ZERO);
                 let mut values = into_quads(input);
-                dif(&mut values, &self.inverse_roots, 0);
+                inverse_transform(&mut values);
                 dit_inner::<true>(&mut values, roots, 0);
                 values
             } else {
@@ -821,7 +836,7 @@ impl Plan {
                     || {
                         c.resize(self.n, Fr::ZERO);
                         let mut c = into_quads(c);
-                        dif(&mut c, &self.inverse_roots, 0);
+                        inverse_transform(&mut c);
                         c
                     },
                 )
@@ -831,7 +846,7 @@ impl Plan {
             .zip(b.par_iter())
             .for_each(|(a, b)| *a = a.mul(b));
         drop(b);
-        dif(&mut a, &self.inverse_roots, 0);
+        inverse_transform(&mut a);
         // A and B omit their inverse normalization with the twisted roots.
         // C still uses the ordinary inverse normalization and denominator.
         let factor = &self.reverse_weights.chunks[0];
@@ -993,6 +1008,48 @@ fn dif(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
         }
     }
 }
+// The two outer DIF layers are independent across columns. Apply both
+// layers to each column chunk before forking the four smaller transforms.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn dif_paired_stages(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
+    if values.len() <= 2 * TASK {
+        return dif(values, twiddles, level);
+    }
+    let half = values.len() / 2;
+    let quarter = half / 2;
+    let (low, high) = values.split_at_mut(half);
+    let (a, b) = low.split_at_mut(quarter);
+    let (c, d) = high.split_at_mut(quarter);
+    let (roots_ac, roots_bd) = twiddles.layers[level].split_at(quarter);
+    a.par_chunks_mut(TASK)
+        .zip(b.par_chunks_mut(TASK))
+        .zip(c.par_chunks_mut(TASK))
+        .zip(d.par_chunks_mut(TASK))
+        .zip(roots_ac.par_chunks(TASK))
+        .zip(roots_bd.par_chunks(TASK))
+        .zip(twiddles.layers[level + 1].par_chunks(TASK))
+        .for_each(|((((((a, b), c), d), roots_ac), roots_bd), inner_roots)| {
+            dif_quads(a, c, roots_ac);
+            dif_quads(b, d, roots_bd);
+            dif_quads(a, b, inner_roots);
+            dif_quads(c, d, inner_roots);
+        });
+    rayon::join(
+        || {
+            rayon::join(
+                || dif_paired_stages(a, twiddles, level + 2),
+                || dif_paired_stages(b, twiddles, level + 2),
+            );
+        },
+        || {
+            rayon::join(
+                || dif_paired_stages(c, twiddles, level + 2),
+                || dif_paired_stages(d, twiddles, level + 2),
+            );
+        },
+    );
+}
+
 fn dit(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
     dit_inner::<false>(values, twiddles, level);
 }
@@ -1118,6 +1175,28 @@ mod tests {
             Weights::new(n, coset.inverse().unwrap(), n_inv.pow(&[3]) * den),
         ));
         assert_eq!(plan.quotient_six(a, b, c), want);
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[test]
+    fn apple_paired_inverse_fft_matches_standard_order() {
+        for n in [2048, 8192, 65536] {
+            let root = Fr::root_of_unity(n).unwrap().pow(&[3]);
+            let coset = Fr::from(7u64);
+            let plan = Plan::new(n, root, coset, denominator(n, coset).unwrap());
+            let values: Vec<_> = (0..n)
+                .map(|i| match i % 5 {
+                    0 => Fr::ZERO,
+                    1 => -Fr::ONE,
+                    _ => Fr::from(i as u64 + 11).square(),
+                })
+                .collect();
+            let mut ordinary = into_quads(values.clone());
+            let mut paired = into_quads(values);
+            dif(&mut ordinary, &plan.inverse_roots, 0);
+            dif_paired_stages(&mut paired, &plan.inverse_roots, 0);
+            assert_eq!(from_quads(paired), from_quads(ordinary), "domain {n}");
+        }
     }
 
     /// Independent polynomial convolution, including reduction modulo the
