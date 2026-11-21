@@ -923,11 +923,20 @@ pub fn redc(t: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
 #[cfg(target_os = "macos")]
 #[inline(always)]
 fn redc_inner<const NORMALIZE: bool>(a: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
+    // Extend -p^-1 from 64 to 128 bits. The high limb k satisfies
+    // p[0]*k + high(p[0]*inv) + p[1]*inv = -1 mod 2^64.
+    let hi = ((p[0] as u128 * inv as u128) >> 64) as u64;
+    let inverse_high = inv.wrapping_mul(hi.wrapping_add(p[1].wrapping_mul(inv)).wrapping_add(1));
     let (r0, r1, r2, r3): (u64, u64, u64, u64);
     // SAFETY: all operands are registers.
     unsafe {
         core::arch::asm!(
+            // Multiply the low two limbs by -p^-1 mod 2^128 to get
+            // both cancelling factors before propagating either row.
+            "umulh {n}, {t0}, {inv}",
             "mul {m}, {t0}, {inv}",
+            "madd {n}, {t0}, {inv1}, {n}",
+            "madd {n}, {t1}, {inv}, {n}",
             "mul {l1}, {m}, {p1}",
             "cmp {t0}, #1",
             "mul {l0}, {m}, {p2}",
@@ -944,24 +953,27 @@ fn redc_inner<const NORMALIZE: bool>(a: [u64; 8], p: [u64; 4], inv: u64) -> [u64
             "umulh {h1}, {m}, {p3}",
             "adcs {t3}, {t3}, {h0}",
             "adc {t4}, {t4}, {h1}",
-            "mul {m}, {t1}, {inv}",
-            "mul {l1}, {m}, {p1}",
-            "cmp {t1}, #1",
-            "mul {l0}, {m}, {p2}",
+            "mul {l1}, {n}, {p1}",
+            // n is zero exactly when the cancelled limb is zero.
+            "cmp {n}, #1",
+            "mul {l0}, {n}, {p2}",
             "adcs {t2}, {t2}, {l1}",
-            "mul {l1}, {m}, {p3}",
+            "mul {l1}, {n}, {p3}",
             "adcs {t3}, {t3}, {l0}",
             "adcs {t4}, {t4}, {l1}",
             "adc {t0}, xzr, xzr",
-            "umulh {h0}, {m}, {p0}",
-            "umulh {h1}, {m}, {p1}",
+            "umulh {h0}, {n}, {p0}",
+            "umulh {h1}, {n}, {p1}",
             "adds {t2}, {t2}, {h0}",
-            "umulh {h0}, {m}, {p2}",
+            "umulh {h0}, {n}, {p2}",
             "adcs {t3}, {t3}, {h1}",
-            "umulh {h1}, {m}, {p3}",
+            "umulh {h1}, {n}, {p3}",
             "adcs {t4}, {t4}, {h0}",
             "adc {t0}, {t0}, {h1}",
+            "umulh {n}, {t2}, {inv}",
             "mul {m}, {t2}, {inv}",
+            "madd {n}, {t2}, {inv1}, {n}",
+            "madd {n}, {t3}, {inv}, {n}",
             "mul {l1}, {m}, {p1}",
             "cmp {t2}, #1",
             "mul {l0}, {m}, {p2}",
@@ -978,21 +990,20 @@ fn redc_inner<const NORMALIZE: bool>(a: [u64; 8], p: [u64; 4], inv: u64) -> [u64
             "umulh {h1}, {m}, {p3}",
             "adcs {t0}, {t0}, {h0}",
             "adc {t1}, {t1}, {h1}",
-            "mul {m}, {t3}, {inv}",
-            "mul {l1}, {m}, {p1}",
-            "cmp {t3}, #1",
-            "mul {l0}, {m}, {p2}",
+            "mul {l1}, {n}, {p1}",
+            "cmp {n}, #1",
+            "mul {l0}, {n}, {p2}",
             "adcs {t4}, {t4}, {l1}",
-            "mul {l1}, {m}, {p3}",
+            "mul {l1}, {n}, {p3}",
             "adcs {t0}, {t0}, {l0}",
             "adcs {t1}, {t1}, {l1}",
             "adc {t2}, xzr, xzr",
-            "umulh {h0}, {m}, {p0}",
-            "umulh {h1}, {m}, {p1}",
+            "umulh {h0}, {n}, {p0}",
+            "umulh {h1}, {n}, {p1}",
             "adds {t4}, {t4}, {h0}",
-            "umulh {h0}, {m}, {p2}",
+            "umulh {h0}, {n}, {p2}",
             "adcs {t0}, {t0}, {h1}",
-            "umulh {h1}, {m}, {p3}",
+            "umulh {h1}, {n}, {p3}",
             "adcs {t1}, {t1}, {h0}",
             "adc {t2}, {t2}, {h1}",
             "adds {t4}, {t4}, {u0}",
@@ -1013,6 +1024,8 @@ fn redc_inner<const NORMALIZE: bool>(a: [u64; 8], p: [u64; 4], inv: u64) -> [u64
             p2 = in(reg) p[2],
             p3 = in(reg) p[3],
             inv = in(reg) inv,
+            inv1 = in(reg) inverse_high,
+            n = out(reg) _,
             m = out(reg) _,
             l0 = out(reg) _,
             l1 = out(reg) _,
@@ -1242,7 +1255,43 @@ pub fn sub_add_wide(a: [u64; 8], b: [u64; 8], c: &[u64; 8]) -> [u64; 8] {
 #[cfg(all(test, target_os = "macos"))]
 mod loose_tests {
     use super::*;
-    use crate::{FpConfig, FqConfig, portable};
+    use crate::{FpConfig, FqConfig, FrConfig, portable};
+
+    #[test]
+    fn wide_reduction_matches_portable_at_limb_boundaries() {
+        fn check<C: FpConfig>() {
+            let one = [1, 0, 0, 0];
+            let max = portable::sub4(C::P, one).0;
+            let low_halves = [
+                [0; 4],
+                one,
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1],
+                max,
+                C::P,
+                [u64::MAX; 4],
+            ];
+            for lo in low_halves {
+                for hi in [[0; 4], max] {
+                    let mut input = [0; 8];
+                    input[..4].copy_from_slice(&lo);
+                    input[4..].copy_from_slice(&hi);
+                    let expected = portable::add(
+                        portable::multiply(lo, one, C::P, C::INV),
+                        hi,
+                        C::P,
+                    );
+                    let loose = redc_inner::<false>(input, C::P, C::INV);
+                    assert!(portable::sub4(loose, portable::add4(C::P, C::P).0).1);
+                    assert_eq!(portable::reduce_once(loose, C::P), expected);
+                    assert_eq!(redc(input, C::P, C::INV), expected);
+                }
+            }
+        }
+        check::<FqConfig>();
+        check::<FrConfig>();
+    }
 
     #[test]
     fn loose_products_match_normalized_operands_at_the_bounds() {
