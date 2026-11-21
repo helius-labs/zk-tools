@@ -83,11 +83,19 @@ pub(crate) fn pipeline(
     Ok(state)
 }
 
+fn fused_g1_enabled() -> bool {
+    cfg!(all(target_os = "macos", target_arch = "aarch64"))
+        && std::env::var("ZOPRO_METAL_FUSED_MIXED").as_deref() != Ok("0")
+}
+
 /// Compiles the library and builds the G1 MSM and quotient pipelines, so
 /// that the first key load does not: an app can call it at start.
 pub fn warm() -> Result<(), String> {
     autoreleasepool(|| {
         let device = Device::system_default().ok_or("no Metal device")?;
+        if fused_g1_enabled() {
+            let _ = pipeline(&device, false, "shards_first_g1_fused");
+        }
         for name in [
             G1Projective::FIRST,
             G1Projective::TREE,
@@ -95,7 +103,7 @@ pub fn warm() -> Result<(), String> {
             "fr_dif_pass",
             "fr_dit_pass",
             "fr_scale",
-            "fr_pointwise",
+            "fr_product",
         ] {
             pipeline(&device, false, name)?;
         }
@@ -613,7 +621,13 @@ impl<C: Curve> Msm<C> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
         let pipeline = |name: &str| pipeline(&device, C::G2, name);
-        let first = pipeline(C::FIRST)?;
+        let first = if bases.len() >= (1 << 15) && C::FIRST == G1Projective::FIRST
+            && fused_g1_enabled()
+        {
+            pipeline("shards_first_g1_fused").or_else(|_| pipeline(C::FIRST))?
+        } else {
+            pipeline(C::FIRST)?
+        };
         let tree_pipeline = pipeline(C::TREE)?;
         // The windows reduce on the host on iOS and Apple silicon Macs.
         // A GPU reduction kernel holds spilled registers in memory the driver charges
@@ -1399,6 +1413,8 @@ mod tests {
     #[test]
     fn g1_msms_match_the_reference() {
         check::<G1Config>(&[1, 7, 100, 3000, 20000]);
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        check::<G1Config>(&[32768]);
     }
 
     #[test]
