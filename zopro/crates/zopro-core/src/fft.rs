@@ -763,8 +763,9 @@ impl Plan {
         h
     }
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-    pub(crate) fn prepare_apple_quotient(&mut self) {
-        if self.n != (1 << 16)
+    pub(crate) fn prepare_apple_quotient(&mut self, small_overlap: bool) {
+        let small = self.n == (1 << 15) && small_overlap;
+        if (!small && self.n != (1 << 16))
             || rayon::current_num_threads() < 18
             || std::env::var("ZOPRO_CPU_QUOTIENT6").as_deref() == Ok("0")
             || std::env::var("ZOPRO_CPU_TWISTED_FFT").as_deref() == Ok("0")
@@ -786,24 +787,50 @@ impl Plan {
         self.twisted = Some((roots, weights));
     }
 
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    pub(crate) fn has_apple_small_quotient(&self) -> bool {
+        self.n == (1 << 15)
+            && self.twisted.is_some()
+            && std::env::var("ZOPRO_CPU_QUOTIENT6").as_deref() != Ok("0")
+            && std::env::var("ZOPRO_CPU_TWISTED_FFT").as_deref() != Ok("0")
+            && std::env::var("ZOPRO_CPU_PAIRED_INVERSE_FFT").as_deref() != Ok("0")
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    pub(crate) fn apple_small_quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
+        self.quotient_six_with(a, b, c, self.twisted.as_ref(), true)
+    }
+
     // C has degree below n, so its inverse coset transform is exactly its
     // ordinary coefficients. Keep those after its first inverse transform,
     // and subtract them after transforming A*B back. This saves C's forward
     // transform and coset weights without changing the key or polynomial.
-    fn quotient_six(&self, a: Vec<Fr>, b: Vec<Fr>, mut c: Vec<Fr>) -> Vec<Fr> {
-        assert!(self.small.is_none() && c.len() <= self.n);
+    fn quotient_six(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         let twisted = self.twisted.as_ref().filter(|_| self.n == (1 << 16));
         #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
         let twisted: Option<&(Twiddles, Weights)> = None;
+        let pair_inverse_stages = cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            && twisted.is_some()
+            && rayon::current_num_threads() >= 18
+            && std::env::var("ZOPRO_CPU_PAIRED_INVERSE_FFT").as_deref() != Ok("0");
+        self.quotient_six_with(a, b, c, twisted, pair_inverse_stages)
+    }
+
+    fn quotient_six_with(
+        &self,
+        a: Vec<Fr>,
+        b: Vec<Fr>,
+        mut c: Vec<Fr>,
+        twisted: Option<&(Twiddles, Weights)>,
+        pair_inverse_stages: bool,
+    ) -> Vec<Fr> {
+        assert!(self.small.is_none() && c.len() <= self.n);
+        let _ = pair_inverse_stages;
         #[cfg(all(feature = "trace", target_os = "macos", target_arch = "aarch64"))]
         if twisted.is_some() {
             log::info!("ZOPRO_TRACE cpu-quotient-twisted");
         }
-        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-        let pair_inverse_stages = twisted.is_some()
-            && rayon::current_num_threads() >= 18
-            && std::env::var("ZOPRO_CPU_PAIRED_INVERSE_FFT").as_deref() != Ok("0");
         let inverse_transform = |values: &mut [Quad]| {
             #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
             if pair_inverse_stages {
@@ -1156,25 +1183,31 @@ mod tests {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     #[test]
     fn apple_twisted_quotient_matches_standard_coefficients() {
-        let n = 1 << 16;
-        let root = Fr::root_of_unity(n).unwrap().pow(&[3]);
-        let coset = Fr::from(7u64);
-        let den = denominator(n, coset).unwrap();
-        let mut plan = Plan::new(n, root, coset, den);
-        let values = |len: usize, seed: u64| {
-            (0..len)
-                .map(|i| Fr::from((i as u64 * 131 + seed) % 65537).square())
-                .collect::<Vec<_>>()
-        };
-        let (a, b, c) = (values(n - 3, 19), values(n / 2 + 1, 23), values(n - 1, 31));
-        plan.twisted = None;
-        let want = plan.quotient_six(a.clone(), b.clone(), c.clone());
-        let n_inv = Fr::from(n as u64).inverse().unwrap();
-        plan.twisted = Some((
-            plan.roots.twisted(coset),
-            Weights::new(n, coset.inverse().unwrap(), n_inv.pow(&[3]) * den),
-        ));
-        assert_eq!(plan.quotient_six(a, b, c), want);
+        for n in [1 << 15, 1 << 16] {
+            let root = Fr::root_of_unity(n).unwrap().pow(&[3]);
+            let coset = Fr::from(7u64);
+            let den = denominator(n, coset).unwrap();
+            let mut plan = Plan::new(n, root, coset, den);
+            let values = |len: usize, seed: u64| {
+                (0..len)
+                    .map(|i| Fr::from((i as u64 * 131 + seed) % 65537).square())
+                    .collect::<Vec<_>>()
+            };
+            let (a, b, c) = (values(n - 3, 19), values(n / 2 + 1, 23), values(n - 1, 31));
+            plan.twisted = None;
+            let want = plan.quotient_six(a.clone(), b.clone(), c.clone());
+            let n_inv = Fr::from(n as u64).inverse().unwrap();
+            plan.twisted = Some((
+                plan.roots.twisted(coset),
+                Weights::new(n, coset.inverse().unwrap(), n_inv.pow(&[3]) * den),
+            ));
+            let got = if n == 1 << 15 {
+                plan.apple_small_quotient(a, b, c)
+            } else {
+                plan.quotient_six(a, b, c)
+            };
+            assert_eq!(got, want, "n={n}");
+        }
     }
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]

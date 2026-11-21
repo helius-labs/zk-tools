@@ -2194,7 +2194,14 @@ pub(super) fn g2_query_exclusive(
     let groups = (grouping && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
         .then(|| grouping::groups_with_diversity_check::<zopro_bn254::G2Config>(words))
         .flatten();
-    g2_exclusive_with_groups(bases, groups, || words)
+    g2_exclusive_with_groups(bases, groups, || words, false)
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn apple_g2_three_parts_enabled() -> bool {
+    std::env::var("ZOPRO_CPU_G2_BALANCED").as_deref() != Ok("0")
+        && std::env::var("ZOPRO_CPU_G2_SCALAR_MERGE").as_deref() != Ok("0")
+        && std::env::var("ZOPRO_CPU_G2_THREE_PARTS").as_deref() != Ok("0")
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -2202,19 +2209,27 @@ pub(super) fn apple_b2_from_fr(
     bases: &[zopro_bn254::G2Affine],
     scalars: &mut [Fr],
     grouping: bool,
+    three_parts: bool,
 ) -> zopro_bn254::G2Projective {
     assert_eq!(bases.len(), scalars.len());
     let groups = grouping
         .then(|| grouping::group_apple_cpu_witness::<zopro_bn254::G2Config, true>(scalars))
         .flatten();
-    g2_exclusive_with_groups(bases, groups, || canonical_exclusive(scalars))
+    g2_exclusive_with_groups(
+        bases,
+        groups,
+        || canonical_exclusive(scalars),
+        three_parts,
+    )
 }
 
 fn g2_exclusive_with_groups<'a>(
     bases: &[zopro_bn254::G2Affine],
     groups: Option<ScalarGroups>,
     words: impl FnOnce() -> &'a mut [[u64; 4]],
+    three_parts: bool,
 ) -> zopro_bn254::G2Projective {
+    let _ = three_parts;
     #[cfg(any(
         all(target_os = "macos", target_arch = "aarch64"),
         all(
@@ -2232,12 +2247,15 @@ fn g2_exclusive_with_groups<'a>(
         let compute = |bases: &[zopro_bn254::G2Affine], words: &mut [[u64; 4]]| {
             let workers = rayon::current_num_threads();
             if ((1 << 14)..(1 << 15)).contains(&bases.len())
-                && (workers == 6 || workers >= 16)
+                && (three_parts || workers == 6 || workers >= 16)
                 && borrowed_scalar::enabled()
                 && std::env::var("ZOPRO_CPU_G2_BALANCED").as_deref() != Ok("0")
             {
                 #[cfg(feature = "trace")]
                 log::info!("ZOPRO_TRACE cpu-g2-balanced-windows");
+                if three_parts {
+                    return g2_phi::three_part_msm(bases, words);
+                }
                 return g2_phi::balanced_msm(bases, words);
             }
             g2_phi::hb_raw(bases, words, 12, 2)

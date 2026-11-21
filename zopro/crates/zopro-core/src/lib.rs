@@ -357,7 +357,19 @@ fn sort_pool(gpu_digits: bool) -> &'static rayon::ThreadPool {
 fn apple_msm_pool(threads: usize) -> Option<&'static rayon::ThreadPool> {
     static SIX: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
     static TWELVE: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
-    let pool = if threads == 6 { &SIX } else { &TWELVE };
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    static SEVEN: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    static ELEVEN: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
+    let pool = match threads {
+        6 => &SIX,
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        7 => &SEVEN,
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        11 => &ELEVEN,
+        12 => &TWELVE,
+        _ => unreachable!("Apple MSM pool size"),
+    };
     pool.get_or_init(|| {
         rayon::ThreadPoolBuilder::new()
             .num_threads(threads)
@@ -1905,7 +1917,8 @@ impl Key {
         };
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         if !basis_only && !key.has_gpu() {
-            key.plan.prepare_apple_quotient();
+            let small_overlap = key.apple_small_msm_overlap();
+            key.plan.prepare_apple_quotient(small_overlap);
         }
         #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
         if !basis_only
@@ -2488,18 +2501,27 @@ impl Key {
         {
             // Overlap the G2 query with the quotient and G1 queries while
             // keeping eighteen workers in total on wide Apple silicon Macs.
-            let use_partition = omit_b
-                && affine_msm()
-                && self.equal_witness.is_none()
-                && self.domain == (1 << 15)
-                && ((1 << 14)..(1 << 16)).contains(&self.b2.len())
-                && rayon::current_num_threads() >= 18
-                && std::env::var("ZOPRO_CPU_MSM_OVERLAP").as_deref() != Ok("0")
-                && std::env::var("ZOPRO_TRACE_MSMS").as_deref() != Ok("1");
-            let pools = use_partition
-                .then(|| apple_msm_pool(12).zip(apple_msm_pool(6)))
+            let pools = (omit_b && self.apple_small_msm_overlap())
+                .then(|| {
+                    if apple_groups
+                        && self.plan.has_apple_small_quotient()
+                        && msm_affine::apple_fused_kh_enabled(self.k.len(), self.domain - 1)
+                        && msm_affine::apple_g2_three_parts_enabled()
+                    {
+                        if let Some((g1, g2)) = apple_msm_pool(11).zip(apple_msm_pool(7)) {
+                            return Some((g1, g2, true));
+                        }
+                    }
+                    apple_msm_pool(12)
+                        .zip(apple_msm_pool(6))
+                        .map(|(g1, g2)| (g1, g2, false))
+                })
                 .flatten();
-            if let Some((g1, g2)) = pools {
+            if let Some((g1, g2, paired_quotient)) = pools {
+                #[cfg(feature = "trace")]
+                if paired_quotient {
+                    log::info!("ZOPRO_TRACE cpu-small-paired-quotient-schedule");
+                }
                 use msm_affine::{
                     canonical, canonical_exclusive, g2_query_exclusive, msm_canonical,
                 };
@@ -2508,7 +2530,10 @@ impl Key {
                         g2.install(|| {
                             if apple_groups {
                                 return msm_affine::apple_b2_from_fr(
-                                    &self.b2, sb, self.exclusive_g2_grouping,
+                                    &self.b2,
+                                    sb,
+                                    self.exclusive_g2_grouping,
+                                    paired_quotient,
                                 );
                             }
                             g2_query_exclusive(
@@ -2530,7 +2555,13 @@ impl Key {
                         if msm_affine::apple_fused_kh_enabled(self.k.len(), self.domain - 1) {
                             // The fused sum needs H, but K's grouping depends only on the witness.
                             let (mut h, prepared) = rayon::join(
-                                || self.quotient(a, b, c),
+                                || {
+                                    if paired_quotient {
+                                        self.plan.apple_small_quotient(a, b, c)
+                                    } else {
+                                        self.quotient(a, b, c)
+                                    }
+                                },
                                 || msm_affine::prepare_apple_k(&self.k, sk, 0..usize::MAX, apple_groups),
                             );
                             let started = trace("cpu-quotient-and-k-prepare", started);
@@ -2603,7 +2634,7 @@ impl Key {
                 ),
                 || {
                     if apple_groups {
-                        msm_affine::apple_b2_from_fr(&self.b2, sb, self.exclusive_g2_grouping)
+                        msm_affine::apple_b2_from_fr(&self.b2, sb, self.exclusive_g2_grouping, false)
                     } else {
                         g2_query_exclusive(&self.b2, canonical_exclusive(sb), self.exclusive_g2_grouping)
                     }
@@ -2651,6 +2682,17 @@ impl Key {
         output_g2(&mut out, bs2);
         Ok(out)
     }
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn apple_small_msm_overlap(&self) -> bool {
+        self.domain == (1 << 15)
+            && ((1 << 14)..(1 << 16)).contains(&self.b2.len())
+            && affine_msm()
+            && self.equal_witness.is_none()
+            && rayon::current_num_threads() >= 18
+            && std::env::var("ZOPRO_CPU_MSM_OVERLAP").as_deref() != Ok("0")
+            && std::env::var("ZOPRO_TRACE_MSMS").as_deref() != Ok("1")
+    }
+
     fn quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
         self.plan.quotient(a, b, c)
     }

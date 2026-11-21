@@ -296,7 +296,7 @@ fn two_part_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
 // Keep the small-query layout out of the two-part hot path.
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 #[inline(never)]
-fn three_part_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
+pub(super) fn three_part_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
     assert_eq!(bases.len(), short.len());
     short.par_iter_mut().for_each(|s| *s = phi_split(*s));
     let chunk = bases.len().div_ceil(3);
