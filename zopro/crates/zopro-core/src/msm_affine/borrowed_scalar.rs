@@ -41,11 +41,21 @@ where
         }
     }
 
-    fn execute(&mut self) {
+    fn execute(&mut self, loose: bool) {
         if self.batch.is_empty() {
             return;
         }
         let state = &mut self.inner;
+        if loose && C::Base::loose_batch(
+            &mut state.affine,
+            &mut state.busy,
+            &self.batch,
+            &mut state.denominators,
+            &mut state.prefixes,
+        ) {
+            self.batch.clear();
+            return;
+        }
         apply_scalar_batch::<C, _, true>(
             &mut state.affine,
             &mut state.busy,
@@ -67,6 +77,7 @@ where
     }
 
     pub(super) fn feed(&mut self, bases: &'a [Affine<C>], digits: impl Iterator<Item = i16>) {
+        let loose = bases.len() < (1 << 16);
         for (point, d) in bases.iter().zip(digits) {
             if d == 0 || point.is_identity() {
                 continue;
@@ -82,7 +93,7 @@ where
             }
             self.add(encoded, point);
             if self.batch.len() == self.size {
-                self.execute();
+                self.execute(loose);
                 while let Some(&(encoded, point)) = self.queue.last() {
                     if self.inner.busy((encoded & 0x7fff_ffff) as usize) {
                         break;
@@ -92,7 +103,7 @@ where
                 }
             }
         }
-        self.execute();
+        self.execute(loose);
         self.flush();
     }
 }

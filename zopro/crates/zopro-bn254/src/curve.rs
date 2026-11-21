@@ -458,3 +458,50 @@ pub fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projective<C>
     }
     result
 }
+
+/// Add a batch of signed bases to distinct finite buckets with distinct x
+/// coordinates. Partial products stay below 2p. Normalize only before the
+/// inversion and when producing affine points for the next batch.
+#[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+#[doc(hidden)]
+pub fn batch_affine_loose<C: CurveConfig<Base = Fq>>(
+    affine: &mut [Affine<C>],
+    busy: &mut [u64],
+    batch: &[(u32, &Affine<C>)],
+    denominators: &mut Vec<Fq>,
+    prefixes: &mut Vec<Fq>,
+) {
+    use crate::{FpConfig, FqConfig, arm64, portable};
+    const P: [u64; 4] = FqConfig::P;
+    const P2: [u64; 4] = portable::add4(P, P).0;
+    const INV: u64 = FqConfig::INV;
+    let mul = |a, b| arm64::multiply_loose(a, b, P, INV);
+    let sub = |a, b| arm64::sub(a, b, P2);
+    let norm = |a| Fq::from_montgomery(portable::reduce_once(a, P));
+    denominators.clear();
+    prefixes.clear();
+    let mut product = Fq::ONE.0;
+    for &(encoded, point) in batch {
+        let bucket = (encoded & 0x7fff_ffff) as usize;
+        let d = point.x - affine[bucket].x;
+        // Prefix scratch holds the loose limbs and is read only as limbs.
+        prefixes.push(Fq::from_montgomery(product));
+        denominators.push(d);
+        product = mul(product, d.0);
+    }
+    let mut inverse = norm(product).inverse().expect("distinct x in a batch").0;
+    for (j, &(encoded, point)) in batch.iter().enumerate().rev() {
+        let bucket = (encoded & 0x7fff_ffff) as usize;
+        let current = &mut affine[bucket];
+        let partial = mul(inverse, prefixes[j].0);
+        inverse = mul(inverse, denominators[j].0);
+        let y = if encoded >> 31 != 0 { -point.y } else { point.y };
+        let lambda = mul((y - current.y).0, partial);
+        let sq = arm64::square_loose(lambda, P, INV);
+        let x = sub(sub(sq, current.x.0), point.x.0);
+        let y = sub(mul(lambda, sub(current.x.0, x)), current.y.0);
+        *current = Affine::new(norm(x), norm(y));
+        busy[bucket / 64] = 0;
+    }
+    prefixes.clear();
+}

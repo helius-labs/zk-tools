@@ -12,6 +12,19 @@
 
 #[inline(always)]
 pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
+    multiply_inner::<true>(a, b, p, inv)
+}
+
+/// Inputs and output are below 2p. Each CIOS row is bounded by 3p
+/// after its carry shift, and p + (2p)^2 / R < 2p for these moduli.
+#[cfg(target_os = "macos")]
+#[inline(always)]
+pub fn multiply_loose(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
+    multiply_inner::<false>(a, b, p, inv)
+}
+
+#[inline(always)]
+fn multiply_inner<const NORMALIZE: bool>(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     let (r0, r1, r2, r3): (u64, u64, u64, u64);
     // SAFETY: all operands are registers.
     unsafe {
@@ -147,6 +160,7 @@ pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
             "umulh {h1}, {m}, {p3}",
             "adcs {t1}, {t1}, {h0}",
             "adc {t2}, {t2}, {h1}",
+            ".if {normalize}",
             "subs {l0}, {t4}, {p0}",
             "sbcs {l1}, {t0}, {p1}",
             "sbcs {h0}, {t1}, {p2}",
@@ -155,6 +169,13 @@ pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
             "csel {r1}, {t0}, {l1}, lo",
             "csel {r2}, {t1}, {h0}, lo",
             "csel {r3}, {t2}, {h1}, lo",
+            ".else",
+            "mov {r0}, {t4}",
+            "mov {r1}, {t0}",
+            "mov {r2}, {t1}",
+            "mov {r3}, {t2}",
+            ".endif",
+            normalize = const NORMALIZE as u32,
             a0 = in(reg) a[0],
             a1 = in(reg) a[1],
             a2 = in(reg) a[2],
@@ -708,6 +729,20 @@ pub fn wide(a: [u64; 4], b: &[u64; 4]) -> [u64; 8] {
 #[cfg(target_os = "macos")]
 #[inline(always)]
 pub fn square(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
+    square_inner::<true>(a, p, inv)
+}
+
+/// The square of a value below 2p is below pR, so the Montgomery
+/// reduction's result before normalization is below 2p.
+#[cfg(target_os = "macos")]
+#[inline(always)]
+pub fn square_loose(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
+    square_inner::<false>(a, p, inv)
+}
+
+#[cfg(target_os = "macos")]
+#[inline(always)]
+fn square_inner<const NORMALIZE: bool>(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     let mut product = [0u64; 8];
     for i in 0..3 {
         let mut carry = 0u64;
@@ -731,13 +766,18 @@ pub fn square(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
         pair[1] = high as u64;
         carry = (high >> 64) as u64;
     }
-    redc(product, p, inv)
+    redc_inner::<NORMALIZE>(product, p, inv)
 }
 
-/// The Montgomery reduction of a 512-bit t < p 2^255: t 2^-256 mod p,
-/// below 1.5 p before its conditional subtraction.
+/// Montgomery reduction of a 512-bit t < pR, where R = 2^256.
+/// The unreduced result is below 2p.
 #[inline(always)]
 pub fn redc(t: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
+    redc_inner::<true>(t, p, inv)
+}
+
+#[inline(always)]
+fn redc_inner<const NORMALIZE: bool>(t: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
     let (r0, r1, r2, r3): (u64, u64, u64, u64);
     // SAFETY: registers only.
     unsafe {
@@ -822,6 +862,7 @@ pub fn redc(t: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
             "umulh {h1}, {m}, {p3}",
             "adcs {t6}, {t6}, {h0}",
             "adcs {t7}, {t7}, {h1}",
+            ".if {normalize}",
             "subs {l0}, {t4}, {p0}",
             "sbcs {l1}, {t5}, {p1}",
             "sbcs {h0}, {t6}, {p2}",
@@ -830,6 +871,8 @@ pub fn redc(t: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
             "csel {t5}, {t5}, {l1}, lo",
             "csel {t6}, {t6}, {h0}, lo",
             "csel {t7}, {t7}, {h1}, lo",
+            ".endif",
+            normalize = const NORMALIZE as u32,
             t0 = inout(reg) t[0] => _,
             t1 = inout(reg) t[1] => _,
             t2 = inout(reg) t[2] => _,
@@ -939,4 +982,38 @@ pub fn sub_add_wide(a: [u64; 8], b: [u64; 8], c: &[u64; 8]) -> [u64; 8] {
         );
     }
     [r0, r1, r2, r3, r4, r5, r6, r7]
+}
+
+
+#[cfg(all(test, target_os = "macos"))]
+mod loose_tests {
+    use super::*;
+    use crate::{FpConfig, FqConfig, portable};
+
+    #[test]
+    fn loose_products_match_normalized_operands_at_the_bounds() {
+        let p = FqConfig::P;
+        let inv = FqConfig::INV;
+        let twice_p = portable::add4(p, p).0;
+        let one = [1, 0, 0, 0];
+        let cases = [
+            [0; 4],
+            one,
+            portable::sub4(p, one).0,
+            p,
+            portable::add4(p, one).0,
+            portable::sub4(twice_p, one).0,
+        ];
+        let normalize = |x| portable::reduce_once(x, p);
+        for a in cases {
+            let sq = square_loose(a, p, inv);
+            assert!(portable::sub4(sq, twice_p).1);
+            assert_eq!(normalize(sq), square(normalize(a), p, inv));
+            for b in cases {
+                let product = multiply_loose(a, b, p, inv);
+                assert!(portable::sub4(product, twice_p).1);
+                assert_eq!(normalize(product), multiply(normalize(a), normalize(b), p, inv));
+            }
+        }
+    }
 }

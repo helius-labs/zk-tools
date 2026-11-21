@@ -1419,6 +1419,16 @@ fn decode_signed_batch<C: CurveConfig>(batch: &[(u32, Affine<C>)]) -> Vec<(u32, 
 }
 
 pub(super) trait BatchInverse: Field {
+    fn loose_batch<C: CurveConfig<Base = Self>>(
+        _affine: &mut [Affine<C>],
+        _busy: &mut [u64],
+        _batch: &[(u32, &Affine<C>)],
+        _denominators: &mut Vec<Self>,
+        _prefixes: &mut Vec<Self::Product>,
+    ) -> bool {
+        false
+    }
+
     fn borrowed_msm<C: CurveConfig<Base = Self>>(
         _bases: &[Affine<C>],
         _scalars: &[[u64; 4]],
@@ -1474,6 +1484,22 @@ pub(super) trait BatchInverse: Field {
     fn lanes_inverse(value: &Self::Lanes, inverse_norm: &FqBatch) -> Self::Lanes;
 }
 impl BatchInverse for Fq {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+    fn loose_batch<C: CurveConfig<Base = Self>>(
+        affine: &mut [Affine<C>],
+        busy: &mut [u64],
+        batch: &[(u32, &Affine<C>)],
+        denominators: &mut Vec<Self>,
+        prefixes: &mut Vec<Self::Product>,
+    ) -> bool {
+        static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        if *ENABLED.get_or_init(|| std::env::var("ZOPRO_APPLE_LOOSE_G1").as_deref() != Ok("0")) {
+            zopro_bn254::curve::batch_affine_loose(affine, busy, batch, denominators, prefixes);
+            return true;
+        }
+        false
+    }
+
     #[cfg(all(
         feature = "ifma8",
         target_arch = "x86_64",

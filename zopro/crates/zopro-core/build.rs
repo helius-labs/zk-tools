@@ -37,6 +37,7 @@ fn main() {
             println!("cargo::rustc-cfg={path}");
         }
     }
+    println!("cargo::rustc-check-cfg=cfg(no_asm)");
     println!("cargo::rustc-check-cfg=cfg(gpu)");
     println!("cargo::rustc-check-cfg=cfg(gpu_wgpu)");
     println!("cargo::rustc-check-cfg=cfg(gpu_any)");
