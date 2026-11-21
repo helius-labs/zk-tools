@@ -378,3 +378,42 @@ fn pairings() {
     assert!(!pairing::pairing_product_is_one(&[(left, &right), (left, &gen)]));
     let _ = ark_fq;
 }
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+#[test]
+fn apple_affine_signed_difference_preserves_loose_product_bounds() {
+    use crate::{FpConfig, FqConfig, arm64, portable};
+    const P: [u64; 4] = FqConfig::P;
+    const P2: [u64; 4] = portable::add4(P, P).0;
+    const INV: u64 = FqConfig::INV;
+    let inputs = [
+        Fq::ZERO,
+        Fq::ONE,
+        -Fq::ONE,
+        Fq::from_montgomery([1, 0, 0, 0]),
+        Fq::from_montgomery([u64::MAX, 0, 0, 0]),
+        Fq::from_montgomery([0, 1, 0, 0]),
+        Fq::from_montgomery(portable::sub4(P, [1, 0, 0, 0]).0),
+    ];
+    for a in inputs {
+        for b in inputs {
+            for negative in [false, true] {
+                let difference = arm64::affine_signed_difference(a.0, b.0, negative, P);
+                let signed_b = if negative { -b } else { b };
+                let expected = signed_b - a;
+                assert_ne!(difference, [0; 4]);
+                assert!(!portable::less(P2, difference));
+                for scale in inputs {
+                    let loose = portable::add4(scale.0, P).0;
+                    for (limbs, scale) in [(loose, scale), (P2, Fq::ZERO)] {
+                        let result = arm64::multiply_loose(difference, limbs, P, INV);
+                        assert!(portable::less(result, P2));
+                        let normalized = Fq::from_montgomery(arm64::reduce_once(result, P));
+                        assert_eq!(normalized, expected * scale);
+                    }
+                }
+            }
+        }
+    }
+    assert_eq!(arm64::affine_signed_difference([0; 4], [0; 4], true, P), P2);
+}

@@ -483,25 +483,22 @@ pub fn batch_affine_loose<C: CurveConfig<Base = Fq>>(
     let mut product = Fq::ONE.0;
     for &(encoded, point) in batch {
         let bucket = (encoded & 0x7fff_ffff) as usize;
-        let d = sub(point.x.0, affine[bucket].x.0);
+        let current = &affine[bucket];
+        let d = sub(point.x.0, current.x.0);
+        let dy = arm64::affine_signed_difference(current.y.0, point.y.0, encoded >> 31 != 0, P);
+        // Fold the numerator into the preceding product. Multiplying by
+        // the running inverse in the reverse pass gives the slope.
         // Both scratch arrays hold loose limbs and are read only as limbs.
-        prefixes.push(Fq::from_montgomery(product));
         denominators.push(Fq::from_montgomery(d));
+        prefixes.push(Fq::from_montgomery(mul(dy, product)));
         product = mul(product, d);
     }
     let mut inverse = norm(product).inverse().expect("distinct x in a batch").0;
     for (j, &(encoded, point)) in batch.iter().enumerate().rev() {
         let bucket = (encoded & 0x7fff_ffff) as usize;
         let current = &mut affine[bucket];
-        let partial = mul(inverse, prefixes[j].0);
+        let lambda = mul(inverse, prefixes[j].0);
         inverse = mul(inverse, denominators[j].0);
-        let dy = if encoded >> 31 != 0 {
-            // Negate the sum of two canonical coordinates modulo 2p.
-            arm64::neg(portable::add4(point.y.0, current.y.0).0, P2)
-        } else {
-            sub(point.y.0, current.y.0)
-        };
-        let lambda = mul(dy, partial);
         let sq = arm64::square_loose(lambda, P, INV);
         // Both affine x coordinates are canonical, so their sum is below 2p.
         let x = sub(sq, portable::add4(current.x.0, point.x.0).0);

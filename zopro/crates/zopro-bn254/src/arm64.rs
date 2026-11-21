@@ -15,12 +15,50 @@ pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     multiply_inner::<true>(a, b, p, inv)
 }
 
-/// Inputs and output are below 2p. Each CIOS row is bounded by 3p
-/// after its carry shift, and p + (2p)^2 / R < 2p for these moduli.
+/// Inputs are at most 2p and the output is below 2p. Each CIOS row is
+/// bounded by 3p after its carry shift, and p + (2p)^2 / R < 2p.
 #[cfg(target_os = "macos")]
 #[inline(always)]
 pub fn multiply_loose(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     multiply_inner::<false>(a, b, p, inv)
+}
+
+/// Signed incoming y minus the bucket's y, with a bias of p or 2p.
+/// For canonical operands, the result is in (0, 2p] and goes directly
+/// into a loose Montgomery multiplication.
+#[cfg(target_os = "macos")]
+#[inline(always)]
+pub fn affine_signed_difference(a: [u64; 4], b: [u64; 4], negative: bool, p: [u64; 4]) -> [u64; 4] {
+    let (r0, r1, r2, r3): (u64, u64, u64, u64);
+    // SAFETY: all operands are registers.
+    unsafe {
+        core::arch::asm!(
+            "subs {r0}, {p0}, {b0}",
+            "sbcs {r1}, {p1}, {b1}",
+            "sbcs {r2}, {p2}, {b2}",
+            "sbc {r3}, {p3}, {b3}",
+            "cmp {negative:w}, #0",
+            "csel {r0}, {r0}, {b0}, ne",
+            "csel {r1}, {r1}, {b1}, ne",
+            "csel {r2}, {r2}, {b2}, ne",
+            "csel {r3}, {r3}, {b3}, ne",
+            "adds {r0}, {r0}, {p0}",
+            "adcs {r1}, {r1}, {p1}",
+            "adcs {r2}, {r2}, {p2}",
+            "adc {r3}, {r3}, {p3}",
+            "subs {r0}, {r0}, {a0}",
+            "sbcs {r1}, {r1}, {a1}",
+            "sbcs {r2}, {r2}, {a2}",
+            "sbc {r3}, {r3}, {a3}",
+            negative = in(reg) u32::from(negative),
+            p0 = in(reg) p[0], p1 = in(reg) p[1], p2 = in(reg) p[2], p3 = in(reg) p[3],
+            a0 = in(reg) a[0], a1 = in(reg) a[1], a2 = in(reg) a[2], a3 = in(reg) a[3],
+            b0 = in(reg) b[0], b1 = in(reg) b[1], b2 = in(reg) b[2], b3 = in(reg) b[3],
+            r0 = out(reg) r0, r1 = out(reg) r1, r2 = out(reg) r2, r3 = out(reg) r3,
+            options(pure, nomem, nostack),
+        );
+    }
+    [r0, r1, r2, r3]
 }
 
 #[inline(always)]
