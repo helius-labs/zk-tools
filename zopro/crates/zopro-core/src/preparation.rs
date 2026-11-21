@@ -56,9 +56,21 @@ impl Reservation {
     /// Admit optional scratch with checked capacity costs and active forecasts.
     /// The token covers construction and every consumer until it is dropped.
     pub(crate) fn analysis(peak: Option<usize>) -> Option<Self> {
+        Self::analysis_with_limit(peak, resource_limit_now)
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    pub(crate) fn scalar_grouping(peak: Option<usize>) -> Option<Self> {
+        Self::analysis_with_limit(peak, || resource_limit_from(macos_free_memory))
+    }
+
+    fn analysis_with_limit(
+        peak: Option<usize>,
+        limit: impl FnOnce() -> Option<usize>,
+    ) -> Option<Self> {
         let peak = peak?;
         let _admission = ADMISSION.lock().ok()?;
-        reserve(&RESERVED, peak, resource_limit_now()?).then(|| Self(peak, 0))
+        reserve(&RESERVED, peak, limit()?).then(|| Self(peak, 0))
     }
     #[cfg(zopro_bounded_schedule)]
     pub(crate) fn bytes(&self) -> usize {
@@ -413,16 +425,17 @@ fn resource_limit(available: usize, workspace: usize, ceiling: usize) -> usize {
         .min(ceiling)
 }
 fn resource_limit_now() -> Option<usize> {
+    resource_limit_from(headroom)
+}
+fn resource_limit_from(available: impl FnOnce() -> Option<usize>) -> Option<usize> {
     let ceiling = match std::env::var("ZOPRO_CPU_PREPARE_MAX_BYTES") {
         Ok(s) => s.parse().ok()?,
         Err(std::env::VarError::NotPresent) => usize::MAX,
         Err(_) => return None,
     };
-    let mut available = headroom()?;
+    let available = available()?;
     #[cfg(any(target_os = "linux", target_os = "android"))]
-    {
-        available = available.min(address_headroom()?);
-    }
+    let available = available.min(address_headroom()?);
     Some(resource_limit(
         available,
         WORKSPACES.load(Ordering::Acquire),

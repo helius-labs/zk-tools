@@ -95,6 +95,9 @@ pub(super) fn peak(n: usize, percent: usize) -> Option<usize> {
 
 pub(super) fn reserve(n: usize, percent: usize) -> Option<crate::preparation::Reservation> {
     let peak = peak(n, percent);
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    let reservation = crate::preparation::Reservation::scalar_grouping(peak);
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
     let reservation = crate::preparation::Reservation::analysis(peak);
     if std::env::var_os("ZOPRO_CPU_GROUP_TRACE").is_some() {
         eprintln!(

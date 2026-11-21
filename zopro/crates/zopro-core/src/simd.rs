@@ -843,16 +843,18 @@ mod lanes {
     }
 }
 
-/// Native IFMA paths can be disabled individually while diagnosing a CPU.
-/// Other targets keep their existing defaults.
+/// Environment overrides for CPU paths with architecture-specific defaults.
 pub(crate) fn cpu_option(name: &str) -> bool {
-    std::env::var(name).map(|v| v != "0").unwrap_or(cfg!(all(
+    let ifma = cfg!(all(
         target_arch = "x86_64",
         target_feature = "avx512ifma",
         target_feature = "avx512vl",
         target_feature = "avx512dq",
         not(no_ifma)
-    )))
+    ));
+    let apple_grouping = cfg!(all(target_os = "macos", target_arch = "aarch64"))
+        && name == "ZOPRO_CPU_DEDUP";
+    std::env::var(name).map_or(ifma || apple_grouping, |v| v != "0")
 }
 
 #[cfg(all(
