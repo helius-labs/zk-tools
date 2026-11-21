@@ -330,16 +330,19 @@ struct Gpu {
     quotient: std::sync::Mutex<zopro_wgpu::Quotient>,
 }
 
-/// Threads for a GPU MSM's sort while the global pool computes the CPU's
-/// G2 MSM (ZOPRO_SORT_THREADS, default 2).
+/// A separate pool for the final MSM's sort while the global pool evaluates
+/// G2. On large Metal queries the GPU recodes the digits for a four-thread
+/// scatter. The ordinary sort uses two threads. ZOPRO_SORT_THREADS overrides both.
 #[cfg(all(any(gpu_wgpu, gpu), not(target_arch = "wasm32")))]
-fn sort_pool() -> &'static rayon::ThreadPool {
+fn sort_pool(gpu_digits: bool) -> &'static rayon::ThreadPool {
     static POOL: std::sync::OnceLock<rayon::ThreadPool> = std::sync::OnceLock::new();
-    POOL.get_or_init(|| {
+    static DIGITS_POOL: std::sync::OnceLock<rayon::ThreadPool> = std::sync::OnceLock::new();
+    let (pool, default_threads) = if gpu_digits { (&DIGITS_POOL, 4) } else { (&POOL, 2) };
+    pool.get_or_init(|| {
         let threads = std::env::var("ZOPRO_SORT_THREADS")
             .ok()
             .and_then(|v| v.parse().ok())
-            .unwrap_or(2);
+            .unwrap_or(default_threads);
         rayon::ThreadPoolBuilder::new()
             .num_threads(threads)
             .thread_name(|i| format!("zopro-sort-{i}"))
@@ -1937,7 +1940,14 @@ impl Key {
             // rather than 45 on an M5 Pro, 54 → 1 merge).
             let started = crate::time::Instant::now();
             let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
-            let pending = quotient.as_mut().map(|q| q.start(&a, &b, &c));
+            let digit_width = (self.domain >= (1 << 18)
+                && quotient.as_ref().is_some_and(|q| q.can_recode_msm())
+                && std::env::var("ZOPRO_METAL_QUOTIENT_DIGITS").as_deref() != Ok("0"))
+            .then(|| gpu.z.lock().unwrap().scalar_window_width());
+            let pending = quotient.as_mut().map(|q| match digit_width {
+                Some(width) => q.start_for_msm(&a, &b, &c, width),
+                None => q.start(&a, &b, &c),
+            });
             // The GPU has its copy of a, b and c: the CPU's go now rather
             // than after the MSMs (48 MB at 16 -> 2).
             let abc = if pending.is_some() {
@@ -1949,7 +1959,11 @@ impl Key {
             let (quotient_tx, quotient_rx) = std::sync::mpsc::channel::<()>();
             // A quotient on the CPU holds nothing up.
             let quotient_tx = pending.is_some().then_some(quotient_tx);
-            // The quotient comes back too, for the trace build's profile.
+            #[cfg(feature = "trace")]
+            let profile = log::log_enabled!(log::Level::Info)
+                && !self.profiled.swap(true, std::sync::atomic::Ordering::Relaxed);
+            #[cfg(not(feature = "trace"))]
+            let profile = false;
             let (h, (ar, bs1, kr, bs2, hz)) = std::thread::scope(|scope| -> Result<_, String> {
                 let msms = scope.spawn(move || -> Result<_, String> {
                     // Each MSM is submitted as soon as it is sorted, so the
@@ -2029,9 +2043,13 @@ impl Key {
                         bs2
                     })
                 });
-                let h = match (quotient.as_mut(), pending, abc) {
-                    (Some(q), Some(pending), _) => q.finish(pending)?,
-                    (_, _, Some((a, b, c))) => self.quotient(a, b, c),
+                let (h, digits) = match (quotient.as_mut(), pending, abc) {
+                    (Some(q), Some(pending), _) if digit_width.is_some() => {
+                        let (digits, h) = q.finish_msm_digits(pending, profile)?;
+                        (h, Some(digits))
+                    }
+                    (Some(q), Some(pending), _) => (Some(q.finish(pending)?), None),
+                    (_, _, Some((a, b, c))) => (Some(self.quotient(a, b, c)), None),
                     _ => unreachable!("the quotient on the GPU or on the CPU"),
                 };
                 drop((quotient, quotient_tx));
@@ -2042,7 +2060,10 @@ impl Key {
                 // (365 ms instead of 10 on an iPad Pro's A12Z at 8x2).
                 let mut z = gpu.z.lock().unwrap();
                 let msm_z = &mut *z;
-                let pz = sort_pool().install(|| msm_z.start(&h));
+                let pz = sort_pool(digits.is_some()).install(|| match &digits {
+                    Some(digits) => msm_z.start_quotient_digits(digits),
+                    None => Ok(msm_z.start(h.as_deref().expect("quotient coefficients"))),
+                })?;
                 let (ar, bs1, kr, bs2) = msms.join().expect("gpu msms")?;
                 let cpu = cpu_b2.map(|cpu| cpu.join().expect("cpu msm"));
                 let bs2 = match (bs2, cpu) {
@@ -2062,10 +2083,8 @@ impl Key {
             #[cfg(not(feature = "trace"))]
             drop(h);
             #[cfg(feature = "trace")]
-            if !self
-                .profiled
-                .swap(true, std::sync::atomic::Ordering::Relaxed)
-            {
+            if profile {
+                let h = h.expect("quotient coefficients for profiling");
                 for (name, msm, scalars) in [
                     ("a", &gpu.a, sa),
                     ("b", &gpu.b, sb),
@@ -2154,7 +2173,7 @@ impl Key {
                             if z.sorts_on_gpu() {
                                 z.start(&h)
                             } else {
-                                sort_pool().install(|| z.start(&h))
+                                sort_pool(false).install(|| z.start(&h))
                             }
                         };
                         drop(quotient);
@@ -2741,6 +2760,20 @@ mod gpu_tests {
                 .parts(&sa, &sb, &sk, &ea, &eb, &ec)
                 .unwrap_or_else(|_| panic!("gpu parts"));
             assert_eq!(got, expected, "round {round}");
+            #[cfg(gpu)]
+            if round == 0 {
+                let metal = gpu.gpu.as_ref().unwrap();
+                let mut quotient = metal.quotient.lock().unwrap();
+                if quotient.can_recode_msm() {
+                    let (a, b, c) = (frs(&ea), frs(&eb), frs(&ec));
+                    let mut msm = metal.z.lock().unwrap();
+                    let pending = quotient.start_for_msm(&a, &b, &c, msm.scalar_window_width());
+                    let (digits, _) = quotient.finish_msm_digits(pending, false).unwrap();
+                    let pending = msm.start_quotient_digits(&digits).unwrap();
+                    let (got, _) = msm.finish(pending).unwrap();
+                    assert_eq!(got, msm_g1(&z, &cpu.quotient(a, b, c)));
+                }
+            }
         }
     }
 }

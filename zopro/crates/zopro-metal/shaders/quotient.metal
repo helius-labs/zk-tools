@@ -121,3 +121,28 @@ kernel void fr_finish_quotient(device fr_t *abc [[buffer(0)]],
     abc[i] = fr_sub(product, fr_mul(abc[2 * n + i], chunks[0]));
   }
 }
+
+// Store signed digits window-major within each block of consecutive scalars.
+kernel void fr_quotient_digits(device const fr_t *coefficients [[buffer(0)]],
+                              device short *digits [[buffer(1)]],
+                              constant uint4 &args [[buffer(2)]],
+                              uint i [[thread_position_in_grid]]) {
+  const uint n = args.x, width = args.y, windows = args.z, chunk = args.w;
+  if (i >= n)
+    return;
+  const uint base = (i / chunk) * chunk;
+  const uint len = min(chunk, n - base);
+  const uint radix = 1u << width;
+  const fr_t words = fr_to_canon(coefficients[i]);
+  uint carry = 0;
+  for (uint w = 0; w < windows; w++) {
+    const uint offset = w * width;
+    const uint word = offset / 32, shift = offset % 32;
+    uint digit = words.v[word] >> shift;
+    if (shift + width > 32 && word < 7)
+      digit |= words.v[word + 1] << (32 - shift);
+    digit = (digit & (radix - 1)) + carry;
+    carry = (digit + radix / 2) >> width;
+    digits[base * windows + w * len + i - base] = short(int(digit) - int(carry * radix));
+  }
+}

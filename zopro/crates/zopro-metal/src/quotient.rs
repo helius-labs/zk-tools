@@ -26,6 +26,28 @@ pub struct Weights<'a> {
 /// A quotient submitted to the GPU and not yet collected.
 pub struct PendingQuotient {
     command: metal::CommandBuffer,
+    digits: Option<QuotientDigits>,
+}
+
+/// Signed MSM digits produced by a completed quotient command.
+pub struct QuotientDigits {
+    buffer: Buffer,
+    pub(super) n: usize,
+    pub(super) width: usize,
+    windows: usize,
+}
+
+impl QuotientDigits {
+    pub(super) fn as_slice(&self) -> &[i16] {
+        // SAFETY: the buffer was uniquely allocated for this command, which
+        // has completed before the digits can be read.
+        unsafe {
+            std::slice::from_raw_parts(
+                self.buffer.contents() as *const i16,
+                self.n * self.windows,
+            )
+        }
+    }
 }
 
 pub struct Quotient {
@@ -37,6 +59,7 @@ pub struct Quotient {
     scale: ComputePipelineState,
     product: ComputePipelineState,
     finish_quotient: ComputePipelineState,
+    encode_digits: Option<ComputePipelineState>,
     n: usize,
     roots: Buffer,
     inverse_roots: Buffer,
@@ -108,6 +131,9 @@ impl Quotient {
             pipeline("fr_product")?,
             pipeline("fr_finish_quotient")?,
         );
+        let encode_digits = cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            .then(|| pipeline("fr_quotient_digits").ok())
+            .flatten();
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
         let log_n = n.trailing_zeros();
         let limit = dif
@@ -123,6 +149,7 @@ impl Quotient {
                 scale,
                 product,
                 finish_quotient,
+                encode_digits,
                 n,
                 roots: upload(&device, roots),
                 inverse_roots: upload(&device, inverse_roots),
@@ -152,18 +179,50 @@ impl Quotient {
     /// The quotient submitted to the GPU, for [`Quotient::finish`]: what is
     /// queued after it runs after it.
     pub fn start(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> PendingQuotient {
-        objc::rc::autoreleasepool(|| self.start_in_pool(a, b, c))
+        objc::rc::autoreleasepool(|| self.start_in_pool(a, b, c, None))
+    }
+
+    pub fn can_recode_msm(&self) -> bool {
+        let max_windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(7);
+        self.encode_digits.is_some() && self.n <= u32::MAX as usize / max_windows
+    }
+
+    /// Queue the quotient followed by recoding for the MSM's window width.
+    pub fn start_for_msm(&mut self, a: &[Fr], b: &[Fr], c: &[Fr], width: usize) -> PendingQuotient {
+        assert!(self.can_recode_msm() && (7..=15).contains(&width));
+        objc::rc::autoreleasepool(|| self.start_in_pool(a, b, c, Some(width)))
     }
 
     pub fn finish(&mut self, pending: PendingQuotient) -> Result<Vec<Fr>, String> {
         objc::rc::autoreleasepool(|| crate::completed(&pending.command))?;
+        Ok(self.copy_coefficients())
+    }
+
+    /// Collect the recoded quotient and optionally copy field coefficients for profiling.
+    pub fn finish_msm_digits(
+        &mut self,
+        pending: PendingQuotient,
+        copy_coefficients: bool,
+    ) -> Result<(QuotientDigits, Option<Vec<Fr>>), String> {
+        objc::rc::autoreleasepool(|| crate::completed(&pending.command))?;
+        let digits = pending.digits.ok_or("no quotient digits were submitted")?;
+        Ok((digits, copy_coefficients.then(|| self.copy_coefficients())))
+    }
+
+    fn copy_coefficients(&self) -> Vec<Fr> {
         // SAFETY: the GPU is done with abc.
         let values =
             unsafe { std::slice::from_raw_parts(self.abc.contents() as *const Fr, self.n) };
-        Ok(values[..self.n - 1].to_vec())
+        values[..self.n - 1].to_vec()
     }
 
-    fn start_in_pool(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) -> PendingQuotient {
+    fn start_in_pool(
+        &mut self,
+        a: &[Fr],
+        b: &[Fr],
+        c: &[Fr],
+        width: Option<usize>,
+    ) -> PendingQuotient {
         let n = self.n;
         // SAFETY: abc holds 3n Fr in shared storage; the GPU is idle on it.
         let values =
@@ -188,10 +247,26 @@ impl Quotient {
         self.dispatch(encoder, &self.product, n);
         self.dif_all(encoder, 0, &self.inverse_roots);
         self.scale_by(encoder, 0, &self.reverse_weights, &self.finish_quotient);
+        let digits = width.map(|width| {
+            let n = n - 1;
+            let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
+            let count = u32::try_from(n * windows).expect("quotient digits fit GPU indexing");
+            let bytes = u64::from(count) * std::mem::size_of::<i16>() as u64;
+            let buffer = self.abc.device().new_buffer(bytes, MTLResourceOptions::StorageModeShared);
+            let args = [n as u32, width as u32, windows as u32, crate::DIGIT_CHUNK as u32];
+            let pipeline = self.encode_digits.as_ref().expect("quotient digit pipeline");
+            encoder.set_compute_pipeline_state(pipeline);
+            encoder.set_buffer(0, Some(&self.abc), 0);
+            encoder.set_buffer(1, Some(&buffer), 0);
+            encoder.set_bytes(2, 16, args.as_ptr() as *const c_void);
+            self.dispatch(encoder, pipeline, n);
+            QuotientDigits { buffer, n, width, windows }
+        });
         encoder.end_encoding();
         command.commit();
         PendingQuotient {
             command: command.to_owned(),
+            digits,
         }
     }
 

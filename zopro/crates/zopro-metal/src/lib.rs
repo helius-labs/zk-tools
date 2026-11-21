@@ -22,7 +22,10 @@ use objc::{msg_send, sel, sel_impl};
 use rayon::prelude::*;
 
 pub mod quotient;
-pub use quotient::{Quotient, Weights};
+pub use quotient::{Quotient, QuotientDigits, Weights};
+
+// Matching block layout for the host and GPU digit producers.
+const DIGIT_CHUNK: usize = 4096;
 
 /// The shaders as a library: the metallib build.rs compiled, else compiled
 /// from source now. The G2 kernels are instantiated only when asked for:
@@ -638,6 +641,19 @@ impl<C: Curve> Msm<C> {
         self.submit(started)
     }
 
+    pub fn scalar_window_width(&self) -> usize {
+        self.width
+    }
+
+    /// Count and scatter digits that the quotient already recoded on the GPU.
+    pub fn start_quotient_digits(&mut self, digits: &QuotientDigits) -> Result<Pending, String> {
+        assert_eq!((digits.n, digits.width), (self.n, self.width));
+        let started = Instant::now();
+        self.scatter_digits(self.n, digits.as_slice())?;
+        self.sorted_for_original_bases = true;
+        Ok(self.submit(started))
+    }
+
     /// The first half of [`Msm::start`]: the scalars sorted, for
     /// [`Msm::submit_sorted`] once the GPU should take them.
     pub fn sort_now(&mut self, scalars: &[Fr]) -> Sorted {
@@ -1026,18 +1042,17 @@ impl<C: Curve> Msm<C> {
     }
 
     fn sort_words<S: Sync>(&mut self, scalars: &[S], words: impl Fn(&S) -> [u64; 4] + Sync) {
-        let (width, windows, half) = (self.width, self.windows, self.half);
+        let (width, windows) = (self.width, self.windows);
         let radix = 1u64 << width;
         let mask = radix - 1;
         let n = scalars.len();
         // In chunks of scalars, window-major within each: a window's pass
         // reads its runs rather than every row (a 2^21-point Z sort took
         // 60-110 ms reading all of them).
-        const CHUNK: usize = 4096;
         let mut digits = vec![0i16; n * windows];
         digits
-            .par_chunks_mut(CHUNK * windows)
-            .zip(scalars.par_chunks(CHUNK))
+            .par_chunks_mut(DIGIT_CHUNK * windows)
+            .zip(scalars.par_chunks(DIGIT_CHUNK))
             .for_each(|(block, chunk)| {
                 let len = chunk.len();
                 for (i, s) in chunk.iter().enumerate() {
@@ -1056,14 +1071,19 @@ impl<C: Curve> Msm<C> {
                     }
                 }
             });
+        self.scatter_digits(n, &digits).expect("host recoding");
+    }
+
+    fn scatter_digits(&mut self, n: usize, digits: &[i16]) -> Result<(), &'static str> {
+        let (windows, half) = (self.windows, self.half);
         // Window w's digits, chunk by chunk, with the chunk's first index.
         let runs = |w: usize| {
             digits
-                .chunks(CHUNK * windows)
+                .chunks(DIGIT_CHUNK * windows)
                 .enumerate()
                 .map(move |(c, block)| {
                     let len = block.len() / windows;
-                    (c * CHUNK, &block[w * len..(w + 1) * len])
+                    (c * DIGIT_CHUNK, &block[w * len..(w + 1) * len])
                 })
         };
         // SAFETY: the buffer holds n * windows u32s, shared storage, and
@@ -1076,12 +1096,14 @@ impl<C: Curve> Msm<C> {
             .zip(self.starts.par_chunks_mut(half))
             .zip(self.counts.par_chunks_mut(half))
             .enumerate()
-            .for_each(|(w, ((sorted, starts), counts))| {
+            .try_for_each(|(w, ((sorted, starts), counts))| {
                 counts.fill(0);
                 for (_, run) in runs(w) {
                     for &d in run {
                         if d != 0 {
-                            counts[d.unsigned_abs() as usize - 1] += 1;
+                            let count = counts.get_mut(d.unsigned_abs() as usize - 1)
+                                .ok_or("MSM digit exceeds its window")?;
+                            *count += 1;
                         }
                     }
                 }
@@ -1102,7 +1124,8 @@ impl<C: Curve> Msm<C> {
                         }
                     }
                 }
-            });
+                Ok(())
+            })
     }
 
     pub fn device_name(&self) -> String {
@@ -1235,5 +1258,17 @@ mod tests {
         let weights = scalars(bases.len(), false, &mut rng);
         let (got, _) = msm.msm(&weights).unwrap();
         assert_eq!(got, zopro_bn254::curve::msm(&bases, &weights));
+    }
+
+    #[test]
+    fn invalid_gpu_digits_return_an_error() {
+        if metal::Device::system_default().is_none() {
+            eprintln!("no GPU: skipped");
+            return;
+        }
+        let (mut msm, _) = G1Msm::new(&[G1Affine::GENERATOR]).unwrap();
+        let mut digits = vec![0; msm.windows];
+        digits[0] = i16::MAX;
+        assert_eq!(msm.scatter_digits(1, &digits), Err("MSM digit exceeds its window"));
     }
 }
