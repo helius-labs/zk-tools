@@ -498,7 +498,7 @@ pub struct Msm<C: Curve> {
     tree_pipeline: ComputePipelineState,
     /// The window reduction on the GPU; none where neither kernel builds
     /// (G2 on an A12Z exceeds the shader stack), and the host reduces
-    /// `host_buckets`, the buckets copied out of the shared scratch.
+    /// `host_buckets`, the buckets this MSM writes directly.
     reduce: Option<ComputePipelineState>,
     host_buckets: Option<Buffer>,
     bases: Buffer,
@@ -693,7 +693,9 @@ impl<C: Curve> Msm<C> {
             << 20;
         let chunk_windows = (tree_cap / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
-        scratch.reserve(&device, most * C::XYZZ_BYTES, buckets * C::XYZZ_BYTES);
+        let bucket_bytes = buckets * C::XYZZ_BYTES;
+        let shared_bucket_bytes = if reduce.is_some() { bucket_bytes } else { 0 };
+        scratch.reserve(&device, most * C::XYZZ_BYTES, shared_bucket_bytes);
         let reduce_shape = {
             let per_window = half.min(REDUCE_THREADS_PER_WINDOW);
             let allowed = reduce.as_ref().map_or(REDUCE_GROUP, |r| {
@@ -719,7 +721,7 @@ impl<C: Curve> Msm<C> {
                 sorted_for_original_bases: false,
                 levels: Vec::new(),
                 scratch,
-                bucket_bytes: buckets * C::XYZZ_BYTES,
+                bucket_bytes,
                 sums: shared(&device, windows * reduce_shape[3] * C::XYZZ_BYTES),
                 reduce_shape,
                 counts: vec![0; buckets],
@@ -727,9 +729,7 @@ impl<C: Curve> Msm<C> {
                 _curve: std::marker::PhantomData,
                 first,
                 tree_pipeline,
-                host_buckets: reduce
-                    .is_none()
-                    .then(|| shared(&device, buckets * C::XYZZ_BYTES)),
+                host_buckets: reduce.is_none().then(|| shared(&device, bucket_bytes)),
                 reduce,
                 bases: bases_buffer,
                 n,
@@ -883,13 +883,12 @@ impl<C: Curve> Msm<C> {
         let sort_ms = elapsed(started);
         let command = self.queue.new_command_buffer();
         let scratch = self.scratch.0.lock().unwrap();
+        // The host reads its own buckets after completion, while the next
+        // command may already be using the shared trees.
+        let buckets = self.host_buckets.as_ref().unwrap_or(&scratch.buckets);
         // Empty buckets stay at infinity.
         let blit = command.new_blit_command_encoder();
-        blit.fill_buffer(
-            &scratch.buckets,
-            metal::NSRange::new(0, self.bucket_bytes as u64),
-            0,
-        );
+        blit.fill_buffer(buckets, metal::NSRange::new(0, self.bucket_bytes as u64), 0);
         let scatter = digits.and_then(|digits| {
             let scatter = digits.scatter.as_ref()?;
             let bytes = self.starts.len() * 4;
@@ -929,7 +928,7 @@ impl<C: Curve> Msm<C> {
                 encoder.set_buffer(3, Some(count), 0);
                 encoder.set_buffer(4, Some(dst), 0);
                 let out = if level == last {
-                    &scratch.buckets
+                    buckets
                 } else {
                     &scratch.tree[level % 2]
                 };
@@ -944,15 +943,9 @@ impl<C: Curve> Msm<C> {
         // a full SIMD group and no more than the kernel's registers allow on
         // this GPU (a power of two, since `leaf` is a shift).
         if self.reduce.is_some() {
-            self.encode_reduce(encoder, &scratch.buckets);
+            self.encode_reduce(encoder, buckets);
         }
         encoder.end_encoding();
-        // The host reduces its own copy: the next MSM reuses the scratch.
-        if let Some(host) = &self.host_buckets {
-            let blit = command.new_blit_command_encoder();
-            blit.copy_from_buffer(&scratch.buckets, 0, host, 0, self.bucket_bytes as u64);
-            blit.end_encoding();
-        }
         command.commit();
         Pending {
             command: command.to_owned(),
@@ -978,6 +971,7 @@ impl<C: Curve> Msm<C> {
                 })
                 .collect();
             let scratch = self.scratch.0.lock().unwrap();
+            let buckets = self.host_buckets.as_ref().unwrap_or(&scratch.buckets);
             let run = |encode: &dyn Fn(&metal::ComputeCommandEncoderRef)| -> f64 {
                 let command = self.queue.new_command_buffer();
                 let encoder = command.new_compute_command_encoder();
@@ -1018,7 +1012,7 @@ impl<C: Curve> Msm<C> {
                         encoder.set_buffer(3, Some(count), 0);
                         encoder.set_buffer(4, Some(dst), 0);
                         let out = if level == last {
-                            &scratch.buckets
+                            buckets
                         } else {
                             &scratch.tree[level % 2]
                         };
@@ -1046,7 +1040,7 @@ impl<C: Curve> Msm<C> {
                     self.width, self.windows
                 );
             };
-            let reduce_ms = run(&|encoder| self.encode_reduce(encoder, &scratch.buckets));
+            let reduce_ms = run(&|encoder| self.encode_reduce(encoder, buckets));
             let threads = self.reduce_shape[1];
             format!(
                 "first {first_ms:.1} ms ({first_shards} shards, limit {}) tree {tree_ms:.1} ms ({tree_shards} shards, limit {}) reduce {reduce_ms:.1} ms ({threads} threads/window, limit {}) width {} windows {}",
@@ -1090,7 +1084,7 @@ impl<C: Curve> Msm<C> {
                 .into_par_iter()
                 .map(|window| {
                     let at = window * half * xyzz;
-                    // SAFETY: the completed command copied every window's XYZZ buckets to host.
+                    // SAFETY: the completed command wrote the window's XYZZ buckets.
                     let values = unsafe {
                         std::slice::from_raw_parts((buckets + at) as *const u8, half * xyzz)
                     };
