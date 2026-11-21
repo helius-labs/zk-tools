@@ -2508,24 +2508,27 @@ impl Key {
                     });
                     let grouped = g1.install(|| {
                         let started = crate::time::Instant::now();
+                        let a_query = || msm_canonical(&self.a, canonical(sa));
+                        if msm_affine::apple_fused_kh_enabled(self.k.len(), self.domain - 1) {
+                            // The fused sum needs H, but K's grouping depends only on the witness.
+                            let (mut h, prepared) = rayon::join(
+                                || self.quotient(a, b, c),
+                                || msm_affine::prepare_apple_k(&self.k, sk),
+                            );
+                            let started = trace("cpu-quotient-and-k-prepare", started);
+                            let (ar, kh) = rayon::join(
+                                a_query,
+                                || msm_affine::apple_fused_kh(&self.k, sk, &self.z, &mut h, prepared),
+                            );
+                            trace("cpu-g1-msms", started);
+                            return (ar, kh, G1Projective::IDENTITY);
+                        }
                         let mut h = self.quotient(a, b, c);
                         let started = trace("quotient", started);
-                        let ((ar, kr), hz) =
-                            if msm_affine::apple_fused_kh_enabled(self.k.len(), h.len()) {
-                                let (ar, kh) = rayon::join(
-                                    || msm_canonical(&self.a, canonical(sa)),
-                                    || msm_affine::apple_fused_kh(&self.k, sk, &self.z, &mut h),
-                                );
-                                ((ar, kh), G1Projective::IDENTITY)
-                            } else {
-                                rayon::join(
-                                    || rayon::join(
-                                        || msm_canonical(&self.a, canonical(sa)),
-                                        || msm_canonical(&self.k, canonical(sk)),
-                                    ),
-                                    || msm_canonical(&self.z, canonical(&mut h)),
-                                )
-                            };
+                        let ((ar, kr), hz) = rayon::join(
+                            || rayon::join(a_query, || msm_canonical(&self.k, canonical(sk))),
+                            || msm_canonical(&self.z, canonical(&mut h)),
+                        );
                         trace("cpu-g1-msms", started);
                         (ar, kr, hz)
                     });

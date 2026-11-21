@@ -477,17 +477,17 @@ pub fn batch_affine_loose<C: CurveConfig<Base = Fq>>(
     const INV: u64 = FqConfig::INV;
     let mul = |a, b| arm64::multiply_loose(a, b, P, INV);
     let sub = |a, b| arm64::sub(a, b, P2);
-    let norm = |a| Fq::from_montgomery(portable::reduce_once(a, P));
+    let norm = |a| Fq::from_montgomery(arm64::reduce_once(a, P));
     denominators.clear();
     prefixes.clear();
     let mut product = Fq::ONE.0;
     for &(encoded, point) in batch {
         let bucket = (encoded & 0x7fff_ffff) as usize;
-        let d = point.x - affine[bucket].x;
-        // Prefix scratch holds the loose limbs and is read only as limbs.
+        let d = sub(point.x.0, affine[bucket].x.0);
+        // Both scratch arrays hold loose limbs and are read only as limbs.
         prefixes.push(Fq::from_montgomery(product));
-        denominators.push(d);
-        product = mul(product, d.0);
+        denominators.push(Fq::from_montgomery(d));
+        product = mul(product, d);
     }
     let mut inverse = norm(product).inverse().expect("distinct x in a batch").0;
     for (j, &(encoded, point)) in batch.iter().enumerate().rev() {
@@ -495,10 +495,16 @@ pub fn batch_affine_loose<C: CurveConfig<Base = Fq>>(
         let current = &mut affine[bucket];
         let partial = mul(inverse, prefixes[j].0);
         inverse = mul(inverse, denominators[j].0);
-        let y = if encoded >> 31 != 0 { -point.y } else { point.y };
-        let lambda = mul((y - current.y).0, partial);
+        let dy = if encoded >> 31 != 0 {
+            // Negate the sum of two canonical coordinates modulo 2p.
+            arm64::neg(portable::add4(point.y.0, current.y.0).0, P2)
+        } else {
+            sub(point.y.0, current.y.0)
+        };
+        let lambda = mul(dy, partial);
         let sq = arm64::square_loose(lambda, P, INV);
-        let x = sub(sub(sq, current.x.0), point.x.0);
+        // Both affine x coordinates are canonical, so their sum is below 2p.
+        let x = sub(sq, portable::add4(current.x.0, point.x.0).0);
         let y = sub(mul(lambda, sub(current.x.0, x)), current.y.0);
         *current = Affine::new(norm(x), norm(y));
         busy[bucket / 64] = 0;

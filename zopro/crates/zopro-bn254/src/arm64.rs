@@ -541,6 +541,40 @@ pub fn add(a: [u64; 4], b: [u64; 4], p: [u64; 4]) -> [u64; 4] {
     [r0, r1, r2, r3]
 }
 
+/// Conditional subtraction for an input below twice the modulus.
+#[cfg(target_os = "macos")]
+#[inline(always)]
+pub fn reduce_once(a: [u64; 4], p: [u64; 4]) -> [u64; 4] {
+    let (r0, r1, r2, r3): (u64, u64, u64, u64);
+    // SAFETY: all operands are registers.
+    unsafe {
+        core::arch::asm!(
+            "subs {d0}, {a0}, {p0}",
+            "sbcs {d1}, {a1}, {p1}",
+            "sbcs {d2}, {a2}, {p2}",
+            "sbcs {d3}, {a3}, {p3}",
+            "csel {a0}, {a0}, {d0}, lo",
+            "csel {a1}, {a1}, {d1}, lo",
+            "csel {a2}, {a2}, {d2}, lo",
+            "csel {a3}, {a3}, {d3}, lo",
+            a0 = inout(reg) a[0] => r0,
+            a1 = inout(reg) a[1] => r1,
+            a2 = inout(reg) a[2] => r2,
+            a3 = inout(reg) a[3] => r3,
+            p0 = in(reg) p[0],
+            p1 = in(reg) p[1],
+            p2 = in(reg) p[2],
+            p3 = in(reg) p[3],
+            d0 = out(reg) _,
+            d1 = out(reg) _,
+            d2 = out(reg) _,
+            d3 = out(reg) _,
+            options(pure, nomem, nostack),
+        );
+    }
+    [r0, r1, r2, r3]
+}
+
 /// a - b mod p: the difference, plus p when it borrows.
 #[inline(always)]
 pub fn sub(a: [u64; 4], b: [u64; 4], p: [u64; 4]) -> [u64; 4] {
@@ -1006,6 +1040,7 @@ mod loose_tests {
         ];
         let normalize = |x| portable::reduce_once(x, p);
         for a in cases {
+            assert_eq!(reduce_once(a, p), normalize(a));
             let sq = square_loose(a, p, inv);
             assert!(portable::sub4(sq, twice_p).1);
             assert_eq!(normalize(sq), square(normalize(a), p, inv));

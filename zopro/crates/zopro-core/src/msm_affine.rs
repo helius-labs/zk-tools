@@ -214,6 +214,24 @@ pub(super) fn apple_fused_kh_enabled(k: usize, h: usize) -> bool {
         && std::env::var("ZOPRO_CPU_FUSED_KH").as_deref() != Ok("0")
 }
 
+/// Compact K while the quotient is running, retaining its workspace reservation.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) struct PreparedAppleK {
+    points: Vec<zopro_bn254::G1Affine>,
+    groups: ScalarGroups,
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn prepare_apple_k(
+    bases: &[zopro_bn254::G1Affine],
+    scalars: &[Fr],
+) -> Option<PreparedAppleK> {
+    let mut groups = group_witness_for::<zopro_bn254::G1Config>(scalars)?;
+    let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
+    groups.values.par_iter_mut().for_each(|v| *v = g2_phi::phi_split(*v));
+    Some(PreparedAppleK { points, groups })
+}
+
 /// Combine the K and H contributions for rerandomized proofs once the
 /// quotient is ready. The scalar arrays belong to this proof.
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -222,14 +240,13 @@ pub(super) fn apple_fused_kh(
     sk: &mut [Fr],
     h: &[zopro_bn254::G1Affine],
     sh: &mut [Fr],
+    prepared: Option<PreparedAppleK>,
 ) -> zopro_bn254::G1Projective {
     #[cfg(feature = "trace")]
     log::info!("ZOPRO_TRACE cpu-fused-kh-endomorphism");
     let split = |s: &Fr| g2_phi::phi_split(s.to_canonical());
     let h_words = encode_exclusive(sh, split);
-    if let Some(mut groups) = group_witness_for::<zopro_bn254::G1Config>(sk) {
-        let points = crate::msm::group_affine(k, &groups.order, &groups.starts, &groups.counts);
-        groups.values.par_iter_mut().for_each(|v| *v = g2_phi::phi_split(*v));
+    if let Some(PreparedAppleK { points, groups }) = prepared {
         return g2_phi::fused_g1_msm(&points, &groups.values, h, h_words);
     }
     let k_words = encode_exclusive(sk, split);

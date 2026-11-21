@@ -210,6 +210,16 @@ fn phi_buckets(state: &mut super::Window<G2Config>) {
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 const BALANCED_WIDTHS: [usize; 10] = [13, 13, 13, 13, 13, 13, 13, 13, 11, 12];
 
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn window_offsets(widths: [usize; 10]) -> [(usize, usize); 10] {
+    let mut offset = 0;
+    widths.map(|width| {
+        let at = offset;
+        offset += width;
+        (at, width)
+    })
+}
+
 /// Overlapping Booth digits telescope at variable radix boundaries too:
 /// the new digit adds the preceding window's sign bit as its carry.
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -229,12 +239,7 @@ fn component_digit_at(s: &[u64; 4], high: bool, offset: usize, width: usize) -> 
 pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
     assert_eq!(bases.len(), short.len());
     short.par_iter_mut().for_each(|s| *s = phi_split(*s));
-    let mut offset = 0;
-    let windows = BALANCED_WIDTHS.map(|width| {
-        let window = (offset, width);
-        offset += width;
-        window
-    });
+    let windows = window_offsets(BALANCED_WIDTHS);
     let mid = bases.len().div_ceil(2);
     let sums: Vec<_> = windows
         .into_par_iter()
@@ -431,13 +436,24 @@ fn g1_endomorphism_msm<const PARTS: usize, const N: usize>(
         assert_eq!(bases.len(), words.len());
         (bases, words, bases.len().div_ceil(PARTS))
     });
+    // The fused query balances its last two window tasks. A single query
+    // keeps thirteen-bit digits followed by the ten remaining bits.
+    let widths = if N == 2 {
+        BALANCED_WIDTHS
+    } else {
+        [BITS, BITS, BITS, BITS, BITS, BITS, BITS, BITS, BITS, 10]
+    };
     let size = batch_size(BITS);
-    let sums: Vec<_> = (0..127usize.div_ceil(BITS))
+    let sums: Vec<_> = window_offsets(widths)
         .into_par_iter()
-        .map(|window| {
-            // Each magnitude fits below 2^126. The final table holds the
-            // remaining bits and the carry from the previous signed digit.
-            let width = BITS.min(127 - window * BITS);
+        .map(|(offset, width)| {
+            let digit = |word: &[u64; 4], high| {
+                if N == 2 {
+                    component_digit_at(word, high, offset, width)
+                } else {
+                    hb_digit(word, high, offset / BITS, BITS)
+                }
+            };
             let mut partials: Vec<_> = (0..PARTS)
                 .into_par_iter()
                 .map(|part| {
@@ -448,7 +464,7 @@ fn g1_endomorphism_msm<const PARTS: usize, const N: usize>(
                             let end = (start + chunk).min(bases.len());
                             state.feed(
                                 &bases[start..end],
-                                words[start..end].iter().map(|s| hb_digit(s, high, window, BITS)),
+                                words[start..end].iter().map(|s| digit(s, high)),
                             );
                         }
                         if high {
@@ -475,8 +491,8 @@ fn g1_endomorphism_msm<const PARTS: usize, const N: usize>(
         })
         .collect();
     let mut result = G1Projective::IDENTITY;
-    for sum in sums.into_iter().rev() {
-        for _ in 0..BITS {
+    for (sum, width) in sums.into_iter().zip(widths).rev() {
+        for _ in 0..width {
             result = result.double();
         }
         result += sum;
