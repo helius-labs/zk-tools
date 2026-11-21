@@ -537,7 +537,18 @@ pub(super) fn witness_g1_msm(
         return g1_endomorphism_msm::<1, 1, 10, true>(queries, THREE_PART_WIDTHS, batch_size);
     }
     let size = batch_size(13);
-    g1_endomorphism_msm::<2, 1, 10, false>(queries, SINGLE_G1_WIDTHS, |_| size)
+    let top_size = if ((1 << 14)..(1 << 15)).contains(&bases.len())
+        && rayon::current_num_threads() == crate::APPLE_SMALL_PAIRED_G1_WORKERS
+    {
+        // The ten-bit window has frequent collisions when it uses the
+        // thirteen-bit windows' large batch, so its queue spills early.
+        48
+    } else {
+        size
+    };
+    g1_endomorphism_msm::<2, 1, 10, false>(queries, SINGLE_G1_WIDTHS, |width| {
+        if width == 10 { top_size } else { size }
+    })
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
