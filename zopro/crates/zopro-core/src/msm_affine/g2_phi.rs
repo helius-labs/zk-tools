@@ -205,6 +205,65 @@ fn phi_buckets(state: &mut super::Window<G2Config>) {
         p.x = p.x.mul_by_fp(&BETA);
     }
 }
+// Balance the last two windows across the remaining 23 bits. This
+// keeps comparable work in each window for medium-size G2 queries.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+const BALANCED_WIDTHS: [usize; 10] = [13, 13, 13, 13, 13, 13, 13, 13, 11, 12];
+
+/// Overlapping Booth digits telescope at variable radix boundaries too:
+/// the new digit adds the preceding window's sign bit as its carry.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[inline(always)]
+fn component_digit_at(s: &[u64; 4], high: bool, offset: usize, width: usize) -> i16 {
+    let i = 2 * usize::from(high);
+    let scalar = u128::from(s[i]) | (u128::from(s[i + 1] & (u64::MAX >> 1)) << 64);
+    let window = if offset == 0 { scalar << 1 } else { scalar >> (offset - 1) } as u16;
+    let mask = (1u16 << width) - 1;
+    let magnitude = (((window >> 1) & mask) + (window & 1)) as i16;
+    let subtract = ((window >> width) & 1) as i16 * (1 << width);
+    let digit = magnitude - subtract;
+    if s[i + 1] >> 63 != 0 { -digit } else { digit }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
+    assert_eq!(bases.len(), short.len());
+    short.par_iter_mut().for_each(|s| *s = phi_split(*s));
+    let mut offset = 0;
+    let windows = BALANCED_WIDTHS.map(|width| {
+        let window = (offset, width);
+        offset += width;
+        window
+    });
+    let mid = bases.len().div_ceil(2);
+    let sums: Vec<_> = windows
+        .into_par_iter()
+        .map(|(offset, width)| {
+            let size = batch_size(width);
+            let part = |start: usize, end: usize| {
+                let points = &bases[start..end];
+                let words = &short[start..end];
+                let mut state = super::borrowed_scalar::Borrowed::new(width, size);
+                state.feed(points, words.iter().map(|s| component_digit_at(s, true, offset, width)));
+                phi_buckets(&mut state.inner);
+                state.feed(points, words.iter().map(|s| component_digit_at(s, false, offset, width)));
+                affine_buckets(state.inner)
+            };
+            let (mut left, right) = rayon::join(|| part(0, mid), || part(mid, bases.len()));
+            merge_buckets(&mut left, &right);
+            crate::msm::weighted_affine(&left)
+        })
+        .collect();
+    let mut result = G2Projective::IDENTITY;
+    for (width, sum) in BALANCED_WIDTHS.into_iter().zip(sums).rev() {
+        for _ in 0..width {
+            result = result.double();
+        }
+        result += sum;
+    }
+    result
+}
+
 pub(super) fn hb_raw(
     bases: &[G2Affine],
     short: &mut [[u64; 4]],
@@ -414,6 +473,59 @@ pub(super) fn fused_g1_msm(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[test]
+    fn balanced_windows_reconstruct_signed_components() {
+        for magnitude in [0u128, 1, 4095, 4096, 4097, 8191, 1 << 104, 1 << 125, (1 << 126) - 1] {
+            for negative in [false, true] {
+                let hi = (magnitude >> 64) as u64 | (u64::from(negative) << 63);
+                let s = [magnitude as u64, hi, magnitude as u64, hi];
+                for high in [false, true] {
+                    let mut result = 0i128;
+                    let mut offset = 0;
+                    for width in BALANCED_WIDTHS {
+                        let digit = component_digit_at(&s, high, offset, width);
+                        assert!(digit.unsigned_abs() <= 1 << (width - 1));
+                        result += i128::from(digit) << offset;
+                        offset += width;
+                    }
+                    let expected = if negative { -(magnitude as i128) } else { magnitude as i128 };
+                    assert_eq!(result, expected);
+                }
+            }
+        }
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[test]
+    fn balanced_g2_sum_matches_scalar_multiplication() {
+        let mut rng = crate::testing::Seeded::new(0x47573257494e);
+        let mut point = G2Projective::IDENTITY;
+        let mut bases = Vec::new();
+        let mut words = Vec::new();
+        let mut expected = Fr::ZERO;
+        for i in 1..124u64 {
+            point += G2Affine::GENERATOR;
+            let scalar = match i % 9 {
+                0 => Fr::ZERO,
+                1 => -Fr::ONE,
+                _ => rng.fr(),
+            };
+            if i % 7 == 0 {
+                bases.push(G2Affine::IDENTITY);
+            } else if i % 5 == 0 {
+                bases.push((-point).to_affine());
+                expected -= scalar * Fr::from(i);
+            } else {
+                bases.push(point.to_affine());
+                expected += scalar * Fr::from(i);
+            }
+            words.push(scalar.to_canonical());
+        }
+        assert_eq!(balanced_msm(&bases, &mut words), G2Affine::GENERATOR * expected);
+    }
+
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     #[test]
     fn g1_components_match_the_scalar_multiplication_oracle() {

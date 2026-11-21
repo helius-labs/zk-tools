@@ -2079,6 +2079,16 @@ pub(super) fn g2_query_exclusive(
     if (1024..65536).contains(&bases.len()) {
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         let compute = |bases: &[zopro_bn254::G2Affine], words: &mut [[u64; 4]]| {
+            let workers = rayon::current_num_threads();
+            if ((1 << 14)..(1 << 15)).contains(&bases.len())
+                && (workers == 6 || workers >= 16)
+                && borrowed_scalar::enabled()
+                && std::env::var("ZOPRO_CPU_G2_BALANCED").as_deref() != Ok("0")
+            {
+                #[cfg(feature = "trace")]
+                log::info!("ZOPRO_TRACE cpu-g2-balanced-windows");
+                return g2_phi::balanced_msm(bases, words);
+            }
             g2_phi::hb_raw(bases, words, 12, 2)
         };
         #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
