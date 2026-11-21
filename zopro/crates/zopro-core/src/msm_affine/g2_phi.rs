@@ -210,6 +210,11 @@ fn phi_buckets(state: &mut super::Window<G2Config>) {
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 const BALANCED_WIDTHS: [usize; 10] = [13, 13, 13, 13, 13, 13, 13, 13, 11, 12];
 
+// Three point partitions keep the six-worker G2 pool busy through the end
+// of the small CPU proof. Give the last three windows the same width.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+const THREE_PART_WIDTHS: [usize; 10] = [13, 13, 13, 13, 13, 13, 13, 12, 12, 12];
+
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn window_offsets(widths: [usize; 10]) -> [(usize, usize); 10] {
     let mut offset = 0;
@@ -239,15 +244,18 @@ fn component_digit_at(s: &[u64; 4], high: bool, offset: usize, width: usize) -> 
 pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Projective {
     assert_eq!(bases.len(), short.len());
     short.par_iter_mut().for_each(|s| *s = phi_split(*s));
-    let windows = window_offsets(BALANCED_WIDTHS);
-    let mid = bases.len().div_ceil(2);
     let scalar_merge = bases.len() <= (1 << 15)
         && rayon::current_num_threads() == 6
         && std::env::var("ZOPRO_CPU_G2_SCALAR_MERGE").as_deref() != Ok("0");
-    let sums: Vec<_> = windows
+    let three_parts = scalar_merge
+        && std::env::var("ZOPRO_CPU_G2_THREE_PARTS").as_deref() != Ok("0");
+    let widths = if three_parts { THREE_PART_WIDTHS } else { BALANCED_WIDTHS };
+    let mid = bases.len().div_ceil(2);
+    let sums: Vec<_> = window_offsets(widths)
         .into_par_iter()
         .map(|(offset, width)| {
             let size = batch_size(width);
+            let size = if three_parts { size * 2 / 3 } else { size };
             let part = |start: usize, end: usize| {
                 let points = &bases[start..end];
                 let words = &short[start..end];
@@ -257,6 +265,22 @@ pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Proj
                 state.feed(points, words.iter().map(|s| component_digit_at(s, false, offset, width)));
                 affine_buckets(state.inner)
             };
+            if three_parts {
+                let chunk = bases.len().div_ceil(3);
+                let mut parts: Vec<_> = (0..3)
+                    .into_par_iter()
+                    .map(|i| {
+                        let start = (i * chunk).min(bases.len());
+                        let end = ((i + 1) * chunk).min(bases.len());
+                        part(start, end)
+                    })
+                    .collect();
+                let mut left = parts.swap_remove(0);
+                for right in parts {
+                    super::merge_g2_buckets_scalar(&mut left, &right);
+                }
+                return crate::msm::weighted_affine(&left);
+            }
             let (mut left, right) = rayon::join(|| part(0, mid), || part(mid, bases.len()));
             if scalar_merge {
                 super::merge_g2_buckets_scalar(&mut left, &right);
@@ -267,7 +291,7 @@ pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Proj
         })
         .collect();
     let mut result = G2Projective::IDENTITY;
-    for (width, sum) in BALANCED_WIDTHS.into_iter().zip(sums).rev() {
+    for (width, sum) in widths.into_iter().zip(sums).rev() {
         for _ in 0..width {
             result = result.double();
         }
@@ -519,16 +543,16 @@ mod tests {
                 let hi = (magnitude >> 64) as u64 | (u64::from(negative) << 63);
                 let s = [magnitude as u64, hi, magnitude as u64, hi];
                 for high in [false, true] {
-                    let mut result = 0i128;
-                    let mut offset = 0;
-                    for width in BALANCED_WIDTHS {
-                        let digit = component_digit_at(&s, high, offset, width);
-                        assert!(digit.unsigned_abs() <= 1 << (width - 1));
-                        result += i128::from(digit) << offset;
-                        offset += width;
-                    }
                     let expected = if negative { -(magnitude as i128) } else { magnitude as i128 };
-                    assert_eq!(result, expected);
+                    for widths in [BALANCED_WIDTHS, THREE_PART_WIDTHS] {
+                        let mut result = 0i128;
+                        for (offset, width) in window_offsets(widths) {
+                            let digit = component_digit_at(&s, high, offset, width);
+                            assert!(digit.unsigned_abs() <= 1 << (width - 1));
+                            result += i128::from(digit) << offset;
+                        }
+                        assert_eq!(result, expected);
+                    }
                 }
             }
         }
