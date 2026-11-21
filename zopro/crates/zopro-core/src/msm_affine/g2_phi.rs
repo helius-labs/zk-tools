@@ -294,9 +294,91 @@ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Pro
     hb_raw(bases, words, 12, 2)
 }
 
+// This root acts on G1 by the same scalar as BETA does on G2, so both
+// groups can use the existing lattice decomposition.
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+const G1_BETA: Fq =
+    Fq::from_decimal("2203960485148121921418603742825762020974279258880205651966");
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn quotient_g1_msm(
+    bases: &[zopro_bn254::G1Affine],
+    short: &[[u64; 4]],
+) -> zopro_bn254::G1Projective {
+    use zopro_bn254::G1Projective;
+
+    assert_eq!(bases.len(), short.len());
+    const BITS: usize = 13;
+    let mid = bases.len().div_ceil(2);
+    let size = batch_size(BITS);
+    let sums: Vec<_> = (0..127usize.div_ceil(BITS))
+        .into_par_iter()
+        .map(|window| {
+            let buckets = |range: std::ops::Range<usize>| {
+                let points = &bases[range.clone()];
+                let words = &short[range];
+                let mut state = super::borrowed_scalar::Borrowed::new(BITS, size);
+                state.feed(points, words.iter().map(|s| hb_digit(s, true, window, BITS)));
+                for point in &mut state.inner.affine {
+                    point.x *= G1_BETA;
+                }
+                for point in &mut state.inner.projective {
+                    point.x *= G1_BETA;
+                }
+                state.feed(points, words.iter().map(|s| hb_digit(s, false, window, BITS)));
+                affine_buckets(state.inner)
+            };
+            let (mut left, right) = rayon::join(|| buckets(0..mid), || buckets(mid..bases.len()));
+            merge_buckets(&mut left, &right);
+            crate::msm::weighted_affine(&left)
+        })
+        .collect();
+    let mut result = G1Projective::IDENTITY;
+    for sum in sums.into_iter().rev() {
+        for _ in 0..BITS {
+            result = result.double();
+        }
+        result += sum;
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[test]
+    fn g1_components_match_the_scalar_multiplication_oracle() {
+        use zopro_bn254::{G1Affine, G1Projective};
+
+        let lambda = Fr::from_decimal("4407920970296243842393367215006156084916469457145843978461");
+        let mut transformed = G1Affine::GENERATOR;
+        transformed.x *= G1_BETA;
+        assert_eq!(transformed, (G1Affine::GENERATOR * lambda).to_affine());
+
+        let mut point = G1Projective::IDENTITY;
+        let mut scalar = Fr::from(918371u64);
+        let mut bases = Vec::new();
+        let mut scalars = Vec::new();
+        let mut expected = G1Projective::IDENTITY;
+        for i in 0..512 {
+            point += G1Affine::GENERATOR;
+            scalar = scalar * Fr::from(6364136223846793005u64) + Fr::ONE;
+            let base = if i % 7 == 0 { G1Affine::IDENTITY } else { point.to_affine() };
+            let s = match i % 11 {
+                0 => Fr::ZERO,
+                1 => Fr::ONE,
+                2 => -Fr::ONE,
+                3 => -scalar,
+                _ => scalar,
+            };
+            bases.push(base);
+            scalars.push(phi_split(s.to_canonical()));
+            expected += base * s;
+        }
+        assert_eq!(quotient_g1_msm(&bases, &scalars), expected);
+    }
+
     #[test]
     fn decomposition_and_endomorphism_match_independent_field_oracles() {
         let lambda = Fr::from_decimal("4407920970296243842393367215006156084916469457145843978461");

@@ -2009,6 +2009,14 @@ impl Key {
             .then(|| apple_msm_pool(12))
             .flatten();
             let compact_overlap = compact_pool.is_some();
+            let prepare_g2 = group
+                && self.domain == (1 << 15)
+                && self.gpu_quotient
+                && gpu.b2.is_none()
+                && (1024..65536).contains(&sb.len())
+                && affine_msm()
+                && rayon::current_num_threads() >= 16
+                && std::env::var("ZOPRO_METAL_PREPARE_G2").as_deref() != Ok("0");
             #[cfg(feature = "trace")]
             if compact_overlap {
                 log::info!("ZOPRO_TRACE metal-compact-overlap");
@@ -2117,11 +2125,29 @@ impl Key {
                 let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
                 let cpu_b2 = (cut < sb.len()).then(|| {
                     scope.spawn(move || {
+                        // Decode the G2 scalars while the host sorts A and K.
+                        // Wait for both sorts before occupying the pool.
+                        let words = prepare_g2.then(|| {
+                            sb[cut..].iter().map(Fr::to_canonical).collect::<Vec<_>>()
+                        });
                         if !compact_overlap {
                             let _ = sorted_rx.recv();
                         }
                         let started = crate::time::Instant::now();
-                        let g2 = || msm_g2(self.cpu_b2(cut), &sb[cut..]);
+                        let g2 = || {
+                            let bases = self.cpu_b2(cut);
+                            if let Some(mut words) = words {
+                                #[cfg(feature = "trace")]
+                                log::info!("ZOPRO_TRACE metal-prepared-g2");
+                                msm_affine::g2_query_exclusive(
+                                    bases,
+                                    &mut words,
+                                    self.exclusive_g2_grouping,
+                                )
+                            } else {
+                                msm_g2(bases, &sb[cut..])
+                            }
+                        };
                         let bs2 = if let Some(pool) = compact_pool {
                             pool.install(g2)
                         } else {
@@ -2566,7 +2592,7 @@ impl Key {
                                 if montgomery_h {
                                     msm_affine::msm_montgomery(z, h)
                                 } else {
-                                    msm(z, canonical(h))
+                                    msm_affine::msm_h_in_place(z, h)
                                 }
                             },
                         )

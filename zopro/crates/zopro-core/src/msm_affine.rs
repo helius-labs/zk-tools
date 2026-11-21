@@ -186,6 +186,26 @@ where
     msm_raw(bases, canonical)
 }
 
+/// Medium quotient queries can combine two short scalar components
+/// before reducing their buckets.
+pub(super) fn msm_h_in_place(
+    bases: &[zopro_bn254::G1Affine],
+    scalars: &mut [Fr],
+) -> zopro_bn254::G1Projective {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    if bases.len() == (1 << 16) - 1
+        && rayon::current_num_threads() >= 16
+        && borrowed_scalar::enabled()
+        && std::env::var("ZOPRO_CPU_G1_H_ENDO").as_deref() != Ok("0")
+    {
+        #[cfg(feature = "trace")]
+        log::info!("ZOPRO_TRACE cpu-quotient-g1-endomorphism");
+        let short = encode_exclusive(scalars, |s| g2_phi::phi_split(s.to_canonical()));
+        return g2_phi::quotient_g1_msm(bases, short);
+    }
+    msm_canonical(bases, canonical(scalars))
+}
+
 pub(super) fn msm_grouped<C: CurveConfig>(
     bases: &[Affine<C>],
     groups: &ScalarGroups,
@@ -1932,9 +1952,18 @@ mod g2_phi;
 pub(crate) mod workspace;
 
 pub(super) fn canonical_exclusive(scalars: &mut [Fr]) -> &mut [[u64; 4]] {
+    encode_exclusive(scalars, Fr::to_canonical)
+}
+
+// Reuse proof-local field storage as words. This input is no longer used
+// as field values after encoding.
+fn encode_exclusive(
+    scalars: &mut [Fr],
+    encode: impl Fn(&Fr) -> [u64; 4] + Sync,
+) -> &mut [[u64; 4]] {
     scalars
         .par_iter_mut()
-        .for_each(|s| *s = Fr::from_montgomery(s.to_canonical()));
+        .for_each(|s| *s = Fr::from_montgomery(encode(s)));
     // SAFETY: Fr is repr(transparent) over its four limbs.
     unsafe {
         std::slice::from_raw_parts_mut(scalars.as_mut_ptr().cast::<[u64; 4]>(), scalars.len())
