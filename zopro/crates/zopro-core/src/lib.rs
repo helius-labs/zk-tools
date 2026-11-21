@@ -1903,6 +1903,10 @@ impl Key {
             #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
             lagrange: None,
         };
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        if !basis_only && !key.has_gpu() {
+            key.plan.prepare_apple_quotient();
+        }
         #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
         if !basis_only
             && key.domain >= 8

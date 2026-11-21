@@ -762,17 +762,62 @@ impl Plan {
         h.pop();
         h
     }
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    pub(crate) fn prepare_apple_quotient(&mut self) {
+        if self.n != (1 << 16)
+            || rayon::current_num_threads() < 18
+            || std::env::var("ZOPRO_CPU_QUOTIENT6").as_deref() == Ok("0")
+            || std::env::var("ZOPRO_CPU_TWISTED_FFT").as_deref() == Ok("0")
+        {
+            return;
+        }
+        // Charge one additional twiddle table, the weights, and builder scratch.
+        let Some(reservation) = crate::preparation::Reservation::acquire_solver_schedule(
+            self.n,
+            self.n.checked_mul(64),
+        ) else {
+            return;
+        };
+        let (_, coset, den) = self.params;
+        let n_inv = Fr::from(self.n as u64).inverse().unwrap();
+        let mut roots = self.roots.twisted(coset);
+        roots.reservations.push(reservation);
+        let weights = Weights::new(self.n, coset.inverse().unwrap(), n_inv.pow(&[3]) * den);
+        self.twisted = Some((roots, weights));
+    }
+
     // C has degree below n, so its inverse coset transform is exactly its
     // ordinary coefficients. Keep those after its first inverse transform,
     // and subtract them after transforming A*B back. This saves C's forward
     // transform and coset weights without changing the key or polynomial.
     fn quotient_six(&self, a: Vec<Fr>, b: Vec<Fr>, mut c: Vec<Fr>) -> Vec<Fr> {
         assert!(self.small.is_none() && c.len() <= self.n);
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        let twisted = self.twisted.as_ref().filter(|_| self.n == (1 << 16));
+        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        let twisted: Option<&(Twiddles, Weights)> = None;
+        #[cfg(all(feature = "trace", target_os = "macos", target_arch = "aarch64"))]
+        if twisted.is_some() {
+            log::info!("ZOPRO_TRACE cpu-quotient-twisted");
+        }
+        let transform = |input: Vec<Fr>| {
+            if let Some((roots, _)) = twisted {
+                let mut input = input;
+                assert!(input.len() <= self.n);
+                input.resize(self.n, Fr::ZERO);
+                let mut values = into_quads(input);
+                dif(&mut values, &self.inverse_roots, 0);
+                dit_inner::<true>(&mut values, roots, 0);
+                values
+            } else {
+                self.transform(input)
+            }
+        };
         let (mut a, (b, c)) = rayon::join(
-            || self.transform(a),
+            || transform(a),
             || {
                 rayon::join(
-                    || self.transform(b),
+                    || transform(b),
                     || {
                         c.resize(self.n, Fr::ZERO);
                         let mut c = into_quads(c);
@@ -787,13 +832,25 @@ impl Plan {
             .for_each(|(a, b)| *a = a.mul(b));
         drop(b);
         dif(&mut a, &self.inverse_roots, 0);
-        scale(&mut a, &self.reverse_weights);
-        // The inverse DIF is unnormalized. The first reverse-weight chunk
-        // is n^-1 * den in every lane; C needs no inverse coset powers.
+        // A and B omit their inverse normalization with the twisted roots.
+        // C still uses the ordinary inverse normalization and denominator.
         let factor = &self.reverse_weights.chunks[0];
-        a.par_iter_mut()
-            .zip(c.par_iter())
-            .for_each(|(a, c)| *a = a.sub(&c.mul(factor)));
+        if let Some((_, weights)) = twisted {
+            let grain = weights.lows.len();
+            a.par_chunks_mut(grain)
+                .zip(c.par_chunks(grain))
+                .zip(weights.chunks.par_iter())
+                .for_each(|((a, c), chunk)| {
+                    for ((a, c), low) in a.iter_mut().zip(c).zip(&weights.lows) {
+                        *a = a.mul(low).mul(chunk).sub(&c.mul(factor));
+                    }
+                });
+        } else {
+            scale(&mut a, &self.reverse_weights);
+            a.par_iter_mut()
+                .zip(c.par_iter())
+                .for_each(|(a, c)| *a = a.sub(&c.mul(factor)));
+        }
         let mut h = from_quads(a);
         h.pop();
         h
@@ -882,11 +939,16 @@ fn dif_within(a: &mut Quad, b: &mut Quad, pair: &Quad) {
     *b = Quad::shuffle::<2, 6, 3, 7>(&sum, &difference);
 }
 #[inline(always)]
-fn dit_within(a: &mut Quad, b: &mut Quad, pair: &Quad) {
+fn dit_within<const TWISTED: bool>(a: &mut Quad, b: &mut Quad, twiddles: &Twiddles) {
     let (lo, hi) = (
         Quad::shuffle::<0, 2, 4, 6>(a, b),
         Quad::shuffle::<1, 3, 5, 7>(a, b),
     );
+    let hi = if TWISTED {
+        hi.mul(twiddles.single.as_ref().unwrap())
+    } else {
+        hi
+    };
     let (sum, difference) = (lo.add(&hi), lo.sub(&hi));
     *a = Quad::shuffle::<0, 4, 1, 5>(&sum, &difference);
     *b = Quad::shuffle::<2, 6, 3, 7>(&sum, &difference);
@@ -894,7 +956,7 @@ fn dit_within(a: &mut Quad, b: &mut Quad, pair: &Quad) {
         Quad::shuffle::<0, 1, 4, 5>(a, b),
         Quad::shuffle::<2, 3, 6, 7>(a, b),
     );
-    let product = hi.mul(pair);
+    let product = hi.mul(&twiddles.pair);
     let (sum, difference) = (lo.add(&product), lo.sub(&product));
     *a = Quad::shuffle::<0, 1, 4, 5>(&sum, &difference);
     *b = Quad::shuffle::<2, 3, 6, 7>(&sum, &difference);
@@ -932,12 +994,16 @@ fn dif(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
     }
 }
 fn dit(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
+    dit_inner::<false>(values, twiddles, level);
+}
+
+fn dit_inner<const TWISTED: bool>(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
     if values.len() > TASK {
         let mid = values.len() / 2;
         let (lo, hi) = values.split_at_mut(mid);
         rayon::join(
-            || dit(lo, twiddles, level + 1),
-            || dit(hi, twiddles, level + 1),
+            || dit_inner::<TWISTED>(lo, twiddles, level + 1),
+            || dit_inner::<TWISTED>(hi, twiddles, level + 1),
         );
         lo.par_chunks_mut(TASK)
             .zip(hi.par_chunks_mut(TASK))
@@ -946,7 +1012,7 @@ fn dit(values: &mut [Quad], twiddles: &Twiddles, level: usize) {
     } else {
         for pair in values.as_chunks_mut::<2>().0 {
             let (a, b) = pair.split_at_mut(1);
-            dit_within(&mut a[0], &mut b[0], &twiddles.pair);
+            dit_within::<TWISTED>(&mut a[0], &mut b[0], twiddles);
         }
         // Butterflies `gap` quads apart use the layer of stride n / (8 gap).
         let mut gap = 1;
@@ -1029,6 +1095,30 @@ impl Direct {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[test]
+    fn apple_twisted_quotient_matches_standard_coefficients() {
+        let n = 1 << 16;
+        let root = Fr::root_of_unity(n).unwrap().pow(&[3]);
+        let coset = Fr::from(7u64);
+        let den = denominator(n, coset).unwrap();
+        let mut plan = Plan::new(n, root, coset, den);
+        let values = |len: usize, seed: u64| {
+            (0..len)
+                .map(|i| Fr::from((i as u64 * 131 + seed) % 65537).square())
+                .collect::<Vec<_>>()
+        };
+        let (a, b, c) = (values(n - 3, 19), values(n / 2 + 1, 23), values(n - 1, 31));
+        plan.twisted = None;
+        let want = plan.quotient_six(a.clone(), b.clone(), c.clone());
+        let n_inv = Fr::from(n as u64).inverse().unwrap();
+        plan.twisted = Some((
+            plan.roots.twisted(coset),
+            Weights::new(n, coset.inverse().unwrap(), n_inv.pow(&[3]) * den),
+        ));
+        assert_eq!(plan.quotient_six(a, b, c), want);
+    }
 
     /// Independent polynomial convolution, including reduction modulo the
     /// coset's X^n-coset^n. Arbitrary A/B/C need not satisfy a circuit.
