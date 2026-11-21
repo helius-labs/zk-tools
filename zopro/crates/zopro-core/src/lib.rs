@@ -2482,6 +2482,9 @@ impl Key {
         }
 
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        let apple_groups = matches!(self.domain, 32768 | 65536)
+            && std::env::var("ZOPRO_CPU_WITNESS_GROUP_PREP").as_deref() != Ok("0");
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         {
             // Overlap the G2 query with the quotient and G1 queries while
             // keeping eighteen workers in total on wide Apple silicon Macs.
@@ -2503,6 +2506,11 @@ impl Key {
                 let ((ar, kr, hz), bs2) = std::thread::scope(|scope| {
                     let b2 = scope.spawn(|| {
                         g2.install(|| {
+                            if apple_groups {
+                                return msm_affine::apple_b2_from_fr(
+                                    &self.b2, sb, self.exclusive_g2_grouping,
+                                );
+                            }
                             g2_query_exclusive(
                                 &self.b2,
                                 canonical_exclusive(sb),
@@ -2512,12 +2520,18 @@ impl Key {
                     });
                     let grouped = g1.install(|| {
                         let started = crate::time::Instant::now();
-                        let a_query = || msm_canonical(&self.a, canonical(sa));
+                        let a_query = || {
+                            if apple_groups {
+                                msm_affine::apple_a_from_fr(&self.a, sa)
+                            } else {
+                                msm_canonical(&self.a, canonical(sa))
+                            }
+                        };
                         if msm_affine::apple_fused_kh_enabled(self.k.len(), self.domain - 1) {
                             // The fused sum needs H, but K's grouping depends only on the witness.
                             let (mut h, prepared) = rayon::join(
                                 || self.quotient(a, b, c),
-                                || msm_affine::prepare_apple_k(&self.k, sk, 0..usize::MAX),
+                                || msm_affine::prepare_apple_k(&self.k, sk, 0..usize::MAX, apple_groups),
                             );
                             let started = trace("cpu-quotient-and-k-prepare", started);
                             let (ar, kh) = rayon::join(
@@ -2564,7 +2578,7 @@ impl Key {
             if fuse {
                 // K can be compacted before the quotient supplies H.
                 rayon::join(quotient, || {
-                    msm_affine::prepare_apple_k(&self.k, sk, 1024..32768)
+                    msm_affine::prepare_apple_k(&self.k, sk, 1024..32768, apple_groups)
                 })
             } else {
                 (quotient(), None)
@@ -2578,11 +2592,21 @@ impl Key {
             use msm_affine::{canonical, canonical_exclusive, g2_query_exclusive, msm_g1_witness};
             let ((ar, kh), bs2) = rayon::join(
                 || rayon::join(
-                    || msm_g1_witness(&self.a, canonical(sa)),
+                    || {
+                        if apple_groups {
+                            msm_affine::apple_a_from_fr(&self.a, sa)
+                        } else {
+                            msm_g1_witness(&self.a, canonical(sa))
+                        }
+                    },
                     || msm_affine::apple_fused_kh(&self.k, sk, &self.z, &mut h, Some(prepared)),
                 ),
                 || {
-                    g2_query_exclusive(&self.b2, canonical_exclusive(sb), self.exclusive_g2_grouping)
+                    if apple_groups {
+                        msm_affine::apple_b2_from_fr(&self.b2, sb, self.exclusive_g2_grouping)
+                    } else {
+                        g2_query_exclusive(&self.b2, canonical_exclusive(sb), self.exclusive_g2_grouping)
+                    }
                 },
             );
             trace("msms", started);

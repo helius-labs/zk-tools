@@ -20,18 +20,38 @@ pub(crate) struct ScalarGroups {
 /// Group before converting representations, so only distinct witness
 /// scalars need Montgomery reduction. The grouping is fresh per proof.
 pub(crate) fn group_witness(scalars: &[Fr]) -> Option<ScalarGroups> {
-    group_witness_inner::<false>(scalars, None, grouping_cost::peak)
+    group_witness_inner::<false, false>(scalars, None, grouping_cost::peak, false)
 }
 
 pub(crate) fn group_witness_for<C: CurveConfig>(scalars: &[Fr]) -> Option<ScalarGroups>
 where
     C::Base: crate::msm::BatchInverse,
 {
-    group_witness_inner::<false>(scalars, None, grouping_cost::peak_for::<C>)
+    group_witness_inner::<false, false>(scalars, None, grouping_cost::peak_for::<C>, false)
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn group_apple_cpu_witness<C: CurveConfig, const EXCLUSIVE: bool>(
+    scalars: &[Fr],
+) -> Option<ScalarGroups>
+where
+    C::Base: crate::msm::BatchInverse,
+{
+    let groups =
+        group_witness_inner::<false, EXCLUSIVE>(scalars, None, grouping_cost::peak_for::<C>, true);
+    #[cfg(feature = "trace")]
+    if let Some(groups) = &groups {
+        log::info!(
+            "ZOPRO_TRACE cpu-witness-group-prep {} -> {}",
+            scalars.len(),
+            groups.values.len()
+        );
+    }
+    groups
 }
 
 pub(crate) fn group_witness_serial_b2(scalars: &[Fr]) -> Option<ScalarGroups> {
-    group_witness_inner::<true>(scalars, None, grouping_cost::peak)
+    group_witness_inner::<true, false>(scalars, None, grouping_cost::peak, false)
 }
 
 #[cfg(zopro_resource_schedule)]
@@ -41,9 +61,9 @@ pub(crate) fn group_witness_b2_origins(
     serial: bool,
 ) -> Option<ScalarGroups> {
     if serial {
-        group_witness_inner::<true>(scalars, Some(origins), grouping_cost::peak)
+        group_witness_inner::<true, false>(scalars, Some(origins), grouping_cost::peak, false)
     } else {
-        group_witness_inner::<false>(scalars, Some(origins), grouping_cost::peak)
+        group_witness_inner::<false, false>(scalars, Some(origins), grouping_cost::peak, false)
     }
 }
 
@@ -52,10 +72,11 @@ type Origins<'a> = Option<&'a B2Origins>;
 #[cfg(not(zopro_resource_schedule))]
 type Origins<'a> = Option<&'a ()>;
 
-fn group_witness_inner<const SERIAL_B2: bool>(
+fn group_witness_inner<const SERIAL_B2: bool, const EXCLUSIVE: bool>(
     scalars: &[Fr],
     origins: Origins<'_>,
     peak: grouping_cost::Peak,
+    apple_cpu: bool,
 ) -> Option<ScalarGroups> {
     if !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
         return None;
@@ -65,7 +86,7 @@ fn group_witness_inner<const SERIAL_B2: bool>(
     let words =
         unsafe { std::slice::from_raw_parts(scalars.as_ptr().cast::<[u64; 4]>(), scalars.len()) };
     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
-    let mut groups = group_with_gate::<false, SERIAL_B2>(words, zero_aware, origins, peak)?;
+    let mut groups = group_with_gate::<EXCLUSIVE, SERIAL_B2>(words, zero_aware, origins, peak, apple_cpu)?;
     let convert = |value: &mut [u64; 4]| {
         *value = Fr::from_montgomery(*value).to_canonical();
     };
@@ -178,12 +199,27 @@ where
     C::Base: crate::msm::BatchInverse,
 {
     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
-    group_with_gate::<true, false>(scalars, zero_aware, None, grouping_cost::peak_for::<C>)
+    group_with_gate::<true, false>(scalars, zero_aware, None, grouping_cost::peak_for::<C>, false)
 }
 
 type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
 
 fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSample<'_>, usize)> {
+    let percent = if (32768..65536).contains(&scalars.len())
+        && crate::simd::cpu_option("ZOPRO_CPU_SMALL_GROUPS")
+    {
+        95
+    } else {
+        80
+    };
+    sample_with_cutoff(scalars, zero_aware, percent)
+}
+
+fn sample_with_cutoff(
+    scalars: &[[u64; 4]],
+    zero_aware: bool,
+    percent: usize,
+) -> Option<(GroupSample<'_>, usize)> {
     let sample = scalars.len().min(2048);
     let stride = scalars.len().div_ceil(sample);
     let unique: GroupSample<'_> = scalars.iter().step_by(stride).take(sample).collect();
@@ -197,13 +233,6 @@ fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSampl
     if unique.len() * 200 > observed * 199 {
         return None;
     }
-    let percent = if (32768..65536).contains(&scalars.len())
-        && crate::simd::cpu_option("ZOPRO_CPU_SMALL_GROUPS")
-    {
-        95
-    } else {
-        80
-    };
     if zero_aware {
         let zeros = scalars
             .iter()
@@ -237,7 +266,7 @@ fn grouping_sample(scalars: &[[u64; 4]], zero_aware: bool) -> Option<(GroupSampl
 }
 
 fn scalar_groups_policy(scalars: &[[u64; 4]], zero_aware: bool) -> Option<ScalarGroups> {
-    group_with_gate::<false, false>(scalars, zero_aware, None, grouping_cost::peak)
+    group_with_gate::<false, false>(scalars, zero_aware, None, grouping_cost::peak, false)
 }
 
 fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(
@@ -245,11 +274,20 @@ fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(
     zero_aware: bool,
     origins: Origins<'_>,
     peak: grouping_cost::Peak,
+    apple_cpu: bool,
 ) -> Option<ScalarGroups> {
     if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
         return None;
     }
-    let (unique, percent) = grouping_sample(scalars, zero_aware)?;
+    let apple_small = apple_cpu && (16384..32768).contains(&scalars.len());
+    let (unique, percent) = if apple_small
+        && std::env::var("ZOPRO_CPU_SMALL_GROUPS").as_deref() != Ok("0")
+    {
+        // Faster batched affine kernels can benefit from lighter compaction.
+        sample_with_cutoff(scalars, zero_aware, 90)
+    } else {
+        grouping_sample(scalars, zero_aware)
+    }?;
     if EXCLUSIVE
         && (1024..65536).contains(&scalars.len())
         && std::env::var("ZOPRO_CPU_GROUP_DIVERSITY").as_deref() == Ok("1")
@@ -273,9 +311,16 @@ fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(
     // Bound the initial allocation by the sample and by the grouping
     // cutoff. Small high-diversity inputs otherwise grow and rehash the
     // entire table several times before either succeeding or declining.
+    let reserve_groups = || {
+        if apple_cpu && (16384..65536).contains(&scalars.len()) {
+            std::env::var("ZOPRO_CPU_RESERVE_GROUPS").as_deref() != Ok("0")
+        } else {
+            crate::simd::cpu_option("ZOPRO_CPU_RESERVE_GROUPS")
+        }
+    };
     let capacity = if SERIAL_B2 {
         scalars.len().div_ceil(3).min(scalars.len() * percent / 100)
-    } else if crate::simd::cpu_option("ZOPRO_CPU_RESERVE_GROUPS") {
+    } else if reserve_groups() {
         (unique.len() * 16)
             .min(scalars.len() * percent / 100)
             .min(32768)

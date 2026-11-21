@@ -226,8 +226,13 @@ pub(super) fn prepare_apple_k(
     bases: &[zopro_bn254::G1Affine],
     scalars: &[Fr],
     accepted_groups: std::ops::Range<usize>,
+    apple_groups: bool,
 ) -> Option<PreparedAppleK> {
-    let mut groups = group_witness_for::<zopro_bn254::G1Config>(scalars)?;
+    let mut groups = if apple_groups {
+        grouping::group_apple_cpu_witness::<zopro_bn254::G1Config, false>(scalars)
+    } else {
+        group_witness_for::<zopro_bn254::G1Config>(scalars)
+    }?;
     if !accepted_groups.contains(&groups.values.len()) {
         return None;
     }
@@ -266,10 +271,18 @@ pub(super) fn msm_g1_witness(
     if !borrowed_scalar::enabled() || !crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
         return msm_canonical(bases, words);
     }
-    let Some(mut groups) = grouping::groups_with_diversity_check::<zopro_bn254::G1Config>(words)
+    let Some(groups) = grouping::groups_with_diversity_check::<zopro_bn254::G1Config>(words)
     else {
         return msm_raw(bases, words);
     };
+    g1_witness_grouped(bases, groups)
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn g1_witness_grouped(
+    bases: &[zopro_bn254::G1Affine],
+    mut groups: ScalarGroups,
+) -> zopro_bn254::G1Projective {
     if !(1024..32768).contains(&groups.values.len()) {
         return msm_grouped(bases, &groups);
     }
@@ -278,6 +291,22 @@ pub(super) fn msm_g1_witness(
     let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
     groups.values.par_iter_mut().for_each(|s| *s = g2_phi::phi_split(*s));
     g2_phi::witness_g1_msm(&points, &groups.values)
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn apple_a_from_fr(
+    bases: &[zopro_bn254::G1Affine],
+    scalars: &mut [Fr],
+) -> zopro_bn254::G1Projective {
+    if let Some(groups) = grouping::group_apple_cpu_witness::<zopro_bn254::G1Config, true>(scalars) {
+        if borrowed_scalar::enabled()
+            && std::env::var("ZOPRO_CPU_WITNESS_G1_ENDO").as_deref() != Ok("0")
+        {
+            return g1_witness_grouped(bases, groups);
+        }
+        return msm_grouped(bases, &groups);
+    }
+    msm_raw(bases, canonical(scalars))
 }
 
 pub(super) fn msm_grouped<C: CurveConfig>(
@@ -2165,6 +2194,27 @@ pub(super) fn g2_query_exclusive(
     let groups = (grouping && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
         .then(|| grouping::groups_with_diversity_check::<zopro_bn254::G2Config>(words))
         .flatten();
+    g2_exclusive_with_groups(bases, groups, || words)
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+pub(super) fn apple_b2_from_fr(
+    bases: &[zopro_bn254::G2Affine],
+    scalars: &mut [Fr],
+    grouping: bool,
+) -> zopro_bn254::G2Projective {
+    assert_eq!(bases.len(), scalars.len());
+    let groups = grouping
+        .then(|| grouping::group_apple_cpu_witness::<zopro_bn254::G2Config, true>(scalars))
+        .flatten();
+    g2_exclusive_with_groups(bases, groups, || canonical_exclusive(scalars))
+}
+
+fn g2_exclusive_with_groups<'a>(
+    bases: &[zopro_bn254::G2Affine],
+    groups: Option<ScalarGroups>,
+    words: impl FnOnce() -> &'a mut [[u64; 4]],
+) -> zopro_bn254::G2Projective {
     #[cfg(any(
         all(target_os = "macos", target_arch = "aarch64"),
         all(
@@ -2201,11 +2251,11 @@ pub(super) fn g2_query_exclusive(
             let points = crate::msm::group_affine(bases, &g.order, &g.starts, &g.counts);
             return compute(&points, &mut g.values);
         }
-        return compute(bases, words);
+        return compute(bases, words());
     }
     match groups {
         Some(g) => crate::msm_grouped_b2(bases, &g),
-        None => crate::msm_raw_b2(bases, words),
+        None => crate::msm_raw_b2(bases, words()),
     }
 }
 #[cfg(test)]
