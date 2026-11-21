@@ -9,7 +9,7 @@
 //! window touches the bases once, in order, and its bucket array.
 use crate::msm::{BatchAdd, BatchInverse};
 use rayon::prelude::*;
-use zopro_bn254::{Affine, CurveConfig, Field, Fr, Projective};
+use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fr, Projective};
 pub(super) mod borrowed_pending;
 mod grouping;
 mod grouping_cost;
@@ -888,7 +888,7 @@ where
     queue: Vec<(u32, Affine<C>)>,
     /// The batch inversion's scratch.
     denominators: Vec<C::Base>,
-    prefixes: Vec<C::Base>,
+    prefixes: Vec<<C::Base as BatchInverse>::Product>,
     packed: BatchAdd<C>,
     use_packed: bool,
     defer_sign: bool,
@@ -993,18 +993,21 @@ where
         }
         self.denominators.clear();
         self.prefixes.clear();
-        let mut product = C::Base::ONE;
+        // G2 uses the denominators' norms so its batch also inverts in Fq.
+        let mut product = Fq::ONE;
         for (bucket, point) in &self.batch {
             let denominator = point.x - self.affine[*bucket as usize].x;
-            self.prefixes.push(product);
-            product *= denominator;
+            self.prefixes
+                .push(C::Base::prefix(&mut product, denominator));
             self.denominators.push(denominator);
         }
         let mut inverse = product.inverse().expect("distinct x in a batch");
         for j in (0..self.batch.len()).rev() {
             let (bucket, point) = self.batch[j];
-            let lambda_denominator = inverse * self.prefixes[j];
-            inverse = inverse * self.denominators[j];
+            let denominator = self.denominators[j];
+            let mut prefix = self.prefixes[j];
+            C::Base::reverse(&mut inverse, denominator, &mut prefix);
+            let lambda_denominator = C::Base::denominator_inverse(denominator, prefix);
             let current = &mut self.affine[bucket as usize];
             let lambda = (point.y - current.y) * lambda_denominator;
             let x = lambda.square() - current.x - point.x;
