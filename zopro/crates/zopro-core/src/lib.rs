@@ -736,7 +736,10 @@ impl GpuBuilder {
         // B1 and B2 can reuse the same sorted runs and must share a width.
         // On wide Apple silicon hosts, fewer buckets make small G1 queries
         // cheaper to plan and combine on the CPU.
-        let width = if wide_apple {
+        let width = if self.domain <= (1 << 16) && matches!(which, 0 | 2 | 3) && fast_ios_metal() {
+            // Smaller bucket tables reduce host work on short phone proofs.
+            Some(8)
+        } else if wide_apple {
             match (self.domain, which) {
                 (32768, 0 | 2 | 3) => Some(9),
                 (65536, 0 | 2) if short_quotient_with_large_g2 => Some(9),
