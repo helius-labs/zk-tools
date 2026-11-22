@@ -54,6 +54,43 @@ inline xyzz_t<fp_t> unpack_point(xyzz_t<fp29> result) {
           fp29_unpack(result.zz), fp29_unpack(result.zzz)};
 }
 
+// Pick a lower bound on the number of moduli in a - b - 2*c + 3*q.
+// The low limbs contribute a carry in (-3, 4), and each subtracted
+// modulus can contribute up to one more. The result lies in [0, 2*q).
+inline fp29 fp29_sub_two(fp29 a, fp29 b, fp29 c) {
+  const int top = int(a.v[8]) - int(b.v[8]) - 2 * int(c.v[8]);
+  const int q = int(FP29_Q[8]);
+  const int moduli = int(top < 6) + int(top < 6-q) + int(top < 6-2*q);
+  fp29 result;
+  int carry = 0;
+#pragma clang loop unroll(full)
+  for (uint i = 0; i < 9; ++i) {
+    const int digit = int(a.v[i]) - int(b.v[i]) - 2 * int(c.v[i])
+        + moduli * int(FP29_Q[i]) + carry;
+    result.v[i] = uint(digit) & FP29_MASK;
+    carry = digit >> 29;
+  }
+  return result.v[8] < FP29_Q[8] ? result : fp29_reduce(result);
+}
+
+inline xyzz_t<fp29> radix29_add_mixed(xyzz_t<fp29> p, affine_t<fp29> q) {
+  if (affine_is_infinity(q))
+    return p;
+  if (xyzz_is_infinity(p))
+    return xyzz_from_affine(q);
+  const fp29 dx = e_sub(e_mul(q.x, p.zz), p.x);
+  const fp29 dy = e_sub(e_mul(q.y, p.zzz), p.y);
+  if (e_is_zero(dx))
+    return e_is_zero(dy) ? xyzz_double(p) : xyzz_infinity<fp29>();
+  const fp29 pp = e_square(dx);
+  const fp29 ppp = e_mul(dx, pp);
+  const fp29 q2 = e_mul(p.x, pp);
+  const fp29 x = fp29_sub_two(e_square(dy), ppp, q2);
+  const fp29 delta = e_sub(q2, x);
+  const fp29 y = e_sub(e_mul(delta, dy), e_mul(p.y, ppp));
+  return {x, y, e_mul(p.zz, pp), e_mul(p.zzz, ppp)};
+}
+
 inline void radix29_first_shard(device const affine_t<fp_t> *bases, device const uint *sorted,
                                 device const uint *start, device const uint *count,
                                 device const uint *dst, device xyzz_t<fp_t> *out, uint shard) {
@@ -66,7 +103,7 @@ inline void radix29_first_shard(device const affine_t<fp_t> *bases, device const
     ++i;
   }
   for (; i < end; ++i)
-    acc = xyzz_add_mixed(acc, pack_point(signed_base<fp_t>(bases, sorted[i])));
+    acc = radix29_add_mixed(acc, pack_point(signed_base<fp_t>(bases, sorted[i])));
   out[dst[shard]] = unpack_point(acc);
 }
 
