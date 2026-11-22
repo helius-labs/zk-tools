@@ -18,6 +18,26 @@ A value requires three fresh processes. A dash indicates an incomplete measureme
 | Samsung Galaxy S25 | Android 15 | AWS Device Farm, passed |
 | Apple iPhone 17e | 27.2.1 | USB, passed |
 
+## iPhone 17e Metal fused shard release across all 41 shapes
+
+The signed `cfd28e4` Metal release ran on the wired iPhone 17e with iOS 27.2.1. The PR commit `78b2087` carries the same prover source. Each shape ran in three fresh processes with the pinned Gnark key and witness. All 123 blocks verified, for 984 proofs. Each block ran eight proofs and averaged the last five prove-and-verify times for warm latency. The table reports the median of three blocks. Process start and finish thermal observations were fair (175), serious (71).
+
+Median speedup across the 41 shapes was 3.18× relative to the original wired Metal measurements from a separate session. The iPhone beat AWS c7a Zopro on 0/41 shapes, Aeglos on 0/41 shapes and Gnark on 18/41 shapes.
+
+[All 41 shapes with M5 Pro and AWS c7a comparisons](iphone-17e-cfd28e4-metal-comparison.csv) · [Raw release blocks](artifacts/iphone-17e-cfd28e4-metal-catalog.jsonl)
+
+| Shape | Original warm ms | Release warm ms | Speedup | Load ms | First response ms | Peak physical footprint MiB | Peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1×2 | 79.2 | 54.4 | 1.46× | 102.6 | 202.5 | 118.7 | 96.3 |
+| 8×2 | 799.3 | 169.8 | 4.71× | 163.0 | 384.2 | 314.1 | 325.3 |
+| 16×2 | 1401.8 | 257.4 | 5.45× | 177.6 | 464.3 | 506.1 | 575.5 |
+| 24×2 | 2063.6 | 506.8 | 4.07× | 378.3 | 879.2 | 772.9 | 884.1 |
+| 48×2 | 3886.9 | 759.6 | 5.12× | 503.7 | 1259.4 | 1339.3 | 1646.7 |
+| 49×2 | 3938.2 | 829.0 | 4.75× | 509.5 | 1260.0 | 1347.0 | 1662.9 |
+| merge-54×1 | 4116.1 | 882.7 | 4.66× | 524.2 | 1278.7 | 1367.8 | 1708.9 |
+
+In a separate paired merge-54×1 trial, the previous release `953e1d0` recorded **1107.5 ms** and `cfd28e4` recorded **745.7 ms** with 379.9 ms median paired savings. All 48 proofs verified. Candidate process peaks were 1369.2 MiB physical footprint and 1710.4 MiB RSS. All six processes reported a serious thermal state at both start and finish. [Paired merge blocks](artifacts/iphone-17e-cfd28e4-metal-merge-pairs.jsonl)
+
 ## iPhone 17e Metal tensor release across all 41 shapes
 
 The signed `953e1d0` Metal release ran on the wired iPhone 17e with iOS 27.2.1. Each shape ran in three fresh processes with the pinned Gnark key and witness. All 123 blocks verified, for 984 proofs. Each block ran eight proofs and averaged the last five prove-and-verify times for warm latency. Latency values are medians across three blocks. Memory values are medians of the per-process peaks. Process start and finish thermal observations were fair (114), serious (132).
