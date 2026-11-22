@@ -291,17 +291,27 @@ pub fn solver_image_version() -> u32 {
 /// MSM took 443, and none on older phones, whose GPUs are busy and slower
 /// at G2 than their cores.
 #[cfg(gpu)]
-fn g2_gpu_share() -> f64 {
+fn g2_gpu_share(domain: usize, points: usize) -> f64 {
     if let Some(share) = std::env::var("ZOPRO_G2_GPU_SHARE")
         .ok()
         .and_then(|v| v.parse::<f64>().ok())
     {
         return share.clamp(0.0, 1.0);
     }
+    // In these geometries CPU G2 can finish while Metal handles the
+    // quotient and G1 queries. The smallest proofs still benefit from a split.
+    let cpu_g2_overlaps = match domain {
+        65536 => (32768..36864).contains(&points) || (49152..65536).contains(&points),
+        131072 => (61440..67584).contains(&points),
+        _ => false,
+    };
     match std::env::var("ZOPRO_G2").as_deref() {
         Ok("gpu") => 1.0,
         Ok("cpu") => 0.0,
         _ if cfg!(target_os = "macos") => 0.0,
+        _ if fast_ios_metal()
+            && cpu_g2_overlaps
+            && std::env::var("ZOPRO_GPU_QUOTIENT").as_deref() != Ok("0") => 0.0,
         _ if zopro_metal::fast_gpu() => 0.25,
         _ => 0.0,
     }
@@ -768,7 +778,7 @@ impl GpuBuilder {
     }
     /// Upload the GPU's prefix of the G2 query and return its length.
     fn g2(&mut self, bases: &[G2Affine]) -> Result<usize, String> {
-        let cut = (bases.len() as f64 * g2_gpu_share()).round() as usize;
+        let cut = (bases.len() as f64 * g2_gpu_share(self.domain, bases.len())).round() as usize;
         if cut == 0 {
             return Ok(0);
         }
