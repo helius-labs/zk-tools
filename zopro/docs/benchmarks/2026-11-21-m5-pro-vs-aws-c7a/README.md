@@ -6,6 +6,8 @@ The signed iPhone 17e release verified 1,968 proofs across all 41 shapes. Every 
 
 A paired iPhone 17e release run measured the large-domain witness and quotient improvements. The largest merge warmed from **1.28 s to 1.03 s** in the paired run. Its first response rose from **1.32 s to 1.66 s**. [Paired iPhone release results](MOBILE.md#iphone-17e-bounded-witness-solving-release-comparison)
 
+The shared Metal quotient buffer reduced median peak physical footprint by **73–78 MiB** and median peak RSS by **49–69 MiB** across the three largest wired iPhone 17e shapes. The merge had a **989 ms** warm median in that run. The two transfer shapes had higher first-response times. [Shared Metal input release results](MOBILE.md#iphone-17e-shared-metal-quotient-input-comparison)
+
 The first tables record the initial M5 Pro comparison.
 
 All 41 circuit shapes from the AWS catalog have warm proof latency and peak process RSS results for M5 Pro Zopro CPU, M5 Pro Zopro Metal, and AWS Zopro, Aeglos, and Gnark.

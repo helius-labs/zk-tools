@@ -221,6 +221,28 @@ The signed control `990508c` and candidate ran on the wired iPhone 17e with the 
 
 The largest merge had 408 ms median key load in the control and 841 ms in the candidate. Its first response was 1319 ms in the control and 1661 ms in the candidate. The candidate verified 656 proofs across all 41 shapes on the M5 Pro using CPU and Metal. The iOS CPU-only build check also passed.
 
+## iPhone 17e shared Metal quotient input comparison
+
+The signed candidate `7cc2848` writes each proof’s evaluation rows directly into Metal’s shared buffer. The path applies to 2,097,152-point quotient domains on Apple family 9 when the Metal quotient and bounded witness schedule are enabled. The solver generates fresh rows for each witness and clears the domain padding before Metal reads it.
+
+The signed control `5e181e2` and candidate used the same pinned keys and witnesses on the wired iPhone 17e. Build order alternated between pairs. The three large shapes ran three Metal pairs each, and the two short controls ran two pairs per backend. All 34 process blocks verified, for 272 proofs. Thermal states were `serious`. Each block generated eight proofs and averaged the last five for warm prove-and-verify latency. The table shows medians across blocks. Paired speedup is the median of the within-pair latency ratios.
+
+[Raw paired release blocks](artifacts/iphone-17e-direct-rows-release-blocks.jsonl)
+
+| Shape | Backend | Warm ms control → candidate | Paired speedup | Faster pairs | Load ms control → candidate | First response ms control → candidate | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| 1×2 | CPU | 125.2 → 127.2 | 0.98× | 0/2 | 39.4 → 39.9 | 164.5 → 164.6 | 23.9 → 23.8 | 60.1 → 59.9 |
+| 1×2 | Metal | 59.2 → 63.4 | 0.94× | 1/2 | 105.5 → 110.3 | 208.1 → 218.6 | 118.9 → 118.8 | 96.5 → 96.5 |
+| 1×8 | CPU | 198.7 → 193.0 | 1.03× | 2/2 | 37.3 → 38.5 | 211.0 → 236.4 | 34.0 → 34.0 | 77.5 → 77.4 |
+| 1×8 | Metal | 115.5 → 112.3 | 1.03× | 1/2 | 109.5 → 110.1 | 296.5 → 285.2 | 158.2 → 157.8 | 131.5 → 131.1 |
+| 48×2 | Metal | 1243.9 → 1066.4 | 1.17× | 2/3 | 525.8 → 833.0 | 1324.2 → 1633.8 | 1410.6 → 1338.0 | 1694.3 → 1645.0 |
+| 49×2 | Metal | 1297.0 → 1140.6 | 1.36× | 2/3 | 532.1 → 831.0 | 1338.2 → 1619.3 | 1416.6 → 1342.8 | 1715.8 → 1660.0 |
+| merge-54×1 | Metal | 1351.8 → 988.9 | 1.03× | 2/3 | 853.0 → 833.4 | 1646.5 → 1642.1 | 1448.4 → 1370.2 | 1772.9 → 1703.7 |
+
+The median peak physical footprint fell by 73–78 MiB across the three large shapes. Median peak RSS fell by 49–69 MiB. The candidate verified 656 proofs across all 41 shapes on the M5 Pro using CPU and Metal. The iOS CPU-only build check passed.
+
+Median first response rose by 310 ms for 48×2 and 281 ms for 49×2. Measured key load rose by 307 ms and 299 ms respectively. The 1×2 Metal control had a 4.2 ms higher warm median and was faster in one of two pairs.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
