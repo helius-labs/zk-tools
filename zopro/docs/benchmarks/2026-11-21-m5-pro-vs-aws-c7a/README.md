@@ -1,6 +1,6 @@
 # M5 Pro and AWS C7a proof benchmarks
 
-The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Physical phone benchmarks](MOBILE.md) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Short Metal witness sorting](#parallel-sorting-for-short-metal-witness-queries) · [Smaller Metal digit chunks](#smaller-host-digit-chunks-for-narrow-metal-queries) · [Earlier Metal witness submission](#earlier-metal-witness-submission-for-narrow-queries) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
+The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Physical phone benchmarks](MOBILE.md) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Short Metal witness sorting](#parallel-sorting-for-short-metal-witness-queries) · [Smaller Metal digit chunks](#smaller-host-digit-chunks-for-narrow-metal-queries) · [Earlier Metal witness submission](#earlier-metal-witness-submission-for-narrow-queries) · [Larger narrow Metal tree batches](#larger-metal-tree-batches-for-narrow-65k-proofs) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
 
 The first tables record the initial M5 Pro comparison.
 
@@ -873,3 +873,27 @@ Gnark independently verified 144 proofs, including disabled grouping, lower work
 | 1×8 | CPU | 26.97 | 28.27 | 0.978× | 1.843× | 93.7 → 94.2 | 65.5 → 65.9 |
 
 The 1×8 CPU control measured 26.97 ms on the previous build and 28.27 ms on the new build. The scheduling change applies to Metal proofs.
+
+## Larger Metal tree batches for narrow 65K proofs
+
+Arm64 macOS defaults to a 16 MiB tree budget for the A, K, and quotient MSMs on 65,536-point domains with 32,768–49,151 G2 points and at least 16 workers. An explicit Metal tree budget takes precedence.
+
+Each comparison used seven paired blocks on the same M5 Pro. Every process verified eight proofs. Warm latency uses the last five proofs per process, and memory uses process high-water marks.
+
+Gnark independently verified 78 proofs, including a lower tree budget, lower worker counts, CPU quotient, GPU G2, a custom window width, and CPU fallback. The standalone Metal tests, Metal-enabled core tests, and iOS arm64 build check passed.
+
+[Published build](https://github.com/helius-labs/zk-tools/commit/31f25f78dada659ac97d19c587e91f9ddb023436) · [Comparison CSV](m5-metal-narrow-tree.csv) · [Raw blocks](artifacts/m5-metal-narrow-tree.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB | Peak footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1×4 | Metal | 14.50 | 13.99 | 1.043× | 2.098× | 92.6 → 92.7 | 178.4 → 178.3 |
+| 1×8 | Metal | 16.88 | 16.01 | 1.031× | 2.019× | 110.0 → 107.5 | 192.2 → 189.6 |
+| 1×2 | Metal | 11.72 | 11.63 | 1.000× | 2.226× | 94.5 → 94.4 | 169.8 → 169.7 |
+| 1×16 | Metal | 18.26 | 18.35 | 0.986× | 1.965× | 129.3 → 129.9 | 206.5 → 208.1 |
+| 2×2 | Metal | 15.58 | 15.53 | 1.003× | 2.199× | 126.7 → 127.4 | 208.5 → 209.3 |
+| 2×4 | Metal | 16.53 | 16.56 | 1.008× | 2.189× | 131.5 → 130.6 | 212.0 → 211.2 |
+| 2×8 | Metal | 21.41 | 21.47 | 1.002× | 1.980× | 151.1 → 150.9 | 232.3 → 232.0 |
+| 2×16 | Metal | 23.72 | 23.87 | 1.005× | 2.051× | 177.2 → 176.9 | 255.1 → 254.9 |
+| 1×8 | CPU | 25.23 | 25.02 | 1.014× | 1.915× | 94.5 → 93.5 | 66.3 → 65.2 |
+
+The 1×16 and 2×8 Metal controls measured 1.965× and 1.980× the original, respectively.
