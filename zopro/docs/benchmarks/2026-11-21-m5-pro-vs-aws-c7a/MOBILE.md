@@ -71,6 +71,23 @@ All 24 process blocks passed native verification. Each block ran eight proofs an
 
 The largest merge had within-pair speed ratios from 0.64× to 1.04×. Peak RSS and physical footprint changed by less than 2 MiB for that shape.
 
+## iPhone 17e paired short-proof window comparison
+
+Two signed Metal release builds ran over USB on iPhone 17e with iOS 27.2.1. `5102771` is the device recoding build. `8220b63` caps the Metal G1 A, K, and quotient windows at eight bits on short proofs. Both builds use the same pinned keys and witnesses.
+
+All 24 process blocks passed native verification. Each block ran eight proofs and averaged the last five. The table reports the median of three blocks per build, and the speedup column uses the median of the within-block ratios. The app reported thermal state `serious` before and after the blocks.
+
+[Raw paired short-proof window blocks](artifacts/iphone-17e-short-window-blocks.jsonl)
+
+| Shape | Warm ms control → candidate | Speedup | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---:|---:|---:|---:|
+| 1×2 | 78.9 → 55.1 | 1.35× | 146.4 → 118.8 | 111.2 → 96.3 |
+| 1×4 | 92.3 → 85.7 | 1.08× | 158.8 → 144.7 | 127.7 → 115.6 |
+| 2×2 | 113.1 → 106.4 | 1.09× | 183.7 → 171.5 | 156.1 → 145.7 |
+| 2×4 | 114.2 → 115.1 | 0.99× | 188.0 → 175.1 | 161.4 → 150.4 |
+
+The host reduction and short-proof window runs each measured one change against `5102771`.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
