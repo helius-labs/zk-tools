@@ -247,7 +247,7 @@ pub(super) fn balanced_msm(bases: &[G2Affine], short: &mut [[u64; 4]]) -> G2Proj
         && std::env::var("ZOPRO_CPU_G2_SCALAR_MERGE").as_deref() != Ok("0")
         && std::env::var("ZOPRO_CPU_G2_THREE_PARTS").as_deref() != Ok("0")
     {
-        return three_part_msm(bases, short);
+        return three_part_msm(bases, short, false);
     }
     two_part_msm(bases, short)
 }
@@ -355,12 +355,28 @@ fn schedule_windows<P: Send, R: Send + Sync, const PARTS: usize>(
 pub(super) fn three_part_msm<B: std::borrow::Borrow<G2Affine> + Sync>(
     bases: &[B],
     short: &mut [[u64; 4]],
+    larger_batches: bool,
 ) -> G2Projective {
     assert_eq!(bases.len(), short.len());
+    // Only streaming range fills hold these arrays. Charge the largest
+    // extra batch for each worker before increasing its capacity.
+    let reserve = larger_batches.then(|| {
+        use std::mem::size_of;
+        use zopro_bn254::Fq2;
+        let extra = (batch_size(13) * 2 / 3).div_ceil(4);
+        let bytes = extra * rayon::current_num_threads()
+            * (2 * size_of::<(u32, &G2Affine)>() + size_of::<Fq2>() + size_of::<[Fq; 2]>());
+        crate::preparation::Reservation::scalar_grouping(Some(bytes))
+    }).flatten();
+    #[cfg(feature = "trace")]
+    if reserve.is_some() {
+        log::info!("ZOPRO_TRACE cpu-g2-larger-affine-batches");
+    }
     short.par_iter_mut().for_each(|s| *s = phi_split(*s));
     let chunk = bases.len().div_ceil(3);
     let fill = |offset: usize, width: usize, i: usize| {
         let size = batch_size(width) * 2 / 3;
+        let size = size + if reserve.is_some() { size.div_ceil(4) } else { 0 };
         let start = (i * chunk).min(bases.len());
         let end = ((i + 1) * chunk).min(bases.len());
         let points = &bases[start..end];

@@ -2355,7 +2355,7 @@ fn apple_b2_borrowed_groups(
             summed.next().expect("non-singleton sum")
         }
     }).collect();
-    g2_phi::three_part_msm(&points, &mut groups.values)
+    g2_phi::three_part_msm(&points, &mut groups.values, false)
 }
 
 fn g2_exclusive_with_groups<'a>(
@@ -2383,6 +2383,8 @@ fn g2_exclusive_with_groups<'a>(
     ))]
     if (1024..limit).contains(&bases.len()) {
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        let larger_batches = (61440..65536).contains(&bases.len());
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         let compute = |bases: &[zopro_bn254::G2Affine], words: &mut [[u64; 4]]| {
             let workers = rayon::current_num_threads();
             let balanced_limit = if three_parts { limit } else { 1 << 15 };
@@ -2394,7 +2396,7 @@ fn g2_exclusive_with_groups<'a>(
                 #[cfg(feature = "trace")]
                 log::info!("ZOPRO_TRACE cpu-g2-balanced-windows");
                 if three_parts {
-                    return g2_phi::three_part_msm(bases, words);
+                    return g2_phi::three_part_msm(bases, words, larger_batches && workers == 5);
                 }
                 return g2_phi::balanced_msm(bases, words);
             }
