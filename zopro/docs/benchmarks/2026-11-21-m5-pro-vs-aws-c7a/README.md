@@ -1,6 +1,6 @@
 # M5 Pro and AWS C7a proof benchmarks
 
-The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build)
+The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs)
 
 The first tables record the initial M5 Pro comparison.
 
@@ -708,3 +708,28 @@ Gnark independently verified 161 proofs across concurrent requests, large shapes
 | merge-8×1 | 225.2 | 269.8 | 324.5 | 2339.6 | 700.2 | 128.1 | 321.2 |
 | merge-24×1 | 591.4 | 781.3 | 929.5 | 6517.5 | 2300.6 | 300.6 | 788.4 |
 | merge-54×1 | 1186.3 | 1606.8 | 1725.7 | 12878.1 | 4907.1 | 557.8 | 1456.5 |
+
+## Metal witness MSMs for shorter 131,072-point proofs
+
+On arm64 macOS with at least 16 workers, A and K use an 8-bit window and a 16 MiB default tree budget for the 131,072-point domain with fewer than 90,112 G2 points. A wider tree batch offsets the extra windows of the narrower digit. The user overrides still apply.
+
+Each shape and backend used five paired blocks of eight verified proofs per build. Gnark independently verified 75 proofs covering concurrent requests, lower worker counts, Metal-to-CPU fallback, and window and quotient overrides. The native and iOS arm64 checks passed.
+
+[Published build](https://github.com/helius-labs/zk-tools/commit/c153b31e7c3f991ad80ecc1524c1cf03b8c92ad3) · [Comparison CSV](m5-metal-short-tree.csv) · [Raw blocks](artifacts/m5-metal-short-tree.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB | Peak footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 2×8 | Metal | 21.93 | 20.68 | 1.058× | 2.066× | 152.3 → 150.8 | 233.6 → 232.0 |
+| 2×16 | Metal | 24.03 | 23.89 | 1.008× | 2.011× | 177.4 → 177.1 | 249.8 → 255.2 |
+| 3×2 | Metal | 22.64 | 22.23 | 1.028× | 2.130× | 153.0 → 152.3 | 229.6 → 232.3 |
+| 3×4 | Metal | 23.43 | 22.88 | 1.028× | 2.077× | 157.2 → 157.4 | 232.6 → 236.8 |
+| 3×8 | Metal | 23.61 | 23.22 | 1.016× | 2.144× | 172.1 → 171.8 | 243.5 → 249.8 |
+| 4×2 | Metal | 23.66 | 23.71 | 0.998× | 2.263× | 176.0 → 176.0 | 250.0 → 250.1 |
+| 4×4 | Metal | 23.38 | 23.53 | 0.992× | 2.325× | 181.3 → 182.2 | 253.7 → 254.5 |
+| 4×8 | Metal | 24.34 | 23.78 | 1.020× | 2.513× | 193.1 → 193.0 | 261.8 → 261.7 |
+| 4×16 | Metal | 27.97 | 27.62 | 1.017× | 1.983× | 218.4 → 218.6 | 279.9 → 280.1 |
+| 5×2 | Metal | 24.62 | 25.11 | 0.976× | 2.659× | 198.2 → 198.4 | 264.7 → 264.9 |
+| 5×4 | Metal | 26.63 | 27.12 | 0.982× | 2.508× | 202.7 → 202.8 | 267.7 → 267.8 |
+| 1×16 | Metal | 22.19 | 21.91 | 1.005× | 1.670× | 130.3 → 130.2 | 206.0 → 206.0 |
+| 5×8 | Metal | 33.04 | 33.20 | 0.989× | 2.061× | 245.4 → 245.5 | 326.7 → 325.7 |
+| 2×8 | CPU | 42.95 | 46.57 | 0.979× | 1.757× | 123.1 → 124.9 | 81.1 → 82.9 |
