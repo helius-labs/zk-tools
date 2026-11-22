@@ -333,13 +333,42 @@ where
 pub(super) fn try_apple_compact_g2(
     bases: &[zopro_bn254::G2Affine],
     scalars: &[Fr],
+    borrow_singletons: bool,
 ) -> Option<zopro_bn254::G2Projective> {
     if !(32768..65536).contains(&bases.len())
         || std::env::var("ZOPRO_METAL_COMPACT_G2").as_deref() == Ok("0")
     {
         return None;
     }
-    let mut groups = group_witness_for::<zopro_bn254::G2Config>(scalars)?;
+    let mut groups = match group_witness_for::<zopro_bn254::G2Config>(scalars) {
+        Some(groups) => groups,
+        None if borrow_singletons => {
+            // The scalar classifier already declined this query.
+            let words: Vec<_> = scalars.par_iter().map(Fr::to_canonical).collect();
+            return Some(msm_raw(bases, &words));
+        }
+        None => return None,
+    };
+    if borrow_singletons
+        && (16384..49152).contains(&groups.values.len())
+        && borrowed_scalar::enabled()
+    {
+        // The grouping reservation covers the reduced points and the tree.
+        // The borrowed route also builds compact index lists and references.
+        let extra = || {
+            let duplicates = groups.order.len().checked_sub(groups.values.len())?;
+            let starts = grouping_cost::vector::<usize>(duplicates.checked_add(1)?, false)?;
+            let counts = grouping_cost::vector::<usize>(duplicates, false)?;
+            let order = grouping_cost::vector::<u32>(duplicates.checked_mul(2)?, false)?;
+            let points = grouping_cost::vector::<&zopro_bn254::G2Affine>(groups.values.len(), false)?;
+            starts.checked_add(counts)?.checked_add(order)?.checked_add(points)
+        };
+        if let Some(_reservation) = grouping_cost::reserve(scalars.len(), extra()) {
+            #[cfg(feature = "trace")]
+            log::info!("ZOPRO_TRACE metal-borrowed-g2");
+            return Some(apple_b2_borrowed_groups(bases, groups));
+        }
+    }
     if !((1 << 14)..(1 << 15)).contains(&groups.values.len())
         || !borrowed_scalar::enabled()
         || std::env::var("ZOPRO_CPU_G2_BALANCED").as_deref() == Ok("0")

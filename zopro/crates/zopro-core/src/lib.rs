@@ -711,12 +711,16 @@ impl GpuBuilder {
             && self.domain == (1 << 17)
             && self.b2_points < 90112
             && matches!(which, 0 | 2);
+        let short_quotient_with_large_g2 = wide_apple
+            && self.domain == (1 << 16)
+            && (57344..65536).contains(&self.b2_points);
         // B1 and B2 can reuse the same sorted runs and must share a width.
         // On wide Apple silicon hosts, fewer buckets make small G1 queries
         // cheaper to plan and combine on the CPU.
         let width = if wide_apple {
             match (self.domain, which) {
                 (32768, 0 | 2 | 3) => Some(9),
+                (65536, 0 | 2) if short_quotient_with_large_g2 => Some(9),
                 (65536, 0 | 2 | 3) => Some(8),
                 // The dense quotient benefits from fewer passes over its points.
                 (262144, 3) => Some(11),
@@ -727,8 +731,8 @@ impl GpuBuilder {
             None
         };
         let scratch = self.scratch.clone();
-        let (msm, _) = if short_witness {
-            // A wider tree batch offsets the extra windows of the narrower digit.
+        let (msm, _) = if short_witness || (short_quotient_with_large_g2 && which == 3) {
+            // Process more short-window groups in the shared tree buffers.
             zopro_metal::G1Msm::new_in_with_tree_budget(bases, scratch, 8, Some(16))?
         } else if let Some(cap) = width {
             zopro_metal::G1Msm::new_in_with_width_cap(bases, scratch, cap)?
@@ -2116,6 +2120,14 @@ impl Key {
             .then(|| apple_msm_pool(12))
             .flatten();
             let compact_overlap = compact_pool.is_some();
+            #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+            let borrow_large_g2 = group
+                && wide_apple
+                && self.domain == (1 << 16)
+                && self.gpu_quotient
+                && gpu.b2.is_none()
+                && (53248..65536).contains(&sb.len())
+                && msm_affine::apple_g2_three_parts_enabled();
             let prepare_g2 = group
                 && self.domain == (1 << 15)
                 && self.gpu_quotient
@@ -2295,9 +2307,14 @@ impl Key {
                                 )
                             } else {
                                 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-                                if compact_overlap && self.exclusive_g2_grouping && affine_msm() {
+                                if (compact_overlap || borrow_large_g2)
+                                    && self.exclusive_g2_grouping
+                                    && affine_msm()
+                                {
                                     if let Some(sum) =
-                                        msm_affine::try_apple_compact_g2(bases, &sb[cut..])
+                                        msm_affine::try_apple_compact_g2(
+                                            bases, &sb[cut..], borrow_large_g2,
+                                        )
                                     {
                                         return sum;
                                     }
