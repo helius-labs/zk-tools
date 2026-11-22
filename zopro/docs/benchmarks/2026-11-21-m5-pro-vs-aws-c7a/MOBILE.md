@@ -178,6 +178,31 @@ The final build `990508c` preserves the benchmarked default Metal library and th
 
 The default Metal reference tests passed on the M5 Pro. Forcing size optimization reproduced the G1 and G2 reference-test failures seen in the control.
 
+## iPhone 17e bounded witness solving and quotient window trial
+
+The signed experimental build `cd0ca01` ran on the wired iPhone 17e with the original pinned keys and witnesses. The control used the release settings of a 13-bit quotient window cap and the existing witness solver. The trial used a bounded schedule for recognized Poseidon operations and a 15-bit quotient window cap on merge-54×1 and 49×2. Each setting changed independently within the same build. The release results are in the full-catalog section above.
+
+Each setting ran three fresh processes. All 36 process blocks verified, for 288 proofs. The phone reported thermal state `serious`. Warm latency averages the last five of eight prove-and-verify times per process. The table uses medians across processes. Paired speedup is the median of the within-block ratios to the control.
+
+[Raw paired solver and quotient trial blocks](artifacts/iphone-17e-bounded-quotient-trial-blocks.jsonl)
+
+| Shape | Quotient window cap | Bounded witness schedule | Warm ms | Paired speedup | Faster pairs | Load ms | Peak physical footprint MiB | Peak RSS MiB |
+|---|---:|---|---:|---:|---:|---:|---:|---:|
+| merge-54×1 | 13 | Off | 1572.5 | — | — | 382.3 | 1449.3 | 1741.2 |
+| merge-54×1 | 13 | On | 1467.5 | 1.05× | 3/3 | 706.6 | 1468.5 | 1743.8 |
+| merge-54×1 | 15 | Off | 1544.8 | 1.02× | 2/3 | 378.2 | 1413.3 | 1766.0 |
+| merge-54×1 | 15 | On | 1306.4 | 1.20× | 3/3 | 708.2 | 1447.7 | 1773.5 |
+| 49×2 | 13 | Off | 1720.0 | — | — | 358.7 | 1381.2 | 1685.3 |
+| 49×2 | 13 | On | 1638.0 | 1.05× | 3/3 | 665.4 | 1434.2 | 1690.1 |
+| 49×2 | 15 | Off | 1730.9 | 1.00× | 1/3 | 358.7 | 1398.8 | 1707.7 |
+| 49×2 | 15 | On | 1559.4 | 1.11× | 3/3 | 679.4 | 1414.2 | 1715.3 |
+| 24×2 | 13 | Off | 544.2 | — | — | 241.5 | 774.1 | 885.2 |
+| 24×2 | 13 | On | 791.3 | 1.08× | 2/3 | 405.0 | 775.9 | 887.5 |
+| 8×2 | 13 | Off | 180.5 | — | — | 151.5 | 323.3 | 324.8 |
+| 8×2 | 13 | On | 165.2 | 1.07× | 3/3 | 207.8 | 323.5 | 326.3 |
+
+The combined settings improved warm latency in all three pairs for each large shape. Median key load for merge-54×1 rose from 382 to 708 ms and peak RSS rose by 32 MiB. For 24×2, the bounded schedule was faster in two pairs, and its median warm latency rose from 544 to 791 ms.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
