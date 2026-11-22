@@ -311,7 +311,14 @@ pub(super) fn build_with_workspace(
         order: vec![0; n],
         reads: Vec::with_capacity(max_reads),
     };
-    let pack_tasks = std::env::var("ZOPRO_SOLVE_PACK_TASKS").as_deref() == Ok("1");
+    let pack_tasks = match std::env::var("ZOPRO_SOLVE_PACK_TASKS") {
+        Ok(value) => value == "1",
+        Err(std::env::VarError::NotPresent) => {
+            cfg!(all(target_os = "macos", target_arch = "aarch64"))
+                && plan.n_constraints > crate::preparation::MAX_DOMAIN
+        }
+        Err(std::env::VarError::NotUnicode(_)) => false,
+    };
     let epochs = scratch.bands(plan, None, epochs, &mut reservation, pack_tasks)?;
     let eligible = if local == 0 {
         0

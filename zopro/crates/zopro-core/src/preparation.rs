@@ -133,24 +133,30 @@ impl Reservation {
     }
 
     pub(crate) fn acquire(domain: usize, peak: Option<usize>) -> Option<Self> {
-        Self::acquire_with_headroom(domain, peak, headroom)
+        Self::acquire_with_headroom(domain, MAX_DOMAIN, peak, headroom)
     }
 
     #[cfg(zopro_bounded_schedule)]
     pub(crate) fn acquire_solver_schedule(domain: usize, peak: Option<usize>) -> Option<Self> {
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
-        let available = macos_free_memory;
+        {
+            // Solver indices for the next quotient domain still fit the
+            // shared byte budget. Admit them against live free pages.
+            Self::acquire_with_headroom(domain, 2 * MAX_DOMAIN, peak, macos_free_memory)
+        }
         #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
-        let available = headroom;
-        Self::acquire_with_headroom(domain, peak, available)
+        {
+            Self::acquire_with_headroom(domain, MAX_DOMAIN, peak, headroom)
+        }
     }
 
     fn acquire_with_headroom(
         domain: usize,
+        max_domain: usize,
         peak: Option<usize>,
         available: fn() -> Option<usize>,
     ) -> Option<Self> {
-        if domain > MAX_DOMAIN {
+        if domain > max_domain {
             return None;
         }
         let peak = peak?;
