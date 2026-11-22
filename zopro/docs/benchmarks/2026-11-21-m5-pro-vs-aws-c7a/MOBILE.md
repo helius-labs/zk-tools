@@ -108,6 +108,28 @@ All 28 process blocks passed native verification. Each block ran eight proofs an
 
 The smallest shape was faster in both pairs and used 27.6 MiB less peak physical footprint. For 8×2, 24×2, and the largest merge, the candidate was faster in one block and slower in the other.
 
+## iPhone 17e paired G2 placement comparison
+
+Two signed Metal release builds ran over USB on an iPhone 17e with iOS 27.2.1. `1ed3005` is the combined host bucket reduction and short windows build. `c9dcafe` runs G2 on the CPU within the measured short-query size ranges on Apple family 9. Metal still computes the quotient and G1 queries. Both builds used the same pinned keys and witnesses.
+
+All 42 fresh process blocks passed native verification. Each block ran eight proofs and averaged the last five for warm latency. The table shows medians of three blocks per build. The speedup column uses the median of the three within-block ratios. The recorded thermal states were `serious`.
+
+[Raw paired G2 placement blocks](artifacts/iphone-17e-short-g2-release-blocks.jsonl)
+
+| Shape | Warm ms control → candidate | Paired speedup | Load ms control → candidate | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---:|---:|---:|---:|---:|
+| 1×2 | 54.6 → 54.4 | 1.01× | 96.9 → 98.0 | 118.8 → 118.9 | 96.4 → 96.3 |
+| 1×4 | 89.7 → 70.2 | 1.28× | 97.9 → 75.1 | 144.8 → 105.1 | 115.8 → 109.7 |
+| 1×8 | 112.7 → 117.3 | 0.97× | 99.8 → 99.5 | 158.2 → 158.2 | 131.5 → 131.4 |
+| 1×16 | 153.5 → 123.8 | 1.26× | 104.9 → 73.8 | 178.0 → 142.4 | 156.8 → 155.2 |
+| 2×2 | 109.7 → 88.9 | 1.26× | 101.8 → 74.3 | 171.5 → 129.9 | 145.7 → 137.9 |
+| 2×4 | 115.9 → 94.5 | 1.25× | 103.8 → 74.1 | 175.2 → 133.3 | 150.7 → 142.6 |
+| 2×8 | 154.1 → 136.5 | 1.15× | 115.0 → 87.5 | 222.1 → 180.4 | 202.9 → 195.1 |
+
+All five shapes selected for CPU G2 were faster in every pair and used about 36–42 MiB less peak physical memory. The 1×2 and 1×8 controls exercised the GPU split. The 1×8 control had a 4.6 ms higher median in the candidate build.
+
+The candidate also passed 656 native proof verifications on the M5 Pro, with eight CPU and eight Metal proofs for every pinned shape.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
