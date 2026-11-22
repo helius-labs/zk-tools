@@ -271,6 +271,34 @@ In the separate release runs, 49×2 had a higher median warm latency and a lower
 
 The release candidate verified 656 proofs on M5 Pro, with eight CPU and eight Metal proofs per shape across all 41 shapes. The iOS CPU-only build check passed.
 
+## iPhone 17e Metal tensor FFT comparison
+
+The signed `953e1d0` release accelerates the 512-element unit-stride pass of the quotient FFT on iPhone GPU family Apple10 with an iOS 26.4 or newer Metal toolchain. It uses exact integer tensor products for shared twiddles and reduces their results in Fr. The two directions together store 32 KiB of key-only twiddles and tensor weights. The candidate applies to 2,097,152-point quotient domains.
+
+The signed `92eb4a9` control and candidate used identical pinned inputs on the wired iPhone 17e. All 26 process blocks passed verification, for 208 proofs. Build order alternated between pairs. Thermal states were `serious`. Each block averaged its last five of eight proofs for warm latency. The table reports block medians and the median of the within-pair latency ratios.
+
+[Raw paired release blocks](artifacts/iphone-17e-tensor-fft-release-blocks.jsonl)
+
+| Shape | Warm ms control → candidate | Paired speedup | Faster pairs | Load ms control → candidate | First response ms control → candidate | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1×2 | 56.8 → 59.4 | 0.96× | 0/2 | 109.7 → 109.7 | 210.8 → 214.9 | 118.9 → 119.0 | 96.7 → 96.7 |
+| 1×8 | 112.6 → 115.9 | 0.97× | 0/2 | 113.0 → 113.4 | 288.1 → 289.1 | 158.6 → 158.2 | 132.1 → 131.6 |
+| 48×2 | 1120.1 → 826.8 | 1.02× | 2/3 | 519.9 → 819.7 | 1292.3 → 1575.1 | 1335.8 → 1340.1 | 1643.9 → 1647.7 |
+| 49×2 | 1170.5 → 794.9 | 1.43× | 3/3 | 852.3 → 836.8 | 1618.8 → 1603.1 | 1347.4 → 1353.6 | 1664.2 → 1662.2 |
+| merge-54×1 | 880.8 → 776.1 | 1.13× | 3/3 | 545.3 → 568.2 | 1316.9 → 1326.7 | 1369.9 → 1363.6 | 1711.0 → 1707.5 |
+
+The instrumented build `0e87beb` alternated scalar and tensor FFTs after loading one key per process, with shard reordering active in both paths. Each proof regenerated its witness rows. Separately captured command-buffer timestamps measure GPU quotient time. [Raw same-process blocks](artifacts/iphone-17e-tensor-fft-clock-pairs.jsonl)
+
+| Shape | Faster GPU quotient pairs | Median GPU quotient savings ms | Faster full-proof pairs | Median paired full-proof speedup | Median full-proof savings ms |
+|---|---:|---:|---:|---:|---:|
+| 48×2 | 24/24 | 18.0 | 12/24 | 0.999× | -1.3 |
+| 49×2 | 23/24 | 19.0 | 23/24 | 1.065× | 66.7 |
+| merge-54×1 | 23/24 | 25.1 | 22/24 | 1.042× | 41.1 |
+
+The signed candidate’s merge median was 776.1 ms. The earlier iPhone baseline for this shape was 4116.1 ms in a separate run. For 48×2, median key load went from 519.9 to 819.7 ms and median first response went from 1292.3 to 1575.1 ms. Its same-process full-proof median was effectively flat.
+
+The release candidate verified 656 proofs on M5 Pro, with eight CPU and eight Metal proofs per shape across all 41 shapes. The iOS CPU-only build check passed.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
