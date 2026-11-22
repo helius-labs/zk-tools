@@ -1481,13 +1481,37 @@ impl Key {
         let derive_c = self.gpu_quotient && self.gpu.as_ref().is_some_and(|gpu| gpu.derive_c);
         #[cfg(not(gpu))]
         let derive_c = false;
-        let solver::Solution { mut w, a, b, c } = plan.solve_with_pool(
-            &frs(witness),
-            self.domain,
-            slots,
-            materialize_c && !derive_c,
-            instruction_pool,
-        )?;
+        let witness = frs(witness);
+        #[cfg(gpu)]
+        let mut direct = if omit_b && materialize_c && self.gpu_quotient
+            && can_prepare_large_iphone_schedule(self.domain)
+        {
+            self.gpu.as_ref().map(|gpu| gpu.quotient.lock().unwrap())
+        } else {
+            None
+        };
+        let solve_host = || plan.solve_with_pool(
+            &witness, self.domain, slots, materialize_c && !derive_c, instruction_pool,
+        );
+        #[cfg(gpu)]
+        let solution = match direct.as_mut() {
+            Some(q) => {
+                #[cfg(feature = "trace")]
+                log::info!("ZOPRO_TRACE metal-quotient-direct-rows");
+                // SAFETY: this lock exclusively owns the shared evaluation buffer.
+                // The previous proof waited for its queued quotient before unlocking.
+                unsafe {
+                    q.write_rows(|rows| {
+                        plan.solve_with_metal_rows(&witness, self.domain, slots, !derive_c, rows)
+                    })?
+                }
+            }
+            None => solve_host()?,
+        };
+        #[cfg(not(gpu))]
+        let solution = solve_host()?;
+        let solver::Solution { mut w, a, b, c } = solution;
+        drop(witness);
         if let Some(scope) = &_reclaim {
             scope.release_unused(&mut w);
         }
@@ -1571,7 +1595,10 @@ impl Key {
             offsets.restore_public(public);
         }
         let c = (!derive_c).then_some(c);
-        self.compute_parts(&mut sa, &mut sb, private, a, b, c, Some(public), omit_b)
+        self.compute_parts(
+            &mut sa, &mut sb, private, a, b, c, Some(public), omit_b,
+            #[cfg(gpu)] direct,
+        )
     }
     pub fn commitment(
         &self,
@@ -1616,6 +1643,7 @@ impl Key {
         let (mut sa, mut sb, mut sk) = (frs(sa), frs(sb), frs(sk));
         self.compute_parts(
             &mut sa, &mut sb, &mut sk, frs(a), frs(b), Some(frs(c)), None, false,
+            #[cfg(gpu)] None,
         )
             .map_err(|e| JsError::new(&e))
     }
@@ -2117,6 +2145,7 @@ impl Key {
         c: Option<Vec<Fr>>,
         public: Option<&[Fr]>,
         omit_b: bool,
+        #[cfg(gpu)] preloaded: Option<std::sync::MutexGuard<'_, zopro_metal::Quotient>>,
     ) -> Result<Vec<u8>, String> {
         #[cfg(gpu)]
         if let Some(gpu) = &self.gpu {
@@ -2134,7 +2163,8 @@ impl Key {
             // back (sharing the GPU with them it came back after 179 ms
             // rather than 45 on an M5 Pro, 54 → 1 merge).
             let started = crate::time::Instant::now();
-            let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
+            let already_written = preloaded.is_some();
+            let mut quotient = preloaded.or_else(|| self.gpu_quotient.then(|| gpu.quotient.lock().unwrap()));
             let phone_metal = fast_ios_metal();
             let large_digits = self.domain >= (1 << 18);
             // Reuse device recoding for the smaller quotient domains when
@@ -2167,17 +2197,20 @@ impl Key {
             if narrow_digits && digit_width.is_some() {
                 log::info!("ZOPRO_TRACE metal-small-quotient-digits");
             }
-            let pending = quotient.as_mut().map(|q| match (c.as_deref(), digit_width) {
-                (None, width) => {
+            let pending = quotient.as_mut().map(|q| match (already_written, c.as_deref(), digit_width) {
+                // SAFETY: the validated solver initialized the required
+                // vectors under the same lock, including the domain padding.
+                (true, c, width) => unsafe { q.start_preloaded(c.is_none(), width) },
+                (false, None, width) => {
                     #[cfg(feature = "trace")]
                     log::info!("ZOPRO_TRACE metal-quotient-derive-c");
                     q.start_derived(&a, &b, width)
                 }
-                (Some(c), Some(width)) => q.start_for_msm(&a, &b, c, width),
-                (Some(c), None) => q.start(&a, &b, c),
+                (false, Some(c), Some(width)) => q.start_for_msm(&a, &b, c, width),
+                (false, Some(c), None) => q.start(&a, &b, c),
             });
-            // The GPU has its copy of a, b and c: the CPU's go now rather
-            // than after the MSMs (48 MB at 16 -> 2).
+            // The submitted quotient owns its input rows. Release any
+            // source vectors before preparing the MSMs.
             let abc = if pending.is_some() {
                 drop((a, b, c));
                 None

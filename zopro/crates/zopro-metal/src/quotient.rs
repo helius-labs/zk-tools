@@ -5,7 +5,7 @@
 //! denominator and subtracts C in coefficient form. The tables are the CPU
 //! plan's: half the roots of each direction,
 //! and the bit-reversed coset weights in two small tables each (Weights).
-use std::{ffi::c_void, time::Instant};
+use std::{ffi::c_void, mem::MaybeUninit, time::Instant};
 
 use zopro_bn254::Fr;
 use metal::{
@@ -341,6 +341,47 @@ impl Quotient {
                 slot[source.len()..].fill(Fr::ZERO);
             }
         }
+        self.enqueue(c.is_none(), width)
+    }
+
+    /// Give the witness solver exclusive access to the three shared vectors.
+    ///
+    /// # Safety
+    /// No previously queued command may still access the vectors.
+    #[doc(hidden)]
+    pub unsafe fn write_rows<T>(
+        &mut self,
+        write: impl FnOnce([&mut [MaybeUninit<Fr>]; 3]) -> T,
+    ) -> T {
+        // SAFETY: the buffers have one field element per 32 bytes and the
+        // caller owns the workspace and has waited for any earlier commands.
+        let values = unsafe {
+            std::slice::from_raw_parts_mut(self.abc.contents().cast(), 3 * self.n)
+        };
+        let (a, rest) = values.split_at_mut(self.n);
+        let (b, c) = rest.split_at_mut(self.n);
+        write([a, b, c])
+    }
+
+    /// Submit a quotient for evaluations written in the shared vectors.
+    ///
+    /// # Safety
+    /// Earlier GPU writes must be finished. The caller must initialize all
+    /// elements of A and B, including padding. The same applies to C unless
+    /// the GPU derives it.
+    #[doc(hidden)]
+    pub unsafe fn start_preloaded(
+        &mut self,
+        derive_c: bool,
+        width: Option<usize>,
+    ) -> PendingQuotient {
+        assert!(!derive_c || self.can_derive_c());
+        assert!(width.is_none_or(|w| self.can_recode_msm() && (7..=15).contains(&w)));
+        objc::rc::autoreleasepool(|| self.enqueue(derive_c, width))
+    }
+
+    fn enqueue(&mut self, derive_c: bool, width: Option<usize>) -> PendingQuotient {
+        let n = self.n;
         let command = self.queue.new_command_buffer();
         let scatter = width
             .zip(self.sort_digits.as_ref())
@@ -359,7 +400,7 @@ impl Quotient {
             });
         let encoder = command.new_compute_command_encoder();
         let c_offset = (2 * n * 32) as u64;
-        if c.is_none() {
+        if derive_c {
             let kernel = self.derive_c.as_ref().expect("quotient C derivation");
             let (first, rest) = self.passes.split_first().expect("derive C transforms");
             self.pass(encoder, kernel, 0, &self.inverse_roots, first);
@@ -373,7 +414,7 @@ impl Quotient {
             self.scale_by(encoder, offset, &self.forward_weights, &self.scale);
             self.dit_all(encoder, offset, &self.roots);
         }
-        if c.is_some() {
+        if !derive_c {
             self.dif_all(encoder, c_offset, &self.inverse_roots);
         }
         encoder.set_compute_pipeline_state(&self.product);

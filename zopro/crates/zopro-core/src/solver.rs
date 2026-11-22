@@ -1339,6 +1339,33 @@ impl Plan {
         materialize_c: bool,
         pool: Option<&rayon::ThreadPool>,
     ) -> Result<Solution, String> {
+        self.solve_with_storage(witness, domain, slots, materialize_c, pool, None)
+    }
+
+    #[cfg(gpu)]
+    pub(crate) fn solve_with_metal_rows(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        materialize_c: bool,
+        rows: [&mut [core::mem::MaybeUninit<Fr>]; 3],
+    ) -> Result<Solution, String> {
+        if domain < self.n_constraints || rows.iter().any(|row| row.len() != domain) {
+            return Err("invalid Metal evaluation workspace".into());
+        }
+        self.solve_with_storage(witness, domain, slots, materialize_c, None, Some(rows))
+    }
+
+    fn solve_with_storage(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        materialize_c: bool,
+        pool: Option<&rayon::ThreadPool>,
+        mut rows: Option<[&mut [core::mem::MaybeUninit<Fr>]; 3]>,
+    ) -> Result<Solution, String> {
         if witness.len() != self.n_inputs - 1 {
             return Err("invalid witness size".into());
         }
@@ -1361,9 +1388,29 @@ impl Plan {
                 }
             },
             || {
-                rayon::join(row, || {
-                    rayon::join(row, || if materialize_c { row() } else { Vec::new() })
-                })
+                if let Some([a, b, c]) = rows.as_mut() {
+                    // The solver overwrites every constraint row on the
+                    // audited uninitialized path. Clear the domain padding
+                    // as well as any row not covered by that audit.
+                    let from = if uninitialized { self.n_constraints } else { 0 };
+                    let zero = core::mem::MaybeUninit::new(Fr::ZERO);
+                    rayon::join(
+                        || a[from..].fill(zero),
+                        || rayon::join(
+                            || b[from..].fill(zero),
+                            || {
+                                if materialize_c {
+                                    c[from..].fill(zero);
+                                }
+                            },
+                        ),
+                    );
+                    (Vec::new(), (Vec::new(), Vec::new()))
+                } else {
+                    rayon::join(row, || {
+                        rayon::join(row, || if materialize_c { row() } else { Vec::new() })
+                    })
+                }
             },
         );
         let started = crate::trace("solve-allocate", started);
@@ -1377,11 +1424,15 @@ impl Plan {
             w[0] = Fr::ONE;
             w[1..self.n_inputs].copy_from_slice(witness);
         }
+        let (row_a, row_b, row_c) = match rows.as_mut() {
+            Some([a, b, c]) => (a.as_mut_ptr().cast(), b.as_mut_ptr().cast(), c.as_mut_ptr().cast()),
+            None => (a.as_mut_ptr(), b.as_mut_ptr(), c.as_mut_ptr()),
+        };
         let view = View {
             w: w.as_mut_ptr(),
-            a: a.as_mut_ptr(),
-            b: b.as_mut_ptr(),
-            c: if materialize_c { c.as_mut_ptr() } else { core::ptr::null_mut() },
+            a: row_a,
+            b: row_b,
+            c: if materialize_c { row_c } else { core::ptr::null_mut() },
         };
         // The instruction executor joins every worker before these buffers are used again.
         let execute = || unsafe { self.execute_instructions(view) };
@@ -1396,10 +1447,12 @@ impl Plan {
             // field can be observed or dropped. All scheduled writes completed.
             unsafe {
                 w.set_len(self.n_wires + self.n_slots);
-                a.set_len(self.n_constraints);
-                b.set_len(self.n_constraints);
-                if materialize_c {
-                    c.set_len(self.n_constraints);
+                if rows.is_none() {
+                    a.set_len(self.n_constraints);
+                    b.set_len(self.n_constraints);
+                    if materialize_c {
+                        c.set_len(self.n_constraints);
+                    }
                 }
             }
         }
@@ -3091,6 +3144,36 @@ mod tests {
         }
         assert!(plan.solve(&[]).is_err());
         assert!(plan.solve(&[Fr::ZERO; 3]).is_err());
+    }
+
+    #[cfg(gpu)]
+    #[test]
+    fn metal_rows_are_reusable_after_a_failed_witness() {
+        use core::mem::MaybeUninit;
+
+        let (words, coefficients) = small();
+        let plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
+        let mut rows = [[MaybeUninit::new(Fr::from(100u64)); 4]; 3];
+        for (x, materialize_c) in [(Fr::from(9u64), true), (Fr::from(17u64), false), (Fr::ZERO, true)] {
+            let [a, b, c] = &mut rows;
+            let invalid = [x * x + Fr::ONE, x];
+            assert!(plan.solve_with_metal_rows(&invalid, 4, &[], materialize_c, [a, b, c]).is_err());
+
+            let [a, b, c] = &mut rows;
+            let witness = [x * x, x];
+            let solved = plan.solve_with_metal_rows(&witness, 4, &[], materialize_c, [a, b, c]).unwrap();
+            let reference = plan.solve(&witness).unwrap();
+            assert_eq!(solved.w, reference.w);
+            assert!(solved.a.is_empty() && solved.b.is_empty() && solved.c.is_empty());
+            let required = if materialize_c { 3 } else { 2 };
+            for (row, values) in rows[..required].iter().zip([reference.a, reference.b, reference.c]) {
+                // SAFETY: all entries of the requested rows, including
+                // padding, were initialized by the successful solve.
+                let actual = row.map(|value| unsafe { value.assume_init() });
+                assert_eq!(&actual[..2], values);
+                assert_eq!(&actual[2..], &[Fr::ZERO; 2]);
+            }
+        }
     }
 
     #[test]
