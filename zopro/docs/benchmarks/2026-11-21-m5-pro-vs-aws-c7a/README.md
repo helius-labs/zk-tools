@@ -6,7 +6,7 @@ All 41 circuit shapes from the AWS catalog have warm proof latency and peak proc
 - Against the 96-core AWS run, M5 Metal took **1.64×** as long as Zopro at the median shape ratio and beat Aeglos on **5/41** shapes. AWS Gnark took **5.26×** as long as M5 Metal at the median shape ratio.
 - M5 Metal peak process RSS was **93.6–1779.9 MiB**. Its macOS peak physical footprint was **170.5–1624.0 MiB**. The footprint series is in the memory table and CSV.
 
-[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
+[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
 
 ## Warm proof latency in milliseconds
 
@@ -278,3 +278,38 @@ Each shape ran in three paired blocks. Within a block, the four build and backen
 | merge-8×1 | 146.94 | 65.01 | 2.30× | 202.1 → 224.1 | 70.55 | 32.39 | 2.18× | 369.9 → 284.5 |
 | merge-24×1 | 426.68 | 237.15 | 1.79× | 559.4 → 571.9 | 180.52 | 87.39 | 2.07× | 1055.3 → 780.1 |
 | merge-54×1 | 993.51 | 550.81 | 1.80× | 1187.1 → 1181.5 | 452.31 | 266.70 | 1.70× | 2174.5 → 1595.8 |
+
+## Apple silicon CPU and Metal schedules
+
+The CPU update overlaps the 65,536-point quotient with witness preparation and G2 work. Metal uses ten-bit G1 windows, device-side quotient recoding, and concurrent witness sorts for the 131,072-point domain. The shortest B2 queries in that Metal domain share the existing separate CPU preparation pool.
+
+Six paired blocks per row compare the original and audited builds with the new schedules on the same M5 Pro. Each block used fresh processes, randomized build order, and the same pinned key and witness. Each process verified eight proofs and checked the public witness and backend. Warm time uses proofs four through eight. The table uses medians of the warm block means, paired speedups, and process memory high-water marks.
+
+[New build](https://github.com/helius-labs/zk-tools/commit/9a5ac0ecbfefe1dffad2b20e0329d359ed070067) · [Comparison CSV](m5-apple-proof-schedules.csv) · [Raw blocks](artifacts/m5-apple-proof-schedules.jsonl)
+
+| Shape | Backend | Audited ms | New ms | vs. audited | vs. original | Peak RSS MiB | Peak physical footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1×2 | CPU | 15.67 | 15.65 | 0.999× | 1.912× | 70.1 → 71.3 | 48.9 → 50.2 |
+| 1×4 | CPU | 27.08 | 23.71 | 1.135× | 1.765× | 66.2 → 78.1 | 41.5 → 53.3 |
+| 1×8 | CPU | 29.37 | 25.75 | 1.142× | 1.808× | 75.4 → 88.1 | 47.0 → 59.7 |
+| 1×16 | CPU | 33.13 | 27.08 | 1.224× | 2.028× | 97.3 → 108.6 | 61.9 → 73.2 |
+| 2×2 | CPU | 23.90 | 23.93 | 1.009× | 2.145× | 96.6 → 99.3 | 63.8 → 66.5 |
+| 2×4 | CPU | 24.80 | 24.05 | 1.030× | 2.261× | 99.2 → 102.7 | 64.9 → 68.2 |
+| 2×8 | CPU | 43.42 | 43.84 | 0.991× | 1.598× | 129.3 → 129.6 | 87.4 → 87.7 |
+| 1×4 | Metal | 14.72 | 14.66 | 1.005× | 1.990× | 93.3 → 92.5 | 179.8 → 178.6 |
+| 2×8 | Metal | 28.41 | 23.26 | 1.213× | 1.824× | 184.5 → 151.6 | 244.3 → 233.1 |
+| 2×16 | Metal | 33.26 | 27.20 | 1.227× | 1.905× | 218.8 → 176.0 | 272.3 → 248.6 |
+| 3×2 | Metal | 28.44 | 23.98 | 1.186× | 1.891× | 195.5 → 152.5 | 252.0 → 229.3 |
+| 3×4 | Metal | 29.22 | 24.38 | 1.203× | 1.946× | 199.5 → 157.3 | 255.3 → 232.8 |
+| 3×8 | Metal | 29.55 | 25.34 | 1.164× | 1.988× | 212.5 → 171.0 | 264.3 → 242.5 |
+| 4×2 | Metal | 29.37 | 24.82 | 1.208× | 2.217× | 220.7 → 175.6 | 270.7 → 249.9 |
+| 4×4 | Metal | 28.89 | 25.02 | 1.156× | 2.142× | 226.5 → 181.1 | 274.9 → 253.6 |
+| 4×8 | Metal | 29.76 | 26.49 | 1.120× | 2.244× | 237.9 → 192.5 | 282.4 → 261.3 |
+| 4×16 | Metal | 32.43 | 29.42 | 1.102× | 1.889× | 263.1 → 217.4 | 301.5 → 279.1 |
+| 5×2 | Metal | 30.59 | 26.68 | 1.183× | 2.476× | 243.9 → 197.9 | 286.3 → 264.5 |
+| 5×4 | Metal | 32.27 | 27.14 | 1.219× | 2.483× | 247.4 → 202.1 | 288.3 → 267.3 |
+| 5×8 | Metal | 36.95 | 38.29 | 0.968× | 1.715× | 272.5 → 272.9 | 339.9 → 340.3 |
+
+All eleven affected Metal shapes improved and used lower peak RSS. The CPU changes increased peak RSS by up to 12.7 MiB in the affected class.
+
+Sixteen additional paired blocks on each neighboring Metal shape measured 1.016× on 5×8 and 1.000× on 6×8 versus the audited build. The 5×8 slowdown in the initial six blocks did not repeat. [Raw control blocks](artifacts/m5-apple-proof-schedule-controls.jsonl)
