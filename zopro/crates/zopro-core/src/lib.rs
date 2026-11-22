@@ -704,7 +704,7 @@ impl GpuBuilder {
             match (self.domain, which) {
                 (32768, 0 | 2 | 3) => Some(9),
                 (65536, 0 | 2 | 3) => Some(8),
-                (131072, 0 | 2 | 3) => Some(10),
+                (131072 | 262144, 0 | 2 | 3) => Some(10),
                 _ => None,
             }
         } else {
