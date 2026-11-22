@@ -789,7 +789,7 @@ impl Plan {
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     pub(crate) fn has_apple_small_quotient(&self) -> bool {
-        self.n == (1 << 15)
+        matches!(self.n, 32768 | 65536)
             && self.twisted.is_some()
             && std::env::var("ZOPRO_CPU_QUOTIENT6").as_deref() != Ok("0")
             && std::env::var("ZOPRO_CPU_TWISTED_FFT").as_deref() != Ok("0")

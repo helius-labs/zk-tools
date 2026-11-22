@@ -704,6 +704,7 @@ impl GpuBuilder {
             match (self.domain, which) {
                 (32768, 0 | 2 | 3) => Some(9),
                 (65536, 0 | 2 | 3) => Some(8),
+                (131072, 0 | 2 | 3) => Some(10),
                 _ => None,
             }
         } else {
@@ -2030,17 +2031,18 @@ impl Key {
             let started = crate::time::Instant::now();
             let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
             let large_digits = self.domain >= (1 << 18);
-            // At width eight, the device can recode the medium quotient
-            // directly into the small-window MSM layout.
-            let narrow_digits = cfg!(all(target_os = "macos", target_arch = "aarch64"))
-                && omit_b
-                && self.domain == (1 << 16)
+            // Reuse device recoding for the smaller quotient domains when
+            // their G1 MSMs use the narrower Apple silicon window caps.
+            let wide_apple = cfg!(all(target_os = "macos", target_arch = "aarch64"))
                 && rayon::current_num_threads() >= 16;
-            let digit_width = ((large_digits || narrow_digits)
+            let medium_apple = wide_apple && self.domain == (1 << 17);
+            let narrow_digits = wide_apple && omit_b && self.domain == (1 << 16);
+            let medium_digits = medium_apple && omit_b;
+            let digit_width = ((large_digits || medium_digits || narrow_digits)
                 && quotient.as_ref().is_some_and(|q| q.can_recode_msm())
                 && std::env::var("ZOPRO_METAL_QUOTIENT_DIGITS").as_deref() != Ok("0"))
             .then(|| gpu.z.lock().unwrap().scalar_window_width())
-            .filter(|&width| large_digits || width <= 8);
+            .filter(|&width| large_digits || width <= if medium_digits { 10 } else { 8 });
             #[cfg(feature = "trace")]
             if narrow_digits && digit_width.is_some() {
                 log::info!("ZOPRO_TRACE metal-small-quotient-digits");
@@ -2073,14 +2075,16 @@ impl Key {
             let group = omit_b
                 && cfg!(all(target_os = "macos", target_arch = "aarch64"))
                 && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
+            // Below 64K B2 points the CPU can compact G2 on its own pool
+            // while A and K prepare on the sort pool.
             let compact_pool = (group
-                && self.domain == (1 << 16)
+                && (self.domain == (1 << 16) || (medium_apple && sb.len() < (1 << 16)))
                 && self.gpu_quotient
                 && gpu.b2.is_none()
                 && rayon::current_num_threads() >= 18
                 && crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
                 && std::env::var("ZOPRO_METAL_COMPACT_OVERLAP").as_deref() != Ok("0")
-                && msm_affine::metal_compact_candidate(sa))
+                && (medium_apple || msm_affine::metal_compact_candidate(sa)))
             .then(|| apple_msm_pool(12))
             .flatten();
             let compact_overlap = compact_pool.is_some();
@@ -2148,7 +2152,7 @@ impl Key {
                         // Rerandomization omits B here. Sort the two independent
                         // witness queries concurrently while the quotient runs.
                         if group
-                            && self.domain == (1 << 15)
+                            && (self.domain == (1 << 15) || medium_apple)
                             && rayon::current_num_threads() >= 16
                             && std::env::var("ZOPRO_METAL_PARALLEL_WITNESS_SORT").as_deref() != Ok("0")
                         {
@@ -2757,7 +2761,7 @@ impl Key {
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     fn apple_small_msm_overlap(&self) -> bool {
-        self.domain == (1 << 15)
+        matches!(self.domain, 32768 | 65536)
             && ((1 << 14)..(1 << 16)).contains(&self.b2.len())
             && affine_msm()
             && self.equal_witness.is_none()

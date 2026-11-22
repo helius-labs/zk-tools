@@ -2321,7 +2321,8 @@ fn g2_exclusive_with_groups<'a>(
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         let compute = |bases: &[zopro_bn254::G2Affine], words: &mut [[u64; 4]]| {
             let workers = rayon::current_num_threads();
-            if ((1 << 14)..(1 << 15)).contains(&bases.len())
+            let limit = if three_parts { 1 << 16 } else { 1 << 15 };
+            if ((1 << 14)..limit).contains(&bases.len())
                 && (three_parts || workers == 6 || workers >= 16)
                 && borrowed_scalar::enabled()
                 && std::env::var("ZOPRO_CPU_G2_BALANCED").as_deref() != Ok("0")
@@ -2343,7 +2344,7 @@ fn g2_exclusive_with_groups<'a>(
             }
             #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
             if three_parts && rayon::current_num_threads() == 7
-                && ((1 << 14)..(1 << 15)).contains(&g.values.len())
+                && ((1 << 14)..(1 << 16)).contains(&g.values.len())
                 // Few repeated classes keep the references and their
                 // temporary index arrays within the grouping reservation.
                 && g.order.len() - g.values.len() <= g.values.len() / 8
