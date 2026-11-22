@@ -293,7 +293,7 @@ fn group_with_gate<const EXCLUSIVE: bool, const SERIAL_B2: bool>(
     if scalars.len() < 256 || scalars.len() >= u32::MAX as usize {
         return None;
     }
-    let apple_small = apple_cpu && (16384..32768).contains(&scalars.len());
+    let apple_small = apple_cpu && (16384..49152).contains(&scalars.len());
     let (unique, percent) = if apple_small
         && std::env::var("ZOPRO_CPU_SMALL_GROUPS").as_deref() != Ok("0")
     {
