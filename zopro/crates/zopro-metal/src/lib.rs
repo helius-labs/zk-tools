@@ -621,15 +621,27 @@ impl<C: Curve> Msm<C> {
         scratch: std::sync::Arc<Scratch>,
         default_cap: usize,
     ) -> Result<(Self, f64), String> {
+        Self::new_in_with_tree_budget(bases, scratch, default_cap, None)
+    }
+
+    /// Override the default scratch budget per tree in MiB, up to 24 MiB.
+    #[doc(hidden)]
+    pub fn new_in_with_tree_budget(
+        bases: &[C::Affine],
+        scratch: std::sync::Arc<Scratch>,
+        default_cap: usize,
+        default_tree_mib: Option<usize>,
+    ) -> Result<(Self, f64), String> {
         // Building a pipeline autoreleases objects that hold on to the
         // device's memory; a thread without a pool leaked them per key.
-        autoreleasepool(|| Self::new_in_pool(bases, scratch, default_cap))
+        autoreleasepool(|| Self::new_in_pool(bases, scratch, default_cap, default_tree_mib))
     }
 
     fn new_in_pool(
         bases: &[C::Affine],
         scratch: std::sync::Arc<Scratch>,
         default_cap: usize,
+        default_tree_mib: Option<usize>,
     ) -> Result<(Self, f64), String> {
         let device = Device::system_default().ok_or("no Metal device")?;
         let started = Instant::now();
@@ -694,7 +706,10 @@ impl<C: Curve> Msm<C> {
         // G1 bucket. The tree budget still bounds the resulting scratch.
         let first_shard = if dense { 22 } else { FIRST_SHARD };
         let per_window = n.div_ceil(first_shard) + half;
-        let default_tree_mb = if dense { 24 } else { TREE_MB };
+        let default_tree_mb = default_tree_mib.map_or(
+            if dense { 24 } else { TREE_MB },
+            |budget| budget.clamp(TREE_MB, 24),
+        );
         let tree_cap = std::env::var("ZOPRO_METAL_TREE_MB")
             .ok()
             .and_then(|v| v.parse().ok())

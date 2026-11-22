@@ -500,7 +500,7 @@ struct GpuBuilder {
 #[cfg(gpu_wgpu)]
 impl GpuBuilder {
     /// None with ZOPRO_GPU=0 or without a GPU usable here.
-    fn open(plan: &fft::Plan) -> Option<Self> {
+    fn open(plan: &fft::Plan, _b2_points: usize) -> Option<Self> {
         let wanted = std::env::var("ZOPRO_GPU").ok();
         if wanted.as_deref() == Some("0") {
             return None;
@@ -661,6 +661,7 @@ struct GpuBuilder {
     quotient: zopro_metal::Quotient,
     g1: [Option<zopro_metal::G1Msm>; 4],
     domain: usize,
+    b2_points: usize,
     b2: Option<zopro_metal::G2Msm>,
     b2_cut: usize,
     /// The trees and buckets all the key's MSMs share.
@@ -669,7 +670,7 @@ struct GpuBuilder {
 #[cfg(gpu)]
 impl GpuBuilder {
     /// None with ZOPRO_GPU=0 or without a GPU.
-    fn open(plan: &fft::Plan) -> Option<Self> {
+    fn open(plan: &fft::Plan, b2_points: usize) -> Option<Self> {
         if std::env::var("ZOPRO_GPU").is_ok_and(|v| v == "0") {
             return None;
         }
@@ -697,18 +698,23 @@ impl GpuBuilder {
             quotient,
             g1: [None, None, None, None],
             domain: plan.size(),
+            b2_points,
             b2: None,
             b2_cut: 0,
             scratch,
         })
     }
     fn g1(&mut self, which: usize, bases: &[G1Affine]) -> Result<(), String> {
+        let wide_apple = cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            && rayon::current_num_threads() >= 16;
+        let short_witness = wide_apple
+            && self.domain == (1 << 17)
+            && self.b2_points < 90112
+            && matches!(which, 0 | 2);
         // B1 and B2 can reuse the same sorted runs and must share a width.
         // On wide Apple silicon hosts, fewer buckets make small G1 queries
         // cheaper to plan and combine on the CPU.
-        let width = if cfg!(all(target_os = "macos", target_arch = "aarch64"))
-            && rayon::current_num_threads() >= 16
-        {
+        let width = if wide_apple {
             match (self.domain, which) {
                 (32768, 0 | 2 | 3) => Some(9),
                 (65536, 0 | 2 | 3) => Some(8),
@@ -721,7 +727,10 @@ impl GpuBuilder {
             None
         };
         let scratch = self.scratch.clone();
-        let (msm, _) = if let Some(cap) = width {
+        let (msm, _) = if short_witness {
+            // A wider tree batch offsets the extra windows of the narrower digit.
+            zopro_metal::G1Msm::new_in_with_tree_budget(bases, scratch, 8, Some(16))?
+        } else if let Some(cap) = width {
             zopro_metal::G1Msm::new_in_with_width_cap(bases, scratch, cap)?
         } else {
             zopro_metal::G1Msm::new_in(bases, scratch)?
@@ -1799,7 +1808,7 @@ impl Key {
         domain_params: &[u8],
         basis_only: bool,
     ) -> Result<Key, &'static str> {
-        let ([a, b, k, z, b2], [generator, coset, denominator]) =
+        let ([a, b, k, z, _b2_points], [generator, coset, denominator]) =
             points.validate_shape(domain_params)?;
         let domain = z + 1;
         let started = crate::time::Instant::now();
@@ -1814,7 +1823,7 @@ impl Key {
         let mut gpu = if basis_only {
             None
         } else {
-            GpuBuilder::open(&plan)
+            GpuBuilder::open(&plan, _b2_points)
         };
         #[cfg(not(gpu_any))]
         let mut gpu: Option<()> = None;
@@ -1888,7 +1897,7 @@ impl Key {
                             #[cfg(gpu)]
                             if zopro_metal::prefer_smaller_code() {
                                 trace("gpu-retry-smaller-code", crate::time::Instant::now());
-                                gpu = GpuBuilder::open(&plan);
+                                gpu = GpuBuilder::open(&plan, _b2_points);
                             }
                             continue;
                         }
