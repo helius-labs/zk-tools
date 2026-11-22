@@ -6,7 +6,7 @@ All 41 circuit shapes from the AWS catalog have warm proof latency and peak proc
 - Against the 96-core AWS run, M5 Metal took **1.64×** as long as Zopro at the median shape ratio and beat Aeglos on **5/41** shapes. AWS Gnark took **5.26×** as long as M5 Metal at the median shape ratio.
 - M5 Metal peak process RSS was **93.6–1779.9 MiB**. Its macOS peak physical footprint was **170.5–1624.0 MiB**. The footprint series is in the memory table and CSV.
 
-[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
+[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
 
 ## Warm proof latency in milliseconds
 
@@ -313,3 +313,22 @@ Six paired blocks per row compare the original and audited builds with the new s
 All eleven affected Metal shapes improved and used lower peak RSS. The CPU changes increased peak RSS by up to 12.7 MiB in the affected class.
 
 Sixteen additional paired blocks on each neighboring Metal shape measured 1.016× on 5×8 and 1.000× on 6×8 versus the audited build. The 5×8 slowdown in the initial six blocks did not repeat. [Raw control blocks](artifacts/m5-apple-proof-schedule-controls.jsonl)
+
+## Parallel witness solving for the largest Apple silicon shapes
+
+All three shapes now reach 2× on both backends against the original PR build. The paired speedups range from 2.04× to 2.13× on CPU and 2.50× to 2.52× on Metal.
+
+These three circuits use a 2,097,152-point domain and previously solved their witnesses serially because they exceeded the bounded schedule's dimension cap. On arm64 macOS the scheduler now admits this domain under the existing process-wide byte budget and free-memory check. It packs small independent tasks into blocks to reduce scheduling overhead. The largest observed schedule charge was 24.1 MiB during construction and 4.6 MiB after construction.
+
+Four paired blocks per row used the pinned keys and witnesses on the same M5 Pro. Each process checked eight proofs and the selected backend. Warm latency is the median of the block means for proofs four through eight. Speedups use paired ratios, and memory uses the median process high-water mark in MiB.
+
+[New build](https://github.com/helius-labs/zk-tools/commit/235f221635c01e242615afa37f7931b3b7d3b90e) · [Comparison CSV](m5-large-solver-schedules.csv) · [Raw blocks](artifacts/m5-large-solver-schedules.jsonl)
+
+| Shape | Backend | Original ms | Previous ms | New ms | vs. previous | vs. original | Peak RSS MiB | Peak physical footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| 48×2 | CPU | 947.22 | 550.35 | 463.27 | 1.190× | 2.039× | 1148.0 → 1152.6 | 554.8 → 559.3 |
+| 48×2 | Metal | 425.85 | 267.13 | 170.48 | 1.566× | 2.504× | 1535.2 → 1548.7 | 1413.5 → 1435.3 |
+| 49×2 | CPU | 958.42 | 551.64 | 461.64 | 1.195× | 2.067× | 1162.0 → 1165.3 | 559.2 → 562.6 |
+| 49×2 | Metal | 429.73 | 268.33 | 171.39 | 1.566× | 2.508× | 1558.6 → 1567.0 | 1429.8 → 1440.8 |
+| merge-54×1 | CPU | 1001.93 | 557.62 | 469.78 | 1.188× | 2.129× | 1181.0 → 1185.1 | 552.6 → 556.6 |
+| merge-54×1 | Metal | 452.41 | 268.29 | 179.53 | 1.492× | 2.522× | 1600.1 → 1608.4 | 1445.0 → 1453.1 |
