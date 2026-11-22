@@ -60,6 +60,40 @@ fn pipelined_g2_affine_batch_matches_arkworks() {
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+#[test]
+fn loose_fq2_product_matches_arkworks() {
+    let p = Fq::MODULUS;
+    let almost_p = Fq::from_montgomery(crate::portable::sub4(p, [1, 0, 0, 0]).0);
+    let twice_p = crate::portable::add4(p, p).0;
+    let normalize = |a: Fq| {
+        assert!(crate::portable::less(a.0, twice_p));
+        Fq::from_montgomery(crate::arm64::reduce_once(a.0, p))
+    };
+    let check = |left: Fq2, right: Fq2, loose: Fq2| {
+        let result = crate::fq2::multiply_loose(&left, &loose);
+        let ark = |a: Fq2| ark::Fq2::new(ark_fq(a.c0), ark_fq(a.c1));
+        assert_eq!(
+            Fq2::new(normalize(result.c0), normalize(result.c1)),
+            fq2(ark(left) * ark(right)),
+        );
+    };
+    let loosen = |a: Fq| Fq::from_montgomery(crate::portable::add4(a.0, p).0);
+    let edge = Fq2::new(almost_p, almost_p);
+    let twice_modulus = Fq::from_montgomery(twice_p);
+    check(edge, edge, Fq2::new(loosen(almost_p), loosen(almost_p)));
+    check(edge, Fq2::ZERO, Fq2::new(twice_modulus, twice_modulus));
+    check(edge, Fq2::new(Fq::ZERO, almost_p), Fq2::new(twice_modulus, loosen(almost_p)));
+    let mut rng = ark_std::test_rng();
+    for i in 0..512 {
+        let left = fq2(ark::Fq2::rand(&mut rng));
+        let right = fq2(ark::Fq2::rand(&mut rng));
+        let c0 = if i & 1 != 0 { loosen(right.c0) } else { right.c0 };
+        let c1 = if i & 2 != 0 { loosen(right.c1) } else { right.c1 };
+        check(left, right, Fq2::new(c0, c1));
+    }
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
 fn check_affine_batches<C: crate::curve::CurveConfig, G: CurveGroup<ScalarField = ark::Fr>>(
     encode: impl Fn(G::Affine) -> crate::curve::Affine<C>,
     mut verify: impl FnMut(&mut [crate::curve::Affine<C>], &mut [u64], &[(u32, &crate::curve::Affine<C>)]),

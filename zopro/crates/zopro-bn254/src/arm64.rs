@@ -917,6 +917,13 @@ pub fn redc(t: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
     redc_inner::<true>(t, p, inv)
 }
 
+/// Montgomery reduction of `t < pR`, leaving the result below 2p.
+#[cfg(target_os = "macos")]
+#[inline(always)]
+pub(crate) fn redc_loose(t: [u64; 8], p: [u64; 4], inv: u64) -> [u64; 4] {
+    redc_inner::<false>(t, p, inv)
+}
+
 // Write the input as lo + hi*R. The cancelling multiple m*p depends
 // only on lo, and (lo + m*p)/R is at most p. Add hi at the end so the
 // four cancellation rows avoid propagating carries through its limbs.

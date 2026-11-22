@@ -179,3 +179,18 @@ The seven-worker G2 query moves the extension-field numerator into the forward p
 | 12×2 Metal | 102.38 | 49.08 | 49.13 | 2.091× | 450.09 | 449.09 |
 
 The median paired gain over the previous build was 1.2% for 1×2 CPU. Peak physical footprint for this configuration went from 54.84 to 52.94 MiB.
+
+## M5 Pro follow-up on loose G2 field arithmetic
+
+The seven-worker G2 affine batch kernel carries bounded Montgomery values through the prefix products and coordinate arithmetic. It reduces the input to inversion, the slope before multiplying by a loose coordinate difference, and the final point. The benchmark used 46 randomized three-build blocks for 1×2 CPU and 10 for each other configuration. Each process ran eight verified proofs, and its warm latency is the median of proofs three through eight. The RSS columns report the median process high-water mark. [Previous build](https://github.com/helius-labs/zk-tools/commit/275d42f542077e0f453b9c6169600dc6a81d9937) · [Raw blocks](artifacts/m5-loose-g2-batches.jsonl)
+
+| Shape and backend | Original warm ms | Previous warm ms | Updated warm ms | Speedup | Previous peak RSS MiB | Updated peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 1×2 CPU | 30.862 | 16.177 | 15.949 | 1.931× | 72.484 | 72.055 |
+| 1×2 Metal | 26.007 | 11.547 | 11.533 | 2.254× | 95.250 | 96.953 |
+| 2×2 CPU | 52.283 | 24.110 | 24.127 | 2.173× | 96.438 | 97.539 |
+| 2×2 Metal | 34.043 | 15.367 | 15.359 | 2.218× | 125.281 | 125.938 |
+| 12×2 CPU | 240.012 | 113.138 | 113.532 | 2.122× | 342.422 | 343.438 |
+| 12×2 Metal | 102.537 | 49.091 | 49.232 | 2.086× | 442.453 | 443.664 |
+
+Speedup is the median of the original-to-updated ratios within blocks. The 1×2 CPU proof gained 1.6% over the previous build in paired runs and was faster in 43 of 46 blocks. Median peak physical footprint fell from 51.25 to 50.83 MiB.

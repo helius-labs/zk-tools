@@ -233,6 +233,20 @@ impl Field for Fq2 {
 #[cfg(all(target_arch = "aarch64", not(no_asm)))]
 #[inline(always)]
 fn mul(a: &Fq2, b: &Fq2) -> Fq2 {
+    karatsuba::<false>(a, b)
+}
+
+/// The first argument is canonical, the second has limbs at most 2p.
+/// The result is in Montgomery form with components below 2p.
+#[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+#[inline(always)]
+pub(crate) fn multiply_loose(a: &Fq2, b: &Fq2) -> Fq2 {
+    karatsuba::<true>(a, b)
+}
+
+#[cfg(all(target_arch = "aarch64", not(no_asm)))]
+#[inline(always)]
+fn karatsuba<const LOOSE: bool>(a: &Fq2, b: &Fq2) -> Fq2 {
     use crate::arm64::{redc, sub_add_wide, sub_wide, wide};
     const P: [u64; 4] = FqConfig::P;
     const INV: u64 = FqConfig::INV;
@@ -253,13 +267,34 @@ fn mul(a: &Fq2, b: &Fq2) -> Fq2 {
         }
         t
     };
+    // When b's components can reach 2p, the raw real component needs
+    // twice the bias. Both final numerators are then below 4p² < pR.
+    const TWO_P_SQUARED: [u64; 8] = {
+        let mut doubled = [0; 8];
+        let mut carry = 0;
+        let mut i = 0;
+        while i < 8 {
+            doubled[i] = (P2[i] << 1) | carry;
+            carry = P2[i] >> 63;
+            i += 1;
+        }
+        doubled
+    };
     let t0 = wide(a.c0.0, &b.c0.0);
     let t1 = wide(a.c1.0, &b.c1.0);
     let sa = crate::portable::add4(a.c0.0, a.c1.0).0;
     let sb = crate::portable::add4(b.c0.0, b.c1.0).0;
     let t2 = wide(sa, &sb);
-    let c0 = sub_add_wide(t0, t1, &P2);
+    let bias = if LOOSE { &TWO_P_SQUARED } else { &P2 };
+    let c0 = sub_add_wide(t0, t1, bias);
     let c1 = sub_wide(sub_wide(t2, t0), t1);
+    #[cfg(target_os = "macos")]
+    if LOOSE {
+        return Fq2::new(
+            Fq::from_montgomery(crate::arm64::redc_loose(c0, P, INV)),
+            Fq::from_montgomery(crate::arm64::redc_loose(c1, P, INV)),
+        );
+    }
     Fq2::new(
         Fq::from_montgomery(redc(c0, P, INV)),
         Fq::from_montgomery(redc(c1, P, INV)),
