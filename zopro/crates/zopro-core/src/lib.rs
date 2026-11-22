@@ -2523,6 +2523,16 @@ impl Key {
         }
 
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        if omit_b && self.apple_large_msm_overlap() {
+            // Account for the three quotient arrays that can remain live while
+            // the witness MSMs fill their buckets.
+            let overlap_bytes = self.domain.checked_mul(3 * std::mem::size_of::<Fr>());
+            if let Some(_reservation) = preparation::Reservation::scalar_grouping(overlap_bytes) {
+                return Ok(self.apple_large_cpu_parts(sa, sb, sk, (a, b, c)));
+            }
+        }
+
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         let apple_groups = matches!(self.domain, 32768 | 65536)
             && std::env::var("ZOPRO_CPU_WITNESS_GROUP_PREP").as_deref() != Ok("0");
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -2772,6 +2782,54 @@ impl Key {
             && rayon::current_num_threads() >= 18
             && std::env::var("ZOPRO_CPU_MSM_OVERLAP").as_deref() != Ok("0")
             && std::env::var("ZOPRO_TRACE_MSMS").as_deref() != Ok("1")
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn apple_large_msm_overlap(&self) -> bool {
+        self.domain == (1 << 20)
+            && self.b2.len() >= (1 << 16)
+            && affine_msm()
+            && self.equal_witness.is_none()
+            && crate::simd::cpu_option("ZOPRO_CPU_DEDUP")
+            && rayon::current_num_threads() >= 18
+            && std::env::var("ZOPRO_CPU_MSM_OVERLAP").as_deref() != Ok("0")
+            && std::env::var("ZOPRO_TRACE_MSMS").as_deref() != Ok("1")
+    }
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn apple_large_cpu_parts(
+        &self,
+        sa: &mut [Fr],
+        sb: &mut [Fr],
+        sk: &mut [Fr],
+        (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>),
+    ) -> Vec<u8> {
+        use msm_affine::{msm_in_place, msm_montgomery};
+
+        let started = crate::time::Instant::now();
+        let ((ar, kr, hz), bs2) = rayon::join(
+            || {
+                let (mut h, (ar, kr)) = rayon::join(
+                    || self.quotient(a, b, c),
+                    || rayon::join(|| msm_in_place(&self.a, sa), || msm_in_place(&self.k, sk)),
+                );
+                let hz = if crate::simd::cpu_option("ZOPRO_CPU_MONTGOMERY_H") {
+                    msm_montgomery(&self.z, &h)
+                } else {
+                    msm_in_place(&self.z, &mut h)
+                };
+                (ar, kr, hz)
+            },
+            || msm_in_place(&self.b2, sb),
+        );
+        trace("cpu-large-quotient-and-msms", started);
+
+        let mut out = Vec::with_capacity(384);
+        for point in [ar, G1Projective::IDENTITY, kr, hz] {
+            output_g1(&mut out, point);
+        }
+        output_g2(&mut out, bs2);
+        out
     }
 
     fn quotient(&self, a: Vec<Fr>, b: Vec<Fr>, c: Vec<Fr>) -> Vec<Fr> {
