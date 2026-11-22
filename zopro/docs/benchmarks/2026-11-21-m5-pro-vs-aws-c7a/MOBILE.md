@@ -37,6 +37,23 @@ Each cell shows the median of three fresh process blocks. Each block ran eight p
 | merge-54×1 | CPU | 6292.7 → 3474.5 | 1.81× | 538.3 → 545.5 | 1180.8 → 1189.9 |
 | merge-54×1 | Metal | 4036.5 → 1841.2 | 2.19× | 1691.2 → 1406.7 | 2261.5 → 1953.8 |
 
+## iPhone 17e paired GPU recoding comparison
+
+Two signed Metal release builds ran over USB on iPhone 17e with iOS 27.2.1. `dab92b6` is the witness-grouping build from the preceding comparison. `5102771` keeps recoded quotient digits on the GPU when live process memory allows. Both builds use the same pinned keys and witnesses.
+
+All 24 process blocks passed native verification. Each block ran eight proofs and averaged the last five. The table reports the median of three blocks per build, and the speedup column uses the median of the within-block ratios. The app reported thermal state `serious` before and after the blocks.
+
+[Raw paired GPU recoding blocks](artifacts/iphone-17e-gpu-recoding-blocks.jsonl)
+
+| Shape | Warm ms control → candidate | Speedup | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---:|---:|---:|---:|
+| 1×2 | 78.9 → 77.8 | 1.01× | 146.0 → 146.3 | 110.9 → 111.2 |
+| 8×2 | 242.1 → 198.1 | 1.27× | 315.6 → 314.1 | 357.4 → 325.2 |
+| 24×2 | 1029.2 → 835.5 | 1.23× | 773.5 → 772.6 | 1005.2 → 883.6 |
+| merge-54×1 | 1969.6 → 1898.0 | 1.04× | 1415.8 → 1459.9 | 1953.6 → 1737.7 |
+
+The largest merge was faster in two pairs. Its within-pair speed ranged from 0.64× to 1.04×.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
