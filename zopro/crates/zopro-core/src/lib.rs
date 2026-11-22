@@ -714,6 +714,10 @@ impl GpuBuilder {
         let short_quotient_with_large_g2 = wide_apple
             && self.domain == (1 << 16)
             && (57344..65536).contains(&self.b2_points);
+        let narrow_tree = wide_apple
+            && self.domain == (1 << 16)
+            && (32768..49152).contains(&self.b2_points)
+            && matches!(which, 0 | 2 | 3);
         let shorter_million_point_query = wide_apple
             && self.domain == (1 << 20)
             && self.b2_points < 589824
@@ -735,7 +739,7 @@ impl GpuBuilder {
             None
         };
         let scratch = self.scratch.clone();
-        let (msm, _) = if short_witness || (short_quotient_with_large_g2 && which == 3) {
+        let (msm, _) = if narrow_tree || short_witness || (short_quotient_with_large_g2 && which == 3) {
             // Process more short-window groups in the shared tree buffers.
             zopro_metal::G1Msm::new_in_with_tree_budget(bases, scratch, 8, Some(16))?
         } else if shorter_million_point_query {
