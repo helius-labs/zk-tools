@@ -2703,26 +2703,36 @@ impl Key {
                 .map(|&i| witness[i as usize])
                 .collect()
         };
-        // B2 can gather its own scalars as soon as its pool starts. The
-        // G1 pool gathers A while preparing K and computing the quotient.
+        // K preparation can share the B2 pool while the G1 pool computes
+        // the quotient and gathers A. Send K as soon as it is ready.
         let ((ar, kh), bs2) = std::thread::scope(|scope| {
-            let b2 = scope.spawn(|| {
-                g2.install(|| {
-                    let mut sb = gather(&plan.b_indices);
-                    msm_affine::apple_b2_from_fr(&self.b2, &mut sb, self.exclusive_g2_grouping, true)
+            let (send_k, receive_k) = std::sync::mpsc::sync_channel(1);
+            let b2 = scope.spawn(move || {
+                g2.install(move || {
+                    let (_, bs2) = rayon::join(
+                        move || {
+                            let prepared = msm_affine::prepare_apple_k(
+                                &self.k, private, 0..usize::MAX, true,
+                            );
+                            let _ = send_k.send(prepared);
+                        },
+                        || {
+                            let mut sb = gather(&plan.b_indices);
+                            msm_affine::apple_b2_from_fr(
+                                &self.b2, &mut sb, self.exclusive_g2_grouping, true,
+                            )
+                        },
+                    );
+                    bs2
                 })
             });
-            let ak = g1.install(|| {
+            let ak = g1.install(move || {
                 let started = crate::time::Instant::now();
-                let (mut h, (prepared, mut sa)) = rayon::join(
+                let (mut h, mut sa) = rayon::join(
                     || self.plan.apple_small_quotient(a, b, c),
-                    || {
-                        rayon::join(
-                            || msm_affine::prepare_apple_k(&self.k, private, 0..usize::MAX, true),
-                            || gather(&plan.a_indices),
-                        )
-                    },
+                    || gather(&plan.a_indices),
                 );
+                let prepared = receive_k.recv().expect("K preparation result");
                 let started = trace("cpu-quotient-and-k-prepare", started);
                 let ak = rayon::join(
                     || msm_affine::apple_a_from_fr(&self.a, &mut sa),

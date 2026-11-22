@@ -209,3 +209,20 @@ The borrowed G1 and G2 window kernels check one word of the x coordinate before 
 | 12×2 Metal | 101.775 | 49.148 | 48.898 | 2.084× | 443.312 | 444.672 |
 
 Speedup is the median of the original-to-updated ratios within blocks. Peak RSS is the median process high-water mark. The paired CPU gains over the previous build were 0.4% for 1×2, 1.7% for 2×2, and 2.7% for 12×2. The 40-block repeat for 1×2 measured 15.958 to 15.877 ms with a 0.9% paired gain, and the 24-block repeat for 2×2 measured 24.089 to 24.008 ms with a 0.5% paired gain.
+
+## M5 Pro follow-up on the small CPU proof schedule
+
+The 11-worker G1 pool computes the quotient and gathers A while the seven-worker B2 pool also prepares K. The A query uses widths 11 and 12 for its final two windows. The fused K/H query moves the 15-bit window to the beginning. These changes apply to the small paired CPU schedule. [Previous build](https://github.com/helius-labs/zk-tools/commit/a4ea03da44ce187a0e190c734542eaf146d3b7e8) · [Raw blocks](artifacts/m5-paired-g1-layout.jsonl)
+
+The benchmark used 48 randomized three-build blocks for 1×2 CPU, 40 for 2×2 CPU, and 10 for each other case. Each process verified eight proofs. Warm latency is the median of proofs three through eight.
+
+| Shape and backend | Original warm ms | Previous warm ms | Updated warm ms | Speedup | Previous peak RSS MiB | Updated peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 1×2 CPU | 30.736 | 15.870 | 15.720 | 1.955× | 71.695 | 70.898 |
+| 1×2 Metal | 25.976 | 11.576 | 11.578 | 2.245× | 96.648 | 94.992 |
+| 2×2 CPU | 53.380 | 24.341 | 24.338 | 2.195× | 96.812 | 96.367 |
+| 2×2 Metal | 34.051 | 15.398 | 15.336 | 2.224× | 125.898 | 126.312 |
+| 12×2 CPU | 244.518 | 115.779 | 115.353 | 2.151× | 337.484 | 335.930 |
+| 12×2 Metal | 103.073 | 49.195 | 49.155 | 2.092× | 443.242 | 442.766 |
+
+Speedup is the median of the original-to-updated ratios within blocks. Peak RSS is the median process high-water mark. The paired 1×2 CPU gain over the previous build was 1.0%. The paired change on 2×2 CPU was +0.2%. A separate 48-block 1×2 CPU repeat measured 15.964 to 15.735 ms, a 1.4% paired gain.

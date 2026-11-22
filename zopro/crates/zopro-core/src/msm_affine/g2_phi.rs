@@ -545,6 +545,9 @@ pub(super) fn quotient_g1_msm(
 const WIDE_FUSED_G1_WIDTHS: [usize; 9] = [14, 14, 14, 14, 14, 14, 14, 14, 15];
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+const PAIRED_KH_WIDTHS: [usize; 9] = [15, 14, 14, 14, 14, 14, 14, 14, 14];
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 const SINGLE_G1_WIDTHS: [usize; 10] = [13, 13, 13, 13, 13, 13, 13, 13, 13, 10];
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -576,7 +579,7 @@ pub(super) fn fused_g1_msm(
                 log::info!("ZOPRO_TRACE cpu-fused-kh-wide-single-range");
                 return g1_endomorphism_msm::<1, 2, 9, true>(
                     queries,
-                    WIDE_FUSED_G1_WIDTHS,
+                    PAIRED_KH_WIDTHS,
                     |width| batch_size(width) * 2 / 3,
                 );
             }
@@ -603,19 +606,15 @@ pub(super) fn witness_g1_msm(
         log::info!("ZOPRO_TRACE cpu-g1-witness-single-range");
         return g1_endomorphism_msm::<1, 1, 10, true>(queries, THREE_PART_WIDTHS, batch_size);
     }
-    let size = batch_size(13);
-    let top_size = if ((1 << 14)..(1 << 15)).contains(&bases.len())
+    if ((1 << 14)..(1 << 15)).contains(&bases.len())
         && rayon::current_num_threads() == crate::APPLE_SMALL_PAIRED_G1_WORKERS
     {
-        // The ten-bit window has frequent collisions when it uses the
-        // thirteen-bit windows' large batch, so its queue spills early.
-        48
-    } else {
-        size
-    };
-    g1_endomorphism_msm::<2, 1, 10, false>(queries, SINGLE_G1_WIDTHS, |width| {
-        if width == 10 { top_size } else { size }
-    })
+        // Spread the final digits over a wider window and size each
+        // affine batch for its window.
+        return g1_endomorphism_msm::<2, 1, 10, true>(queries, BALANCED_WIDTHS, batch_size);
+    }
+    let size = batch_size(13);
+    g1_endomorphism_msm::<2, 1, 10, false>(queries, SINGLE_G1_WIDTHS, |_| size)
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -699,7 +698,12 @@ mod tests {
                 let s = [magnitude as u64, hi, magnitude as u64, hi];
                 for high in [false, true] {
                     let expected = if negative { -(magnitude as i128) } else { magnitude as i128 };
-                    for widths in [&BALANCED_WIDTHS[..], &THREE_PART_WIDTHS, &WIDE_FUSED_G1_WIDTHS] {
+                    for widths in [
+                        &BALANCED_WIDTHS[..],
+                        &THREE_PART_WIDTHS,
+                        &WIDE_FUSED_G1_WIDTHS,
+                        &PAIRED_KH_WIDTHS,
+                    ] {
                         let mut result = 0i128;
                         let mut offset = 0;
                         for &width in widths {
@@ -802,6 +806,10 @@ mod tests {
         assert_eq!(quotient_g1_msm(&bases, &scalars), expected);
         assert_eq!(witness_g1_msm(&bases, &scalars), expected);
         assert_eq!(
+            g1_endomorphism_msm::<2, 1, 10, true>([(&bases, &scalars)], BALANCED_WIDTHS, batch_size),
+            expected,
+        );
+        assert_eq!(
             g1_endomorphism_msm::<1, 1, 10, true>([(&bases, &scalars)], THREE_PART_WIDTHS, batch_size),
             expected
         );
@@ -816,12 +824,14 @@ mod tests {
             g1_endomorphism_msm::<3, 2, 10, true>(queries, THREE_PART_WIDTHS, batch_size),
             expected
         );
-        assert_eq!(
-            g1_endomorphism_msm::<1, 2, 9, true>(queries, WIDE_FUSED_G1_WIDTHS, |width| {
-                batch_size(width) * 2 / 3
-            }),
-            expected
-        );
+        for widths in [WIDE_FUSED_G1_WIDTHS, PAIRED_KH_WIDTHS] {
+            assert_eq!(
+                g1_endomorphism_msm::<1, 2, 9, true>(queries, widths, |width| {
+                    batch_size(width) * 2 / 3
+                }),
+                expected,
+            );
+        }
         for split in [0, 1, 255, 511, 512] {
             assert_eq!(
                 fused_g1_msm(
