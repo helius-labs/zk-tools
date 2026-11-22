@@ -88,6 +88,26 @@ All 24 process blocks passed native verification. Each block ran eight proofs an
 
 The host reduction and short-proof window runs each measured one change against `5102771`.
 
+## iPhone 17e combined host reduction and short windows
+
+The signed `1ed3005` release combines host bucket reduction and narrower short-proof Metal windows. The signed `5102771` control already includes GPU quotient recoding. Both builds ran over USB on the same iPhone 17e with iOS 27.2.1 and used the same pinned keys and witnesses.
+
+All 28 process blocks passed native verification. Each block ran eight proofs and averaged the last five for warm latency. Each shape ran twice per build, interleaved within each block. Latency and memory show the median of the two measurements. The speedup column shows both ratios in block order. The phone reported `serious` thermal state before and after every block.
+
+[Raw combined release blocks](artifacts/iphone-17e-combined-window-host-bucket-blocks.jsonl)
+
+| Shape | Warm ms control → candidate | Paired speedup | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---:|---:|---:|---:|
+| 1×2 | 88.6 → 58.2 | 1.40× / 1.64× | 146.2 → 118.6 | 111.1 → 96.1 |
+| 1×4 | 98.2 → 93.3 | 1.12× / 1.00× | 158.5 → 145.0 | 127.4 → 115.8 |
+| 2×2 | 107.5 → 105.3 | 0.98× / 1.07× | 184.0 → 171.4 | 156.3 → 145.7 |
+| 2×4 | 130.2 → 119.1 | 1.32× / 0.90× | 188.0 → 175.1 | 161.4 → 150.4 |
+| 8×2 | 172.1 → 175.8 | 0.94× / 1.02× | 318.4 → 313.3 | 325.1 → 324.6 |
+| 24×2 | 685.9 → 707.5 | 0.90× / 1.01× | 772.7 → 774.5 | 883.8 → 885.6 |
+| merge-54×1 | 1830.4 → 1882.6 | 1.09× / 0.86× | 1449.7 → 1464.6 | 1741.0 → 1738.7 |
+
+The smallest shape was faster in both pairs and used 27.6 MiB less peak physical footprint. For 8×2, 24×2, and the largest merge, the candidate was faster in one block and slower in the other.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
