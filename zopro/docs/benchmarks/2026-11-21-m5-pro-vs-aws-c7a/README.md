@@ -1,6 +1,6 @@
 # M5 Pro and AWS C7a proof benchmarks
 
-The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Physical phone benchmarks](MOBILE.md) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Short Metal witness sorting](#parallel-sorting-for-short-metal-witness-queries) · [Smaller Metal digit chunks](#smaller-host-digit-chunks-for-narrow-metal-queries) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
+The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Physical phone benchmarks](MOBILE.md) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Short Metal witness sorting](#parallel-sorting-for-short-metal-witness-queries) · [Smaller Metal digit chunks](#smaller-host-digit-chunks-for-narrow-metal-queries) · [Earlier Metal witness submission](#earlier-metal-witness-submission-for-narrow-queries) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
 
 The first tables record the initial M5 Pro comparison.
 
@@ -846,3 +846,30 @@ The measurements used signed revision `0a04d2a81bb6cef0d2a9c4ebf26540adad87638b`
 | 1×8 | CPU | 25.32 | 24.93 | 1.007× | 1.924× | 94.5 → 94.0 | 66.1 → 65.8 |
 
 The 2×2 control's median warm latency rose from 16.69 to 16.99 ms. It remained 2.081× faster than the original build in the paired runs.
+
+## Earlier Metal witness submission for narrow queries
+
+Arm64 macOS queues A and K before the quotient MSM for grouped proofs with at least 16 workers, a GPU quotient, and CPU G2. The schedule covers 32,768–49,151 and 57,344–65,535 G2 points on 65,536-point domains, and 73,728–90,111 G2 points on 131,072-point domains. It waits for command submission before starting the quotient MSM.
+
+Each comparison used seven paired blocks on the same M5 Pro. Every process verified eight proofs. Warm latency uses the last five proofs per process, and memory uses process high-water marks.
+
+Gnark independently verified 144 proofs, including disabled grouping, lower worker counts, GPU G2, and CPU fallback. The standalone Metal tests, Metal-enabled core tests, and iOS arm64 build check passed.
+
+[Published build](https://github.com/helius-labs/zk-tools/commit/45bc0c0b56daeb26e28ba94d1109585c3739a258) · [Comparison CSV](m5-metal-witness-first.csv) · [Raw blocks](artifacts/m5-metal-witness-first.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB | Peak footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1×4 | Metal | 14.67 | 14.40 | 1.018× | 2.080× | 93.1 → 92.7 | 179.3 → 181.0 |
+| 1×8 | Metal | 16.67 | 16.36 | 1.021× | 1.937× | 108.1 → 108.3 | 190.3 → 190.6 |
+| 1×16 | Metal | 18.33 | 18.00 | 1.018× | 1.994× | 128.9 → 128.7 | 204.0 → 203.8 |
+| 2×2 | Metal | 15.37 | 15.30 | 1.002× | 2.214× | 125.2 → 127.0 | 207.1 → 208.9 |
+| 2×4 | Metal | 15.54 | 15.63 | 0.996× | 2.227× | 131.3 → 130.8 | 211.9 → 211.4 |
+| 2×8 | Metal | 20.82 | 20.71 | 1.005× | 2.071× | 150.7 → 150.4 | 231.8 → 231.5 |
+| 2×16 | Metal | 23.79 | 23.50 | 1.014× | 2.043× | 176.8 → 177.4 | 254.9 → 255.4 |
+| 3×2 | Metal | 22.97 | 22.48 | 1.020× | 2.046× | 152.3 → 152.2 | 232.3 → 232.1 |
+| 3×4 | Metal | 22.79 | 22.24 | 1.017× | 2.100× | 156.9 → 157.1 | 236.3 → 236.4 |
+| 3×8 | Metal | 23.63 | 23.49 | 1.006× | 2.208× | 170.6 → 170.8 | 248.5 → 248.6 |
+| 5×8 | Metal | 33.20 | 33.26 | 0.998× | 2.003× | 245.7 → 245.4 | 325.9 → 325.5 |
+| 1×8 | CPU | 26.97 | 28.27 | 0.978× | 1.843× | 93.7 → 94.2 | 65.5 → 65.9 |
+
+The 1×8 CPU control measured 26.97 ms on the previous build and 28.27 ms on the new build. The scheduling change applies to Metal proofs.
