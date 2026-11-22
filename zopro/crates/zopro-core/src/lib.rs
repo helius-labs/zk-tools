@@ -2113,6 +2113,19 @@ impl Key {
             let group = omit_b
                 && cfg!(all(target_os = "macos", target_arch = "aarch64"))
                 && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
+            // For narrow queries the witness MSMs finish sooner when their
+            // command buffers are queued before the quotient MSM.
+            let witness_first = group
+                && wide_apple
+                && self.gpu_quotient
+                && gpu.b2.is_none()
+                && match self.domain {
+                    65536 => (32768..49152).contains(&sb.len()) || (57344..65536).contains(&sb.len()),
+                    131072 => (73728..90112).contains(&sb.len()),
+                    _ => false,
+                };
+            let (witness_submitted_tx, witness_submitted_rx) =
+                witness_first.then(std::sync::mpsc::channel::<()>).unzip();
             // These small witness sorts can both finish while Metal builds H.
             let parallel_small_sort = narrow_digits
                 && self.gpu_quotient
@@ -2273,6 +2286,7 @@ impl Key {
                             k.start_grouped(points, words)
                         }
                     };
+                    drop(witness_submitted_tx);
                     let (ar, t) = a.finish(pa)?;
                     gpu_trace("a", t.sort_ms, t.gpu_ms);
                     let bs1 = if let Some(pb) = pb {
@@ -2353,6 +2367,12 @@ impl Key {
                 };
                 drop((quotient, quotient_tx));
                 trace("quotient", started);
+                if let Some(submitted) = witness_submitted_rx {
+                    // Wait for command submission before queuing Z.
+                    let _ = submitted.recv();
+                    #[cfg(feature = "trace")]
+                    log::info!("ZOPRO_TRACE metal-witness-submit-first");
+                }
                 // Z's MSM is sorted and queued now, behind the others still
                 // on the GPU, rather than after them; on a pool of its own,
                 // since on the global one it queued behind the CPU's G2 MSM
