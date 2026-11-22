@@ -358,19 +358,27 @@ const APPLE_SMALL_PAIRED_G1_WORKERS: usize = 11;
 /// Pool sizes used by the overlapping CPU and Metal MSM schedules.
 #[cfg(any(gpu, all(target_os = "macos", target_arch = "aarch64")))]
 fn apple_msm_pool(threads: usize) -> Option<&'static rayon::ThreadPool> {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    static FIVE: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
     static SIX: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
     static TWELVE: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     static SEVEN: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     static ELEVEN: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    static THIRTEEN: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
     let pool = match threads {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        5 => &FIVE,
         6 => &SIX,
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         7 => &SEVEN,
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         11 => &ELEVEN,
         12 => &TWELVE,
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        13 => &THIRTEEN,
         _ => unreachable!("Apple MSM pool size"),
     };
     pool.get_or_init(|| {
@@ -1434,9 +1442,18 @@ impl Key {
                 && msm_affine::apple_g2_three_parts_enabled()
                 && std::env::var("ZOPRO_CPU_WITNESS_GROUP_PREP").as_deref() != Ok("0");
             if paired {
-                if let Some(pools) = apple_msm_pool(APPLE_SMALL_PAIRED_G1_WORKERS)
-                    .zip(apple_msm_pool(18 - APPLE_SMALL_PAIRED_G1_WORKERS))
-                {
+                // Give more of the pool to the quotient and G1 MSMs when
+                // the G2 query can finish on fewer workers.
+                let g1 = match self.domain {
+                    65536 if self.a.len() < 24576 => 12,
+                    131072 => match self.b2.len() {
+                        0..65536 | 90112..122880 => 13,
+                        65536..90112 => 12,
+                        _ => APPLE_SMALL_PAIRED_G1_WORKERS,
+                    },
+                    _ => APPLE_SMALL_PAIRED_G1_WORKERS,
+                };
+                if let Some(pools) = apple_msm_pool(g1).zip(apple_msm_pool(18 - g1)) {
                     return Ok(self.apple_small_paired_cpu_parts(plan, &w, (a, b, c), pools));
                 }
             }
@@ -2595,7 +2612,7 @@ impl Key {
                         let started = crate::time::Instant::now();
                         let a_query = || {
                             if apple_groups {
-                                msm_affine::apple_a_from_fr(&self.a, sa)
+                                msm_affine::apple_a_from_fr(&self.a, sa, false)
                             } else {
                                 msm_canonical(&self.a, canonical(sa))
                             }
@@ -2609,7 +2626,9 @@ impl Key {
                             let started = trace("cpu-quotient-and-k-prepare", started);
                             let (ar, kh) = rayon::join(
                                 a_query,
-                                || msm_affine::apple_fused_kh(&self.k, sk, &self.z, &mut h, prepared),
+                                || {
+                                    msm_affine::apple_fused_kh(&self.k, sk, &self.z, &mut h, prepared, false)
+                                },
                             );
                             trace("cpu-g1-msms", started);
                             return (ar, kh, G1Projective::IDENTITY);
@@ -2667,12 +2686,12 @@ impl Key {
                 || rayon::join(
                     || {
                         if apple_groups {
-                            msm_affine::apple_a_from_fr(&self.a, sa)
+                            msm_affine::apple_a_from_fr(&self.a, sa, false)
                         } else {
                             msm_g1_witness(&self.a, canonical(sa))
                         }
                     },
-                    || msm_affine::apple_fused_kh(&self.k, sk, &self.z, &mut h, Some(prepared)),
+                    || msm_affine::apple_fused_kh(&self.k, sk, &self.z, &mut h, Some(prepared), false),
                 ),
                 || {
                     if apple_groups {
@@ -2776,11 +2795,11 @@ impl Key {
                 let prepared = receive_k.recv().expect("K preparation result");
                 let started = trace("cpu-quotient-and-k-prepare", started);
                 let ak = rayon::join(
-                    || msm_affine::apple_a_from_fr(&self.a, &mut sa),
+                    || msm_affine::apple_a_from_fr(&self.a, &mut sa, true),
                     || {
                         // The ungrouped route needs exclusive scalar storage.
                         let mut sk = if prepared.is_none() { private.to_vec() } else { Vec::new() };
-                        msm_affine::apple_fused_kh(&self.k, &mut sk, &self.z, &mut h, prepared)
+                        msm_affine::apple_fused_kh(&self.k, &mut sk, &self.z, &mut h, prepared, true)
                     },
                 );
                 trace("cpu-g1-msms", started);

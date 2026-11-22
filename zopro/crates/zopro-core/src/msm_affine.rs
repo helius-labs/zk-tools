@@ -254,16 +254,17 @@ pub(super) fn apple_fused_kh(
     h: &[zopro_bn254::G1Affine],
     sh: &mut [Fr],
     prepared: Option<PreparedAppleK>,
+    paired: bool,
 ) -> zopro_bn254::G1Projective {
     #[cfg(feature = "trace")]
     log::info!("ZOPRO_TRACE cpu-fused-kh-endomorphism");
     let split = |s: &Fr| g2_phi::phi_split(s.to_canonical());
     let h_words = encode_exclusive(sh, split);
     if let Some(PreparedAppleK { points, groups }) = prepared {
-        return g2_phi::fused_g1_msm(&points, &groups.values, h, h_words);
+        return g2_phi::fused_g1_msm(&points, &groups.values, h, h_words, paired);
     }
     let k_words = encode_exclusive(sk, split);
-    g2_phi::fused_g1_msm(k, k_words, h, h_words)
+    g2_phi::fused_g1_msm(k, k_words, h, h_words, paired)
 }
 
 /// Use the shorter endomorphism components after compacting a G1 witness query.
@@ -279,13 +280,14 @@ pub(super) fn msm_g1_witness(
     else {
         return msm_raw(bases, words);
     };
-    g1_witness_grouped(bases, groups)
+    g1_witness_grouped(bases, groups, false)
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 fn g1_witness_grouped(
     bases: &[zopro_bn254::G1Affine],
     mut groups: ScalarGroups,
+    paired: bool,
 ) -> zopro_bn254::G1Projective {
     if !(1024..32768).contains(&groups.values.len()) {
         return msm_grouped(bases, &groups);
@@ -294,19 +296,20 @@ fn g1_witness_grouped(
     log::info!("ZOPRO_TRACE cpu-g1-witness-endomorphism");
     let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
     groups.values.par_iter_mut().for_each(|s| *s = g2_phi::phi_split(*s));
-    g2_phi::witness_g1_msm(&points, &groups.values)
+    g2_phi::witness_g1_msm(&points, &groups.values, paired)
 }
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 pub(super) fn apple_a_from_fr(
     bases: &[zopro_bn254::G1Affine],
     scalars: &mut [Fr],
+    paired: bool,
 ) -> zopro_bn254::G1Projective {
     if let Some(groups) = grouping::group_apple_cpu_witness::<zopro_bn254::G1Config, true>(scalars) {
         if borrowed_scalar::enabled()
             && std::env::var("ZOPRO_CPU_WITNESS_G1_ENDO").as_deref() != Ok("0")
         {
-            return g1_witness_grouped(bases, groups);
+            return g1_witness_grouped(bases, groups, paired);
         }
         return msm_grouped(bases, &groups);
     }
