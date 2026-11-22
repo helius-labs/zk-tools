@@ -16,6 +16,27 @@ A value requires three fresh processes. A dash indicates an incomplete measureme
 | Samsung Galaxy S25 | Android 15 | AWS Device Farm, passed |
 | Apple iPhone 17e | 27.2.1 | USB, passed |
 
+## iPhone 17e paired release comparison
+
+Two signed release builds ran back to back on a wired iPhone 17e with iOS 27.2.1. The control used `576e8ee`, which has the same prover source as the commit that added the wired baseline. The candidate used `dab92b6` with repeated witness queries compacted on Apple family 9. Both builds used the same pinned keys and witnesses.
+
+Each cell shows the median of three fresh process blocks. Each block ran eight proofs with native verification and averaged the last five for warm latency. The speedup column shows the median of the three within-block ratios. All 60 process blocks verified. The app sampled thermal state before and after each block and reported `serious`. The five sampled shapes cover the smallest proof, three intermediate shapes, and the largest merge.
+
+[Raw paired process blocks](artifacts/iphone-17e-grouped-query-blocks.jsonl)
+
+| Shape | Backend | Warm ms control → candidate | Speedup | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---|---:|---:|---:|---:|
+| 1×2 | CPU | 125.2 → 123.3 | 1.02× | 20.2 → 24.1 | 55.3 → 60.2 |
+| 1×2 | Metal | 79.7 → 73.9 | 1.10× | 157.8 → 146.1 | 119.9 → 110.9 |
+| 8×2 | CPU | 718.7 → 406.0 | 1.81× | 91.6 → 94.9 | 207.5 → 211.7 |
+| 8×2 | Metal | 755.5 → 182.2 | 4.15× | 382.6 → 315.1 | 425.2 → 356.9 |
+| 16×8 | CPU | 1443.0 → 710.8 | 2.03× | 163.8 → 171.1 | 376.9 → 385.4 |
+| 16×8 | Metal | 1471.7 → 326.6 | 3.40× | 609.1 → 512.8 | 752.8 → 647.7 |
+| 24×2 | CPU | 2618.6 → 1296.9 | 2.02× | 268.4 → 279.1 | 584.7 → 602.2 |
+| 24×2 | Metal | 2071.8 → 663.5 | 2.29× | 907.7 → 774.6 | 1153.3 → 1006.2 |
+| merge-54×1 | CPU | 6292.7 → 3474.5 | 1.81× | 538.3 → 545.5 | 1180.8 → 1189.9 |
+| merge-54×1 | Metal | 4036.5 → 1841.2 | 2.19× | 1691.2 → 1406.7 | 2261.5 → 1953.8 |
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
