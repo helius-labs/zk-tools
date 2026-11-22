@@ -55,16 +55,18 @@ fn main() {
         ("ios", true) => ("iphonesimulator", "-mios-simulator-version-min=16.0"),
         _ => return,
     };
-    let mut source: String = ["field", "curve", "buckets", "quotient", "radix29", "radix29_points"]
+    let source: String = ["field", "curve", "buckets", "quotient"]
         .iter()
         .map(|name| fs::read_to_string(format!("shaders/{name}.metal")).unwrap())
         .collect::<Vec<_>>()
         .join("\n");
-    source.push_str("\nBUCKET_KERNELS(fp2_t, g2)\n");
     let all = out.join("zopro.metal");
-    fs::write(&all, source).unwrap();
-    let compiled = compile(sdk, version_flag, &all, "-O2", &out, "zopro")
-        && compile(sdk, version_flag, &all, "-Os", &out, "zopro-size");
+    fs::write(&all, format!("{source}\nBUCKET_KERNELS(fp2_t, g2)\n")).unwrap();
+    let size_compiled = compile(sdk, version_flag, &all, "-Os", &out, "zopro-size");
+    let radix29 = fs::read_to_string("shaders/radix29.metal").unwrap();
+    let points = fs::read_to_string("shaders/radix29_points.metal").unwrap();
+    fs::write(&all, format!("{source}\n{radix29}\n{points}\nBUCKET_KERNELS(fp2_t, g2)\n")).unwrap();
+    let compiled = size_compiled && compile(sdk, version_flag, &all, "-O2", &out, "zopro");
     if compiled {
         println!("cargo::rustc-cfg=metallib");
     } else {

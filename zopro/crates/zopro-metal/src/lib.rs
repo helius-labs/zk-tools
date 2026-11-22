@@ -214,11 +214,13 @@ fn compile(device: &Device, g2: bool, smaller: bool) -> Result<metal::Library, S
     }
     #[cfg(not(metallib))]
     {
-        let source = if g2 {
-            format!("{SHADER}\nBUCKET_KERNELS(fp2_t, g2)\n")
-        } else {
-            SHADER.to_string()
-        };
+        let mut source = SHADER.to_string();
+        if !smaller {
+            source.push_str(RADIX29_SHADERS);
+        }
+        if g2 {
+            source.push_str("\nBUCKET_KERNELS(fp2_t, g2)\n");
+        }
         let options = CompileOptions::new();
         if smaller {
             // MTLLibraryOptimizationLevelSize; metal-rs has no setter for it.
@@ -239,6 +241,10 @@ pub(crate) const SHADER: &str = concat!(
     include_str!("../shaders/buckets.metal"),
     "\n",
     include_str!("../shaders/quotient.metal"),
+);
+
+#[cfg(not(metallib))]
+const RADIX29_SHADERS: &str = concat!(
     "\n",
     include_str!("../shaders/radix29.metal"),
     "\n",
