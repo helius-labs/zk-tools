@@ -179,7 +179,11 @@ impl Quotient {
             pipeline("fr_product")?,
             pipeline("fr_finish_quotient")?,
         );
-        let encode_digits = cfg!(all(target_os = "macos", target_arch = "aarch64"))
+        let apple_silicon = cfg!(all(target_os = "macos", target_arch = "aarch64"));
+        let recent_phone = cfg!(all(target_os = "ios", target_arch = "aarch64"))
+            && device.supports_family(metal::MTLGPUFamily::Apple9)
+            && ((1 << 18)..=(1 << 21)).contains(&n);
+        let encode_digits = (apple_silicon || recent_phone)
             .then(|| pipeline("fr_quotient_digits").ok())
             .flatten();
         let sort_digits = encode_digits.as_ref().and_then(|_| {
@@ -197,10 +201,11 @@ impl Quotient {
             .max_total_threads_per_threadgroup()
             .min(dit.max_total_threads_per_threadgroup());
         let passes = plan_passes(log_n, limit);
-        let derive_c = if cfg!(all(target_os = "macos", target_arch = "aarch64"))
-            && n >= (1 << 18)
-            && std::env::var("ZOPRO_METAL_DERIVE_C").as_deref() != Ok("0")
-        {
+        let derive_c_override = std::env::var("ZOPRO_METAL_DERIVE_C");
+        let derive_c_requested = (apple_silicon && n >= (1 << 18)
+            && derive_c_override.as_deref() != Ok("0"))
+            || (recent_phone && derive_c_override.as_deref() == Ok("1"));
+        let derive_c = if derive_c_requested {
             passes.first().and_then(|pass| {
                 let kernel = pipeline("fr_dif_derive_c").ok()?;
                 let threads = 1 << (pass.levels + pass.cols_log - 1);
@@ -256,6 +261,27 @@ impl Quotient {
     pub fn can_recode_msm(&self) -> bool {
         let max_windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(7);
         self.encode_digits.is_some() && self.n <= u32::MAX as usize / max_windows
+    }
+
+    /// Temporary Metal buffers needed to recode and scatter a quotient.
+    #[doc(hidden)]
+    pub fn digit_scatter_workspace(&self, width: usize) -> Option<usize> {
+        if !self.can_recode_msm() || !(7..=15).contains(&width) {
+            return None;
+        }
+        self.sort_digits.as_ref()?;
+        let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
+        let buckets = windows.checked_mul(1 << (width - 1))?;
+        let digit_bytes = (self.n - 1).checked_mul(windows)?.checked_mul(2)?;
+        // Counters have an extra slot for invalid digits. Starts and offsets
+        // are separate buffers retained by the final MSM command.
+        let counters = buckets.checked_add(1)?.checked_mul(4)?;
+        let starts = buckets.checked_mul(4)?;
+        let page = 16 * 1024;
+        digit_bytes
+            .checked_next_multiple_of(page)?
+            .checked_add(counters.checked_next_multiple_of(page)?)?
+            .checked_add(starts.checked_next_multiple_of(page)?.checked_mul(2)?)
     }
 
     /// Queue the quotient followed by recoding for the MSM's window width.

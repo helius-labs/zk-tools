@@ -2083,6 +2083,7 @@ impl Key {
             // rather than 45 on an M5 Pro, 54 → 1 merge).
             let started = crate::time::Instant::now();
             let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
+            let phone_metal = fast_ios_metal();
             let large_digits = self.domain >= (1 << 18);
             // Reuse device recoding for the smaller quotient domains when
             // their G1 MSMs use the narrower Apple silicon window caps.
@@ -2096,6 +2097,20 @@ impl Key {
                 && std::env::var("ZOPRO_METAL_QUOTIENT_DIGITS").as_deref() != Ok("0"))
             .then(|| gpu.z.lock().unwrap().scalar_window_width())
             .filter(|&width| large_digits || width <= if medium_digits { 10 } else { 8 });
+            // An admitted digit buffer stays charged through completion of
+            // the final MSM. Without live headroom, read back coefficients.
+            let _digit_workspace = if phone_metal && omit_b {
+                digit_width.zip(quotient.as_ref()).and_then(|(width, quotient)| {
+                    preparation::Reservation::analysis(quotient.digit_scatter_workspace(width))
+                })
+            } else {
+                None
+            };
+            let digit_width = digit_width.filter(|_| !phone_metal || _digit_workspace.is_some());
+            #[cfg(all(feature = "trace", target_os = "ios"))]
+            if digit_width.is_some() {
+                log::info!("ZOPRO_TRACE ios-quotient-digits");
+            }
             #[cfg(feature = "trace")]
             if narrow_digits && digit_width.is_some() {
                 log::info!("ZOPRO_TRACE metal-small-quotient-digits");
@@ -2125,7 +2140,7 @@ impl Key {
                 && !self.profiled.swap(true, std::sync::atomic::Ordering::Relaxed);
             #[cfg(not(feature = "trace"))]
             let profile = false;
-            let ios_group = self.gpu_quotient && fast_ios_metal();
+            let ios_group = self.gpu_quotient && phone_metal;
             let group = omit_b
                 && (cfg!(all(target_os = "macos", target_arch = "aarch64")) || ios_group)
                 && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
