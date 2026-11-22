@@ -349,8 +349,7 @@ pub(super) fn try_apple_compact_g2(
     Some(g2_phi::balanced_msm(&points, &mut groups.values))
 }
 
-/// A small sample screens out witness queries with too few repeats to
-/// benefit from the extra compaction and GPU upload.
+/// Admit small Metal queries with enough repeats to benefit from compaction.
 #[cfg(gpu)]
 pub(super) fn metal_compact_candidate(scalars: &[Fr]) -> bool {
     if scalars.len() < (1 << 14) {
@@ -358,7 +357,32 @@ pub(super) fn metal_compact_candidate(scalars: &[Fr]) -> bool {
     }
     let stride = scalars.len().div_ceil(2048);
     let unique: ahash::AHashSet<_> = scalars.iter().step_by(stride).collect();
-    unique.len() * 4 <= scalars.len().div_ceil(stride) * 3
+    if unique.len() * 4 <= scalars.len().div_ceil(stride) * 3 {
+        return true;
+    }
+    drop(unique);
+    // The stride can miss repeats concentrated in runs. Check the larger
+    // small queries exactly, stopping as soon as they exceed the stricter
+    // density limit. Charge the table before allocating it.
+    if !(32768..65536).contains(&scalars.len()) {
+        return false;
+    }
+    let limit = scalars.len() * 64 / 100;
+    let capacity = limit + 1;
+    let Some(_reservation) = grouping_cost::reserve(
+        scalars.len(),
+        grouping_cost::hash_table::<&Fr>(capacity),
+    ) else {
+        return false;
+    };
+    let mut distinct = ahash::AHashSet::new();
+    if distinct.try_reserve(capacity).is_err() {
+        return false;
+    }
+    scalars.iter().all(|value| {
+        distinct.insert(value);
+        distinct.len() <= limit
+    })
 }
 
 #[cfg(gpu)]
