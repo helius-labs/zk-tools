@@ -1,5 +1,7 @@
 # M5 Pro and AWS C7a proof benchmarks
 
+[Midrange and high-end phones with Mopro and AWS](PHONE-COMPARISON.md)
+
 The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Physical phone benchmarks](MOBILE.md) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Short Metal witness sorting](#parallel-sorting-for-short-metal-witness-queries) · [Smaller Metal digit chunks](#smaller-host-digit-chunks-for-narrow-metal-queries) · [Earlier Metal witness submission](#earlier-metal-witness-submission-for-narrow-queries) · [Larger narrow Metal tree batches](#larger-metal-tree-batches-for-narrow-65k-proofs) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
 
 The signed iPhone 17e Metal tensor release verified **984 proofs across all 41 shapes** and posted a **3.16×** median speedup over the original wired Metal benchmark. The largest merge warmed to **868.5 ms** with **1,368 MiB** peak physical footprint and **1,709 MiB** peak RSS. The phone was faster than AWS c7a Gnark on 18 shapes. [Current wired iPhone 17e catalog](MOBILE.md#iphone-17e-metal-tensor-release-across-all-41-shapes)

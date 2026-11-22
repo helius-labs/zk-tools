@@ -1,5 +1,7 @@
 # Physical phone proof benchmarks
 
+[Midrange and high-end phones with Mopro and AWS](PHONE-COMPARISON.md)
+
 The AWS Device Farm phones and the wired iPhone 17e used the same pinned keys and witness bytes as the M5 Pro benchmark.
 
 All five phones completed all 41 shapes. Each Android phone recorded 123 verified CPU process blocks. Each iPhone recorded 123 verified CPU blocks and 123 verified Metal blocks.
