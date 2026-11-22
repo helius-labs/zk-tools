@@ -1419,6 +1419,27 @@ impl Key {
         }
         let started = trace("solve", started);
         use rayon::prelude::*;
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        {
+            let paired = materialize_c
+                && !self.has_gpu()
+                && omit_b
+                && self.apple_small_msm_overlap()
+                && self.lagrange.as_ref().is_none_or(|queries| {
+                    queries.folded.is_none() && queries.constraints.is_empty()
+                })
+                && self.plan.has_apple_small_quotient()
+                && msm_affine::apple_fused_kh_enabled(self.k.len(), self.domain - 1)
+                && msm_affine::apple_g2_three_parts_enabled()
+                && std::env::var("ZOPRO_CPU_WITNESS_GROUP_PREP").as_deref() != Ok("0");
+            if paired {
+                if let Some(pools) = apple_msm_pool(APPLE_SMALL_PAIRED_G1_WORKERS)
+                    .zip(apple_msm_pool(18 - APPLE_SMALL_PAIRED_G1_WORKERS))
+                {
+                    return Ok(self.apple_small_paired_cpu_parts(plan, &w, (a, b, c), pools));
+                }
+            }
+        }
         #[cfg(all(
             zopro_resource_schedule,
             feature = "ifma8",
@@ -2505,28 +2526,9 @@ impl Key {
             // Overlap the G2 query with the quotient and G1 queries while
             // keeping eighteen workers in total on wide Apple silicon Macs.
             let pools = (omit_b && self.apple_small_msm_overlap())
-                .then(|| {
-                    if apple_groups
-                        && self.plan.has_apple_small_quotient()
-                        && msm_affine::apple_fused_kh_enabled(self.k.len(), self.domain - 1)
-                        && msm_affine::apple_g2_three_parts_enabled()
-                    {
-                        if let Some((g1, g2)) = apple_msm_pool(APPLE_SMALL_PAIRED_G1_WORKERS)
-                            .zip(apple_msm_pool(18 - APPLE_SMALL_PAIRED_G1_WORKERS))
-                        {
-                            return Some((g1, g2, true));
-                        }
-                    }
-                    apple_msm_pool(12)
-                        .zip(apple_msm_pool(6))
-                        .map(|(g1, g2)| (g1, g2, false))
-                })
+                .then(|| apple_msm_pool(12).zip(apple_msm_pool(6)))
                 .flatten();
-            if let Some((g1, g2, paired_quotient)) = pools {
-                #[cfg(feature = "trace")]
-                if paired_quotient {
-                    log::info!("ZOPRO_TRACE cpu-small-paired-quotient-schedule");
-                }
+            if let Some((g1, g2)) = pools {
                 use msm_affine::{
                     canonical, canonical_exclusive, g2_query_exclusive, msm_canonical,
                 };
@@ -2538,7 +2540,7 @@ impl Key {
                                     &self.b2,
                                     sb,
                                     self.exclusive_g2_grouping,
-                                    paired_quotient,
+                                    false,
                                 );
                             }
                             g2_query_exclusive(
@@ -2560,13 +2562,7 @@ impl Key {
                         if msm_affine::apple_fused_kh_enabled(self.k.len(), self.domain - 1) {
                             // The fused sum needs H, but K's grouping depends only on the witness.
                             let (mut h, prepared) = rayon::join(
-                                || {
-                                    if paired_quotient {
-                                        self.plan.apple_small_quotient(a, b, c)
-                                    } else {
-                                        self.quotient(a, b, c)
-                                    }
-                                },
+                                || self.quotient(a, b, c),
                                 || msm_affine::prepare_apple_k(&self.k, sk, 0..usize::MAX, apple_groups),
                             );
                             let started = trace("cpu-quotient-and-k-prepare", started);
@@ -2687,6 +2683,68 @@ impl Key {
         output_g2(&mut out, bs2);
         Ok(out)
     }
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    fn apple_small_paired_cpu_parts(
+        &self,
+        plan: &solver::Plan,
+        witness: &[Fr],
+        (a, b, c): (Vec<Fr>, Vec<Fr>, Vec<Fr>),
+        (g1, g2): (&rayon::ThreadPool, &rayon::ThreadPool),
+    ) -> Vec<u8> {
+        use rayon::prelude::*;
+        #[cfg(feature = "trace")]
+        log::info!("ZOPRO_TRACE cpu-small-paired-quotient-schedule");
+
+        let private = &witness[plan.n_public..];
+        let gather = |indices: &[u32]| -> Vec<Fr> {
+            indices
+                .par_iter()
+                .with_min_len(2048)
+                .map(|&i| witness[i as usize])
+                .collect()
+        };
+        // B2 can gather its own scalars as soon as its pool starts. The
+        // G1 pool gathers A while preparing K and computing the quotient.
+        let ((ar, kh), bs2) = std::thread::scope(|scope| {
+            let b2 = scope.spawn(|| {
+                g2.install(|| {
+                    let mut sb = gather(&plan.b_indices);
+                    msm_affine::apple_b2_from_fr(&self.b2, &mut sb, self.exclusive_g2_grouping, true)
+                })
+            });
+            let ak = g1.install(|| {
+                let started = crate::time::Instant::now();
+                let (mut h, (prepared, mut sa)) = rayon::join(
+                    || self.plan.apple_small_quotient(a, b, c),
+                    || {
+                        rayon::join(
+                            || msm_affine::prepare_apple_k(&self.k, private, 0..usize::MAX, true),
+                            || gather(&plan.a_indices),
+                        )
+                    },
+                );
+                let started = trace("cpu-quotient-and-k-prepare", started);
+                let ak = rayon::join(
+                    || msm_affine::apple_a_from_fr(&self.a, &mut sa),
+                    || {
+                        // The ungrouped route needs exclusive scalar storage.
+                        let mut sk = if prepared.is_none() { private.to_vec() } else { Vec::new() };
+                        msm_affine::apple_fused_kh(&self.k, &mut sk, &self.z, &mut h, prepared)
+                    },
+                );
+                trace("cpu-g1-msms", started);
+                ak
+            });
+            (ak, b2.join().expect("CPU G2 MSM"))
+        });
+        let mut out = Vec::with_capacity(384);
+        for point in [ar, G1Projective::IDENTITY, kh, G1Projective::IDENTITY] {
+            output_g1(&mut out, point);
+        }
+        output_g2(&mut out, bs2);
+        out
+    }
+
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     fn apple_small_msm_overlap(&self) -> bool {
         self.domain == (1 << 15)

@@ -132,3 +132,20 @@ The paired CPU schedule queues reduction after all point ranges for a window fin
 | Original PR `87b35e3` | 30.82 | 43.56 | 22.89 |
 | Bounded grouping `70941be` | 17.07 | 73.33 | 52.13 |
 | Queued window reduction | 16.64 | 74.41 | 53.20 |
+
+## M5 Pro follow-up on scalar gathering
+
+The 1×2 CPU schedule gathers A scalars while the G1 pool prepares K and computes the quotient. The G2 pool gathers B2 scalars when it starts. The measurement uses the same `zopro-spr` runner and repository request fixtures as the previous follow-up, with 36 randomized three-build blocks for 1×2 CPU and 10 for each other configuration. The speedup is the median of the original-to-updated latency ratios within blocks. [Original PR build](https://github.com/helius-labs/zk-tools/commit/87b35e3f8cce89bc60ae83344c9166ab59058e3b) · [Queued window reduction](https://github.com/helius-labs/zk-tools/commit/842b05a3d7a31b302abe37edae30e5362454b02e) · [Raw blocks](artifacts/m5-apple-cpu-scalar-handoff.jsonl)
+
+| Shape and backend | Original warm ms | Queued warm ms | Updated warm ms | Speedup | Queued peak RSS MiB | Updated peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 1×2 CPU | 30.79 | 16.68 | 16.50 | 1.866× | 76.42 | 75.28 |
+| 1×2 Metal | 25.99 | 11.57 | 11.57 | 2.244× | 97.66 | 97.42 |
+| 2×2 CPU | 51.80 | 24.32 | 24.39 | 2.132× | 98.47 | 97.86 |
+| 2×2 Metal | 34.04 | 15.39 | 15.37 | 2.210× | 129.16 | 127.84 |
+| 12×2 CPU | 238.90 | 111.60 | 112.87 | 2.129× | 345.20 | 349.45 |
+| 12×2 Metal | 108.62 | 50.02 | 49.73 | 2.129× | 444.91 | 448.69 |
+
+The 1×2 CPU proof gained 1.0% over queued window reduction in paired runs. Its peak physical footprint went from 55.28 to 54.11 MiB. When K grouping is unavailable, the overlapping schedule uses a temporary copy of the private scalars for the ungrouped query.
+
+The first 12×2 CPU sample was 1.1% slower with the updated build. A 24-block repeat measured 113.83 ms for queued reduction and 112.07 ms for the update, with a median paired speedup of 1.004×. Both series are in the raw blocks.
