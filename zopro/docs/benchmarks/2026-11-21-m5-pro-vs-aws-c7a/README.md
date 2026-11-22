@@ -6,7 +6,7 @@ All 41 circuit shapes from the AWS catalog have warm proof latency and peak proc
 - Against the 96-core AWS run, M5 Metal took **1.64×** as long as Zopro at the median shape ratio and beat Aeglos on **5/41** shapes. AWS Gnark took **5.26×** as long as M5 Metal at the median shape ratio.
 - M5 Metal peak process RSS was **93.6–1779.9 MiB**. Its macOS peak physical footprint was **170.5–1624.0 MiB**. The footprint series is in the memory table and CSV.
 
-[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [Sparse witness solving](#sparse-witness-solving-for-131072-point-proofs) · [Million-point CPU overlap](#cpu-overlap-for-1048576-point-domains) · [Metal presorting](#metal-presorting-for-smaller-262144-point-workloads) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
+[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [Sparse witness solving](#sparse-witness-solving-for-131072-point-proofs) · [Million-point CPU overlap](#cpu-overlap-for-1048576-point-domains) · [Metal presorting](#metal-presorting-for-smaller-262144-point-workloads) · [Short CPU witness grouping](#cpu-witness-compaction-for-shorter-queries) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
 
 ## Warm proof latency in milliseconds
 
@@ -483,3 +483,28 @@ The raw blocks identify the measured source revision and patch hash. The publish
 | merge-8×1 | 172,735 | 33.24 | 32.87 | 1.041× | 2.213× | 269.4 → 266.2 |
 | 5×4 | 121,387 | 25.61 | 26.23 | 0.977× | 2.577× | 203.0 → 202.5 |
 | 12×2 | 270,757 | 49.86 | 50.24 | 1.003× | 2.052× | 441.9 → 443.6 |
+
+## CPU witness compaction for shorter queries
+
+Arm64 macOS uses the compaction cutoff of 90% distinct scalars for witness MSMs with 16,384 through 49,151 points. The previous ceiling was 32,767 points. Compaction groups equal scalars and sums their corresponding bases.
+
+- 1×4 CPU warm latency fell by 4.5%, with a 1.77× speedup over the original build and a +1.2 MiB change in peak RSS.
+- 1×8 CPU warm latency fell by 4.5%, with a 1.88× speedup over the original build and a +6.6 MiB change in peak RSS.
+
+The other seven measured rows changed by at most 3.9% in paired warm latency. Gnark independently verified 60 proofs across concurrent requests and fallback paths.
+
+Each build used the same M5 Pro and pinned inputs in five paired blocks. Each process verified eight proofs. Warm latency uses the median of the means for proofs four through eight. Memory uses median process high-water marks.
+
+[New build](https://github.com/helius-labs/zk-tools/commit/8c48da06bd8de4073c9ce69c432b32eee201282f) · [Comparison CSV](m5-apple-short-witness.csv) · [Raw blocks](artifacts/m5-apple-short-witness.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB |
+|---|---|---:|---:|---:|---:|---:|
+| 1×2 | CPU | 15.56 | 15.72 | 0.993× | 1.943× | 71.6 → 70.9 |
+| 1×4 | CPU | 24.40 | 22.95 | 1.047× | 1.770× | 82.3 → 83.4 |
+| 1×8 | CPU | 26.52 | 24.75 | 1.048× | 1.878× | 87.2 → 93.8 |
+| 1×16 | CPU | 28.33 | 27.85 | 0.994× | 1.986× | 106.9 → 107.3 |
+| 2×2 | CPU | 24.08 | 23.61 | 1.024× | 2.185× | 99.0 → 97.1 |
+| 2×4 | CPU | 24.51 | 24.06 | 1.041× | 2.204× | 100.6 → 100.5 |
+| 2×8 | CPU | 38.54 | 38.53 | 0.999× | 1.816× | 122.7 → 122.2 |
+| 1×4 | Metal | 14.68 | 14.67 | 1.000× | 1.993× | 93.1 → 93.0 |
+| 1×8 | Metal | 17.00 | 16.97 | 1.007× | 1.842× | 108.5 → 108.4 |
