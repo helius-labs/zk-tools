@@ -2113,6 +2113,11 @@ impl Key {
             let group = omit_b
                 && cfg!(all(target_os = "macos", target_arch = "aarch64"))
                 && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
+            // These small witness sorts can both finish while Metal builds H.
+            let parallel_small_sort = narrow_digits
+                && self.gpu_quotient
+                && gpu.b2.is_none()
+                && ((40960..49152).contains(&sb.len()) || (57344..65536).contains(&sb.len()));
             // Below 64K B2 points the CPU can compact G2 on its own pool
             // while A and K prepare on the sort pool.
             let compact_pool = (group
@@ -2221,7 +2226,7 @@ impl Key {
                         // Rerandomization omits B here. Sort the two independent
                         // witness queries concurrently while the quotient runs.
                         if group
-                            && (self.domain == (1 << 15) || medium_apple)
+                            && (self.domain == (1 << 15) || medium_apple || parallel_small_sort)
                             && rayon::current_num_threads() >= 16
                             && std::env::var("ZOPRO_METAL_PARALLEL_WITNESS_SORT").as_deref() != Ok("0")
                         {
