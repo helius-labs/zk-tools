@@ -149,3 +149,18 @@ The 1×2 CPU schedule gathers A scalars while the G1 pool prepares K and compute
 The 1×2 CPU proof gained 1.0% over queued window reduction in paired runs. Its peak physical footprint went from 55.28 to 54.11 MiB. When K grouping is unavailable, the overlapping schedule uses a temporary copy of the private scalars for the ungrouped query.
 
 The first 12×2 CPU sample was 1.1% slower with the updated build. A 24-block repeat measured 113.83 ms for queued reduction and 112.07 ms for the update, with a median paired speedup of 1.004×. Both series are in the raw blocks.
+
+## M5 Pro follow-up on G1 affine batches
+
+The G1 affine batch kernel stores each denominator beside its scaled numerator and starts the next slope before writing the current point. These measurements use 36 randomized three-build blocks for 1×2 CPU and 10 for each other configuration, with the same `zopro-spr` runner, proof count, and repository fixtures as the scalar-gathering follow-up. Speedup reports the median original-to-updated ratio within blocks. [Previous build](https://github.com/helius-labs/zk-tools/commit/66ac1a41558ff20814a59315dfee9b8e84a2ed8d) · [Raw blocks](artifacts/m5-pipelined-g1-batches.jsonl)
+
+| Shape and backend | Original warm ms | Previous warm ms | Updated warm ms | Speedup | Previous peak RSS MiB | Updated peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 1×2 CPU | 30.77 | 16.42 | 16.32 | 1.883× | 74.81 | 76.00 |
+| 1×2 Metal | 26.05 | 11.56 | 11.55 | 2.250× | 98.72 | 97.48 |
+| 2×2 CPU | 52.02 | 24.53 | 23.95 | 2.175× | 98.95 | 97.73 |
+| 2×2 Metal | 34.04 | 15.35 | 15.36 | 2.212× | 126.94 | 129.25 |
+| 12×2 CPU | 240.15 | 112.76 | 110.95 | 2.151× | 348.09 | 347.66 |
+| 12×2 Metal | 102.51 | 49.29 | 49.24 | 2.086× | 444.42 | 447.48 |
+
+The median paired gain over the previous build was 0.6% for 1×2 CPU and 2.0% for 2×2 CPU. Peak physical footprint for 1×2 CPU went from 53.64 to 54.84 MiB.

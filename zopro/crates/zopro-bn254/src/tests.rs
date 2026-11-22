@@ -40,6 +40,42 @@ fn g2(p: ark::G2Affine) -> G2Affine {
     }
 }
 
+#[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+#[test]
+fn pipelined_affine_batch_matches_arkworks() {
+    const BUCKETS: usize = 521;
+    let generator = ark::G1Projective::generator();
+    let points = |start| {
+        std::iter::successors(Some(generator * ark::Fr::from(start)), |p| Some(*p + generator))
+            .take(BUCKETS)
+            .collect::<Vec<_>>()
+    };
+    let original = points(1u64);
+    let incoming = points(1024u64);
+    let affines: Vec<_> = incoming.iter().map(|p| g1(p.into_affine())).collect();
+    let mut scratch = Vec::new();
+    let mut prefixes = Vec::new();
+    for size in [377, 0, 1, 2, 3, 64, 129] {
+        let mut buckets: Vec<_> = original.iter().map(|p| g1(p.into_affine())).collect();
+        let mut expected = buckets.clone();
+        let mut busy = [0u64; BUCKETS.div_ceil(64)];
+        let batch: Vec<_> = (0..size)
+            .map(|i| {
+                let bucket = (i * 37 + 13) % BUCKETS;
+                let negative = i % 2 == 0;
+                let addend = if negative { -incoming[i] } else { incoming[i] };
+                assert_ne!(buckets[bucket].x, affines[i].x);
+                expected[bucket] = g1((original[bucket] + addend).into_affine());
+                busy[bucket / 64] |= 1 << (bucket % 64);
+                (bucket as u32 | (u32::from(negative) << 31), &affines[i])
+            })
+            .collect();
+        crate::curve::batch_affine_loose(&mut buckets, &mut busy, &batch, &mut scratch, &mut prefixes);
+        assert_eq!(buckets, expected, "batch length {size}");
+        assert!(busy.iter().all(|&word| word == 0));
+    }
+}
+
 fn edges() -> Vec<ark::Fq> {
     vec![
         ark::Fq::zero(),
