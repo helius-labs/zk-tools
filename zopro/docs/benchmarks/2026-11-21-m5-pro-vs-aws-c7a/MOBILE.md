@@ -54,6 +54,23 @@ All 24 process blocks passed native verification. Each block ran eight proofs an
 
 The largest merge was faster in two pairs. Its within-pair speed ranged from 0.64× to 1.04×.
 
+## iPhone 17e paired host bucket reduction comparison
+
+Two signed Metal release builds ran over USB on iPhone 17e with iOS 27.2.1. `5102771` is the device recoding build from the preceding comparison. `6b04d94` sums the buckets in XYZZ coordinates on the host so it can convert each window once. Both builds use the same pinned keys and witnesses.
+
+All 24 process blocks passed native verification. Each block ran eight proofs and averaged the last five. The table reports the median of three blocks per build, and the speedup column uses the median of the within-block ratios. The app reported thermal state `serious` before and after the blocks.
+
+[Raw paired host bucket reduction blocks](artifacts/iphone-17e-host-bucket-blocks.jsonl)
+
+| Shape | Warm ms control → candidate | Speedup | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---:|---:|---:|---:|
+| 1×2 | 75.4 → 73.9 | 1.00× | 146.2 → 146.3 | 111.0 → 111.1 |
+| 8×2 | 200.0 → 177.9 | 1.12× | 314.5 → 314.7 | 325.6 → 325.8 |
+| 24×2 | 995.7 → 801.5 | 1.13× | 773.9 → 772.6 | 885.0 → 883.6 |
+| merge-54×1 | 1898.0 → 1815.9 | 1.04× | 1461.7 → 1463.0 | 1742.5 → 1740.9 |
+
+The largest merge had within-pair speed ratios from 0.64× to 1.04×. Peak RSS and physical footprint changed by less than 2 MiB for that shape.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
