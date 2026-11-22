@@ -23,6 +23,7 @@ use rayon::prelude::*;
 
 pub mod quotient;
 mod shard_order;
+mod tensor_fft;
 pub use quotient::{Quotient, QuotientDigits, Weights};
 
 // Matching block layout for the host and GPU digit producers.

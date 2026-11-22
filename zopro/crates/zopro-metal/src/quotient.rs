@@ -101,6 +101,7 @@ pub struct Quotient {
     dif: ComputePipelineState,
     dit: ComputePipelineState,
     derive_c: Option<ComputePipelineState>,
+    tensor_fft: Option<crate::tensor_fft::TensorFft>,
     /// The DIF passes, widest gaps first; the DIT passes run them reversed.
     passes: Vec<Pass>,
     scale: ComputePipelineState,
@@ -201,6 +202,10 @@ impl Quotient {
             .max_total_threads_per_threadgroup()
             .min(dit.max_total_threads_per_threadgroup());
         let passes = plan_passes(log_n, limit);
+        let tensor_fft = passes
+            .last()
+            .filter(|p| p.levels == 9)
+            .and_then(|_| crate::tensor_fft::TensorFft::new(&device, n, [inverse_roots, roots]));
         let derive_c_override = std::env::var("ZOPRO_METAL_DERIVE_C");
         let derive_c_requested = (apple_silicon && n >= (1 << 18)
             && derive_c_override.as_deref() != Ok("0"))
@@ -220,6 +225,7 @@ impl Quotient {
                 dif,
                 dit,
                 derive_c,
+                tensor_fft,
                 passes,
                 scale,
                 product,
@@ -399,30 +405,33 @@ impl Quotient {
                 }
             });
         let encoder = command.new_compute_command_encoder();
+        if self.tensor_fft.is_some() {
+            log::info!("ZOPRO_TRACE metal-tensor-fft 1");
+        }
         let c_offset = (2 * n * 32) as u64;
         if derive_c {
             let kernel = self.derive_c.as_ref().expect("quotient C derivation");
             let (first, rest) = self.passes.split_first().expect("derive C transforms");
             self.pass(encoder, kernel, 0, &self.inverse_roots, first);
             for pass in rest {
-                self.pass(encoder, &self.dif, c_offset, &self.inverse_roots, pass);
+                self.transform_pass(encoder, c_offset, pass, false);
             }
         }
         for vector in 0..2 {
             let offset = (vector * n * 32) as u64;
-            self.dif_all(encoder, offset, &self.inverse_roots);
+            self.dif_all(encoder, offset);
             self.scale_by(encoder, offset, &self.forward_weights, &self.scale);
-            self.dit_all(encoder, offset, &self.roots);
+            self.dit_all(encoder, offset);
         }
         if !derive_c {
-            self.dif_all(encoder, c_offset, &self.inverse_roots);
+            self.dif_all(encoder, c_offset);
         }
         encoder.set_compute_pipeline_state(&self.product);
         encoder.set_buffer(0, Some(&self.abc), 0);
         let count = n as u32;
         encoder.set_bytes(2, 4, &count as *const u32 as *const c_void);
         self.dispatch(encoder, &self.product, n);
-        self.dif_all(encoder, 0, &self.inverse_roots);
+        self.dif_all(encoder, 0);
         self.scale_by(encoder, 0, &self.reverse_weights, &self.finish_quotient);
         let digits = width.map(|width| {
             let n = n - 1;
@@ -506,17 +515,32 @@ impl Quotient {
     }
 
     /// DIF from the widest gap to one: natural order in, bit-reversed out.
-    fn dif_all(&self, encoder: &ComputeCommandEncoderRef, offset: u64, roots: &Buffer) {
+    fn dif_all(&self, encoder: &ComputeCommandEncoderRef, offset: u64) {
         for pass in &self.passes {
-            self.pass(encoder, &self.dif, offset, roots, pass);
+            self.transform_pass(encoder, offset, pass, false);
         }
     }
 
     /// DIT from gap one to the widest: bit-reversed in, natural order out.
-    fn dit_all(&self, encoder: &ComputeCommandEncoderRef, offset: u64, roots: &Buffer) {
+    fn dit_all(&self, encoder: &ComputeCommandEncoderRef, offset: u64) {
         for pass in self.passes.iter().rev() {
-            self.pass(encoder, &self.dit, offset, roots, pass);
+            self.transform_pass(encoder, offset, pass, true);
         }
+    }
+
+    fn transform_pass(&self, encoder: &ComputeCommandEncoderRef, offset: u64, pass: &Pass, dit: bool) {
+        if let Some(tensor) = self.tensor_fft.as_ref()
+            .filter(|_| pass.levels == 9 && pass.stride_log == 0 && pass.cols_log == 0)
+        {
+            tensor.encode(encoder, &self.abc, offset, self.n, dit);
+            return;
+        }
+        let (pipeline, roots) = if dit {
+            (&self.dit, &self.roots)
+        } else {
+            (&self.dif, &self.inverse_roots)
+        };
+        self.pass(encoder, pipeline, offset, roots, pass);
     }
 
     fn scale_by(

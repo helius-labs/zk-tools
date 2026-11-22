@@ -10,6 +10,7 @@ use std::{env, fs, path::Path, path::PathBuf, process::Command};
 fn compile(
     sdk: &str,
     version_flag: &str,
+    language_flag: &str,
     source: &Path,
     optimize: &str,
     out: &Path,
@@ -18,14 +19,12 @@ fn compile(
     let air = out.join(format!("{name}.air"));
     let lib = out.join(format!("{name}.metallib"));
     Command::new("xcrun")
-        // Metal 3.0 and the oldest OS zopro supports: the SDK's newest
-        // language version would not load on an older iPhone.
         .args([
             "-sdk",
             sdk,
             "metal",
             "-c",
-            "-std=metal3.0",
+            language_flag,
             version_flag,
             optimize,
         ])
@@ -46,6 +45,7 @@ fn compile(
 fn main() {
     println!("cargo::rerun-if-changed=shaders");
     println!("cargo::rustc-check-cfg=cfg(metallib)");
+    println!("cargo::rustc-check-cfg=cfg(tensor_metallib)");
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
     let os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     let simulator = env::var("CARGO_CFG_TARGET_ABI").unwrap_or_default() == "sim";
@@ -62,14 +62,62 @@ fn main() {
         .join("\n");
     let all = out.join("zopro.metal");
     fs::write(&all, format!("{source}\nBUCKET_KERNELS(fp2_t, g2)\n")).unwrap();
-    let size_compiled = compile(sdk, version_flag, &all, "-Os", &out, "zopro-size");
+    // The ordinary libraries run on the oldest iPhone supported by zopro.
+    let size_compiled = compile(
+        sdk,
+        version_flag,
+        "-std=metal3.0",
+        &all,
+        "-Os",
+        &out,
+        "zopro-size",
+    );
     let radix29 = fs::read_to_string("shaders/radix29.metal").unwrap();
     let points = fs::read_to_string("shaders/radix29_points.metal").unwrap();
-    fs::write(&all, format!("{source}\n{radix29}\n{points}\nBUCKET_KERNELS(fp2_t, g2)\n")).unwrap();
-    let compiled = size_compiled && compile(sdk, version_flag, &all, "-O2", &out, "zopro");
+    fs::write(
+        &all,
+        format!("{source}\n{radix29}\n{points}\nBUCKET_KERNELS(fp2_t, g2)\n"),
+    )
+    .unwrap();
+    let compiled = size_compiled
+        && compile(
+            sdk,
+            version_flag,
+            "-std=metal3.0",
+            &all,
+            "-O2",
+            &out,
+            "zopro",
+        );
     if compiled {
         println!("cargo::rustc-cfg=metallib");
     } else {
         println!("cargo::warning=no Metal toolchain: the shaders compile from source at run time");
+    }
+    if os != "ios" || simulator {
+        return;
+    }
+    let tensor = out.join("zopro_tensor.metal");
+    fs::write(
+        &tensor,
+        format!(
+            "{}\n{}",
+            fs::read_to_string("shaders/field.metal").unwrap(),
+            fs::read_to_string("shaders/tensor_fft.metal").unwrap(),
+        ),
+    )
+    .unwrap();
+    // Integer tensor operations require iOS 26.4. An older toolchain
+    // can build the ordinary libraries without the optional tensor one.
+    if compile(
+        sdk,
+        "-mios-version-min=26.4",
+        "-std=metal4.0",
+        &tensor,
+        "-O2",
+        &out,
+        "zopro_tensor",
+    ) {
+        println!("cargo::rustc-cfg=tensor_metallib");
     }
 }
