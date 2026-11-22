@@ -1443,6 +1443,13 @@ pub(super) trait BatchInverse: Field {
     ) -> Option<Projective<C>> {
         None
     }
+    /// One coordinate word for ruling out zero or equality. Fields without
+    /// a cheap word return zero and take the complete comparison.
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[inline(always)]
+    fn affine_x_word(_x: &Self) -> u64 {
+        0
+    }
     const TREE_PREFIX: bool = false;
     fn deferred_sign() -> bool {
         false
@@ -1490,6 +1497,12 @@ pub(super) trait BatchInverse: Field {
     fn lanes_inverse(value: &Self::Lanes, inverse_norm: &FqBatch) -> Self::Lanes;
 }
 impl BatchInverse for Fq {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[inline(always)]
+    fn affine_x_word(x: &Self) -> u64 {
+        x.0[0]
+    }
+
     #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
     fn loose_batch<C: CurveConfig<Base = Self>>(
         affine: &mut [Affine<C>],
@@ -1656,6 +1669,12 @@ impl BatchInverse for Fq {
     }
 }
 impl BatchInverse for Fq2 {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[inline(always)]
+    fn affine_x_word(x: &Self) -> u64 {
+        x.c0.0[0]
+    }
+
     #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
     fn loose_batch<C: CurveConfig<Base = Self>>(
         affine: &mut [Affine<C>],

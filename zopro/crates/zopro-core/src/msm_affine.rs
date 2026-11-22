@@ -1148,16 +1148,26 @@ where
     }
     #[inline(always)]
     fn add_signed(&mut self, encoded: u32, point: Affine<C>) {
-        if self.stage_pending(encoded, &point) {
+        if self.stage_pending::<false>(encoded, &point) {
             self.batch.push((encoded, point));
         }
     }
 
     #[inline(always)]
-    fn stage_pending(&mut self, encoded: u32, point: &Affine<C>) -> bool {
+    fn stage_pending<const CHECK_LOW_WORD: bool>(&mut self, encoded: u32, point: &Affine<C>) -> bool {
         let bucket = (encoded & 0x7fffffff) as usize;
         let negative = encoded >> 31 != 0;
         let current = &mut self.affine[bucket];
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        if CHECK_LOW_WORD {
+            // A nonzero word excludes the identity. Distinct words exclude
+            // the coincident-x cases that need the complete formulas.
+            let low = C::Base::affine_x_word(&current.x);
+            if low != 0 && low != C::Base::affine_x_word(&point.x) {
+                self.busy[bucket / 64] |= 1 << (bucket % 64);
+                return true;
+            }
+        }
         if current.is_identity() {
             *current = if negative { -*point } else { *point };
             return false;
@@ -2007,6 +2017,40 @@ mod tests {
 mod deferred_window_reference_tests {
     use super::*;
     use zopro_bn254::{G1Affine, G1Config};
+
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[test]
+    fn borrowed_bucket_shortcut_preserves_full_comparisons() {
+        let generator = G1Affine::GENERATOR;
+        let another = (generator * Fr::from(17u64)).to_affine();
+        let x_word_collision = |high| {
+            G1Affine::new(Fq::from_montgomery([7, high, 0, 0]), Fq::ONE)
+        };
+        for (current, incoming) in [
+            (G1Affine::IDENTITY, generator),
+            (generator, another),
+            (generator, generator),
+            (generator, -generator),
+            (x_word_collision(1), x_word_collision(2)),
+            (G1Affine::new(Fq::ZERO, Fq::ONE), generator),
+        ] {
+            for encoded in [0, 1 << 31] {
+                let mut ordinary = Window::<G1Config>::new(1, 0);
+                let mut borrowed = Window::<G1Config>::new(1, 0);
+                ordinary.affine[0] = current;
+                borrowed.affine[0] = current;
+                assert_eq!(
+                    borrowed.stage_pending::<true>(encoded, &incoming),
+                    ordinary.stage_pending::<false>(encoded, &incoming),
+                );
+                assert_eq!(borrowed.affine, ordinary.affine);
+                assert_eq!(borrowed.busy, ordinary.busy);
+                assert_eq!(borrowed.projective_buckets, ordinary.projective_buckets);
+                assert_eq!(borrowed.projective, ordinary.projective);
+            }
+        }
+    }
+
     #[test]
     fn encoded_sign_windows_match_weighted_generator_and_scalar_fallback() {
         for n in [31usize, 1027] {

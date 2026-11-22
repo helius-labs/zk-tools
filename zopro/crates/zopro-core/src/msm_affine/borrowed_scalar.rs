@@ -36,7 +36,7 @@ where
 
     #[inline(always)]
     fn add(&mut self, encoded: u32, point: &'a Affine<C>) {
-        if self.inner.stage_pending(encoded, point) {
+        if self.inner.stage_pending::<true>(encoded, point) {
             self.batch.push((encoded, point));
         }
     }
@@ -84,7 +84,7 @@ where
         &mut self, pairs: impl Iterator<Item = (&'a Affine<C>, i16)>, loose: bool,
     ) {
         for (point, d) in pairs {
-            if d == 0 || point.is_identity() {
+            if d == 0 || (C::Base::affine_x_word(&point.x) == 0 && point.is_identity()) {
                 continue;
             }
             let bucket = d.unsigned_abs() as usize - 1;

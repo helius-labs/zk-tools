@@ -194,3 +194,18 @@ The seven-worker G2 affine batch kernel carries bounded Montgomery values throug
 | 12×2 Metal | 102.537 | 49.091 | 49.232 | 2.086× | 442.453 | 443.664 |
 
 Speedup is the median of the original-to-updated ratios within blocks. The 1×2 CPU proof gained 1.6% over the previous build in paired runs and was faster in 43 of 46 blocks. Median peak physical footprint fell from 51.25 to 50.83 MiB.
+
+## M5 Pro follow-up on affine bucket checks
+
+The borrowed G1 and G2 window kernels check one word of the x coordinate before doing complete point comparisons. A nonzero word rules out the identity, and different words rule out coincident x coordinates. The benchmark used 46 randomized three-build blocks for 1×2 CPU and 10 for each other case. Each process verified eight proofs, and its warm latency is the median of proofs three through eight. [Previous build](https://github.com/helius-labs/zk-tools/commit/424ec2156602b4d400b0d97e23390a1beb3195f6) · [Raw blocks](artifacts/m5-borrowed-bucket-checks.jsonl)
+
+| Shape and backend | Original warm ms | Previous warm ms | Updated warm ms | Speedup | Previous peak RSS MiB | Updated peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 1×2 CPU | 30.806 | 15.930 | 15.866 | 1.934× | 71.797 | 71.477 |
+| 1×2 Metal | 26.058 | 11.552 | 11.541 | 2.250× | 95.812 | 96.273 |
+| 2×2 CPU | 52.008 | 24.232 | 23.909 | 2.166× | 98.320 | 97.125 |
+| 2×2 Metal | 34.012 | 15.339 | 15.363 | 2.212× | 126.414 | 126.305 |
+| 12×2 CPU | 240.908 | 113.914 | 112.094 | 2.159× | 340.078 | 342.352 |
+| 12×2 Metal | 101.775 | 49.148 | 48.898 | 2.084× | 443.312 | 444.672 |
+
+Speedup is the median of the original-to-updated ratios within blocks. Peak RSS is the median process high-water mark. The paired CPU gains over the previous build were 0.4% for 1×2, 1.7% for 2×2, and 2.7% for 12×2. The 40-block repeat for 1×2 measured 15.958 to 15.877 ms with a 0.9% paired gain, and the 24-block repeat for 2×2 measured 24.089 to 24.008 ms with a 0.5% paired gain.
