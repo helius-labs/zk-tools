@@ -294,6 +294,7 @@ pub struct Timings {
 /// An MSM's scalars sorted on the host, not yet submitted.
 pub struct Sorted {
     started: Instant,
+    bases: Option<Buffer>,
 }
 
 /// An MSM submitted to the GPU and not yet collected.
@@ -815,12 +816,18 @@ impl<C: Curve> Msm<C> {
         assert_eq!(scalars.len(), self.n);
         let started = Instant::now();
         self.sort(scalars);
-        Sorted { started }
+        Sorted { started, bases: None }
     }
 
     /// Start an MSM with a compact list of points and canonical scalars.
     /// The original bases and the size of this MSM's scratch stay intact.
     pub fn start_grouped(&mut self, bases: &[C::Affine], scalars: &[[u64; 4]]) -> Pending {
+        let sorted = self.sort_grouped(bases, scalars);
+        self.submit_sorted(sorted)
+    }
+
+    /// Prepare compact bases and scalars for submission by this MSM.
+    pub fn sort_grouped(&mut self, bases: &[C::Affine], scalars: &[[u64; 4]]) -> Sorted {
         let n = bases.len();
         assert!(n != 0 && n <= self.n);
         assert_eq!(n, scalars.len());
@@ -828,8 +835,7 @@ impl<C: Curve> Msm<C> {
         let buffer = Self::upload_bases(&self.device, bases);
         self.sort_words(scalars, |words| *words);
         self.sorted_for_original_bases = false;
-        // Metal's retained command buffer owns its input until completion.
-        autoreleasepool(|| self.submit_in_pool(started, Some(&buffer), None))
+        Sorted { started, bases: Some(buffer) }
     }
 
     fn upload_bases(device: &Device, bases: &[C::Affine]) -> Buffer {
@@ -854,7 +860,12 @@ impl<C: Curve> Msm<C> {
     }
 
     pub fn submit_sorted(&mut self, sorted: Sorted) -> Pending {
-        self.submit(sorted.started)
+        if let Some(bases) = sorted.bases {
+            // Metal's retained command buffer owns its input until completion.
+            autoreleasepool(|| self.submit_in_pool(sorted.started, Some(&bases), None))
+        } else {
+            self.submit(sorted.started)
+        }
     }
 
     /// The MSM over the scalars another MSM of the same length just sorted

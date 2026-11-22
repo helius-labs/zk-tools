@@ -2149,6 +2149,29 @@ impl Key {
                     );
                     let (a_msm, b_msm, k_msm) = (&mut *a, &mut *b, &mut *k);
                     let mut sort = || {
+                        // Upload and sort compact inputs while the quotient
+                        // runs. Larger witness queries can delay the GPU
+                        // queue if both sorts must finish before submission.
+                        if host_grouped
+                            && self.domain == (1 << 18)
+                            && sb.len() <= self.domain / 8 * 5
+                            && (grouped_a.is_some() || grouped_k.is_some())
+                            && std::env::var("ZOPRO_METAL_PRESORT_GROUPED").as_deref() != Ok("0")
+                        {
+                            #[cfg(feature = "trace")]
+                            log::info!("ZOPRO_TRACE metal-presort-grouped");
+                            let (sorted_a, sorted_k) = rayon::join(
+                                || match &grouped_a {
+                                    Some((points, words, _)) => a_msm.sort_grouped(points, words),
+                                    None => a_msm.sort_now(sa),
+                                },
+                                || match &grouped_k {
+                                    Some((points, words, _)) => k_msm.sort_grouped(points, words),
+                                    None => k_msm.sort_now(sk),
+                                },
+                            );
+                            return (Some(sorted_a), None, Some(sorted_k));
+                        }
                         // Rerandomization omits B here. Sort the two independent
                         // witness queries concurrently while the quotient runs.
                         if group
@@ -2176,10 +2199,12 @@ impl Key {
                     };
                     drop(sorted_tx);
                     let _ = quotient_rx.recv();
-                    let pa = if let Some((points, words, _charge)) = &grouped_a {
-                        a.start_grouped(points, words)
-                    } else {
-                        a.submit_sorted(sorted_a.unwrap())
+                    let pa = match sorted_a {
+                        Some(sorted) => a.submit_sorted(sorted),
+                        None => {
+                            let (points, words, _charge) = grouped_a.as_ref().unwrap();
+                            a.start_grouped(points, words)
+                        }
                     };
                     let pb = sorted_b.map(|sorted| b.submit_sorted(sorted));
                     let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
@@ -2190,10 +2215,12 @@ impl Key {
                             b2.start(&sb[..gpu.b2_cut])
                         }
                     });
-                    let pk = if let Some((points, words, _charge)) = &grouped_k {
-                        k.start_grouped(points, words)
-                    } else {
-                        k.submit_sorted(sorted_k.unwrap())
+                    let pk = match sorted_k {
+                        Some(sorted) => k.submit_sorted(sorted),
+                        None => {
+                            let (points, words, _charge) = grouped_k.as_ref().unwrap();
+                            k.start_grouped(points, words)
+                        }
                     };
                     let (ar, t) = a.finish(pa)?;
                     gpu_trace("a", t.sort_ms, t.gpu_ms);
