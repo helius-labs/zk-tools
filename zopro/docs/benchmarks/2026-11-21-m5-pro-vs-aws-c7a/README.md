@@ -6,7 +6,7 @@ All 41 circuit shapes from the AWS catalog have warm proof latency and peak proc
 - Against the 96-core AWS run, M5 Metal took **1.64×** as long as Zopro at the median shape ratio and beat Aeglos on **5/41** shapes. AWS Gnark took **5.26×** as long as M5 Metal at the median shape ratio.
 - M5 Metal peak process RSS was **93.6–1779.9 MiB**. Its macOS peak physical footprint was **170.5–1624.0 MiB**. The footprint series is in the memory table and CSV.
 
-[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [Sparse witness solving](#sparse-witness-solving-for-131072-point-proofs) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
+[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [Sparse witness solving](#sparse-witness-solving-for-131072-point-proofs) · [Million-point CPU overlap](#cpu-overlap-for-1048576-point-domains) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
 
 ## Warm proof latency in milliseconds
 
@@ -430,3 +430,27 @@ Five paired blocks per row used the same M5 Pro and pinned inputs. Each process 
 | 5×4 | Metal | 25.63 | 25.30 | 1.023× | 2.539× | 203.5 → 202.9 | 315 |
 | 5×8 | CPU | 65.07 | 65.99 | 0.997× | 1.950× | 204.1 → 201.7 | 0 |
 | 5×8 | Metal | 36.34 | 35.94 | 0.999× | 1.825× | 246.1 → 246.2 | 0 |
+
+## CPU overlap for 1,048,576-point domains
+
+On arm64 macOS, the independent witness MSMs run while the quotient is computed. The schedule uses the existing Rayon pool and reserves space for the three live quotient arrays. Proofs use the existing schedule if the optional budget or thread count cannot support overlap.
+
+5 of 5 shapes ran faster and 5 reached 2× against the original build. Median warm latency fell by 12.3% and median peak RSS rose by 22.3 MiB. The four control rows changed by at most 1.7% in paired warm latency.
+
+Gnark independently verified 34 proofs. The checks cover concurrent requests, reduced threads, the memory-budget fallback, switching from Metal to CPU, and the optional Montgomery quotient MSM.
+
+Five paired blocks per shape and backend used the same M5 Pro and pinned inputs. Each process verified eight proofs. Warm latency uses the median of the means for proofs four through eight. Memory values are median process high-water marks.
+
+[New build](https://github.com/helius-labs/zk-tools/commit/810744b009f5acbbdcddc3732ad937738e94c72b) · [Comparison CSV](m5-cpu-overlap-million.csv) · [Raw blocks](artifacts/m5-cpu-overlap-million.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB |
+|---|---|---:|---:|---:|---:|---:|
+| 24×2 | CPU | 240.92 | 209.93 | 1.141× | 2.161× | 595.4 → 617.7 |
+| 24×4 | CPU | 239.58 | 208.28 | 1.150× | 2.127× | 598.2 → 619.5 |
+| 32×2 | CPU | 244.00 | 218.04 | 1.111× | 2.349× | 717.5 → 744.4 |
+| 40×2 | CPU | 251.52 | 229.59 | 1.090× | 2.527× | 830.5 → 861.0 |
+| merge-24×1 | CPU | 235.42 | 195.57 | 1.212× | 2.168× | 571.3 → 590.5 |
+| 16×8 | CPU | 120.58 | 118.47 | 1.018× | 2.347× | 411.8 → 407.7 |
+| 48×2 | CPU | 461.73 | 457.24 | 1.013× | 2.016× | 1154.6 → 1152.8 |
+| 24×2 | Metal | 89.34 | 89.10 | 1.003× | 2.021× | 809.7 → 808.0 |
+| 40×2 | Metal | 101.16 | 100.56 | 1.004× | 2.692× | 1141.8 → 1141.0 |
