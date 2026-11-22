@@ -1,6 +1,6 @@
 # M5 Pro and AWS C7a proof benchmarks
 
-The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Short Metal witness sorting](#parallel-sorting-for-short-metal-witness-queries) · [Smaller Metal digit chunks](#smaller-host-digit-chunks-for-narrow-metal-queries) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
+The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Physical phone benchmarks](MOBILE.md) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Short Metal witness sorting](#parallel-sorting-for-short-metal-witness-queries) · [Smaller Metal digit chunks](#smaller-host-digit-chunks-for-narrow-metal-queries) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
 
 The first tables record the initial M5 Pro comparison.
 
