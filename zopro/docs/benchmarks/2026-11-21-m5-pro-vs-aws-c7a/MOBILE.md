@@ -203,6 +203,24 @@ Each setting ran three fresh processes. All 36 process blocks verified, for 288 
 
 The combined settings improved warm latency in all three pairs for each large shape. Median key load for merge-54×1 rose from 382 to 708 ms and peak RSS rose by 32 MiB. For 24×2, the bounded schedule was faster in two pairs, and its median warm latency rose from 544 to 791 ms.
 
+## iPhone 17e bounded witness solving release comparison
+
+The signed candidate `5e181e2` prepares a bounded witness schedule for recognized Poseidon constraints and uses wider quotient MSM windows for 2,097,152-point domains on Apple family 9. The schedule builder counts dependency components and recognizes independent hash tasks in parallel.
+
+The signed control `990508c` and candidate ran on the wired iPhone 17e with the same pinned keys and witnesses. Build order alternated between pairs. The three large shapes ran three pairs each, and the short controls ran five pairs each. All 38 process blocks passed native verification, for 304 proofs. Thermal states were `fair`, `serious`. Each block ran eight proofs and averaged the last five for warm prove-and-verify latency. The table shows medians across blocks. Paired speedup is the median of the within-pair ratios.
+
+[Raw paired release blocks](artifacts/iphone-17e-bounded-witness-release-blocks.jsonl)
+
+| Shape | Warm ms control → candidate | Paired speedup | Faster pairs | Load ms control → candidate | First response ms control → candidate | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1×2 | 57.6 → 59.6 | 1.01× | 3/5 | 98.8 → 101.6 | 204.4 → 211.2 | 118.8 → 118.7 | 96.3 → 96.4 |
+| 1×8 | 112.6 → 116.6 | 0.99× | 1/5 | 106.9 → 112.0 | 278.3 → 314.6 | 158.2 → 158.0 | 131.6 → 131.4 |
+| 48×2 | 1506.4 → 1159.5 | 1.41× | 3/3 | 363.5 → 541.8 | 1265.3 → 1339.6 | 1422.6 → 1411.1 | 1664.4 → 1694.6 |
+| 49×2 | 1124.9 → 1014.9 | 1.10× | 2/3 | 662.1 → 817.5 | 1570.2 → 1613.0 | 1411.7 → 1417.2 | 1683.4 → 1716.4 |
+| merge-54×1 | 1282.0 → 1034.9 | 1.16× | 3/3 | 408.2 → 841.0 | 1318.8 → 1660.9 | 1477.2 → 1451.0 | 1740.2 → 1771.7 |
+
+The largest merge had 408 ms median key load in the control and 841 ms in the candidate. Its first response was 1319 ms in the control and 1661 ms in the candidate. The candidate verified 656 proofs across all 41 shapes on the M5 Pro using CPU and Metal. The iOS CPU-only build check also passed.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |

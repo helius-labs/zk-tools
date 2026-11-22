@@ -4,6 +4,8 @@ The signed M5 Pro build has updated proof time and memory measurements for all 4
 
 The signed iPhone 17e release verified 1,968 proofs across all 41 shapes. Every shape was faster than in the original wired run, with a median speedup of **2.24×** and a best result of **4.83×** on 16×2. The largest merge took **1.56 s** with **1,464 MiB** peak physical footprint and **1,740 MiB** peak RSS. The iPhone was faster than AWS Gnark on 10 shapes. AWS Zopro and Aeglos were faster on all 41. [iPhone release report](MOBILE.md#iphone-17e-current-release-across-all-41-shapes) · [All 41 shapes with M5 and AWS time and memory](iphone-17e-release-comparison.csv)
 
+A paired iPhone 17e release run measured the large-domain witness and quotient improvements. The largest merge warmed from **1.28 s to 1.03 s** in the paired run. Its first response rose from **1.32 s to 1.66 s**. [Paired iPhone release results](MOBILE.md#iphone-17e-bounded-witness-solving-release-comparison)
+
 The first tables record the initial M5 Pro comparison.
 
 All 41 circuit shapes from the AWS catalog have warm proof latency and peak process RSS results for M5 Pro Zopro CPU, M5 Pro Zopro Metal, and AWS Zopro, Aeglos, and Gnark.
