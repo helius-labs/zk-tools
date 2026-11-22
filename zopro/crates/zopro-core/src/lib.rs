@@ -329,6 +329,16 @@ fn fast_ios_metal() -> bool {
 }
 
 #[cfg(gpu)]
+fn can_prepare_large_iphone_schedule(domain: usize) -> bool {
+    cfg!(all(target_os = "ios", target_arch = "aarch64", zopro_bounded_schedule, zopro_sparse_poseidon))
+        && domain == (1 << 21)
+        && fast_ios_metal()
+        && std::env::var("ZOPRO_CPU_BOUNDED_SCHEDULE").as_deref() != Ok("0")
+        && std::env::var("ZOPRO_CPU_SPARSE_POSEIDON").as_deref() != Ok("0")
+        && std::env::var("ZOPRO_GPU_QUOTIENT").as_deref() != Ok("0")
+}
+
+#[cfg(gpu)]
 struct Gpu {
     a: std::sync::Mutex<zopro_metal::G1Msm>,
     b: std::sync::Mutex<zopro_metal::G1Msm>,
@@ -746,7 +756,9 @@ impl GpuBuilder {
         // B1 and B2 can reuse the same sorted runs and must share a width.
         // On wide Apple silicon hosts, fewer buckets make small G1 queries
         // cheaper to plan and combine on the CPU.
-        let width = if self.domain <= (1 << 16) && matches!(which, 0 | 2 | 3) && fast_ios_metal() {
+        let width = if which == 3 && can_prepare_large_iphone_schedule(self.domain) {
+            Some(15)
+        } else if self.domain <= (1 << 16) && matches!(which, 0 | 2 | 3) && fast_ios_metal() {
             // Smaller bucket tables reduce host work on short phone proofs.
             Some(8)
         } else if wide_apple {
@@ -1629,7 +1641,7 @@ impl Key {
         if let Ok(plan) = &parsed {
             log::info!("ZOPRO_TRACE solver-plan-size {}", plan.footprint());
         }
-        if let Ok(plan) = parsed {
+        if let Ok(mut plan) = parsed {
             if plan.matches(
                 self.lengths[0],
                 self.lengths[1],
@@ -1640,14 +1652,14 @@ impl Key {
                     return false;
                 }
                 self.basis_fallback = None;
-                self.prepare_plan(&plan);
+                self.prepare_plan(&mut plan);
                 self.solver = Some(plan);
                 return true;
             }
         }
         false
     }
-    fn prepare_plan(&mut self, plan: &solver::Plan) {
+    fn prepare_plan(&mut self, plan: &mut solver::Plan) {
         self.proof_workspace = None;
         #[cfg(zopro_live_preparation_charge)]
         {
@@ -1727,7 +1739,30 @@ impl Key {
             target_feature = "avx512dq",
             not(no_ifma)
         )))]
-        plan.prepare();
+        {
+            #[cfg(all(
+                gpu,
+                target_os = "ios",
+                target_arch = "aarch64",
+                zopro_bounded_schedule,
+                zopro_sparse_poseidon
+            ))]
+            let prepared = self.has_gpu()
+                && self.gpu_quotient
+                && can_prepare_large_iphone_schedule(self.domain)
+                && plan.prepare_ios_poseidon();
+            #[cfg(not(all(
+                gpu,
+                target_os = "ios",
+                target_arch = "aarch64",
+                zopro_bounded_schedule,
+                zopro_sparse_poseidon
+            )))]
+            let prepared = false;
+            if !prepared {
+                plan.prepare();
+            }
+        }
         trace("solver-schedule", started);
         #[cfg(not(zopro_live_preparation_charge))]
         self.prepare_solver_queries(plan);
@@ -1823,7 +1858,7 @@ impl Key {
         if !self.commitments.is_empty() {
             return false;
         }
-        let Ok(plan) = parsed else { return false };
+        let Ok(mut plan) = parsed else { return false };
         if !plan.matches(
             self.lengths[0],
             self.lengths[1],
@@ -1836,7 +1871,7 @@ impl Key {
             return false;
         }
         self.basis_fallback = None;
-        self.prepare_plan(&plan);
+        self.prepare_plan(&mut plan);
         self.solver = Some(plan);
         true
     }
@@ -3990,7 +4025,7 @@ impl Key {
             lagrange::Queries::mapped_basis(image, product, private, public, slots, scale, digest)?;
         queries.euler = euler;
         let folded = queries.folded.as_ref().unwrap();
-        let plan = solver::Plan::from_image_with_owner(solver_image, Some(image))?;
+        let mut plan = solver::Plan::from_image_with_owner(solver_image, Some(image))?;
         if !plan.matches(key.lengths[0], key.lengths[1], key.lengths[2], key.domain)
             || product.1 / 64 != key.domain
             || folded.private.len() != key.lengths[2] + folded.slots.len()
@@ -4016,7 +4051,7 @@ impl Key {
         key.k = Store::Owned(Vec::new());
         key.z = Store::Owned(Vec::new());
         key.lagrange = Some(queries);
-        key.prepare_plan(&plan);
+        key.prepare_plan(&mut plan);
         key.solver = Some(plan);
         Ok(key)
     }

@@ -108,7 +108,7 @@ fn zeros(n: usize) -> Option<Vec<Fr>> {
 }
 struct Pattern {
     t: usize,
-    #[cfg(any(test, not(all(target_os = "macos", target_arch = "aarch64"))))]
+    #[cfg(any(test, not(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios")))))]
     partial: usize,
     n: usize,
     d: usize,
@@ -201,7 +201,7 @@ impl Pattern {
         assert_eq!(c, count);
         Some(Self {
             t,
-            #[cfg(any(test, not(all(target_os = "macos", target_arch = "aarch64"))))]
+            #[cfg(any(test, not(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios")))))]
             partial,
             n,
             d,
@@ -245,7 +245,7 @@ impl Pattern {
         }
         true
     }
-    #[cfg(any(test, not(all(target_os = "macos", target_arch = "aarch64"))))]
+    #[cfg(any(test, not(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios")))))]
     fn tag(&self, p: &Plan, task: &mut [u32]) -> usize {
         tag_spans(p, task, self.t, self.partial, |span, meta| {
             self.recognizes(p, span, meta)
@@ -376,11 +376,11 @@ impl Plan {
         if self.ops.len() > INDEX as usize || s.epochs.is_empty() {
             return false;
         }
-        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+        #[cfg(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios")))]
         if !s.refined.is_empty() {
             return false;
         }
-        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        #[cfg(not(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios"))))]
         if !crate::simd::cpu_option("ZOPRO_CPU_SPARSE_POSEIDON") {
             return false;
         }
@@ -394,16 +394,18 @@ impl Plan {
         let mut counts = [0usize; 14];
         for t in 2..=13 {
             let (partial, a) = parameters(t);
-            #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+            #[cfg(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios")))]
             {
                 use rayon::prelude::*;
                 // Initialize the symbolic matrix once, only after a task
                 // matches the operation shape. Leaf tasks are independent.
                 let pattern = std::sync::OnceLock::new();
-                counts[t] = s
-                    .epochs
-                    .par_iter_mut()
-                    .flat_map_iter(|epoch| epoch)
+                let tasks = s.epochs.par_iter_mut();
+                #[cfg(target_os = "ios")]
+                let tasks = tasks.flat_map(|epoch| epoch.par_iter_mut());
+                #[cfg(target_os = "macos")]
+                let tasks = tasks.flat_map_iter(|epoch| epoch);
+                counts[t] = tasks
                     .map(|task| {
                         tag_spans(self, task, t, partial, |span, meta| {
                             pattern
@@ -414,7 +416,7 @@ impl Plan {
                     })
                     .sum();
             }
-            #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+            #[cfg(not(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios"))))]
             {
                 let Some(pattern) = Pattern::new(t, partial, a) else {
                     break;
@@ -431,16 +433,29 @@ impl Plan {
         }
         let emit = std::env::var("ZOPRO_CPU_POSEIDON_EMIT");
         if emit.as_deref() == Ok("1")
-            || (cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            || (cfg!(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios")))
                 && emit.as_deref() != Ok("0"))
         {
-            for task in s.epochs.iter_mut().flatten() {
-                if !s.refined.contains_key(&((task[0] & INDEX) as usize)) {
+            #[cfg(target_os = "ios")]
+            {
+                use rayon::prelude::*;
+                s.epochs
+                    .par_iter_mut()
+                    .flat_map(|epoch| epoch.par_iter_mut())
+                    .for_each(|task| {
+                        compile_emits(self, task);
+                    });
+            }
+            #[cfg(not(target_os = "ios"))]
+            {
+                for task in s.epochs.iter_mut().flatten() {
+                    if !s.refined.contains_key(&((task[0] & INDEX) as usize)) {
+                        compile_emits(self, task);
+                    }
+                }
+                for task in s.refined.values_mut().flatten().flatten() {
                     compile_emits(self, task);
                 }
-            }
-            for task in s.refined.values_mut().flatten().flatten() {
-                compile_emits(self, task);
             }
         }
         if std::env::var("ZOPRO_CPU_POSEIDON_TRACE").as_deref() == Ok("1") {

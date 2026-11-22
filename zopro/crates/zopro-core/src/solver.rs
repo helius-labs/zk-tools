@@ -1694,6 +1694,32 @@ impl Plan {
         }
     }
 
+    /// Prepare a bounded schedule while the key still owns the plan exclusively.
+    #[cfg(all(
+        gpu,
+        target_os = "ios",
+        target_arch = "aarch64",
+        zopro_bounded_schedule,
+        zopro_sparse_poseidon
+    ))]
+    pub(crate) fn prepare_ios_poseidon(&mut self) -> bool {
+        if self.schedule.get().is_some() {
+            return true;
+        }
+        let epochs = if std::env::var_os("ZOPRO_SOLVE_EPOCHS").is_some() {
+            solve_epochs()
+        } else {
+            6
+        };
+        let Some(mut schedule) = bounded::build(self, epochs, 0, 0) else {
+            return false;
+        };
+        if !self.tag_poseidon(&mut schedule) {
+            return false;
+        }
+        self.schedule.set(schedule).is_ok()
+    }
+
     /// The epochs and their tasks (see Schedule).
     fn build_schedule(&self, epochs: usize) -> Schedule {
         #[cfg(all(zopro_sparse_poseidon, target_os = "macos", target_arch = "aarch64"))]
@@ -1731,7 +1757,7 @@ impl Plan {
         #[cfg(not(all(zopro_sparse_poseidon, target_os = "macos", target_arch = "aarch64")))]
         {
             let mut schedule = self.build_schedule_before_poseidon(epochs, workspace, exact);
-            #[cfg(zopro_sparse_poseidon)]
+            #[cfg(all(zopro_sparse_poseidon, not(target_os = "ios")))]
             self.tag_poseidon(&mut schedule);
             schedule
         }

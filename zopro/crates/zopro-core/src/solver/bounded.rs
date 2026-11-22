@@ -149,6 +149,69 @@ fn pack_ready_components(
     }
 }
 
+const COUNTED_BANDS: usize = 64;
+
+// The dependency pass is done with producer indices. Use their storage to
+// count and place components in the same order as (band, root, operation).
+// Union-find only links operations within a band, so the root determines it.
+fn count_component_order(
+    roots: &[u32],
+    cursors: &mut [u32],
+    order: &mut [u32],
+    bands: usize,
+    band: impl Fn(usize) -> usize,
+) {
+    let mut starts = [0u32; COUNTED_BANDS];
+    cursors.fill(0);
+    for &root in roots {
+        cursors[root as usize] += 1;
+    }
+    for (root, &count) in cursors.iter().enumerate() {
+        if count != 0 {
+            starts[band(root)] += count;
+        }
+    }
+    let mut cursor = 0;
+    for entry in &mut starts[..bands] {
+        let next = cursor + *entry;
+        *entry = cursor;
+        cursor = next;
+    }
+    for (root, count) in cursors.iter_mut().enumerate() {
+        if *count != 0 {
+            let start = &mut starts[band(root)];
+            let next = *start + *count;
+            *count = *start;
+            *start = next;
+        }
+    }
+    for (operation, &root) in roots.iter().enumerate() {
+        let position = &mut cursors[root as usize];
+        order[*position as usize] = operation as u32;
+        *position += 1;
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn counted_component_order_preserves_bands_and_program_order() {
+    for n in [1, 65, 4099, 32_771] {
+        let root_count = n.min(197);
+        let roots: Vec<u32> = (0..n)
+            .map(|i| if i < root_count { i } else { (71 * i + i / 31) % root_count })
+            .map(|root| root as u32)
+            .collect();
+        for bands in [1, 6, COUNTED_BANDS] {
+            let band = |i: usize| (31 * roots[i] as usize + 7) % bands;
+            let mut expected: Vec<_> = (0..n as u32).collect();
+            expected.sort_unstable_by_key(|&i| (band(i as usize), roots[i as usize], i));
+            let mut order = vec![u32::MAX; n];
+            count_component_order(&roots, &mut vec![0; n], &mut order, bands, band);
+            assert_eq!(expected, order, "length {n}, bands {bands}");
+        }
+    }
+}
+
 impl Scratch {
     // Reused by outer grouping and every local refinement. All arrays have
     // their maximum capacity before grouping; no per-op writes allocation.
@@ -209,9 +272,24 @@ impl Scratch {
         }
         for i in 0..n {
             self.parent[i] = find(&mut self.parent, i as u32);
-            self.order[i] = i as u32;
         }
-        self.order[..n].sort_unstable_by_key(|&i| (band(i as usize), self.parent[i as usize], i));
+        if cfg!(all(gpu, target_os = "ios", target_arch = "aarch64"))
+            && bands <= COUNTED_BANDS
+            && self.producer.len() >= n
+        {
+            count_component_order(
+                &self.parent[..n],
+                &mut self.producer[..n],
+                &mut self.order[..n],
+                bands,
+                band,
+            );
+        } else {
+            for (i, entry) in self.order[..n].iter_mut().enumerate() {
+                *entry = i as u32;
+            }
+            self.order[..n].sort_unstable_by_key(|&i| (band(i as usize), self.parent[i as usize], i));
+        }
         if pack_tasks {
             pack_ready_components(&self.order[..n], &mut self.parent[..n], band, 128);
         }
@@ -314,7 +392,7 @@ pub(super) fn build_with_workspace(
     let pack_tasks = match std::env::var("ZOPRO_SOLVE_PACK_TASKS") {
         Ok(value) => value == "1",
         Err(std::env::VarError::NotPresent) => {
-            cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            cfg!(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios")))
                 && plan.n_constraints > crate::preparation::MAX_DOMAIN
         }
         Err(std::env::VarError::NotUnicode(_)) => false,

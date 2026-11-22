@@ -144,7 +144,14 @@ impl Reservation {
             // shared byte budget. Admit them against live free pages.
             Self::acquire_with_headroom(domain, 2 * MAX_DOMAIN, peak, macos_free_memory)
         }
-        #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+        #[cfg(all(gpu, target_os = "ios", target_arch = "aarch64"))]
+        {
+            Self::acquire_with_headroom(domain, 2 * MAX_DOMAIN, peak, headroom)
+        }
+        #[cfg(not(any(
+            all(target_os = "macos", target_arch = "aarch64"),
+            all(gpu, target_os = "ios", target_arch = "aarch64")
+        )))]
         {
             Self::acquire_with_headroom(domain, MAX_DOMAIN, peak, headroom)
         }
