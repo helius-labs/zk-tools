@@ -6,7 +6,7 @@ All 41 circuit shapes from the AWS catalog have warm proof latency and peak proc
 - Against the 96-core AWS run, M5 Metal took **1.64×** as long as Zopro at the median shape ratio and beat Aeglos on **5/41** shapes. AWS Gnark took **5.26×** as long as M5 Metal at the median shape ratio.
 - M5 Metal peak process RSS was **93.6–1779.9 MiB**. Its macOS peak physical footprint was **170.5–1624.0 MiB**. The footprint series is in the memory table and CSV.
 
-[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
+[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
 
 ## Warm proof latency in milliseconds
 
@@ -362,3 +362,29 @@ Six paired blocks per row used the same M5 Pro and pinned inputs. Each process r
 | 4×16 | Metal | 28.50 | 28.79 | 1.001× | 1.864× | 218.7 → 218.6 | 280.4 → 280.3 |
 
 Sixteen additional paired blocks per neighboring CPU shape measured 0.992× on 5×8 and 0.989× on 1×16 versus the previous build. [Raw control blocks](artifacts/m5-wider-cpu-controls.jsonl)
+
+## Metal windows for 262,144-point proofs
+
+9 of the ten affected Metal shapes ran faster, with a median paired latency reduction of 3.2% across the shapes. The median drop in peak RSS across the shapes was 23.0 MiB. 6 of the ten reached 2× against the original PR build.
+
+On arm64 macOS the A, K, and Z queries use ten-bit Metal windows for this domain. The smaller bucket tables reduce temporary memory. The neighboring Metal sizes and the CPU row serve as controls.
+
+Six paired blocks per row used the same M5 Pro and pinned inputs. Each process ran eight verified proofs. Warm latency uses the median of the means for proofs four through eight. Speedups use paired ratios, and memory uses the median process high-water marks in MiB.
+
+[New build](https://github.com/helius-labs/zk-tools/commit/befe759a71fb8807310d8c6717749d1c28ac7d92) · [Comparison CSV](m5-metal-window-262k.csv) · [Raw blocks](artifacts/m5-metal-window-262k.jsonl)
+
+| Shape | Backend | Previous ms | New ms | vs. previous | vs. original | Peak RSS MiB | Peak physical footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 2×8 | Metal | 23.25 | 23.36 | 0.996× | 1.827× | 151.6 → 153.7 | 233.0 → 235.1 |
+| 5×8 | Metal | 38.65 | 35.69 | 1.083× | 1.853× | 272.5 → 246.2 | 339.9 → 328.3 |
+| 5×16 | Metal | 38.91 | 37.63 | 1.034× | 1.815× | 293.2 → 266.1 | 353.8 → 341.9 |
+| 6×2 | Metal | 32.06 | 32.05 | 1.000× | 2.106× | 255.0 → 236.7 | 310.9 → 304.2 |
+| 6×4 | Metal | 36.76 | 35.93 | 1.022× | 1.884× | 280.0 → 253.1 | 343.0 → 331.9 |
+| 6×8 | Metal | 37.66 | 36.38 | 1.036× | 1.868× | 295.7 → 265.9 | 354.2 → 342.1 |
+| 8×2 | Metal | 34.74 | 33.94 | 1.031× | 2.215× | 298.6 → 281.4 | 335.3 → 330.0 |
+| 8×4 | Metal | 35.18 | 33.72 | 1.042× | 2.271× | 303.3 → 285.0 | 337.1 → 332.2 |
+| 8×8 | Metal | 37.24 | 35.53 | 1.047× | 2.198× | 312.1 → 293.2 | 342.1 → 336.0 |
+| 8×16 | Metal | 41.73 | 40.47 | 1.028× | 2.041× | 358.3 → 332.9 | 395.3 → 388.6 |
+| merge-8×1 | Metal | 33.71 | 32.57 | 1.033× | 2.186× | 286.9 → 266.5 | 327.6 → 319.6 |
+| 12×2 | Metal | 49.36 | 49.76 | 0.992× | 2.054× | 441.2 → 441.3 | 499.9 → 499.4 |
+| 5×8 | CPU | 67.83 | 68.47 | 0.986× | 1.991× | 202.6 → 201.8 | 124.3 → 123.5 |
