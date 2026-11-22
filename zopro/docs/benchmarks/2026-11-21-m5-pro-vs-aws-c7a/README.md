@@ -1,6 +1,6 @@
 # M5 Pro and AWS C7a proof benchmarks
 
-The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs)
+The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs)
 
 The first tables record the initial M5 Pro comparison.
 
@@ -755,3 +755,23 @@ Gnark independently verified 78 proofs. Route checks also covered the workspace 
 | 2×8 | Metal | 20.65 | 20.71 | 0.997× | 2.041× | 151.7 → 150.8 | 232.8 → 232.0 |
 | 1×16 | CPU | 27.81 | 30.31 | 0.987× | 1.947× | 108.1 → 107.8 | 72.8 → 72.5 |
 | 2×4 | CPU | 24.27 | 23.94 | 1.019× | 2.284× | 102.0 → 100.7 | 67.6 → 66.4 |
+
+## Larger Metal quotient batches for shorter million-point proofs
+
+Arm64 macOS uses a 32 MiB default tree budget for the quotient MSM on the 1,048,576-point domain with at least 16 workers and fewer than 589,824 G2 points. The larger tree runs more windows per batch. An explicit Metal tree budget still takes precedence.
+
+Each comparison used five paired blocks on the same M5 Pro. Every process verified eight proofs. Warm latency uses the last five proofs per process, and memory uses process high-water marks.
+
+Gnark independently verified 60 proofs, including lower worker counts and explicit tree and quotient overrides. The native Metal-enabled tests and iOS arm64 build check passed.
+
+[Published build](https://github.com/helius-labs/zk-tools/commit/03dc516add97e662a990bcd24c86f8edca6a6803) · [Comparison CSV](m5-metal-million-tree.csv) · [Raw blocks](artifacts/m5-metal-million-tree.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB | Peak footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 24×2 | Metal | 89.27 | 88.83 | 1.012× | 2.000× | 805.1 → 809.1 | 800.4 → 821.2 |
+| 24×4 | Metal | 89.31 | 88.97 | 1.008× | 2.059× | 811.7 → 812.5 | 806.8 → 822.8 |
+| 32×2 | Metal | 94.54 | 94.69 | 1.006× | 2.484× | 984.8 → 989.3 | 901.3 → 905.8 |
+| 40×2 | Metal | 102.40 | 102.64 | 1.003× | 2.807× | 1147.6 → 1144.3 | 990.9 → 988.7 |
+| merge-24×1 | Metal | 88.01 | 87.20 | 1.009× | 2.058× | 781.1 → 783.2 | 788.0 → 806.6 |
+| 5×8 | Metal | 33.11 | 33.05 | 1.000× | 2.026× | 246.0 → 245.8 | 326.2 → 326.0 |
+| 24×2 | CPU | 211.99 | 212.82 | 1.010× | 2.147× | 617.1 → 615.7 | 314.9 → 313.6 |
