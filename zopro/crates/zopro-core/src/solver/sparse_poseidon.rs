@@ -363,11 +363,10 @@ impl Plan {
         {
             return None;
         }
-        // These bands keep more of each hash within one task on the two
-        // small proof domains. Other domains retain the general schedule.
+        // These bands keep more of each hash within one task for recognition.
         match self.n_constraints {
             16385..=32768 => Some(4),
-            32769..=65536 => Some(8),
+            32769..=131072 => Some(8),
             _ => None,
         }
     }
