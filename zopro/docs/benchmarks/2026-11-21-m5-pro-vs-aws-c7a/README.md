@@ -6,7 +6,7 @@ All 41 circuit shapes from the AWS catalog have warm proof latency and peak proc
 - Against the 96-core AWS run, M5 Metal took **1.64×** as long as Zopro at the median shape ratio and beat Aeglos on **5/41** shapes. AWS Gnark took **5.26×** as long as M5 Metal at the median shape ratio.
 - M5 Metal peak process RSS was **93.6–1779.9 MiB**. Its macOS peak physical footprint was **170.5–1624.0 MiB**. The footprint series is in the memory table and CSV.
 
-[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
+[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
 
 ## Warm proof latency in milliseconds
 
@@ -332,3 +332,33 @@ Four paired blocks per row used the pinned keys and witnesses on the same M5 Pro
 | 49×2 | Metal | 429.73 | 268.33 | 171.39 | 1.566× | 2.508× | 1558.6 → 1567.0 | 1429.8 → 1440.8 |
 | merge-54×1 | CPU | 1001.93 | 557.62 | 469.78 | 1.188× | 2.129× | 1181.0 → 1185.1 | 552.6 → 556.6 |
 | merge-54×1 | Metal | 452.41 | 268.29 | 179.53 | 1.492× | 2.522× | 1600.1 → 1608.4 | 1445.0 → 1453.1 |
+
+## CPU overlap for 131,072-point domains
+
+11 of 11 affected CPU shapes ran faster. The paired latency reductions ranged from 6.9% to 10.6%, and peak RSS fell by 6.7 to 16.8 MiB. 6 of the 11 reached 2× against the original PR build.
+
+On arm64 macOS the separate CPU pools now overlap the paired quotient and fused K/H computation with the three-part G2 query for this domain. FFT preparation uses the existing memory reservation and checks whether the overlap path is available. The CPU neighbors and the two Metal rows serve as controls.
+
+Six paired blocks per row used the same M5 Pro and pinned inputs. Each process ran eight verified proofs. Warm latency uses the median of the means for proofs four through eight. Speedups use paired ratios, and memory uses the median process high-water marks in MiB.
+
+[New build](https://github.com/helius-labs/zk-tools/commit/3affda231338ec3115b592be6810bb6c6df56d72) · [Comparison CSV](m5-wider-cpu-overlap.csv) · [Raw blocks](artifacts/m5-wider-cpu-overlap.jsonl)
+
+| Shape | Backend | Previous ms | New ms | vs. previous | vs. original | Peak RSS MiB | Peak physical footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1×16 | CPU | 27.73 | 27.67 | 0.992× | 1.979× | 108.3 → 107.8 | 73.0 → 72.4 |
+| 2×8 | CPU | 44.26 | 40.05 | 1.102× | 1.768× | 129.8 → 122.6 | 87.9 → 80.6 |
+| 2×16 | CPU | 48.31 | 43.70 | 1.109× | 1.871× | 151.2 → 136.1 | 102.5 → 87.1 |
+| 3×2 | CPU | 42.63 | 39.48 | 1.077× | 1.959× | 133.5 → 126.8 | 87.2 → 80.6 |
+| 3×4 | CPU | 43.33 | 39.83 | 1.090× | 1.975× | 138.6 → 131.0 | 91.1 → 83.2 |
+| 3×8 | CPU | 44.67 | 41.45 | 1.078× | 1.988× | 150.6 → 135.4 | 99.3 → 84.0 |
+| 4×2 | CPU | 44.11 | 40.52 | 1.094× | 2.152× | 150.0 → 140.1 | 94.5 → 84.5 |
+| 4×4 | CPU | 43.19 | 40.14 | 1.074× | 2.173× | 156.3 → 144.6 | 99.3 → 87.5 |
+| 4×8 | CPU | 46.14 | 41.43 | 1.108× | 2.246× | 164.1 → 151.4 | 103.4 → 90.5 |
+| 4×16 | CPU | 51.38 | 46.92 | 1.100× | 2.258× | 181.0 → 164.2 | 113.6 → 96.5 |
+| 5×2 | CPU | 44.97 | 40.33 | 1.118× | 2.444× | 168.5 → 156.9 | 103.4 → 91.7 |
+| 5×4 | CPU | 45.90 | 41.40 | 1.106× | 2.445× | 172.7 → 158.2 | 106.0 → 91.4 |
+| 5×8 | CPU | 64.59 | 65.61 | 0.982× | 1.967× | 202.2 → 200.8 | 123.8 → 122.9 |
+| 2×8 | Metal | 23.24 | 23.24 | 0.999× | 1.843× | 151.0 → 151.4 | 232.5 → 232.9 |
+| 4×16 | Metal | 28.50 | 28.79 | 1.001× | 1.864× | 218.7 → 218.6 | 280.4 → 280.3 |
+
+Sixteen additional paired blocks per neighboring CPU shape measured 0.992× on 5×8 and 0.989× on 1×16 versus the previous build. [Raw control blocks](artifacts/m5-wider-cpu-controls.jsonl)
