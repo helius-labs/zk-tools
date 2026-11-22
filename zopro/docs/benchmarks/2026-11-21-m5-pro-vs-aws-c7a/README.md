@@ -1,6 +1,6 @@
 # M5 Pro and AWS C7a proof benchmarks
 
-The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Short Metal witness sorting](#parallel-sorting-for-short-metal-witness-queries) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
+The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Short Metal witness sorting](#parallel-sorting-for-short-metal-witness-queries) · [Smaller Metal digit chunks](#smaller-host-digit-chunks-for-narrow-metal-queries) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
 
 The first tables record the initial M5 Pro comparison.
 
@@ -819,3 +819,30 @@ The paired runs used signed revision `4137a3703534ef9abdfd69ea8767d71db7d5433a` 
 | 1×8 | CPU | 26.12 | 25.95 | 0.996× | 1.907× | 94.5 → 94.5 | 66.1 → 66.2 |
 | 2×8 | Metal | 21.52 | 21.27 | 1.008× | 1.977× | 150.6 → 151.3 | 231.8 → 232.5 |
 | 24×2 | Metal | 94.17 | 93.59 | 1.010× | 1.988× | 809.1 → 810.2 | 821.2 → 822.3 |
+
+## Smaller host digit chunks for narrow Metal queries
+
+Arm64 macOS recodes G1 MSM scalars in 1,024-point host chunks for 8- and 9-bit windows when the input has 16,384–65,535 points and at least 16 workers are available. GPU-produced quotient digits still use the 4,096-point layout.
+
+Each comparison used seven paired blocks on the same M5 Pro. Every process verified eight proofs. Warm latency uses the last five proofs per process, and memory uses process high-water marks.
+
+Gnark independently verified 72 proofs, including lower worker counts, an explicit wider window, GPU G2, and CPU fallback. The standalone Metal tests, Metal-enabled core tests, and iOS arm64 build check passed.
+
+The measurements used signed revision `0a04d2a81bb6cef0d2a9c4ebf26540adad87638b`. The published commit also updates an existing unit test call for the new chunk argument.
+
+[Published build](https://github.com/helius-labs/zk-tools/commit/348e9c028df6e4a35b1b4c0b937a91a7712eb39a) · [Comparison CSV](m5-metal-small-sort-chunks.csv) · [Raw blocks](artifacts/m5-metal-small-sort-chunks.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB | Peak footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1×2 | Metal | 12.22 | 12.14 | 1.018× | 2.184× | 94.6 → 94.9 | 169.9 → 170.2 |
+| 1×4 | Metal | 15.00 | 14.77 | 1.008× | 2.016× | 93.1 → 93.0 | 181.3 → 179.9 |
+| 1×8 | Metal | 16.68 | 16.28 | 1.026× | 1.941× | 110.9 → 107.8 | 193.1 → 190.2 |
+| 1×16 | Metal | 18.62 | 18.38 | 1.014× | 1.974× | 132.0 → 131.9 | 207.9 → 207.0 |
+| 2×2 | Metal | 16.69 | 16.99 | 0.983× | 2.081× | 123.8 → 125.1 | 205.6 → 207.0 |
+| 2×4 | Metal | 17.48 | 17.63 | 1.009× | 2.097× | 131.6 → 130.9 | 212.2 → 211.5 |
+| 2×8 | Metal | 22.70 | 22.49 | 1.006× | 1.901× | 151.4 → 150.5 | 232.6 → 231.6 |
+| 2×16 | Metal | 28.57 | 26.76 | 1.079× | 2.024× | 176.6 → 174.4 | 254.6 → 252.4 |
+| 5×8 | Metal | 33.47 | 33.40 | 1.000× | 2.026× | 245.7 → 245.2 | 326.0 → 325.5 |
+| 1×8 | CPU | 25.32 | 24.93 | 1.007× | 1.924× | 94.5 → 94.0 | 66.1 → 65.8 |
+
+The 2×2 control's median warm latency rose from 16.69 to 16.99 ms. It remained 2.081× faster than the original build in the paired runs.
