@@ -16,6 +16,28 @@ A value requires three fresh processes. A dash indicates an incomplete measureme
 | Samsung Galaxy S25 | Android 15 | AWS Device Farm, passed |
 | Apple iPhone 17e | 27.2.1 | USB, passed |
 
+## iPhone 17e current release across all 41 shapes
+
+The signed `990508c` build ran on the wired iPhone 17e with iOS 27.2.1. Each shape used the original pinned key and witness and ran three fresh processes per backend. All 246 process blocks verified, for 1,968 proofs. The run recorded thermal state `serious`.
+
+Each process ran eight proofs. Warm latency averages the last five prove-and-verify times, and each reported value is the median of the three processes. The comparison with `f294171` uses separate wired benchmark sessions. The CSV reports peak physical footprint and peak RSS separately.
+
+The fastest backend improved on 41/41 shapes. The median speedup was 2.24×, with a maximum of 4.83× on 16×2. Metal was fastest on 41/41 shapes.
+
+The current phone was faster than AWS c7a Gnark on 10/41 shapes. AWS c7a Aeglos and Zopro were faster on all 41 shapes.
+
+[All 41 iPhone shapes with M5 Pro and AWS c7a time and memory](iphone-17e-release-comparison.csv) · [Raw current release blocks](artifacts/iphone-17e-current-release-blocks.jsonl)
+
+| Shape | Original iPhone warm ms | Current iPhone warm ms | Speedup | Current peak physical footprint MiB | Current peak RSS MiB |
+|---|---:|---:|---:|---:|---:|
+| 1×2 | 79.2 | 58.0 | 1.37× | 118.8 | 96.4 |
+| 8×2 | 799.3 | 187.2 | 4.27× | 323.8 | 325.4 |
+| 16×2 | 1401.8 | 290.4 | 4.83× | 506.2 | 575.7 |
+| 24×2 | 2063.6 | 999.7 | 2.06× | 773.1 | 884.2 |
+| 48×2 | 3886.9 | 1755.7 | 2.21× | 1373.8 | 1664.4 |
+| 49×2 | 3938.2 | 1762.0 | 2.24× | 1412.4 | 1685.2 |
+| merge-54×1 | 4116.1 | 1557.2 | 2.64× | 1463.8 | 1739.5 |
+
 ## iPhone 17e paired release comparison
 
 Two signed release builds ran back to back on a wired iPhone 17e with iOS 27.2.1. The control used `576e8ee`, which has the same prover source as the commit that added the wired baseline. The candidate used `dab92b6` with repeated witness queries compacted on Apple family 9. Both builds used the same pinned keys and witnesses.
