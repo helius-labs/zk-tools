@@ -712,7 +712,9 @@ impl GpuBuilder {
             match (self.domain, which) {
                 (32768, 0 | 2 | 3) => Some(9),
                 (65536, 0 | 2 | 3) => Some(8),
-                (131072 | 262144, 0 | 2 | 3) => Some(10),
+                // The dense quotient benefits from fewer passes over its points.
+                (262144, 3) => Some(11),
+                (131072, 0 | 2 | 3) | (262144, 0 | 2) => Some(10),
                 _ => None,
             }
         } else {
