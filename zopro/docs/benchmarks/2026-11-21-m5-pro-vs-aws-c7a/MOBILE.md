@@ -130,6 +130,32 @@ All five shapes selected for CPU G2 were faster in every pair and used about 36�
 
 The candidate also passed 656 native proof verifications on the M5 Pro, with eight CPU and eight Metal proofs for every pinned shape.
 
+## iPhone 17e paired quotient MSM kernel comparison
+
+Two signed Metal release builds ran over USB on the iPhone 17e with iOS 27.2.1 and the same pinned keys and witnesses. The candidate uses radix-29 Montgomery arithmetic for the first level of the largest quotient MSMs on Apple family 9.
+
+The control was `c9dcafe` and the candidate was `03533c2`. All 24 fresh process blocks passed native verification. Each block ran eight proofs and averaged the last five for warm latency. The table uses medians of the three blocks per build. Paired speedup uses the median of the three within-block ratios. Recorded thermal states were `nominal`, `fair`, `serious`.
+The run resumed after a USB disconnect. The raw blocks retain their timestamps and thermal readings.
+
+[Raw paired quotient kernel blocks](artifacts/iphone-17e-radix29-release-blocks.jsonl)
+
+| Shape | Warm ms control → candidate | Paired speedup | Faster pairs | Load ms control → candidate | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---:|---:|---:|---:|---:|---:|
+| 1×2 | 62.6 → 55.6 | 1.14× | 2/3 | 98.9 → 99.7 | 119.0 → 118.7 | 96.5 → 96.2 |
+| 48×2 | 1094.5 → 1019.9 | 1.13× | 3/3 | 364.0 → 363.7 | 1403.5 → 1431.7 | 1664.9 → 1664.0 |
+| 49×2 | 1113.8 → 979.3 | 1.17× | 3/3 | 361.4 → 386.3 | 1438.3 → 1437.7 | 1684.9 → 1686.1 |
+| merge-54×1 | 1088.8 → 1260.5 | 1.08× | 2/3 | 366.6 → 369.5 | 1466.1 → 1444.0 | 1738.2 → 1741.5 |
+
+The 1×2 shape controls for run-to-run variation. The candidate also passed 656 native proof verifications on the M5 Pro, with eight CPU and eight Metal proofs for each of the 41 pinned shapes.
+
+The final build `990508c` preserves the benchmarked default Metal library and the control’s size-optimized library byte for byte. It verified all eight blocks in a repeat of merge-54×1 with alternating build order. The median paired speedup was 1.27×, with 3/4 pairs faster.
+
+| Shape | Warm ms control → final | Load ms control → final | Peak physical footprint MiB control → final | Peak RSS MiB control → final |
+|---|---:|---:|---:|---:|
+| merge-54×1 | 1304.4 → 1032.7 | 394.0 → 374.0 | 1425.2 → 1454.2 | 1738.0 → 1739.1 |
+
+The default Metal reference tests passed on the M5 Pro. Forcing size optimization reproduced the G1 and G2 reference-test failures seen in the control.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
