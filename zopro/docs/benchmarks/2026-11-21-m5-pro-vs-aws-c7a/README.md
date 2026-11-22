@@ -6,7 +6,7 @@ All 41 circuit shapes from the AWS catalog have warm proof latency and peak proc
 - Against the 96-core AWS run, M5 Metal took **1.64×** as long as Zopro at the median shape ratio and beat Aeglos on **5/41** shapes. AWS Gnark took **5.26×** as long as M5 Metal at the median shape ratio.
 - M5 Metal peak process RSS was **93.6–1779.9 MiB**. Its macOS peak physical footprint was **170.5–1624.0 MiB**. The footprint series is in the memory table and CSV.
 
-[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [Sparse witness solving](#sparse-witness-solving-for-131072-point-proofs) · [Million-point CPU overlap](#cpu-overlap-for-1048576-point-domains) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
+[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [Sparse witness solving](#sparse-witness-solving-for-131072-point-proofs) · [Million-point CPU overlap](#cpu-overlap-for-1048576-point-domains) · [Metal presorting](#metal-presorting-for-smaller-262144-point-workloads) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
 
 ## Warm proof latency in milliseconds
 
@@ -454,3 +454,32 @@ Five paired blocks per shape and backend used the same M5 Pro and pinned inputs.
 | 48×2 | CPU | 461.73 | 457.24 | 1.013× | 2.016× | 1154.6 → 1152.8 |
 | 24×2 | Metal | 89.34 | 89.10 | 1.003× | 2.021× | 809.7 → 808.0 |
 | 40×2 | Metal | 101.16 | 100.56 | 1.004× | 2.692× | 1141.8 → 1141.0 |
+
+## Metal presorting for smaller 262,144-point workloads
+
+On arm64 macOS, compact A and K queries upload and sort their inputs while the quotient runs. The GPU submits the MSMs once the quotient is ready. The route applies when the B2 query holds at most 163,840 points and at least one witness query compacts.
+
+5 of 5 shapes within that range ran faster. Median warm latency fell by 2.6% and median peak RSS fell by 1.7 MiB. The seven controls changed by at most 4.0% in paired warm latency. The 5×4 control was 2.3% slower in its paired median.
+
+Gnark independently verified 87 proofs covering concurrent requests, Metal fallback, and runs with memory, thread, and window overrides.
+
+Five paired blocks per shape used the same M5 Pro and pinned inputs. Each process verified eight proofs. Warm latency uses the median of the means for proofs four through eight. Memory values are median process high-water marks.
+
+The raw blocks identify the measured source revision and patch hash. The published commit applies the same source diff.
+
+[New build](https://github.com/helius-labs/zk-tools/commit/865783b14c122737c52ad32a0d2e903aad871f94) · [Comparison CSV](m5-metal-bounded-presort.csv) · [Raw blocks](artifacts/m5-metal-bounded-presort.jsonl)
+
+| Shape | B2 points | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|
+| 5×8 | 129,863 | 37.49 | 34.53 | 1.077× | 1.877× | 246.0 → 244.3 |
+| 5×16 | 145,951 | 37.60 | 36.49 | 1.028× | 1.860× | 266.3 → 264.5 |
+| 6×2 | 139,420 | 31.83 | 31.58 | 1.001× | 2.119× | 236.6 → 236.0 |
+| 6×4 | 143,058 | 35.81 | 34.98 | 1.023× | 1.948× | 252.9 → 250.7 |
+| 6×8 | 151,558 | 36.29 | 35.37 | 1.027× | 1.973× | 265.4 → 264.4 |
+| 8×2 | 183,347 | 33.37 | 33.41 | 1.003× | 2.138× | 280.4 → 279.7 |
+| 8×4 | 187,009 | 33.26 | 33.17 | 1.027× | 2.198× | 287.0 → 287.3 |
+| 8×8 | 195,557 | 35.81 | 35.62 | 1.005× | 2.115× | 294.6 → 301.5 |
+| 8×16 | 211,789 | 40.81 | 40.44 | 1.005× | 1.949× | 333.1 → 332.9 |
+| merge-8×1 | 172,735 | 33.24 | 32.87 | 1.041× | 2.213× | 269.4 → 266.2 |
+| 5×4 | 121,387 | 25.61 | 26.23 | 0.977× | 2.577× | 203.0 → 202.5 |
+| 12×2 | 270,757 | 49.86 | 50.24 | 1.003× | 2.052× | 441.9 → 443.6 |
