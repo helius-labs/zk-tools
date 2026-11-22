@@ -440,6 +440,8 @@ pub(super) fn build_with_workspace(
         eprintln!("BOUNDED_SCHEDULE ops={n} values={values} peak_charge={peak_charge} retained_charge={retained} epochs={} refined={}",epochs.len(),refined.len());
     }
     Some(Schedule {
+        #[cfg(all(target_os = "ios", zopro_sparse_poseidon))]
+        poseidon_leaves: false,
         epochs,
         refined,
         _reservation: Some(reservation),

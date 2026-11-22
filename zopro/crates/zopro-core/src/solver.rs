@@ -420,6 +420,8 @@ pub(crate) struct Plan {
 #[derive(Default)]
 struct Schedule {
     epochs: Vec<Vec<Vec<u32>>>,
+    #[cfg(all(target_os = "ios", zopro_sparse_poseidon))]
+    poseidon_leaves: bool,
     // A replacement for one oversized serial component. Local waves join
     // before advancing; the component's external inputs are already ready.
     refined: FxMap<usize, Vec<Vec<Vec<u32>>>>,
@@ -1427,20 +1429,18 @@ impl Plan {
                     unsafe { self.run(op, view)? };
                 }
             } else if schedule.refined.is_empty() {
-                let claims = solver_task_claims();
-                for epoch in &schedule.epochs {
-                    visit_solver_tasks(epoch, claims, |task| {
-                        #[cfg(zopro_sparse_poseidon)]
-                        if self.poseidon_task(task) {
-                            // SAFETY: only prepared, encoding-eligible leaves carry tags.
-                            return unsafe { self.run_poseidon_task(task, view) };
-                        }
-                        task.iter().try_for_each(|&op| {
-                            // SAFETY: untagged leaves retain their original raw indices.
-                            unsafe { self.run(&self.ops[op as usize], view) }
-                        })
-                    })?;
+                #[cfg(all(target_os = "ios", zopro_sparse_poseidon))]
+                // SAFETY: the schedule orders all writes and the audit records tagged leaves.
+                unsafe {
+                    if schedule.poseidon_leaves {
+                        self.execute_leaf_epochs::<true>(schedule, view)?;
+                    } else {
+                        self.execute_leaf_epochs::<false>(schedule, view)?;
+                    }
                 }
+                #[cfg(not(all(target_os = "ios", zopro_sparse_poseidon)))]
+                // SAFETY: the normal platform schedule orders all initialized reads.
+                unsafe { self.execute_leaf_epochs::<{ cfg!(zopro_sparse_poseidon) }>(schedule, view)? };
             } else {
                 // SAFETY: both levels preserve the schedule's dependency
                 // ordering and disjoint writes; all jobs join before return.
@@ -1448,6 +1448,30 @@ impl Plan {
                     self.execute_schedule(schedule, view)?;
                 }
             }
+        }
+        Ok(())
+    }
+
+    /// Tasks in each epoch own disjoint outputs and join before the next epoch.
+    #[inline]
+    unsafe fn execute_leaf_epochs<const POSEIDON: bool>(
+        &self,
+        schedule: &Schedule,
+        view: View,
+    ) -> Result<(), String> {
+        let claims = solver_task_claims();
+        for epoch in &schedule.epochs {
+            visit_solver_tasks(epoch, claims, |task| {
+                #[cfg(zopro_sparse_poseidon)]
+                if POSEIDON && self.poseidon_task(task) {
+                    // SAFETY: only prepared, encoding-eligible leaves carry tags.
+                    return unsafe { self.run_poseidon_task(task, view) };
+                }
+                task.iter().try_for_each(|&op| {
+                    // SAFETY: untagged leaves retain their original raw indices.
+                    unsafe { self.run(&self.ops[op as usize], view) }
+                })
+            })?;
         }
         Ok(())
     }
@@ -1717,6 +1741,7 @@ impl Plan {
         if !self.tag_poseidon(&mut schedule) {
             return false;
         }
+        schedule.poseidon_leaves = true;
         self.schedule.set(schedule).is_ok()
     }
 
@@ -1812,11 +1837,7 @@ impl Plan {
         let Some(reservation) =
             crate::preparation::Reservation::acquire(self.n_constraints, self.preparation_peak())
         else {
-            return Schedule {
-                _reservation: None,
-                epochs: Vec::new(),
-                refined: FxMap::default(),
-            };
+            return Schedule::default();
         };
         let local = std::env::var("ZOPRO_SOLVE_LOCAL_BANDS")
             .ok()
@@ -1942,6 +1963,8 @@ impl Plan {
         }
         Schedule {
             _reservation: None,
+            #[cfg(all(target_os = "ios", zopro_sparse_poseidon))]
+            poseidon_leaves: false,
             epochs,
             refined,
         }
@@ -2013,7 +2036,7 @@ impl Plan {
     unsafe fn execute_schedule(&self, schedule: &Schedule, v: View) -> Result<(), String> {
         let claims = solver_task_claims();
         let serial = |task: &[u32]| -> Result<(), String> {
-            #[cfg(zopro_sparse_poseidon)]
+            #[cfg(all(zopro_sparse_poseidon, not(target_os = "ios")))]
             if self.poseidon_task(task) {
                 // SAFETY: only prepared, encoding-eligible leaves carry tags.
                 return unsafe { self.run_poseidon_task(task, v) };
