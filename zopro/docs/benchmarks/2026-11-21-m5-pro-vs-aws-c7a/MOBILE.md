@@ -16,6 +16,24 @@ A value requires three fresh processes. A dash indicates an incomplete measureme
 | Samsung Galaxy S25 | Android 15 | AWS Device Farm, passed |
 | Apple iPhone 17e | 27.2.1 | USB, passed |
 
+## iPhone 17e Metal tensor release across all 41 shapes
+
+The signed `953e1d0` Metal release ran on the wired iPhone 17e with iOS 27.2.1. Each shape ran in three fresh processes with the pinned Gnark key and witness. All 123 blocks verified, for 984 proofs. Each block ran eight proofs and averaged the last five prove-and-verify times for warm latency. Latency values are medians across three blocks. Memory values are medians of the per-process peaks. Process start and finish thermal observations were fair (114), serious (132).
+
+Median speedup across the 41 shapes was 3.16× relative to the original wired Metal measurements from a separate session. The iPhone beat AWS c7a Zopro on 0/41 shapes, Aeglos on 0/41 shapes and Gnark on 18/41 shapes.
+
+[All 41 shapes with M5 Pro and AWS c7a comparisons](iphone-17e-953e1d0-metal-comparison.csv) · [Raw release blocks](artifacts/iphone-17e-953e1d0-metal-catalog.jsonl)
+
+| Shape | Original warm ms | Release warm ms | Speedup | Load ms | First response ms | Peak physical footprint MiB | Peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1×2 | 79.2 | 58.0 | 1.36× | 101.8 | 210.4 | 119.0 | 96.6 |
+| 8×2 | 799.3 | 175.9 | 4.54× | 150.0 | 355.1 | 314.4 | 325.8 |
+| 16×2 | 1401.8 | 257.7 | 5.44× | 193.0 | 478.6 | 505.3 | 574.9 |
+| 24×2 | 2063.6 | 498.7 | 4.14× | 231.0 | 743.9 | 772.0 | 883.2 |
+| 48×2 | 3886.9 | 929.7 | 4.18× | 487.5 | 1254.1 | 1339.6 | 1647.0 |
+| 49×2 | 3938.2 | 945.3 | 4.17× | 501.6 | 1265.8 | 1347.8 | 1664.4 |
+| merge-54×1 | 4116.1 | 868.5 | 4.74× | 528.4 | 1288.9 | 1368.0 | 1709.2 |
+
 ## iPhone 17e current release across all 41 shapes
 
 The signed `990508c` build ran on the wired iPhone 17e with iOS 27.2.1. Each shape used the original pinned key and witness and ran three fresh processes per backend. All 246 process blocks verified, for 1,968 proofs. The run recorded thermal state `serious`.
