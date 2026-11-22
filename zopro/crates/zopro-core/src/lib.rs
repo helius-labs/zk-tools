@@ -714,6 +714,10 @@ impl GpuBuilder {
         let short_quotient_with_large_g2 = wide_apple
             && self.domain == (1 << 16)
             && (57344..65536).contains(&self.b2_points);
+        let shorter_million_point_query = wide_apple
+            && self.domain == (1 << 20)
+            && self.b2_points < 589824
+            && which == 3;
         // B1 and B2 can reuse the same sorted runs and must share a width.
         // On wide Apple silicon hosts, fewer buckets make small G1 queries
         // cheaper to plan and combine on the CPU.
@@ -734,6 +738,8 @@ impl GpuBuilder {
         let (msm, _) = if short_witness || (short_quotient_with_large_g2 && which == 3) {
             // Process more short-window groups in the shared tree buffers.
             zopro_metal::G1Msm::new_in_with_tree_budget(bases, scratch, 8, Some(16))?
+        } else if shorter_million_point_query {
+            zopro_metal::G1Msm::new_in_with_tree_budget(bases, scratch, 13, Some(32))?
         } else if let Some(cap) = width {
             zopro_metal::G1Msm::new_in_with_width_cap(bases, scratch, cap)?
         } else {

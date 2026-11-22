@@ -624,7 +624,7 @@ impl<C: Curve> Msm<C> {
         Self::new_in_with_tree_budget(bases, scratch, default_cap, None)
     }
 
-    /// Override the default scratch budget per tree in MiB, up to 24 MiB.
+    /// Override the default scratch budget per tree in MiB, up to 32 MiB.
     #[doc(hidden)]
     pub fn new_in_with_tree_budget(
         bases: &[C::Affine],
@@ -708,7 +708,7 @@ impl<C: Curve> Msm<C> {
         let per_window = n.div_ceil(first_shard) + half;
         let default_tree_mb = default_tree_mib.map_or(
             if dense { 24 } else { TREE_MB },
-            |budget| budget.clamp(TREE_MB, 24),
+            |budget| budget.clamp(TREE_MB, 32),
         );
         let tree_cap = std::env::var("ZOPRO_METAL_TREE_MB")
             .ok()
