@@ -243,6 +243,34 @@ The median peak physical footprint fell by 73–78 MiB across the three large sh
 
 Median first response rose by 310 ms for 48×2 and 281 ms for 49×2. Measured key load rose by 307 ms and 299 ms respectively. The 1×2 Metal control had a 4.2 ms higher warm median and was faster in one of two pairs.
 
+## iPhone 17e quotient shard read order comparison
+
+The signed `92eb4a9` release groups the first level of quotient MSM shard work by the first proving-key point each shard reads. The GPU builds the permutation in the same command buffer and writes each sum to its original destination. The change applies to the 2,097,152-point quotient on Apple family 9. The usual one-window launch uses about 0.63 MiB for the permutation and its temporary buffers.
+
+The signed `7cc2848` control and candidate used identical pinned inputs on the wired iPhone 17e. All 26 process blocks passed verification, for 208 proofs. Build order alternated between pairs. Thermal states were `serious`. Each block averaged its last five of eight proofs for warm latency. The table reports block medians and the median of the within-pair latency ratios.
+
+[Raw paired release blocks](artifacts/iphone-17e-shard-order-release-blocks.jsonl)
+
+| Shape | Warm ms control → candidate | Paired speedup | Faster pairs | Load ms control → candidate | First response ms control → candidate | Peak physical footprint MiB control → candidate | Peak RSS MiB control → candidate |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1×2 | 56.6 → 56.2 | 1.01× | 1/2 | 105.4 → 117.0 | 207.7 → 212.9 | 118.8 → 119.2 | 96.6 → 96.9 |
+| 1×8 | 111.6 → 124.7 | 0.90× | 0/2 | 108.1 → 111.2 | 290.2 → 290.6 | 158.0 → 158.5 | 131.4 → 131.9 |
+| 48×2 | 1505.5 → 1329.0 | 1.13× | 2/3 | 498.0 → 508.1 | 1367.2 → 1286.1 | 1334.8 → 1338.1 | 1644.5 → 1645.6 |
+| 49×2 | 1374.1 → 1448.3 | 0.90× | 1/3 | 816.0 → 798.7 | 1608.3 → 1574.2 | 1360.2 → 1344.4 | 1661.1 → 1661.0 |
+| merge-54×1 | 1493.2 → 1385.9 | 1.08× | 2/3 | 531.3 → 563.3 | 1333.9 → 1332.4 | 1364.5 → 1367.2 | 1708.4 → 1708.4 |
+
+The instrumented build `f86ec08` alternated both paths after loading the same key in one process. These comparisons used fresh proofs, reversed the order on alternate pairs, and kept the loaded key and pipeline states available for both paths. The table uses the 36 proof pairs for each shape. [Raw same-process blocks](artifacts/iphone-17e-shard-order-within-process.jsonl)
+
+| Shape | Median paired speedup | Faster pairs | Median latency saved ms |
+|---|---:|---:|---:|
+| 48×2 | 1.033× | 34/36 | 41.2 |
+| 49×2 | 1.043× | 33/36 | 54.3 |
+| merge-54×1 | 1.039× | 31/36 | 49.5 |
+
+In the separate release runs, 49×2 had a higher median warm latency and a lower median first response. The 1×8 control exercised the small-proof path and had a higher median warm latency. The largest merge’s median key load rose 32.0 ms. Its median first response was within 2 ms of the control.
+
+The release candidate verified 656 proofs on M5 Pro, with eight CPU and eight Metal proofs per shape across all 41 shapes. The iOS CPU-only build check passed.
+
 ## Warm proof latency in milliseconds
 
 | Shape | M5 CPU | M5 Metal | AWS Zopro | AWS Aeglos | AWS Gnark | iPhone 15 CPU | iPhone 15 Metal | iPhone 17 Pro CPU | iPhone 17 Pro Metal | Galaxy A56 CPU | Galaxy S25 CPU | iPhone 17e CPU | iPhone 17e Metal |
