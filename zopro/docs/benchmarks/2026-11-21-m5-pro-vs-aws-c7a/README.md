@@ -1,6 +1,6 @@
 # M5 Pro and AWS C7a proof benchmarks
 
-The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs)
+The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs)
 
 The first tables record the initial M5 Pro comparison.
 
@@ -733,3 +733,25 @@ Each shape and backend used five paired blocks of eight verified proofs per buil
 | 1×16 | Metal | 22.19 | 21.91 | 1.005× | 1.670× | 130.3 → 130.2 | 206.0 → 206.0 |
 | 5×8 | Metal | 33.04 | 33.20 | 0.989× | 2.061× | 245.4 → 245.5 | 326.7 → 325.7 |
 | 2×8 | CPU | 42.95 | 46.57 | 0.979× | 1.757× | 123.1 → 124.9 | 81.1 → 82.9 |
+
+## Reusing singleton G2 points on shorter Metal proofs
+
+On arm64 macOS, eligible 65,536-point proofs reuse the original key points for singleton scalar groups and sum the repeated groups before the CPU G2 MSM. The route covers 53,248 through 65,535 G2 points and charges its temporary index lists and references to the existing workspace budget. Keys with at least 57,344 G2 points also use the wider 9-bit window for A and K and the 16 MiB quotient tree budget.
+
+Each comparison uses six paired blocks on the same M5 Pro. Every process verified eight proofs. Warm latency is the median of six process means, each using the final five proofs. Memory uses median process high-water marks.
+
+Gnark independently verified 78 proofs. Route checks also covered the workspace cap, lower worker count, disabled G2 compaction, and disabled three-part reduction. The native suite and iOS arm64 build check passed.
+
+[Published build](https://github.com/helius-labs/zk-tools/commit/f412d76723dde69afd95143bacac91f689884afb) · [Comparison CSV](m5-metal-borrowed-g2.csv) · [Raw blocks](artifacts/m5-metal-borrowed-g2.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB | Peak footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1×4 | Metal | 14.65 | 14.59 | 1.004× | 2.024× | 93.5 → 93.3 | 179.2 → 180.7 |
+| 1×8 | Metal | 16.84 | 16.88 | 0.994× | 1.848× | 108.9 → 109.0 | 192.6 → 191.2 |
+| 1×16 | Metal | 20.67 | 18.89 | 1.093× | 1.900× | 129.7 → 130.7 | 205.6 → 205.8 |
+| 2×2 | Metal | 15.26 | 15.31 | 0.996× | 2.211× | 125.5 → 124.6 | 207.4 → 206.5 |
+| 2×4 | Metal | 15.90 | 15.48 | 1.028× | 2.255× | 129.6 → 131.2 | 210.2 → 211.8 |
+| 1×2 | Metal | 11.48 | 11.54 | 0.992× | 2.257× | 94.7 → 94.3 | 170.1 → 169.6 |
+| 2×8 | Metal | 20.65 | 20.71 | 0.997× | 2.041× | 151.7 → 150.8 | 232.8 → 232.0 |
+| 1×16 | CPU | 27.81 | 30.31 | 0.987× | 1.947× | 108.1 → 107.8 | 72.8 → 72.5 |
+| 2×4 | CPU | 24.27 | 23.94 | 1.019× | 2.284× | 102.0 → 100.7 | 67.6 → 66.4 |
