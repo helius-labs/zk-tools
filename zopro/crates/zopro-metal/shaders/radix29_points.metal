@@ -54,17 +54,9 @@ inline xyzz_t<fp_t> unpack_point(xyzz_t<fp29> result) {
           fp29_unpack(result.zz), fp29_unpack(result.zzz)};
 }
 
-kernel void shards_first_g1_radix29(
-    device const affine_t<fp_t> *bases [[buffer(0)]],
-    device const uint *sorted [[buffer(1)]],
-    device const uint *start [[buffer(2)]],
-    device const uint *count [[buffer(3)]],
-    device const uint *dst [[buffer(4)]],
-    device xyzz_t<fp_t> *out [[buffer(5)]],
-    constant uint &shards [[buffer(6)]],
-    uint shard [[thread_position_in_grid]]) {
-  if (shard >= shards)
-    return;
+inline void radix29_first_shard(device const affine_t<fp_t> *bases, device const uint *sorted,
+                                device const uint *start, device const uint *count,
+                                device const uint *dst, device xyzz_t<fp_t> *out, uint shard) {
   const uint begin = start[shard];
   const uint end = begin + count[shard];
   xyzz_t<fp29> acc = xyzz_from_affine(pack_point(signed_base<fp_t>(bases, sorted[begin])));
@@ -76,4 +68,70 @@ kernel void shards_first_g1_radix29(
   for (; i < end; ++i)
     acc = xyzz_add_mixed(acc, pack_point(signed_base<fp_t>(bases, sorted[i])));
   out[dst[shard]] = unpack_point(acc);
+}
+
+kernel void shards_first_g1_radix29(
+    device const affine_t<fp_t> *bases [[buffer(0)]],
+    device const uint *sorted [[buffer(1)]],
+    device const uint *start [[buffer(2)]],
+    device const uint *count [[buffer(3)]],
+    device const uint *dst [[buffer(4)]],
+    device xyzz_t<fp_t> *out [[buffer(5)]],
+    constant uint &shards [[buffer(6)]],
+    uint shard [[thread_position_in_grid]]) {
+  if (shard >= shards)
+    return;
+  radix29_first_shard(bases, sorted, start, count, dst, out, shard);
+}
+
+kernel void clear_shard_bands(device uint *counts [[buffer(0)]],
+                              uint band [[thread_position_in_grid]]) {
+    counts[band] = 0;
+}
+
+kernel void count_shard_bands(device const uint *sorted [[buffer(0)]],
+                              device const uint *starts [[buffer(1)]],
+                              device atomic_uint *counts [[buffer(2)]],
+                              device uint *tags [[buffer(3)]],
+                              constant uint &shift [[buffer(4)]],
+                              uint shard [[thread_position_in_grid]]) {
+    // Group shards by the address of their first base. The sign bit is
+    // independent of where the base is stored.
+    const uint band = (sorted[starts[shard]] & 0x7fffffffu) >> shift;
+    const uint slot = atomic_fetch_add_explicit(&counts[band], 1, memory_order_relaxed);
+    tags[shard] = (band << 21) | slot;
+}
+
+kernel void prefix_shard_bands(device uint *counts [[buffer(0)]],
+                               constant uint &bands [[buffer(1)]],
+                               uint dummy [[thread_position_in_grid]]) {
+    uint first = 0;
+    for (uint band = 0; band < bands; ++band) {
+        const uint count = counts[band];
+        counts[band] = first;
+        first += count;
+    }
+}
+
+kernel void scatter_shard_bands(device const uint *offsets [[buffer(0)]],
+                                device const uint *tags [[buffer(1)]],
+                                device uint *order [[buffer(2)]],
+                                uint shard [[thread_position_in_grid]]) {
+    const uint tag = tags[shard];
+    order[offsets[tag >> 21] + (tag & 0x1fffffu)] = shard;
+}
+
+kernel void shards_first_g1_radix29_ordered(
+    device const affine_t<fp_t> *bases [[buffer(0)]],
+    device const uint *sorted [[buffer(1)]],
+    device const uint *start [[buffer(2)]],
+    device const uint *count [[buffer(3)]],
+    device const uint *dst [[buffer(4)]],
+    device xyzz_t<fp_t> *out [[buffer(5)]],
+    constant uint &shards [[buffer(6)]],
+    device const uint *order [[buffer(7)]],
+    uint thread_id [[thread_position_in_grid]]) {
+  if (thread_id >= shards)
+    return;
+  radix29_first_shard(bases, sorted, start, count, dst, out, order[thread_id]);
 }

@@ -22,6 +22,7 @@ use objc::{msg_send, sel, sel_impl};
 use rayon::prelude::*;
 
 pub mod quotient;
+mod shard_order;
 pub use quotient::{Quotient, QuotientDigits, Weights};
 
 // Matching block layout for the host and GPU digit producers.
@@ -517,6 +518,7 @@ pub struct Msm<C: Curve> {
     device: Device,
     queue: CommandQueue,
     first: ComputePipelineState,
+    shard_order: Option<shard_order::ShardOrder>,
     tree_pipeline: ComputePipelineState,
     /// The window reduction on the GPU; none where neither kernel builds
     /// (G2 on an A12Z exceeds the shader stack), and the host reduces
@@ -631,6 +633,13 @@ impl G1Msm {
             return false;
         };
         self.first = first;
+        if cfg!(target_os = "ios")
+            && self.n == (1 << 21) - 1
+            && self.device.supports_family(metal::MTLGPUFamily::Apple9)
+        {
+            let capacity = self.chunk_windows * (self.n.div_ceil(self.first_shard) + self.half);
+            self.shard_order = shard_order::ShardOrder::new(&self.device, self.n, capacity).ok();
+        }
         true
     }
 }
@@ -789,6 +798,7 @@ impl<C: Curve> Msm<C> {
                 starts: vec![0; buckets],
                 _curve: std::marker::PhantomData,
                 first,
+                shard_order: None,
                 tree_pipeline,
                 host_buckets: reduce.is_none().then(|| shared(&device, bucket_bytes)),
                 reduce,
@@ -977,13 +987,28 @@ impl<C: Curve> Msm<C> {
         if let Some((scatter, digits, starts, positions)) = scatter {
             scatter.encode(encoder, digits, &starts, &positions, &self.sorted);
         }
+        if self.shard_order.is_some() {
+            log::info!("ZOPRO_TRACE metal-ordered-shards {}", shard_order::BAND_SHIFT);
+        }
         // Chunks run in order and share the trees; the dispatches of one
         // are complete before the next begins.
         for (chunk, levels) in chunks.iter().enumerate() {
             let last = levels.len() - 1;
             for (level, shards) in levels.iter().enumerate() {
+                if *shards == 0 {
+                    continue;
+                }
+                let [start, count, dst] = &self.levels[chunk][level];
                 let pipeline = if level == 0 {
-                    &self.first
+                    if let Some(order) = &self.shard_order {
+                        // Reorder only first-level work. Later levels still
+                        // consume those sums at their original destinations.
+                        let indices = order.encode(encoder, &self.sorted, start, *shards);
+                        encoder.set_buffer(7, Some(indices), 0);
+                        &order.first
+                    } else {
+                        &self.first
+                    }
                 } else {
                     &self.tree_pipeline
                 };
@@ -994,7 +1019,6 @@ impl<C: Curve> Msm<C> {
                 } else {
                     encoder.set_buffer(0, Some(&scratch.tree[(level - 1) % 2]), 0);
                 }
-                let [start, count, dst] = &self.levels[chunk][level];
                 encoder.set_buffer(2, Some(start), 0);
                 encoder.set_buffer(3, Some(count), 0);
                 encoder.set_buffer(4, Some(dst), 0);
@@ -1519,6 +1543,10 @@ mod tests {
             let (mut msm, _) = G1Msm::new_in_with_width_cap(&bases, scratch, width).unwrap();
             assert!(msm.select_radix29_shards());
             assert_eq!(msm.msm(&values).unwrap().0, expected);
+            let capacity = msm.chunk_windows * (n.div_ceil(msm.first_shard) + msm.half);
+            msm.shard_order = Some(shard_order::ShardOrder::new(&msm.device, n, capacity).unwrap());
+            assert_eq!(msm.msm(&values).unwrap().0, expected);
+            assert_eq!(msm.msm(&vec![Fr::ZERO; n]).unwrap().0, G1Projective::IDENTITY);
         }
     }
 
