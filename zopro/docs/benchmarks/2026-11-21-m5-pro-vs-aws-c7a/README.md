@@ -6,7 +6,7 @@ All 41 circuit shapes from the AWS catalog have warm proof latency and peak proc
 - Against the 96-core AWS run, M5 Metal took **1.64×** as long as Zopro at the median shape ratio and beat Aeglos on **5/41** shapes. AWS Gnark took **5.26×** as long as M5 Metal at the median shape ratio.
 - M5 Metal peak process RSS was **93.6–1779.9 MiB**. Its macOS peak physical footprint was **170.5–1624.0 MiB**. The footprint series is in the memory table and CSV.
 
-[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [Sparse witness solving](#sparse-witness-solving-for-131072-point-proofs) · [Million-point CPU overlap](#cpu-overlap-for-1048576-point-domains) · [Metal presorting](#metal-presorting-for-smaller-262144-point-workloads) · [Short CPU witness grouping](#cpu-witness-compaction-for-shorter-queries) · [Wider sparse witness solving](#sparse-witness-solving-for-262144-point-proofs) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
+[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [Sparse witness solving](#sparse-witness-solving-for-131072-point-proofs) · [Million-point CPU overlap](#cpu-overlap-for-1048576-point-domains) · [Metal presorting](#metal-presorting-for-smaller-262144-point-workloads) · [Short CPU witness grouping](#cpu-witness-compaction-for-shorter-queries) · [Wider sparse witness solving](#sparse-witness-solving-for-262144-point-proofs) · [Apple CPU and Metal schedules](#apple-cpu-workers-and-metal-witness-and-quotient-schedules) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
 
 ## Warm proof latency in milliseconds
 
@@ -550,3 +550,53 @@ The raw blocks identify the measured source revision and patch hash. The publish
 | 5×4 | Metal | 25.42 | 25.38 | 1.004× | 2.471× | 202.4 → 202.6 |
 | 12×2 | CPU | 112.63 | 108.02 | 1.017× | 2.143× | 339.5 → 342.1 |
 | 12×2 | Metal | 49.40 | 49.23 | 1.008× | 2.074× | 443.0 → 444.2 |
+
+## Apple CPU workers and Metal witness and quotient schedules
+
+The CPU schedule shifts workers to the quotient and G1 queries for selected small domains. Metal checks the full scalar set when sampling may have missed concentrated repeats and the workspace budget admits the table. The Metal quotient MSM uses an 11-bit window on the 262,144-point domain.
+
+The table covers 37 shape and backend combinations. 13 of 18 CPU rows and 15 of 19 Metal rows reached 2× against the original PR build. Each row uses five randomized paired blocks with three prime proofs and five timed and verified proofs per process. The ratios are medians across pairs. The memory counters are median process high-water marks.
+
+Gnark independently verified 129 proofs across concurrent requests and fallback paths. The native Metal-enabled suite passed 115 tests and the iOS arm64 build check passed.
+
+[Signed build](https://github.com/helius-labs/zk-tools/commit/2071dd9ac9302edb57abdc4c9bc8882d55be7e11) · [Comparison CSV](m5-apple-small-schedules.csv) · [Raw blocks](artifacts/m5-apple-small-schedules.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB | Peak footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1×2 | CPU | 15.65 | 15.69 | 0.997× | 1.971× | 70.5 → 70.2 | 49.4 → 49.1 |
+| 1×2 | Metal | 11.48 | 11.52 | 0.997× | 2.238× | 94.0 → 94.0 | 169.3 → 169.4 |
+| 1×4 | CPU | 23.46 | 21.63 | 1.084× | 1.898× | 82.7 → 86.7 | 58.0 → 62.0 |
+| 1×4 | Metal | 14.70 | 14.69 | 1.003× | 2.033× | 93.3 → 93.8 | 179.4 → 179.5 |
+| 1×8 | CPU | 24.70 | 24.35 | 1.005× | 1.915× | 94.2 → 93.8 | 65.9 → 65.4 |
+| 1×8 | Metal | 16.67 | 16.58 | 0.999× | 1.880× | 109.6 → 109.3 | 191.9 → 194.7 |
+| 1×16 | CPU | 27.23 | 27.71 | 0.983× | 2.023× | 107.6 → 106.2 | 72.4 → 71.0 |
+| 1×16 | Metal | 20.72 | 20.85 | 0.996× | 1.724× | 130.1 → 130.8 | 205.7 → 206.4 |
+| 2×2 | CPU | 23.81 | 24.12 | 0.977× | 2.162× | 98.7 → 98.6 | 65.9 → 65.9 |
+| 2×2 | Metal | 15.32 | 15.29 | 1.002× | 2.216× | 124.3 → 124.9 | 206.2 → 206.9 |
+| 2×4 | CPU | 24.69 | 23.97 | 1.033× | 2.307× | 99.8 → 101.2 | 65.5 → 66.8 |
+| 2×4 | Metal | 17.79 | 15.88 | 1.118× | 2.201× | 115.3 → 130.4 | 191.9 → 211.0 |
+| 2×8 | CPU | 39.26 | 36.65 | 1.082× | 1.945× | 121.6 → 124.5 | 79.7 → 82.5 |
+| 2×8 | Metal | 21.89 | 22.04 | 0.992× | 1.920× | 152.3 → 152.0 | 233.7 → 233.3 |
+| 2×16 | CPU | 42.35 | 40.98 | 1.032× | 2.041× | 136.1 → 137.7 | 87.2 → 88.8 |
+| 3×2 | CPU | 38.31 | 38.19 | 1.003× | 2.098× | 128.2 → 126.0 | 82.1 → 79.8 |
+| 3×2 | Metal | 22.56 | 22.58 | 1.000× | 1.998× | 153.3 → 152.9 | 229.9 → 229.6 |
+| 3×4 | CPU | 39.36 | 37.40 | 1.054× | 2.072× | 128.5 → 131.1 | 80.8 → 83.3 |
+| 3×8 | CPU | 40.23 | 38.84 | 1.039× | 2.196× | 137.4 → 137.4 | 86.1 → 86.0 |
+| 4×2 | CPU | 39.90 | 37.32 | 1.076× | 2.392× | 141.7 → 142.0 | 86.1 → 86.4 |
+| 4×4 | CPU | 40.02 | 37.59 | 1.065× | 2.379× | 144.6 → 146.0 | 87.5 → 88.8 |
+| 4×8 | CPU | 40.81 | 38.56 | 1.058× | 2.448× | 150.6 → 151.9 | 89.9 → 91.1 |
+| 4×16 | CPU | 44.86 | 45.50 | 0.984× | 2.402× | 164.0 → 164.8 | 96.3 → 97.0 |
+| 5×2 | CPU | 39.75 | 40.77 | 1.018× | 2.463× | 157.1 → 157.3 | 91.9 → 92.1 |
+| 5×4 | CPU | 40.04 | 38.12 | 1.050× | 2.722× | 158.6 → 159.9 | 91.8 → 93.1 |
+| 5×4 | Metal | 25.47 | 25.20 | 1.010× | 2.437× | 203.5 → 202.5 | 268.5 → 267.5 |
+| 5×8 | CPU | 63.89 | 67.48 | 0.975× | 1.981× | 200.1 → 197.6 | 121.7 → 119.2 |
+| 5×8 | Metal | 33.29 | 32.83 | 1.014× | 2.020× | 244.1 → 246.0 | 326.1 → 326.2 |
+| 5×16 | Metal | 34.84 | 34.33 | 1.015× | 2.036× | 263.9 → 265.2 | 339.6 → 339.6 |
+| 6×2 | Metal | 30.96 | 29.60 | 1.046× | 2.309× | 235.9 → 237.6 | 303.2 → 303.5 |
+| 6×4 | Metal | 33.95 | 33.25 | 1.019× | 2.083× | 251.1 → 252.1 | 329.8 → 329.6 |
+| 6×8 | Metal | 34.48 | 34.36 | 1.010× | 2.056× | 264.3 → 266.1 | 340.3 → 340.4 |
+| 8×2 | Metal | 33.50 | 34.67 | 0.981× | 2.251× | 279.3 → 280.4 | 327.8 → 327.3 |
+| 8×4 | Metal | 32.97 | 32.98 | 1.019× | 2.187× | 285.8 → 286.5 | 332.9 → 331.9 |
+| 8×8 | Metal | 34.55 | 34.47 | 0.999× | 2.200× | 293.7 → 296.4 | 336.5 → 337.9 |
+| 8×16 | Metal | 38.52 | 38.19 | 1.013× | 2.109× | 330.6 → 331.7 | 386.7 → 385.3 |
+| merge-8×1 | Metal | 32.15 | 30.65 | 1.049× | 2.263× | 265.9 → 269.8 | 319.1 → 321.2 |
