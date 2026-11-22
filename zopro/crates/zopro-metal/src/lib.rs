@@ -820,7 +820,7 @@ impl<C: Curve> Msm<C> {
             self.sorted_for_original_bases = true;
             return Ok(autoreleasepool(|| self.submit_in_pool(started, None, Some(digits))));
         }
-        self.scatter_digits(self.n, digits.as_slice())?;
+        self.scatter_digits(self.n, digits.as_slice(), DIGIT_CHUNK)?;
         self.sorted_for_original_bases = true;
         Ok(self.submit(started))
     }
@@ -1241,13 +1241,24 @@ impl<C: Curve> Msm<C> {
         let radix = 1u64 << width;
         let mask = radix - 1;
         let n = scalars.len();
+        // Keep more of the narrow G1 recoding blocks in flight on wide Macs.
+        let digit_chunk = if cfg!(all(target_os = "macos", target_arch = "aarch64"))
+            && !C::G2
+            && (8..=9).contains(&width)
+            && (16384..65536).contains(&n)
+            && rayon::current_num_threads() >= 16
+        {
+            1024
+        } else {
+            DIGIT_CHUNK
+        };
         // In chunks of scalars, window-major within each: a window's pass
         // reads its runs rather than every row (a 2^21-point Z sort took
         // 60-110 ms reading all of them).
         let mut digits = vec![0i16; n * windows];
         digits
-            .par_chunks_mut(DIGIT_CHUNK * windows)
-            .zip(scalars.par_chunks(DIGIT_CHUNK))
+            .par_chunks_mut(digit_chunk * windows)
+            .zip(scalars.par_chunks(digit_chunk))
             .for_each(|(block, chunk)| {
                 let len = chunk.len();
                 for (i, s) in chunk.iter().enumerate() {
@@ -1266,19 +1277,21 @@ impl<C: Curve> Msm<C> {
                     }
                 }
             });
-        self.scatter_digits(n, &digits).expect("host recoding");
+        self.scatter_digits(n, &digits, digit_chunk).expect("host recoding");
     }
 
-    fn scatter_digits(&mut self, n: usize, digits: &[i16]) -> Result<(), &'static str> {
+    fn scatter_digits(
+        &mut self, n: usize, digits: &[i16], digit_chunk: usize,
+    ) -> Result<(), &'static str> {
         let (windows, half) = (self.windows, self.half);
         // Window w's digits, chunk by chunk, with the chunk's first index.
         let runs = |w: usize| {
             digits
-                .chunks(DIGIT_CHUNK * windows)
+                .chunks(digit_chunk * windows)
                 .enumerate()
                 .map(move |(c, block)| {
                     let len = block.len() / windows;
-                    (c * DIGIT_CHUNK, &block[w * len..(w + 1) * len])
+                    (c * digit_chunk, &block[w * len..(w + 1) * len])
                 })
         };
         // SAFETY: the buffer holds n * windows u32s, shared storage, and
@@ -1487,6 +1500,6 @@ mod tests {
         let (mut msm, _) = G1Msm::new(&[G1Affine::GENERATOR]).unwrap();
         let mut digits = vec![0; msm.windows];
         digits[0] = i16::MAX;
-        assert_eq!(msm.scatter_digits(1, &digits), Err("MSM digit exceeds its window"));
+        assert_eq!(msm.scatter_digits(1, &digits, DIGIT_CHUNK), Err("MSM digit exceeds its window"));
     }
 }
