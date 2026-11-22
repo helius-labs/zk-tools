@@ -6,7 +6,7 @@ All 41 circuit shapes from the AWS catalog have warm proof latency and peak proc
 - Against the 96-core AWS run, M5 Metal took **1.64×** as long as Zopro at the median shape ratio and beat Aeglos on **5/41** shapes. AWS Gnark took **5.26×** as long as M5 Metal at the median shape ratio.
 - M5 Metal peak process RSS was **93.6–1779.9 MiB**. Its macOS peak physical footprint was **170.5–1624.0 MiB**. The footprint series is in the memory table and CSV.
 
-[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
+[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
 
 ## Warm proof latency in milliseconds
 
@@ -226,3 +226,55 @@ The benchmark used 48 randomized three-build blocks for 1×2 CPU, 40 for 2×2 CP
 | 12×2 Metal | 103.073 | 49.195 | 49.155 | 2.092× | 443.242 | 442.766 |
 
 Speedup is the median of the original-to-updated ratios within blocks. Peak RSS is the median process high-water mark. The paired 1×2 CPU gain over the previous build was 1.0%. The paired change on 2×2 CPU was +0.2%. A separate 48-block 1×2 CPU repeat measured 15.964 to 15.735 ms, a 1.4% paired gain.
+
+## Apple silicon speedup across all 41 shapes
+
+The median shape speedup was **2.06× on CPU** and **2.02× on Metal**. CPU reached 2× on **24/41** shapes and Metal reached 2× on **22/41** shapes. **17 shapes** reached 2× on both backends.
+
+Both builds ran on the same M5 Pro. The runner used the pinned keys and exported witnesses from the AWS comparison above. [Original PR build](https://github.com/helius-labs/zk-tools/commit/87b35e3f8cce89bc60ae83344c9166ab59058e3b) · [Updated build](https://github.com/helius-labs/zk-tools/commit/f294171359db54af54b8483957f0b3df60ed2fd5) · [Comparison CSV](m5-original-current-catalog.csv) · [Raw blocks](artifacts/m5-original-current-catalog-blocks.jsonl)
+
+Each shape ran in three paired blocks. Within a block, the four build and backend combinations ran in random order in fresh processes. Each process verified eight proofs, checked its public witness, and confirmed the backend after every proof. Warm latency is the median of the block means for proofs four through eight. Speedup is the median of the paired latency ratios. Peak RSS is the median process high-water mark. The warm timing includes witness decoding, proving, and verification.
+
+| Shape | CPU original ms | CPU updated ms | CPU speedup | CPU peak RSS MiB | Metal original ms | Metal updated ms | Metal speedup | Metal peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1×2 | 30.53 | 15.67 | 1.95× | 41.8 → 71.1 | 26.06 | 11.51 | 2.26× | 85.8 → 93.3 |
+| 1×4 | 41.35 | 26.00 | 1.58× | 51.2 → 66.6 | 29.54 | 14.63 | 2.02× | 104.0 → 92.2 |
+| 1×8 | 47.11 | 31.10 | 1.54× | 59.7 → 75.2 | 31.23 | 17.07 | 1.83× | 115.2 → 109.0 |
+| 1×16 | 56.91 | 33.54 | 1.68× | 69.9 → 97.0 | 35.85 | 20.77 | 1.72× | 133.6 → 130.0 |
+| 2×2 | 52.69 | 23.69 | 2.19× | 66.0 → 95.8 | 33.90 | 15.31 | 2.22× | 127.1 → 126.4 |
+| 2×4 | 54.32 | 24.88 | 2.18× | 69.0 → 99.0 | 34.75 | 17.76 | 1.96× | 131.6 → 114.4 |
+| 2×8 | 70.87 | 43.87 | 1.63× | 96.5 → 131.4 | 41.81 | 28.10 | 1.48× | 166.1 → 184.2 |
+| 2×16 | 80.84 | 48.25 | 1.68× | 116.3 → 150.9 | 48.42 | 29.04 | 1.70× | 195.4 → 219.6 |
+| 3×2 | 72.94 | 42.47 | 1.74× | 110.3 → 135.4 | 45.53 | 27.18 | 1.65× | 184.1 → 195.5 |
+| 3×4 | 80.26 | 43.82 | 1.78× | 114.5 → 138.6 | 45.46 | 28.12 | 1.63× | 190.5 → 200.8 |
+| 3×8 | 82.76 | 45.04 | 1.86× | 122.7 → 148.0 | 47.95 | 27.87 | 1.71× | 202.8 → 213.3 |
+| 4×2 | 88.03 | 44.99 | 1.96× | 126.2 → 151.7 | 53.29 | 28.15 | 1.92× | 212.8 → 220.9 |
+| 4×4 | 92.80 | 44.79 | 2.05× | 129.1 → 156.8 | 54.90 | 27.51 | 1.92× | 216.6 → 227.6 |
+| 4×8 | 98.38 | 47.24 | 2.05× | 136.8 → 166.7 | 57.69 | 28.77 | 2.00× | 228.8 → 238.1 |
+| 4×16 | 108.43 | 52.77 | 2.06× | 151.7 → 184.5 | 54.11 | 32.15 | 1.69× | 267.5 → 263.0 |
+| 5×2 | 103.73 | 45.59 | 2.24× | 138.8 → 170.7 | 61.58 | 30.07 | 2.11× | 241.0 → 243.6 |
+| 5×4 | 107.31 | 46.07 | 2.33× | 141.7 → 169.3 | 63.59 | 31.23 | 2.02× | 245.7 → 248.5 |
+| 5×8 | 133.58 | 66.34 | 2.01× | 183.7 → 203.8 | 64.25 | 36.76 | 1.74× | 321.0 → 272.9 |
+| 5×16 | 142.41 | 71.11 | 2.00× | 187.1 → 218.4 | 69.05 | 38.96 | 1.76× | 338.3 → 291.9 |
+| 6×2 | 135.84 | 65.05 | 2.09× | 187.9 → 207.4 | 65.62 | 31.26 | 2.10× | 335.2 → 255.0 |
+| 6×4 | 138.24 | 67.25 | 2.06× | 193.0 → 210.3 | 68.24 | 36.33 | 1.88× | 340.7 → 281.3 |
+| 6×8 | 141.30 | 67.78 | 2.11× | 189.2 → 217.0 | 68.07 | 37.56 | 1.82× | 348.9 → 292.5 |
+| 8×2 | 155.47 | 67.35 | 2.30× | 207.0 → 233.2 | 70.60 | 33.46 | 2.11× | 383.5 → 298.7 |
+| 8×4 | 157.39 | 67.79 | 2.30× | 211.7 → 239.4 | 73.74 | 33.88 | 2.18× | 387.4 → 303.3 |
+| 8×8 | 159.52 | 70.74 | 2.25× | 216.3 → 249.4 | 73.13 | 35.84 | 2.04× | 396.8 → 312.2 |
+| 8×16 | 170.03 | 75.67 | 2.25× | 225.4 → 259.7 | 78.21 | 41.22 | 1.89× | 415.5 → 362.6 |
+| 12×2 | 249.83 | 111.84 | 2.14× | 300.8 → 339.8 | 105.23 | 48.69 | 2.17× | 583.5 → 440.7 |
+| 12×4 | 254.96 | 120.11 | 2.15× | 302.9 → 333.6 | 106.70 | 50.53 | 2.10× | 587.7 → 444.7 |
+| 12×8 | 256.37 | 120.07 | 2.13× | 312.5 → 335.8 | 107.47 | 51.02 | 2.11× | 599.2 → 457.0 |
+| 16×2 | 269.61 | 114.36 | 2.33× | 354.8 → 396.5 | 118.57 | 52.46 | 2.25× | 679.2 → 521.2 |
+| 16×4 | 275.98 | 121.36 | 2.36× | 359.7 → 398.1 | 122.21 | 52.21 | 2.29× | 685.2 → 529.2 |
+| 16×8 | 305.05 | 127.92 | 2.38× | 364.1 → 401.1 | 130.80 | 55.25 | 2.34× | 694.4 → 535.3 |
+| 24×2 | 471.17 | 256.49 | 1.84× | 575.0 → 591.2 | 182.69 | 88.73 | 2.06× | 1086.3 → 808.1 |
+| 24×4 | 446.71 | 240.68 | 1.85× | 605.0 → 598.8 | 178.63 | 88.57 | 2.02× | 1090.5 → 814.6 |
+| 32×2 | 519.11 | 247.11 | 2.10× | 710.6 → 718.1 | 218.17 | 93.25 | 2.36× | 1276.1 → 985.2 |
+| 40×2 | 583.87 | 247.24 | 2.37× | 793.4 → 827.4 | 261.49 | 99.48 | 2.62× | 1463.5 → 1144.6 |
+| 48×2 | 949.73 | 555.98 | 1.71× | 1120.7 → 1147.8 | 428.28 | 265.27 | 1.61× | 2082.2 → 1540.2 |
+| 49×2 | 973.31 | 563.83 | 1.74× | 1134.6 → 1160.8 | 430.31 | 267.83 | 1.62× | 2105.1 → 1563.5 |
+| merge-8×1 | 146.94 | 65.01 | 2.30× | 202.1 → 224.1 | 70.55 | 32.39 | 2.18× | 369.9 → 284.5 |
+| merge-24×1 | 426.68 | 237.15 | 1.79× | 559.4 → 571.9 | 180.52 | 87.39 | 2.07× | 1055.3 → 780.1 |
+| merge-54×1 | 993.51 | 550.81 | 1.80× | 1187.1 → 1181.5 | 452.31 | 266.70 | 1.70× | 2174.5 → 1595.8 |
