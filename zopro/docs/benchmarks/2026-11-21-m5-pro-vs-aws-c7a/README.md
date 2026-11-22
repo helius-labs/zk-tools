@@ -164,3 +164,18 @@ The G1 affine batch kernel stores each denominator beside its scaled numerator a
 | 12×2 Metal | 102.51 | 49.29 | 49.24 | 2.086× | 444.42 | 447.48 |
 
 The median paired gain over the previous build was 0.6% for 1×2 CPU and 2.0% for 2×2 CPU. Peak physical footprint for 1×2 CPU went from 53.64 to 54.84 MiB.
+
+## M5 Pro follow-up on G2 affine batches
+
+The seven-worker G2 query moves the extension-field numerator into the forward pass and starts the next slope before writing the current point. It uses this kernel for batches of 64 or more. These measurements use the same randomized three-build comparison as the G1 follow-up. [Previous build](https://github.com/helius-labs/zk-tools/commit/900704a2d36e72cbfb0f9f8ceab75ebb599515d7) · [Raw blocks](artifacts/m5-pipelined-g2-batches.jsonl)
+
+| Shape and backend | Original warm ms | Previous warm ms | Updated warm ms | Speedup | Previous peak RSS MiB | Updated peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1×2 CPU | 30.86 | 16.35 | 16.21 | 1.900× | 76.02 | 74.19 |
+| 1×2 Metal | 26.00 | 11.58 | 11.54 | 2.253× | 98.17 | 97.52 |
+| 2×2 CPU | 52.28 | 24.15 | 24.13 | 2.163× | 98.89 | 99.22 |
+| 2×2 Metal | 34.00 | 15.37 | 15.38 | 2.212× | 130.44 | 130.27 |
+| 12×2 CPU | 238.39 | 112.45 | 112.93 | 2.138× | 348.83 | 347.39 |
+| 12×2 Metal | 102.38 | 49.08 | 49.13 | 2.091× | 450.09 | 449.09 |
+
+The median paired gain over the previous build was 1.2% for 1×2 CPU. Peak physical footprint for this configuration went from 54.84 to 52.94 MiB.

@@ -529,3 +529,60 @@ pub fn batch_affine_loose<C: CurveConfig<Base = Fq>>(
     }
     finish(entry, lambda);
 }
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+#[doc(hidden)]
+pub fn batch_affine_g2<C: CurveConfig<Base = Fq2>>(
+    affine: &mut [Affine<C>],
+    busy: &mut [u64],
+    batch: &[(u32, &Affine<C>)],
+    scratch: &mut Vec<Fq2>,
+) {
+    let bucket_index = |encoded: u32| (encoded & 0x7fff_ffff) as usize;
+    let signed_y = |encoded: u32, incoming: &Affine<C>| {
+        if encoded >> 31 != 0 { -incoming.y } else { incoming.y }
+    };
+    scratch.clear();
+    let len = batch.len().checked_mul(2).expect("affine batch scratch length");
+    scratch.reserve(len);
+    let mut product = Fq::ONE;
+    let storage = scratch.spare_capacity_mut()[..len].as_chunks_mut::<2>().0;
+    for (&(encoded, incoming), pair) in batch.iter().zip(storage) {
+        let current = &affine[bucket_index(encoded)];
+        let dx = incoming.x - current.x;
+        let norm = dx.norm();
+        // dy / dx = (dy * conjugate(dx)) / norm(dx). Form the
+        // extension-field numerator while building the base-field prefix.
+        let numerator = (signed_y(encoded, incoming) - current.y) * dx.conjugate();
+        pair[0].write(Fq2::new(product, norm));
+        pair[1].write(numerator);
+        product *= norm;
+    }
+    // SAFETY: the loop initialized both entries for each batch item.
+    unsafe { scratch.set_len(len) };
+    let mut pending = batch.iter().zip(scratch.as_chunks::<2>().0).rev();
+    let Some((&first, first_pair)) = pending.next() else { return };
+    let mut inverse = product.inverse().expect("distinct x in a batch");
+    let mut slope = |pair: &[Fq2; 2]| {
+        let factor = inverse * pair[0].c0;
+        inverse *= pair[0].c1;
+        pair[1].mul_by_fp(&factor)
+    };
+    let mut finish = |(encoded, incoming): (u32, &Affine<C>), lambda: Fq2| {
+        let bucket = bucket_index(encoded);
+        let current = &mut affine[bucket];
+        let x = lambda.square() - current.x - incoming.x;
+        let y = lambda * (current.x - x) - current.y;
+        *current = Affine::new(x, y);
+        busy[bucket / 64] = 0;
+    };
+    let mut entry = first;
+    let mut lambda = slope(first_pair);
+    for (&next, pair) in pending {
+        let next_lambda = slope(pair);
+        finish(entry, lambda);
+        entry = next;
+        lambda = next_lambda;
+    }
+    finish(entry, lambda);
+}

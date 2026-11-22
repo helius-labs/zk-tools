@@ -1656,6 +1656,24 @@ impl BatchInverse for Fq {
     }
 }
 impl BatchInverse for Fq2 {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+    fn loose_batch<C: CurveConfig<Base = Self>>(
+        affine: &mut [Affine<C>],
+        busy: &mut [u64],
+        batch: &[(u32, &Affine<C>)],
+        denominators: &mut Vec<Self>,
+        prefixes: &mut Vec<Self::Product>,
+    ) -> bool {
+        if rayon::current_num_threads() != 18 - crate::APPLE_SMALL_PAIRED_G1_WORKERS
+            || batch.len() < 64
+        {
+            return false;
+        }
+        zopro_bn254::curve::batch_affine_g2(affine, busy, batch, denominators);
+        prefixes.clear();
+        true
+    }
+
     const TREE_PREFIX: bool = cfg!(all(
         feature = "ifma8",
         target_arch = "x86_64",
