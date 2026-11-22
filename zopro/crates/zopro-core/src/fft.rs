@@ -764,8 +764,8 @@ impl Plan {
     }
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     pub(crate) fn prepare_apple_quotient(&mut self, small_overlap: bool) {
-        let small = self.n == (1 << 15) && small_overlap;
-        if (!small && self.n != (1 << 16))
+        let overlap = small_overlap && matches!(self.n, 32768 | 131072);
+        if (!overlap && self.n != (1 << 16))
             || rayon::current_num_threads() < 18
             || std::env::var("ZOPRO_CPU_QUOTIENT6").as_deref() == Ok("0")
             || std::env::var("ZOPRO_CPU_TWISTED_FFT").as_deref() == Ok("0")
@@ -789,7 +789,7 @@ impl Plan {
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     pub(crate) fn has_apple_small_quotient(&self) -> bool {
-        matches!(self.n, 32768 | 65536)
+        matches!(self.n, 32768 | 65536 | 131072)
             && self.twisted.is_some()
             && std::env::var("ZOPRO_CPU_QUOTIENT6").as_deref() != Ok("0")
             && std::env::var("ZOPRO_CPU_TWISTED_FFT").as_deref() != Ok("0")

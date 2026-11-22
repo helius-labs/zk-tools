@@ -559,13 +559,13 @@ pub(super) fn fused_g1_msm(
 ) -> zopro_bn254::G1Projective {
     let queries = [(k, k_short), (h, h_short)];
     let workers = rayon::current_num_threads();
-    let medium = h.len() == (1 << 16) - 1;
+    let wide_quotient = matches!(h.len(), 65535 | 131071);
     let paired = workers == crate::APPLE_SMALL_PAIRED_G1_WORKERS;
-    let limit = if medium && paired { 1 << 16 } else { 1 << 15 };
+    let limit = if wide_quotient && paired { h.len() + 1 } else { 1 << 15 };
     if ((1 << 14)..limit).contains(&k.len())
         && std::env::var("ZOPRO_CPU_FUSED_KH_GEOMETRY").as_deref() != Ok("0")
     {
-        if medium && (workers >= 18 || paired) {
+        if wide_quotient && (workers >= 18 || paired) {
             // Wider windows cut the number of passes over the dense quotient.
             #[cfg(feature = "trace")]
             log::info!("ZOPRO_TRACE cpu-fused-kh-wide-windows");

@@ -208,8 +208,12 @@ pub(super) fn msm_h_in_place(
 
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 pub(super) fn apple_fused_kh_enabled(k: usize, h: usize) -> bool {
-    (1024..65536).contains(&k)
-        && [(1 << 15) - 1, (1 << 16) - 1].contains(&h)
+    let limit = match h {
+        32767 | 65535 => 65536,
+        131071 => 131072,
+        _ => return false,
+    };
+    (1024..limit).contains(&k)
         && borrowed_scalar::enabled()
         && std::env::var("ZOPRO_CPU_FUSED_KH").as_deref() != Ok("0")
 }
@@ -2305,6 +2309,10 @@ fn g2_exclusive_with_groups<'a>(
     three_parts: bool,
 ) -> zopro_bn254::G2Projective {
     let _ = three_parts;
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    let limit = if three_parts { 1 << 17 } else { 1 << 16 };
+    #[cfg(all(zopro_g2_horner_buckets, target_arch = "x86_64"))]
+    let limit = 1 << 16;
     #[cfg(any(
         all(target_os = "macos", target_arch = "aarch64"),
         all(
@@ -2317,12 +2325,12 @@ fn g2_exclusive_with_groups<'a>(
             not(no_ifma)
         )
     ))]
-    if (1024..65536).contains(&bases.len()) {
+    if (1024..limit).contains(&bases.len()) {
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         let compute = |bases: &[zopro_bn254::G2Affine], words: &mut [[u64; 4]]| {
             let workers = rayon::current_num_threads();
-            let limit = if three_parts { 1 << 16 } else { 1 << 15 };
-            if ((1 << 14)..limit).contains(&bases.len())
+            let balanced_limit = if three_parts { limit } else { 1 << 15 };
+            if ((1 << 14)..balanced_limit).contains(&bases.len())
                 && (three_parts || workers == 6 || workers >= 16)
                 && borrowed_scalar::enabled()
                 && std::env::var("ZOPRO_CPU_G2_BALANCED").as_deref() != Ok("0")
@@ -2339,12 +2347,12 @@ fn g2_exclusive_with_groups<'a>(
         #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
         let compute = g2_phi::raw_exclusive;
         if let Some(mut g) = groups {
-            if !(1024..65536).contains(&g.values.len()) {
+            if !(1024..limit).contains(&g.values.len()) {
                 return crate::msm_grouped_b2(bases, &g);
             }
             #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
             if three_parts && rayon::current_num_threads() == 7
-                && ((1 << 14)..(1 << 16)).contains(&g.values.len())
+                && ((1 << 14)..limit).contains(&g.values.len())
                 // Few repeated classes keep the references and their
                 // temporary index arrays within the grouping reservation.
                 && g.order.len() - g.values.len() <= g.values.len() / 8

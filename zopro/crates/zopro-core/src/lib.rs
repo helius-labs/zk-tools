@@ -2761,8 +2761,12 @@ impl Key {
 
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     fn apple_small_msm_overlap(&self) -> bool {
-        matches!(self.domain, 32768 | 65536)
-            && ((1 << 14)..(1 << 16)).contains(&self.b2.len())
+        let limit = match self.domain {
+            32768 | 65536 => 65536,
+            131072 => 131072,
+            _ => return false,
+        };
+        ((1 << 14)..limit).contains(&self.b2.len())
             && affine_msm()
             && self.equal_witness.is_none()
             && rayon::current_num_threads() >= 18
