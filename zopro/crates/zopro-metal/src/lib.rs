@@ -333,15 +333,19 @@ pub trait Curve:
     fn xyzz_to_projective(bytes: &[u8]) -> Self;
     #[doc(hidden)]
     fn reduce_host_window(buckets: &[u8]) -> Self {
-        let mut running = Self::IDENTITY;
-        let mut sum = Self::IDENTITY;
-        for point in buckets.chunks_exact(Self::XYZZ_BYTES).rev() {
-            running += Self::xyzz_to_projective(point);
-            sum += running;
-        }
-        sum
+        reduce_host_projective::<Self>(buckets)
     }
 
+}
+
+fn reduce_host_projective<C: Curve>(buckets: &[u8]) -> C {
+    let mut running = C::IDENTITY;
+    let mut sum = C::IDENTITY;
+    for point in buckets.chunks_exact(C::XYZZ_BYTES).rev() {
+        running += C::xyzz_to_projective(point);
+        sum += running;
+    }
+    sum
 }
 
 fn fq_bytes(v: &Fq, out: &mut Vec<u8>) {
@@ -380,8 +384,15 @@ impl Curve for G1Projective {
         Self::new(x * zz, y * zzz, zz)
     }
 
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[cfg(all(any(target_os = "macos", target_os = "ios"), target_arch = "aarch64"))]
     fn reduce_host_window(buckets: &[u8]) -> Self {
+        #[cfg(target_os = "ios")]
+        {
+            static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+            if !*ENABLED.get_or_init(fast_gpu) {
+                return reduce_host_projective::<Self>(buckets);
+            }
+        }
         // Keep the GPU's coordinates through the weighted sum.
         let mut running = HostBucket::ZERO;
         let mut sum = HostBucket::ZERO;
@@ -399,7 +410,7 @@ impl Curve for G1Projective {
     }
 }
 
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg(all(any(target_os = "macos", target_os = "ios"), target_arch = "aarch64"))]
 #[derive(Clone, Copy)]
 struct HostBucket {
     x: Fq,
@@ -408,7 +419,7 @@ struct HostBucket {
     zzz: Fq,
 }
 
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg(all(any(target_os = "macos", target_os = "ios"), target_arch = "aarch64"))]
 impl HostBucket {
     const ZERO: Self = Self {
         x: Fq::ZERO,
