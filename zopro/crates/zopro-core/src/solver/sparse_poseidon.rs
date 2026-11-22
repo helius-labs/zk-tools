@@ -367,6 +367,7 @@ impl Plan {
         match self.n_constraints {
             16385..=32768 => Some(4),
             32769..=131072 => Some(8),
+            131073..=262144 => Some(6),
             _ => None,
         }
     }
