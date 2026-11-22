@@ -1,6 +1,6 @@
 # M5 Pro and AWS C7a proof benchmarks
 
-The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
+The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Short Metal witness sorting](#parallel-sorting-for-short-metal-witness-queries) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
 
 The first tables record the initial M5 Pro comparison.
 
@@ -796,3 +796,26 @@ Gnark independently verified 69 proofs, including lower worker counts, denied me
 | 4×2 | CPU | 40.78 | 39.60 | 1.008× | 2.279× | 142.2 → 142.2 | 86.6 → 86.6 |
 | 5×8 | CPU | 78.95 | 80.90 | 0.996× | 2.012× | 197.1 → 197.0 | 118.8 → 118.6 |
 | 2×8 | Metal | 22.77 | 22.57 | 1.012× | 1.908× | 151.4 → 150.9 | 232.5 → 232.0 |
+
+## Parallel sorting for short Metal witness queries
+
+Arm64 macOS can sort the independent A and K queries in parallel while the GPU computes the quotient. The new schedule requires a 65,536-point domain, at least 16 workers, CPU G2 and a GPU quotient. It covers G2 point counts of 40,960–49,151 or 57,344–65,535. The existing environment override can disable parallel sorting.
+
+Each comparison used seven paired blocks on the same M5 Pro. Every process verified eight proofs. Warm latency uses the last five proofs per process, and memory uses process high-water marks.
+
+Gnark independently verified 54 proofs, including lower worker counts, GPU G2, CPU fallback, and disabled grouping or parallel sorting. The native Metal-enabled tests and iOS arm64 build check passed.
+
+The paired runs used signed revision `4137a3703534ef9abdfd69ea8767d71db7d5433a` before the CPU and Metal changes were combined.
+
+[Published change](https://github.com/helius-labs/zk-tools/commit/25b43358b2c7cf59025d2ac0f28fa81e20f0e4be) · [Comparison CSV](m5-metal-parallel-sort.csv) · [Raw blocks](artifacts/m5-metal-parallel-sort.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB | Peak footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 1×4 | Metal | 15.11 | 15.10 | 1.004× | 1.974× | 92.9 → 92.5 | 178.7 → 178.3 |
+| 1×8 | Metal | 17.47 | 16.99 | 1.033× | 1.902× | 108.4 → 109.5 | 190.6 → 191.7 |
+| 1×16 | Metal | 19.56 | 19.16 | 1.019× | 1.935× | 129.4 → 132.3 | 204.6 → 208.5 |
+| 2×2 | Metal | 15.98 | 16.20 | 0.988× | 2.174× | 124.7 → 124.5 | 206.6 → 206.4 |
+| 2×4 | Metal | 16.35 | 16.49 | 0.995× | 2.188× | 131.7 → 132.2 | 212.3 → 212.8 |
+| 1×8 | CPU | 26.12 | 25.95 | 0.996× | 1.907× | 94.5 → 94.5 | 66.1 → 66.2 |
+| 2×8 | Metal | 21.52 | 21.27 | 1.008× | 1.977× | 150.6 → 151.3 | 231.8 → 232.5 |
+| 24×2 | Metal | 94.17 | 93.59 | 1.010× | 1.988× | 809.1 → 810.2 | 821.2 → 822.3 |
