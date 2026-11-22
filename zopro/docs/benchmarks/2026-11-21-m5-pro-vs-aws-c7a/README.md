@@ -6,7 +6,7 @@ All 41 circuit shapes from the AWS catalog have warm proof latency and peak proc
 - Against the 96-core AWS run, M5 Metal took **1.64×** as long as Zopro at the median shape ratio and beat Aeglos on **5/41** shapes. AWS Gnark took **5.26×** as long as M5 Metal at the median shape ratio.
 - M5 Metal peak process RSS was **93.6–1779.9 MiB**. Its macOS peak physical footprint was **170.5–1624.0 MiB**. The footprint series is in the memory table and CSV.
 
-[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [Sparse witness solving](#sparse-witness-solving-for-131072-point-proofs) · [Million-point CPU overlap](#cpu-overlap-for-1048576-point-domains) · [Metal presorting](#metal-presorting-for-smaller-262144-point-workloads) · [Short CPU witness grouping](#cpu-witness-compaction-for-shorter-queries) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
+[Comparison CSV](comparison.csv) · [Raw M5 blocks](artifacts/m5-blocks.jsonl) · [Apple silicon speedup audit](#apple-silicon-speedup-across-all-41-shapes) · [CPU and Metal follow-up](#apple-silicon-cpu-and-metal-schedules) · [Large solver schedules](#parallel-witness-solving-for-the-largest-apple-silicon-shapes) · [Wider CPU overlap](#cpu-overlap-for-131072-point-domains) · [Metal window tuning](#metal-windows-for-262144-point-proofs) · [Sparse witness solving](#sparse-witness-solving-for-131072-point-proofs) · [Million-point CPU overlap](#cpu-overlap-for-1048576-point-domains) · [Metal presorting](#metal-presorting-for-smaller-262144-point-workloads) · [Short CPU witness grouping](#cpu-witness-compaction-for-shorter-queries) · [Wider sparse witness solving](#sparse-witness-solving-for-262144-point-proofs) · [AWS three-prover report](https://github.com/helius-labs/zk-tools/blob/d942372f85491f42596d157ed4c3424277d99e4c/zopro/docs/benchmarks/2026-11-20-c7a-three-provers/README.md#catalog-hot)
 
 ## Warm proof latency in milliseconds
 
@@ -508,3 +508,45 @@ Each build used the same M5 Pro and pinned inputs in five paired blocks. Each pr
 | 2×8 | CPU | 38.54 | 38.53 | 0.999× | 1.816× | 122.7 → 122.2 |
 | 1×4 | Metal | 14.68 | 14.67 | 1.000× | 1.993× | 93.1 → 93.0 |
 | 1×8 | Metal | 17.00 | 16.97 | 1.007× | 1.842× | 108.5 → 108.4 |
+
+## Sparse witness solving for 262,144-point proofs
+
+Arm64 macOS uses six dependency epochs for the 262,144-point quotient domain when the compiler can recognize complete Poseidon spans. Both CPU and Metal use the compiled witness. Keys that fail admission use the existing solver.
+
+- CPU improved on 9 of 10 shapes, with median warm latency down 0.9%. 10 reached 2× against the original build. Median key load changed by +6.6 ms and peak RSS by +1.2 MiB.
+- Metal improved on 9 of 10 shapes, with median warm latency down 3.3%. 9 reached 2× against the original build. Median key load changed by +6.5 ms and peak RSS by +0.3 MiB.
+
+The four neighboring control rows changed by at most 5.6% in paired warm latency. Gnark independently verified 99 proofs covering concurrent requests, Metal fallback, and solver overrides.
+
+Each build used the same M5 Pro and pinned inputs in five paired blocks. Each process verified eight proofs. Warm latency uses the median of the means for proofs four through eight. Memory uses median process high-water marks.
+
+The raw blocks identify the measured source revision and patch hash. The published commit applies the same source diff.
+
+[New build](https://github.com/helius-labs/zk-tools/commit/86eb9eccd0e013cdb8b409ff0f8d0f40e11f1481) · [Comparison CSV](m5-sparse-witness-262k.csv) · [Raw blocks](artifacts/m5-sparse-witness-262k.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB |
+|---|---|---:|---:|---:|---:|---:|
+| 5×8 | CPU | 64.42 | 63.85 | 1.007× | 2.005× | 200.7 → 199.3 |
+| 5×8 | Metal | 34.57 | 33.32 | 1.039× | 1.939× | 244.1 → 244.8 |
+| 5×16 | CPU | 71.26 | 69.07 | 1.028× | 2.034× | 215.9 → 215.3 |
+| 5×16 | Metal | 36.39 | 34.61 | 1.052× | 2.005× | 264.6 → 264.4 |
+| 6×2 | CPU | 64.81 | 63.32 | 1.020× | 2.153× | 203.2 → 204.0 |
+| 6×2 | Metal | 32.00 | 30.67 | 1.044× | 2.206× | 236.1 → 242.0 |
+| 6×4 | CPU | 65.09 | 64.24 | 1.019× | 2.162× | 205.9 → 208.8 |
+| 6×4 | Metal | 35.19 | 34.00 | 1.035× | 2.001× | 251.5 → 251.4 |
+| 6×8 | CPU | 66.32 | 66.39 | 1.000× | 2.095× | 217.7 → 218.1 |
+| 6×8 | Metal | 35.14 | 34.07 | 1.033× | 2.076× | 265.0 → 264.5 |
+| 8×2 | CPU | 67.06 | 66.76 | 1.007× | 2.328× | 234.0 → 235.5 |
+| 8×2 | Metal | 32.12 | 32.28 | 1.014× | 2.187× | 281.2 → 279.2 |
+| 8×4 | CPU | 67.98 | 67.37 | 1.008× | 2.330× | 236.2 → 241.0 |
+| 8×4 | Metal | 32.83 | 32.24 | 1.018× | 2.220× | 286.5 → 287.4 |
+| 8×8 | CPU | 71.03 | 71.13 | 1.002× | 2.297× | 245.5 → 246.5 |
+| 8×8 | Metal | 35.30 | 34.36 | 1.027× | 2.215× | 293.6 → 294.2 |
+| 8×16 | CPU | 76.19 | 73.60 | 1.040× | 2.282× | 260.6 → 262.6 |
+| 8×16 | Metal | 40.30 | 38.00 | 1.056× | 2.046× | 331.9 → 331.0 |
+| merge-8×1 | CPU | 65.17 | 64.40 | 1.011× | 2.280× | 222.5 → 225.3 |
+| merge-8×1 | Metal | 31.72 | 31.98 | 0.982× | 2.220× | 265.1 → 267.8 |
+| 5×4 | CPU | 39.82 | 41.63 | 0.947× | 2.503× | 158.6 → 158.6 |
+| 5×4 | Metal | 25.42 | 25.38 | 1.004× | 2.471× | 202.4 → 202.6 |
+| 12×2 | CPU | 112.63 | 108.02 | 1.017× | 2.143× | 339.5 → 342.1 |
+| 12×2 | Metal | 49.40 | 49.23 | 1.008× | 2.074× | 443.0 → 444.2 |
