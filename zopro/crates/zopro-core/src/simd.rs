@@ -852,6 +852,9 @@ pub(crate) fn cpu_option(name: &str) -> bool {
         target_feature = "avx512dq",
         not(no_ifma)
     ));
+    #[cfg(all(gpu, target_os = "ios"))]
+    let apple_grouping = name == "ZOPRO_CPU_DEDUP" && crate::fast_ios_metal();
+    #[cfg(not(all(gpu, target_os = "ios")))]
     let apple_grouping = cfg!(all(target_os = "macos", target_arch = "aarch64"))
         && name == "ZOPRO_CPU_DEDUP";
     std::env::var(name).map_or(ifma || apple_grouping, |v| v != "0")

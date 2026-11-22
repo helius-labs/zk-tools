@@ -308,6 +308,17 @@ fn g2_gpu_share() -> f64 {
 }
 
 #[cfg(gpu)]
+fn fast_ios_metal() -> bool {
+    #[cfg(all(target_os = "ios", target_arch = "aarch64"))]
+    {
+        static FAST: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        *FAST.get_or_init(zopro_metal::fast_gpu)
+    }
+    #[cfg(not(all(target_os = "ios", target_arch = "aarch64")))]
+    false
+}
+
+#[cfg(gpu)]
 struct Gpu {
     a: std::sync::Mutex<zopro_metal::G1Msm>,
     b: std::sync::Mutex<zopro_metal::G1Msm>,
@@ -2114,9 +2125,30 @@ impl Key {
                 && !self.profiled.swap(true, std::sync::atomic::Ordering::Relaxed);
             #[cfg(not(feature = "trace"))]
             let profile = false;
+            let ios_group = self.gpu_quotient && fast_ios_metal();
             let group = omit_b
-                && cfg!(all(target_os = "macos", target_arch = "aarch64"))
+                && (cfg!(all(target_os = "macos", target_arch = "aarch64")) || ios_group)
                 && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
+            // A mapped key retains the full G2 query. Keep its usual split
+            // unless this proof can shrink all of G2 enough to run on the CPU.
+            let grouped_b2 = (group
+                && ios_group
+                && gpu.b2.is_some()
+                && matches!(&*self.b2, Store::Mapped { .. })
+                && affine_msm()
+                && std::env::var_os("ZOPRO_G2_GPU_SHARE").is_none()
+                && std::env::var_os("ZOPRO_G2").is_none())
+            .then(|| msm_affine::compact_phone_g2(&self.b2, sb))
+            .flatten();
+            let gpu_b2 = gpu.b2.as_ref().filter(|_| grouped_b2.is_none());
+            #[cfg(feature = "trace")]
+            if let Some((points, _, _)) = &grouped_b2 {
+                log::info!(
+                    "ZOPRO_TRACE ios-metal-compact-g2 {} {}",
+                    sb.len(),
+                    points.len()
+                );
+            }
             // For narrow queries the witness MSMs finish sooner when their
             // command buffers are queued before the quotient MSM.
             let witness_first = group
@@ -2174,26 +2206,29 @@ impl Key {
                     // host sorts the next while the GPU runs it. G2 B can
                     // reuse the sorted runs when G1 B is present.
                     let host_grouped = group
-                        && gpu.b2.is_none()
+                        && gpu_b2.is_none()
                         && self.gpu_quotient
-                        && self.domain >= (1 << 18)
-                        && rayon::current_num_threads() >= 16
+                        && (ios_group
+                            || (self.domain >= (1 << 18) && rayon::current_num_threads() >= 16))
                         && std::env::var("ZOPRO_METAL_HOST_GROUPED").as_deref() != Ok("0");
+                    let small_grouping = compact_overlap || ios_group;
                     let group_a = || {
                         group
-                            .then(|| msm_affine::group_for_metal(&self.a, sa, compact_overlap))
+                            .then(|| msm_affine::group_for_metal(&self.a, sa, small_grouping))
                             .flatten()
                     };
                     let group_k = || {
                         group
-                            .then(|| msm_affine::group_for_metal(&self.k, sk, compact_overlap))
+                            .then(|| msm_affine::group_for_metal(&self.k, sk, small_grouping))
                             .flatten()
                     };
                     let (grouped_a, grouped_k) = if compact_overlap {
                         sort_pool(true).install(|| rayon::join(group_a, group_k))
-                    } else if host_grouped {
+                    } else if host_grouped && !(ios_group && self.domain >= (1 << 20)) {
                         rayon::join(group_a, group_k)
                     } else {
+                        // At the largest phone domains reuse the first query's
+                        // scratch headroom when starting the second query.
                         (group_a(), group_k())
                     };
                     // Small compact queries can run alongside the quotient
@@ -2202,6 +2237,8 @@ impl Key {
                         (host_grouped, &grouped_a, &grouped_k)
                     {
                         if a.len() <= self.a.len() / 4 && k.len() <= self.k.len() / 4 {
+                            #[cfg(all(feature = "trace", target_os = "ios"))]
+                            log::info!("ZOPRO_TRACE ios-metal-host-a-k");
                             drop(sorted_tx);
                             let (ar, kr) = rayon::join(
                                 || msm_affine::msm_raw(a, a_words),
@@ -2275,7 +2312,7 @@ impl Key {
                         }
                     };
                     let pb = sorted_b.map(|sorted| b.submit_sorted(sorted));
-                    let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
+                    let mut b2 = gpu_b2.map(|b2| b2.lock().unwrap());
                     let pb2 = b2.as_mut().map(|b2| {
                         if gpu.b2_cut == sb.len() && pb.is_some() {
                             b2.start_sorted_as(&*b)
@@ -2312,7 +2349,7 @@ impl Key {
                     gpu_trace("k", t.sort_ms, t.gpu_ms);
                     Ok((ar, bs1, kr, bs2))
                 });
-                let cut = if gpu.b2.is_some() { gpu.b2_cut } else { 0 };
+                let cut = if gpu_b2.is_some() { gpu.b2_cut } else { 0 };
                 let cpu_b2 = (cut < sb.len()).then(|| {
                     scope.spawn(move || {
                         // Decode the G2 scalars while the host sorts A and K.
@@ -2326,7 +2363,9 @@ impl Key {
                         let started = crate::time::Instant::now();
                         let g2 = || {
                             let bases = self.cpu_b2(cut);
-                            if let Some(mut words) = words {
+                            if let Some((points, words, _reservation)) = grouped_b2 {
+                                msm_affine::msm_raw(&points, &words)
+                            } else if let Some(mut words) = words {
                                 #[cfg(feature = "trace")]
                                 log::info!("ZOPRO_TRACE metal-prepared-g2");
                                 msm_affine::g2_query_exclusive(
@@ -3758,7 +3797,14 @@ impl Key {
 
     /// Whether the active backend supports four-query proving.
     pub fn supports_rerandomized_solve(&self) -> bool {
-        !self.has_gpu() || cfg!(all(gpu, target_os = "macos", target_arch = "aarch64"))
+        if !self.has_gpu() {
+            return true;
+        }
+        #[cfg(gpu)]
+        if fast_ios_metal() {
+            return true;
+        }
+        cfg!(all(gpu, target_os = "macos", target_arch = "aarch64"))
     }
 
     // Large CPU proofs benefit from keeping the shared pool focused on

@@ -421,13 +421,9 @@ pub(super) fn metal_compact_candidate(scalars: &[Fr]) -> bool {
 pub(super) fn group_for_metal(
     bases: &[zopro_bn254::G1Affine],
     scalars: &[Fr],
-    compact_overlap: bool,
-) -> Option<(
-    Vec<zopro_bn254::G1Affine>,
-    Vec<[u64; 4]>,
-    crate::preparation::Reservation,
-)> {
-    let min = if compact_overlap { 1 << 14 } else { 1 << 16 };
+    small_queries: bool,
+) -> Option<CompactedMetalQuery<zopro_bn254::G1Config>> {
+    let min = if small_queries { 1 << 14 } else { 1 << 16 };
     if bases.len() != scalars.len() || bases.len() < min {
         return None;
     }
@@ -435,6 +431,36 @@ pub(super) fn group_for_metal(
     if groups.values.is_empty() {
         return None;
     }
+    Some(compact_metal_groups(bases, groups))
+}
+
+#[cfg(gpu)]
+pub(super) fn compact_phone_g2(
+    bases: &[zopro_bn254::G2Affine],
+    scalars: &[Fr],
+) -> Option<CompactedMetalQuery<zopro_bn254::G2Config>> {
+    if bases.len() != scalars.len() || bases.len() < (1 << 16) {
+        return None;
+    }
+    let groups = group_witness_for::<zopro_bn254::G2Config>(scalars)?;
+    (groups.values.len() <= bases.len() / 4).then(|| compact_metal_groups(bases, groups))
+}
+
+#[cfg(gpu)]
+type CompactedMetalQuery<C> = (
+    Vec<Affine<C>>,
+    Vec<[u64; 4]>,
+    crate::preparation::Reservation,
+);
+
+#[cfg(gpu)]
+fn compact_metal_groups<C: CurveConfig>(
+    bases: &[Affine<C>],
+    groups: ScalarGroups,
+) -> CompactedMetalQuery<C>
+where
+    C::Base: BatchInverse,
+{
     let ScalarGroups {
         values,
         order,
@@ -446,7 +472,7 @@ pub(super) fn group_for_metal(
     let points = crate::msm::group_affine(bases, &order, &starts, &counts);
     drop((order, starts, counts));
     // Release compaction scratch credit before the other queries start.
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[cfg(any(target_os = "ios", all(target_os = "macos", target_arch = "aarch64")))]
     let reservation = {
         use crate::preparation::allocation_bytes;
         let retained = allocation_bytes(&points)
@@ -454,7 +480,7 @@ pub(super) fn group_for_metal(
             .and_then(|(points, values)| points.checked_add(values));
         reservation.retain(retained)
     };
-    Some((points, values, reservation))
+    (points, values, reservation)
 }
 
 fn msm_grouped_prepared<C: CurveConfig>(

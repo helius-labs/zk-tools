@@ -126,7 +126,7 @@ impl Reservation {
     }
     /// Call only after builder temporaries have dropped, with all retained
     /// allocation capacities counted. Invalid estimates keep the peak charge.
-    #[cfg(any(zopro_bounded_schedule, zopro_live_preparation_charge))]
+    #[cfg(any(zopro_bounded_schedule, zopro_live_preparation_charge, all(gpu, target_os = "ios")))]
     pub(crate) fn retain(mut self, bytes: Option<usize>) -> Self {
         retain_charge(&RESERVED, &mut self.0, bytes);
         self
@@ -194,7 +194,7 @@ impl Drop for Reservation {
     }
 }
 
-#[cfg(any(zopro_bounded_schedule, zopro_live_preparation_charge))]
+#[cfg(any(zopro_bounded_schedule, zopro_live_preparation_charge, all(gpu, target_os = "ios")))]
 fn retain_charge(counter: &AtomicUsize, charge: &mut usize, bytes: Option<usize>) {
     if let Some(bytes) = bytes.filter(|&bytes| bytes <= *charge) {
         let released = *charge - bytes;
@@ -230,6 +230,7 @@ fn macos_free_memory() -> Option<usize> {
 // key/proof workspace and allocator-wide overhead remain outside this budget.
 #[cfg(any(
     zopro_live_preparation_charge,
+    all(gpu, target_os = "ios"),
     all(target_os = "macos", target_arch = "aarch64")
 ))]
 pub(crate) fn allocation_bytes<T>(values: &Vec<T>) -> Option<usize> {
@@ -245,7 +246,30 @@ fn reserve(counter: &AtomicUsize, peak: usize, limit: usize) -> bool {
         .is_ok()
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "android")))]
+#[cfg(all(gpu, target_os = "ios"))]
+pub(crate) fn headroom() -> Option<usize> {
+    if cfg!(test) {
+        return Some(1 << 30);
+    }
+    if !crate::fast_ios_metal() {
+        return Some(0);
+    }
+    type AvailableMemory = unsafe extern "C" fn() -> usize;
+    static AVAILABLE: std::sync::OnceLock<Option<AvailableMemory>> = std::sync::OnceLock::new();
+    let available = AVAILABLE.get_or_init(|| {
+        // Resolve the iOS 13 API at runtime for earlier deployment targets.
+        // SAFETY: RTLD_DEFAULT and the NUL-terminated C symbol are valid.
+        let address = unsafe { libc::dlsym(libc::RTLD_DEFAULT, c"os_proc_available_memory".as_ptr()) };
+        (!address.is_null()).then(|| {
+            // SAFETY: the system function is declared size_t (void).
+            unsafe { core::mem::transmute::<*mut libc::c_void, AvailableMemory>(address) }
+        })
+    });
+    // SAFETY: the system function takes no arguments and reports process headroom.
+    Some(available.map_or(0, |function| unsafe { function() }))
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "android", all(gpu, target_os = "ios"))))]
 pub(crate) fn headroom() -> Option<usize> {
     // Unit tests exercise the admitted preparation paths on hosts without
     // an OS budget provider. Keep the usual per-table and process limits.

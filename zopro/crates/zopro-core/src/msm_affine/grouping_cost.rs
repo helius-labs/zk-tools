@@ -131,7 +131,7 @@ pub(super) fn peak_for<C: CurveConfig>(n: usize, percent: usize) -> Option<usize
 where
     C::Base: BatchInverse,
 {
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[cfg(any(all(gpu, target_os = "ios"), all(target_os = "macos", target_arch = "aarch64")))]
     {
         if percent > 100 {
             return None;
@@ -140,12 +140,13 @@ where
         if u == 0 {
             return None;
         }
+        #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         if n >= crate::msm::apple_class_tiles::MIN_BASES {
             return large_peak::<C>(n, u, rayon::current_num_threads());
         }
         Some(limits::<C>(n, u)?.0)
     }
-    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    #[cfg(not(any(all(gpu, target_os = "ios"), all(target_os = "macos", target_arch = "aarch64"))))]
     peak(n, percent)
 }
 
