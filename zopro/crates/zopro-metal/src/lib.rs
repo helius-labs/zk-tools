@@ -239,6 +239,10 @@ pub(crate) const SHADER: &str = concat!(
     include_str!("../shaders/buckets.metal"),
     "\n",
     include_str!("../shaders/quotient.metal"),
+    "\n",
+    include_str!("../shaders/radix29.metal"),
+    "\n",
+    include_str!("../shaders/radix29_points.metal"),
 );
 /// Window width by point count, as the CPU MSM's: wider windows mean fewer
 /// bucket additions and more buckets to reduce (and, here, to zero).
@@ -607,6 +611,21 @@ impl<C: Curve> Drop for Msm<C> {
             }
             self.levels.iter().flatten().flatten().for_each(discard);
         })
+    }
+}
+
+impl G1Msm {
+    /// Use radix-29 arithmetic for the first level of dense G1 shard sums.
+    /// Keep the selected pipeline when the alternate shader is unavailable.
+    pub fn select_radix29_shards(&mut self) -> bool {
+        if smaller_code() {
+            return false;
+        }
+        let Ok(first) = pipeline(&self.device, false, "shards_first_g1_radix29") else {
+            return false;
+        };
+        self.first = first;
+        true
     }
 }
 
@@ -1474,6 +1493,27 @@ mod tests {
         check::<G1Config>(&[1, 7, 100, 3000, 20000]);
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         check::<G1Config>(&[32768]);
+    }
+
+    #[test]
+    fn radix29_shards_preserve_signed_and_exceptional_g1_additions() {
+        if metal::Device::system_default().is_none() || smaller_code() {
+            return;
+        }
+        let n = (1 << 16) + 1;
+        let mut rng = StdRng::seed_from_u64(15);
+        let mut bases = points::<G1Config>(n, &mut rng);
+        let mut values = scalars(n, false, &mut rng);
+        let g = G1Affine::GENERATOR;
+        bases[..7].copy_from_slice(&[G1Affine::IDENTITY, g, g, -g, g, -g, g]);
+        values[..7].fill(Fr::from(11u64));
+        let expected = zopro_bn254::curve::msm(&bases, &values);
+        for width in [13, 15] {
+            let scratch = Scratch::new().unwrap();
+            let (mut msm, _) = G1Msm::new_in_with_width_cap(&bases, scratch, width).unwrap();
+            assert!(msm.select_radix29_shards());
+            assert_eq!(msm.msm(&values).unwrap().0, expected);
+        }
     }
 
     #[test]

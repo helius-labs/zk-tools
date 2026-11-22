@@ -55,7 +55,7 @@ fn main() {
         ("ios", true) => ("iphonesimulator", "-mios-simulator-version-min=16.0"),
         _ => return,
     };
-    let mut source: String = ["field", "curve", "buckets", "quotient"]
+    let mut source: String = ["field", "curve", "buckets", "quotient", "radix29", "radix29_points"]
         .iter()
         .map(|name| fs::read_to_string(format!("shaders/{name}.metal")).unwrap())
         .collect::<Vec<_>>()

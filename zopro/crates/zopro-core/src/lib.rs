@@ -763,7 +763,7 @@ impl GpuBuilder {
             None
         };
         let scratch = self.scratch.clone();
-        let (msm, _) = if narrow_tree || short_witness || (short_quotient_with_large_g2 && which == 3) {
+        let (mut msm, _) = if narrow_tree || short_witness || (short_quotient_with_large_g2 && which == 3) {
             // Process more short-window groups in the shared tree buffers.
             zopro_metal::G1Msm::new_in_with_tree_budget(bases, scratch, 8, Some(16))?
         } else if shorter_million_point_query {
@@ -773,6 +773,10 @@ impl GpuBuilder {
         } else {
             zopro_metal::G1Msm::new_in(bases, scratch)?
         };
+        if which == 3 && self.domain == (1 << 21) && fast_ios_metal() && msm.select_radix29_shards() {
+            #[cfg(feature = "trace")]
+            log::info!("ZOPRO_TRACE ios-radix29-quotient-shards");
+        }
         self.g1[which] = Some(msm);
         Ok(())
     }
