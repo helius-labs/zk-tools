@@ -1,6 +1,6 @@
 # M5 Pro and AWS C7a proof benchmarks
 
-The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs)
+The signed M5 Pro build has updated proof time and memory measurements for all 41 shapes. [Full signed catalog](#full-catalog-on-the-signed-m5-pro-build) · [Shorter Metal witness MSMs](#metal-witness-msms-for-shorter-131072-point-proofs) · [Singleton G2 points](#reusing-singleton-g2-points-on-shorter-metal-proofs) · [Larger Metal quotient batches](#larger-metal-quotient-batches-for-shorter-million-point-proofs) · [Larger CPU G2 batches](#larger-affine-batches-for-compact-cpu-g2-queries)
 
 The first tables record the initial M5 Pro comparison.
 
@@ -775,3 +775,24 @@ Gnark independently verified 60 proofs, including lower worker counts and explic
 | merge-24×1 | Metal | 88.01 | 87.20 | 1.009× | 2.058× | 781.1 → 783.2 | 788.0 → 806.6 |
 | 5×8 | Metal | 33.11 | 33.05 | 1.000× | 2.026× | 246.0 → 245.8 | 326.2 → 326.0 |
 | 24×2 | CPU | 211.99 | 212.82 | 1.010× | 2.147× | 617.1 → 615.7 | 314.9 → 313.6 |
+
+## Larger affine batches for compact CPU G2 queries
+
+The arm64 macOS three-part G2 query uses 25% larger affine inversion batches when the paired layout assigns it five workers and its starting key has 61,440–65,535 G2 points. The prover charges the extra scratch before increasing batch capacity and uses its original capacity when the reservation is declined.
+
+Each comparison used seven paired blocks on the same M5 Pro. Every process verified eight proofs. Warm latency uses the last five proofs per process, and memory uses process high-water marks.
+
+Gnark independently verified 69 proofs, including lower worker counts, denied memory reservation, disabled three-part G2, and a Metal control. The native Metal-enabled tests and iOS arm64 build check passed.
+
+[Published build](https://github.com/helius-labs/zk-tools/commit/35bba9bf5a0cf32de97e1a551c2d62cf6ec6ab4e) · [Comparison CSV](m5-cpu-compact-g2-batches.csv) · [Raw blocks](artifacts/m5-cpu-compact-g2-batches.jsonl)
+
+| Shape | Backend | Previous ms | New ms | Speedup vs. previous | Speedup vs. original | Peak RSS MiB | Peak footprint MiB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| 2×8 | CPU | 38.28 | 37.15 | 1.039× | 1.969× | 123.9 → 123.8 | 81.9 → 81.9 |
+| 1×8 | CPU | 25.27 | 25.18 | 1.007× | 1.918× | 94.0 → 94.8 | 65.7 → 66.5 |
+| 2×4 | CPU | 24.83 | 25.45 | 0.974× | 2.182× | 101.7 → 102.1 | 67.4 → 67.8 |
+| 2×16 | CPU | 42.93 | 43.11 | 1.002× | 1.975× | 137.8 → 136.5 | 88.9 → 87.6 |
+| 3×2 | CPU | 41.26 | 41.29 | 0.999× | 1.947× | 126.5 → 128.2 | 80.3 → 82.0 |
+| 4×2 | CPU | 40.78 | 39.60 | 1.008× | 2.279× | 142.2 → 142.2 | 86.6 → 86.6 |
+| 5×8 | CPU | 78.95 | 80.90 | 0.996× | 2.012× | 197.1 → 197.0 | 118.8 → 118.6 |
+| 2×8 | Metal | 22.77 | 22.57 | 1.012× | 1.908× | 151.4 → 150.9 | 232.5 → 232.0 |
