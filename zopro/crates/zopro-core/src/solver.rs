@@ -1564,7 +1564,10 @@ impl Plan {
         view: View,
     ) -> Result<(), String> {
         let claims = solver_task_claims();
-        for epoch in &schedule.epochs {
+        #[cfg(all(target_os = "android", feature = "trace"))]
+        let observed = (std::env::var("ZOPRO_ANDROID_EULER_STREAM_PROFILE").as_deref() == Ok("1"))
+            .then(crate::time::Instant::now);
+        for (_epoch_index, epoch) in schedule.epochs.iter().enumerate() {
             visit_solver_tasks(epoch, claims, |task| {
                 #[cfg(zopro_sparse_poseidon)]
                 if POSEIDON && self.poseidon_task(task) {
@@ -1576,6 +1579,11 @@ impl Plan {
                     unsafe { self.run(&self.ops[op as usize], view) }
                 })
             })?;
+            #[cfg(all(target_os = "android", feature = "trace"))]
+            if let Some(start) = observed {
+                log::info!("ZOPRO_TRACE android-euler-epoch-ready epoch={_epoch_index} {:.3} ms",
+                          start.elapsed().as_secs_f64() * 1000.0);
+            }
         }
         Ok(())
     }
@@ -1841,11 +1849,69 @@ impl Plan {
         let Some(mut schedule) = bounded::build(self, epochs, 0, 0) else {
             return false;
         };
+        #[cfg(all(target_os = "android", feature = "trace"))]
+        if std::env::var("ZOPRO_ANDROID_EULER_STREAM_PROFILE").as_deref() == Ok("1") {
+            self.trace_euler_tile_readiness(&schedule);
+        }
         if !self.tag_poseidon(&mut schedule) {
             return false;
         }
         schedule.poseidon_leaves = true;
         self.schedule.set(schedule).is_ok()
+    }
+
+    /// Earliest completed epoch after which every source of an inverse FFT tile
+    /// can be read, assuming the standard 128-entry quotient workgroups.
+    #[cfg(all(target_os = "android", target_arch = "aarch64", feature = "trace",
+              zopro_bounded_schedule, zopro_sparse_poseidon))]
+    fn trace_euler_tile_readiness(&self, schedule: &Schedule) {
+        let count = schedule.epochs.len();
+        if count == 0 || count >= usize::from(u8::MAX) || !schedule.refined.is_empty() {
+            return;
+        }
+        let active = self.n_constraints;
+        let domain = active.next_power_of_two();
+        let mut ready = vec![0u8; domain];
+        ready[..active].fill(u8::MAX);
+        for (epoch, tasks) in schedule.epochs.iter().enumerate() {
+            for &op in tasks.iter().flatten() {
+                if let Op::Constraint(step) = &self.ops[op as usize] {
+                    ready[step.constraint()] = epoch as u8;
+                }
+            }
+        }
+        if ready[..active].contains(&u8::MAX) {
+            log::info!("ZOPRO_TRACE android-euler-row-readiness incomplete schedule");
+            return;
+        }
+        let mut release = vec![0usize; count];
+        for &epoch in &ready[..active] {
+            release[usize::from(epoch)] += 1;
+        }
+        log::info!("ZOPRO_TRACE android-euler-row-readiness domain={domain} counts={release:?}");
+        let mut remaining = domain.trailing_zeros();
+        let mut pass = 0;
+        while remaining != 0 {
+            let levels = remaining.div_ceil(remaining.div_ceil(6));
+            let stride = 1 << (remaining - levels);
+            let rows = 1 << levels;
+            let columns = 1 << (7 - levels).min(remaining - levels);
+            let mut release = vec![0usize; count];
+            for block in ready.chunks_exact_mut(rows * stride) {
+                for stripe in (0..stride).step_by(columns) {
+                    let tile = (0..rows).map(|row| row * stride + stripe);
+                    let epoch = tile.clone().flat_map(|first| &block[first..first + columns])
+                        .copied().max().expect("nonempty FFT tile");
+                    release[usize::from(epoch)] += 1;
+                    for first in tile {
+                        block[first..first + columns].fill(epoch);
+                    }
+                }
+            }
+            log::info!("ZOPRO_TRACE android-euler-tile-readiness pass={pass} levels={levels} counts={release:?}");
+            remaining -= levels;
+            pass += 1;
+        }
     }
 
     /// The epochs and their tasks (see Schedule).
