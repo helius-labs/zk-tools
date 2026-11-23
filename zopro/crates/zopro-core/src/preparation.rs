@@ -153,7 +153,14 @@ impl Reservation {
             all(gpu, target_os = "ios", target_arch = "aarch64")
         )))]
         {
-            Self::acquire_with_headroom(domain, MAX_DOMAIN, peak, headroom)
+            let max_domain = if cfg!(all(target_os = "android", target_arch = "aarch64"))
+                && std::env::var("ZOPRO_ANDROID_BOUNDED_POSEIDON").as_deref() == Ok("1")
+            {
+                2 * MAX_DOMAIN
+            } else {
+                MAX_DOMAIN
+            };
+            Self::acquire_with_headroom(domain, max_domain, peak, headroom)
         }
     }
 
