@@ -4523,9 +4523,11 @@ impl Key {
                 let ((hz, timing), host_h) = std::thread::scope(|scope| {
                     let host_h = (!cpu_scalars.is_empty()).then(|| scope.spawn(|| {
                         let started = crate::time::Instant::now();
-                        let result = msm_affine::msm_in_place(
-                            &queries.product[host_start..a.len()], cpu_scalars,
-                        );
+                        let bases = &queries.product[host_start..a.len()];
+                        #[cfg(target_arch = "aarch64")]
+                        let result = msm_affine::android_euler_h(bases, cpu_scalars);
+                        #[cfg(not(target_arch = "aarch64"))]
+                        let result = msm_affine::msm_in_place(bases, cpu_scalars);
                         trace("vulkan-cpu-msm-h", started);
                         result
                     }));

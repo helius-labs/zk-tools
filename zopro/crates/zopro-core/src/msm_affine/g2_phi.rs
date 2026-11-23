@@ -510,11 +510,11 @@ pub(super) fn raw_exclusive(bases: &[G2Affine], words: &mut [[u64; 4]]) -> G2Pro
 
 // This root acts on G1 by the same scalar as BETA does on G2, so both
 // groups can use the existing lattice decomposition.
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64"))]
 const G1_BETA: Fq =
     Fq::from_decimal("2203960485148121921418603742825762020974279258880205651966");
 
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64"))]
 pub(super) fn quotient_g1_msm(
     bases: &[zopro_bn254::G1Affine],
     short: &[[u64; 4]],
@@ -532,14 +532,19 @@ pub(super) fn quotient_g1_msm(
                 let points = &bases[range.clone()];
                 let words = &short[range];
                 let mut state = super::borrowed_scalar::Borrowed::new(BITS, size);
-                state.feed(points, words.iter().map(|s| hb_digit(s, true, window, BITS)));
+                let loose = if cfg!(target_os = "android") {
+                    super::borrowed_scalar::enabled()
+                } else {
+                    points.len() < (1 << 16)
+                };
+                state.feed_pairs(points.iter().zip(words.iter().map(|s| hb_digit(s, true, window, BITS))), loose);
                 for point in &mut state.inner.affine {
                     point.x *= G1_BETA;
                 }
                 for point in &mut state.inner.projective {
                     point.x *= G1_BETA;
                 }
-                state.feed(points, words.iter().map(|s| hb_digit(s, false, window, BITS)));
+                state.feed_pairs(points.iter().zip(words.iter().map(|s| hb_digit(s, false, window, BITS))), loose);
                 affine_buckets(state.inner)
             };
             let (mut left, right) = rayon::join(|| buckets(0..mid), || buckets(mid..bases.len()));
