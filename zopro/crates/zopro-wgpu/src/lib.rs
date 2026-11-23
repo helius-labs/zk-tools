@@ -797,6 +797,7 @@ impl Stages {
 struct GpuSort {
     count: wgpu::ComputePipeline,
     scatter: wgpu::ComputePipeline,
+    canonicalize: Option<wgpu::ComputePipeline>,
     scalars: wgpu::Buffer,
     counts: wgpu::Buffer,
     counts_staging: wgpu::Buffer,
@@ -927,6 +928,10 @@ const SORT_WGSL: [(&str, &str); 2] = [
 const SORT_KERNELS: [(&str, &[u8]); 2] = [
     ("msm_count", include_bytes!("../glsl/out/msm_count.spv")),
     ("msm_scatter", include_bytes!("../glsl/out/msm_scatter.spv")),
+];
+const BOOTH_SORT_KERNELS: [(&str, &[u8]); 2] = [
+    ("msm_count_booth", include_bytes!("../glsl/out/msm_count_booth.spv")),
+    ("msm_scatter_booth", include_bytes!("../glsl/out/msm_scatter_booth.spv")),
 ];
 
 /// The MSM kernels' slots, by index: shards_first is bases, sorted, start,
@@ -1104,7 +1109,10 @@ impl<C: Curve> Msm<C> {
             || std::env::var("ZOPRO_GPU_SORT").as_deref() == Ok("1"))
         .then(|| {
             use Slot::*;
-            let [(count_entry, count), (scatter_entry, scatter)] = SORT_KERNELS;
+            let booth = spirv.is_some()
+                && std::env::var("ZOPRO_VULKAN_BOOTH_SORT").as_deref() == Ok("1");
+            let [(count_entry, count), (scatter_entry, scatter)] =
+                if booth { BOOTH_SORT_KERNELS } else { SORT_KERNELS };
             let (count, scatter) = if spirv.is_some() {
                 (
                     gpu.kernel(count_entry, || {
@@ -1127,9 +1135,21 @@ impl<C: Curve> Msm<C> {
                     gpu.wgsl_kernel(scatter_entry, scatter_source, scatter_entry),
                 )
             };
+            let canonicalize = booth.then(|| {
+                gpu.kernel("msm_canonicalize", || {
+                    spirv_pipeline(
+                        device,
+                        gpu.cache(),
+                        "msm_canonicalize",
+                        include_bytes!("../glsl/out/msm_canonicalize.spv"),
+                        &[Write, Uniform],
+                    )
+                })
+            });
             GpuSort {
                 count,
                 scatter,
+                canonicalize,
                 scalars: storage(device, "scalars", n * 32),
                 counts: storage(device, "counts", buckets * 4),
                 counts_staging: device.create_buffer(&wgpu::BufferDescriptor {
@@ -1347,7 +1367,8 @@ impl<C: Curve> Msm<C> {
                 };
                 pass.set_pipeline(&sort.scatter);
                 pass.set_bind_group(0, &group, &[]);
-                pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), 1, 1);
+                let windows = if sort.canonicalize.is_some() { self.windows as u32 } else { 1 };
+                pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), windows, 1);
                 drop(pass);
                 encoder = match profile.as_mut() {
                     Some(stages) => {
@@ -1693,7 +1714,27 @@ impl<C: Curve> Msm<C> {
         let sort = self.gpu_sort.as_mut().expect("the GPU sort");
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         encoder.clear_buffer(&sort.counts, 0, None);
+        if sort.canonicalize.is_some() {
+            log::info!("ZOPRO_TRACE vulkan-booth-sort entries={}", self.n);
+        }
         for (slice, uniform) in sort.slices.iter().enumerate() {
+            let groups = slice_len(self.n, slice).div_ceil(WORKGROUP);
+            if let Some(canonicalize) = &sort.canonicalize {
+                // The MSM owns this copy of its inputs. Each scalar is
+                // converted once, before the histogram and scatter read it.
+                let canonical = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &canonicalize.get_bind_group_layout(0),
+                    entries: &[
+                        wgpu::BindGroupEntry { binding: 0, resource: sort.scalars.as_entire_binding() },
+                        wgpu::BindGroupEntry { binding: 1, resource: uniform.as_entire_binding() },
+                    ],
+                });
+                let mut pass = encoder.begin_compute_pass(&Default::default());
+                pass.set_pipeline(canonicalize);
+                pass.set_bind_group(0, &canonical, &[]);
+                pass.dispatch_workgroups(groups, 1, 1);
+            }
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
                 layout: &sort.count.get_bind_group_layout(0),
@@ -1716,7 +1757,8 @@ impl<C: Curve> Msm<C> {
                 let mut pass = encoder.begin_compute_pass(&Default::default());
                 pass.set_pipeline(&sort.count);
                 pass.set_bind_group(0, &group, &[]);
-                pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), 1, 1);
+                let windows = if sort.canonicalize.is_some() { self.windows as u32 } else { 1 };
+                pass.dispatch_workgroups(groups, windows, 1);
             }
             encoder = flush(&self.gpu, encoder);
         }
