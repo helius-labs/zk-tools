@@ -1,4 +1,8 @@
 #version 450
+#ifdef ZOPRO_BOOTH_PARTITIONS
+#extension GL_GOOGLE_include_directive : require
+#include "resident_partitions.glsl"
+#endif
 // One workgroup scans each signed Booth window. Every bucket gets the
 // exclusive start of its scalars and its partial sums at three shard levels.
 layout(local_size_x = 64) in;
@@ -13,6 +17,9 @@ layout(std140, set = 0, binding = 4) uniform Geometry {
   uint stride;
 } args;
 layout(std430, set = 0, binding = 5) buffer ShardBuckets { uint values[]; } shard_buckets;
+#ifdef ZOPRO_BOOTH_PARTITIONS
+layout(std430, set = 0, binding = 6) buffer Partitions { uint values[]; } partitions;
+#endif
 
 shared uvec4 partials[64];
 shared uint maxima[64];
@@ -55,6 +62,16 @@ void main() {
     const uint index = base + bucket;
     offsets.values[index] = start;
     cursors.values[index] = start.x;
+#ifdef ZOPRO_BOOTH_PARTITIONS
+    const uint parts = partition_count(args.n);
+    uint cursor = start.x;
+    for (uint part = 0u; part < parts; ++part) {
+      const uint offset = index * parts + part;
+      const uint entries = partitions.values[offset];
+      partitions.values[offset] = cursor;
+      cursor += entries;
+    }
+#endif
     const uvec4 count = lengths(histogram.values[index]);
     const uint first_shard = window * args.stride + start.y;
     for (uint shard = 0u; shard < count.y; ++shard)

@@ -1,0 +1,24 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "resident_partitions.glsl"
+
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Partitions { uint values[]; } partitions;
+layout(std430, set = 0, binding = 1) buffer Histogram { uint values[]; } histogram;
+layout(std140, set = 0, binding = 2) uniform Geometry {
+  uint n;
+  uint half_range;
+  uint windows;
+  uint stride;
+} args;
+
+void main() {
+  const uint bucket = gl_GlobalInvocationID.x;
+  if (bucket >= args.windows * args.half_range)
+    return;
+  const uint parts = partition_count(args.n);
+  uint count = 0u;
+  for (uint part = 0u; part < parts; ++part)
+    count += partitions.values[bucket * parts + part];
+  histogram.values[bucket] = count;
+}

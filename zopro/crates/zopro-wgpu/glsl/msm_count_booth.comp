@@ -4,6 +4,9 @@
 #define SORT_UNIFORM 2
 #include "digits.glsl"
 #include "booth.glsl"
+#ifdef ZOPRO_BOOTH_PARTITIONS
+#include "resident_partitions.glsl"
+#endif
 
 layout(local_size_x = 64) in;
 layout(std430, set = 0, binding = 0) readonly buffer Scalars { fr values[]; } scalars;
@@ -27,7 +30,12 @@ void main() {
   if (i >= sort.n)
     return;
   const int digit = booth_digit(scalars.values[i], window);
-  if (digit != 0)
-    atomicAdd(counts.values[window * sort.half_range + uint(abs(digit)) - 1u], 1u);
+  if (digit != 0) {
+    uint bucket = window * sort.half_range + uint(abs(digit)) - 1u;
+#ifdef ZOPRO_BOOTH_PARTITIONS
+    bucket = bucket * partition_count(sort.n) + (i >> PARTITION_SHIFT);
+#endif
+    atomicAdd(counts.values[bucket], 1u);
+  }
 #endif
 }
