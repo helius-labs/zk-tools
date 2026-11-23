@@ -531,7 +531,8 @@ impl Gpu {
         #[cfg(target_os = "android")]
         if spirv && info.device_type == wgpu::DeviceType::IntegratedGpu
             && adapter.features().contains(wgpu::Features::MAPPABLE_PRIMARY_BUFFERS)
-            && std::env::var("ZOPRO_ANDROID_EULER_MAPPED_UPLOAD").as_deref() == Ok("1")
+            && (std::env::var("ZOPRO_ANDROID_EULER_MAPPED_UPLOAD").as_deref() == Ok("1")
+                || std::env::var("ZOPRO_ANDROID_EULER_DIRECT_ROWS").as_deref() == Ok("1"))
         {
             features |= wgpu::Features::MAPPABLE_PRIMARY_BUFFERS;
         }

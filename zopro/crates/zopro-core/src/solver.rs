@@ -428,6 +428,27 @@ struct Schedule {
     _reservation: Option<crate::preparation::Reservation>,
 }
 
+/// A solver output region. Android Vulkan memory may allow writes only,
+/// so the common initialization writes through its raw pointer.
+struct OutputRow<'a> {
+    start: *mut Fr,
+    len: usize,
+    borrow: core::marker::PhantomData<&'a mut [core::mem::MaybeUninit<Fr>]>,
+}
+
+// SAFETY: each OutputRow exclusively owns writes to a distinct region, and
+// its owner keeps that region live until the initializing worker joins.
+unsafe impl Send for OutputRow<'_> {}
+
+impl OutputRow<'_> {
+    fn clear_from(&mut self, from: usize) {
+        assert!(from <= self.len);
+        // SAFETY: this is the exclusive writable tail of the output row.
+        // All-zero bytes are Fr::ZERO in its four-limb representation.
+        unsafe { self.start.add(from).write_bytes(0, self.len - from) };
+    }
+}
+
 /// Raw access to the solution's vectors for the parallel solve: every op
 /// writes only its own output wires, its own sums and its own constraint's
 /// row, and reads only what earlier epochs or its task wrote.
@@ -1357,7 +1378,35 @@ impl Plan {
         if domain < self.n_constraints || !ab_valid || !c_valid {
             return Err("invalid Metal evaluation workspace".into());
         }
+        let rows = rows.map(|row| OutputRow {
+            start: row.as_mut_ptr().cast(),
+            len: row.len(),
+            borrow: core::marker::PhantomData,
+        });
         self.solve_with_storage(witness, domain, slots, materialize_c, None, Some(rows))
+    }
+
+    /// SAFETY: both pointers remain exclusive disjoint writable regions
+    /// containing n active field elements until the method returns.
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
+    pub(crate) unsafe fn solve_with_vulkan_rows(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        [a, b]: [*mut Fr; 2],
+        n: usize,
+    ) -> Result<Solution, String> {
+        if n != self.n_constraints || domain < n {
+            return Err("invalid Vulkan evaluation workspace".into());
+        }
+        let empty = core::ptr::NonNull::<Fr>::dangling().as_ptr();
+        let rows = [(a, n), (b, n), (empty, 0)].map(|(start, len)| OutputRow {
+            start,
+            len,
+            borrow: core::marker::PhantomData,
+        });
+        self.solve_with_storage(witness, domain, slots, false, None, Some(rows))
     }
 
     fn solve_with_storage(
@@ -1367,7 +1416,7 @@ impl Plan {
         slots: &[usize],
         materialize_c: bool,
         pool: Option<&rayon::ThreadPool>,
-        mut rows: Option<[&mut [core::mem::MaybeUninit<Fr>]; 3]>,
+        mut rows: Option<[OutputRow<'_>; 3]>,
     ) -> Result<Solution, String> {
         if witness.len() != self.n_inputs - 1 {
             return Err("invalid witness size".into());
@@ -1396,14 +1445,13 @@ impl Plan {
                     // audited uninitialized path. Clear the domain padding
                     // as well as any row not covered by that audit.
                     let from = if uninitialized { self.n_constraints } else { 0 };
-                    let zero = core::mem::MaybeUninit::new(Fr::ZERO);
                     rayon::join(
-                        || a[from..].fill(zero),
+                        || a.clear_from(from),
                         || rayon::join(
-                            || b[from..].fill(zero),
+                            || b.clear_from(from),
                             || {
                                 if materialize_c {
-                                    c[from..].fill(zero);
+                                    c.clear_from(from);
                                 }
                             },
                         ),
@@ -1428,7 +1476,7 @@ impl Plan {
             w[1..self.n_inputs].copy_from_slice(witness);
         }
         let (row_a, row_b, row_c) = match rows.as_mut() {
-            Some([a, b, c]) => (a.as_mut_ptr().cast(), b.as_mut_ptr().cast(), c.as_mut_ptr().cast()),
+            Some([a, b, c]) => (a.start, b.start, c.start),
             None => (a.as_mut_ptr(), b.as_mut_ptr(), c.as_mut_ptr()),
         };
         let view = View {
@@ -2312,10 +2360,10 @@ impl Plan {
         }
         // SAFETY: each constraint's row is written by its own op only.
         unsafe {
-            *v.a.add(step.constraint()) = values[0];
-            *v.b.add(step.constraint()) = values[1];
+            v.a.add(step.constraint()).write(values[0]);
+            v.b.add(step.constraint()).write(values[1]);
             if !v.c.is_null() {
-                *v.c.add(step.constraint()) = values[2];
+                v.c.add(step.constraint()).write(values[2]);
             }
         }
         Ok(())

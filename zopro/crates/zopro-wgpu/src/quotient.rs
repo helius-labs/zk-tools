@@ -581,6 +581,56 @@ impl Quotient {
     }
 
     #[cfg(target_os = "android")]
+    pub fn has_mapped_euler_input(&self) -> bool {
+        self.euler.as_ref().is_some_and(|euler| euler.mapped_upload)
+    }
+
+    #[cfg(target_os = "android")]
+    fn with_mapped_euler_input<R>(
+        &self,
+        write: impl FnOnce(&mut wgpu::BufferViewMut) -> Result<R, String>,
+    ) -> Result<R, String> {
+        struct Unmap<'a>(&'a wgpu::Buffer);
+        impl Drop for Unmap<'_> {
+            fn drop(&mut self) {
+                self.0.unmap();
+            }
+        }
+        let euler = self.euler.as_ref().expect("prepared Euler workspace");
+        assert!(euler.mapped_upload);
+        pollster::block_on(crate::map_buffer(&self.gpu, &euler.rows, wgpu::MapMode::Write, None))?;
+        let _unmap = Unmap(&euler.rows);
+        let mut view = euler.rows.slice(..).get_mapped_range_mut()
+            .map_err(|error| format!("Euler input map: {error}"))?;
+        write(&mut view)
+    }
+
+    /// Writes the two active evaluation rows directly into the Vulkan input.
+    ///
+    /// # Safety
+    /// The callback may only write the initialized limbs and must fill both
+    /// rows on success. It must neither read through nor retain the pointers.
+    #[cfg(target_os = "android")]
+    pub unsafe fn write_euler_input<R>(
+        &mut self,
+        write: impl FnOnce([*mut Fr; 2], usize) -> Result<R, String>,
+    ) -> Result<R, String> {
+        let rows = self.euler.as_ref().expect("prepared Euler workspace").active;
+        self.with_mapped_euler_input(|view| {
+            let length = view.len();
+            let mut bytes = view.slice(..);
+            let first = bytes.as_raw_element_ptr().cast::<Fr>().as_ptr();
+            if !first.is_aligned() || length != 2 * rows * size_of::<Fr>() {
+                return Err("invalid Vulkan input mapping alignment or length".into());
+            }
+            // SAFETY: first points into the live writable mapping with room
+            // for two complete active vectors; neither pointer escapes write.
+            let second = unsafe { first.add(rows) };
+            write([first, second], rows)
+        })
+    }
+
+    #[cfg(target_os = "android")]
     pub fn start_euler(
         &mut self,
         a: &[Fr],
@@ -590,25 +640,31 @@ impl Quotient {
         let euler = self.euler.as_ref().expect("prepared Euler workspace");
         let active = euler.active;
         assert_eq!((a.len(), b.len()), (active, active));
+        let active_bytes = active * size_of::<Fr>();
+        if euler.mapped_upload {
+            self.with_mapped_euler_input(|view| {
+                view.slice(..active_bytes).copy_from_slice(fr_bytes(a));
+                view.slice(active_bytes..).copy_from_slice(fr_bytes(b));
+                Ok(())
+            })?;
+        } else {
+            self.gpu.queue.write_buffer(&euler.rows, 0, fr_bytes(a));
+            self.gpu.queue.write_buffer(&euler.rows, active_bytes as u64, fr_bytes(b));
+        }
+        self.start_prepared_euler(download_from);
+        Ok(())
+    }
+
+    /// Dispatches transforms of the two evaluation vectors already uploaded.
+    #[cfg(target_os = "android")]
+    pub fn start_prepared_euler(&mut self, download_from: Option<usize>) {
+        let euler = self.euler.as_ref().expect("prepared Euler workspace");
+        let active = euler.active;
         assert!(download_from.is_none_or(|first| first < active));
         self.result_len = active - download_from.unwrap_or(active);
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let active_bytes = (active * 32) as u64;
         let domain_bytes = (self.n * 32) as u64;
-        if euler.mapped_upload {
-            pollster::block_on(crate::map_buffer(&self.gpu, &euler.rows, wgpu::MapMode::Write, None))?;
-            let mut mapped = euler.rows.slice(..).get_mapped_range_mut();
-            let result = mapped.as_mut().map(|view| {
-                view.slice(..active_bytes as usize).copy_from_slice(fr_bytes(a));
-                view.slice(active_bytes as usize..).copy_from_slice(fr_bytes(b));
-            }).map_err(|error| format!("Euler input map: {error}"));
-            drop(mapped);
-            euler.rows.unmap();
-            result?;
-        } else {
-            queue.write_buffer(&euler.rows, 0, fr_bytes(a));
-            queue.write_buffer(&euler.rows, active_bytes, fr_bytes(b));
-        }
         *self.timer.borrow_mut() = crate::profile::Timer::new(&self.gpu, 4 * self.log_n as usize + 4);
         let mut encoder = device.create_command_encoder(&Default::default());
         let dispatch = |encoder: &mut wgpu::CommandEncoder, label, pipeline: &wgpu::ComputePipeline,
@@ -656,7 +712,6 @@ impl Quotient {
             timer.resolve(&mut encoder);
         }
         self.submission = Some(queue.submit([encoder.finish()]));
-        Ok(())
     }
 
     /// The buffer whose first n - 1 Fr are the submitted quotient's

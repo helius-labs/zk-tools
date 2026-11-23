@@ -531,16 +531,16 @@ impl Plan {
             *v.w.add(wires[0]) = square;
             *v.w.add(wires[1]) = fourth;
             *v.w.add(wires[2]) = fifth;
-            *v.a.add(rows[0]) = x;
-            *v.b.add(rows[0]) = x;
-            *v.a.add(rows[1]) = square;
-            *v.b.add(rows[1]) = square;
-            *v.a.add(rows[2]) = if normal { x } else { fourth };
-            *v.b.add(rows[2]) = if normal { fourth } else { x };
+            v.a.add(rows[0]).write(x);
+            v.b.add(rows[0]).write(x);
+            v.a.add(rows[1]).write(square);
+            v.b.add(rows[1]).write(square);
+            v.a.add(rows[2]).write(if normal { x } else { fourth });
+            v.b.add(rows[2]).write(if normal { fourth } else { x });
             if !v.c.is_null() {
-                *v.c.add(rows[0]) = square;
-                *v.c.add(rows[1]) = fourth;
-                *v.c.add(rows[2]) = fifth;
+                v.c.add(rows[0]).write(square);
+                v.c.add(rows[1]).write(fourth);
+                v.c.add(rows[2]).write(fifth);
             }
         }
         fifth

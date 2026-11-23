@@ -375,6 +375,16 @@ enum AndroidWitnessScalars<'a> {
     Wires(&'a solver::Plan, &'a mut [Fr]),
 }
 
+#[cfg(all(gpu_wgpu, target_os = "android"))]
+enum AndroidEulerRows<'a> {
+    Host([&'a [Fr]; 2]),
+    Device {
+        z: &'a mut zopro_wgpu::G1Msm,
+        quotient: &'a mut zopro_wgpu::Quotient,
+        rows: usize,
+    },
+}
+
 /// A separate pool for the final MSM's sort while the global pool evaluates
 /// G2. On large Metal queries the GPU recodes the digits for a four-thread
 /// scatter. The ordinary sort uses two threads. ZOPRO_SORT_THREADS overrides both.
@@ -1569,6 +1579,37 @@ impl Key {
         let wants_c = materialize_c && !derive_c;
         #[cfg(all(gpu_wgpu, target_os = "android"))]
         let wants_c = wants_c && !(self.basis_only && self.has_gpu());
+        #[cfg(all(gpu_wgpu, target_os = "android"))]
+        if !wants_c && std::env::var("ZOPRO_ANDROID_EULER_DIRECT_ROWS").as_deref() == Ok("1") {
+            if let Some(gpu) = self.android_euler_cpu_witness_gpu(omit_b) {
+                // Hold both workspaces in the same order as the ordinary
+                // quotient path until all GPU and CPU readers are done.
+                let mut z = gpu.z.lock().unwrap();
+                let mut quotient = gpu.quotient.lock().unwrap();
+                if quotient.has_mapped_euler_input() {
+                    // SAFETY: the mapping owns the two disjoint output rows.
+                    // All solver workers join before the callback returns.
+                    let solver::Solution { mut w, .. } = unsafe {
+                        quotient.write_euler_input(|rows, n| {
+                            plan.solve_with_vulkan_rows(&witness, self.domain, slots, rows, n)
+                        })?
+                    };
+                    trace("solve", started);
+                    #[cfg(feature = "trace")]
+                    log::info!("ZOPRO_TRACE vulkan-solver direct evaluation rows");
+                    return self.android_euler_cpu_witness(
+                        gpu,
+                        AndroidEulerRows::Device {
+                            z: &mut z,
+                            quotient: &mut quotient,
+                            rows: plan.n_constraints,
+                        },
+                        AndroidWitnessScalars::Wires(plan, &mut w),
+                        omit_b,
+                    );
+                }
+            }
+        }
         #[cfg(gpu)]
         let mut direct = if omit_b && materialize_c && self.gpu_quotient
             && can_prepare_large_iphone_schedule(self.domain)
@@ -1607,7 +1648,7 @@ impl Key {
         if std::env::var("ZOPRO_ANDROID_EULER_EAGER_QUOTIENT").as_deref() == Ok("1") {
             if let Some(gpu) = self.android_euler_cpu_witness_gpu(omit_b) {
                 return self.android_euler_cpu_witness(
-                    gpu, [&a, &b], AndroidWitnessScalars::Wires(plan, &mut w), omit_b,
+                    gpu, AndroidEulerRows::Host([&a, &b]), AndroidWitnessScalars::Wires(plan, &mut w), omit_b,
                 );
             }
         }
@@ -2845,7 +2886,7 @@ impl Key {
         if let Some(gpu) = self.android_euler_cpu_witness_gpu(omit_b) {
             return self.android_euler_cpu_witness(
                 gpu,
-                [&a, &b],
+                AndroidEulerRows::Host([&a, &b]),
                 AndroidWitnessScalars::Prepared([sa, sb, sk], public.expect("folded C public values")),
                 omit_b,
             );
@@ -4508,7 +4549,7 @@ impl Key {
     fn android_euler_cpu_witness(
         &self,
         gpu: &Gpu,
-        [a, b]: [&[Fr]; 2],
+        rows: AndroidEulerRows<'_>,
         scalars: AndroidWitnessScalars<'_>,
         omit_b: bool,
     ) -> Result<Vec<u8>, String> {
@@ -4521,18 +4562,30 @@ impl Key {
         // joins, so the backing vectors live outside the proof scope.
         let mut extracted = (Vec::new(), Vec::new());
         let (hz, ar, bs1, kr, bs2) = std::thread::scope(|scope| {
-            let quotient_msm = scope.spawn(|| {
+            let quotient_msm = scope.spawn(move || {
                 let started = crate::time::Instant::now();
-                let mut z = gpu.z.lock().unwrap();
-                let mut quotient = gpu.quotient.lock().unwrap();
+                let mut owned_z;
+                let mut owned_quotient;
+                let (z, quotient, len, host_rows) = match rows {
+                    AndroidEulerRows::Host([a, b]) => {
+                        owned_z = gpu.z.lock().unwrap();
+                        owned_quotient = gpu.quotient.lock().unwrap();
+                        (&mut *owned_z, &mut *owned_quotient, a.len(), Some([a, b]))
+                    }
+                    AndroidEulerRows::Device { z, quotient, rows } => (z, quotient, rows, None),
+                };
                 let device_sort = z.sorts_on_gpu();
-                let host_start = a.len() - gpu.euler_h_cpu;
+                let host_start = len - gpu.euler_h_cpu;
                 let download_from = if device_sort {
                     (gpu.euler_h_cpu != 0).then_some(host_start)
                 } else {
                     Some(0)
                 };
-                quotient.start_euler(a, b, download_from)?;
+                if let Some([a, b]) = host_rows {
+                    quotient.start_euler(a, b, download_from)?;
+                } else {
+                    quotient.start_prepared_euler(download_from);
+                }
                 if device_sort {
                     if std::env::var("ZOPRO_ANDROID_EULER_DIRECT_SORT").as_deref() == Ok("1") {
                         z.count_from_exclusive(quotient.output());
@@ -4542,7 +4595,7 @@ impl Key {
                 }
                 let host_h = |scalars: &mut [Fr]| {
                     let started = crate::time::Instant::now();
-                    let bases = &queries.product[host_start..a.len()];
+                    let bases = &queries.product[host_start..len];
                     #[cfg(target_arch = "aarch64")]
                     let result = msm_affine::android_euler_h(bases, scalars);
                     #[cfg(not(target_arch = "aarch64"))]
