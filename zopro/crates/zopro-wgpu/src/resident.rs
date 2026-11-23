@@ -41,6 +41,7 @@ impl ResidentSort {
         gpu: &Gpu,
         path: &Path,
         [n, half_range, windows, chunk_windows]: [usize; 4],
+        signed_bases: bool,
     ) -> Result<Self, String> {
         use Slot::{Read, Uniform, Write};
         let pipeline = |name, slots: &[Slot]| load_pipeline(gpu, path, name, slots);
@@ -55,6 +56,12 @@ impl ResidentSort {
             _ => None,
         };
         let first_group = custom_group.map_or(WORKGROUP, |(size, _, _)| size);
+        if signed_bases {
+            if short || cooperative || !repair_requested || custom_group.is_some() {
+                return Err("signed Vulkan bases require 64-thread loose repair".into());
+            }
+            log::info!("ZOPRO_TRACE vulkan-euler-h prepacked signed bases entries={n}");
+        }
         if custom_group.is_some() {
             let limits = gpu.device.limits();
             if short || cooperative || !repair_requested
@@ -101,7 +108,9 @@ impl ResidentSort {
                 &[Read, Write, Write, Write, Uniform, Write],
             )?
         };
-        let first_name = if cooperative {
+        let first_name = if signed_bases {
+            "msm_resident_first_signed"
+        } else if cooperative {
             "msm_resident_first_cooperative"
         } else if short {
             "msm_resident_first_short"
@@ -122,7 +131,13 @@ impl ResidentSort {
                 return Err("Vulkan affine pairing and loose first-stage repair are mutually exclusive".into());
             }
             log::info!("ZOPRO_TRACE vulkan-euler-h resident loose repair");
-            let name = if short { "msm_resident_first_short_repair" } else { "msm_resident_first_repair" };
+            let name = if signed_bases {
+                "msm_resident_first_repair_signed"
+            } else if short {
+                "msm_resident_first_short_repair"
+            } else {
+                "msm_resident_first_repair"
+            };
             Some(pipeline(
                 custom_group.map_or(name, |(_, _, repair)| repair),
                 &[Read, Read, Read, Read, Read, Write, Uniform, Read],
@@ -164,7 +179,7 @@ impl ResidentSort {
                     uniform_words(
                         gpu,
                         &[(chunk * chunk_windows) as u32, half_range as u32, stride as u32, level,
-                          first_log, 0, 0, 0],
+                          first_log, n as u32, 0, 0],
                     )
                 })
             })

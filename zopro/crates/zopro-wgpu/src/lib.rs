@@ -1241,11 +1241,28 @@ impl<C: Curve> Msm<C> {
         }
         gpu.save_cache();
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
-        let mut raw = Vec::with_capacity(bases.len() * C::AFFINE_BYTES);
+        let n = bases.len();
+        let raw_bytes = n * C::AFFINE_BYTES;
+        #[cfg(target_os = "android")]
+        let signed_bases = resident_dir.is_some() && C::LABEL == G1_LABEL
+            && std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_SIGNED_BASES").as_deref() == Ok("1")
+            && (raw_bytes + n * 32) as u64 <= u64::from(device.limits().max_storage_buffer_binding_size)
+            && (raw_bytes + n * 32) as u64 <= device.limits().max_buffer_size;
+        #[cfg(target_os = "android")]
+        let raw_bytes = raw_bytes + if signed_bases { n * 32 } else { 0 };
+        let mut raw = Vec::with_capacity(raw_bytes);
         for p in bases {
             C::encode(p, &mut raw);
         }
-        let n = bases.len();
+        #[cfg(target_os = "android")]
+        if signed_bases {
+            debug_assert_eq!(C::AFFINE_BYTES, 64);
+            for index in 0..n {
+                let y_start = index * 64 + 32;
+                let negated = -fq(&raw[y_start..y_start + 32]);
+                fq_bytes(&negated, &mut raw);
+            }
+        }
         let width = width.unwrap_or_else(|| width_for(n));
         let half = 1 << (width - 1);
         let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
@@ -1393,7 +1410,7 @@ impl<C: Curve> Msm<C> {
         let resident_sort = if let Some(path) = resident_dir {
             let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
             let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
-            let result = resident::ResidentSort::new(&gpu, path, [n, half, windows, chunk_windows]);
+            let result = resident::ResidentSort::new(&gpu, path, [n, half, windows, chunk_windows], signed_bases);
             let errors = [internal, validation].map(popped);
             if let Some(error) = errors.into_iter().flatten().next() {
                 return Err(format!("resident sorting: {error}"));
