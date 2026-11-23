@@ -21,6 +21,7 @@ pub(super) struct ResidentSort {
     totals: wgpu::Buffer,
     shard_buckets: wgpu::Buffer,
     first_shard: usize,
+    first_lanes_per_shard: usize,
     prefix_arguments: wgpu::Buffer,
     chunk_arguments: Vec<[wgpu::Buffer; 4]>,
 }
@@ -36,14 +37,26 @@ impl ResidentSort {
         let first_shard = first_shard(true);
         let short = first_shard < 32;
         let first_log = first_shard.trailing_zeros();
+        let repair_requested = std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_REPAIR").as_deref() == Ok("1");
+        let cooperative = std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_COOPERATIVE").as_deref() == Ok("1");
+        if cooperative && (short || !repair_requested || !gpu.device.features().contains(wgpu::Features::SUBGROUP)) {
+            return Err("cooperative Vulkan buckets require subgroup shuffles and 32-point repair".into());
+        }
+        if cooperative {
+            log::info!("ZOPRO_TRACE vulkan-euler-h cooperative bucket pairs");
+        }
         let prefix = pipeline(
             if short { "msm_resident_prefix_short" } else { "msm_resident_prefix" },
             &[Read, Write, Write, Write, Uniform, Write],
         )?;
-        let first = pipeline(
-            if short { "msm_resident_first_short" } else { "msm_resident_first" },
-            &[Read, Read, Read, Read, Read, Write, Uniform, Read],
-        )?;
+        let first_name = if cooperative {
+            "msm_resident_first_cooperative"
+        } else if short {
+            "msm_resident_first_short"
+        } else {
+            "msm_resident_first"
+        };
+        let first = pipeline(first_name, &[Read, Read, Read, Read, Read, Write, Uniform, Read])?;
         let tree = pipeline(
             if short { "msm_resident_tree_short" } else { "msm_resident_tree" },
             &[Read, Read, Read, Read, Write, Uniform, Write],
@@ -51,9 +64,7 @@ impl ResidentSort {
         if short {
             log::info!("ZOPRO_TRACE vulkan-euler-h first-shard={first_shard}");
         }
-        let repair = if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_REPAIR")
-            .is_ok_and(|value| value == "1")
-        {
+        let repair = if repair_requested {
             if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_AFFINE_BATCH").as_deref() == Ok("1") {
                 return Err("Vulkan affine pairing and loose first-stage repair are mutually exclusive".into());
             }
@@ -114,6 +125,7 @@ impl ResidentSort {
             totals: storage(&gpu.device, "resident MSM window totals", windows * 16),
             shard_buckets: storage(&gpu.device, "resident MSM first-stage bucket IDs", windows * stride * 4),
             first_shard,
+            first_lanes_per_shard: if cooperative { 2 } else { 1 },
             prefix_arguments: uniform_words(
                 gpu, &[n as u32, half_range as u32, windows as u32, stride as u32, first_log, 0, 0, 0],
             ),
@@ -182,7 +194,8 @@ impl ResidentSort {
             &self.totals, &msm.tree[0], first, &self.shard_buckets,
         ];
         dispatch(
-            device, encoder, &self.first, &first_buffers, groups(points), timer, "msm_resident_first",
+            device, encoder, &self.first, &first_buffers,
+            groups(points * self.first_lanes_per_shard), timer, "msm_resident_first",
         );
         if let Some(repair) = &self.repair {
             dispatch(
