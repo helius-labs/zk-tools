@@ -10,8 +10,9 @@ layout(std140, set = 0, binding = 4) uniform Geometry {
   uint n;
   uint half_range;
   uint windows;
-  uint pad;
+  uint stride;
 } args;
+layout(std430, set = 0, binding = 5) buffer ShardBuckets { uint values[]; } shard_buckets;
 
 shared uvec4 partials[64];
 
@@ -46,6 +47,10 @@ void main() {
     const uint index = base + bucket;
     offsets.values[index] = start;
     cursors.values[index] = start.x;
-    start += lengths(histogram.values[index]);
+    const uvec4 count = lengths(histogram.values[index]);
+    const uint first_shard = window * args.stride + start.y;
+    for (uint shard = 0u; shard < count.y; ++shard)
+      shard_buckets.values[first_shard + shard] = index;
+    start += count;
   }
 }

@@ -16,7 +16,7 @@ layout(std140, set = 0, binding = 6) uniform Shards {
   uint stride;
   uint level;
 } args;
-#include "msm_resident_bucket.glsl"
+layout(std430, set = 0, binding = 7) readonly buffer ShardBuckets { uint values[]; } shard_buckets;
 
 affine signed_base(uint encoded) {
   const uint sign = 0x80000000u;
@@ -33,7 +33,7 @@ void main() {
   if (shard >= totals.values[window].y)
     return;
 
-  const uint bucket = bucket_for(window * args.half_range, args.half_range, 1u, shard);
+  const uint bucket = shard_buckets.values[window * args.stride + shard];
   const uvec4 start = offsets.values[bucket];
   const uint offset = (shard - start.y) * 32u;
   const uint first = start.x + offset;

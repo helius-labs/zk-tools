@@ -8,6 +8,7 @@ pub(super) struct ResidentSort {
     tree: wgpu::ComputePipeline,
     offsets: wgpu::Buffer,
     totals: wgpu::Buffer,
+    shard_buckets: wgpu::Buffer,
     prefix_arguments: wgpu::Buffer,
     chunk_arguments: Vec<[wgpu::Buffer; 4]>,
 }
@@ -20,8 +21,8 @@ impl ResidentSort {
     ) -> Result<Self, String> {
         use Slot::{Read, Uniform, Write};
         let pipeline = |name, slots: &[Slot]| load_pipeline(gpu, path, name, slots);
-        let prefix = pipeline("msm_resident_prefix", &[Read, Write, Write, Write, Uniform])?;
-        let first = pipeline("msm_resident_first", &[Read, Read, Read, Read, Read, Write, Uniform])?;
+        let prefix = pipeline("msm_resident_prefix", &[Read, Write, Write, Write, Uniform, Write])?;
+        let first = pipeline("msm_resident_first", &[Read, Read, Read, Read, Read, Write, Uniform, Read])?;
         let tree = pipeline("msm_resident_tree", &[Read, Read, Read, Read, Write, Uniform])?;
         let stride = n.div_ceil(32) + half_range;
         let chunk_arguments = (0..windows.div_ceil(chunk_windows))
@@ -40,7 +41,8 @@ impl ResidentSort {
             tree,
             offsets: storage(&gpu.device, "resident MSM bucket offsets", windows * half_range * 16),
             totals: storage(&gpu.device, "resident MSM window totals", windows * 16),
-            prefix_arguments: uniform(gpu, [n as u32, half_range as u32, windows as u32, 0]),
+            shard_buckets: storage(&gpu.device, "resident MSM first-stage bucket IDs", windows * stride * 4),
+            prefix_arguments: uniform(gpu, [n as u32, half_range as u32, windows as u32, stride as u32]),
             chunk_arguments,
         })
     }
@@ -57,7 +59,8 @@ impl ResidentSort {
             encoder,
             &self.prefix,
             &[
-                &sort.counts, &self.offsets, &sort.cursors, &self.totals, &self.prefix_arguments,
+                &sort.counts, &self.offsets, &sort.cursors, &self.totals,
+                &self.prefix_arguments, &self.shard_buckets,
             ],
             [msm.windows as u32, 1],
             timer,
@@ -81,7 +84,10 @@ impl ResidentSort {
             device,
             encoder,
             &self.first,
-            &[&msm.bases, &msm.sorted, &sort.counts, &self.offsets, &self.totals, &msm.tree[0], first],
+            &[
+                &msm.bases, &msm.sorted, &sort.counts, &self.offsets,
+                &self.totals, &msm.tree[0], first, &self.shard_buckets,
+            ],
             groups(msm.n.div_ceil(32) + msm.half),
             timer,
             "msm_resident_first",
