@@ -370,7 +370,7 @@ struct Gpu {
     #[cfg(target_os = "android")]
     euler_h_cpu: usize,
     #[cfg(target_os = "android")]
-    euler_h_tiles: Vec<(usize, std::sync::Mutex<zopro_wgpu::G1Msm>)>,
+    euler_h_tiles: std::sync::Mutex<Vec<(usize, zopro_wgpu::G1Msm)>>,
 }
 
 #[cfg(all(gpu_wgpu, target_os = "android"))]
@@ -684,7 +684,7 @@ impl GpuBuilder {
             #[cfg(target_os = "android")]
             euler_h_cpu: 0,
             #[cfg(target_os = "android")]
-            euler_h_tiles: Vec::new(),
+            euler_h_tiles: std::sync::Mutex::new(Vec::new()),
         }
     }
 }
@@ -4522,7 +4522,7 @@ impl Key {
             if tile == 0 {
                 builder.g1[3] = Some(msm);
             } else {
-                extra_tiles.push((from, std::sync::Mutex::new(msm)));
+                extra_tiles.push((from, msm));
             }
         }
         #[cfg(feature = "trace")]
@@ -4564,7 +4564,7 @@ impl Key {
         }
         let mut gpu = builder.finish();
         gpu.euler_h_cpu = h_cpu;
-        gpu.euler_h_tiles = extra_tiles;
+        *gpu.euler_h_tiles.get_mut().unwrap() = extra_tiles;
         let verdict = selftest::gpu(
             &mut gpu, &self.plan, a_head, &self.b2[..self.b2.len().min(selftest::HEAD)],
             if cpu_witness { a_head.len() } else { self.a.len() }, self.b.len(), probe.as_mut(),
@@ -4634,16 +4634,15 @@ impl Key {
                 } else {
                     quotient.start_prepared_euler(download_from);
                 }
-                let mut tiles = gpu.euler_h_tiles.iter()
-                    .map(|(from, msm)| (*from, msm.lock().unwrap()))
-                    .collect::<Vec<_>>();
+                let mut locked_tiles = gpu.euler_h_tiles.lock().unwrap();
+                let tiles = locked_tiles.as_mut_slice();
                 if device_sort {
                     if tiles.is_empty() && std::env::var("ZOPRO_ANDROID_EULER_DIRECT_SORT").as_deref() == Ok("1") {
                         z.count_from_exclusive(quotient.output());
                     } else {
                         z.count_from(quotient.output());
                     }
-                    for (from, tile) in &mut tiles {
+                    for (from, tile) in tiles.iter_mut() {
                         tile.count_from_index(quotient.output(), *from);
                     }
                 }
