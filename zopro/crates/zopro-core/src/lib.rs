@@ -2807,6 +2807,16 @@ impl Key {
         if self.basis_only && public.is_none() {
             return self.basis_parts(sa, sb, sk, a, b, c, omit_b);
         }
+        #[cfg(all(gpu_wgpu, target_os = "android"))]
+        if omit_b && affine_msm() && self.basis_only
+            && std::env::var("ZOPRO_ANDROID_EULER_CPU_WITNESS").as_deref() == Ok("1")
+        {
+            if let Some(gpu) = self.gpu.as_ref().filter(|g| g.b2.is_none()) {
+                return self.android_euler_cpu_witness(
+                    gpu, [sa, sb, sk], [&a, &b], public.expect("folded C public values"),
+                );
+            }
+        }
         #[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
         if let Some(gpu) = &self.gpu {
             #[cfg(target_os = "android")]
@@ -4412,6 +4422,72 @@ impl Key {
         #[cfg(feature = "trace")]
         log::info!("ZOPRO_TRACE vulkan-euler-product rows={active}");
         Ok(())
+    }
+
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
+    fn android_euler_cpu_witness(
+        &self,
+        gpu: &Gpu,
+        [sa, sb, sk]: [&mut [Fr]; 3],
+        [a, b]: [&[Fr]; 2],
+        public: &[Fr],
+    ) -> Result<Vec<u8>, String> {
+        let queries = self.lagrange.as_ref().expect("Euler basis");
+        let folded = queries.folded.as_ref().expect("folded Euler query");
+        let started = crate::time::Instant::now();
+        let (hz, ((ar, kr), bs2)) = std::thread::scope(|scope| {
+            let quotient_msm = scope.spawn(|| {
+                let started = crate::time::Instant::now();
+                let mut z = gpu.z.lock().unwrap();
+                let mut quotient = gpu.quotient.lock().unwrap();
+                let device_sort = z.sorts_on_gpu();
+                quotient.start_euler(a, b, !device_sort);
+                let pending = if device_sort {
+                    z.count_from(quotient.output());
+                    z.start_counted()
+                } else {
+                    let scalars = quotient.finish()?;
+                    let z = &mut *z;
+                    sort_pool(false).install(|| z.start(&scalars))
+                };
+                let (hz, timing) = z.finish(pending)?;
+                gpu_trace("z", timing.sort_ms, timing.gpu_ms);
+                trace("vulkan-euler-h", started);
+                Ok::<_, String>(hz)
+            });
+            let witness_msms = rayon::join(
+                || rayon::join(
+                    || {
+                        let started = crate::time::Instant::now();
+                        let point = msm_affine::msm_in_place(&self.a, sa);
+                        trace("vulkan-cpu-msm-a", started);
+                        point
+                    },
+                    || {
+                        let started = crate::time::Instant::now();
+                        let point = msm_affine::msm_in_place(&folded.private, sk);
+                        trace("vulkan-cpu-msm-k", started);
+                        point
+                    },
+                ),
+                || {
+                    let started = crate::time::Instant::now();
+                    let point = msm_affine::g2_query_exclusive(
+                        &self.b2, msm_affine::canonical_exclusive(sb), self.exclusive_g2_grouping,
+                    );
+                    trace("cpu-msm-b2", started);
+                    point
+                },
+            );
+            Ok::<_, String>((quotient_msm.join().expect("Euler quotient GPU work")?, witness_msms))
+        })?;
+        trace("vulkan-euler-cpu-witness", started);
+        let mut out = Vec::with_capacity(384);
+        for point in [ar, G1Projective::IDENTITY, kr + folded.public_term(public), queries.finish_product(hz)] {
+            output_g1(&mut out, point);
+        }
+        output_g2(&mut out, bs2);
+        Ok(out)
     }
 
     fn basis_parts(
