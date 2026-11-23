@@ -245,6 +245,7 @@ fn macos_free_memory() -> Option<usize> {
 #[cfg(any(
     zopro_live_preparation_charge,
     all(gpu, target_os = "ios"),
+    all(gpu_wgpu, target_os = "android", target_arch = "aarch64"),
     all(target_os = "macos", target_arch = "aarch64")
 ))]
 pub(crate) fn allocation_bytes<T>(values: &Vec<T>) -> Option<usize> {
