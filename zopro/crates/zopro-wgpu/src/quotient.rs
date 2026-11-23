@@ -289,8 +289,9 @@ impl TiledFft {
             let packing = 1;
             let groups = groups / packing;
             let x = groups.min(16384);
+            let packed_argument = if packing > 1 { packing } else { 0 };
             let arguments = [0, 1].map(|forward| {
-                crate::uniform_words(gpu, &[n, first, levels, stride_log, cols_log, forward, packing, 0])
+                crate::uniform_words(gpu, &[n, first, levels, stride_log, cols_log, forward, packed_argument, 0])
             });
             passes.push(TilePass {
                 arguments, groups: [x, groups / x],
