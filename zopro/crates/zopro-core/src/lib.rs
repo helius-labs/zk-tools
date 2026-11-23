@@ -389,6 +389,38 @@ enum AndroidEulerRows<'a> {
     },
 }
 
+#[cfg(all(gpu_wgpu, target_os = "android"))]
+struct AndroidEulerPools {
+    witness: rayon::ThreadPool,
+    quotient: rayon::ThreadPool,
+}
+
+#[cfg(all(gpu_wgpu, target_os = "android"))]
+fn android_euler_pools() -> Option<&'static AndroidEulerPools> {
+    static POOLS: std::sync::OnceLock<Option<AndroidEulerPools>> = std::sync::OnceLock::new();
+    POOLS.get_or_init(|| {
+        let spec = std::env::var("ZOPRO_ANDROID_EULER_POOLS").ok()?;
+        let (witness, quotient) = spec.split_once('/')?;
+        let witness: usize = witness.parse().ok()?;
+        let quotient: usize = quotient.parse().ok()?;
+        if !(1..=8).contains(&witness) || !(1..=8).contains(&quotient) || witness + quotient > 8 {
+            return None;
+        }
+        let build = |name, threads| rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .thread_name(move |i| format!("zopro-android-{name}-{i}"))
+            .build()
+            .ok();
+        let pools = AndroidEulerPools {
+            witness: build("witness", witness)?,
+            quotient: build("quotient", quotient)?,
+        };
+        #[cfg(feature = "trace")]
+        log::info!("ZOPRO_TRACE android-euler-pools witness={witness} quotient={quotient}");
+        Some(pools)
+    }).as_ref()
+}
+
 /// A separate pool for the final MSM's sort while the global pool evaluates
 /// G2. On large Metal queries the GPU recodes the digits for a four-thread
 /// scatter. The ordinary sort uses two threads. ZOPRO_SORT_THREADS overrides both.
@@ -4621,9 +4653,7 @@ impl Key {
         let queries = self.lagrange.as_ref().expect("Euler basis");
         let folded = queries.folded.as_ref().expect("folded Euler query");
         let started = crate::time::Instant::now();
-        // The early G2 worker can borrow its scalar buffer until the scope
-        // joins, so the backing vectors live outside the proof scope.
-        let mut extracted = (Vec::new(), Vec::new());
+        let pools = android_euler_pools();
         let (hz, ar, bs1, kr, bs2) = std::thread::scope(|scope| {
             let quotient_msm = scope.spawn(move || {
                 let started = crate::time::Instant::now();
@@ -4684,10 +4714,16 @@ impl Key {
                 let host_h = |scalars: &mut [Fr]| {
                     let started = crate::time::Instant::now();
                     let bases = &queries.product[host_start..len];
-                    #[cfg(target_arch = "aarch64")]
-                    let result = msm_affine::android_euler_h(bases, scalars);
-                    #[cfg(not(target_arch = "aarch64"))]
-                    let result = msm_affine::msm_in_place(bases, scalars);
+                    let work = || {
+                        #[cfg(target_arch = "aarch64")]
+                        return msm_affine::android_euler_h(bases, scalars);
+                        #[cfg(not(target_arch = "aarch64"))]
+                        msm_affine::msm_in_place(bases, scalars)
+                    };
+                    let result = match pools {
+                        Some(pools) => pools.quotient.install(work),
+                        None => work(),
+                    };
                     trace("vulkan-cpu-msm-h", started);
                     result
                 };
@@ -4736,87 +4772,102 @@ impl Key {
                 }
                 Ok::<_, String>(hz + host_h)
             });
-            let ([sa, sb, sk], public) = match scalars {
-                AndroidWitnessScalars::Prepared(scalars, public) => (scalars, public),
-                AndroidWitnessScalars::Wires(plan, wires) => {
-                    let started = crate::time::Instant::now();
-                    extracted = rayon::join(
-                        || plan.a_indices.par_iter().map(|&index| wires[index as usize]).collect(),
-                        || plan.b_indices.par_iter().map(|&index| wires[index as usize]).collect(),
-                    );
-                    trace("extract-scalars-overlap", started);
-                    let (public, private) = wires.split_at_mut(plan.n_public);
-                    ([extracted.0.as_mut_slice(), extracted.1.as_mut_slice(), private], &*public)
-                }
-            };
-            let bs1 = if omit_b { G1Projective::IDENTITY } else { msm_g1(&self.b, sb) };
-            let serial = cfg!(target_arch = "aarch64")
-                && std::env::var("ZOPRO_ANDROID_EULER_SERIAL_PREP").as_deref() == Ok("1");
-            // Admit B2 before either G1 query needs compaction scratch.
-            // Each preparation returns its scratch credit before the next.
-            #[cfg(target_arch = "aarch64")]
-            let prepared_b2 = (serial && self.exclusive_g2_grouping).then(|| {
-                self.equal_witness.as_ref().and_then(|plan| plan.android_b2(&self.b2, sb))
-                    .or_else(|| msm_affine::prepare_android_query(&self.b2, sb))
-            }).flatten();
-            let b2 = move || {
-                let started = crate::time::Instant::now();
-                let raw = || msm_affine::g2_query_exclusive(
-                    &self.b2, msm_affine::canonical_exclusive(sb), self.exclusive_g2_grouping,
-                );
-                #[cfg(target_arch = "aarch64")]
-                let point = prepared_b2.map_or_else(raw, msm_affine::android_prepared_g2);
-                #[cfg(not(target_arch = "aarch64"))]
-                let point = raw();
-                trace("cpu-msm-b2", started);
-                point
-            };
-            let (early_b2, b2) = if serial && std::env::var("ZOPRO_ANDROID_EULER_EARLY_G2").as_deref() == Ok("1") {
-                (Some(scope.spawn(b2)), None)
-            } else {
-                (None, Some(b2))
-            };
-            #[cfg(target_arch = "aarch64")]
-            let (prepared_a, prepared_k) = if serial {
-                let a = self.equal_witness.as_ref().and_then(|plan| plan.android_a(&self.a, sa))
-                    .or_else(|| msm_affine::prepare_android_query(&self.a, sa));
-                let k = self.equal_witness.as_ref().and_then(|plan| plan.android_folded_k(&folded.private, sk))
-                    .or_else(|| msm_affine::prepare_android_query(&folded.private, sk));
-                (a, k)
-            } else {
-                (None, None)
-            };
-            let a_and_k = || rayon::join(
-                || {
-                    let started = crate::time::Instant::now();
+            let witness_work = || {
+                // This scope keeps the extracted buffers alive while B2 uses them.
+                let mut extracted = (Vec::new(), Vec::new());
+                std::thread::scope(|witness_scope| {
+                    let ([sa, sb, sk], public) = match scalars {
+                        AndroidWitnessScalars::Prepared(scalars, public) => (scalars, public),
+                        AndroidWitnessScalars::Wires(plan, wires) => {
+                            let started = crate::time::Instant::now();
+                            extracted = rayon::join(
+                                || plan.a_indices.par_iter().map(|&index| wires[index as usize]).collect(),
+                                || plan.b_indices.par_iter().map(|&index| wires[index as usize]).collect(),
+                            );
+                            trace("extract-scalars-overlap", started);
+                            let (public, private) = wires.split_at_mut(plan.n_public);
+                            ([extracted.0.as_mut_slice(), extracted.1.as_mut_slice(), private], &*public)
+                        }
+                    };
+                    let bs1 = if omit_b { G1Projective::IDENTITY } else { msm_g1(&self.b, sb) };
+                    let serial = cfg!(target_arch = "aarch64")
+                        && std::env::var("ZOPRO_ANDROID_EULER_SERIAL_PREP").as_deref() == Ok("1");
+                    // Admit B2 before either G1 query needs compaction scratch.
+                    // Each preparation returns its scratch credit before the next.
                     #[cfg(target_arch = "aarch64")]
-                    let point = prepared_a.map_or_else(
-                        || msm_affine::msm_in_place(&self.a, sa),
-                        |(points, scalars, _charge)| msm_affine::msm_raw(&points, &scalars),
-                    );
-                    #[cfg(not(target_arch = "aarch64"))]
-                    let point = msm_affine::msm_in_place(&self.a, sa);
-                    trace("vulkan-cpu-msm-a", started);
-                    point
-                },
-                || {
-                    let started = crate::time::Instant::now();
+                    let prepared_b2 = (serial && self.exclusive_g2_grouping).then(|| {
+                        self.equal_witness.as_ref().and_then(|plan| plan.android_b2(&self.b2, sb))
+                            .or_else(|| msm_affine::prepare_android_query(&self.b2, sb))
+                    }).flatten();
+                    let b2 = move || {
+                        let started = crate::time::Instant::now();
+                        let raw = || msm_affine::g2_query_exclusive(
+                            &self.b2, msm_affine::canonical_exclusive(sb), self.exclusive_g2_grouping,
+                        );
+                        #[cfg(target_arch = "aarch64")]
+                        let point = prepared_b2.map_or_else(raw, msm_affine::android_prepared_g2);
+                        #[cfg(not(target_arch = "aarch64"))]
+                        let point = raw();
+                        trace("cpu-msm-b2", started);
+                        point
+                    };
+                    let (early_b2, b2) = if serial && std::env::var("ZOPRO_ANDROID_EULER_EARLY_G2").as_deref() == Ok("1") {
+                        let work = move || match pools {
+                            Some(pools) => pools.witness.install(b2),
+                            None => b2(),
+                        };
+                        (Some(witness_scope.spawn(work)), None)
+                    } else {
+                        (None, Some(b2))
+                    };
                     #[cfg(target_arch = "aarch64")]
-                    let point = prepared_k.map_or_else(
-                        || msm_affine::msm_in_place(&folded.private, sk),
-                        |(points, scalars, _charge)| msm_affine::msm_raw(&points, &scalars),
+                    let (prepared_a, prepared_k) = if serial {
+                        let a = self.equal_witness.as_ref().and_then(|plan| plan.android_a(&self.a, sa))
+                            .or_else(|| msm_affine::prepare_android_query(&self.a, sa));
+                        let k = self.equal_witness.as_ref().and_then(|plan| plan.android_folded_k(&folded.private, sk))
+                            .or_else(|| msm_affine::prepare_android_query(&folded.private, sk));
+                        (a, k)
+                    } else {
+                        (None, None)
+                    };
+                    let a_and_k = || rayon::join(
+                        || {
+                            let started = crate::time::Instant::now();
+                            #[cfg(target_arch = "aarch64")]
+                            let point = prepared_a.map_or_else(
+                                || msm_affine::msm_in_place(&self.a, sa),
+                                |(points, scalars, _charge)| msm_affine::msm_raw(&points, &scalars),
+                            );
+                            #[cfg(not(target_arch = "aarch64"))]
+                            let point = msm_affine::msm_in_place(&self.a, sa);
+                            trace("vulkan-cpu-msm-a", started);
+                            point
+                        },
+                        || {
+                            let started = crate::time::Instant::now();
+                            #[cfg(target_arch = "aarch64")]
+                            let point = prepared_k.map_or_else(
+                                || msm_affine::msm_in_place(&folded.private, sk),
+                                |(points, scalars, _charge)| msm_affine::msm_raw(&points, &scalars),
+                            );
+                            #[cfg(not(target_arch = "aarch64"))]
+                            let point = msm_affine::msm_in_place(&folded.private, sk);
+                            trace("vulkan-cpu-msm-k", started);
+                            point
+                        },
                     );
-                    #[cfg(not(target_arch = "aarch64"))]
-                    let point = msm_affine::msm_in_place(&folded.private, sk);
-                    trace("vulkan-cpu-msm-k", started);
-                    point
-                },
-            );
-            let ((ar, kr), bs2) = match early_b2 {
-                Some(work) => (a_and_k(), work.join().expect("prepared CPU G2 query")),
-                None => rayon::join(a_and_k, b2.expect("CPU G2 query")),
+                    let ((ar, kr), bs2) = match early_b2 {
+                        Some(work) => (a_and_k(), work.join().expect("prepared CPU G2 query")),
+                        None => rayon::join(a_and_k, b2.expect("CPU G2 query")),
+                    };
+                    let kr = kr + folded.public_term(public);
+                    (ar, bs1, kr, bs2)
+                })
             };
-            let kr = kr + folded.public_term(public);
+            let (ar, bs1, kr, bs2) = match pools {
+                Some(pools) => pools.witness.install(witness_work),
+                None => witness_work(),
+            };
             let hz = quotient_msm.join().expect("Euler quotient GPU work")?;
             Ok::<_, String>((hz, ar, bs1, kr, bs2))
         })?;
