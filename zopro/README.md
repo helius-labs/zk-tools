@@ -93,10 +93,39 @@ let (proof, public_witness) = (proved.proof.to_gnark(), proved.public_witness())
   lockfile) and requests, 1 → 2 to 24 → 2 by default: a key's first load,
   its later loads, the memory it holds, and each proof's time and peak.
 
-On native CPU builds, `ZOPRO_CPU_GROUP_G2=1` opts into combining G2 bases
-that share the same nonzero witness scalar. The prover uses the existing
-MSM when there are too few repeated scalars or grouping would need over
-32 MiB of temporary buffers per proof. It uses the existing proving keys.
+## Native CPU proving
+
+The existing `.zopro` keys work with the native CPU prover. Generic builds
+use portable kernels. Build with a CPU target that enables AVX-512 IFMA, VL,
+and DQ to use the vectorized MSM and FFT kernels on supported x86-64 hosts.
+For example, use `RUSTFLAGS='-C target-cpu=znver4'` for an AMD Zen 4 build.
+Distribute generic builds to hosts with mixed CPU capabilities.
+
+Native hosts can cache a memory-mapped key image using
+`Prover::write_image` and `Prover::load_image`. The writer streams the solver
+into the raw-4 format with 64-bit lengths. The loader also accepts raw-3
+caches. An optional offline conversion prepares Euler queries from a
+trusted raw image on Linux.
+
+```sh
+cargo run --release -p zopro-bench --example cpu-euler -- prepare key.image key.euler
+```
+
+`Prover::load_image` recognizes the converted image and uses its mapped
+query points for CPU proving. Keep the source key so the host can
+regenerate the image for a new key version. Set
+`ZOPRO_CPU_PREPARE_MAX_BYTES=0` to decline optional preparations controlled
+by the preparation allocator. Budget loaded key pages and proof workspace
+separately.
+
+## Metal proving with a prepared Euler image
+
+On Apple platforms, enable the `zopro-prover` crate's `metal` feature.
+Prepare an Euler image with the command above, keep the mapped file
+immutable, and pass it to `Prover::load_euler_metal_image`. The loader
+retains the original solver and verification key. It uses the mapped
+queries on the CPU if Metal is unavailable or a GPU proof fails
+verification.
 
 ## Safety
 

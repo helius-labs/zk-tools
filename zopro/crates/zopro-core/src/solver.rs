@@ -5,6 +5,8 @@
 // arkworks field arithmetic. The arithmetic follows constraint/bn254/solver.go's
 // solveR1C and solveHintGeneric semantics.
 
+#[cfg(zopro_bounded_schedule)]
+mod bounded;
 use zopro_bn254::Fr;
 use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hasher};
@@ -40,6 +42,7 @@ type FxMap<K, V> = HashMap<K, V, BuildHasherDefault<FxHasher>>;
 // The plan's indices are u32, as its image stores them: a wide key's plan
 // holds millions of them (16 -> 2: 3.1 M sums, 0.37 M ops), and usize
 // doubled its memory. The accessors read them as usize.
+#[repr(C)]
 #[derive(Clone, Copy)]
 struct Term {
     coefficient: u32,
@@ -60,11 +63,55 @@ impl Term {
     }
 }
 
+// Required inverse payloads replace the old inline Fr in each assignment.
+// Encode the common +/-1 directly. Other values keep their exact image bits;
+// fixed-size chunks bound slack without a circuit-sized hash/dedup table.
+const INVERSE_ONE: u32 = u32::MAX;
+const INVERSE_MINUS_ONE: u32 = u32::MAX - 1;
+const INVERSE_CHUNK: usize = 128;
+#[derive(Default)]
+struct Inverses {
+    chunks: Vec<Box<[Fr; INVERSE_CHUNK]>>,
+    len: usize,
+}
+impl Inverses {
+    fn insert(&mut self, value: Fr) -> Result<u32, &'static str> {
+        if value == Fr::ONE {
+            return Ok(INVERSE_ONE);
+        }
+        if value == -Fr::ONE {
+            return Ok(INVERSE_MINUS_ONE);
+        }
+        let index = u32::try_from(self.len)
+            .ok()
+            .filter(|&i| i < INVERSE_MINUS_ONE)
+            .ok_or("too many solver inverses")?;
+        let offset = self.len % INVERSE_CHUNK;
+        if offset == 0 {
+            self.chunks.push(Box::new([Fr::ZERO; INVERSE_CHUNK]));
+        }
+        self.chunks[self.len / INVERSE_CHUNK][offset] = value;
+        self.len += 1;
+        Ok(index)
+    }
+    fn bytes(&self) -> usize {
+        self.chunks.len() * core::mem::size_of::<[Fr; INVERSE_CHUNK]>()
+            + self.chunks.capacity() * core::mem::size_of::<Box<[Fr; INVERSE_CHUNK]>>()
+    }
+    fn get(&self, index: u32) -> Fr {
+        match index {
+            INVERSE_ONE => Fr::ONE,
+            INVERSE_MINUS_ONE => -Fr::ONE,
+            _ => self.chunks[index as usize / INVERSE_CHUNK][index as usize % INVERSE_CHUNK],
+        }
+    }
+}
+
 struct Assignment {
     side: u8,
     wire: u32,
     coefficient: u32,
-    inverse: Fr,
+    inverse: u32,
 }
 impl Assignment {
     fn side(&self) -> usize {
@@ -110,10 +157,17 @@ impl Step {
 /// at 16 -> 2: 14 MB rather than 100). `previous` holds STORED for a stored
 /// sum, and below it CHAIN (the running value), NONE, or the slot it adds
 /// its term to; while the plan is built, the sum's id or u32::MAX.
+#[repr(C)]
+#[derive(Clone, Copy)]
 struct Sum {
     previous: u32,
     term: Term,
 }
+impl super::InPlace for Sum {
+    const SIZE: usize = 12;
+}
+const _: () = assert!(std::mem::size_of::<Sum>() == 12);
+
 const STORED: u32 = 1 << 31;
 const NONE: u32 = STORED - 1;
 const CHAIN: u32 = STORED - 2;
@@ -341,14 +395,20 @@ pub(crate) struct Plan {
     pub(crate) a_indices: Vec<u32>,
     pub(crate) b_indices: Vec<u32>,
     coefficients: Vec<Fr>,
+    inverses: Inverses,
     terms: Vec<Term>,
-    sums: Vec<Sum>,
+    sums: super::Store<Sum>,
     /// The stored sums' slots, after the wires in the solution's vector.
     n_slots: usize,
-    n_constraints: usize,
+    pub(crate) n_constraints: usize,
     ops: Vec<Op>,
+    /// Native dot-product grouping: zero, pairs, or eight lanes.
+    fuse_sums: u8,
     /// The ops in epochs of parallel tasks, built at the first solve.
     schedule: std::sync::OnceLock<Schedule>,
+    #[cfg(zopro_resource_schedule)]
+    b2_origins: std::sync::OnceLock<Option<B2Origins>>,
+    definite: std::sync::OnceLock<bool>,
 }
 
 /// Bands of dependency depth (epochs), each a list of tasks: the connected
@@ -357,8 +417,36 @@ pub(crate) struct Plan {
 /// program order, which is a topological order. gnark's own levels are too
 /// narrow for this (a median of 16 ops at 8 -> 2 over 8036 levels), but
 /// the circuits' notes and hashes are largely independent until late.
+#[derive(Default)]
 struct Schedule {
     epochs: Vec<Vec<Vec<u32>>>,
+    #[cfg(all(any(target_os = "ios", target_os = "android"), zopro_sparse_poseidon))]
+    poseidon_leaves: bool,
+    // A replacement for one oversized serial component. Local waves join
+    // before advancing; the component's external inputs are already ready.
+    refined: FxMap<usize, Vec<Vec<Vec<u32>>>>,
+    _reservation: Option<crate::preparation::Reservation>,
+}
+
+/// A solver output region. Android Vulkan memory may allow writes only,
+/// so the common initialization writes through its raw pointer.
+struct OutputRow<'a> {
+    start: *mut Fr,
+    len: usize,
+    borrow: core::marker::PhantomData<&'a mut [core::mem::MaybeUninit<Fr>]>,
+}
+
+// SAFETY: each OutputRow exclusively owns writes to a distinct region, and
+// its owner keeps that region live until the initializing worker joins.
+unsafe impl Send for OutputRow<'_> {}
+
+impl OutputRow<'_> {
+    fn clear_from(&mut self, from: usize) {
+        assert!(from <= self.len);
+        // SAFETY: this is the exclusive writable tail of the output row.
+        // All-zero bytes are Fr::ZERO in its four-limb representation.
+        unsafe { self.start.add(from).write_bytes(0, self.len - from) };
+    }
 }
 
 /// Raw access to the solution's vectors for the parallel solve: every op
@@ -375,6 +463,73 @@ struct View {
 // before its reads.
 unsafe impl Send for View {}
 unsafe impl Sync for View {}
+fn fused_sums_mode() -> u8 {
+    std::env::var("ZOPRO_CPU_FUSE_SUMS")
+        .ok()
+        .and_then(|v| v.parse::<u8>().ok())
+        .unwrap_or(if crate::simd::cpu_option("ZOPRO_CPU_FUSE_SUMS") {
+            2
+        } else {
+            0
+        })
+        .min(2)
+}
+
+#[derive(Clone, Copy)]
+enum SolverTaskClaims {
+    Rayon,
+    Dynamic,
+    Seeded,
+}
+
+fn solver_task_claims() -> SolverTaskClaims {
+    #[cfg(target_arch = "wasm32")]
+    {
+        SolverTaskClaims::Rayon
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    match std::env::var("ZOPRO_SOLVE_TASK_CLAIMS").as_deref() {
+        Ok("1") => SolverTaskClaims::Dynamic,
+        Ok("seed") => SolverTaskClaims::Seeded,
+        _ => SolverTaskClaims::Rayon,
+    }
+}
+
+/// Visit the tasks in one dependency wave. Each task's writes are disjoint.
+/// Prepared waves store the longest tasks first. Seeded claimants each take
+/// one of those tasks before taking the longest available remaining task.
+fn visit_solver_tasks(
+    jobs: &[Vec<u32>],
+    claims: SolverTaskClaims,
+    run: impl Fn(&Vec<u32>) -> Result<(), String> + Sync + Send,
+) -> Result<(), String> {
+    use rayon::prelude::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    if matches!(claims, SolverTaskClaims::Rayon) || jobs.len() < 4 {
+        return jobs.par_iter().try_for_each(run);
+    }
+    let (work, longest) = jobs.iter().fold((0usize, 1usize), |(sum, longest), job| {
+        (sum.saturating_add(job.len()), longest.max(job.len()))
+    });
+    let workers = rayon::current_num_threads().min(jobs.len());
+    let claimants = work.div_ceil(longest).saturating_mul(2).clamp(1, workers);
+    let seeded = matches!(claims, SolverTaskClaims::Seeded);
+    let next = AtomicUsize::new(if seeded { claimants } else { 0 });
+    (0..claimants)
+        .into_par_iter()
+        .with_max_len(1)
+        .try_for_each(|slot| {
+            if seeded {
+                run(&jobs[slot])?;
+            }
+            while let Some(job) = jobs.get(next.fetch_add(1, Ordering::Relaxed)) {
+                run(job)?;
+            }
+            Ok(())
+        })
+}
+
 /// Epochs of the parallel solve (ZOPRO_SOLVE_EPOCHS; 0 solves on one
 /// thread).
 fn solve_epochs() -> usize {
@@ -409,12 +564,13 @@ impl Plan {
         let bytes = [
             (
                 "indices",
-                (self.a_indices.len() + self.b_indices.len()) * size_of::<usize>(),
+                (self.a_indices.len() + self.b_indices.len()) * size_of::<u32>(),
             ),
             ("coefficients", self.coefficients.len() * size_of::<Fr>()),
             ("terms", self.terms.len() * size_of::<Term>()),
-            ("sums", self.sums.len() * size_of::<Sum>()),
+            ("sums owned", self.sums.owned_bytes().unwrap()),
             ("ops", self.ops.len() * size_of::<Op>()),
+            ("inverse values", self.inverses.bytes()),
         ];
         let parts: Vec<String> = bytes
             .iter()
@@ -439,7 +595,80 @@ pub(crate) struct Solution {
     pub(crate) c: Vec<Fr>,
 }
 
+#[derive(Default)]
+struct SolveStorage<'a> {
+    rows: Option<[OutputRow<'a>; 3]>,
+    wires: Option<Vec<Fr>>,
+    clean_rows: bool,
+}
+
+pub(crate) struct LinearCTerm {
+    pub row: usize,
+    pub wire: usize,
+    pub coefficient: Fr,
+}
+pub(crate) struct LinearC {
+    pub n_wires: usize,
+    pub n_public: usize,
+    pub n_values: usize,
+    pub terms: Vec<LinearCTerm>,
+}
+
 impl Plan {
+    // Images from older builds may contain many copies of a fixed constant.
+    // Preserve the first five special coefficients and rewrite every direct
+    // coefficient reference; sum slots and wire identities do not change.
+    fn compact_coefficients(&mut self) {
+        let copy = if matches!(self.sums, super::Store::Mapped { .. }) {
+            self.sums.len().checked_mul(core::mem::size_of::<Sum>())
+        } else {
+            Some(0)
+        };
+        let peak = self
+            .coefficients
+            .len()
+            .checked_mul(256)
+            .and_then(|bytes| bytes.checked_add(copy?));
+        let reservation = crate::preparation::Reservation::acquire(self.n_constraints, peak);
+        if reservation.is_none() || !crate::simd::cpu_option("ZOPRO_CPU_COMPACT_COEFFS") {
+            return;
+        }
+        let mut ids: FxMap<Fr, u32> = FxMap::default();
+        let mut values = Vec::with_capacity(self.coefficients.len().min(8192));
+        let mut remap = Vec::with_capacity(self.coefficients.len());
+        for &value in &self.coefficients {
+            let index = *ids.entry(value).or_insert_with(|| {
+                let index = values.len() as u32;
+                values.push(value);
+                index
+            });
+            remap.push(index);
+        }
+        if values.len() == self.coefficients.len() {
+            return;
+        }
+        debug_assert_eq!(&values[..5], &self.coefficients[..5]);
+        for term in &mut self.terms {
+            term.coefficient = remap[term.coefficient()];
+        }
+        for sum in self.sums.make_mut() {
+            sum.term.coefficient = remap[sum.term.coefficient()];
+        }
+        for op in &mut self.ops {
+            if let Op::Constraint(step) = op {
+                for expression in &mut step.expressions {
+                    if let Expression::Constant(index) = expression {
+                        *index = remap[*index as usize];
+                    }
+                }
+                if let Some(assignment) = &mut step.assignment {
+                    assignment.coefficient = remap[assignment.coefficient()];
+                }
+            }
+        }
+        self.coefficients = values;
+    }
+
     // Header: version, wires, inputs (including ONE), public (including ONE),
     // constraints, hints, A index count, B index count; followed by both index
     // lists, constraint records [ID, len(L), len(R), len(O), (coefficient,
@@ -538,12 +767,53 @@ impl Plan {
             return Err("invalid solver coefficients");
         }
         let n_coefficients = coefficients.len();
+        let compact_reservation = crate::preparation::Reservation::acquire(
+            n_constraints,
+            n_constraints
+                .checked_mul(4)
+                .and_then(|n| n.checked_add(n_coefficients))
+                .and_then(|n| n.checked_mul(256)),
+        );
+        let compact =
+            compact_reservation.is_some() && crate::simd::cpu_option("ZOPRO_CPU_COMPACT_COEFFS");
+        let mut constant_ids: FxMap<Fr, u32> = FxMap::default();
+        if compact {
+            for (i, &value) in coefficients.iter().enumerate() {
+                constant_ids.entry(value).or_insert(i as u32);
+            }
+        }
+        let constant_index = |value: Fr,
+                              original: Option<usize>,
+                              coefficients: &mut Vec<Fr>,
+                              ids: &mut FxMap<Fr, u32>|
+         -> usize {
+            if compact {
+                *ids.entry(value).or_insert_with(|| {
+                    let index = coefficients.len() as u32;
+                    coefficients.push(value);
+                    index
+                }) as usize
+            } else if let Some(index) = original {
+                // A single source constant already has the required value
+                // and identity. Keep it without interning or appending.
+                index
+            } else if coefficients.last() == Some(&value) {
+                // Reuse an adjacent generated constant without a map or
+                // extra storage when full coefficient interning is off.
+                coefficients.len() - 1
+            } else {
+                let index = coefficients.len();
+                coefficients.push(value);
+                index
+            }
+        };
         let mut solved = vec![false; n_wires];
         solved[..n_inputs].fill(true);
         let mut seen = vec![false; n_constraints];
         let mut terms = Vec::new();
         let mut sums = Vec::new();
         let mut prefixes: FxMap<(u32, u32, u32), u32> = FxMap::default();
+        let mut inverses = Inverses::default();
         let mut ops = Vec::with_capacity(n_constraints + n_hints);
         for _ in 0..n_constraints + n_hints {
             let constraint = read()?;
@@ -558,6 +828,8 @@ impl Plan {
                 }
                 let start = terms.len();
                 let mut constant = Fr::ZERO;
+                let mut constant_terms = 0usize;
+                let mut original_constant = 0usize;
                 for _ in 0..read()? {
                     let coefficient = read()?;
                     let wire = read()?;
@@ -566,13 +838,18 @@ impl Plan {
                     }
                     if wire == 0 {
                         constant += coefficients[coefficient];
+                        constant_terms += 1;
+                        original_constant = coefficient;
                     } else if coefficient != 0 {
                         terms.push(Term::new(coefficient, wire));
                     }
                 }
                 if constant != Fr::ZERO {
-                    terms.push(Term::new(coefficients.len(), 0));
-                    coefficients.push(constant);
+                    let index = constant_index(
+                        constant, (constant_terms == 1).then_some(original_constant),
+                        &mut coefficients, &mut constant_ids,
+                    );
+                    terms.push(Term::new(index, 0));
                 }
                 let outputs = read()?..read()?;
                 if outputs.is_empty()
@@ -602,6 +879,8 @@ impl Plan {
             for (side, len) in lengths.into_iter().enumerate() {
                 let start = terms.len();
                 let mut constant = Fr::ZERO;
+                let mut constant_terms = 0usize;
+                let mut original_constant = 0usize;
                 for _ in 0..len {
                     let coefficient = read()?;
                     let wire = read()?;
@@ -611,6 +890,8 @@ impl Plan {
                     if solved[wire] {
                         if wire == 0 {
                             constant += coefficients[coefficient];
+                            constant_terms += 1;
+                            original_constant = coefficient;
                         } else if coefficient != 0 {
                             terms.push(Term::new(coefficient, wire));
                         }
@@ -628,14 +909,17 @@ impl Plan {
                         assignment = Some(Assignment {
                             side: side as u8,
                             wire: wire as u32,
-                            inverse,
+                            inverse: inverses.insert(inverse)?,
                             coefficient: coefficient as u32,
                         });
                     }
                 }
                 if constant != Fr::ZERO {
-                    terms.push(Term::new(coefficients.len(), 0));
-                    coefficients.push(constant);
+                    let index = constant_index(
+                        constant, (constant_terms == 1).then_some(original_constant),
+                        &mut coefficients, &mut constant_ids,
+                    );
+                    terms.push(Term::new(index, 0));
                 }
                 expressions[side] = match &terms[start..] {
                     [] => Expression::Zero,
@@ -690,20 +974,27 @@ impl Plan {
         }
         drop(prefixes);
         let n_slots = assign_slots(n_wires, &mut sums, &mut ops);
-        Ok(Self {
+        let mut plan = Self {
             n_wires,
             n_inputs,
             n_public,
             a_indices,
             b_indices,
             coefficients,
+            inverses,
             terms,
-            sums,
+            sums: crate::Store::Owned(sums),
             n_slots,
             n_constraints,
             ops,
+            fuse_sums: fused_sums_mode(),
             schedule: std::sync::OnceLock::new(),
-        })
+            #[cfg(zopro_resource_schedule)]
+            b2_origins: std::sync::OnceLock::new(),
+            definite: std::sync::OnceLock::new(),
+        };
+        plan.compact_coefficients();
+        Ok(plan)
     }
 
     // The plan as an image, for a host to keep and load without building it
@@ -714,18 +1005,47 @@ impl Plan {
     // words.
     pub(crate) fn image(&self) -> Vec<u8> {
         let mut out = Vec::with_capacity(
-            48 + 4 * (self.a_indices.len() + self.b_indices.len())
-                + 32 * self.coefficients.len()
-                + 8 * self.terms.len()
-                + 12 * self.sums.len()
-                + 100 * self.ops.len(),
+            usize::try_from(self.image_len()).expect("solver image fits address space"),
         );
-        let word = |out: &mut Vec<u8>, v: usize| out.extend_from_slice(&(v as u32).to_le_bytes());
-        let field = |out: &mut Vec<u8>, v: &Fr| {
-            for w in v.0 {
-                out.extend_from_slice(&w.to_le_bytes());
+        self.write_image(&mut out)
+            .expect("a valid solver image fits its encoding");
+        out
+    }
+
+    pub(crate) fn image_len(&self) -> u64 {
+        52 + 4 * (self.a_indices.len() as u64 + self.b_indices.len() as u64)
+            + 32 * self.coefficients.len() as u64
+            + 8 * self.terms.len() as u64
+            + 12 * self.sums.len() as u64
+            + self
+                .ops
+                .iter()
+                .map(|op| match op {
+                    Op::Hint(_) => 24u64,
+                    Op::Constraint(step) => {
+                        if step.assignment.is_some() {
+                            104
+                        } else {
+                            60
+                        }
+                    }
+                })
+                .sum::<u64>()
+    }
+
+    pub(crate) fn write_image(&self, out: &mut impl std::io::Write) -> std::io::Result<()> {
+        fn word(out: &mut impl std::io::Write, value: usize) -> std::io::Result<()> {
+            let value = u32::try_from(value).map_err(|_| {
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, "solver index exceeds u32")
+            })?;
+            out.write_all(&value.to_le_bytes())
+        }
+        fn field(out: &mut impl std::io::Write, value: &Fr) -> std::io::Result<()> {
+            for word in value.0 {
+                out.write_all(&word.to_le_bytes())?;
             }
-        };
+            Ok(())
+        }
         for v in [
             IMAGE_MAGIC,
             IMAGE_VERSION,
@@ -741,22 +1061,22 @@ impl Plan {
             self.n_slots,
             self.ops.len(),
         ] {
-            word(&mut out, v);
+            word(out, v)?;
         }
         for v in self.a_indices.iter().chain(&self.b_indices) {
-            word(&mut out, *v as usize);
+            word(out, *v as usize)?;
         }
         for v in &self.coefficients {
-            field(&mut out, v);
+            field(out, v)?;
         }
         for term in &self.terms {
-            word(&mut out, term.coefficient());
-            word(&mut out, term.wire());
+            word(out, term.coefficient())?;
+            word(out, term.wire())?;
         }
-        for sum in &self.sums {
-            word(&mut out, sum.previous as usize);
-            word(&mut out, sum.term.coefficient());
-            word(&mut out, sum.term.wire());
+        for sum in self.sums.iter() {
+            word(out, sum.previous as usize)?;
+            word(out, sum.term.coefficient())?;
+            word(out, sum.term.wire())?;
         }
         for op in &self.ops {
             match op {
@@ -769,13 +1089,13 @@ impl Plan {
                         hint.outputs().start,
                         hint.outputs().end,
                     ] {
-                        word(&mut out, v);
+                        word(out, v)?;
                     }
                 }
                 Op::Constraint(step) => {
                     let sums = step.sums();
                     for v in [0, step.constraint(), sums.start, sums.end, step.first_slot()] {
-                        word(&mut out, v);
+                        word(out, v)?;
                     }
                     for expression in &step.expressions {
                         let (tag, a, b) = match expression {
@@ -786,22 +1106,22 @@ impl Plan {
                             Expression::Sum(start, end) => (4, *start as usize, *end as usize),
                         };
                         for v in [tag, a, b] {
-                            word(&mut out, v);
+                            word(out, v)?;
                         }
                     }
                     match &step.assignment {
-                        None => word(&mut out, 0),
+                        None => word(out, 0)?,
                         Some(assignment) => {
                             for v in [1, assignment.side(), assignment.wire(), assignment.coefficient()] {
-                                word(&mut out, v);
+                                word(out, v)?;
                             }
-                            field(&mut out, &assignment.inverse);
+                            field(out, &self.inverses.get(assignment.inverse))?;
                         }
                     }
                 }
             }
         }
-        out
+        Ok(())
     }
 
     // A plan from `image`, with every index bounded by its list, so that a
@@ -809,6 +1129,13 @@ impl Plan {
     // bounds cannot see, a plan that solves the wrong witness, the host's
     // verification of every proof does.
     pub(crate) fn from_image(image: &[u8]) -> Result<Self, &'static str> {
+        Self::from_image_with_owner(image, None)
+    }
+
+    pub(crate) fn from_image_with_owner(
+        image: &[u8],
+        owner: Option<&super::Image>,
+    ) -> Result<Self, &'static str> {
         let mut r = Reader { image, at: 0 };
         if r.word()? != IMAGE_MAGIC || r.word()? != IMAGE_VERSION {
             return Err("unsupported solver image");
@@ -870,7 +1197,19 @@ impl Plan {
             terms.push(term(&mut r)?);
         }
         // A stored sum adds its term to a slot an earlier one filled.
-        let mut sums = Vec::with_capacity(n_sums);
+        // Prefixes already have the on-disk u32 layout. Retain the immutable
+        // owner when the exact input slice is contained in it and aligned.
+        // Every record is still validated below before the plan is returned.
+        let mapped_sums = owner.and_then(|owner| {
+            let bytes = (**owner).as_ref();
+            let offset = (image.as_ptr() as usize).checked_sub(bytes.as_ptr() as usize)?;
+            if offset.checked_add(image.len())? > bytes.len() {
+                return None;
+            }
+            super::Store::<Sum>::mapped(owner, offset.checked_add(r.at)?, n_sums.checked_mul(12)?)
+                .ok()
+        });
+        let mut sums = Vec::with_capacity(if mapped_sums.is_some() { 0 } else { n_sums });
         let mut stored = 0;
         for _ in 0..n_sums {
             let previous = r.word()? as u32;
@@ -881,14 +1220,14 @@ impl Plan {
                 _ => return Err(DAMAGED_IMAGE),
             }
             stored += (previous & STORED != 0) as usize;
-            sums.push(Sum {
-                previous,
-                term: term(&mut r)?,
-            });
+            let sum = Sum { previous, term: term(&mut r)? };
+            if mapped_sums.is_none() { sums.push(sum); }
         }
         if stored != n_slots {
             return Err(DAMAGED_IMAGE);
         }
+        let sums = mapped_sums.unwrap_or(super::Store::Owned(sums));
+        let mut inverses = Inverses::default();
         let mut ops = Vec::with_capacity(n_ops);
         for _ in 0..n_ops {
             if r.word()? == 1 {
@@ -952,7 +1291,7 @@ impl Plan {
                     Some(Assignment {
                         side: side as u8,
                         wire: wire as u32,
-                        inverse,
+                        inverse: inverses.insert(inverse)?,
                         coefficient: coefficient as u32,
                     })
                 }
@@ -969,20 +1308,27 @@ impl Plan {
         if r.at != image.len() {
             return Err(DAMAGED_IMAGE);
         }
-        Ok(Self {
+        let mut plan = Self {
             n_wires,
             n_inputs,
             n_public,
             a_indices,
             b_indices,
             coefficients,
+            inverses,
             terms,
             sums,
             n_slots,
             n_constraints,
             ops,
+            fuse_sums: fused_sums_mode(),
             schedule: std::sync::OnceLock::new(),
-        })
+            #[cfg(zopro_resource_schedule)]
+            b2_origins: std::sync::OnceLock::new(),
+            definite: std::sync::OnceLock::new(),
+        };
+        plan.compact_coefficients();
+        Ok(plan)
     }
 
     pub(crate) fn matches(&self, a: usize, b: usize, k: usize, domain: usize) -> bool {
@@ -1000,24 +1346,238 @@ impl Plan {
     /// `solve`, with room in a, b and c for `domain` elements: the quotient
     /// pads them to the domain in place rather than reallocating them.
     pub(crate) fn solve_in(&self, witness: &[Fr], domain: usize) -> Result<Solution, String> {
+        self.solve_in_with_slots(witness, domain, &[], true)
+    }
+
+    pub(crate) fn solve_in_with_slots(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        materialize_c: bool,
+    ) -> Result<Solution, String> {
+        self.solve_with_pool(witness, domain, slots, materialize_c, None)
+    }
+
+    pub(crate) fn solve_with_pool(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        materialize_c: bool,
+        pool: Option<&rayon::ThreadPool>,
+    ) -> Result<Solution, String> {
+        self.solve_with_storage(witness, domain, slots, materialize_c, pool, SolveStorage::default())
+    }
+
+    #[cfg(gpu)]
+    pub(crate) fn solve_with_metal_rows(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        materialize_c: bool,
+        rows: [&mut [core::mem::MaybeUninit<Fr>]; 3],
+    ) -> Result<Solution, String> {
+        let c_valid = rows[2].len() == domain || (!materialize_c && rows[2].is_empty());
+        let ab_valid = rows[0].len() == rows[1].len()
+            && (rows[0].len() == domain || rows[0].len() == self.n_constraints);
+        if domain < self.n_constraints || !ab_valid || !c_valid {
+            return Err("invalid Metal evaluation workspace".into());
+        }
+        let rows = rows.map(|row| OutputRow {
+            start: row.as_mut_ptr().cast(),
+            len: row.len(),
+            borrow: core::marker::PhantomData,
+        });
+        self.solve_with_storage(witness, domain, slots, materialize_c, None, SolveStorage {
+            rows: Some(rows), ..SolveStorage::default()
+        })
+    }
+
+    /// SAFETY: both pointers remain exclusive disjoint writable regions
+    /// containing n active field elements until the method returns.
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
+    pub(crate) unsafe fn solve_with_vulkan_rows(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        [a, b]: [*mut Fr; 2],
+        n: usize,
+    ) -> Result<Solution, String> {
+        if n != self.n_constraints || domain < n {
+            return Err("invalid Vulkan evaluation workspace".into());
+        }
+        let empty = core::ptr::NonNull::<Fr>::dangling().as_ptr();
+        let rows = [(a, n), (b, n), (empty, 0)].map(|(start, len)| OutputRow {
+            start,
+            len,
+            borrow: core::marker::PhantomData,
+        });
+        self.solve_with_storage(witness, domain, slots, false, None, SolveStorage {
+            rows: Some(rows), ..SolveStorage::default()
+        })
+    }
+
+    /// The caller supplies zeroed rows. The buffer owner clears the previous
+    /// proof's values after transfer, before making the storage reusable.
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
+    pub(crate) fn solve_with_clean_euler_rows(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        rows: &mut [Vec<Fr>; 2],
+        wires: Option<Vec<Fr>>,
+    ) -> Result<Solution, String> {
+        let [a, b] = rows;
+        if a.len() != self.n_constraints || b.len() != self.n_constraints || domain < a.len()
+            || wires.as_ref().is_some_and(|w| w.len() != self.n_wires + self.n_slots)
+        {
+            return Err("invalid recycled Euler evaluation rows".into());
+        }
+        let empty = core::ptr::NonNull::<Fr>::dangling().as_ptr();
+        let rows = [(a.as_mut_ptr(), a.len()), (b.as_mut_ptr(), b.len()), (empty, 0)].map(|(start, len)| OutputRow {
+            start,
+            len,
+            borrow: core::marker::PhantomData,
+        });
+        self.solve_with_storage(witness, domain, slots, false, None, SolveStorage {
+            rows: Some(rows), wires, clean_rows: true,
+        })
+    }
+
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
+    pub(crate) fn clear_euler_wires(&self, wires: &mut Vec<Fr>) {
+        use rayon::prelude::*;
+        // Retained expression slots may still hold values beyond the wires
+        // and selected slots returned to the MSMs. Clear the whole region.
+        wires.resize(self.n_wires + self.n_slots, Fr::ZERO);
+        wires.par_chunks_mut(4096).for_each(|chunk| {
+            chunk.fill(Fr::ZERO);
+            std::hint::black_box(&*chunk);
+        });
+    }
+
+    fn solve_with_storage(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        materialize_c: bool,
+        pool: Option<&rayon::ThreadPool>,
+        storage: SolveStorage<'_>,
+    ) -> Result<Solution, String> {
         if witness.len() != self.n_inputs - 1 {
             return Err("invalid witness size".into());
         }
-        let mut w = vec![Fr::ZERO; self.n_wires + self.n_slots];
-        w[0] = Fr::ONE;
-        w[1..self.n_inputs].copy_from_slice(witness);
+        let started = crate::time::Instant::now();
+        let SolveStorage { mut rows, wires, clean_rows } = storage;
+        let uninitialized =
+            self.use_uninitialized() && *self.definite.get_or_init(|| self.definitely_writes_all());
+        let uninitialized_wires = uninitialized && wires.is_none();
         let row = || {
-            let mut row = Vec::with_capacity(domain.max(self.n_constraints));
-            row.resize(self.n_constraints, Fr::ZERO);
-            row
+            if uninitialized {
+                Vec::with_capacity(domain.max(self.n_constraints))
+            } else {
+                crate::zero_frs(self.n_constraints, domain)
+            }
         };
-        let (mut a, mut b, mut c) = (row(), row(), row());
+        let (mut w, (mut a, (mut b, mut c))) = rayon::join(
+            || {
+                if let Some(wires) = wires {
+                    wires
+                } else if uninitialized_wires {
+                    Vec::with_capacity(self.n_wires + self.n_slots)
+                } else {
+                    crate::zero_frs(self.n_wires + self.n_slots, 0)
+                }
+            },
+            || {
+                if let Some([a, b, c]) = rows.as_mut() {
+                    // The solver overwrites every constraint row on the
+                    // audited uninitialized path. Clear the domain padding
+                    // as well as any row not covered by that audit.
+                    if !clean_rows {
+                        let from = if uninitialized { self.n_constraints } else { 0 };
+                        rayon::join(
+                            || a.clear_from(from),
+                            || rayon::join(
+                                || b.clear_from(from),
+                                || {
+                                    if materialize_c {
+                                        c.clear_from(from);
+                                    }
+                                },
+                            ),
+                        );
+                    }
+                    (Vec::new(), (Vec::new(), Vec::new()))
+                } else {
+                    rayon::join(row, || {
+                        rayon::join(row, || if materialize_c { row() } else { Vec::new() })
+                    })
+                }
+            },
+        );
+        let started = crate::trace("solve-allocate", started);
+        if uninitialized_wires {
+            let spare = w.spare_capacity_mut();
+            spare[0].write(Fr::ONE);
+            for (out, value) in spare[1..self.n_inputs].iter_mut().zip(witness) {
+                out.write(*value);
+            }
+        } else {
+            w[0] = Fr::ONE;
+            w[1..self.n_inputs].copy_from_slice(witness);
+        }
+        let (row_a, row_b, row_c) = match rows.as_mut() {
+            Some([a, b, c]) => (a.start, b.start, c.start),
+            None => (a.as_mut_ptr(), b.as_mut_ptr(), c.as_mut_ptr()),
+        };
         let view = View {
             w: w.as_mut_ptr(),
-            a: a.as_mut_ptr(),
-            b: b.as_mut_ptr(),
-            c: c.as_mut_ptr(),
+            a: row_a,
+            b: row_b,
+            c: if materialize_c { row_c } else { core::ptr::null_mut() },
         };
+        // The instruction executor joins every worker before these buffers are used again.
+        let execute = || unsafe { self.execute_instructions(view) };
+        match pool {
+            Some(pool) => pool.install(execute)?,
+            None => execute()?,
+        }
+        if uninitialized {
+            // SAFETY: the cached data-flow check establishes that all reads
+            // follow initialization and every slot/row has exactly one writer.
+            // On an error above, vector lengths remain zero and no uninitialized
+            // field can be observed or dropped. All scheduled writes completed.
+            unsafe {
+                if uninitialized_wires {
+                    w.set_len(self.n_wires + self.n_slots);
+                }
+                if rows.is_none() {
+                    a.set_len(self.n_constraints);
+                    b.set_len(self.n_constraints);
+                    if materialize_c {
+                        c.set_len(self.n_constraints);
+                    }
+                }
+            }
+        }
+        // Retain this proof's allocation until its MSMs finish instead of
+        // copying the wires into another allocation.
+        let started = crate::trace("solve-execute", started);
+        let selected: Vec<_> = slots.iter().map(|&slot| w[slot]).collect();
+        w.truncate(self.n_wires);
+        w.extend(selected);
+        crate::trace("solve-copy", started);
+        Ok(Solution { w, a, b, c })
+    }
+
+    /// The caller owns all four buffers until the instruction workers have joined.
+    unsafe fn execute_instructions(&self, view: View) -> Result<(), String> {
         let epochs = solve_epochs();
         if epochs == 0 || self.ops.len() < 4096 {
             for op in &self.ops {
@@ -1025,34 +1585,533 @@ impl Plan {
                 unsafe { self.run(op, view)? };
             }
         } else {
-            use rayon::prelude::*;
             let schedule = self.schedule.get_or_init(|| self.build_schedule(epochs));
-            for epoch in &schedule.epochs {
-                epoch.par_iter().try_for_each(|task| {
-                    task.iter().try_for_each(|&op| {
-                        // SAFETY: see View and Schedule.
-                        unsafe { self.run(&self.ops[op as usize], view) }
-                    })
-                })?;
+            if schedule.epochs.is_empty() {
+                for op in &self.ops {
+                    // SAFETY: original program order with initialized inputs.
+                    unsafe { self.run(op, view)? };
+                }
+            } else if schedule.refined.is_empty() {
+                #[cfg(all(any(target_os = "ios", target_os = "android"), zopro_sparse_poseidon))]
+                // SAFETY: the schedule orders all writes and the audit records tagged leaves.
+                unsafe {
+                    if schedule.poseidon_leaves {
+                        self.execute_leaf_epochs::<true>(schedule, view)?;
+                    } else {
+                        self.execute_leaf_epochs::<false>(schedule, view)?;
+                    }
+                }
+                #[cfg(not(all(any(target_os = "ios", target_os = "android"), zopro_sparse_poseidon)))]
+                // SAFETY: the normal platform schedule orders all initialized reads.
+                unsafe { self.execute_leaf_epochs::<{ cfg!(zopro_sparse_poseidon) }>(schedule, view)? };
+            } else {
+                // SAFETY: both levels preserve the schedule's dependency
+                // ordering and disjoint writes; all jobs join before return.
+                unsafe {
+                    self.execute_schedule(schedule, view)?;
+                }
             }
         }
-        // The sums are scratch: copied out, the wires alone stay allocated
-        // through the proof (truncating would keep the slots).
-        let w = w[..self.n_wires].to_vec();
-        Ok(Solution { w, a, b, c })
+        Ok(())
+    }
+
+    /// Tasks in each epoch own disjoint outputs and join before the next epoch.
+    #[inline]
+    unsafe fn execute_leaf_epochs<const POSEIDON: bool>(
+        &self,
+        schedule: &Schedule,
+        view: View,
+    ) -> Result<(), String> {
+        let claims = solver_task_claims();
+        #[cfg(all(target_os = "android", feature = "trace"))]
+        let observed = (std::env::var("ZOPRO_ANDROID_EULER_STREAM_PROFILE").as_deref() == Ok("1"))
+            .then(crate::time::Instant::now);
+        for (_epoch_index, epoch) in schedule.epochs.iter().enumerate() {
+            visit_solver_tasks(epoch, claims, |task| {
+                #[cfg(zopro_sparse_poseidon)]
+                if POSEIDON && self.poseidon_task(task) {
+                    // SAFETY: only prepared, encoding-eligible leaves carry tags.
+                    return unsafe { self.run_poseidon_task(task, view) };
+                }
+                task.iter().try_for_each(|&op| {
+                    // SAFETY: untagged leaves retain their original raw indices.
+                    unsafe { self.run(&self.ops[op as usize], view) }
+                })
+            })?;
+            #[cfg(all(target_os = "android", feature = "trace"))]
+            if let Some(start) = observed {
+                log::info!("ZOPRO_TRACE android-euler-epoch-ready epoch={_epoch_index} {:.3} ms",
+                          start.elapsed().as_secs_f64() * 1000.0);
+            }
+        }
+        Ok(())
+    }
+
+    /// Conservative peak for optional linear-C/equality/scheduling metadata.
+    /// Count repeated expression ranges without materializing a second circuit.
+    pub(crate) fn preparation_peak(&self) -> Option<usize> {
+        if self.n_constraints > crate::preparation::MAX_DOMAIN {
+            return None;
+        }
+        let terms = self.ops.iter().try_fold(0usize, |n, op| {
+            let count = if let Op::Constraint(step) = op {
+                (match step.expressions[2] {
+                    Expression::Zero => 0,
+                    Expression::Sum(start, end) => (end - start) as usize,
+                    _ => 1,
+                }) + usize::from(step.assignment.as_ref().is_some_and(|a| a.side() == 2))
+            } else {
+                0
+            };
+            n.checked_add(count)
+        })?;
+        terms
+            .checked_mul(128)?
+            .checked_add(self.terms.len().checked_mul(16)?)?
+            .checked_add(self.n_wires.checked_add(self.n_slots)?.checked_mul(1024)?)?
+            .checked_add(self.ops.len().checked_mul(512)?)?
+            .checked_add(self.n_public.checked_mul(256 * 1024)?)
+    }
+
+    /// C rows are linear in wires and retained expression-prefix slots.
+    /// Include the unknown term removed from a C-side assignment.
+    pub(crate) fn for_each_c(&self, mut visit: impl FnMut(usize, usize, Fr)) {
+        for op in &self.ops {
+            let Op::Constraint(step) = op else { continue };
+            let mut emit = |wire, coefficient| {
+                if coefficient != Fr::ZERO {
+                    visit(step.constraint(), wire, coefficient);
+                }
+            };
+            match &step.expressions[2] {
+                Expression::Zero => (),
+                Expression::Wire(wire) => emit(*wire as usize, Fr::ONE),
+                Expression::Constant(coefficient) => {
+                    emit(0, self.coefficients[*coefficient as usize])
+                }
+                Expression::Term(term) => {
+                    let term = &self.terms[*term as usize];
+                    emit(term.wire(), self.coefficients[term.coefficient()]);
+                }
+                Expression::Sum(start, end) => {
+                    for term in &self.terms[range_of((*start, *end))] {
+                        emit(term.wire(), self.coefficients[term.coefficient()]);
+                    }
+                }
+            }
+            if let Some(assignment) = &step.assignment {
+                if assignment.side() == 2 {
+                    emit(
+                        assignment.wire(),
+                        self.coefficients[assignment.coefficient()],
+                    );
+                }
+            }
+        }
+    }
+    pub(crate) fn linear_c(&self) -> LinearC {
+        let mut terms = Vec::new();
+        self.for_each_c(|row, wire, coefficient| {
+            terms.push(LinearCTerm {
+                row,
+                wire,
+                coefficient,
+            })
+        });
+        LinearC {
+            n_wires: self.n_wires,
+            n_public: self.n_public,
+            n_values: self.n_wires + self.n_slots,
+            terms,
+        }
+    }
+    pub(crate) fn basis_wires(&self) -> usize {
+        self.n_wires
+    }
+    pub(crate) fn basis_c_private(&self, private: &[Fr]) -> Vec<Fr> {
+        assert_eq!(private.len(), self.n_wires - self.n_public);
+        let mut values = vec![Fr::ZERO; self.n_constraints];
+        self.for_each_c(|row, wire, c| {
+            if (self.n_public..self.n_wires).contains(&wire) {
+                values[row] += private[wire - self.n_public] * c;
+            }
+        });
+        values
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn basis_c_digest(&self) -> [u8; 32] {
+        use sha2::{Digest, Sha256};
+        let mut h = Sha256::new();
+        for x in [
+            self.n_wires,
+            self.n_public,
+            self.n_slots,
+            self.n_constraints,
+        ] {
+            h.update((x as u64).to_le_bytes());
+        }
+        self.for_each_c(|row, wire, c| {
+            h.update((row as u64).to_le_bytes());
+            h.update((wire as u64).to_le_bytes());
+            for x in c.0 {
+                h.update(x.to_le_bytes());
+            }
+        });
+        h.finalize().into()
+    }
+
+    fn use_uninitialized(&self) -> bool {
+        std::env::var("ZOPRO_CPU_UNINIT_SOLVER")
+            .map(|v| v == "1")
+            .unwrap_or_else(|_| {
+                self.n_constraints >= (1 << 18)
+                    && crate::simd::cpu_option("ZOPRO_CPU_UNINIT_SOLVER")
+            })
+    }
+
+    /// Establish definite assignment independently of the image parser.
+    /// Old or incomplete images keep the initialized-buffer path.
+    fn definitely_writes_all(&self) -> bool {
+        let peak = self
+            .n_wires
+            .checked_add(self.n_slots)
+            .and_then(|n| n.checked_add(self.n_constraints));
+        #[cfg(zopro_resource_schedule)]
+        let reservation = if cfg!(all(
+            zopro_bounded_schedule,
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        )) && std::env::var("ZOPRO_CPU_RESOURCE_SCHEDULE").as_deref()
+            == Ok("1")
+            && std::env::var("ZOPRO_CPU_BOUNDED_SCHEDULE").as_deref() == Ok("1")
+        {
+            crate::preparation::Reservation::analysis(peak.and_then(|bytes| bytes.checked_add(128)))
+        } else {
+            crate::preparation::Reservation::acquire(self.n_constraints, peak)
+        };
+        #[cfg(all(not(zopro_resource_schedule), zopro_bounded_schedule))]
+        let reservation =
+            crate::preparation::Reservation::acquire_solver_schedule(self.n_constraints, peak);
+        #[cfg(not(any(zopro_resource_schedule, zopro_bounded_schedule)))]
+        let reservation = crate::preparation::Reservation::acquire(self.n_constraints, peak);
+        let Some(_reservation) = reservation else {
+            return false;
+        };
+        fn write(ready: &mut [bool], index: usize) -> bool {
+            let Some(slot) = ready.get_mut(index) else {
+                return false;
+            };
+            if *slot {
+                return false;
+            }
+            *slot = true;
+            true
+        }
+        let mut ready = vec![false; self.n_wires + self.n_slots];
+        ready[..self.n_inputs].fill(true);
+        let mut rows = vec![false; self.n_constraints];
+        for op in &self.ops {
+            match op {
+                Op::Hint(hint) => {
+                    if self.terms[hint.input()].iter().any(|t| !ready[t.wire()]) {
+                        return false;
+                    }
+                    for wire in hint.outputs() {
+                        if !write(&mut ready, wire) {
+                            return false;
+                        }
+                    }
+                }
+                Op::Constraint(step) => {
+                    let mut slot = self.n_wires + step.first_slot();
+                    for sum in &self.sums[step.sums()] {
+                        if !ready[sum.term.wire()] {
+                            return false;
+                        }
+                        if let Previous::Slot(previous) = sum.previous() {
+                            if !ready[previous] {
+                                return false;
+                            }
+                        }
+                        if sum.stored() {
+                            if !write(&mut ready, slot) {
+                                return false;
+                            }
+                            slot += 1;
+                        }
+                    }
+                    for expression in &step.expressions {
+                        let initialized = match expression {
+                            Expression::Zero | Expression::Constant(_) => true,
+                            Expression::Wire(wire) => ready[*wire as usize],
+                            Expression::Term(term) => ready[self.terms[*term as usize].wire()],
+                            Expression::Sum(start, end) => self.terms[range_of((*start, *end))]
+                                .iter()
+                                .all(|t| ready[t.wire()]),
+                        };
+                        if !initialized {
+                            return false;
+                        }
+                    }
+                    if let Some(assignment) = &step.assignment {
+                        if !write(&mut ready, assignment.wire()) {
+                            return false;
+                        }
+                    }
+                    if !write(&mut rows, step.constraint()) {
+                        return false;
+                    }
+                }
+            }
+        }
+        ready.iter().all(|&v| v) && rows.iter().all(|&v| v)
     }
 
     /// Builds the parallel solve's schedule now, at the key's load, rather
     /// than at its first proof (140 ms for 24 -> 2 on a Seeker).
     pub(crate) fn prepare(&self) {
+        self.prepare_with_workspace(None, false);
+    }
+    pub(crate) fn prepare_with_workspace(&self, workspace: Option<usize>, exact: bool) {
+        if self.use_uninitialized() {
+            let started = crate::time::Instant::now();
+            let eligible = self.definite.get_or_init(|| self.definitely_writes_all());
+            log::info!("ZOPRO_TRACE solver-definite={eligible}");
+            crate::trace("solver-definite", started);
+        }
         let epochs = solve_epochs();
         if epochs > 0 && self.ops.len() >= 4096 {
-            self.schedule.get_or_init(|| self.build_schedule(epochs));
+            self.schedule.get_or_init(|| self.build_schedule_with_workspace(epochs,workspace,exact));
+        }
+    }
+
+    /// Prepare a bounded schedule while the key still owns the plan exclusively.
+    #[cfg(all(
+        any(all(gpu, target_os = "ios"), target_os = "android"),
+        target_arch = "aarch64",
+        zopro_bounded_schedule,
+        zopro_sparse_poseidon
+    ))]
+    pub(crate) fn prepare_bounded_poseidon(&mut self) -> bool {
+        if self.schedule.get().is_some() {
+            return true;
+        }
+        let epochs = if std::env::var_os("ZOPRO_SOLVE_EPOCHS").is_some() {
+            solve_epochs()
+        } else {
+            6
+        };
+        #[cfg(target_os = "android")]
+        let local = std::env::var("ZOPRO_ANDROID_SOLVER_LOCAL_BANDS").ok()
+            .and_then(|value| value.parse::<usize>().ok())
+            .filter(|&value| (2..=32).contains(&value)).unwrap_or(0);
+        #[cfg(target_os = "android")]
+        let minimum = std::env::var("ZOPRO_ANDROID_SOLVER_LOCAL_MIN_OPS").ok()
+            .and_then(|value| value.parse::<usize>().ok())
+            .filter(|&value| value >= 4096).unwrap_or(16_384);
+        #[cfg(not(target_os = "android"))]
+        let (local, minimum) = (0, 0);
+        let Some(mut schedule) = bounded::build(self, epochs, local, minimum) else {
+            return false;
+        };
+        #[cfg(all(target_os = "android", feature = "trace"))]
+        if std::env::var("ZOPRO_ANDROID_EULER_STREAM_PROFILE").as_deref() == Ok("1") {
+            self.trace_euler_tile_readiness(&schedule);
+        }
+        if !self.tag_poseidon(&mut schedule) {
+            return false;
+        }
+        schedule.poseidon_leaves = true;
+        self.schedule.set(schedule).is_ok()
+    }
+
+    /// Earliest completed epoch after which every source of an inverse FFT tile
+    /// can be read, assuming the standard 128-entry quotient workgroups.
+    #[cfg(all(target_os = "android", target_arch = "aarch64", feature = "trace",
+              zopro_bounded_schedule, zopro_sparse_poseidon))]
+    fn trace_euler_tile_readiness(&self, schedule: &Schedule) {
+        let count = schedule.epochs.len();
+        if count == 0 || count >= usize::from(u8::MAX) {
+            return;
+        }
+        let active = self.n_constraints;
+        let domain = active.next_power_of_two();
+        let mut ready = vec![0u8; domain];
+        ready[..active].fill(u8::MAX);
+        let longest: Vec<_> = schedule.epochs.iter()
+            .map(|tasks| tasks.iter().map(Vec::len).max().unwrap_or(0))
+            .collect();
+        log::info!("ZOPRO_TRACE android-euler-epoch-task-size longest={longest:?} refined={}", schedule.refined.len());
+        for (epoch, tasks) in schedule.epochs.iter().enumerate() {
+            for &op in tasks.iter().flatten() {
+                if let Op::Constraint(step) = &self.ops[op as usize] {
+                    ready[step.constraint()] = epoch as u8;
+                }
+            }
+        }
+        if ready[..active].contains(&u8::MAX) {
+            log::info!("ZOPRO_TRACE android-euler-row-readiness incomplete schedule");
+            return;
+        }
+        let mut release = vec![0usize; count];
+        for &epoch in &ready[..active] {
+            release[usize::from(epoch)] += 1;
+        }
+        log::info!("ZOPRO_TRACE android-euler-row-readiness domain={domain} counts={release:?}");
+        let mut remaining = domain.trailing_zeros();
+        let mut pass = 0;
+        while remaining != 0 {
+            let levels = remaining.div_ceil(remaining.div_ceil(6));
+            let stride = 1 << (remaining - levels);
+            let rows = 1 << levels;
+            let columns = 1 << (7 - levels).min(remaining - levels);
+            let mut release = vec![0usize; count];
+            for block in ready.chunks_exact_mut(rows * stride) {
+                for stripe in (0..stride).step_by(columns) {
+                    let tile = (0..rows).map(|row| row * stride + stripe);
+                    let epoch = tile.clone().flat_map(|first| &block[first..first + columns])
+                        .copied().max().expect("nonempty FFT tile");
+                    release[usize::from(epoch)] += 1;
+                    for first in tile {
+                        block[first..first + columns].fill(epoch);
+                    }
+                }
+            }
+            log::info!("ZOPRO_TRACE android-euler-tile-readiness pass={pass} levels={levels} counts={release:?}");
+            remaining -= levels;
+            pass += 1;
         }
     }
 
     /// The epochs and their tasks (see Schedule).
     fn build_schedule(&self, epochs: usize) -> Schedule {
+        #[cfg(all(zopro_sparse_poseidon, target_os = "macos", target_arch = "aarch64"))]
+        {
+            // The shared lazy initializer cannot wait on parallel recognition
+            // while other proof workers wait for the same schedule.
+            self.build_schedule_before_poseidon(epochs, None, false)
+        }
+        #[cfg(not(all(zopro_sparse_poseidon, target_os = "macos", target_arch = "aarch64")))]
+        self.build_schedule_with_workspace(epochs, None, false)
+    }
+    fn build_schedule_with_workspace(
+        &self,
+        epochs: usize,
+        workspace: Option<usize>,
+        exact: bool,
+    ) -> Schedule {
+        #[cfg(all(zopro_sparse_poseidon, target_os = "macos", target_arch = "aarch64"))]
+        {
+            if let Some(preferred) = self.apple_poseidon_epochs() {
+                let automatic = epochs == SOLVE_EPOCHS
+                    && std::env::var_os("ZOPRO_SOLVE_EPOCHS").is_none();
+                let mut schedule = self.build_schedule_before_poseidon(
+                    if automatic { preferred } else { epochs },
+                    workspace,
+                    exact,
+                );
+                if self.tag_poseidon(&mut schedule) || !automatic || schedule.epochs.is_empty() {
+                    return schedule;
+                }
+                // A key without recognized spans keeps the general schedule.
+            }
+            return self.build_schedule_before_poseidon(epochs, workspace, exact);
+        }
+        #[cfg(not(all(zopro_sparse_poseidon, target_os = "macos", target_arch = "aarch64")))]
+        {
+            let mut schedule = self.build_schedule_before_poseidon(epochs, workspace, exact);
+            #[cfg(all(zopro_sparse_poseidon, not(any(target_os = "ios", target_os = "android"))))]
+            self.tag_poseidon(&mut schedule);
+            schedule
+        }
+    }
+    fn build_schedule_before_poseidon(
+        &self,
+        epochs: usize,
+        workspace: Option<usize>,
+        exact: bool,
+    ) -> Schedule {
+        #[cfg(all(target_os = "macos", target_arch = "aarch64", zopro_bounded_schedule))]
+        if std::env::var("ZOPRO_CPU_BOUNDED_SCHEDULE").as_deref() != Ok("0") {
+            return bounded::build(self, epochs, 0, 0).unwrap_or_default();
+        }
+        #[cfg(all(
+            zopro_bounded_schedule,
+            feature = "ifma8",
+            target_arch = "x86_64",
+            target_feature = "avx512ifma",
+            target_feature = "avx512vl",
+            target_feature = "avx512dq",
+            not(no_ifma)
+        ))]
+        if std::env::var("ZOPRO_CPU_BOUNDED_SCHEDULE").as_deref() == Ok("1") {
+            let local = std::env::var("ZOPRO_SOLVE_LOCAL_BANDS")
+                .ok()
+                .and_then(|v| v.parse::<usize>().ok())
+                .unwrap_or(if crate::simd::cpu_option("ZOPRO_SOLVE_LOCAL") {
+                    8
+                } else {
+                    0
+                })
+                .min(1024);
+            let minimum = std::env::var("ZOPRO_SOLVE_LOCAL_MIN_OPS")
+                .ok()
+                .and_then(|v| v.parse::<usize>().ok())
+                .unwrap_or(4096)
+                .max(32);
+            if local != 1 {
+                return (if exact {
+                    bounded::build_with_workspace(self, epochs, local, minimum, workspace)
+                } else {
+                    bounded::build(self, epochs, local, minimum)
+                })
+                .unwrap_or(Schedule {
+                    epochs: Vec::new(),
+                    refined: FxMap::default(),
+                    _reservation: None,
+                });
+            }
+        }
+        let Some(reservation) =
+            crate::preparation::Reservation::acquire(self.n_constraints, self.preparation_peak())
+        else {
+            return Schedule::default();
+        };
+        let local = std::env::var("ZOPRO_SOLVE_LOCAL_BANDS")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(if crate::simd::cpu_option("ZOPRO_SOLVE_LOCAL") {
+                8
+            } else {
+                0
+            })
+            .min(1024);
+        let minimum = std::env::var("ZOPRO_SOLVE_LOCAL_MIN_OPS")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(4096)
+            .max(32);
+        let penalty = std::env::var("ZOPRO_SOLVE_LOCAL_PENALTY")
+            .ok()
+            .and_then(|v| v.parse::<usize>().ok())
+            .unwrap_or(128)
+            .min(65536);
+        let mut schedule = self.build_schedule_with_refinement(epochs, local, minimum, penalty);
+        schedule._reservation = Some(reservation);
+        schedule
+    }
+
+    fn build_schedule_with_refinement(
+        &self,
+        epochs: usize,
+        local: usize,
+        minimum: usize,
+        penalty: usize,
+    ) -> Schedule {
         let n = self.ops.len();
         // Which op writes each wire and sum.
         let mut producer = vec![u32::MAX; self.n_wires + self.n_slots];
@@ -1102,7 +2161,7 @@ impl Plan {
             let root = find(&mut parent, i as u32);
             tasks[epoch_of(i)].entry(root).or_default().push(i as u32);
         }
-        let epochs = tasks
+        let epochs: Vec<Vec<Vec<u32>>> = tasks
             .into_iter()
             .map(|tasks| {
                 let mut tasks: Vec<Vec<u32>> = tasks.into_values().collect();
@@ -1111,7 +2170,153 @@ impl Plan {
             })
             .filter(|tasks| !tasks.is_empty())
             .collect();
-        Schedule { epochs }
+        let mut refined = FxMap::default();
+        if local > 0 {
+            for task in epochs.iter().flatten().filter(|t| t.len() >= minimum) {
+                let candidates: &[usize] = if local == 1 {
+                    &[4, 8, 16, 32, 64, 128]
+                } else {
+                    std::slice::from_ref(&local)
+                };
+                let mut best = None;
+                let mut best_score = task.len();
+                for &bands in candidates {
+                    let waves = self.refine_task(task, bands);
+                    let workers = rayon::current_num_threads().div_ceil(2).max(1);
+                    let score: usize = waves
+                        .iter()
+                        .map(|tasks| {
+                            let largest = tasks.iter().map(Vec::len).max().unwrap_or(0);
+                            let total: usize = tasks.iter().map(Vec::len).sum();
+                            largest.max(total.div_ceil(workers)) + penalty
+                        })
+                        .sum();
+                    if local != 1 || score < best_score {
+                        best_score = score;
+                        best = Some(waves);
+                    }
+                }
+                if let Some(waves) = best {
+                    if local != 1 || best_score <= task.len() - task.len() / 5 {
+                        refined.insert(task[0] as usize, waves);
+                    }
+                }
+            }
+        }
+        Schedule {
+            _reservation: None,
+            #[cfg(all(any(target_os = "ios", target_os = "android"), zopro_sparse_poseidon))]
+            poseidon_leaves: false,
+            epochs,
+            refined,
+        }
+    }
+
+    /// Split a component into local dependency bands. Parent components
+    /// have no dependencies on another component in the same outer epoch.
+    fn refine_task(&self, task: &[u32], bands: usize) -> Vec<Vec<Vec<u32>>> {
+        debug_assert!(!task.is_empty() && bands > 0);
+        let n = task.len();
+        let mut producer = vec![u32::MAX; self.n_wires + self.n_slots];
+        let mut depth = vec![0usize; n];
+        let mut reads = Vec::new();
+        for (i, &op) in task.iter().enumerate() {
+            self.reads(&self.ops[op as usize], &mut reads);
+            depth[i] = reads
+                .iter()
+                .filter_map(|&w| (producer[w] != u32::MAX).then(|| depth[producer[w] as usize] + 1))
+                .max()
+                .unwrap_or(0);
+            for wire in self.writes(&self.ops[op as usize]) {
+                producer[wire] = i as u32;
+            }
+        }
+        let deepest = depth.iter().copied().max().unwrap_or(0) + 1;
+        let bands = bands.min(deepest);
+        let band = |i: usize| depth[i] * bands / deepest;
+        let mut parent: Vec<usize> = (0..n).collect();
+        fn find(parent: &mut [usize], mut x: usize) -> usize {
+            while parent[x] != x {
+                parent[x] = parent[parent[x]];
+                x = parent[x];
+            }
+            x
+        }
+        for (i, &op) in task.iter().enumerate() {
+            self.reads(&self.ops[op as usize], &mut reads);
+            for &wire in &reads {
+                let p = producer[wire] as usize;
+                // Ignore external inputs and slots written/read by this op.
+                if p < i && band(p) == band(i) {
+                    let x = find(&mut parent, i);
+                    let y = find(&mut parent, p);
+                    parent[x] = y;
+                }
+            }
+        }
+        let mut tasks: Vec<FxMap<usize, Vec<u32>>> = (0..bands).map(|_| FxMap::default()).collect();
+        for (i, &op) in task.iter().enumerate() {
+            tasks[band(i)]
+                .entry(find(&mut parent, i))
+                .or_default()
+                .push(op);
+        }
+        tasks
+            .into_iter()
+            .map(|tasks| {
+                let mut tasks: Vec<_> = tasks.into_values().collect();
+                tasks.sort_unstable_by_key(|t| std::cmp::Reverse(t.len()));
+                tasks
+            })
+            .filter(|t| !t.is_empty())
+            .collect()
+    }
+
+    /// # Safety
+    /// Every read is initialized, and the schedule orders all writers
+    /// before readers. Distinct tasks write disjoint wires, slots and rows.
+    unsafe fn execute_schedule(&self, schedule: &Schedule, v: View) -> Result<(), String> {
+        let claims = solver_task_claims();
+        let serial = |task: &[u32]| -> Result<(), String> {
+            #[cfg(all(zopro_sparse_poseidon, not(any(target_os = "ios", target_os = "android"))))]
+            if self.poseidon_task(task) {
+                // SAFETY: only prepared, encoding-eligible leaves carry tags.
+                return unsafe { self.run_poseidon_task(task, v) };
+            }
+            #[cfg(all(target_os = "android", zopro_sparse_poseidon))]
+            if schedule.poseidon_leaves && self.poseidon_task(task) {
+                // SAFETY: only the leaves of a refined component are tagged.
+                return unsafe { self.run_poseidon_task(task, v) };
+            }
+            for &op in task {
+                // SAFETY: operations retain program order within a task.
+                unsafe {
+                    self.run(&self.ops[op as usize], v)?;
+                }
+            }
+            Ok(())
+        };
+        #[cfg(all(target_os = "android", feature = "trace"))]
+        let observed = (std::env::var("ZOPRO_ANDROID_EULER_STREAM_PROFILE").as_deref() == Ok("1"))
+            .then(crate::time::Instant::now);
+        for (_epoch_index, epoch) in schedule.epochs.iter().enumerate() {
+            visit_solver_tasks(epoch, claims, |task| {
+                if let Some(waves) = schedule.refined.get(&(task[0] as usize)) {
+                    for wave in waves {
+                        visit_solver_tasks(wave, claims, |part| serial(part))?;
+                    }
+                    Ok(())
+                } else {
+                    serial(task)
+                }
+            })?;
+            #[cfg(all(target_os = "android", feature = "trace"))]
+            if let Some(start) = observed {
+                log::info!("ZOPRO_TRACE android-euler-epoch-ready epoch={_epoch_index} {:.3} ms",
+                           start.elapsed().as_secs_f64() * 1000.0);
+            }
+        }
+        Ok(())
     }
 
     /// The wires and sums an op reads.
@@ -1198,19 +2403,81 @@ impl Plan {
                 return Ok(());
             }
         };
+        #[cfg(target_os = "android")]
+        let euler_fast = v.c.is_null() && {
+            static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+            *ENABLED.get_or_init(|| std::env::var("ZOPRO_ANDROID_SOLVER_DIRECT_MUL").as_deref() == Ok("1"))
+        };
+        #[cfg(not(target_os = "android"))]
+        let euler_fast = false;
+        if euler_fast && step.sums().is_empty() {
+            if let ([Expression::Wire(a), Expression::Wire(b), Expression::Zero], Some(assignment)) =
+                (&step.expressions, &step.assignment)
+            {
+                if assignment.side() == 2 && assignment.coefficient() == 1 {
+                    let left = get(*a as usize);
+                    let right = get(*b as usize);
+                    set(assignment.wire(), left * right);
+                    // SAFETY: the schedule gives each constraint its own row.
+                    unsafe {
+                        v.a.add(step.constraint()).write(left);
+                        v.b.add(step.constraint()).write(right);
+                    }
+                    return Ok(());
+                }
+            }
+        }
         let mut slot = self.n_wires + step.first_slot();
         let mut chain = Fr::ZERO;
-        for sum in &self.sums[step.sums()] {
-            let term = term_value(&sum.term);
-            chain = match sum.previous() {
+        let sums = &self.sums[step.sums()];
+        let mut i = 0;
+        while i < sums.len() {
+            let first = &sums[i];
+            let mut last = first;
+            let term = if self.fuse_sums >= 2
+                && i + 8 <= sums.len()
+                && sums[i..i + 8].iter().enumerate().all(|(j, sum)| {
+                    (j == 7 || !sum.stored())
+                        && (j == 0 || matches!(sum.previous(), Previous::Chain))
+                        && sum.term.wire() != 0
+                        && sum.term.coefficient() > 4
+                }) {
+                let coefficients =
+                    core::array::from_fn(|j| self.coefficients[sums[i + j].term.coefficient()]);
+                let values = core::array::from_fn(|j| get(sums[i + j].term.wire()));
+                last = &sums[i + 7];
+                i += 7;
+                dot8(coefficients, values)
+            } else if self.fuse_sums != 0
+                && !first.stored()
+                && i + 1 < sums.len()
+                && matches!(sums[i + 1].previous(), Previous::Chain)
+                && first.term.wire() != 0
+                && sums[i + 1].term.wire() != 0
+                && first.term.coefficient() > 4
+                && sums[i + 1].term.coefficient() > 4
+            {
+                last = &sums[i + 1];
+                i += 1;
+                Fr::sum_of_products(
+                    &self.coefficients[first.term.coefficient()],
+                    &get(first.term.wire()),
+                    &self.coefficients[last.term.coefficient()],
+                    &get(last.term.wire()),
+                )
+            } else {
+                term_value(&first.term)
+            };
+            chain = match first.previous() {
                 Previous::None => term,
                 Previous::Chain => chain + term,
                 Previous::Slot(previous) => get(previous) + term,
             };
-            if sum.stored() {
+            if last.stored() {
                 set(slot, chain);
                 slot += 1;
             }
+            i += 1;
         }
         let mut values = [Fr::ZERO; 3];
         for (value, expression) in values.iter_mut().zip(&step.expressions) {
@@ -1261,17 +2528,26 @@ impl Plan {
                 match assignment.coefficient() {
                     1 => term,
                     3 => -term,
-                    _ => term * assignment.inverse,
+                    _ => term * self.inverses.get(assignment.inverse),
                 },
             );
-        } else if values[0] * values[1] != values[2] {
-            return Err(fail());
+        } else {
+            let satisfied = if euler_fast && values[2].is_zero() {
+                values[0].is_zero() || values[1].is_zero()
+            } else {
+                values[0] * values[1] == values[2]
+            };
+            if !satisfied {
+                return Err(fail());
+            }
         }
         // SAFETY: each constraint's row is written by its own op only.
         unsafe {
-            *v.a.add(step.constraint()) = values[0];
-            *v.b.add(step.constraint()) = values[1];
-            *v.c.add(step.constraint()) = values[2];
+            v.a.add(step.constraint()).write(values[0]);
+            v.b.add(step.constraint()).write(values[1]);
+            if !v.c.is_null() {
+                v.c.add(step.constraint()).write(values[2]);
+            }
         }
         Ok(())
     }
@@ -1289,9 +2565,466 @@ impl Plan {
     }
 }
 
+// A linear-expression dot product in the host's R=2^256 representation.
+fn dot8(coefficients: [Fr; 8], values: [Fr; 8]) -> Fr {
+    #[cfg(all(
+        feature = "ifma8",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    ))]
+    {
+        use zopro_bn254::{ifma8::Ifma8, FrConfig};
+        return Ifma8::<FrConfig, true>::new(&coefficients)
+            .mul(&Ifma8::new(&values))
+            .horizontal_sum();
+    }
+    #[cfg(not(all(
+        feature = "ifma8",
+        target_arch = "x86_64",
+        target_feature = "avx512ifma",
+        target_feature = "avx512vl",
+        target_feature = "avx512dq",
+        not(no_ifma)
+    )))]
+    {
+        (0..8)
+            .step_by(2)
+            .map(|i| {
+                Fr::sum_of_products(
+                    &coefficients[i],
+                    &values[i],
+                    &coefficients[i + 1],
+                    &values[i + 1],
+                )
+            })
+            .fold(Fr::ZERO, |acc, x| acc + x)
+    }
+}
+
+impl Plan {
+    pub(crate) fn private_value_indices(&self, slots: &[usize]) -> Vec<u32> {
+        (self.n_public..self.n_wires)
+            .chain(slots.iter().copied())
+            .map(|i| i as u32)
+            .collect()
+    }
+    pub(crate) fn value_count(&self) -> usize {
+        self.n_wires + self.n_slots
+    }
+    pub(crate) fn equal_wire_groups(&self) -> Vec<[usize; 4]> {
+        // This optional metadata requires unique, initialized producers.
+        // Incomplete legacy images retain the original MSM path.
+        if !*self.definite.get_or_init(|| self.definitely_writes_all()) {
+            return Vec::new();
+        }
+
+        fn term(key: &mut Vec<u32>, t: &Term) {
+            key.extend([t.coefficient, (t.wire() == 0) as u32]);
+        }
+        fn expr(key: &mut Vec<u32>, e: &Expression, p: &Plan) {
+            match e {
+                Expression::Zero => key.push(0),
+                Expression::Wire(w) => key.extend([1, (*w == 0) as u32]),
+                Expression::Constant(c) => key.extend([2, *c]),
+                Expression::Term(t) => {
+                    key.push(3);
+                    term(key, &p.terms[*t as usize]);
+                }
+                Expression::Sum(a, b) => {
+                    key.extend([4, b - a]);
+                    for t in &p.terms[*a as usize..*b as usize] {
+                        term(key, t);
+                    }
+                }
+            }
+        }
+        let schedule = self.build_schedule_with_refinement(16, 0, 4096, 128);
+        let mut blocks = Vec::<[usize; 4]>::new();
+        let mut seen = vec![false; self.n_wires + self.n_slots];
+        for epoch in &schedule.epochs {
+            let mut classes: FxMap<Vec<u32>, Vec<&Vec<u32>>> = FxMap::default();
+            for task in epoch {
+                let mut key = vec![task.len() as u32];
+                for &i in task {
+                    match &self.ops[i as usize] {
+                        Op::Hint(h) => {
+                            key.extend([
+                                0,
+                                match h.kind {
+                                    HintKind::InvZero => 0,
+                                    HintKind::Bits => 1,
+                                },
+                                h.input().len() as u32,
+                                h.outputs().len() as u32,
+                            ]);
+                            for t in &self.terms[h.input()] {
+                                term(&mut key, t);
+                            }
+                        }
+                        Op::Constraint(s) => {
+                            key.extend([1, s.sums().len() as u32]);
+                            for sum in &self.sums[s.sums()] {
+                                key.extend([
+                                    match sum.previous() {
+                                        Previous::None => 0,
+                                        Previous::Chain => 1,
+                                        Previous::Slot(_) => 2,
+                                    },
+                                    sum.stored() as u32,
+                                ]);
+                                term(&mut key, &sum.term);
+                            }
+                            for e in &s.expressions {
+                                expr(&mut key, e, self);
+                            }
+                            match &s.assignment {
+                                None => key.push(0),
+                                Some(a) => key.extend([1, a.side as u32, a.coefficient]),
+                            }
+                        }
+                    }
+                }
+                classes.entry(key).or_default().push(task);
+            }
+            for mut tasks in classes.into_values() {
+                tasks.sort_unstable_by_key(|t| t[0]);
+                for group in tasks.chunks_exact(4) {
+                    for i in 0..group[0].len() {
+                        let wires: [Vec<_>; 4] =
+                            core::array::from_fn(|j| self.writes(&self.ops[group[j][i] as usize]));
+                        assert!(wires.iter().all(|w| w.len() == wires[0].len()));
+                        for k in 0..wires[0].len() {
+                            let block = core::array::from_fn(|j| wires[j][k]);
+                            for &w in &block {
+                                assert!(!seen[w]);
+                                seen[w] = true;
+                            }
+                            blocks.push(block);
+                        }
+                    }
+                }
+            }
+        }
+        blocks
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn claims_cover_skewed_waves_and_propagate_errors() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        for width in [1, 4, 9] {
+            let pool = rayon::ThreadPoolBuilder::new()
+                .num_threads(width)
+                .build()
+                .unwrap();
+            pool.install(|| {
+                for count in [0usize, 1, 4, 19, 160] {
+                    let jobs: Vec<_> = (0..count)
+                        .map(|i| vec![i as u32; if i == 0 { 37 } else { 1 }])
+                        .collect();
+                    for claims in [
+                        SolverTaskClaims::Rayon,
+                        SolverTaskClaims::Dynamic,
+                        SolverTaskClaims::Seeded,
+                    ] {
+                        let hits: Vec<_> = (0..count).map(|_| AtomicUsize::new(0)).collect();
+                        visit_solver_tasks(&jobs, claims, |job| {
+                            hits[job[0] as usize].fetch_add(1, Ordering::Relaxed);
+                            Ok(())
+                        })
+                        .unwrap();
+                        assert!(hits.iter().all(|h| h.load(Ordering::Relaxed) == 1));
+                        let result = visit_solver_tasks(&jobs, claims, |job| {
+                            if job[0] == 3 {
+                                Err("failed".to_owned())
+                            } else {
+                                Ok(())
+                            }
+                        });
+                        assert_eq!(result.is_err(), count > 3);
+                    }
+                }
+            });
+        }
+    }
+
+    #[test]
+    fn source_constants_and_accumulated_constants_preserve_solver_images() {
+        // Single source constants retain their original index. A sum of two
+        // constants still needs the generated-constant path when interning is off.
+        for split_seven in [false, true] {
+            let mut words = vec![2, 2, 2, 2, 13, 0, 0, 0];
+            for row in 0..12 {
+                if split_seven {
+                    words.extend([row, 2, 1, 1, 2, 0, 7, 0, 5, 0, 6, 0]);
+                } else {
+                    words.extend([row, 1, 1, 1, 5, 0, 5, 0, 6, 0]);
+                }
+            }
+            words.extend([12, 1, 1, 1, 1, 1, 1, 0, 1, 1]);
+            let coefficients = encode_fields(&[
+                Fr::ZERO,
+                Fr::ONE,
+                Fr::from(2u64),
+                -Fr::ONE,
+                -Fr::from(2u64),
+                Fr::from(7u64),
+                Fr::from(49u64),
+                Fr::from(5u64),
+            ]);
+            let plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
+            assert!(plan.coefficients.len() <= 9);
+            if !crate::simd::cpu_option("ZOPRO_CPU_COMPACT_COEFFS") {
+                assert_eq!(plan.coefficients.len(), if split_seven { 9 } else { 8 });
+            }
+            let image = plan.image();
+            for plan in [plan, Plan::from_image(&image).unwrap()] {
+                assert_eq!(plan.image(), image);
+                for y in [0u64, 9, 123] {
+                    let y = Fr::from(y);
+                    let solution = plan.solve(&[y]).unwrap();
+                    assert_eq!(solution.w, [Fr::ONE, y]);
+                    assert_eq!(&solution.a[..12], &[Fr::from(7u64); 12]);
+                    assert_eq!(&solution.b[..12], &[Fr::from(7u64); 12]);
+                    assert_eq!(&solution.c[..12], &[Fr::from(49u64); 12]);
+                    assert_eq!(
+                        (solution.a[12], solution.b[12], solution.c[12]),
+                        (y, Fr::ONE, y)
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn source_constants_in_hints_preserve_inverse_witness() {
+        for split_seven in [false, true] {
+            let mut words = vec![2, 2, 1, 1, 1, 1, 1, 0, 1];
+            if split_seven {
+                words.extend([u32::MAX, 0, 1, 2, 2, 0, 7, 0, 1, 2]);
+            } else {
+                words.extend([u32::MAX, 0, 1, 1, 5, 0, 1, 2]);
+            }
+            // InvZero(7) * 7 = 1, checking the generated hint wire.
+            words.extend([0, 1, 1, 1, 1, 1, 5, 0, 1, 0]);
+            let coefficients = encode_fields(&[
+                Fr::ZERO,
+                Fr::ONE,
+                Fr::from(2u64),
+                -Fr::ONE,
+                -Fr::from(2u64),
+                Fr::from(7u64),
+                Fr::from(49u64),
+                Fr::from(5u64),
+            ]);
+            let plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
+            if !crate::simd::cpu_option("ZOPRO_CPU_COMPACT_COEFFS") {
+                assert_eq!(plan.coefficients.len(), if split_seven { 9 } else { 8 });
+            }
+            let image = plan.image();
+            for plan in [plan, Plan::from_image(&image).unwrap()] {
+                assert_eq!(plan.image(), image);
+                let solution = plan.solve(&[]).unwrap();
+                let inverse = Fr::from(7u64).inverse().unwrap();
+                assert_eq!(solution.w, [Fr::ONE, inverse]);
+                assert_eq!(solution.a, [inverse]);
+                assert_eq!(solution.b, [Fr::from(7u64)]);
+                assert_eq!(solution.c, [Fr::ONE]);
+            }
+        }
+    }
+
+    #[test]
+    fn mapped_prefixes_validate_roundtrip_and_keep_the_owner_alive() {
+        let (words, coefficients) = with_sums();
+        let reference = Plan::new(&encode_words(&words), &coefficients).unwrap();
+        let image = reference.image();
+        let witness = [Fr::from(5u64), -Fr::from(5u64), Fr::from(25u64)];
+        let expected = reference.solve(&witness).unwrap();
+        let mut backing = vec![0u8; image.len() + 16];
+        let offset = (4 - backing.as_ptr() as usize % 4) % 4;
+        backing[offset..offset + image.len()].copy_from_slice(&image);
+        let owner: super::super::Image = std::sync::Arc::new(backing);
+        let bytes = owner.as_ref().as_ref();
+        let mut mapped =
+            Plan::from_image_with_owner(&bytes[offset..offset + image.len()], Some(&owner))
+                .unwrap();
+        assert_eq!(
+            matches!(mapped.sums, super::super::Store::Mapped { .. }),
+            cfg!(target_endian = "little")
+        );
+        if cfg!(target_endian = "little") {
+            assert_eq!(mapped.sums.owned_bytes(), Some(0));
+        }
+        assert_eq!(mapped.image(), image);
+        let got = mapped.solve(&witness).unwrap();
+        assert_eq!(got.w, expected.w);
+        assert_eq!(got.a, expected.a);
+        assert_eq!(got.b, expected.b);
+        assert_eq!(got.c, expected.c);
+        // Rewrites get private storage and preserve the immutable image.
+        mapped.sums.make_mut();
+        assert!(matches!(mapped.sums, super::super::Store::Owned(_)));
+        assert_eq!(mapped.image(), image);
+        assert_eq!(
+            &owner.as_ref().as_ref()[offset..offset + image.len()],
+            &image
+        );
+        let mapped = Plan::from_image_with_owner(
+            &owner.as_ref().as_ref()[offset..offset + image.len()],
+            Some(&owner),
+        )
+        .unwrap();
+        drop(owner);
+        assert_eq!(mapped.solve(&witness).unwrap().w, expected.w);
+        assert_eq!(mapped.image(), image);
+    }
+
+    #[test]
+    fn mapped_prefixes_reject_damage_and_fall_back_for_unaligned_or_unrelated_owners() {
+        let (words, coefficients) = with_sums();
+        let plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
+        let image = plan.image();
+        let owner: super::super::Image = std::sync::Arc::new(image.clone());
+        for end in 0..image.len() {
+            assert!(
+                Plan::from_image_with_owner(&owner.as_ref().as_ref()[..end], Some(&owner)).is_err()
+            );
+        }
+        let offset = 52
+            + 4 * (plan.a_indices.len() + plan.b_indices.len())
+            + 32 * plan.coefficients.len()
+            + 8 * plan.terms.len();
+        let mut damaged = image.clone();
+        damaged[offset + 8..offset + 12].copy_from_slice(&u32::MAX.to_le_bytes());
+        let damaged: super::super::Image = std::sync::Arc::new(damaged);
+        assert!(Plan::from_image_with_owner(damaged.as_ref().as_ref(), Some(&damaged)).is_err());
+        let mut backing = vec![0u8; image.len() + 16];
+        let offset = (4 - backing.as_ptr() as usize % 4) % 4 + 1;
+        backing[offset..offset + image.len()].copy_from_slice(&image);
+        let unaligned: super::super::Image = std::sync::Arc::new(backing);
+        let p = Plan::from_image_with_owner(
+            &unaligned.as_ref().as_ref()[offset..offset + image.len()],
+            Some(&unaligned),
+        )
+        .unwrap();
+        assert!(matches!(p.sums, super::super::Store::Owned(_)));
+        assert_eq!(p.image(), image);
+        let p = Plan::from_image_with_owner(&image, Some(&owner)).unwrap();
+        assert!(matches!(p.sums, super::super::Store::Owned(_)));
+        assert_eq!(p.image(), image);
+    }
+
+    #[test]
+    fn inverse_chunks_preserve_values_and_bound_capacity() {
+        let mut pool = Inverses::default();
+        assert_eq!(pool.insert(Fr::ONE).unwrap(), INVERSE_ONE);
+        assert_eq!(pool.insert(-Fr::ONE).unwrap(), INVERSE_MINUS_ONE);
+        assert!(pool.chunks.is_empty());
+        let mut expected = vec![Fr::ZERO];
+        expected.extend((2..=1025u64).map(Fr::from));
+        expected.extend((2..=1025u64).map(|v| -Fr::from(v)));
+        for (i, &value) in expected.iter().enumerate() {
+            assert_eq!(pool.insert(value).unwrap(), i as u32);
+            assert_eq!(pool.len, i + 1);
+            assert_eq!(pool.chunks.len(), (i + 1).div_ceil(INVERSE_CHUNK));
+            assert!(pool.chunks.capacity() <= (2 * pool.chunks.len()).max(4));
+        }
+        for (i, &value) in expected.iter().enumerate() {
+            assert_eq!(pool.get(i as u32), value);
+        }
+        assert_eq!(pool.get(INVERSE_ONE), Fr::ONE);
+        assert_eq!(pool.get(INVERSE_MINUS_ONE), -Fr::ONE);
+        assert_eq!(core::mem::size_of::<Assignment>(), 16);
+        if cfg!(target_pointer_width = "64") {
+            assert_eq!(core::mem::size_of::<Op>(), 72);
+        } else {
+            assert!(core::mem::size_of::<Op>() <= 72);
+        }
+        pool.len = INVERSE_MINUS_ONE as usize;
+        assert!(pool.insert(Fr::ZERO).is_err());
+    }
+
+    #[test]
+    fn arbitrary_assignment_coefficients_solve_and_roundtrip() {
+        for k in [
+            Fr::from(2u64),
+            -Fr::from(7u64),
+            Fr::from(999u64),
+            Fr::ONE,
+            -Fr::ONE,
+        ] {
+            // (k * internal X) * ONE = public Y.
+            let words = [2, 3, 2, 2, 1, 0, 0, 0, 0, 1, 1, 1, 5, 2, 1, 0, 1, 1];
+            let coefficients = encode_fields(&[
+                Fr::ZERO,
+                Fr::ONE,
+                Fr::from(2u64),
+                -Fr::ONE,
+                -Fr::from(2u64),
+                k,
+            ]);
+            let plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
+            let image = plan.image();
+            for plan in [plan, Plan::from_image(&image).unwrap()] {
+                assert_eq!(plan.image(), image);
+                for value in [0, 1, 37, 1001u64] {
+                    let x = Fr::from(value);
+                    let solution = plan.solve(&[k * x]).unwrap();
+                    assert_eq!(solution.w, [Fr::ONE, k * x, x]);
+                    assert_eq!(solution.a, [k * x]);
+                    assert_eq!(solution.b, [Fr::ONE]);
+                    assert_eq!(solution.c, [k * x]);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn image_preserves_arbitrary_reduced_inverse_payloads() {
+        let words = [2, 3, 2, 2, 1, 0, 0, 0, 0, 1, 1, 1, 5, 2, 1, 0, 1, 1];
+        let coefficients = encode_fields(&[
+            Fr::ZERO,
+            Fr::ONE,
+            Fr::from(2u64),
+            -Fr::ONE,
+            -Fr::from(2u64),
+            Fr::from(7u64),
+        ]);
+        for value in [
+            Fr::ZERO,
+            Fr::ONE,
+            -Fr::ONE,
+            Fr::from(123u64),
+            -Fr::from(456u64),
+        ] {
+            let mut plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
+            let index = plan.inverses.insert(value).unwrap();
+            let Op::Constraint(step) = &mut plan.ops[0] else {
+                panic!("constraint");
+            };
+            step.assignment.as_mut().unwrap().inverse = index;
+            let image = plan.image();
+            let loaded = Plan::from_image(&image).unwrap();
+            assert_eq!(loaded.image(), image);
+            let Op::Constraint(step) = &loaded.ops[0] else {
+                panic!("constraint");
+            };
+            assert_eq!(
+                loaded
+                    .inverses
+                    .get(step.assignment.as_ref().unwrap().inverse),
+                value
+            );
+        }
+    }
 
     fn encode_words(words: &[u32]) -> Vec<u8> {
         words.iter().flat_map(|v| v.to_le_bytes()).collect()
@@ -1312,6 +3045,214 @@ mod tests {
             ],
             encode_fields(&[Fr::ZERO, Fr::ONE, Fr::from(2u64), -Fr::ONE, -Fr::from(2u64)]),
         )
+    }
+
+    #[test]
+    fn refined_components_match_sequential_execution() {
+        fn plan(branches: usize) -> Plan {
+            let n_wires = branches + 5;
+            let mut coefficients =
+                vec![Fr::ZERO, Fr::ONE, Fr::from(2u64), -Fr::ONE, -Fr::from(2u64)];
+            coefficients.extend((0..branches).map(|i| Fr::from(i as u64 + 7)));
+            let assignment = |wire| {
+                Some(Assignment {
+                    side: 2,
+                    wire: wire as u32,
+                    coefficient: 1,
+                    inverse: INVERSE_ONE,
+                })
+            };
+            let mut ops = vec![Op::Constraint(Step {
+                constraint: 0,
+                sums: (0, 0),
+                first_slot: 0,
+                expressions: [Expression::Wire(2), Expression::Wire(2), Expression::Zero],
+                assignment: assignment(3),
+            })];
+            let mut sums = Vec::new();
+            for i in 0..branches {
+                sums.push(Sum {
+                    previous: NONE | STORED,
+                    term: Term::new(i + 5, 3),
+                });
+                ops.push(Op::Constraint(Step {
+                    constraint: i as u32 + 1,
+                    sums: (i as u32, i as u32 + 1),
+                    first_slot: i as u32,
+                    expressions: [
+                        Expression::Wire((n_wires + i) as u32),
+                        Expression::Constant(1),
+                        Expression::Zero,
+                    ],
+                    assignment: assignment(i + 4),
+                }));
+            }
+            let terms = (0..branches).map(|i| Term::new(1, i + 4)).collect();
+            ops.push(Op::Constraint(Step {
+                constraint: branches as u32 + 1,
+                sums: (branches as u32, branches as u32),
+                first_slot: branches as u32,
+                expressions: [
+                    Expression::Sum(0, branches as u32),
+                    Expression::Constant(1),
+                    Expression::Zero,
+                ],
+                assignment: assignment(branches + 4),
+            }));
+            ops.push(Op::Constraint(Step {
+                constraint: branches as u32 + 2,
+                sums: (branches as u32, branches as u32),
+                first_slot: branches as u32,
+                expressions: [
+                    Expression::Wire(branches as u32 + 4),
+                    Expression::Constant(1),
+                    Expression::Wire(1),
+                ],
+                assignment: None,
+            }));
+            Plan {
+                n_wires,
+                n_inputs: 3,
+                n_public: 2,
+                a_indices: Vec::new(),
+                b_indices: Vec::new(),
+                coefficients,
+                inverses: Inverses::default(),
+                terms,
+                sums: crate::Store::Owned(sums),
+                n_slots: branches,
+                n_constraints: branches + 3,
+                ops,
+                fuse_sums: 2,
+                schedule: std::sync::OnceLock::new(),
+                #[cfg(zopro_resource_schedule)]
+                b2_origins: std::sync::OnceLock::new(),
+                definite: std::sync::OnceLock::new(),
+            }
+        }
+        fn verify(plan: &Plan, schedule: &Schedule) {
+            for parent in schedule.epochs.iter().flatten() {
+                let Some(waves) = schedule.refined.get(&(parent[0] as usize)) else {
+                    continue;
+                };
+                let mut flattened: Vec<_> = waves.iter().flatten().flatten().copied().collect();
+                flattened.sort_unstable();
+                assert_eq!(&flattened, parent, "each original op occurs exactly once");
+                let mut location = std::collections::HashMap::new();
+                for (wave, tasks) in waves.iter().enumerate() {
+                    for (task, ops) in tasks.iter().enumerate() {
+                        for (position, &op) in ops.iter().enumerate() {
+                            assert!(location.insert(op, (wave, task, position)).is_none());
+                        }
+                    }
+                }
+                let mut producers = std::collections::HashMap::new();
+                for &op in parent {
+                    for wire in plan.writes(&plan.ops[op as usize]) {
+                        assert!(producers.insert(wire, op).is_none());
+                    }
+                }
+                let mut reads = Vec::new();
+                for &op in parent {
+                    plan.reads(&plan.ops[op as usize], &mut reads);
+                    for wire in &reads {
+                        let Some(&producer) = producers.get(wire) else {
+                            continue;
+                        };
+                        if producer == op {
+                            continue;
+                        }
+                        let p = location[&producer];
+                        let c = location[&op];
+                        assert!(
+                            p.0 < c.0 || (p.0 == c.0 && p.1 == c.1 && p.2 < c.2),
+                            "a producer must complete before its reader"
+                        );
+                    }
+                }
+            }
+        }
+        fn run(
+            plan: &Plan,
+            schedule: Option<&Schedule>,
+            x: Fr,
+            bad: bool,
+            materialize_c: bool,
+        ) -> (Result<(), String>, Vec<Vec<Fr>>) {
+            let weight = plan.coefficients[5..]
+                .iter()
+                .copied()
+                .fold(Fr::ZERO, |a, b| a + b);
+            let mut w = vec![Fr::ZERO; plan.n_wires + plan.n_slots];
+            w[0] = Fr::ONE;
+            w[1] = x * x * weight + if bad { Fr::ONE } else { Fr::ZERO };
+            w[2] = x;
+            let mut a = vec![Fr::ZERO; plan.n_constraints];
+            let mut b = a.clone();
+            let mut c = if materialize_c { a.clone() } else { Vec::new() };
+            let view = View {
+                w: w.as_mut_ptr(),
+                a: a.as_mut_ptr(),
+                b: b.as_mut_ptr(),
+                c: if materialize_c {
+                    c.as_mut_ptr()
+                } else {
+                    core::ptr::null_mut()
+                },
+            };
+            let result = if let Some(schedule) = schedule {
+                // SAFETY: the checked schedule owns all writes and orders dependencies.
+                unsafe { plan.execute_schedule(schedule, view) }
+            } else {
+                let mut result = Ok(());
+                for op in &plan.ops {
+                    // SAFETY: the synthetic plan is in dependency order.
+                    if let Err(error) = unsafe { plan.run(op, view) } {
+                        result = Err(error);
+                        break;
+                    }
+                }
+                result
+            };
+            (result, vec![w, a, b, c])
+        }
+        let plan = plan(128);
+        assert!(plan.definitely_writes_all());
+        #[cfg(all(target_os = "macos", target_arch = "aarch64", zopro_bounded_schedule))]
+        {
+            let schedule = bounded::build(&plan, 4, 0, 0).expect("bounded schedule");
+            verify(&plan, &schedule);
+            let expected = run(&plan, None, Fr::ONE, false, true);
+            assert_eq!(run(&plan, Some(&schedule), Fr::ONE, false, true), expected);
+        }
+        for outer in [1, 2, 4] {
+            for local in [0, 1, 2, 4, 8, 64] {
+                let schedule = plan.build_schedule_with_refinement(outer, local, 16, 0);
+                verify(&plan, &schedule);
+                if outer == 1 && local >= 2 {
+                    assert!(!schedule.refined.is_empty());
+                }
+                for threads in [1, 4, 16] {
+                    let pool = rayon::ThreadPoolBuilder::new()
+                        .num_threads(threads)
+                        .build()
+                        .unwrap();
+                    for x in [Fr::ZERO, Fr::ONE, -Fr::ONE, Fr::from(1234567u64)] {
+                        for materialize_c in [false, true] {
+                            let expected = run(&plan, None, x, false, materialize_c);
+                            assert!(expected.0.is_ok());
+                            let actual = pool
+                                .install(|| run(&plan, Some(&schedule), x, false, materialize_c));
+                            assert_eq!(actual, expected);
+                            assert!(pool
+                                .install(|| run(&plan, Some(&schedule), x, true, materialize_c))
+                                .0
+                                .is_err());
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// The parallel solve of a dumped circuit (ZOPRO_DUMP=<dir>, every
@@ -1384,6 +3325,38 @@ mod tests {
     }
 
     #[test]
+    fn shared_instruction_pool_preserves_concurrent_witnesses_and_errors() {
+        let (words, coefficients) = small();
+        let plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(2)
+            .build()
+            .unwrap();
+        std::thread::scope(|scope| {
+            for value in [3u64, 7, 11, 13] {
+                let plan = &plan;
+                let pool = &pool;
+                scope.spawn(move || {
+                    let x = Fr::from(value);
+                    let witness = [x * x, x];
+                    let solve =
+                        |inputs: &[Fr]| plan.solve_with_pool(inputs, 4, &[], true, Some(pool));
+                    assert_eq!(
+                        solve(&[Fr::ZERO, x]).err().unwrap(),
+                        "constraint #0 is not satisfied"
+                    );
+                    let actual = solve(&witness).unwrap();
+                    let expected = plan.solve_in(&witness, 4).unwrap();
+                    assert_eq!(
+                        (actual.w, actual.a, actual.b, actual.c),
+                        (expected.w, expected.a, expected.b, expected.c)
+                    );
+                });
+            }
+        });
+    }
+
+    #[test]
     fn solves_and_rejects_invalid_witnesses() {
         let (words, coefficients) = small();
         let plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
@@ -1404,6 +3377,41 @@ mod tests {
         }
         assert!(plan.solve(&[]).is_err());
         assert!(plan.solve(&[Fr::ZERO; 3]).is_err());
+    }
+
+    #[cfg(gpu)]
+    #[test]
+    fn metal_rows_are_reusable_after_a_failed_witness() {
+        use core::mem::MaybeUninit;
+
+        let (words, coefficients) = small();
+        let plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
+        let mut rows = [[MaybeUninit::new(Fr::from(100u64)); 4]; 3];
+        for (x, materialize_c, c_len) in [
+            (Fr::from(9u64), true, 4),
+            (Fr::from(17u64), false, 4),
+            (Fr::from(23u64), false, 0),
+            (Fr::ZERO, true, 4),
+        ] {
+            let [a, b, c] = &mut rows;
+            let invalid = [x * x + Fr::ONE, x];
+            assert!(plan.solve_with_metal_rows(&invalid, 4, &[], materialize_c, [a, b, &mut c[..c_len]]).is_err());
+
+            let [a, b, c] = &mut rows;
+            let witness = [x * x, x];
+            let solved = plan.solve_with_metal_rows(&witness, 4, &[], materialize_c, [a, b, &mut c[..c_len]]).unwrap();
+            let reference = plan.solve(&witness).unwrap();
+            assert_eq!(solved.w, reference.w);
+            assert!(solved.a.is_empty() && solved.b.is_empty() && solved.c.is_empty());
+            let required = if materialize_c { 3 } else { 2 };
+            for (row, values) in rows[..required].iter().zip([reference.a, reference.b, reference.c]) {
+                // SAFETY: all entries of the requested rows, including
+                // padding, were initialized by the successful solve.
+                let actual = row.map(|value| unsafe { value.assume_init() });
+                assert_eq!(&actual[..2], values);
+                assert_eq!(&actual[2..], &[Fr::ZERO; 2]);
+            }
+        }
     }
 
     #[test]
@@ -1436,6 +3444,10 @@ mod tests {
     // ONE, X, Y, Z, then U, V and V²: a long linear expression shared by
     // three constraints, interned as sums.
     fn with_sums() -> (Vec<u32>, Vec<u8>) {
+        with_linear_base(vec![2, 1, 3, 2, 5, 3])
+    }
+
+    fn with_linear_base(base: Vec<u32>) -> (Vec<u32>, Vec<u8>) {
         let mut coefficients = small().1;
         coefficients.extend(encode_fields(&[
             Fr::from(3u64),
@@ -1445,7 +3457,6 @@ mod tests {
         let mut program = vec![
             2, 7, 4, 1, 3, 0, 7, 7, 0, 1, 2, 3, 4, 5, 6, 0, 1, 2, 3, 4, 5, 6,
         ];
-        let base = vec![2, 1, 3, 2, 5, 3]; // 2X - Y + 3Z
         let mut first = base.clone();
         first.extend([6, 0]);
         let mut second = base;
@@ -1469,6 +3480,50 @@ mod tests {
             }
         }
         (program, coefficients)
+    }
+
+    #[test]
+    fn fused_sums_preserve_stored_prefixes_and_images() {
+        for terms in [3, 8, 11] {
+            let base: Vec<u32> = (0..terms).flat_map(|i| [5 + i % 3, 1 + i % 3]).collect();
+            let (program, coefficients) = with_linear_base(base.clone());
+            let mut reference = Plan::new(&encode_words(&program), &coefficients).unwrap();
+            reference.fuse_sums = 0;
+            assert!(reference.sums.windows(terms as usize).any(|run| {
+                run.iter().enumerate().all(|(i, s)| {
+                    (i + 1 == run.len() || !s.stored())
+                        && (i == 0 || matches!(s.previous(), Previous::Chain))
+                        && s.term.wire() != 0
+                        && s.term.coefficient() > 4
+                })
+            }));
+            for mode in [1, 2] {
+                let mut fused = Plan::from_image(&reference.image()).unwrap();
+                fused.fuse_sums = mode;
+                for sample in 0..50u64 {
+                    let x = Fr::from(sample);
+                    let y = -x;
+                    let z = x * x;
+                    let inputs = [x, y, z];
+                    let weights = [Fr::from(3u64), Fr::from(5u64), Fr::from(7u64)];
+                    let value: Fr = base
+                        .chunks_exact(2)
+                        .map(|term| {
+                            weights[(term[0] - 5) as usize] * inputs[(term[1] - 1) as usize]
+                        })
+                        .fold(Fr::ZERO, |acc, x| acc + x);
+                    let u = (value + Fr::from(5u64)).square();
+                    let v = value + u + Fr::from(7u64);
+                    let expected = reference.solve(&inputs).unwrap();
+                    let actual = fused.solve(&inputs).unwrap();
+                    assert_eq!(actual.w, [Fr::ONE, x, y, z, u, v, v * v]);
+                    assert_eq!(actual.w, expected.w);
+                    assert_eq!(actual.a, expected.a);
+                    assert_eq!(actual.b, expected.b);
+                    assert_eq!(actual.c, expected.c);
+                }
+            }
+        }
     }
 
     #[test]
@@ -1590,6 +3645,16 @@ mod tests {
             plan.solve(&[Fr::ZERO]).err().unwrap(),
             "constraint #3 is not satisfied"
         );
+        // Omitting output rows must still reject unsatisfied constraints.
+        assert_eq!(
+            plan.solve_in_with_slots(&[Fr::ZERO], 4, &[], false).err(),
+            Some("constraint #3 is not satisfied".to_string())
+        );
+        assert_eq!(
+            plan.solve_in_with_slots(&[Fr::from(4u64)], 4, &[], false)
+                .err(),
+            Some("constraint #2 is not satisfied".to_string())
+        );
         // Two bits do not hold four.
         assert_eq!(
             plan.solve(&[Fr::from(4u64)]).err().unwrap(),
@@ -1665,6 +3730,60 @@ mod tests {
         let mut changed = coefficients.clone();
         changed.extend(Fr::MODULUS.iter().flat_map(|w| w.to_le_bytes()));
         assert!(Plan::new(&bytes, &changed).is_err());
+    }
+
+    #[test]
+    fn linear_c_metadata_matches_fresh_solver_rows() {
+        let (small_words, coefficients) = small();
+        let (sums_words, sums_coefficients) = with_sums();
+        for (program, coefficients, witness) in [
+            (
+                small_words,
+                coefficients.clone(),
+                vec![Fr::from(9u64), Fr::from(3u64)],
+            ),
+            (
+                sums_words,
+                sums_coefficients,
+                vec![Fr::from(5u64), -Fr::from(5u64), Fr::from(25u64)],
+            ),
+            (with_hints(), coefficients, vec![Fr::from(3u64)]),
+        ] {
+            let plan = Plan::new(&encode_words(&program), &coefficients).unwrap();
+            for plan in [&plan, &reloaded(&plan)] {
+                assert!(plan.definitely_writes_all());
+                let slots: Vec<_> = (plan.n_wires..plan.n_wires + plan.n_slots).collect();
+                let solution = plan
+                    .solve_in_with_slots(&witness, plan.n_constraints, &slots, true)
+                    .unwrap();
+                let mut c = vec![Fr::ZERO; plan.n_constraints];
+                for term in plan.linear_c().terms {
+                    c[term.row] += term.coefficient * solution.w[term.wire];
+                }
+                assert_eq!(c, solution.c);
+                let without_c = plan
+                    .solve_in_with_slots(&witness, plan.n_constraints, &slots, false)
+                    .unwrap();
+                assert_eq!(solution.w, without_c.w);
+                assert_eq!(solution.a, without_c.a);
+                assert_eq!(solution.b, without_c.b);
+                assert!(without_c.c.is_empty());
+            }
+        }
+    }
+
+    #[test]
+    fn incomplete_images_keep_initialized_storage() {
+        let (words, coefficients) = small();
+        let mut plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
+        assert!(plan.definitely_writes_all());
+        plan.ops.pop(); // Missing one output row must retain the safe fallback.
+        let plan = reloaded(&plan);
+        assert!(!plan.definitely_writes_all());
+        assert!(plan.equal_wire_groups().is_empty());
+        let solution = plan.solve(&[Fr::from(9u64), Fr::from(3u64)]).unwrap();
+        assert!(solution.a.iter().any(|v| *v == Fr::ZERO));
+        assert_eq!(solution.w[3], Fr::from(9u64));
     }
 
     #[test]
@@ -1806,3 +3925,18 @@ mod tests {
         );
     }
 }
+
+impl Plan {
+    pub(crate) fn stored_slot_count(&self) -> usize {
+        self.n_slots
+    }
+    pub(crate) fn input_count(&self) -> usize {
+        self.n_inputs
+    }
+}
+
+#[cfg(zopro_sparse_poseidon)]
+mod sparse_poseidon;
+
+#[cfg(zopro_resource_schedule)]
+pub(crate) use sparse_poseidon::{B2Origins, RuntimeAliases};

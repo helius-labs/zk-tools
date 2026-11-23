@@ -1,0 +1,126 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "field.glsl"
+#include "points.glsl"
+
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Bases { affine values[]; } bases;
+layout(std430, set = 0, binding = 1) readonly buffer Sorted { uint values[]; } sorted;
+layout(std430, set = 0, binding = 2) readonly buffer Histogram { uint values[]; } histogram;
+layout(std430, set = 0, binding = 3) readonly buffer Offsets { uvec4 values[]; } offsets;
+layout(std430, set = 0, binding = 4) readonly buffer Totals { uvec4 values[]; } totals;
+layout(std430, set = 0, binding = 5) buffer Output { affine values[]; } outputs;
+layout(std140, set = 0, binding = 6) uniform Shards {
+  uint first_window;
+  uint half_range;
+  uint stride;
+  uint level;
+} args;
+layout(std430, set = 0, binding = 7) readonly buffer ShardBuckets { uint values[]; } shard_buckets;
+
+affine signed_base(uint encoded) {
+  const uint sign = 0x80000000u;
+  affine point = bases.values[encoded & ~sign];
+  if ((encoded & sign) != 0u)
+    point.y = fp_neg(point.y);
+  return point;
+}
+
+#include "fp_binary_inverse.glsl"
+
+const uint points_per_shard = 32u;
+const uint pairs_per_shard = 16u;
+const uint threads = 64u;
+const uint batch_size = 128u;
+
+bool infinity(affine point) {
+  return fp_is_zero(point.x) && fp_is_zero(point.y);
+}
+
+affine affine_infinity() {
+  return affine(fp_zero(), fp_zero());
+}
+
+// The same pair predicate is used when making the prefix and recovering its
+// inverse. Identity and cancellation consume a factor of one.
+bool load_pair(uint shard, uint pair_index, uint window, out affine p, out affine q) {
+  if (shard >= totals.values[window].y)
+    return false;
+  const uint bucket = shard_buckets.values[window * args.stride + shard];
+  const uvec4 start = offsets.values[bucket];
+  const uint before = (shard - start.y) * points_per_shard;
+  const uint length = min(points_per_shard, histogram.values[bucket] - before);
+  const uint pair = pair_index * 2u;
+  if (pair >= length)
+    return false;
+  const uint first = start.x + before + pair;
+  p = signed_base(sorted.values[first]);
+  q = pair + 1u < length ? signed_base(sorted.values[first + 1u]) : affine_infinity();
+  return true;
+}
+
+fp affine_denominator(affine p, affine q, out bool adds, out bool doubles) {
+  const fp difference = fp_sub(q.x, p.x);
+  const bool same_x = fp_is_zero(difference);
+  const bool both = !infinity(p) && !infinity(q);
+  doubles = both && same_x && !fp_is_zero(p.y) && fp_is_zero(fp_sub(q.y, p.y));
+  adds = both && !same_x;
+  return adds ? difference : doubles ? fp_add(p.y, p.y) : fp_one();
+}
+
+affine sum_pair(affine p, affine q, fp inverse, bool adds, bool doubles) {
+  if (!adds && !doubles) {
+    if (infinity(p)) return q;
+    if (infinity(q)) return p;
+    return affine_infinity();
+  }
+  fp numerator;
+  if (doubles) {
+    const fp square = fp_square(p.x);
+    numerator = fp_add(square, fp_add(square, square));
+  } else {
+    numerator = fp_sub(q.y, p.y);
+  }
+  const fp slope = fp_mul(numerator, inverse);
+  const fp x = fp_sub(fp_sub(fp_square(slope), p.x), q.x);
+  const fp y = fp_sub(fp_mul(slope, fp_sub(p.x, x)), p.y);
+  return affine(x, y);
+}
+
+void main() {
+  const uint relative_window = gl_WorkGroupID.y;
+  const uint window = args.first_window + relative_window;
+  const uint start = gl_WorkGroupID.x * threads * batch_size + gl_LocalInvocationID.x;
+  const uint active_pairs = totals.values[window].y * pairs_per_shard;
+  if (start >= active_pairs)
+    return;
+  const uint base = relative_window * args.stride * pairs_per_shard;
+  const uint length = min(batch_size, 1u + (active_pairs - 1u - start) / threads);
+  fp product = fp_one();
+  [[dont_unroll]] for (uint j = 0u; j < length; ++j) {
+    const uint pair = start + threads * j;
+    affine p, q;
+    if (load_pair(pair / pairs_per_shard, pair % pairs_per_shard, window, p, q)) {
+      bool adds, doubles;
+      const fp denominator = affine_denominator(p, q, adds, doubles);
+      outputs.values[base + pair].x = product;
+      if (adds || doubles)
+        product = fp_mul(product, denominator);
+    }
+  }
+  fp inverse = field_inverse(product);
+  [[dont_unroll]] for (uint j = length; j > 0u; --j) {
+    const uint pair = start + threads * (j - 1u);
+    affine p, q;
+    if (load_pair(pair / pairs_per_shard, pair % pairs_per_shard, window, p, q)) {
+      bool adds, doubles;
+      const fp denominator = affine_denominator(p, q, adds, doubles);
+      fp pair_inverse = fp_one();
+      if (adds || doubles) {
+        pair_inverse = fp_mul(inverse, outputs.values[base + pair].x);
+        inverse = fp_mul(inverse, denominator);
+      }
+      outputs.values[base + pair] = sum_pair(p, q, pair_inverse, adds, doubles);
+    }
+  }
+}

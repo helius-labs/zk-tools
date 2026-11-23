@@ -1,0 +1,44 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "field.glsl"
+#define SORT_UNIFORM 2
+#include "digits.glsl"
+#include "booth.glsl"
+#ifdef ZOPRO_BOOTH_PARTITIONS
+#include "resident_partitions.glsl"
+#endif
+
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Scalars { fr values[]; } scalars;
+layout(std430, set = 0, binding = 1) buffer Counts { uint values[]; } counts;
+
+void main() {
+  const uint i = sort.offset + gl_GlobalInvocationID.x;
+#ifdef ZOPRO_BOOTH_GROUPED
+  if (i >= sort.n)
+    return;
+  const fr scalar = scalars.values[i];
+  const uint first = gl_WorkGroupID.y * 4u;
+  const uint end = min(first + 4u, sort.windows);
+  [[dont_unroll]] for (uint window = first; window < end; ++window) {
+    const int digit = booth_digit(scalar, window);
+    if (digit != 0)
+      atomicAdd(counts.values[window * sort.half_range + uint(abs(digit)) - 1u], 1u);
+  }
+#else
+  const uint window = gl_WorkGroupID.y;
+  if (i >= sort.n)
+    return;
+  const int digit = booth_digit(scalars.values[i], window);
+#ifdef ZOPRO_BOOTH_PARTITIONS
+  if (digit != 0) {
+    const uint partition_start = (i >> PARTITION_SHIFT) * sort.windows * sort.half_range;
+    const uint bucket = window * sort.half_range + uint(abs(digit)) - 1u;
+    atomicAdd(counts.values[partition_start + bucket], 1u);
+  }
+#else
+  if (digit != 0)
+    atomicAdd(counts.values[window * sort.half_range + uint(abs(digit)) - 1u], 1u);
+#endif
+#endif
+}

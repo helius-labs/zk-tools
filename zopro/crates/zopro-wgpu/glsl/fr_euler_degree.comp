@@ -1,0 +1,17 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "field.glsl"
+
+// The inverse transform leaves the coefficients in bit-reversed order.
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) buffer Values { fr values[]; } polynomial;
+layout(std430, set = 0, binding = 1) readonly buffer Degrees { fr values[]; } degree;
+layout(std140, set = 0, binding = 2) uniform Size { uint n; uint rows_count; uint low; } size;
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if (i < size.n) {
+    const fr weight = fr_add(degree.values[i & (size.low - 1u)], degree.values[size.low + i / size.low]);
+    polynomial.values[i] = fr_mul(polynomial.values[i], weight);
+  }
+}

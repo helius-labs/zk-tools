@@ -1,0 +1,18 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "field.glsl"
+
+// Evaluate N*(E(A)*B + A*E(B)) at the original populated rows.
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) buffer Values { fr values[]; } derivative;
+layout(std430, set = 0, binding = 1) readonly buffer Rows { fr values[]; } rows;
+layout(std140, set = 0, binding = 2) uniform Size { uint n; uint rows_count; uint low; } size;
+
+void main() {
+  const uint i = gl_GlobalInvocationID.x;
+  if (i < size.rows_count) {
+    const fr da_b = fr_mul(derivative.values[i], rows.values[size.rows_count + i]);
+    const fr a_db = fr_mul(rows.values[i], derivative.values[size.n + i]);
+    derivative.values[i] = fr_add(da_b, a_db);
+  }
+}

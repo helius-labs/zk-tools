@@ -1,0 +1,15 @@
+#version 450
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Bands { uint values[]; } bands;
+layout(std430, set = 0, binding = 1) readonly buffer Tags { uint values[]; } tags;
+layout(std430, set = 0, binding = 2) buffer Order { uint values[]; } order;
+layout(std140, set = 0, binding = 3) uniform Shards { uint count; uint p1; uint p2; uint p3; } shards;
+
+void main() {
+  const uint shard = gl_GlobalInvocationID.x;
+  if (shard >= shards.count)
+    return;
+  const uint tag = tags.values[shard];
+  const uint at = bands.values[tag >> 21u] + (tag & 0x1fffffu);
+  order.values[at] = shard;
+}

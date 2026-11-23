@@ -8,6 +8,9 @@
 // (13 % off the OnePlus 13's bucket accumulation).
 // Copyright (c) 2026 Helius Blockchain Technologies, Inc.
 #extension GL_EXT_control_flow_attributes : require
+#if defined(ZOPRO_VULKAN_WIDE_FP) || defined(ZOPRO_VULKAN_WIDE_FR)
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#endif
 struct fp { uint l0, l1, l2, l3, l4, l5, l6, l7; };
 const uint Q0 = 0xd87cfd47u;
 const uint Q1 = 0x3c208c16u;
@@ -67,6 +70,75 @@ fp fp_sub(fp a, fp b) {
   d7 = uaddCarry(d7, Q7 & mask, c1); d7 = uaddCarry(d7, c, c2); c = c1 + c2;
   return fp(d0, d1, d2, d3, d4, d5, d6, d7);
 }
+#ifdef ZOPRO_VULKAN_WIDE_FP
+fp fp_mul(fp a, fp b) {
+  // Interleave the ordinary product and Montgomery reduction.
+  uint t0 = 0u, t1 = 0u, t2 = 0u, t3 = 0u;
+  uint t4 = 0u, t5 = 0u, t6 = 0u, t7 = 0u;
+  [[dont_unroll]] for (uint j = 0u; j < 8u; ++j) {
+    uint bj;
+    switch (j) {
+      case 0u: bj = b.l0; break;
+      case 1u: bj = b.l1; break;
+      case 2u: bj = b.l2; break;
+      case 3u: bj = b.l3; break;
+      case 4u: bj = b.l4; break;
+      case 5u: bj = b.l5; break;
+      case 6u: bj = b.l6; break;
+      default: bj = b.l7; break;
+    }
+    uint64_t product = uint64_t(a.l0) * bj + t0;
+    t0 = uint(product);
+    product >>= 32;
+    const uint m = t0 * FP_INV;
+    uint64_t reduction = (uint64_t(m) * Q0 + t0) >> 32;
+    product += uint64_t(a.l1) * bj + t1;
+    t1 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q1 + t1;
+    t0 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l2) * bj + t2;
+    t2 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q2 + t2;
+    t1 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l3) * bj + t3;
+    t3 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q3 + t3;
+    t2 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l4) * bj + t4;
+    t4 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q4 + t4;
+    t3 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l5) * bj + t5;
+    t5 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q5 + t5;
+    t4 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l6) * bj + t6;
+    t6 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q6 + t6;
+    t5 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l7) * bj + t7;
+    t7 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q7 + t7;
+    t6 = uint(reduction);
+    reduction >>= 32;
+    t7 = uint(product + reduction);
+  }
+  return fp_reduce_once(t0, t1, t2, t3, t4, t5, t6, t7);
+}
+#else
 fp fp_mul(fp a, fp b) {
   // The unrolled rounds of field_gen.glsl as a loop over b's limbs: an
   // eighth of the code, for shader compilers that take minutes over the
@@ -104,6 +176,7 @@ fp fp_mul(fp a, fp b) {
   }
   return fp_reduce_once(t0, t1, t2, t3, t4, t5, t6, t7);
 }
+#endif
 
 fp fp_square(fp a) {
   // a^2 with the cross products a_i a_j (i < j) computed once and
@@ -584,6 +657,129 @@ fr fr_sub(fr a, fr b) {
   d7 = uaddCarry(d7, RQ7 & mask, c1); d7 = uaddCarry(d7, c, c2); c = c1 + c2;
   return fr(d0, d1, d2, d3, d4, d5, d6, d7);
 }
+#ifdef ZOPRO_FFT_LOOSE_FIELD
+// Within one tile, use representatives below 2r. Sums are below 4r
+// and products are below r * 2^256. Normalize again at tile output.
+fr fr_tile_reduce_2r(uint t0, uint t1, uint t2, uint t3, uint t4, uint t5, uint t6, uint t7) {
+  uint b = 0u, b1, b2;
+  uint d0 = usubBorrow(t0, 0xe0000002u, b1); d0 = usubBorrow(d0, b, b2); b = b1 | b2;
+  uint d1 = usubBorrow(t1, 0x87c3eb27u, b1); d1 = usubBorrow(d1, b, b2); b = b1 | b2;
+  uint d2 = usubBorrow(t2, 0xf372e122u, b1); d2 = usubBorrow(d2, b, b2); b = b1 | b2;
+  uint d3 = usubBorrow(t3, 0x5067d090u, b1); d3 = usubBorrow(d3, b, b2); b = b1 | b2;
+  uint d4 = usubBorrow(t4, 0x0302b0bau, b1); d4 = usubBorrow(d4, b, b2); b = b1 | b2;
+  uint d5 = usubBorrow(t5, 0x70a08b6du, b1); d5 = usubBorrow(d5, b, b2); b = b1 | b2;
+  uint d6 = usubBorrow(t6, 0xc2634053u, b1); d6 = usubBorrow(d6, b, b2); b = b1 | b2;
+  uint d7 = usubBorrow(t7, 0x60c89ce5u, b1); d7 = usubBorrow(d7, b, b2); b = b1 | b2;
+  return fr(b != 0u ? t0 : d0, b != 0u ? t1 : d1, b != 0u ? t2 : d2, b != 0u ? t3 : d3, b != 0u ? t4 : d4, b != 0u ? t5 : d5, b != 0u ? t6 : d6, b != 0u ? t7 : d7);
+}
+fr fr_tile_add(fr a, fr b) {
+  uint c = 0u, c1, c2;
+  uint s0 = uaddCarry(a.l0, b.l0, c1); s0 = uaddCarry(s0, c, c2); c = c1 + c2;
+  uint s1 = uaddCarry(a.l1, b.l1, c1); s1 = uaddCarry(s1, c, c2); c = c1 + c2;
+  uint s2 = uaddCarry(a.l2, b.l2, c1); s2 = uaddCarry(s2, c, c2); c = c1 + c2;
+  uint s3 = uaddCarry(a.l3, b.l3, c1); s3 = uaddCarry(s3, c, c2); c = c1 + c2;
+  uint s4 = uaddCarry(a.l4, b.l4, c1); s4 = uaddCarry(s4, c, c2); c = c1 + c2;
+  uint s5 = uaddCarry(a.l5, b.l5, c1); s5 = uaddCarry(s5, c, c2); c = c1 + c2;
+  uint s6 = uaddCarry(a.l6, b.l6, c1); s6 = uaddCarry(s6, c, c2); c = c1 + c2;
+  uint s7 = uaddCarry(a.l7, b.l7, c1); s7 = uaddCarry(s7, c, c2); c = c1 + c2;
+  return fr_tile_reduce_2r(s0, s1, s2, s3, s4, s5, s6, s7);
+}
+fr fr_tile_sub(fr a, fr b) {
+  uint b0 = 0u, b1, b2;
+  uint d0 = usubBorrow(a.l0, b.l0, b1); d0 = usubBorrow(d0, b0, b2); b0 = b1 | b2;
+  uint d1 = usubBorrow(a.l1, b.l1, b1); d1 = usubBorrow(d1, b0, b2); b0 = b1 | b2;
+  uint d2 = usubBorrow(a.l2, b.l2, b1); d2 = usubBorrow(d2, b0, b2); b0 = b1 | b2;
+  uint d3 = usubBorrow(a.l3, b.l3, b1); d3 = usubBorrow(d3, b0, b2); b0 = b1 | b2;
+  uint d4 = usubBorrow(a.l4, b.l4, b1); d4 = usubBorrow(d4, b0, b2); b0 = b1 | b2;
+  uint d5 = usubBorrow(a.l5, b.l5, b1); d5 = usubBorrow(d5, b0, b2); b0 = b1 | b2;
+  uint d6 = usubBorrow(a.l6, b.l6, b1); d6 = usubBorrow(d6, b0, b2); b0 = b1 | b2;
+  uint d7 = usubBorrow(a.l7, b.l7, b1); d7 = usubBorrow(d7, b0, b2); b0 = b1 | b2;
+  const uint mask = 0u - b0;
+  uint c = 0u, c1, c2;
+  d0 = uaddCarry(d0, 0xe0000002u & mask, c1); d0 = uaddCarry(d0, c, c2); c = c1 + c2;
+  d1 = uaddCarry(d1, 0x87c3eb27u & mask, c1); d1 = uaddCarry(d1, c, c2); c = c1 + c2;
+  d2 = uaddCarry(d2, 0xf372e122u & mask, c1); d2 = uaddCarry(d2, c, c2); c = c1 + c2;
+  d3 = uaddCarry(d3, 0x5067d090u & mask, c1); d3 = uaddCarry(d3, c, c2); c = c1 + c2;
+  d4 = uaddCarry(d4, 0x0302b0bau & mask, c1); d4 = uaddCarry(d4, c, c2); c = c1 + c2;
+  d5 = uaddCarry(d5, 0x70a08b6du & mask, c1); d5 = uaddCarry(d5, c, c2); c = c1 + c2;
+  d6 = uaddCarry(d6, 0xc2634053u & mask, c1); d6 = uaddCarry(d6, c, c2); c = c1 + c2;
+  d7 = uaddCarry(d7, 0x60c89ce5u & mask, c1); d7 = uaddCarry(d7, c, c2); c = c1 + c2;
+  return fr(d0, d1, d2, d3, d4, d5, d6, d7);
+}
+#endif
+#ifdef ZOPRO_VULKAN_WIDE_FR
+fr fr_mul(fr a, fr b) {
+  // Interleave the ordinary product and Montgomery reduction.
+  uint t0 = 0u, t1 = 0u, t2 = 0u, t3 = 0u;
+  uint t4 = 0u, t5 = 0u, t6 = 0u, t7 = 0u;
+  [[dont_unroll]] for (uint j = 0u; j < 8u; ++j) {
+    uint bj;
+    switch (j) {
+      case 0u: bj = b.l0; break;
+      case 1u: bj = b.l1; break;
+      case 2u: bj = b.l2; break;
+      case 3u: bj = b.l3; break;
+      case 4u: bj = b.l4; break;
+      case 5u: bj = b.l5; break;
+      case 6u: bj = b.l6; break;
+      default: bj = b.l7; break;
+    }
+    uint64_t product = uint64_t(a.l0) * bj + t0;
+    t0 = uint(product);
+    product >>= 32;
+    const uint m = t0 * FR_INV;
+    uint64_t reduction = (uint64_t(m) * RQ0 + t0) >> 32;
+    product += uint64_t(a.l1) * bj + t1;
+    t1 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * RQ1 + t1;
+    t0 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l2) * bj + t2;
+    t2 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * RQ2 + t2;
+    t1 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l3) * bj + t3;
+    t3 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * RQ3 + t3;
+    t2 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l4) * bj + t4;
+    t4 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * RQ4 + t4;
+    t3 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l5) * bj + t5;
+    t5 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * RQ5 + t5;
+    t4 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l6) * bj + t6;
+    t6 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * RQ6 + t6;
+    t5 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l7) * bj + t7;
+    t7 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * RQ7 + t7;
+    t6 = uint(reduction);
+    reduction >>= 32;
+    t7 = uint(product + reduction);
+  }
+#ifdef ZOPRO_FFT_LOOSE_FIELD
+  return fr(t0, t1, t2, t3, t4, t5, t6, t7);
+#else
+  return fr_reduce_once(t0, t1, t2, t3, t4, t5, t6, t7);
+#endif
+}
+#else
 fr fr_mul(fr a, fr b) {
   uint t0 = 0u; uint t1 = 0u; uint t2 = 0u; uint t3 = 0u; uint t4 = 0u; uint t5 = 0u; uint t6 = 0u; uint t7 = 0u;
   uint A, C, m, hi, lo, c1, c2;
@@ -725,5 +921,6 @@ fr fr_mul(fr a, fr b) {
   t7 = C + A;
   return fr_reduce_once(t0, t1, t2, t3, t4, t5, t6, t7);
 }
+#endif
 fr fr_from_canon(fr a) { return fr_mul(a, fr(0xae216da7u, 0x1bb8e645u, 0xe35c59e3u, 0x53fe3ab1u, 0x53bb8085u, 0x8c49833du, 0x7f4e44a5u, 0x0216d0b1u)); }
 fr fr_to_canon(fr a) { return fr_mul(a, fr(1u, 0u, 0u, 0u, 0u, 0u, 0u, 0u)); }

@@ -212,6 +212,10 @@ pub struct Pending {
     timings: Timings,
     submission: wgpu::SubmissionIndex,
     timer: Option<profile::Timer>,
+    #[cfg(target_os = "android")]
+    bucket_submissions: Vec<wgpu::SubmissionIndex>,
+    #[cfg(target_os = "android")]
+    resident_count_profile: Option<(wgpu::SubmissionIndex, profile::Timer)>,
 }
 
 /// Per-kernel GPU times from timestamp queries, where the device has them
@@ -430,10 +434,19 @@ pub(crate) async fn mapped(
     buffer: &wgpu::Buffer,
     submission: Option<wgpu::SubmissionIndex>,
 ) -> Result<(), String> {
+    map_buffer(gpu, buffer, wgpu::MapMode::Read, submission).await
+}
+
+async fn map_buffer(
+    gpu: &Gpu,
+    buffer: &wgpu::Buffer,
+    mode: wgpu::MapMode,
+    submission: Option<wgpu::SubmissionIndex>,
+) -> Result<(), String> {
     let (tx, rx) = futures_channel::oneshot::channel();
     buffer
         .slice(..)
-        .map_async(wgpu::MapMode::Read, move |result| {
+        .map_async(mode, move |result| {
             let _ = tx.send(result);
         });
     #[cfg(not(target_arch = "wasm32"))]
@@ -503,8 +516,41 @@ impl Gpu {
         if spirv {
             features |= wgpu::Features::PASSTHROUGH_SHADERS;
         }
+        if spirv && (std::env::var("ZOPRO_VULKAN_WIDE_FP").as_deref() == Ok("1")
+            || (cfg!(target_os = "android") && std::env::var("ZOPRO_VULKAN_WIDE_FR").as_deref() == Ok("1")))
+        {
+            let int64 = wgpu::Features::SHADER_INT64;
+            if !adapter.features().contains(int64) {
+                return Err("Vulkan shaderInt64 is unavailable".into());
+            }
+            features |= int64;
+        }
         if caching {
             features |= wgpu::Features::PIPELINE_CACHE;
+        }
+        #[cfg(target_os = "android")]
+        if spirv && info.device_type == wgpu::DeviceType::IntegratedGpu
+            && adapter.features().contains(wgpu::Features::MAPPABLE_PRIMARY_BUFFERS)
+            && (std::env::var("ZOPRO_ANDROID_EULER_MAPPED_UPLOAD").as_deref() == Ok("1")
+                || std::env::var("ZOPRO_ANDROID_EULER_DIRECT_ROWS").as_deref() == Ok("1"))
+        {
+            features |= wgpu::Features::MAPPABLE_PRIMARY_BUFFERS;
+        }
+        #[cfg(target_os = "android")]
+        if spirv && std::env::var("ZOPRO_ANDROID_VULKAN_SUBGROUP_FFT").as_deref() == Ok("1") {
+            if !adapter.features().contains(wgpu::Features::SUBGROUP)
+                || info.subgroup_max_size > 64
+            {
+                return Err(format!(
+                    "Vulkan subgroup FFT is unavailable for subgroup sizes {} to {}",
+                    info.subgroup_min_size, info.subgroup_max_size,
+                ));
+            }
+            features |= wgpu::Features::SUBGROUP;
+            log::info!(
+                "ZOPRO_TRACE vulkan-subgroup-fft size {} to {}",
+                info.subgroup_min_size, info.subgroup_max_size,
+            );
         }
         let timing =
             profile::wanted() && adapter.features().contains(wgpu::Features::TIMESTAMP_QUERY);
@@ -668,6 +714,11 @@ impl Gpu {
     }
 }
 
+#[cfg(target_os = "android")]
+mod resident;
+#[cfg(target_os = "android")]
+mod shard_order;
+
 pub struct Msm<C: Curve> {
     /// Running the pre-compiled kernels, whose bindings are one contiguous
     /// set each (see `spirv_pipeline`).
@@ -681,6 +732,7 @@ pub struct Msm<C: Curve> {
     windows: usize,
     n: usize,
     first: wgpu::ComputePipeline,
+    first_repair: Option<wgpu::ComputePipeline>,
     tree_pipeline: wgpu::ComputePipeline,
     reduce_blocks: wgpu::ComputePipeline,
     /// Buckets per reduction thread and threads per window.
@@ -697,6 +749,14 @@ pub struct Msm<C: Curve> {
     /// The reduction's partial sums, a workgroup's each.
     sums: wgpu::Buffer,
     staging: wgpu::Buffer,
+    /// A private readback per chunk lets the CPU consume completed bucket
+    /// windows while Vulkan writes subsequent windows.
+    #[cfg(target_os = "android")]
+    host_buckets: Vec<wgpu::Buffer>,
+    #[cfg(target_os = "android")]
+    resident_sort: Option<resident::ResidentSort>,
+    #[cfg(target_os = "android")]
+    shard_order: Option<shard_order::ShardOrder>,
     reduce_uniform: wgpu::Buffer,
     counts: Vec<u32>,
     starts: Vec<u32>,
@@ -790,7 +850,10 @@ impl Stages {
 struct GpuSort {
     count: wgpu::ComputePipeline,
     scatter: wgpu::ComputePipeline,
+    canonicalize: Option<wgpu::ComputePipeline>,
+    window_groups: u32,
     scalars: wgpu::Buffer,
+    external_scalars: Option<wgpu::Buffer>,
     counts: wgpu::Buffer,
     counts_staging: wgpu::Buffer,
     cursors: wgpu::Buffer,
@@ -799,6 +862,13 @@ struct GpuSort {
     slices: Vec<wgpu::Buffer>,
     /// The submitted counting, which `start` reads back.
     counted: Option<wgpu::SubmissionIndex>,
+    count_timer: Option<profile::Timer>,
+}
+
+impl GpuSort {
+    fn scalar_buffer(&self) -> &wgpu::Buffer {
+        self.external_scalars.as_ref().unwrap_or(&self.scalars)
+    }
 }
 
 /// A binding of a pre-compiled kernel's one set: a storage buffer (read
@@ -921,6 +991,10 @@ const SORT_KERNELS: [(&str, &[u8]); 2] = [
     ("msm_count", include_bytes!("../glsl/out/msm_count.spv")),
     ("msm_scatter", include_bytes!("../glsl/out/msm_scatter.spv")),
 ];
+const BOOTH_SORT_KERNELS: [(&str, &[u8]); 2] = [
+    ("msm_count_booth", include_bytes!("../glsl/out/msm_count_booth.spv")),
+    ("msm_scatter_booth", include_bytes!("../glsl/out/msm_scatter_booth.spv")),
+];
 
 /// The MSM kernels' slots, by index: shards_first is bases, sorted, start,
 /// count, dst, out and the Shards uniform; shards_tree is tree, start,
@@ -993,8 +1067,100 @@ pub(crate) fn bytemuck_cast(values: &[u32]) -> &[u8] {
     unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, values.len() * 4) }
 }
 
+#[cfg(target_os = "android")]
+impl Msm<G1Projective> {
+    pub fn new_android_euler(
+        gpu: std::sync::Arc<Gpu>,
+        bases: &[G1Affine],
+    ) -> Result<(Self, f64), String> {
+        // The host recoder stores i16 digits. Wider signed windows use the
+        // Vulkan Booth shaders, which keep the full magnitude in an i32.
+        let minimum_booth = if std::env::var("ZOPRO_ANDROID_EULER_H_TILES").is_ok() {
+            1 << 16
+        } else {
+            1 << 18
+        };
+        let booth = gpu.spirv && bases.len() >= minimum_booth
+            && std::env::var("ZOPRO_GPU_SORT").as_deref() == Ok("1")
+            && std::env::var("ZOPRO_VULKAN_BOOTH_SORT").as_deref() == Ok("1");
+        let width = booth.then(|| {
+            let limits = gpu.device.limits();
+            std::env::var("ZOPRO_ANDROID_EULER_H_GPU_WIDTH").ok()
+                .and_then(|value| value.parse::<usize>().ok())
+                .filter(|&width| (13..=17).contains(&width))
+                .filter(|&width| {
+                    let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
+                    let bytes = (windows * (1 << (width - 1)) * <G1Projective as Curve>::XYZZ_BYTES) as u64;
+                    bytes <= limits.max_buffer_size && bytes <= limits.max_storage_buffer_binding_size as u64
+                })
+        }).flatten();
+        if let Some(width) = width {
+            log::info!("ZOPRO_TRACE vulkan-euler-h width={width} entries={}", bases.len());
+        }
+        let pair_kernel = if gpu.spirv && bases.len() >= 1 << 18
+            && std::env::var("ZOPRO_ANDROID_EULER_PAIR_REDUCE").as_deref() == Ok("1")
+        {
+            let directory = std::env::var_os("ZOPRO_SPV_DIR").ok_or("missing pair shader directory")?;
+            let path = std::path::PathBuf::from(directory).join("reduce_pairs.spv");
+            Some(std::fs::read(path).map_err(|error| format!("G1 pair reduction shader: {error}"))?)
+        } else {
+            None
+        };
+        let host_reduce = gpu.spirv && bases.len() >= 1 << 18
+            && std::env::var("ZOPRO_ANDROID_EULER_HOST_REDUCE").as_deref() == Ok("1");
+        if host_reduce && pair_kernel.is_some() {
+            return Err("choose either CPU bucket reduction or GPU pair reduction".into());
+        }
+        if host_reduce {
+            log::info!("ZOPRO_TRACE vulkan-euler-h host bucket reduction");
+        }
+        let resident = (booth && bases.len() <= 1 << 21 && matches!(first_shard(true), 8 | 16 | 32)
+            && first_group() == WORKGROUP
+            && std::env::var("ZOPRO_VULKAN_SHARD_REPAIR").as_deref() != Ok("1"))
+            .then(|| std::env::var_os("ZOPRO_ANDROID_VULKAN_RESIDENT_DIR"))
+            .flatten().map(std::path::PathBuf::from);
+        let (mut msm, compile_ms) = Self::new_with_width(
+            gpu, bases, width, pair_kernel.as_deref(), host_reduce, resident.as_deref(),
+        )?;
+        if booth && resident.is_none() && msm.first_repair.is_none()
+            && bases.len() <= 1 << 21 && first_group() == WORKGROUP
+        {
+            if let Some(path) = std::env::var_os("ZOPRO_ANDROID_VULKAN_SHARD_ORDER_DIR") {
+                let path = std::path::Path::new(&path);
+                let device = &msm.gpu.device;
+                let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
+                let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
+                let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+                let order = shard_order::ShardOrder::new(&msm.gpu, path, bases.len(), msm.most);
+                let errors = [memory, internal, validation].map(popped);
+                if let Some(error) = errors.into_iter().flatten().next() {
+                    return Err(format!("Vulkan shard order: {error}"));
+                }
+                msm.shard_order = Some(order?);
+                msm.gpu.save_cache();
+            }
+        }
+        Ok((msm, compile_ms))
+    }
+}
+
 impl<C: Curve> Msm<C> {
     pub fn new(gpu: std::sync::Arc<Gpu>, bases: &[C::Affine]) -> Result<(Self, f64), String> {
+        Self::new_with_width(
+            gpu, bases, None, None,
+            #[cfg(target_os = "android")] false,
+            #[cfg(target_os = "android")] None,
+        )
+    }
+
+    fn new_with_width(
+        gpu: std::sync::Arc<Gpu>,
+        bases: &[C::Affine],
+        width: Option<usize>,
+        pair_kernel: Option<&[u8]>,
+        #[cfg(target_os = "android")] host_reduce: bool,
+        #[cfg(target_os = "android")] resident_dir: Option<&std::path::Path>,
+    ) -> Result<(Self, f64), String> {
         let device = &gpu.device;
         let started = Instant::now();
         // A driver that cannot build a kernel (a phone's refused to link one)
@@ -1002,6 +1168,20 @@ impl<C: Curve> Msm<C> {
         let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
         let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
         let spirv = if gpu.spirv { C::SPIRV } else { None };
+        let repair_kernels = if cfg!(target_os = "android") && spirv.is_some()
+            && C::LABEL == G1_LABEL
+            && std::env::var("ZOPRO_VULKAN_SHARD_REPAIR").as_deref() == Ok("1")
+        {
+            if first_group() != WORKGROUP {
+                return Err("the repair shader requires 64 invocations per workgroup".into());
+            }
+            let dir = std::env::var_os("ZOPRO_SPV_DIR").ok_or("missing repair shader directory")?;
+            let dir = std::path::PathBuf::from(dir);
+            let read = |name| std::fs::read(dir.join(name)).map_err(|e| format!("{name}: {e}"));
+            Some((read("shards_first_fast.spv")?, read("shards_first_repair.spv")?))
+        } else {
+            None
+        };
         // After each kernel: a driver that refuses one leaves the device
         // failed, and nothing else must be asked of it.
         let mut pipelines = Vec::with_capacity(4);
@@ -1018,9 +1198,17 @@ impl<C: Curve> Msm<C> {
                         if file.is_some() {
                             log::info!("ZOPRO_TRACE kernel {entry} from ZOPRO_SPV_DIR");
                         }
-                        let kernel = file.as_deref().unwrap_or(kernels[index]);
-                        gpu.kernel(entry, || {
-                            spirv_pipeline(device, gpu.cache(), entry, kernel, msm_slots(index))
+                        let fast = repair_kernels.as_ref().filter(|_| index == 0);
+                        let (name, kernel) = if let Some((fast, _)) = fast {
+                            ("shards_first_fast", fast.as_slice())
+                        } else if let Some(pair) = pair_kernel.filter(|_| index == 2) {
+                            log::info!("ZOPRO_TRACE vulkan-euler-h pair reduction");
+                            ("reduce_pairs", pair)
+                        } else {
+                            (entry, file.as_deref().unwrap_or(kernels[index]))
+                        };
+                        gpu.kernel(name, || {
+                            spirv_pipeline(device, gpu.cache(), name, kernel, msm_slots(index))
                         })
                     }
                 }
@@ -1038,6 +1226,11 @@ impl<C: Curve> Msm<C> {
         }
         let [first, tree_pipeline, reduce_blocks]: [wgpu::ComputePipeline; 3] =
             pipelines.try_into().expect("three kernels");
+        let first_repair = repair_kernels.as_ref().map(|(_, repair)| {
+            gpu.kernel("shards_first_repair", || {
+                spirv_pipeline(device, gpu.cache(), "shards_first_repair", repair, msm_slots(0))
+            })
+        });
         for scope in [internal, validation] {
             if let Some(e) = popped(scope) {
                 return Err(format!("kernels: {e}"));
@@ -1048,17 +1241,41 @@ impl<C: Curve> Msm<C> {
         }
         gpu.save_cache();
         let compile_ms = started.elapsed().as_secs_f64() * 1000.0;
-        let mut raw = Vec::with_capacity(bases.len() * C::AFFINE_BYTES);
+        let n = bases.len();
+        let raw_bytes = n * C::AFFINE_BYTES;
+        #[cfg(target_os = "android")]
+        let signed_bases = resident_dir.is_some() && C::LABEL == G1_LABEL
+            && std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_SIGNED_BASES").as_deref() == Ok("1")
+            && (raw_bytes + n * 32) as u64 <= u64::from(device.limits().max_storage_buffer_binding_size)
+            && (raw_bytes + n * 32) as u64 <= device.limits().max_buffer_size;
+        #[cfg(target_os = "android")]
+        let raw_bytes = raw_bytes + if signed_bases { n * 32 } else { 0 };
+        let mut raw = Vec::with_capacity(raw_bytes);
         for p in bases {
             C::encode(p, &mut raw);
         }
-        let n = bases.len();
-        let width = width_for(n);
+        #[cfg(target_os = "android")]
+        if signed_bases {
+            debug_assert_eq!(C::AFFINE_BYTES, 64);
+            for index in 0..n {
+                let y_start = index * 64 + 32;
+                let negated = -fq(&raw[y_start..y_start + 32]);
+                fq_bytes(&negated, &mut raw);
+            }
+        }
+        let width = width.unwrap_or_else(|| width_for(n));
         let half = 1 << (width - 1);
         let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
         let buckets = windows * half;
         let per_window = n.div_ceil(first_shard(spirv.is_some())) + half;
-        let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
+        let chunk_mib = if cfg!(target_os = "android") && spirv.is_some() && C::LABEL == G1_LABEL {
+            std::env::var("ZOPRO_VULKAN_MSM_CHUNK_MIB").ok()
+                .and_then(|value| value.parse::<usize>().ok())
+                .filter(|size| (16..=160).contains(size)).unwrap_or(64)
+        } else {
+            64
+        };
+        let chunk_windows = ((chunk_mib << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
         let per_window = half
             .min(
@@ -1068,10 +1285,10 @@ impl<C: Curve> Msm<C> {
                     .unwrap_or(REDUCE_THREADS_PER_WINDOW),
             )
             .max(WORKGROUP as usize);
-        let pairs = spirv.is_some() && C::SPIRV_PAIRS;
+        let pairs = spirv.is_some() && (C::SPIRV_PAIRS || pair_kernel.is_some());
         // The host weighs the pairs: fewer threads per window keep that
         // cheap (ZOPRO_REDUCE_PER_WINDOW still overrides).
-        let per_window = if pairs && std::env::var("ZOPRO_REDUCE_PER_WINDOW").is_err() {
+        let per_window = if pairs && pair_kernel.is_none() && std::env::var("ZOPRO_REDUCE_PER_WINDOW").is_err() {
             per_window.min(PAIRS_PER_WINDOW)
         } else {
             per_window
@@ -1097,7 +1314,20 @@ impl<C: Curve> Msm<C> {
             || std::env::var("ZOPRO_GPU_SORT").as_deref() == Ok("1"))
         .then(|| {
             use Slot::*;
-            let [(count_entry, count), (scatter_entry, scatter)] = SORT_KERNELS;
+            let booth = spirv.is_some()
+                && std::env::var("ZOPRO_VULKAN_BOOTH_SORT").as_deref() == Ok("1");
+            let grouped = cfg!(target_os = "android") && booth
+                && std::env::var("ZOPRO_VULKAN_GROUPED_BOOTH").as_deref() == Ok("1");
+            let [(count_entry, count), (scatter_entry, scatter)] = if grouped {
+                [
+                    ("msm_count_booth_grouped", include_bytes!("../glsl/out/msm_count_booth_grouped.spv").as_slice()),
+                    ("msm_scatter_booth_grouped", include_bytes!("../glsl/out/msm_scatter_booth_grouped.spv").as_slice()),
+                ]
+            } else if booth {
+                BOOTH_SORT_KERNELS
+            } else {
+                SORT_KERNELS
+            };
             let (count, scatter) = if spirv.is_some() {
                 (
                     gpu.kernel(count_entry, || {
@@ -1120,10 +1350,25 @@ impl<C: Curve> Msm<C> {
                     gpu.wgsl_kernel(scatter_entry, scatter_source, scatter_entry),
                 )
             };
+            let canonicalize = booth.then(|| {
+                gpu.kernel("msm_canonicalize", || {
+                    spirv_pipeline(
+                        device,
+                        gpu.cache(),
+                        "msm_canonicalize",
+                        include_bytes!("../glsl/out/msm_canonicalize.spv"),
+                        &[Write, Uniform],
+                    )
+                })
+            });
             GpuSort {
                 count,
                 scatter,
+                canonicalize,
+                window_groups: if grouped { (windows as u32).div_ceil(4) }
+                    else if booth { windows as u32 } else { 1 },
                 scalars: storage(device, "scalars", n * 32),
+                external_scalars: None,
                 counts: storage(device, "counts", buckets * 4),
                 counts_staging: device.create_buffer(&wgpu::BufferDescriptor {
                     label: Some("counts staging"),
@@ -1150,6 +1395,7 @@ impl<C: Curve> Msm<C> {
                     })
                     .collect(),
                 counted: None,
+                count_timer: None,
             }
         });
         if gpu_sort.is_some() {
@@ -1160,6 +1406,22 @@ impl<C: Curve> Msm<C> {
             gpu.save_cache();
         }
         let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+        #[cfg(target_os = "android")]
+        let resident_sort = if let Some(path) = resident_dir {
+            let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
+            let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
+            let result = resident::ResidentSort::new(&gpu, path, [n, half, windows, chunk_windows], signed_bases);
+            let errors = [internal, validation].map(popped);
+            if let Some(error) = errors.into_iter().flatten().next() {
+                return Err(format!("resident sorting: {error}"));
+            }
+            let plan = result?;
+            gpu.save_cache();
+            log::info!("ZOPRO_TRACE vulkan-euler-h resident bucket planning");
+            Some(plan)
+        } else {
+            None
+        };
         let bases_buffer = storage(device, "bases", raw.len());
         gpu.queue.write_buffer(&bases_buffer, 0, &raw);
         let msm = Self {
@@ -1171,6 +1433,7 @@ impl<C: Curve> Msm<C> {
             windows,
             n,
             first,
+            first_repair,
             tree_pipeline,
             reduce_blocks,
             reduce_shape,
@@ -1190,6 +1453,25 @@ impl<C: Curve> Msm<C> {
                 usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             }),
+            #[cfg(target_os = "android")]
+            host_buckets: if host_reduce {
+                (0..windows.div_ceil(chunk_windows)).map(|chunk| {
+                    let first = chunk * chunk_windows;
+                    let count = (windows - first).min(chunk_windows);
+                    device.create_buffer(&wgpu::BufferDescriptor {
+                        label: Some("host MSM bucket chunk"),
+                        size: (count * half * C::XYZZ_BYTES) as u64,
+                        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                        mapped_at_creation: false,
+                    })
+                }).collect()
+            } else {
+                Vec::new()
+            },
+            #[cfg(target_os = "android")]
+            resident_sort,
+            #[cfg(target_os = "android")]
+            shard_order: None,
             reduce_uniform: uniform(
                 &gpu,
                 [half as u32, reduce_shape[0] as u32, per_window as u32, 0],
@@ -1237,7 +1519,9 @@ impl<C: Curve> Msm<C> {
         if self.gpu_sort.is_some() {
             self.count_once(scalars);
             #[cfg(not(target_arch = "wasm32"))]
-            self.read_counts();
+            if self.plans_on_host() {
+                self.read_counts();
+            }
         } else {
             self.sort_on_host(scalars);
         }
@@ -1259,11 +1543,20 @@ impl<C: Curve> Msm<C> {
         let started = Instant::now();
         if self.gpu_sort.is_some() {
             self.count_once(scalars);
-            self.read_counts_async().await;
+            if self.plans_on_host() {
+                self.read_counts_async().await;
+            }
         } else {
             self.sort_on_host(scalars);
         }
         self.submit_sorted(started)
+    }
+
+    fn plans_on_host(&self) -> bool {
+        #[cfg(target_os = "android")]
+        return self.resident_sort.is_none();
+        #[cfg(not(target_os = "android"))]
+        true
     }
 
     /// Submits the counting unless `count`/`count_from` already did.
@@ -1294,35 +1587,69 @@ impl<C: Curve> Msm<C> {
         let mut profile = std::env::var("ZOPRO_WGPU_STAGES")
             .is_ok_and(|v| v == "1")
             .then(Stages::default);
-        let chunks: Vec<Vec<usize>> = (0..self.windows.div_ceil(self.chunk_windows))
-            .map(|chunk| {
+        let chunk_count = self.windows.div_ceil(self.chunk_windows);
+        let host_plans = self.plans_on_host();
+        let chunks: Vec<Vec<usize>> = if host_plans {
+            (0..chunk_count).map(|chunk| {
                 let first = chunk * self.chunk_windows;
                 self.plan(chunk, first..(first + self.chunk_windows).min(self.windows))
-            })
-            .collect();
+            }).collect()
+        } else {
+            Vec::new()
+        };
+        #[cfg(target_os = "android")]
+        let resident_count_profile = (!host_plans).then(|| {
+            let sort = self.gpu_sort.as_mut().expect("resident GPU sort");
+            let counts = sort.counted.take().expect("submitted resident histogram");
+            sort.count_timer.take().map(|timer| (counts, timer))
+        }).flatten();
+        #[cfg(target_os = "android")]
+        let resident_passes = self.resident_sort.as_ref().map_or(4, resident::ResidentSort::passes_per_chunk);
+        #[cfg(not(target_os = "android"))]
+        let resident_passes = 4;
+        #[cfg(target_os = "android")]
+        let resident_prefix_passes = self.resident_sort.as_ref().map_or(1, resident::ResidentSort::prefix_passes);
+        #[cfg(not(target_os = "android"))]
+        let resident_prefix_passes = 1;
         let passes = self.gpu_sort.as_ref().map_or(0, |s| s.slices.len())
-            + chunks.iter().map(Vec::len).sum::<usize>()
+            + if host_plans {
+                chunks.iter().map(Vec::len).sum::<usize>()
+                    + usize::from(self.first_repair.is_some()) * chunk_count
+            } else {
+                resident_prefix_passes + resident_passes * chunk_count
+            }
             + 1;
+        #[cfg(target_os = "android")]
+        let passes = passes + 3 * chunk_count * usize::from(self.shard_order.is_some());
         let mut timer = profile::Timer::new(&self.gpu, passes);
         if let Some(sort) = &self.gpu_sort {
-            self.gpu
-                .queue
-                .write_buffer(&sort.cursors, 0, bytemuck_cast(&self.starts));
+            #[cfg(target_os = "android")]
+            if let Some(resident) = &self.resident_sort {
+                resident.encode_prefix(self, sort, &mut encoder, &mut timer);
+            }
+            if host_plans {
+                self.gpu.queue.write_buffer(&sort.cursors, 0, bytemuck_cast(&self.starts));
+            }
+            let (scatter, cursors) = (&sort.scatter, &sort.cursors);
+            #[cfg(target_os = "android")]
+            let (scatter, cursors) = self.resident_sort.as_ref()
+                .and_then(|resident| resident.partitions.as_ref())
+                .map_or((scatter, cursors), |parts| (&parts.scatter, &parts.counters));
             for (slice, uniform) in sort.slices.iter().enumerate() {
                 let group = self
                     .gpu
                     .device
                     .create_bind_group(&wgpu::BindGroupDescriptor {
                         label: None,
-                        layout: &sort.scatter.get_bind_group_layout(0),
+                        layout: &scatter.get_bind_group_layout(0),
                         entries: &[
                             wgpu::BindGroupEntry {
                                 binding: 0,
-                                resource: sort.scalars.as_entire_binding(),
+                                resource: sort.scalar_buffer().as_entire_binding(),
                             },
                             wgpu::BindGroupEntry {
                                 binding: 1,
-                                resource: sort.cursors.as_entire_binding(),
+                                resource: cursors.as_entire_binding(),
                             },
                             wgpu::BindGroupEntry {
                                 binding: 2,
@@ -1338,9 +1665,9 @@ impl<C: Curve> Msm<C> {
                     Some(timer) => encoder.begin_compute_pass(&timer.pass("msm_scatter")),
                     None => encoder.begin_compute_pass(&Default::default()),
                 };
-                pass.set_pipeline(&sort.scatter);
+                pass.set_pipeline(scatter);
                 pass.set_bind_group(0, &group, &[]);
-                pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), 1, 1);
+                pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), sort.window_groups, 1);
                 drop(pass);
                 encoder = match profile.as_mut() {
                     Some(stages) => {
@@ -1356,8 +1683,16 @@ impl<C: Curve> Msm<C> {
         let device = &self.gpu.device;
         let queue = &self.gpu.queue;
         encoder.clear_buffer(&self.buckets, 0, None);
-        for (chunk, levels) in chunks.iter().enumerate() {
-            let last = levels.len() - 1;
+        #[cfg(target_os = "android")]
+        let mut bucket_submissions = Vec::with_capacity(self.host_buckets.len());
+        for chunk in 0..chunk_count {
+            #[cfg(target_os = "android")]
+            if let Some(resident) = &self.resident_sort {
+                let sort = self.gpu_sort.as_ref().expect("resident GPU sort");
+                resident.encode_chunk(self, sort, chunk, &mut encoder, &mut timer);
+            }
+            let levels = chunks.get(chunk).map(Vec::as_slice).unwrap_or(&[]);
+            let last = levels.len().saturating_sub(1);
             for (level, shards) in levels.iter().enumerate() {
                 let pipeline = if level == 0 {
                     &self.first
@@ -1365,6 +1700,15 @@ impl<C: Curve> Msm<C> {
                     &self.tree_pipeline
                 };
                 let [start, count, dst, params] = &self.levels[chunk][level];
+                #[cfg(target_os = "android")]
+                let order = self.shard_order.as_ref().filter(|_| level == 0);
+                #[cfg(target_os = "android")]
+                let pipeline = if let Some(order) = order {
+                    order.encode(&self.gpu, &mut encoder, [&self.sorted, start, params], *shards, &mut timer);
+                    &order.first
+                } else {
+                    pipeline
+                };
                 let out = if level == last {
                     &self.buckets
                 } else {
@@ -1416,6 +1760,13 @@ impl<C: Curve> Msm<C> {
                         entry.binding = i as u32;
                     }
                 }
+                #[cfg(target_os = "android")]
+                if let Some(order) = order {
+                    entries.push(wgpu::BindGroupEntry {
+                        binding: 7,
+                        resource: order.indices.as_entire_binding(),
+                    });
+                }
                 let group0 = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: None,
                     layout: &pipeline.get_bind_group_layout(0),
@@ -1444,15 +1795,55 @@ impl<C: Curve> Msm<C> {
                 let group = if level == 0 { first_group() } else { WORKGROUP };
                 pass.dispatch_workgroups((*shards as u32).div_ceil(group), 1, 1);
                 drop(pass);
+                if let Some(repair) = self.first_repair.as_ref().filter(|_| level == 0) {
+                    // Flagged shards hold an out-of-field marker. Repair each
+                    // before the tree (or the final reduction) consumes it.
+                    let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        label: None,
+                        layout: &repair.get_bind_group_layout(0),
+                        entries: &entries,
+                    });
+                    let mut pass = match timer.as_mut() {
+                        Some(timer) => encoder.begin_compute_pass(&timer.pass("shards_first_repair")),
+                        None => encoder.begin_compute_pass(&Default::default()),
+                    };
+                    pass.set_pipeline(repair);
+                    pass.set_bind_group(0, &binding, &[]);
+                    pass.dispatch_workgroups((*shards as u32).div_ceil(group), 1, 1);
+                }
                 if let Some(stages) = profile.as_mut() {
                     encoder =
                         stages.cut(device, queue, encoder, format!("c{chunk}l{level}x{shards}"));
                 }
             }
+            #[cfg(target_os = "android")]
+            if let Some(staging) = self.host_buckets.get(chunk) {
+                let offset = chunk * self.chunk_windows * self.half * C::XYZZ_BYTES;
+                encoder.copy_buffer_to_buffer(&self.buckets, offset as u64, staging, 0, staging.size());
+                bucket_submissions.push(queue.submit([encoder.finish()]));
+                encoder = device.create_command_encoder(&Default::default());
+                continue;
+            }
             // A submission per chunk: no submission holds the whole MSM.
             if profile.is_none() {
                 encoder = flush(&self.gpu, encoder);
             }
+        }
+        #[cfg(target_os = "android")]
+        if let Some(last) = bucket_submissions.last() {
+            let submission = if let Some(timer) = &timer {
+                timer.resolve(&mut encoder);
+                queue.submit([encoder.finish()])
+            } else {
+                last.clone()
+            };
+            if let Some(sort) = &mut self.gpu_sort {
+                sort.external_scalars = None;
+            }
+            return Pending {
+                submitted: started, timings, submission, timer,
+                bucket_submissions, resident_count_profile,
+            };
         }
         {
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -1494,11 +1885,18 @@ impl<C: Curve> Msm<C> {
             timer.resolve(&mut encoder);
         }
         let submission = queue.submit([encoder.finish()]);
+        if let Some(sort) = &mut self.gpu_sort {
+            sort.external_scalars = None;
+        }
         Pending {
             submitted: started,
             timings,
             submission,
             timer,
+            #[cfg(target_os = "android")]
+            bucket_submissions,
+            #[cfg(target_os = "android")]
+            resident_count_profile,
         }
     }
 
@@ -1510,6 +1908,16 @@ impl<C: Curve> Msm<C> {
 
     /// As `finish`, yielding while the GPU works: the browser's way.
     pub async fn finish_async(&mut self, pending: Pending) -> Result<(C, Timings), String> {
+        #[cfg(target_os = "android")]
+        let mut pending = pending;
+        #[cfg(target_os = "android")]
+        if let Some((submission, timer)) = pending.resident_count_profile.take() {
+            timer.read(&self.gpu, submission).await?;
+        }
+        #[cfg(target_os = "android")]
+        if !pending.bucket_submissions.is_empty() {
+            return self.finish_host_buckets(pending).await;
+        }
         let mut timings = pending.timings;
         mapped(&self.gpu, &self.staging, Some(pending.submission.clone())).await?;
         if let Some(timer) = pending.timer {
@@ -1542,6 +1950,55 @@ impl<C: Curve> Msm<C> {
             }
         }
         timings.combine_ms = started.elapsed().as_secs_f64() * 1000.0;
+        Ok((result, timings))
+    }
+
+    #[cfg(target_os = "android")]
+    async fn finish_host_buckets(&self, pending: Pending) -> Result<(C, Timings), String> {
+        assert_eq!(self.host_buckets.len(), pending.bucket_submissions.len());
+        let window_bytes = self.half * C::XYZZ_BYTES;
+        let mut sums = Vec::with_capacity(self.windows);
+        let mut timings = pending.timings;
+        for (buffer, submission) in self.host_buckets.iter().zip(pending.bucket_submissions) {
+            if let Err(error) = mapped(&self.gpu, buffer, Some(submission)).await {
+                let _ = self.gpu.device.poll(wgpu::PollType::Wait {
+                    submission_index: Some(pending.submission),
+                    timeout: None,
+                });
+                return Err(error);
+            }
+            let started = Instant::now();
+            let mapped = buffer.slice(..).get_mapped_range();
+            let reduced = mapped.as_ref().map(|view| {
+                view.par_chunks_exact(window_bytes).map(|buckets| {
+                    let mut running = C::IDENTITY;
+                    let mut sum = C::IDENTITY;
+                    for bucket in buckets.chunks_exact(C::XYZZ_BYTES).rev() {
+                        running += C::xyzz_to_projective(bucket);
+                        sum += running;
+                    }
+                    sum
+                }).collect::<Vec<_>>()
+            }).map_err(ToString::to_string);
+            drop(mapped);
+            buffer.unmap();
+            sums.extend(reduced?);
+            timings.combine_ms += started.elapsed().as_secs_f64() * 1000.0;
+        }
+        if let Some(timer) = pending.timer {
+            timer.read(&self.gpu, pending.submission).await?;
+        }
+        assert_eq!(sums.len(), self.windows);
+        timings.gpu_ms = pending.submitted.elapsed().as_secs_f64() * 1000.0;
+        let started = Instant::now();
+        let mut result = C::IDENTITY;
+        for sum in sums.into_iter().rev() {
+            for _ in 0..self.width {
+                result = result.double();
+            }
+            result += sum;
+        }
+        timings.combine_ms += started.elapsed().as_secs_f64() * 1000.0;
         Ok((result, timings))
     }
 
@@ -1660,7 +2117,8 @@ impl<C: Curve> Msm<C> {
     /// work, the counts are back by the time the host plans.
     pub fn count(&mut self, scalars: &[Fr]) {
         assert_eq!(scalars.len(), self.n);
-        let sort = self.gpu_sort.as_ref().expect("the GPU sort");
+        let sort = self.gpu_sort.as_mut().expect("the GPU sort");
+        sort.external_scalars = None;
         // SAFETY: Fr is four u64 limbs with no padding, the kernels' encoding.
         let bytes = unsafe {
             std::slice::from_raw_parts(scalars.as_ptr() as *const u8, scalars.len() * 32)
@@ -1674,30 +2132,82 @@ impl<C: Curve> Msm<C> {
     /// quotient's output for Z's MSM): copied on the GPU, never through
     /// the host. `start_counted` then runs the MSM.
     pub fn count_from(&mut self, source: &wgpu::Buffer) {
-        let sort = self.gpu_sort.as_ref().expect("the GPU sort");
+        self.count_from_index(source, 0);
+    }
+
+    /// Copy this MSM's slice of a GPU scalar vector, then count its buckets.
+    pub fn count_from_index(&mut self, source: &wgpu::Buffer, first: usize) {
+        let sort = self.gpu_sort.as_mut().expect("the GPU sort");
+        sort.external_scalars = None;
         let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
-        encoder.copy_buffer_to_buffer(source, 0, &sort.scalars, 0, (self.n * 32) as u64);
+        encoder.copy_buffer_to_buffer(source, (first * 32) as u64, &sort.scalars, 0, (self.n * 32) as u64);
+        self.submit_count(encoder);
+    }
+
+    /// Canonicalize and count the first `n` elements of a quotient's buffer
+    /// in place. The caller must give this MSM exclusive use of those
+    /// elements through submission of the scatter pass.
+    #[cfg(target_os = "android")]
+    pub fn count_from_exclusive(&mut self, source: &wgpu::Buffer) {
+        let sort = self.gpu_sort.as_mut().expect("the GPU sort");
+        if sort.canonicalize.is_none() {
+            self.count_from(source);
+            return;
+        }
+        assert!(source.size() >= (self.n * 32) as u64);
+        sort.external_scalars = Some(source.clone());
+        let encoder = self.gpu.device.create_command_encoder(&Default::default());
         self.submit_count(encoder);
     }
 
     /// The counting passes after what `encoder` holds, submitted a slice
     /// at a time.
     fn submit_count(&mut self, mut encoder: wgpu::CommandEncoder) {
+        let host_plans = self.plans_on_host();
         let sort = self.gpu_sort.as_mut().expect("the GPU sort");
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-        encoder.clear_buffer(&sort.counts, 0, None);
+        let (count, counters) = (&sort.count, &sort.counts);
+        #[cfg(target_os = "android")]
+        let (count, counters) = self.resident_sort.as_ref()
+            .and_then(|resident| resident.partitions.as_ref())
+            .map_or((count, counters), |parts| (&parts.count, &parts.counters));
+        encoder.clear_buffer(counters, 0, None);
+        if sort.canonicalize.is_some() {
+            log::info!("ZOPRO_TRACE vulkan-booth-sort entries={}", self.n);
+        }
+        let mut timer = profile::Timer::new(&self.gpu, sort.slices.len() * 2);
         for (slice, uniform) in sort.slices.iter().enumerate() {
+            let groups = slice_len(self.n, slice).div_ceil(WORKGROUP);
+            if let Some(canonicalize) = &sort.canonicalize {
+                // The MSM owns this copy of its inputs. Each scalar is
+                // converted once, before the histogram and scatter read it.
+                let canonical = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: None,
+                    layout: &canonicalize.get_bind_group_layout(0),
+                    entries: &[
+                        wgpu::BindGroupEntry { binding: 0, resource: sort.scalar_buffer().as_entire_binding() },
+                        wgpu::BindGroupEntry { binding: 1, resource: uniform.as_entire_binding() },
+                    ],
+                });
+                let mut pass = match timer.as_mut() {
+                    Some(timer) => encoder.begin_compute_pass(&timer.pass("msm_canonicalize")),
+                    None => encoder.begin_compute_pass(&Default::default()),
+                };
+                pass.set_pipeline(canonicalize);
+                pass.set_bind_group(0, &canonical, &[]);
+                pass.dispatch_workgroups(groups, 1, 1);
+            }
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
-                layout: &sort.count.get_bind_group_layout(0),
+                layout: &count.get_bind_group_layout(0),
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: sort.scalars.as_entire_binding(),
+                        resource: sort.scalar_buffer().as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
-                        resource: sort.counts.as_entire_binding(),
+                        resource: counters.as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 2,
@@ -1706,14 +2216,23 @@ impl<C: Curve> Msm<C> {
                 ],
             });
             {
-                let mut pass = encoder.begin_compute_pass(&Default::default());
-                pass.set_pipeline(&sort.count);
+                let mut pass = match timer.as_mut() {
+                    Some(timer) => encoder.begin_compute_pass(&timer.pass("msm_count")),
+                    None => encoder.begin_compute_pass(&Default::default()),
+                };
+                pass.set_pipeline(count);
                 pass.set_bind_group(0, &group, &[]);
-                pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), 1, 1);
+                pass.dispatch_workgroups(groups, sort.window_groups, 1);
             }
             encoder = flush(&self.gpu, encoder);
         }
-        encoder.copy_buffer_to_buffer(&sort.counts, 0, &sort.counts_staging, 0, sort.counts.size());
+        if host_plans {
+            encoder.copy_buffer_to_buffer(&sort.counts, 0, &sort.counts_staging, 0, sort.counts.size());
+        }
+        if let Some(timer) = &timer {
+            timer.resolve(&mut encoder);
+        }
+        sort.count_timer = timer;
         sort.counted = Some(queue.submit([encoder.finish()]));
     }
 
@@ -1731,7 +2250,7 @@ impl<C: Curve> Msm<C> {
         let staging = &sort.counts_staging;
         // A failed device leaves the counts as they were: the MSM's finish
         // reports it.
-        if mapped(&self.gpu, staging, Some(submission)).await.is_ok() {
+        if mapped(&self.gpu, staging, Some(submission.clone())).await.is_ok() {
             let data = staging
                 .slice(..)
                 .get_mapped_range()
@@ -1741,6 +2260,9 @@ impl<C: Curve> Msm<C> {
                 *count = u32::from_le_bytes(*bytes);
             }
             staging.unmap();
+        }
+        if let Some(timer) = sort.count_timer.take() {
+            let _ = timer.read(&self.gpu, submission).await;
         }
         let (n, half) = (self.n, self.half);
         for (w, (starts, counts)) in self

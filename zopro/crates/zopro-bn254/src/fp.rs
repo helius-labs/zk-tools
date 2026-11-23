@@ -24,6 +24,16 @@ pub trait FpConfig: 'static + Copy + Send + Sync + Eq + fmt::Debug + Default {
 #[repr(transparent)]
 pub struct Fp<C: FpConfig>(pub [u64; 4], PhantomData<C>);
 
+#[cfg(all(target_os = "android", target_arch = "aarch64", not(no_asm)))]
+impl Fp<crate::FrConfig> {
+    #[doc(hidden)]
+    #[inline(always)]
+    pub fn sum_of_three_products(a: [Self; 3], b: [Self; 3]) -> Self {
+        use crate::FrConfig;
+        Self::from_montgomery(crate::arm64::sum3(a.map(|v| v.0), &b.map(|v| v.0), FrConfig::P, FrConfig::INV))
+    }
+}
+
 impl<C: FpConfig> Fp<C> {
     pub const ZERO: Self = Self([0; 4], PhantomData);
     pub const ONE: Self = Self(C::R, PhantomData);
@@ -41,7 +51,10 @@ impl<C: FpConfig> Fp<C> {
         if !portable::less(limbs, C::P) {
             return None;
         }
-        Some(Self(portable::multiply(limbs, C::R2, C::P, C::INV), PhantomData))
+        Some(Self(
+            portable::multiply(limbs, C::R2, C::P, C::INV),
+            PhantomData,
+        ))
     }
 
     /// The element of a decimal literal below p (for constants).
@@ -54,7 +67,10 @@ impl<C: FpConfig> Fp<C> {
 
     #[inline]
     pub const fn from_u64(x: u64) -> Self {
-        Self(portable::multiply([x, 0, 0, 0], C::R2, C::P, C::INV), PhantomData)
+        Self(
+            portable::multiply([x, 0, 0, 0], C::R2, C::P, C::INV),
+            PhantomData,
+        )
     }
 
     /// The value, below p.
@@ -76,6 +92,9 @@ impl<C: FpConfig> Fp<C> {
     #[cfg_attr(target_arch = "wasm32", inline)]
     #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     pub fn square(&self) -> Self {
+        #[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64", not(no_asm)))]
+        return Self(crate::arm64::square(self.0, C::P, C::INV), PhantomData);
+        #[cfg(not(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64", not(no_asm))))]
         Self(backend::multiply(self.0, self.0, C::P, C::INV), PhantomData)
     }
 
@@ -105,10 +124,21 @@ impl<C: FpConfig> Fp<C> {
         result
     }
 
-    /// The inverse, `None` for zero: the binary extended Euclidean
-    /// algorithm on the Montgomery form, as arkworks' (starting from 2^512
-    /// leaves the inverse in Montgomery form).
+    /// The inverse, `None` for zero. The fast path batches the binary GCD.
+    /// Starting from 2^512 leaves the inverse in Montgomery form.
     pub fn inverse(&self) -> Option<Self> {
+        #[cfg(zopro_fast_inverse)]
+        {
+            crate::inverse::inverse(self)
+        }
+        #[cfg(not(zopro_fast_inverse))]
+        {
+            self.inverse_binary()
+        }
+    }
+
+    #[cfg(not(zopro_fast_inverse))]
+    fn inverse_binary(&self) -> Option<Self> {
         if self.is_zero() {
             return None;
         }
@@ -239,7 +269,10 @@ impl<C: FpConfig> Mul for Fp<C> {
     #[cfg_attr(target_arch = "wasm32", inline)]
     #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     fn mul(self, other: Self) -> Self {
-        Self(backend::multiply(self.0, other.0, C::P, C::INV), PhantomData)
+        Self(
+            backend::multiply(self.0, other.0, C::P, C::INV),
+            PhantomData,
+        )
     }
 }
 impl<C: FpConfig> Neg for Fp<C> {

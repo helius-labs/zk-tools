@@ -1,0 +1,116 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_shuffle : require
+#include "resident_field_fast.glsl"
+
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Bases { affine values[]; } bases;
+layout(std430, set = 0, binding = 1) readonly buffer Sorted { uint values[]; } sorted;
+layout(std430, set = 0, binding = 2) readonly buffer Histogram { uint values[]; } histogram;
+layout(std430, set = 0, binding = 3) readonly buffer Offsets { uvec4 values[]; } offsets;
+layout(std430, set = 0, binding = 4) readonly buffer Totals { uvec4 values[]; } totals;
+layout(std430, set = 0, binding = 5) buffer Output { xyzz values[]; } outputs;
+layout(std140, set = 0, binding = 6) uniform Shards {
+  uint first_window;
+  uint half_range;
+  uint stride;
+  uint level;
+} args;
+layout(std430, set = 0, binding = 7) readonly buffer ShardBuckets { uint values[]; } shard_buckets;
+
+fp other_half(fp v) {
+  return fp(subgroupShuffleXor(v.l0, 1u), subgroupShuffleXor(v.l1, 1u),
+            subgroupShuffleXor(v.l2, 1u), subgroupShuffleXor(v.l3, 1u),
+            subgroupShuffleXor(v.l4, 1u), subgroupShuffleXor(v.l5, 1u),
+            subgroupShuffleXor(v.l6, 1u), subgroupShuffleXor(v.l7, 1u));
+}
+
+void main() {
+  const uint relative_window = gl_WorkGroupID.y;
+  const uint window = args.first_window + relative_window;
+  // Use subgroup invocation order for pairing. Vulkan does not require the
+  // implementation to assign local invocation indices in this same order.
+  const uint pair = gl_SubgroupID * (gl_SubgroupSize >> 1u) + (gl_SubgroupInvocationID >> 1u);
+  const uint shard = gl_WorkGroupID.x * 32u + pair;
+  const bool x_lane = (gl_SubgroupInvocationID & 1u) == 0u;
+  if (shard >= totals.values[window].y)
+    return;
+
+  const uint bucket = shard_buckets.values[window * args.stride + shard];
+  const uvec4 start = offsets.values[bucket];
+  const uint offset = (shard - start.y) * 32u;
+  const uint first = start.x + offset;
+  const uint end = first + min(32u, histogram.values[bucket] - offset);
+  fp coordinate = fp_zero();
+  fp scale = fp_zero();
+  bool identity = true;
+  bool unit_scale = false;
+  bool repair = false;
+  // The two lanes hold (X, ZZ) and (Y, ZZZ). All branches with a shuffle
+  // agree for both lanes because they use the same sorted point and zeros.
+  [[dont_unroll]] for (uint i = first; i < end; ++i) {
+    const uint encoded = sorted.values[i];
+    const uint index = encoded & 0x7fffffffu;
+    const affine point = bases.values[index];
+    fp current = x_lane ? point.x : point.y;
+    if (!x_lane && encoded >> 31u != 0u)
+      current = fp_neg(current);
+    const uint zero = uint(fp_is_zero(current));
+    const uint partner_zero = subgroupShuffleXor(zero, 1u);
+    if ((zero & partner_zero) != 0u)
+      continue;
+    if (identity) {
+      coordinate = current;
+      scale = fp_one();
+      identity = false;
+      unit_scale = true;
+      continue;
+    }
+    const fp scaled = unit_scale ? current : fp_mul_loose(current, scale);
+    const fp delta = fp_sub_loose(scaled, coordinate);
+    const fp cross_delta = other_half(delta);
+    const fp dx = x_lane ? delta : cross_delta;
+    const fp dy = x_lane ? cross_delta : delta;
+    if (fp_is_zero_loose(dx)) {
+      if (fp_is_zero_loose(dy)) {
+        repair = true;
+        break;
+      }
+      coordinate = fp_zero();
+      scale = fp_zero();
+      identity = true;
+      unit_scale = false;
+      continue;
+    }
+    const fp sq = fp_square_loose(delta);
+    const fp cross_sq = other_half(sq);
+    const fp dx2 = x_lane ? sq : cross_sq;
+    const fp dy2 = x_lane ? cross_sq : sq;
+    const fp cross_coordinate = other_half(coordinate);
+    const fp cube_or_x = fp_mul_loose(x_lane ? dx : cross_coordinate, dx2);
+    const fp cross_cube_or_x = other_half(cube_or_x);
+    const fp cube = x_lane ? cube_or_x : cross_cube_or_x;
+    const fp product_x = x_lane ? cross_cube_or_x : cube_or_x;
+    const fp new_x = fp_sub_loose(fp_sub_loose(fp_sub_loose(dy2, cube), product_x), product_x);
+    const fp y_term = fp_mul_loose(x_lane ? fp_sub_loose(product_x, new_x) : coordinate,
+                                  x_lane ? dy : cube);
+    const fp cross_y_term = other_half(y_term);
+    const fp factor = x_lane ? dx2 : cube;
+    scale = unit_scale ? factor : fp_mul_loose(scale, factor);
+    coordinate = x_lane ? new_x : fp_sub_loose(cross_y_term, y_term);
+    unit_scale = false;
+  }
+  const uint output_index = relative_window * args.stride + shard;
+  if (x_lane) {
+    if (repair) {
+      outputs.values[output_index].zz.l7 = 0xffffffffu;
+    } else {
+      outputs.values[output_index].x = fp_normalize_loose(coordinate);
+      outputs.values[output_index].zz = fp_normalize_loose(scale);
+    }
+  } else if (!repair) {
+    outputs.values[output_index].y = fp_normalize_loose(coordinate);
+    outputs.values[output_index].zzz = fp_normalize_loose(scale);
+  }
+}

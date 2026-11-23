@@ -21,12 +21,22 @@ wasm-bindgen = "=0.2.128"
 [target.'cfg(target_feature = "atomics")'.dependencies]
 wasm-bindgen-rayon = "1.3"
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ahash = "0.8"
+hashbrown = { version = "0.16.1", default-features = false, features = ["inline-more"] }
+sha2 = "0.10"
+
 [features]
+# IFMA kernels are compiled for x86 with the required AVX-512 features.
+default = ["ifma8", "inplace-fft"]
 # Prints each proof stage's time to stderr (native only).
 trace = []
+ifma8 = []
+inplace-fft = []
 # With trace: every MSM checked over its whole vector at key load (seconds and
 # hundreds of MB per load; for finding a wrong kernel).
 fullcheck = ["trace"]
+
 # The MSMs on an Apple GPU (macOS, iOS); ZOPRO_GPU=0 keeps them on the CPU.
 metal = ["dep:zopro-metal"]
 # The MSMs and the quotient through wgpu (Vulkan, WebGPU, Metal); G2 stays on the CPU.
@@ -52,7 +62,7 @@ zopro-metal = { path = "../zopro-metal", optional = true }
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
 
-[target.'cfg(target_vendor = "apple")'.dependencies]
+[target.'cfg(any(target_vendor = "apple", target_os = "linux"))'.dependencies]
 # The process's footprint in trace lines; alloc's mappings.
 libc = "0.2"
 
@@ -66,3 +76,6 @@ version = "0.3"
 version = "0.4"
 [target.'cfg(target_arch = "wasm32")'.dependencies.js-sys]
 version = "0.3"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(no_ifma)"] }

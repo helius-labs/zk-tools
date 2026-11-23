@@ -28,3 +28,18 @@ impl Seeded {
         Fr::from_random_bytes(&self.bytes())
     }
 }
+#[test]
+fn zeroed_field_storage_covers_parallel_boundaries_and_spare_capacity() {
+    for len in [0, 1, 16383, 16384, 16385, 65537] {
+        for capacity in [len, len + 17] {
+            let mut values = crate::zero_frs(len, capacity);
+            assert_eq!(values.len(), len);
+            assert!(values.capacity() >= capacity);
+            assert!(values.iter().all(|value| *value == zopro_bn254::Fr::ZERO));
+            values.resize(len + 9, zopro_bn254::Fr::ONE);
+            assert!(values[len..]
+                .iter()
+                .all(|value| *value == zopro_bn254::Fr::ONE));
+        }
+    }
+}

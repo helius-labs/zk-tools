@@ -1,0 +1,114 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_shuffle : require
+#include "field.glsl"
+
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) buffer Values { fr values[]; } values;
+layout(std430, set = 0, binding = 1) readonly buffer Roots { fr values[]; } roots;
+layout(std140, set = 0, binding = 2) uniform Tile {
+  uint n;
+  uint first;
+  uint levels;
+  uint stride_log;
+  uint cols_log;
+  uint forward;
+#ifdef ZOPRO_FFT_PACK_TILES
+  uint packing;
+#endif
+} args;
+
+shared fr exchange_values[64];
+
+uint tile_index(uint group, uint index) {
+  const uint stripe_log = args.stride_log - args.cols_log;
+  const uint block = group >> stripe_log;
+  const uint stripe = group & ((1u << stripe_log) - 1u);
+  const uint row = index >> args.cols_log;
+  const uint column = index & ((1u << args.cols_log) - 1u);
+  return (block << (args.levels + args.stride_log))
+      + (stripe << args.cols_log) + column + (row << args.stride_log);
+}
+
+// Insert a zero at the current butterfly gap. Each lane holds the complete
+// pair in registers until the next stage exchanges one operand per lane.
+uint left_index(uint lane, uint gap) {
+  const uint low = gap - 1u;
+  return ((lane & ~low) << 1u) | (lane & low);
+}
+
+fr exchange_lane(fr value, uint distance) {
+  return fr(subgroupShuffleXor(value.l0, distance), subgroupShuffleXor(value.l1, distance),
+            subgroupShuffleXor(value.l2, distance), subgroupShuffleXor(value.l3, distance),
+            subgroupShuffleXor(value.l4, distance), subgroupShuffleXor(value.l5, distance),
+            subgroupShuffleXor(value.l6, distance), subgroupShuffleXor(value.l7, distance));
+}
+
+void main() {
+  const uint physical_group = gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x;
+  const uint physical_lane = gl_SubgroupID * gl_SubgroupSize + gl_SubgroupInvocationID;
+  const uint butterflies = 1u << (args.levels + args.cols_log - 1u);
+#ifdef ZOPRO_FFT_PACK_TILES
+  const uint tile = physical_lane / butterflies;
+  const uint group = physical_group * args.packing + tile;
+  const uint lane = physical_lane & (butterflies - 1u);
+  const bool enabled = tile < args.packing;
+#else
+  const uint group = physical_group;
+  const uint lane = physical_lane;
+  const bool enabled = lane < butterflies;
+#endif
+#ifdef ZOPRO_FFT_DIT
+  const bool dit = true;
+#elif defined(ZOPRO_FFT_DIF)
+  const bool dit = false;
+#else
+  const bool dit = args.forward != 0u;
+#endif
+  uint gap = 1u << (args.cols_log + (dit ? 0u : args.levels - 1u));
+  fr a = fr_zero();
+  fr b = fr_zero();
+  if (enabled) {
+    const uint left = left_index(lane, gap);
+    a = values.values[tile_index(group, left)];
+    b = values.values[tile_index(group, left | gap)];
+  }
+  for (uint step = 0u; step < args.levels; ++step) {
+    if (enabled) {
+      const uint level = args.first + (dit ? args.levels - step - 1u : step);
+      const uint root_gap = args.n >> (level + 1u);
+      const uint left = tile_index(group, left_index(lane, gap));
+      const uint power = (left & (root_gap - 1u)) << level;
+      if (dit && power != 0u)
+        b = fr_mul(b, roots.values[power]);
+      const fr sum = fr_add(a, b);
+      const fr difference = fr_sub(a, b);
+      a = sum;
+      b = (!dit && power != 0u) ? fr_mul(difference, roots.values[power]) : difference;
+    }
+    if (step + 1u == args.levels)
+      break;
+    const uint next = dit ? gap << 1u : gap >> 1u;
+    const uint distance = min(gap, next);
+    const bool upper = (lane & distance) != 0u;
+    const fr send = upper ? a : b;
+    fr received;
+    if (distance < gl_SubgroupSize) {
+      received = exchange_lane(send, distance);
+    } else {
+      exchange_values[physical_lane] = send;
+      barrier();
+      received = exchange_values[physical_lane ^ distance];
+      barrier();
+    }
+    a = upper ? received : a;
+    b = upper ? b : received;
+    gap = next;
+  }
+  if (enabled) {
+    const uint left = left_index(lane, gap);
+    values.values[tile_index(group, left)] = a;
+    values.values[tile_index(group, left | gap)] = b;
+  }
+}

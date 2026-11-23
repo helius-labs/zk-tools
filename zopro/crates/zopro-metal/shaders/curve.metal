@@ -13,6 +13,15 @@ inline fp2_t e_inv(fp2_t a) { return fp2_inv(a); }
 inline bool e_is_zero(thread const fp_t &a) { return fp_is_zero(a); }
 inline bool e_is_zero(thread const fp2_t &a) { return fp2_is_zero(a); }
 
+inline fp_t e_neg_fast(fp_t a) { return fp_neg_fast(a); }
+inline fp2_t e_neg_fast(fp2_t a) { return fp2_neg(a); }
+inline fp_t e_diff_products(fp_t a, fp_t b, fp_t c, fp_t d) {
+  return fp_sum2_g1(a, b, fp_neg_fast(c), d);
+}
+inline fp2_t e_diff_products(fp2_t a, fp2_t b, fp2_t c, fp2_t d) {
+  return e_sub(e_mul(a, b), e_mul(c, d));
+}
+
 template <typename E> E e_zero();
 template <> inline fp_t e_zero<fp_t>() { return fp_zero(); }
 template <> inline fp2_t e_zero<fp2_t>() { return fp2_zero(); }
@@ -76,7 +85,7 @@ template <typename E> inline xyzz_t<E> xyzz_double(xyzz_t<E> p) {
   return r;
 }
 
-template <typename E>
+template <typename E, bool FUSED = false>
 inline xyzz_t<E> xyzz_add_mixed(xyzz_t<E> p, affine_t<E> q) {
   if (affine_is_infinity(q))
     return p;
@@ -91,7 +100,8 @@ inline xyzz_t<E> xyzz_add_mixed(xyzz_t<E> p, affine_t<E> q) {
   const E q2 = e_mul(p.x, pp);
   xyzz_t<E> r;
   r.x = e_sub(e_sub(e_sub(e_square(dy), ppp), q2), q2);
-  r.y = e_sub(e_mul(e_sub(q2, r.x), dy), e_mul(p.y, ppp));
+  r.y = FUSED ? e_diff_products(e_sub(q2, r.x), dy, p.y, ppp)
+              : e_sub(e_mul(e_sub(q2, r.x), dy), e_mul(p.y, ppp));
   r.zz = e_mul(p.zz, pp);
   r.zzz = e_mul(p.zzz, ppp);
   return r;

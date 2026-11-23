@@ -363,14 +363,35 @@ impl G2Affine {
         Self::new(self.x.conjugate() * PSI_X, self.y.conjugate() * PSI_Y)
     }
 
-    /// In the prime-order subgroup, for a point on the curve: psi(P) =
-    /// [6 x^2] P (El Housni, Guillevic and Piellard), as arkworks checks.
+    /// For a point on the curve, [r]P = 0 iff
+    /// [x+1]P + psi([x]P) + psi^2([x]P) = psi^3([2x]P).
+    /// The short relation is the check used by gnark-crypto (ePrint 2022/348,
+    /// sections 3 and 5.1); it needs only a 64-bit seed multiplication.
     pub fn is_in_subgroup(&self) -> bool {
-        const SIX_X_SQUARED: [u64; 2] = [17887900258952609094, 8020209761171036667];
+        const X: u64 = 4965661367192848881;
         if self.is_identity() {
             return true;
         }
-        self.mul_limbs(&SIX_X_SQUARED) == self.psi().to_projective()
+        let mut a = G2Projective::IDENTITY;
+        for bit in (0..64).rev() {
+            a = a.double();
+            if X >> bit & 1 != 0 {
+                a = a.add_affine(self);
+            }
+        }
+        let b = a.psi();
+        let c = b.psi();
+        a.add_affine(self) + b + c == c.psi().double()
+    }
+}
+
+impl G2Projective {
+    pub(crate) fn psi(&self) -> Self {
+        Self::new(
+            self.x.conjugate() * PSI_X,
+            self.y.conjugate() * PSI_Y,
+            self.z.conjugate(),
+        )
     }
 }
 
@@ -436,4 +457,163 @@ pub fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projective<C>
         result += sum;
     }
     result
+}
+
+/// Add a batch of signed bases to distinct finite buckets with distinct x
+/// coordinates. Partial products stay below 2p. Normalize only before the
+/// inversion and when producing affine points for the next batch.
+#[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64", not(no_asm)))]
+#[doc(hidden)]
+pub fn batch_affine_loose<C: CurveConfig<Base = Fq>>(
+    affine: &mut [Affine<C>],
+    busy: &mut [u64],
+    batch: &[(u32, &Affine<C>)],
+    scratch: &mut Vec<Fq>,
+    prefixes: &mut Vec<Fq>,
+) {
+    use crate::{FpConfig, FqConfig, arm64, portable};
+    const P: [u64; 4] = FqConfig::P;
+    const P2: [u64; 4] = portable::add4(P, P).0;
+    const INV: u64 = FqConfig::INV;
+    let mul = |a, b| arm64::multiply_loose(a, b, P, INV);
+    let sub = |a, b| arm64::sub(a, b, P2);
+    let norm = |a| Fq::from_montgomery(arm64::reduce_once(a, P));
+    let bucket_index = |encoded: u32| (encoded & 0x7fff_ffff) as usize;
+    scratch.clear();
+    prefixes.clear();
+    let len = batch.len().checked_mul(2).expect("affine batch scratch length");
+    scratch.reserve(len);
+    let mut product = Fq::ONE.0;
+    for (&(encoded, point), pair) in batch.iter().zip(
+        scratch.spare_capacity_mut()[..len].as_chunks_mut::<2>().0,
+    ) {
+        let current = &affine[bucket_index(encoded)];
+        let dx = sub(point.x.0, current.x.0);
+        let dy = arm64::affine_signed_difference(current.y.0, point.y.0, encoded >> 31 != 0, P);
+        // Store the denominator beside its scaled numerator for the reverse pass.
+        // Both are loose Montgomery values and are read only as limbs.
+        pair[0].write(Fq::from_montgomery(dx));
+        pair[1].write(Fq::from_montgomery(mul(dy, product)));
+        product = mul(product, dx);
+    }
+    // SAFETY: the loop initialized both entries for every input in batch.
+    unsafe { scratch.set_len(len) };
+
+    let mut pending = batch.iter().zip(scratch.as_chunks::<2>().0).rev();
+    let Some((&first, first_pair)) = pending.next() else { return };
+    let mut entry = first;
+    let mut inverse = norm(product).inverse().expect("distinct x in a batch").0;
+    let mut slope = |pair: &[Fq; 2]| {
+        let lambda = mul(inverse, pair[1].0);
+        inverse = mul(inverse, pair[0].0);
+        lambda
+    };
+    let mut finish = |(encoded, point): (u32, &Affine<C>), lambda| {
+        let bucket = bucket_index(encoded);
+        let current = &mut affine[bucket];
+        let sq = arm64::square_loose(lambda, P, INV);
+        // Both affine x coordinates are canonical, so their sum is below 2p.
+        let x = sub(sq, portable::add4(current.x.0, point.x.0).0);
+        let y = sub(mul(lambda, sub(current.x.0, x)), current.y.0);
+        *current = Affine::new(norm(x), norm(y));
+        busy[bucket / 64] = 0;
+    };
+    let mut lambda = slope(first_pair);
+    for (&next, pair) in pending {
+        // Entries in a batch use distinct buckets. Start the next slope before
+        // writing this point so its multiplications can overlap the update.
+        let next_lambda = slope(pair);
+        finish(entry, lambda);
+        entry = next;
+        lambda = next_lambda;
+    }
+    finish(entry, lambda);
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+#[doc(hidden)]
+pub fn batch_affine_g2<C: CurveConfig<Base = Fq2>>(
+    affine: &mut [Affine<C>],
+    busy: &mut [u64],
+    batch: &[(u32, &Affine<C>)],
+    scratch: &mut Vec<Fq2>,
+) {
+    use crate::{FpConfig, FqConfig, arm64, portable};
+    const P: [u64; 4] = FqConfig::P;
+    const P2: [u64; 4] = portable::add4(P, P).0;
+    const INV: u64 = FqConfig::INV;
+    // Scratch holds loose limbs. Normalize before inversion, whenever both
+    // extension-field factors could be loose, and before publishing points.
+    let mul = |a: Fq, b: Fq| Fq::from_montgomery(arm64::multiply_loose(a.0, b.0, P, INV));
+    let sub = |a: Fq, b: Fq| Fq::from_montgomery(arm64::sub(a.0, b.0, P2));
+    let add = |a: Fq, b: Fq| Fq::from_montgomery(portable::add4(a.0, b.0).0);
+    let normalize = |a: Fq| Fq::from_montgomery(arm64::reduce_once(a.0, P));
+    let normalize2 = |a: Fq2| Fq2::new(normalize(a.c0), normalize(a.c1));
+    let sub2 = |a: Fq2, b: Fq2| Fq2::new(sub(a.c0, b.c0), sub(a.c1, b.c1));
+    let bucket_index = |encoded: u32| (encoded & 0x7fff_ffff) as usize;
+    scratch.clear();
+    let len = batch.len().checked_mul(2).expect("affine batch scratch length");
+    scratch.reserve(len);
+    let mut product = Fq::ONE;
+    let storage = scratch.spare_capacity_mut()[..len].as_chunks_mut::<2>().0;
+    for (&(encoded, incoming), pair) in batch.iter().zip(storage) {
+        let current = &affine[bucket_index(encoded)];
+        let dx = incoming.x - current.x;
+        let norm = dx.norm();
+        // dy / dx = (dy * conjugate(dx)) / norm(dx). Form the
+        // extension-field numerator while building the base-field prefix.
+        let negative = encoded >> 31 != 0;
+        let dy = |a: Fq, b: Fq| {
+            Fq::from_montgomery(arm64::affine_signed_difference(a.0, b.0, negative, P))
+        };
+        let dy = Fq2::new(
+            dy(current.y.c0, incoming.y.c0),
+            dy(current.y.c1, incoming.y.c1),
+        );
+        let numerator = crate::fq2::multiply_loose(&dx.conjugate(), &dy);
+        pair[0].write(Fq2::new(product, norm));
+        pair[1].write(numerator);
+        product = mul(product, norm);
+    }
+    // SAFETY: the loop initialized both entries for each batch item.
+    unsafe { scratch.set_len(len) };
+    let mut pending = batch.iter().zip(scratch.as_chunks::<2>().0).rev();
+    let Some((&first, first_pair)) = pending.next() else { return };
+    let mut inverse = normalize(product).inverse().expect("distinct x in a batch");
+    let mut slope = |pair: &[Fq2; 2]| {
+        let factor = mul(inverse, pair[0].c0);
+        inverse = mul(inverse, pair[0].c1);
+        // Keep the slope canonical so it can multiply a loose difference.
+        Fq2::new(
+            normalize(mul(pair[1].c0, factor)),
+            normalize(mul(pair[1].c1, factor)),
+        )
+    };
+    let mut finish = |(encoded, incoming): (u32, &Affine<C>), lambda: Fq2| {
+        let bucket = bucket_index(encoded);
+        let current = &mut affine[bucket];
+        let difference = Fq::from_montgomery(arm64::sub(lambda.c0.0, lambda.c1.0, P));
+        let square = Fq2::new(
+            mul(add(lambda.c0, lambda.c1), difference),
+            mul(add(lambda.c0, lambda.c0), lambda.c1),
+        );
+        let x_sum = Fq2::new(
+            add(current.x.c0, incoming.x.c0),
+            add(current.x.c1, incoming.x.c1),
+        );
+        let x = sub2(square, x_sum);
+        let slope_times_x = crate::fq2::multiply_loose(&lambda, &sub2(current.x, x));
+        let y = sub2(slope_times_x, current.y);
+        *current = Affine::new(normalize2(x), normalize2(y));
+        busy[bucket / 64] = 0;
+    };
+    let mut entry = first;
+    let mut lambda = slope(first_pair);
+    for (&next, pair) in pending {
+        let next_lambda = slope(pair);
+        finish(entry, lambda);
+        entry = next;
+        lambda = next_lambda;
+    }
+    finish(entry, lambda);
 }

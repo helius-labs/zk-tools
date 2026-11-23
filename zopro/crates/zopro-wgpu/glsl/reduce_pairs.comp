@@ -1,0 +1,29 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Each thread reduces a leaf of a G1 window and returns its local weighted
+// sum and its ordinary sum. The host adds the leaf offset and combines them.
+#include "field.glsl"
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Buckets { xyzz values[]; } buckets;
+layout(std430, set = 0, binding = 1) buffer Pairs { xyzz values[]; } pairs;
+layout(std140, set = 0, binding = 2) uniform Reduce {
+  uint half_range;
+  uint leaf;
+  uint per_window;
+  uint pad;
+} reduce;
+
+void main() {
+  const uint thread = gl_GlobalInvocationID.x;
+  const uint window = thread / reduce.per_window;
+  const uint first = (thread % reduce.per_window) * reduce.leaf;
+  const uint base = window * reduce.half_range + first;
+  xyzz sum = xyzz_infinity();
+  xyzz weighted = xyzz_infinity();
+  for (uint j = reduce.leaf; j > 0u; --j) {
+    sum = xyzz_add(sum, buckets.values[base + j - 1u]);
+    weighted = xyzz_add(weighted, sum);
+  }
+  pairs.values[2u * thread] = weighted;
+  pairs.values[2u * thread + 1u] = sum;
+}

@@ -14,6 +14,8 @@ struct fp_t {
 
 constant uint FR_Q[8] = {L64(0x43e1f593f0000001ul), L64(0x2833e84879b97091ul),
                          L64(0xb85045b68181585dul), L64(0x30644e72e131a029ul)};
+constant uint FR_2Q[8] = {L64(0x87c3eb27e0000002ul), L64(0x5067d090f372e122ul),
+                          L64(0x70a08b6d0302b0baul), L64(0x60c89ce5c2634053ul)};
 constant uint FR_ONE[8] = {L64(0xac96341c4ffffffbul), L64(0x36fc76959f60cd29ul),
                            L64(0x666ea36f7879462eul), L64(0x0e0a77c19a07df2ful)};
 constant uint FR_R2[8] = {L64(0x1bb8e645ae216da7ul), L64(0x53fe3ab1e35c59e3ul),
@@ -107,7 +109,7 @@ inline F field_sub(thread const F &a, thread const F &b, constant uint *q) {
 }
 
 // 2. Moduli below 2^254 keep the interleaved reduction within eight words.
-template <typename F>
+template <typename F, bool NORMALIZE = true>
 inline F field_mul(thread const F &a, thread const F &b, constant uint *q,
                    uint inv) {
   uint t[8];
@@ -130,7 +132,13 @@ inline F field_mul(thread const F &a, thread const F &b, constant uint *q,
     }
     t[7] = (uint)(C + A);
   }
-  return field_reduce_once<F>(t, q);
+  if (NORMALIZE)
+    return field_reduce_once<F>(t, q);
+  F raw;
+#pragma clang loop unroll(full)
+  for (int j = 0; j < 8; ++j)
+    raw.v[j] = t[j];
+  return raw;
 }
 
 // The same with the outer loop rolled, for G1's point arithmetic: fewer
@@ -400,6 +408,39 @@ inline fr_t fr_add(fr_t a, fr_t b) { return field_add(a, b, FR_Q); }
 inline fr_t fr_sub(fr_t a, fr_t b) { return field_sub(a, b, FR_Q); }
 inline fr_t fr_neg(fr_t a) { return field_sub(fr_zero(), a, FR_Q); }
 inline fr_t fr_mul(fr_t a, fr_t b) { return field_mul(a, b, FR_Q, FR_INV); }
+// A loose operand below 2p times a canonical one has an unreduced
+// Montgomery result below p + 2p²/R, hence still below 2p.
+inline fr_t fr_mul_loose(fr_t a, fr_t b) { return field_mul<fr_t, false>(a, b, FR_Q, FR_INV); }
+
+inline fr_t fr_loose_add(fr_t a, fr_t b) {
+  const ulong top = ulong(a.v[7]) + b.v[7];
+  const ulong modulus_top = FR_2Q[7];
+  if (top >= modulus_top - 1 && top <= modulus_top)
+    return field_add(a, b, FR_2Q);
+  const uint mask = 0u - uint(top > modulus_top);
+  fr_t out;
+  long carry = 0;
+  for (int i = 0; i < 8; ++i) {
+    const long word = long(a.v[i]) + long(b.v[i]) - long(FR_2Q[i] & mask) + carry;
+    out.v[i] = uint(word);
+    carry = word >> 32;
+  }
+  return out;
+}
+
+inline fr_t fr_loose_sub(fr_t a, fr_t b) {
+  if (a.v[7] == b.v[7])
+    return field_sub(a, b, FR_2Q);
+  const uint mask = 0u - uint(a.v[7] < b.v[7]);
+  fr_t out;
+  long carry = 0;
+  for (int i = 0; i < 8; ++i) {
+    const long word = long(a.v[i]) - long(b.v[i]) + long(FR_2Q[i] & mask) + carry;
+    out.v[i] = uint(word);
+    carry = word >> 32;
+  }
+  return out;
+}
 inline fr_t fr_from_canon(fr_t a) {
   return field_mul(a, field_load<fr_t>(FR_R2), FR_Q, FR_INV);
 }
@@ -437,6 +478,47 @@ inline fp_t fp_mul(fp_t a, fp_t b) { return field_mul(a, b, FP_Q, FP_INV); }
 // G1's point arithmetic (e_mul, e_square on fp_t).
 inline fp_t fp_mul_g1(fp_t a, fp_t b) { return field_mul_rolled(a, b, FP_Q, FP_INV); }
 inline fp_t fp_square_g1(fp_t a) { return field_square(a, FP_Q, FP_INV); }
+inline fp_t fp_neg_fast(fp_t a) {
+  const uint mask = 0u - uint(!fp_is_zero(a));
+  fp_t r;
+  uint borrow = 0;
+  for (int j = 0; j < 8; j++) {
+    const ulong x = (ulong)(FP_Q[j] & mask) - a.v[j] - borrow;
+    r.v[j] = uint(x);
+    borrow = uint(x >> 63);
+  }
+  return r;
+}
+
+// Two products with one Montgomery reduction. For inputs below p < 2^254,
+// the final carry fits in 32 bits and the unreduced result is below 1.5p.
+inline fp_t fp_sum2_g1(fp_t a, fp_t b, fp_t c, fp_t d) {
+  uint t[8];
+  for (int j = 0; j < 8; j++)
+    t[j] = 0;
+#pragma clang loop unroll(disable)
+  for (int i = 0; i < 8; i++) {
+    const uint bi = b.v[i], di = d.v[i];
+    ulong A = (ulong)a.v[0] * bi + t[0];
+    ulong D = (ulong)c.v[0] * di + (uint)A;
+    const uint m = (uint)D * FP_INV;
+    ulong C = ((ulong)m * FP_Q[0] + (uint)D) >> 32;
+    A >>= 32;
+    D >>= 32;
+    for (int j = 1; j < 8; j++) {
+      A = (ulong)a.v[j] * bi + t[j] + A;
+      D = (ulong)c.v[j] * di + (uint)A + D;
+      C = (ulong)m * FP_Q[j] + (uint)D + C;
+      t[j - 1] = (uint)C;
+      A >>= 32;
+      D >>= 32;
+      C >>= 32;
+    }
+    t[7] = (uint)(C + A + D);
+  }
+  return field_reduce_once<fp_t>(t, FP_Q);
+}
+
 inline fp_t fp_double(fp_t a) { return fp_add(a, a); }
 inline fp_t fp_triple(fp_t a) { return fp_add(fp_add(a, a), a); }
 inline fp_t fp_inv(fp_t a) {
@@ -478,4 +560,33 @@ inline fp2_t fp2_square(fp2_t a) {
   const fp_t real = fp_mul(fp_add(a.a0, a.a1), fp_sub(a.a0, a.a1));
   const fp_t product = fp_mul(a.a0, a.a1);
   return fp2_t{real, fp_add(product, product)};
+}
+
+// Multiplying by a degree below 2^21 does not need a full Montgomery
+// multiplication. Use the high word and a reciprocal of floor(r/2^224)+1
+// at 56 bits. The estimate is at most one below the exact quotient, so the
+// final subtraction leaves a number below 2*r.
+inline fr_t fr_mul_euler_degree(fr_t value, uint degree) {
+  uint words[8];
+  ulong carry = 0;
+#pragma clang loop unroll(full)
+  for (uint i = 0; i < 8; ++i) {
+    const ulong x = ulong(value.v[i]) * degree + carry;
+    words[i] = uint(x);
+    carry = x >> 32;
+  }
+  const ulong reciprocal = 88753990UL;
+  const uint q = uint((carry * reciprocal + ((ulong(words[7]) * reciprocal) >> 32)) >> 24);
+  ulong multiple_carry = 0;
+  uint borrow = 0;
+#pragma clang loop unroll(full)
+  for (uint i = 0; i < 8; ++i) {
+    const ulong multiple = ulong(q) * FR_Q[i] + multiple_carry;
+    const uint word = words[i];
+    const uint diff = word - uint(multiple);
+    words[i] = diff - borrow;
+    borrow = uint(word < uint(multiple) || diff < borrow);
+    multiple_carry = multiple >> 32;
+  }
+  return field_reduce_once<fr_t>(words, FR_Q);
 }
