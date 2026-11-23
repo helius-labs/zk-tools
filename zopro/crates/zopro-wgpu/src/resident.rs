@@ -2,10 +2,21 @@
 use super::{Curve, Gpu, GpuSort, Msm, Slot, WORKGROUP, profile, spirv_pipeline, storage, uniform};
 use std::path::Path;
 
+const PAIRS_PER_SHARD: usize = 16;
+const AFFINE_BATCH: usize = 128;
+const AFFINE_BYTES: usize = 64;
+
+struct AffineBatch {
+    pipeline: wgpu::ComputePipeline,
+    pairs: wgpu::Buffer,
+}
+
+
 pub(super) struct ResidentSort {
     prefix: wgpu::ComputePipeline,
     first: wgpu::ComputePipeline,
     tree: wgpu::ComputePipeline,
+    affine_batch: Option<AffineBatch>,
     offsets: wgpu::Buffer,
     totals: wgpu::Buffer,
     shard_buckets: wgpu::Buffer,
@@ -25,6 +36,29 @@ impl ResidentSort {
         let first = pipeline("msm_resident_first", &[Read, Read, Read, Read, Read, Write, Uniform, Read])?;
         let tree = pipeline("msm_resident_tree", &[Read, Read, Read, Read, Write, Uniform, Write])?;
         let stride = n.div_ceil(32) + half_range;
+        let affine_batch = if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_AFFINE_BATCH")
+            .is_ok_and(|value| value == "1")
+        {
+            let bytes = chunk_windows * stride * PAIRS_PER_SHARD * AFFINE_BYTES;
+            let limits = gpu.device.limits();
+            if bytes as u64 > limits.max_buffer_size
+                || bytes > limits.max_storage_buffer_binding_size as usize
+            {
+                return Err(format!("affine pair buffer exceeds Vulkan limits: {bytes} bytes"));
+            }
+            let pipeline = pipeline(
+                "msm_resident_affine_pairs",
+                &[Read, Read, Read, Read, Read, Write, Uniform, Read],
+            )?;
+            log::info!("ZOPRO_TRACE vulkan-euler-h affine pair batching");
+            Some(AffineBatch {
+                pipeline,
+                pairs: storage(&gpu.device, "resident MSM affine pairs", bytes),
+            })
+        } else {
+            None
+        };
+
         let chunk_arguments = (0..windows.div_ceil(chunk_windows))
             .map(|chunk| {
                 [0, 1, 2, 3].map(|level| {
@@ -39,12 +73,17 @@ impl ResidentSort {
             prefix,
             first,
             tree,
+            affine_batch,
             offsets: storage(&gpu.device, "resident MSM bucket offsets", windows * half_range * 16),
             totals: storage(&gpu.device, "resident MSM window totals", windows * 16),
             shard_buckets: storage(&gpu.device, "resident MSM first-stage bucket IDs", windows * stride * 4),
             prefix_arguments: uniform(gpu, [n as u32, half_range as u32, windows as u32, stride as u32]),
             chunk_arguments,
         })
+    }
+
+    pub(super) fn passes_per_chunk(&self) -> usize {
+        4 + usize::from(self.affine_batch.is_some())
     }
 
     pub(super) fn encode_prefix(
@@ -80,15 +119,34 @@ impl ResidentSort {
         let groups = |points: usize| [points.div_ceil(WORKGROUP as usize) as u32, window_count];
         let device = &msm.gpu.device;
         let [first, second, third, final_level] = &self.chunk_arguments[chunk];
+        let points = msm.n.div_ceil(32) + msm.half;
+        let bases = if let Some(batch) = &self.affine_batch {
+            dispatch(
+                device,
+                encoder,
+                &batch.pipeline,
+                &[
+                    &msm.bases, &msm.sorted, &sort.counts, &self.offsets,
+                    &self.totals, &batch.pairs, first, &self.shard_buckets,
+                ],
+                groups((points * PAIRS_PER_SHARD).div_ceil(AFFINE_BATCH)),
+                timer,
+                "msm_resident_affine_pairs",
+            );
+            &batch.pairs
+        } else {
+            &msm.bases
+        };
+
         dispatch(
             device,
             encoder,
             &self.first,
             &[
-                &msm.bases, &msm.sorted, &sort.counts, &self.offsets,
+                bases, &msm.sorted, &sort.counts, &self.offsets,
                 &self.totals, &msm.tree[0], first, &self.shard_buckets,
             ],
-            groups(msm.n.div_ceil(32) + msm.half),
+            groups(points),
             timer,
             "msm_resident_first",
         );

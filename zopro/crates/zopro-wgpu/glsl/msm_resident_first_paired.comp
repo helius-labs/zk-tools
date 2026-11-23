@@ -1,0 +1,43 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "field.glsl"
+#include "points.glsl"
+
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Bases { affine values[]; } bases;
+layout(std430, set = 0, binding = 1) readonly buffer Sorted { uint values[]; } sorted;
+layout(std430, set = 0, binding = 2) readonly buffer Histogram { uint values[]; } histogram;
+layout(std430, set = 0, binding = 3) readonly buffer Offsets { uvec4 values[]; } offsets;
+layout(std430, set = 0, binding = 4) readonly buffer Totals { uvec4 values[]; } totals;
+layout(std430, set = 0, binding = 5) buffer Output { xyzz values[]; } outputs;
+layout(std140, set = 0, binding = 6) uniform Shards {
+  uint first_window;
+  uint half_range;
+  uint stride;
+  uint level;
+} args;
+layout(std430, set = 0, binding = 7) readonly buffer ShardBuckets { uint values[]; } shard_buckets;
+
+void main() {
+  const uint relative_window = gl_WorkGroupID.y;
+  const uint window = args.first_window + relative_window;
+  const uint shard = gl_GlobalInvocationID.x;
+  if (shard >= totals.values[window].y)
+    return;
+
+  const uint bucket = shard_buckets.values[window * args.stride + shard];
+  const uvec4 start = offsets.values[bucket];
+  const uint offset = (shard - start.y) * 32u;
+  const uint count = min(32u, histogram.values[bucket] - offset);
+  const uint first = (relative_window * args.stride + shard) * 16u;
+  const uint end = first + (count + 1u) / 2u;
+  xyzz sum = xyzz_from_affine(bases.values[first]);
+  uint i = first + 1u;
+  if (i < end) {
+    sum = xyzz_add_affine_pair(sum, bases.values[i]);
+    ++i;
+  }
+  [[dont_unroll]] for (; i < end; ++i)
+    sum = xyzz_add_mixed(sum, bases.values[i]);
+  outputs.values[relative_window * args.stride + shard] = sum;
+}

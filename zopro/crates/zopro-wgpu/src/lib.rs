@@ -1581,12 +1581,16 @@ impl<C: Curve> Msm<C> {
             let counts = sort.counted.take().expect("submitted resident histogram");
             sort.count_timer.take().map(|timer| (counts, timer))
         }).flatten();
+        #[cfg(target_os = "android")]
+        let resident_passes = self.resident_sort.as_ref().map_or(4, resident::ResidentSort::passes_per_chunk);
+        #[cfg(not(target_os = "android"))]
+        let resident_passes = 4;
         let passes = self.gpu_sort.as_ref().map_or(0, |s| s.slices.len())
             + if host_plans {
                 chunks.iter().map(Vec::len).sum::<usize>()
                     + usize::from(self.first_repair.is_some()) * chunk_count
             } else {
-                1 + 4 * chunk_count
+                1 + resident_passes * chunk_count
             }
             + 1;
         #[cfg(target_os = "android")]
