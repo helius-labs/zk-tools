@@ -18,6 +18,34 @@ A value requires three fresh processes. A dash indicates an incomplete measureme
 | Samsung Galaxy S25 | Android 15 | AWS Device Farm, passed |
 | Apple iPhone 17e | 27.2.1 | USB, passed |
 
+## iPhone 17e compact Euler Metal release across all 41 shapes
+
+The signed `00b0cdf` Metal release ran on the wired iPhone 17e. Each shape ran in three fresh processes with the pinned Gnark key and witness. The solver ran on the original witness in every proof. All 123 blocks verified, for 984 proofs. Each block averaged the last five solve, prove, and verify times out of eight. The table reports the median of three blocks. Each memory value is the largest peak over those blocks. Process start and finish thermal observations were nominal (204), fair (24), serious (18).
+
+The largest shape, merge-54×1, completed in **398.6 ms** with **1213.9 MiB** peak physical footprint and **1526.7 MiB** peak RSS. That is **10.33×** the speed of the original 4116.1 ms run from a separate session. The three target blocks used a 30-second interval before each process and recorded nominal (6) at start and finish.
+
+The measured load time includes checking the SHA-256 digest of the prepared image. The merge’s first verified response took 2273.6 ms.
+
+Compared with the previous Metal release from a separate session, the prepared image ran faster on 35/41 shapes. The 1×2 result moved from 54.4 ms to 73.6 ms. [Previous Metal measurements](iphone-17e-cfd28e4-metal-comparison.csv)
+
+Median speedup across the 41 shapes was 3.93× relative to the original wired Metal measurements from a separate session. The iPhone beat AWS c7a Zopro on 0/41 shapes, Aeglos on 0/41 shapes and Gnark on 34/41 shapes.
+
+The phone measurements start with the pinned witness fixture. The AWS request measurements also include witness construction.
+
+[All 41 shapes with M5 Pro and AWS c7a comparisons](iphone-17e-00b0cdf-euler-comparison.csv) · [Raw release blocks](artifacts/iphone-17e-00b0cdf-euler-catalog.jsonl)
+
+| Shape | Original warm ms | Release warm ms | Speedup | Load ms | First response ms | Peak physical footprint MiB | Peak RSS MiB |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1×2 | 79.2 | 73.6 | 1.08× | 127.2 | 217.1 | 115.8 | 93.4 |
+| 8×2 | 799.3 | 177.8 | 4.50× | 344.4 | 517.7 | 304.1 | 307.8 |
+| 16×2 | 1401.8 | 255.8 | 5.48× | 718.8 | 955.7 | 474.2 | 530.6 |
+| 24×2 | 2063.6 | 345.3 | 5.98× | 1089.5 | 1417.7 | 666.5 | 772.8 |
+| 48×2 | 3886.9 | 561.1 | 6.93× | 1897.1 | 2404.0 | 1170.1 | 1456.5 |
+| 49×2 | 3938.2 | 780.8 | 5.04× | 1978.4 | 2509.8 | 1186.2 | 1480.0 |
+| merge-54×1 | 4116.1 | 398.6 | 10.33× | 1841.0 | 2273.6 | 1213.9 | 1526.7 |
+
+A separate process confirmed that the signed build uses the final FFT fusion and overlaps the CPU’s bucket reduction with the last GPU windows. The 123 timed blocks used the release build with profiling disabled. [Profiled route](artifacts/iphone-17e-00b0cdf-euler-profile.jsonl)
+
 ## iPhone 17e Metal fused shard release across all 41 shapes
 
 The signed `cfd28e4` Metal release ran on the wired iPhone 17e with iOS 27.2.1. The PR commit `78b2087` carries the same prover source. Each shape ran in three fresh processes with the pinned Gnark key and witness. All 123 blocks verified, for 984 proofs. Each block ran eight proofs and averaged the last five prove-and-verify times for warm latency. The table reports the median of three blocks. Process start and finish thermal observations were fair (175), serious (71).
