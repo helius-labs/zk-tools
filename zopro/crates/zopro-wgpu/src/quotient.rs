@@ -50,8 +50,7 @@ pub struct Quotient {
     log_n: u32,
     roots: wgpu::Buffer,
     inverse_roots: wgpu::Buffer,
-    forward_weights: wgpu::Buffer,
-    reverse_weights: wgpu::Buffer,
+    monomial_weights: Option<[wgpu::Buffer; 2]>,
     abc: wgpu::Buffer,
     staging: wgpu::Buffer,
     result_len: usize,
@@ -140,12 +139,11 @@ impl Drop for Quotient {
         for buffer in [
             &self.roots,
             &self.inverse_roots,
-            &self.forward_weights,
-            &self.reverse_weights,
             &self.abc,
             &self.staging,
         ]
         .into_iter()
+        .chain(self.monomial_weights.iter().flatten())
         .chain(uniforms)
         {
             buffer.destroy();
@@ -166,6 +164,29 @@ impl Quotient {
         inverse_roots: &[Fr],
         forward_weights: &[Fr],
         reverse_weights: &[Fr],
+    ) -> Result<(Self, f64), String> {
+        Self::create(gpu, n, roots, inverse_roots, Some([forward_weights, reverse_weights]))
+    }
+
+    #[cfg(target_os = "android")]
+    pub fn new_euler(
+        gpu: Arc<Gpu>,
+        n: usize,
+        roots: &[Fr],
+        inverse_roots: &[Fr],
+        active: usize,
+    ) -> Result<Self, String> {
+        let (mut quotient, _) = Self::create(gpu, n, roots, inverse_roots, None)?;
+        quotient.prepare_euler_product(active)?;
+        Ok(quotient)
+    }
+
+    fn create(
+        gpu: Arc<Gpu>,
+        n: usize,
+        roots: &[Fr],
+        inverse_roots: &[Fr],
+        monomial_weights: Option<[&[Fr]; 2]>,
     ) -> Result<(Self, f64), String> {
         assert!(n.is_power_of_two() && n >= 8);
         let device = &gpu.device;
@@ -231,9 +252,10 @@ impl Quotient {
             log_n,
             roots: upload("roots", roots),
             inverse_roots: upload("inverse roots", inverse_roots),
-            forward_weights: upload("forward weights", forward_weights),
-            reverse_weights: upload("reverse weights", reverse_weights),
-            abc: storage(device, "abc", 3 * n * 32),
+            monomial_weights: monomial_weights.map(|[forward, reverse]| {
+                [upload("forward weights", forward), upload("reverse weights", reverse)]
+            }),
+            abc: storage(device, "quotient vectors", (2 + usize::from(monomial_weights.is_some())) * n * 32),
             staging: device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some("quotient staging"),
                 size: (n * 32) as u64,
@@ -276,6 +298,7 @@ impl Quotient {
     pub fn start(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) {
         let n = self.n;
         self.result_len = n - 1;
+        let [forward_weights, reverse_weights] = self.monomial_weights.as_ref().expect("monomial quotient");
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let zero = Fr::from(0u64);
         for (vector, source) in [a, b, c].into_iter().enumerate() {
@@ -294,7 +317,7 @@ impl Quotient {
             let offset = (vector * n * 32) as u64;
             self.transform(&mut encoder, offset, &self.inverse_roots, true);
             encoder = crate::flush(&self.gpu, encoder);
-            self.scale_by(&mut encoder, offset, &self.forward_weights);
+            self.scale_by(&mut encoder, offset, forward_weights);
             self.transform(&mut encoder, offset, &self.roots, false);
             encoder = crate::flush(&self.gpu, encoder);
         }
@@ -341,7 +364,7 @@ impl Quotient {
         }
         encoder = crate::flush(&self.gpu, encoder);
         self.transform(&mut encoder, 0, &self.inverse_roots, true);
-        self.scale_by(&mut encoder, 0, &self.reverse_weights);
+        self.scale_by(&mut encoder, 0, reverse_weights);
         encoder.copy_buffer_to_buffer(&self.abc, 0, &self.staging, 0, (n * 32) as u64);
         if let Some(timer) = self.timer.borrow().as_ref() {
             timer.resolve(&mut encoder);

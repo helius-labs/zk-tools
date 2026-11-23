@@ -553,7 +553,11 @@ struct GpuBuilder {
 #[cfg(gpu_wgpu)]
 impl GpuBuilder {
     /// None with ZOPRO_GPU=0 or without a GPU usable here.
-    fn open(plan: &fft::Plan, _b2_points: usize) -> Option<Self> {
+    fn open(
+        plan: &fft::Plan,
+        _b2_points: usize,
+        #[cfg(target_os = "android")] euler_rows: Option<usize>,
+    ) -> Option<Self> {
         let wanted = std::env::var("ZOPRO_GPU").ok();
         if wanted.as_deref() == Some("0") {
             return None;
@@ -584,17 +588,27 @@ impl GpuBuilder {
         // (init_gpu); building on it is synchronous.
         #[cfg(target_arch = "wasm32")]
         let gpu = WEB_GPU.with(|device| device.borrow().clone())?;
-        let (roots, inverse_roots, forward, reverse) = plan.tables()?;
-        let quotient = zopro_wgpu::Quotient::new(
-            gpu.clone(),
-            plan.size(),
-            &roots,
-            &inverse_roots,
-            &forward,
-            &reverse,
-        )
-        .ok()?
-        .0;
+        let build_monomial = || {
+            let (roots, inverse_roots, forward, reverse) = plan.tables()?;
+            zopro_wgpu::Quotient::new(gpu.clone(), plan.size(), &roots, &inverse_roots, &forward, &reverse)
+                .ok().map(|(quotient, _)| quotient)
+        };
+        #[cfg(target_os = "android")]
+        let quotient = match euler_rows {
+            Some(active) if !cfg!(feature = "fullcheck") => {
+                let (roots, inverse_roots, _, _) = plan.compact_tables()?;
+                zopro_wgpu::Quotient::new_euler(gpu.clone(), plan.size(), &roots, &inverse_roots, active).ok()?
+            }
+            Some(active) => {
+                // The load-time full check also compares the original quotient.
+                let mut quotient = build_monomial()?;
+                quotient.prepare_euler_product(active).ok()?;
+                quotient
+            }
+            None => build_monomial()?,
+        };
+        #[cfg(not(target_os = "android"))]
+        let quotient = build_monomial()?;
         Some(Self {
             started,
             gpu,
@@ -2018,7 +2032,11 @@ impl Key {
         let mut gpu = if basis_only {
             None
         } else {
-            GpuBuilder::open(&plan, _b2_points, #[cfg(gpu)] alternate_h.is_some())
+            GpuBuilder::open(
+                &plan, _b2_points,
+                #[cfg(gpu)] alternate_h.is_some(),
+                #[cfg(all(gpu_wgpu, target_os = "android"))] None,
+            )
         };
         #[cfg(not(gpu_any))]
         let mut gpu: Option<()> = None;
@@ -4374,8 +4392,8 @@ impl Key {
         let queries = self.lagrange.as_ref().filter(|q| q.euler).ok_or("no Euler queries")?;
         let folded = queries.folded.as_ref().ok_or("no folded Euler query")?;
         let active = plan.n_constraints;
-        let mut builder = GpuBuilder::open(&self.plan, self.b2.len()).ok_or("no Vulkan GPU")?;
-        builder.quotient.prepare_euler_product(active)?;
+        let mut builder = GpuBuilder::open(&self.plan, self.b2.len(), Some(active))
+            .ok_or("no Vulkan GPU for the Euler quotient")?;
         let points = [&self.a[..], &self.b[..], &folded.private[..], &queries.product[..active]];
         for (index, bases) in points.into_iter().enumerate() {
             builder.g1(index, bases)?;
