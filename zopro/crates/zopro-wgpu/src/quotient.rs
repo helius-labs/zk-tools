@@ -104,11 +104,15 @@ struct TiledFft {
     packed_roots: bool,
     #[cfg(target_os = "android")]
     radix_roots: bool,
+    #[cfg(target_os = "android")]
+    packed_tiles: Option<wgpu::ComputePipeline>,
 }
 
 struct TilePass {
     arguments: [wgpu::Buffer; 2],
     groups: [u32; 2],
+    #[cfg(target_os = "android")]
+    packed: bool,
     #[cfg(target_os = "android")]
     geometry: [u32; 5],
 }
@@ -222,6 +226,15 @@ impl TiledFft {
             gpu.kernel(name, || spirv_pipeline(&gpu.device, gpu.cache(), name, shader, &[Write, Read, Uniform]))
         });
         #[cfg(target_os = "android")]
+        let packed_tiles = (_euler && !large && !packed_roots && radix_root_shader.is_none()
+            && gpu.device.features().contains(wgpu::Features::SUBGROUP))
+            .then(|| std::env::var_os("ZOPRO_ANDROID_FFT_PACK_TILES_SPV"))
+            .flatten().and_then(|path| std::fs::read(path).ok()).map(|shader| {
+                let name = "fr_fft_tile_packed_subgroups";
+                log::info!("ZOPRO_TRACE quotient packed small FFT tiles");
+                gpu.kernel(name, || spirv_pipeline(&gpu.device, gpu.cache(), name, &shader, &[Write, Read, Uniform]))
+            });
+        #[cfg(target_os = "android")]
         let direction = if !large && !packed_roots && radix_root_shader.is_none()
             && gpu.device.features().contains(wgpu::Features::SUBGROUP)
         {
@@ -266,12 +279,23 @@ impl TiledFft {
             let stride_log = remaining - levels;
             let cols_log = (tile_bits - levels).min(stride_log);
             let groups = n >> (levels + cols_log);
+            #[cfg(target_os = "android")]
+            let packing = if packed_tiles.is_some() {
+                (128 >> (levels + cols_log)).min(groups)
+            } else {
+                1
+            };
+            #[cfg(not(target_os = "android"))]
+            let packing = 1;
+            let groups = groups / packing;
             let x = groups.min(16384);
             let arguments = [0, 1].map(|forward| {
-                crate::uniform_words(gpu, &[n, first, levels, stride_log, cols_log, forward, 0, 0])
+                crate::uniform_words(gpu, &[n, first, levels, stride_log, cols_log, forward, packing, 0])
             });
             passes.push(TilePass {
                 arguments, groups: [x, groups / x],
+                #[cfg(target_os = "android")]
+                packed: packing > 1,
                 #[cfg(target_os = "android")]
                 geometry: [n, first, levels, stride_log, cols_log],
             });
@@ -287,6 +311,8 @@ impl TiledFft {
             packed_roots,
             #[cfg(target_os = "android")]
             radix_roots: radix_root_shader.is_some(),
+            #[cfg(target_os = "android")]
+            packed_tiles,
         }
     }
 
@@ -621,7 +647,8 @@ impl Quotient {
         let degrees = storage(device, "Euler degrees", table.len() * 32);
         queue.write_buffer(&degrees, 0, fr_bytes(&table));
         let fused = self.tiled.as_ref().filter(|tiled| {
-            !tiled.large && !tiled.packed_roots && !tiled.radix_roots && tiled.passes.len() > 1
+            !tiled.large && !tiled.packed_roots && !tiled.radix_roots
+                && tiled.packed_tiles.is_none() && tiled.passes.len() > 1
                 && std::env::var("ZOPRO_VULKAN_EULER_FUSED").as_deref() == Ok("1")
         }).map(|tiled| FusedEulerTiles::new(&self.gpu, tiled, active as u32, low as u32));
         let load_paired = || -> Result<_, String> {
@@ -632,6 +659,7 @@ impl Quotient {
             use Slot::{Read, Uniform, Write};
             let tiled = self.tiled.as_ref().ok_or("paired Euler requires a tiled transform")?;
             if fused.is_some() || tiled.packed_roots || tiled.radix_roots || tiled.large
+                || tiled.packed_tiles.is_some()
                 || self.abc.size() > device.limits().max_storage_buffer_binding_size as u64
             {
                 return Err("paired Euler is incompatible with this quotient workspace".into());
@@ -990,6 +1018,12 @@ impl Quotient {
         let pipeline = tiled.direction.as_ref().map_or(pipeline, |directions| {
             &directions[usize::from(!dif)]
         });
+        #[cfg(target_os = "android")]
+        let pipeline = if stage.packed {
+            tiled.packed_tiles.as_ref().expect("packed FFT pipeline")
+        } else {
+            pipeline
+        };
         let group = self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
             layout: &pipeline.get_bind_group_layout(0),
