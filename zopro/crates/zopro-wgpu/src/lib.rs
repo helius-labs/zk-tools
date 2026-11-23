@@ -1109,7 +1109,7 @@ impl Msm<G1Projective> {
         if host_reduce {
             log::info!("ZOPRO_TRACE vulkan-euler-h host bucket reduction");
         }
-        let resident = (booth && bases.len() <= 1 << 21 && first_shard(true) == 32
+        let resident = (booth && bases.len() <= 1 << 21 && matches!(first_shard(true), 8 | 16 | 32)
             && first_group() == WORKGROUP
             && std::env::var("ZOPRO_VULKAN_SHARD_REPAIR").as_deref() != Ok("1"))
             .then(|| std::env::var_os("ZOPRO_ANDROID_VULKAN_RESIDENT_DIR"))

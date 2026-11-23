@@ -1,5 +1,5 @@
 //! Build the Android Euler MSM's ordered bucket runs on the device.
-use super::{Curve, Gpu, GpuSort, Msm, Slot, WORKGROUP, profile, spirv_pipeline, storage, uniform};
+use super::{Curve, Gpu, GpuSort, Msm, Slot, WORKGROUP, first_shard, profile, spirv_pipeline, storage, uniform};
 use std::path::Path;
 
 const PAIRS_PER_SHARD: usize = 16;
@@ -11,7 +11,6 @@ struct AffineBatch {
     pairs: wgpu::Buffer,
 }
 
-
 pub(super) struct ResidentSort {
     prefix: wgpu::ComputePipeline,
     first: wgpu::ComputePipeline,
@@ -21,6 +20,7 @@ pub(super) struct ResidentSort {
     offsets: wgpu::Buffer,
     totals: wgpu::Buffer,
     shard_buckets: wgpu::Buffer,
+    first_shard: usize,
     prefix_arguments: wgpu::Buffer,
     chunk_arguments: Vec<[wgpu::Buffer; 4]>,
 }
@@ -33,12 +33,30 @@ impl ResidentSort {
     ) -> Result<Self, String> {
         use Slot::{Read, Uniform, Write};
         let pipeline = |name, slots: &[Slot]| load_pipeline(gpu, path, name, slots);
-        let prefix = pipeline("msm_resident_prefix", &[Read, Write, Write, Write, Uniform, Write])?;
-        let first = pipeline("msm_resident_first", &[Read, Read, Read, Read, Read, Write, Uniform, Read])?;
-        let tree = pipeline("msm_resident_tree", &[Read, Read, Read, Read, Write, Uniform, Write])?;
+        let first_shard = first_shard(true);
+        let short = first_shard < 32;
+        let first_log = first_shard.trailing_zeros();
+        let prefix = pipeline(
+            if short { "msm_resident_prefix_short" } else { "msm_resident_prefix" },
+            &[Read, Write, Write, Write, Uniform, Write],
+        )?;
+        let first = pipeline(
+            if short { "msm_resident_first_short" } else { "msm_resident_first" },
+            &[Read, Read, Read, Read, Read, Write, Uniform, Read],
+        )?;
+        let tree = pipeline(
+            if short { "msm_resident_tree_short" } else { "msm_resident_tree" },
+            &[Read, Read, Read, Read, Write, Uniform, Write],
+        )?;
+        if short {
+            log::info!("ZOPRO_TRACE vulkan-euler-h first-shard={first_shard}");
+        }
         let repair = if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_REPAIR")
             .is_ok_and(|value| value == "1")
         {
+            if short {
+                return Err("Vulkan loose first-stage repair requires 32-point shards".into());
+            }
             if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_AFFINE_BATCH").as_deref() == Ok("1") {
                 return Err("Vulkan affine pairing and loose first-stage repair are mutually exclusive".into());
             }
@@ -51,10 +69,13 @@ impl ResidentSort {
             None
         };
 
-        let stride = n.div_ceil(32) + half_range;
+        let stride = n.div_ceil(first_shard) + half_range;
         let affine_batch = if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_AFFINE_BATCH")
             .is_ok_and(|value| value == "1")
         {
+            if short {
+                return Err("Vulkan affine pairing requires 32-point shards".into());
+            }
             let bytes = chunk_windows * stride * PAIRS_PER_SHARD * AFFINE_BYTES;
             let limits = gpu.device.limits();
             if bytes as u64 > limits.max_buffer_size
@@ -80,7 +101,8 @@ impl ResidentSort {
                 [0, 1, 2, 3].map(|level| {
                     uniform(
                         gpu,
-                        [(chunk * chunk_windows) as u32, half_range as u32, stride as u32, level],
+                        [(chunk * chunk_windows) as u32, half_range as u32, stride as u32, level,
+                         first_log, 0, 0, 0],
                     )
                 })
             })
@@ -94,7 +116,9 @@ impl ResidentSort {
             offsets: storage(&gpu.device, "resident MSM bucket offsets", windows * half_range * 16),
             totals: storage(&gpu.device, "resident MSM window totals", windows * 16),
             shard_buckets: storage(&gpu.device, "resident MSM first-stage bucket IDs", windows * stride * 4),
-            prefix_arguments: uniform(gpu, [n as u32, half_range as u32, windows as u32, stride as u32]),
+            first_shard,
+            prefix_arguments: uniform(gpu, [n as u32, half_range as u32, windows as u32, stride as u32,
+                                            first_log, 0, 0, 0]),
             chunk_arguments,
         })
     }
@@ -136,7 +160,7 @@ impl ResidentSort {
         let groups = |points: usize| [points.div_ceil(WORKGROUP as usize) as u32, window_count];
         let device = &msm.gpu.device;
         let [first, second, third, final_level] = &self.chunk_arguments[chunk];
-        let points = msm.n.div_ceil(32) + msm.half;
+        let points = msm.n.div_ceil(self.first_shard) + msm.half;
         let bases = if let Some(batch) = &self.affine_batch {
             dispatch(
                 device,
@@ -168,8 +192,8 @@ impl ResidentSort {
             );
         }
         for (input, output, arguments, count) in [
-            (&msm.tree[0], &msm.tree[1], second, msm.n.div_ceil(1024) + msm.half),
-            (&msm.tree[1], &msm.tree[0], third, msm.n.div_ceil(32768) + msm.half),
+            (&msm.tree[0], &msm.tree[1], second, msm.n.div_ceil(self.first_shard * 32) + msm.half),
+            (&msm.tree[1], &msm.tree[0], third, msm.n.div_ceil(self.first_shard * 1024) + msm.half),
             (&msm.tree[0], &msm.tree[1], final_level, msm.half),
         ] {
             dispatch(
