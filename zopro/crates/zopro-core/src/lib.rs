@@ -400,20 +400,30 @@ fn android_euler_pools() -> Option<&'static AndroidEulerPools> {
     static POOLS: std::sync::OnceLock<Option<AndroidEulerPools>> = std::sync::OnceLock::new();
     POOLS.get_or_init(|| {
         let spec = std::env::var("ZOPRO_ANDROID_EULER_POOLS").ok()?;
+        #[cfg(feature = "trace")]
+        eprintln!("ZOPRO_TRACE android-euler-pool-request {spec}");
         let (witness, quotient) = spec.split_once('/')?;
         let witness: usize = witness.parse().ok()?;
         let quotient: usize = quotient.parse().ok()?;
         if !(2..=7).contains(&witness) || !(1..=6).contains(&quotient) || witness + quotient > 8 {
             return None;
         }
-        let build = |name, threads| rayon::ThreadPoolBuilder::new()
+        let build = |name, threads| match rayon::ThreadPoolBuilder::new()
             .num_threads(threads)
-            .thread_name(move |i| format!("zopro-android-{name}-{i}"))
+            .thread_name(move |i| format!("za-{name}-{i}"))
             .build()
-            .ok();
+        {
+            Ok(pool) => Some(pool),
+            Err(error) => {
+                #[cfg(feature = "trace")]
+                eprintln!("ZOPRO_TRACE android-euler-pool-error {name} {error}");
+                let _ = error;
+                None
+            }
+        };
         let pools = AndroidEulerPools {
-            witness: build("witness", witness)?,
-            quotient: build("quotient", quotient)?,
+            witness: build("w", witness)?,
+            quotient: build("h", quotient)?,
         };
         #[cfg(feature = "trace")]
         log::info!("ZOPRO_TRACE android-euler-pools witness={witness} quotient={quotient}");

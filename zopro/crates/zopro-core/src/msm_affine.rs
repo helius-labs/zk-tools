@@ -530,6 +530,11 @@ pub(super) fn android_prepared_g2(
 #[cfg(all(gpu_wgpu, target_os = "android", target_arch = "aarch64"))]
 pub(super) fn android_euler_h(bases: &[zopro_bn254::G1Affine], scalars: &mut [Fr]) -> zopro_bn254::G1Projective {
     if bases.len() >= 1 << 16 && std::env::var("ZOPRO_ANDROID_EULER_H_GLV").as_deref() == Ok("1") {
+        if std::env::var("ZOPRO_ANDROID_H_GLV_MONTGOMERY").as_deref() == Ok("1") {
+            let short = encode_exclusive(scalars, |s| g2_phi::phi_split(s.0));
+            let sum = g2_phi::quotient_g1_msm(bases, short);
+            return sum.mul(&Fr::from_montgomery([1, 0, 0, 0]));
+        }
         let short = encode_exclusive(scalars, |s| g2_phi::phi_split(s.to_canonical()));
         return g2_phi::quotient_g1_msm(bases, short);
     }
