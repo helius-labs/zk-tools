@@ -657,6 +657,56 @@ fr fr_sub(fr a, fr b) {
   d7 = uaddCarry(d7, RQ7 & mask, c1); d7 = uaddCarry(d7, c, c2); c = c1 + c2;
   return fr(d0, d1, d2, d3, d4, d5, d6, d7);
 }
+#ifdef ZOPRO_FFT_LOOSE_FIELD
+// Within one tile, use representatives below 2r. Sums are below 4r
+// and products are below r * 2^256. Normalize again at tile output.
+fr fr_tile_reduce_2r(uint t0, uint t1, uint t2, uint t3, uint t4, uint t5, uint t6, uint t7) {
+  uint b = 0u, b1, b2;
+  uint d0 = usubBorrow(t0, 0xe0000002u, b1); d0 = usubBorrow(d0, b, b2); b = b1 | b2;
+  uint d1 = usubBorrow(t1, 0x87c3eb27u, b1); d1 = usubBorrow(d1, b, b2); b = b1 | b2;
+  uint d2 = usubBorrow(t2, 0xf372e122u, b1); d2 = usubBorrow(d2, b, b2); b = b1 | b2;
+  uint d3 = usubBorrow(t3, 0x5067d090u, b1); d3 = usubBorrow(d3, b, b2); b = b1 | b2;
+  uint d4 = usubBorrow(t4, 0x0302b0bau, b1); d4 = usubBorrow(d4, b, b2); b = b1 | b2;
+  uint d5 = usubBorrow(t5, 0x70a08b6du, b1); d5 = usubBorrow(d5, b, b2); b = b1 | b2;
+  uint d6 = usubBorrow(t6, 0xc2634053u, b1); d6 = usubBorrow(d6, b, b2); b = b1 | b2;
+  uint d7 = usubBorrow(t7, 0x60c89ce5u, b1); d7 = usubBorrow(d7, b, b2); b = b1 | b2;
+  return fr(b != 0u ? t0 : d0, b != 0u ? t1 : d1, b != 0u ? t2 : d2, b != 0u ? t3 : d3, b != 0u ? t4 : d4, b != 0u ? t5 : d5, b != 0u ? t6 : d6, b != 0u ? t7 : d7);
+}
+fr fr_tile_add(fr a, fr b) {
+  uint c = 0u, c1, c2;
+  uint s0 = uaddCarry(a.l0, b.l0, c1); s0 = uaddCarry(s0, c, c2); c = c1 + c2;
+  uint s1 = uaddCarry(a.l1, b.l1, c1); s1 = uaddCarry(s1, c, c2); c = c1 + c2;
+  uint s2 = uaddCarry(a.l2, b.l2, c1); s2 = uaddCarry(s2, c, c2); c = c1 + c2;
+  uint s3 = uaddCarry(a.l3, b.l3, c1); s3 = uaddCarry(s3, c, c2); c = c1 + c2;
+  uint s4 = uaddCarry(a.l4, b.l4, c1); s4 = uaddCarry(s4, c, c2); c = c1 + c2;
+  uint s5 = uaddCarry(a.l5, b.l5, c1); s5 = uaddCarry(s5, c, c2); c = c1 + c2;
+  uint s6 = uaddCarry(a.l6, b.l6, c1); s6 = uaddCarry(s6, c, c2); c = c1 + c2;
+  uint s7 = uaddCarry(a.l7, b.l7, c1); s7 = uaddCarry(s7, c, c2); c = c1 + c2;
+  return fr_tile_reduce_2r(s0, s1, s2, s3, s4, s5, s6, s7);
+}
+fr fr_tile_sub(fr a, fr b) {
+  uint b0 = 0u, b1, b2;
+  uint d0 = usubBorrow(a.l0, b.l0, b1); d0 = usubBorrow(d0, b0, b2); b0 = b1 | b2;
+  uint d1 = usubBorrow(a.l1, b.l1, b1); d1 = usubBorrow(d1, b0, b2); b0 = b1 | b2;
+  uint d2 = usubBorrow(a.l2, b.l2, b1); d2 = usubBorrow(d2, b0, b2); b0 = b1 | b2;
+  uint d3 = usubBorrow(a.l3, b.l3, b1); d3 = usubBorrow(d3, b0, b2); b0 = b1 | b2;
+  uint d4 = usubBorrow(a.l4, b.l4, b1); d4 = usubBorrow(d4, b0, b2); b0 = b1 | b2;
+  uint d5 = usubBorrow(a.l5, b.l5, b1); d5 = usubBorrow(d5, b0, b2); b0 = b1 | b2;
+  uint d6 = usubBorrow(a.l6, b.l6, b1); d6 = usubBorrow(d6, b0, b2); b0 = b1 | b2;
+  uint d7 = usubBorrow(a.l7, b.l7, b1); d7 = usubBorrow(d7, b0, b2); b0 = b1 | b2;
+  const uint mask = 0u - b0;
+  uint c = 0u, c1, c2;
+  d0 = uaddCarry(d0, 0xe0000002u & mask, c1); d0 = uaddCarry(d0, c, c2); c = c1 + c2;
+  d1 = uaddCarry(d1, 0x87c3eb27u & mask, c1); d1 = uaddCarry(d1, c, c2); c = c1 + c2;
+  d2 = uaddCarry(d2, 0xf372e122u & mask, c1); d2 = uaddCarry(d2, c, c2); c = c1 + c2;
+  d3 = uaddCarry(d3, 0x5067d090u & mask, c1); d3 = uaddCarry(d3, c, c2); c = c1 + c2;
+  d4 = uaddCarry(d4, 0x0302b0bau & mask, c1); d4 = uaddCarry(d4, c, c2); c = c1 + c2;
+  d5 = uaddCarry(d5, 0x70a08b6du & mask, c1); d5 = uaddCarry(d5, c, c2); c = c1 + c2;
+  d6 = uaddCarry(d6, 0xc2634053u & mask, c1); d6 = uaddCarry(d6, c, c2); c = c1 + c2;
+  d7 = uaddCarry(d7, 0x60c89ce5u & mask, c1); d7 = uaddCarry(d7, c, c2); c = c1 + c2;
+  return fr(d0, d1, d2, d3, d4, d5, d6, d7);
+}
+#endif
 #ifdef ZOPRO_VULKAN_WIDE_FR
 fr fr_mul(fr a, fr b) {
   // Interleave the ordinary product and Montgomery reduction.
@@ -723,7 +773,11 @@ fr fr_mul(fr a, fr b) {
     reduction >>= 32;
     t7 = uint(product + reduction);
   }
+#ifdef ZOPRO_FFT_LOOSE_FIELD
+  return fr(t0, t1, t2, t3, t4, t5, t6, t7);
+#else
   return fr_reduce_once(t0, t1, t2, t3, t4, t5, t6, t7);
+#endif
 }
 #else
 fr fr_mul(fr a, fr b) {

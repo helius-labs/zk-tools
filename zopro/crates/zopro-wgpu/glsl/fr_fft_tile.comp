@@ -124,8 +124,13 @@ void main() {
       if (dit && power != 0u)
         v = fr_mul(v, roots.values[power]);
 #endif
+#ifdef ZOPRO_FFT_LOOSE_FIELD
+      tile[left] = fr_tile_add(u, v);
+      fr difference = fr_tile_sub(u, v);
+#else
       tile[left] = fr_add(u, v);
       fr difference = fr_sub(u, v);
+#endif
 #ifdef ZOPRO_FFT_PACKED_ROOTS
       if (!dit && nontrivial_root)
         difference = fr_mul(difference, roots.values[root]);
@@ -141,6 +146,10 @@ void main() {
   for (uint index = lane; index < entries; index += 64u) {
 #ifdef ZOPRO_EULER_TILE
     store_value(tile_index(group, index >> args.cols_log, index & cols_mask), tile[index]);
+#elif defined(ZOPRO_FFT_LOOSE_FIELD)
+    const fr t = tile[index];
+    values.values[tile_index(group, index >> args.cols_log, index & cols_mask)] =
+      fr_reduce_once(t.l0, t.l1, t.l2, t.l3, t.l4, t.l5, t.l6, t.l7);
 #else
     values.values[tile_index(group, index >> args.cols_log, index & cols_mask)] = tile[index];
 #endif
