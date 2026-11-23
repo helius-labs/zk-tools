@@ -30,12 +30,15 @@ void main() {
   if (i >= sort.n)
     return;
   const int digit = booth_digit(scalars.values[i], window);
-  if (digit != 0) {
-    uint bucket = window * sort.half_range + uint(abs(digit)) - 1u;
 #ifdef ZOPRO_BOOTH_PARTITIONS
-    bucket += (i >> PARTITION_SHIFT) * sort.windows * sort.half_range;
-#endif
-    atomicAdd(counts.values[bucket], 1u);
+  if (digit != 0) {
+    const uint partition_start = (i >> PARTITION_SHIFT) * sort.windows * sort.half_range;
+    const uint bucket = window * sort.half_range + uint(abs(digit)) - 1u;
+    atomicAdd(counts.values[partition_start + bucket], 1u);
   }
+#else
+  if (digit != 0)
+    atomicAdd(counts.values[window * sort.half_range + uint(abs(digit)) - 1u], 1u);
+#endif
 #endif
 }
