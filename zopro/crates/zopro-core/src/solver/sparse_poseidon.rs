@@ -376,7 +376,7 @@ impl Plan {
         if self.ops.len() > INDEX as usize || s.epochs.is_empty() {
             return false;
         }
-        #[cfg(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios", target_os = "android")))]
+        #[cfg(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios")))]
         if !s.refined.is_empty() {
             return false;
         }
@@ -405,16 +405,23 @@ impl Plan {
                 let tasks = tasks.flat_map(|epoch| epoch.par_iter_mut());
                 #[cfg(target_os = "macos")]
                 let tasks = tasks.flat_map_iter(|epoch| epoch);
-                counts[t] = tasks
-                    .map(|task| {
-                        tag_spans(self, task, t, partial, |span, meta| {
-                            pattern
-                                .get_or_init(|| Pattern::new(t, partial, a))
-                                .as_ref()
-                                .is_some_and(|p| p.recognizes(self, span, meta))
-                        })
+                let tag = |task: &mut Vec<u32>| {
+                    tag_spans(self, task, t, partial, |span, meta| {
+                        pattern
+                            .get_or_init(|| Pattern::new(t, partial, a))
+                            .as_ref()
+                            .is_some_and(|p| p.recognizes(self, span, meta))
                     })
-                    .sum();
+                };
+                #[cfg(target_os = "android")]
+                let tasks = tasks.filter(|task| !s.refined.contains_key(&((task[0] & INDEX) as usize)));
+                counts[t] = tasks.map(tag).sum();
+                #[cfg(target_os = "android")]
+                if !s.refined.is_empty() {
+                    counts[t] += s.refined.par_iter_mut()
+                        .flat_map(|(_, waves)| waves.par_iter_mut())
+                        .flat_map(|wave| wave.par_iter_mut()).map(tag).sum::<usize>();
+                }
             }
             #[cfg(not(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios", target_os = "android"))))]
             {
@@ -439,12 +446,16 @@ impl Plan {
             #[cfg(any(target_os = "ios", target_os = "android"))]
             {
                 use rayon::prelude::*;
-                s.epochs
-                    .par_iter_mut()
-                    .flat_map(|epoch| epoch.par_iter_mut())
-                    .for_each(|task| {
-                        compile_emits(self, task);
-                    });
+                let tasks = s.epochs.par_iter_mut().flat_map(|epoch| epoch.par_iter_mut());
+                #[cfg(target_os = "android")]
+                let tasks = tasks.filter(|task| !s.refined.contains_key(&((task[0] & INDEX) as usize)));
+                tasks.for_each(|task| { compile_emits(self, task); });
+                #[cfg(target_os = "android")]
+                if !s.refined.is_empty() {
+                    s.refined.par_iter_mut().flat_map(|(_, waves)| waves.par_iter_mut())
+                        .flat_map(|wave| wave.par_iter_mut())
+                        .for_each(|task| { compile_emits(self, task); });
+                }
             }
             #[cfg(not(any(target_os = "ios", target_os = "android")))]
             {

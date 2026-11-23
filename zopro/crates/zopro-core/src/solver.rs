@@ -1846,7 +1846,17 @@ impl Plan {
         } else {
             6
         };
-        let Some(mut schedule) = bounded::build(self, epochs, 0, 0) else {
+        #[cfg(target_os = "android")]
+        let local = std::env::var("ZOPRO_ANDROID_SOLVER_LOCAL_BANDS").ok()
+            .and_then(|value| value.parse::<usize>().ok())
+            .filter(|&value| (2..=32).contains(&value)).unwrap_or(0);
+        #[cfg(target_os = "android")]
+        let minimum = std::env::var("ZOPRO_ANDROID_SOLVER_LOCAL_MIN_OPS").ok()
+            .and_then(|value| value.parse::<usize>().ok())
+            .filter(|&value| value >= 4096).unwrap_or(16_384);
+        #[cfg(not(target_os = "android"))]
+        let (local, minimum) = (0, 0);
+        let Some(mut schedule) = bounded::build(self, epochs, local, minimum) else {
             return false;
         };
         #[cfg(all(target_os = "android", feature = "trace"))]
@@ -1866,13 +1876,17 @@ impl Plan {
               zopro_bounded_schedule, zopro_sparse_poseidon))]
     fn trace_euler_tile_readiness(&self, schedule: &Schedule) {
         let count = schedule.epochs.len();
-        if count == 0 || count >= usize::from(u8::MAX) || !schedule.refined.is_empty() {
+        if count == 0 || count >= usize::from(u8::MAX) {
             return;
         }
         let active = self.n_constraints;
         let domain = active.next_power_of_two();
         let mut ready = vec![0u8; domain];
         ready[..active].fill(u8::MAX);
+        let longest: Vec<_> = schedule.epochs.iter()
+            .map(|tasks| tasks.iter().map(Vec::len).max().unwrap_or(0))
+            .collect();
+        log::info!("ZOPRO_TRACE android-euler-epoch-task-size longest={longest:?} refined={}", schedule.refined.len());
         for (epoch, tasks) in schedule.epochs.iter().enumerate() {
             for &op in tasks.iter().flatten() {
                 if let Op::Constraint(step) = &self.ops[op as usize] {
@@ -2210,6 +2224,11 @@ impl Plan {
                 // SAFETY: only prepared, encoding-eligible leaves carry tags.
                 return unsafe { self.run_poseidon_task(task, v) };
             }
+            #[cfg(all(target_os = "android", zopro_sparse_poseidon))]
+            if schedule.poseidon_leaves && self.poseidon_task(task) {
+                // SAFETY: only the leaves of a refined component are tagged.
+                return unsafe { self.run_poseidon_task(task, v) };
+            }
             for &op in task {
                 // SAFETY: operations retain program order within a task.
                 unsafe {
@@ -2218,7 +2237,10 @@ impl Plan {
             }
             Ok(())
         };
-        for epoch in &schedule.epochs {
+        #[cfg(all(target_os = "android", feature = "trace"))]
+        let observed = (std::env::var("ZOPRO_ANDROID_EULER_STREAM_PROFILE").as_deref() == Ok("1"))
+            .then(crate::time::Instant::now);
+        for (_epoch_index, epoch) in schedule.epochs.iter().enumerate() {
             visit_solver_tasks(epoch, claims, |task| {
                 if let Some(waves) = schedule.refined.get(&(task[0] as usize)) {
                     for wave in waves {
@@ -2229,6 +2251,11 @@ impl Plan {
                     serial(task)
                 }
             })?;
+            #[cfg(all(target_os = "android", feature = "trace"))]
+            if let Some(start) = observed {
+                log::info!("ZOPRO_TRACE android-euler-epoch-ready epoch={_epoch_index} {:.3} ms",
+                           start.elapsed().as_secs_f64() * 1000.0);
+            }
         }
         Ok(())
     }
