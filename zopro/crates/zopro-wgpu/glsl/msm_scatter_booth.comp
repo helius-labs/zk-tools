@@ -12,6 +12,21 @@ layout(std430, set = 0, binding = 2) buffer Sorted { uint values[]; } sorted;
 
 void main() {
   const uint i = sort.offset + gl_GlobalInvocationID.x;
+#ifdef ZOPRO_BOOTH_GROUPED
+  if (i >= sort.n)
+    return;
+  const fr scalar = scalars.values[i];
+  const uint first = gl_WorkGroupID.y * 4u;
+  const uint end = min(first + 4u, sort.windows);
+  [[dont_unroll]] for (uint window = first; window < end; ++window) {
+    const int digit = booth_digit(scalar, window);
+    if (digit != 0) {
+      const uint bucket = window * sort.half_range + uint(abs(digit)) - 1u;
+      const uint at = atomicAdd(cursors.values[bucket], 1u);
+      sorted.values[at] = i | (digit < 0 ? 0x80000000u : 0u);
+    }
+  }
+#else
   const uint window = gl_WorkGroupID.y;
   if (i >= sort.n)
     return;
@@ -21,4 +36,5 @@ void main() {
     const uint at = atomicAdd(cursors.values[bucket], 1u);
     sorted.values[at] = i | (digit < 0 ? 0x80000000u : 0u);
   }
+#endif
 }

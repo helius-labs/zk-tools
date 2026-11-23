@@ -4443,7 +4443,11 @@ impl Key {
                 let device_sort = z.sorts_on_gpu();
                 quotient.start_euler(a, b, !device_sort);
                 let pending = if device_sort {
-                    z.count_from(quotient.output());
+                    if std::env::var("ZOPRO_ANDROID_EULER_DIRECT_SORT").as_deref() == Ok("1") {
+                        z.count_from_exclusive(quotient.output());
+                    } else {
+                        z.count_from(quotient.output());
+                    }
                     z.start_counted()
                 } else {
                     let scalars = quotient.finish()?;

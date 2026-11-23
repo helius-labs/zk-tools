@@ -798,7 +798,9 @@ struct GpuSort {
     count: wgpu::ComputePipeline,
     scatter: wgpu::ComputePipeline,
     canonicalize: Option<wgpu::ComputePipeline>,
+    window_groups: u32,
     scalars: wgpu::Buffer,
+    external_scalars: Option<wgpu::Buffer>,
     counts: wgpu::Buffer,
     counts_staging: wgpu::Buffer,
     cursors: wgpu::Buffer,
@@ -807,6 +809,13 @@ struct GpuSort {
     slices: Vec<wgpu::Buffer>,
     /// The submitted counting, which `start` reads back.
     counted: Option<wgpu::SubmissionIndex>,
+    count_timer: Option<profile::Timer>,
+}
+
+impl GpuSort {
+    fn scalar_buffer(&self) -> &wgpu::Buffer {
+        self.external_scalars.as_ref().unwrap_or(&self.scalars)
+    }
 }
 
 /// A binding of a pre-compiled kernel's one set: a storage buffer (read
@@ -1111,8 +1120,18 @@ impl<C: Curve> Msm<C> {
             use Slot::*;
             let booth = spirv.is_some()
                 && std::env::var("ZOPRO_VULKAN_BOOTH_SORT").as_deref() == Ok("1");
-            let [(count_entry, count), (scatter_entry, scatter)] =
-                if booth { BOOTH_SORT_KERNELS } else { SORT_KERNELS };
+            let grouped = cfg!(target_os = "android") && booth
+                && std::env::var("ZOPRO_VULKAN_GROUPED_BOOTH").as_deref() == Ok("1");
+            let [(count_entry, count), (scatter_entry, scatter)] = if grouped {
+                [
+                    ("msm_count_booth_grouped", include_bytes!("../glsl/out/msm_count_booth_grouped.spv").as_slice()),
+                    ("msm_scatter_booth_grouped", include_bytes!("../glsl/out/msm_scatter_booth_grouped.spv").as_slice()),
+                ]
+            } else if booth {
+                BOOTH_SORT_KERNELS
+            } else {
+                SORT_KERNELS
+            };
             let (count, scatter) = if spirv.is_some() {
                 (
                     gpu.kernel(count_entry, || {
@@ -1150,7 +1169,10 @@ impl<C: Curve> Msm<C> {
                 count,
                 scatter,
                 canonicalize,
+                window_groups: if grouped { (windows as u32).div_ceil(4) }
+                    else if booth { windows as u32 } else { 1 },
                 scalars: storage(device, "scalars", n * 32),
+                external_scalars: None,
                 counts: storage(device, "counts", buckets * 4),
                 counts_staging: device.create_buffer(&wgpu::BufferDescriptor {
                     label: Some("counts staging"),
@@ -1177,6 +1199,7 @@ impl<C: Curve> Msm<C> {
                     })
                     .collect(),
                 counted: None,
+                count_timer: None,
             }
         });
         if gpu_sort.is_some() {
@@ -1345,7 +1368,7 @@ impl<C: Curve> Msm<C> {
                         entries: &[
                             wgpu::BindGroupEntry {
                                 binding: 0,
-                                resource: sort.scalars.as_entire_binding(),
+                                resource: sort.scalar_buffer().as_entire_binding(),
                             },
                             wgpu::BindGroupEntry {
                                 binding: 1,
@@ -1367,8 +1390,7 @@ impl<C: Curve> Msm<C> {
                 };
                 pass.set_pipeline(&sort.scatter);
                 pass.set_bind_group(0, &group, &[]);
-                let windows = if sort.canonicalize.is_some() { self.windows as u32 } else { 1 };
-                pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), windows, 1);
+                pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), sort.window_groups, 1);
                 drop(pass);
                 encoder = match profile.as_mut() {
                     Some(stages) => {
@@ -1522,6 +1544,9 @@ impl<C: Curve> Msm<C> {
             timer.resolve(&mut encoder);
         }
         let submission = queue.submit([encoder.finish()]);
+        if let Some(sort) = &mut self.gpu_sort {
+            sort.external_scalars = None;
+        }
         Pending {
             submitted: started,
             timings,
@@ -1688,7 +1713,8 @@ impl<C: Curve> Msm<C> {
     /// work, the counts are back by the time the host plans.
     pub fn count(&mut self, scalars: &[Fr]) {
         assert_eq!(scalars.len(), self.n);
-        let sort = self.gpu_sort.as_ref().expect("the GPU sort");
+        let sort = self.gpu_sort.as_mut().expect("the GPU sort");
+        sort.external_scalars = None;
         // SAFETY: Fr is four u64 limbs with no padding, the kernels' encoding.
         let bytes = unsafe {
             std::slice::from_raw_parts(scalars.as_ptr() as *const u8, scalars.len() * 32)
@@ -1702,9 +1728,26 @@ impl<C: Curve> Msm<C> {
     /// quotient's output for Z's MSM): copied on the GPU, never through
     /// the host. `start_counted` then runs the MSM.
     pub fn count_from(&mut self, source: &wgpu::Buffer) {
-        let sort = self.gpu_sort.as_ref().expect("the GPU sort");
+        let sort = self.gpu_sort.as_mut().expect("the GPU sort");
+        sort.external_scalars = None;
         let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
         encoder.copy_buffer_to_buffer(source, 0, &sort.scalars, 0, (self.n * 32) as u64);
+        self.submit_count(encoder);
+    }
+
+    /// Canonicalize and count the first `n` elements of a quotient's buffer
+    /// in place. The caller must give this MSM exclusive use of those
+    /// elements through submission of the scatter pass.
+    #[cfg(target_os = "android")]
+    pub fn count_from_exclusive(&mut self, source: &wgpu::Buffer) {
+        let sort = self.gpu_sort.as_mut().expect("the GPU sort");
+        if sort.canonicalize.is_none() {
+            self.count_from(source);
+            return;
+        }
+        assert!(source.size() >= (self.n * 32) as u64);
+        sort.external_scalars = Some(source.clone());
+        let encoder = self.gpu.device.create_command_encoder(&Default::default());
         self.submit_count(encoder);
     }
 
@@ -1717,6 +1760,7 @@ impl<C: Curve> Msm<C> {
         if sort.canonicalize.is_some() {
             log::info!("ZOPRO_TRACE vulkan-booth-sort entries={}", self.n);
         }
+        let mut timer = profile::Timer::new(&self.gpu, sort.slices.len() * 2);
         for (slice, uniform) in sort.slices.iter().enumerate() {
             let groups = slice_len(self.n, slice).div_ceil(WORKGROUP);
             if let Some(canonicalize) = &sort.canonicalize {
@@ -1726,11 +1770,14 @@ impl<C: Curve> Msm<C> {
                     label: None,
                     layout: &canonicalize.get_bind_group_layout(0),
                     entries: &[
-                        wgpu::BindGroupEntry { binding: 0, resource: sort.scalars.as_entire_binding() },
+                        wgpu::BindGroupEntry { binding: 0, resource: sort.scalar_buffer().as_entire_binding() },
                         wgpu::BindGroupEntry { binding: 1, resource: uniform.as_entire_binding() },
                     ],
                 });
-                let mut pass = encoder.begin_compute_pass(&Default::default());
+                let mut pass = match timer.as_mut() {
+                    Some(timer) => encoder.begin_compute_pass(&timer.pass("msm_canonicalize")),
+                    None => encoder.begin_compute_pass(&Default::default()),
+                };
                 pass.set_pipeline(canonicalize);
                 pass.set_bind_group(0, &canonical, &[]);
                 pass.dispatch_workgroups(groups, 1, 1);
@@ -1741,7 +1788,7 @@ impl<C: Curve> Msm<C> {
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
-                        resource: sort.scalars.as_entire_binding(),
+                        resource: sort.scalar_buffer().as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
@@ -1754,15 +1801,21 @@ impl<C: Curve> Msm<C> {
                 ],
             });
             {
-                let mut pass = encoder.begin_compute_pass(&Default::default());
+                let mut pass = match timer.as_mut() {
+                    Some(timer) => encoder.begin_compute_pass(&timer.pass("msm_count")),
+                    None => encoder.begin_compute_pass(&Default::default()),
+                };
                 pass.set_pipeline(&sort.count);
                 pass.set_bind_group(0, &group, &[]);
-                let windows = if sort.canonicalize.is_some() { self.windows as u32 } else { 1 };
-                pass.dispatch_workgroups(groups, windows, 1);
+                pass.dispatch_workgroups(groups, sort.window_groups, 1);
             }
             encoder = flush(&self.gpu, encoder);
         }
         encoder.copy_buffer_to_buffer(&sort.counts, 0, &sort.counts_staging, 0, sort.counts.size());
+        if let Some(timer) = &timer {
+            timer.resolve(&mut encoder);
+        }
+        sort.count_timer = timer;
         sort.counted = Some(queue.submit([encoder.finish()]));
     }
 
@@ -1780,7 +1833,7 @@ impl<C: Curve> Msm<C> {
         let staging = &sort.counts_staging;
         // A failed device leaves the counts as they were: the MSM's finish
         // reports it.
-        if mapped(&self.gpu, staging, Some(submission)).await.is_ok() {
+        if mapped(&self.gpu, staging, Some(submission.clone())).await.is_ok() {
             let data = staging
                 .slice(..)
                 .get_mapped_range()
@@ -1790,6 +1843,9 @@ impl<C: Curve> Msm<C> {
                 *count = u32::from_le_bytes(*bytes);
             }
             staging.unmap();
+        }
+        if let Some(timer) = sort.count_timer.take() {
+            let _ = timer.read(&self.gpu, submission).await;
         }
         let (n, half) = (self.n, self.half);
         for (w, (starts, counts)) in self
