@@ -212,6 +212,8 @@ pub struct Pending {
     timings: Timings,
     submission: wgpu::SubmissionIndex,
     timer: Option<profile::Timer>,
+    #[cfg(target_os = "android")]
+    bucket_submissions: Vec<wgpu::SubmissionIndex>,
 }
 
 /// Per-kernel GPU times from timestamp queries, where the device has them
@@ -739,6 +741,10 @@ pub struct Msm<C: Curve> {
     /// The reduction's partial sums, a workgroup's each.
     sums: wgpu::Buffer,
     staging: wgpu::Buffer,
+    /// A private readback per chunk lets the CPU consume completed bucket
+    /// windows while Vulkan writes subsequent windows.
+    #[cfg(target_os = "android")]
+    host_buckets: Vec<wgpu::Buffer>,
     reduce_uniform: wgpu::Buffer,
     counts: Vec<u32>,
     starts: Vec<u32>,
@@ -1083,13 +1089,21 @@ impl Msm<G1Projective> {
         } else {
             None
         };
-        Self::new_with_width(gpu, bases, width, pair_kernel.as_deref())
+        let host_reduce = gpu.spirv && bases.len() >= 1 << 18
+            && std::env::var("ZOPRO_ANDROID_EULER_HOST_REDUCE").as_deref() == Ok("1");
+        if host_reduce && pair_kernel.is_some() {
+            return Err("choose either CPU bucket reduction or GPU pair reduction".into());
+        }
+        if host_reduce {
+            log::info!("ZOPRO_TRACE vulkan-euler-h host bucket reduction");
+        }
+        Self::new_with_width(gpu, bases, width, pair_kernel.as_deref(), host_reduce)
     }
 }
 
 impl<C: Curve> Msm<C> {
     pub fn new(gpu: std::sync::Arc<Gpu>, bases: &[C::Affine]) -> Result<(Self, f64), String> {
-        Self::new_with_width(gpu, bases, None, None)
+        Self::new_with_width(gpu, bases, None, None, #[cfg(target_os = "android")] false)
     }
 
     fn new_with_width(
@@ -1097,6 +1111,7 @@ impl<C: Curve> Msm<C> {
         bases: &[C::Affine],
         width: Option<usize>,
         pair_kernel: Option<&[u8]>,
+        #[cfg(target_os = "android")] host_reduce: bool,
     ) -> Result<(Self, f64), String> {
         let device = &gpu.device;
         let started = Instant::now();
@@ -1357,6 +1372,21 @@ impl<C: Curve> Msm<C> {
                 usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             }),
+            #[cfg(target_os = "android")]
+            host_buckets: if host_reduce {
+                (0..windows.div_ceil(chunk_windows)).map(|chunk| {
+                    let first = chunk * chunk_windows;
+                    let count = (windows - first).min(chunk_windows);
+                    device.create_buffer(&wgpu::BufferDescriptor {
+                        label: Some("host MSM bucket chunk"),
+                        size: (count * half * C::XYZZ_BYTES) as u64,
+                        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                        mapped_at_creation: false,
+                    })
+                }).collect()
+            } else {
+                Vec::new()
+            },
             reduce_uniform: uniform(
                 &gpu,
                 [half as u32, reduce_shape[0] as u32, per_window as u32, 0],
@@ -1524,6 +1554,8 @@ impl<C: Curve> Msm<C> {
         let device = &self.gpu.device;
         let queue = &self.gpu.queue;
         encoder.clear_buffer(&self.buckets, 0, None);
+        #[cfg(target_os = "android")]
+        let mut bucket_submissions = Vec::with_capacity(self.host_buckets.len());
         for (chunk, levels) in chunks.iter().enumerate() {
             let last = levels.len() - 1;
             for (level, shards) in levels.iter().enumerate() {
@@ -1633,10 +1665,31 @@ impl<C: Curve> Msm<C> {
                         stages.cut(device, queue, encoder, format!("c{chunk}l{level}x{shards}"));
                 }
             }
+            #[cfg(target_os = "android")]
+            if let Some(staging) = self.host_buckets.get(chunk) {
+                let offset = chunk * self.chunk_windows * self.half * C::XYZZ_BYTES;
+                encoder.copy_buffer_to_buffer(&self.buckets, offset as u64, staging, 0, staging.size());
+                bucket_submissions.push(queue.submit([encoder.finish()]));
+                encoder = device.create_command_encoder(&Default::default());
+                continue;
+            }
             // A submission per chunk: no submission holds the whole MSM.
             if profile.is_none() {
                 encoder = flush(&self.gpu, encoder);
             }
+        }
+        #[cfg(target_os = "android")]
+        if let Some(last) = bucket_submissions.last() {
+            let submission = if let Some(timer) = &timer {
+                timer.resolve(&mut encoder);
+                queue.submit([encoder.finish()])
+            } else {
+                last.clone()
+            };
+            if let Some(sort) = &mut self.gpu_sort {
+                sort.external_scalars = None;
+            }
+            return Pending { submitted: started, timings, submission, timer, bucket_submissions };
         }
         {
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -1686,6 +1739,8 @@ impl<C: Curve> Msm<C> {
             timings,
             submission,
             timer,
+            #[cfg(target_os = "android")]
+            bucket_submissions,
         }
     }
 
@@ -1697,6 +1752,10 @@ impl<C: Curve> Msm<C> {
 
     /// As `finish`, yielding while the GPU works: the browser's way.
     pub async fn finish_async(&mut self, pending: Pending) -> Result<(C, Timings), String> {
+        #[cfg(target_os = "android")]
+        if !pending.bucket_submissions.is_empty() {
+            return self.finish_host_buckets(pending).await;
+        }
         let mut timings = pending.timings;
         mapped(&self.gpu, &self.staging, Some(pending.submission.clone())).await?;
         if let Some(timer) = pending.timer {
@@ -1729,6 +1788,55 @@ impl<C: Curve> Msm<C> {
             }
         }
         timings.combine_ms = started.elapsed().as_secs_f64() * 1000.0;
+        Ok((result, timings))
+    }
+
+    #[cfg(target_os = "android")]
+    async fn finish_host_buckets(&self, pending: Pending) -> Result<(C, Timings), String> {
+        assert_eq!(self.host_buckets.len(), pending.bucket_submissions.len());
+        let window_bytes = self.half * C::XYZZ_BYTES;
+        let mut sums = Vec::with_capacity(self.windows);
+        let mut timings = pending.timings;
+        for (buffer, submission) in self.host_buckets.iter().zip(pending.bucket_submissions) {
+            if let Err(error) = mapped(&self.gpu, buffer, Some(submission)).await {
+                let _ = self.gpu.device.poll(wgpu::PollType::Wait {
+                    submission_index: Some(pending.submission),
+                    timeout: None,
+                });
+                return Err(error);
+            }
+            let started = Instant::now();
+            let mapped = buffer.slice(..).get_mapped_range();
+            let reduced = mapped.as_ref().map(|view| {
+                view.par_chunks_exact(window_bytes).map(|buckets| {
+                    let mut running = C::IDENTITY;
+                    let mut sum = C::IDENTITY;
+                    for bucket in buckets.chunks_exact(C::XYZZ_BYTES).rev() {
+                        running += C::xyzz_to_projective(bucket);
+                        sum += running;
+                    }
+                    sum
+                }).collect::<Vec<_>>()
+            }).map_err(ToString::to_string);
+            drop(mapped);
+            buffer.unmap();
+            sums.extend(reduced?);
+            timings.combine_ms += started.elapsed().as_secs_f64() * 1000.0;
+        }
+        if let Some(timer) = pending.timer {
+            timer.read(&self.gpu, pending.submission).await?;
+        }
+        assert_eq!(sums.len(), self.windows);
+        timings.gpu_ms = pending.submitted.elapsed().as_secs_f64() * 1000.0;
+        let started = Instant::now();
+        let mut result = C::IDENTITY;
+        for sum in sums.into_iter().rev() {
+            for _ in 0..self.width {
+                result = result.double();
+            }
+            result += sum;
+        }
+        timings.combine_ms += started.elapsed().as_secs_f64() * 1000.0;
         Ok((result, timings))
     }
 
