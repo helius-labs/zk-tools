@@ -4508,57 +4508,68 @@ impl Key {
                 }
                 Ok::<_, String>(hz + host_h)
             });
+            let serial = cfg!(target_arch = "aarch64")
+                && std::env::var("ZOPRO_ANDROID_EULER_SERIAL_PREP").as_deref() == Ok("1");
+            // Admit B2 before either G1 query needs compaction scratch.
+            // Each preparation returns its scratch credit before the next.
             #[cfg(target_arch = "aarch64")]
-            let (prepared_a, prepared_b2, prepared_k) = if std::env::var("ZOPRO_ANDROID_EULER_SERIAL_PREP").as_deref() == Ok("1") {
-                // Admit B2 before either G1 query needs compaction scratch.
-                // Each preparation returns its scratch credit before the next.
-                let b2 = self.exclusive_g2_grouping.then(|| msm_affine::prepare_android_query(&self.b2, sb)).flatten();
+            let prepared_b2 = (serial && self.exclusive_g2_grouping)
+                .then(|| msm_affine::prepare_android_query(&self.b2, sb)).flatten();
+            let b2 = move || {
+                let started = crate::time::Instant::now();
+                let raw = || msm_affine::g2_query_exclusive(
+                    &self.b2, msm_affine::canonical_exclusive(sb), self.exclusive_g2_grouping,
+                );
+                #[cfg(target_arch = "aarch64")]
+                let point = prepared_b2.map_or_else(raw, msm_affine::android_prepared_g2);
+                #[cfg(not(target_arch = "aarch64"))]
+                let point = raw();
+                trace("cpu-msm-b2", started);
+                point
+            };
+            let (early_b2, b2) = if serial && std::env::var("ZOPRO_ANDROID_EULER_EARLY_G2").as_deref() == Ok("1") {
+                (Some(scope.spawn(b2)), None)
+            } else {
+                (None, Some(b2))
+            };
+            #[cfg(target_arch = "aarch64")]
+            let (prepared_a, prepared_k) = if serial {
                 let a = msm_affine::prepare_android_query(&self.a, sa);
                 let k = msm_affine::prepare_android_query(&folded.private, sk);
-                (a, b2, k)
+                (a, k)
             } else {
-                (None, None, None)
+                (None, None)
             };
-            let witness_msms = rayon::join(
-                || rayon::join(
-                    || {
-                        let started = crate::time::Instant::now();
-                        #[cfg(target_arch = "aarch64")]
-                        let point = prepared_a.map_or_else(
-                            || msm_affine::msm_in_place(&self.a, sa),
-                            |(points, scalars, _charge)| msm_affine::msm_raw(&points, &scalars),
-                        );
-                        #[cfg(not(target_arch = "aarch64"))]
-                        let point = msm_affine::msm_in_place(&self.a, sa);
-                        trace("vulkan-cpu-msm-a", started);
-                        point
-                    },
-                    || {
-                        let started = crate::time::Instant::now();
-                        #[cfg(target_arch = "aarch64")]
-                        let point = prepared_k.map_or_else(
-                            || msm_affine::msm_in_place(&folded.private, sk),
-                            |(points, scalars, _charge)| msm_affine::msm_raw(&points, &scalars),
-                        );
-                        #[cfg(not(target_arch = "aarch64"))]
-                        let point = msm_affine::msm_in_place(&folded.private, sk);
-                        trace("vulkan-cpu-msm-k", started);
-                        point
-                    },
-                ),
+            let a_and_k = || rayon::join(
                 || {
                     let started = crate::time::Instant::now();
-                    let raw = || msm_affine::g2_query_exclusive(
-                        &self.b2, msm_affine::canonical_exclusive(sb), self.exclusive_g2_grouping,
-                    );
                     #[cfg(target_arch = "aarch64")]
-                    let point = prepared_b2.map_or_else(raw, msm_affine::android_prepared_g2);
+                    let point = prepared_a.map_or_else(
+                        || msm_affine::msm_in_place(&self.a, sa),
+                        |(points, scalars, _charge)| msm_affine::msm_raw(&points, &scalars),
+                    );
                     #[cfg(not(target_arch = "aarch64"))]
-                    let point = raw();
-                    trace("cpu-msm-b2", started);
+                    let point = msm_affine::msm_in_place(&self.a, sa);
+                    trace("vulkan-cpu-msm-a", started);
+                    point
+                },
+                || {
+                    let started = crate::time::Instant::now();
+                    #[cfg(target_arch = "aarch64")]
+                    let point = prepared_k.map_or_else(
+                        || msm_affine::msm_in_place(&folded.private, sk),
+                        |(points, scalars, _charge)| msm_affine::msm_raw(&points, &scalars),
+                    );
+                    #[cfg(not(target_arch = "aarch64"))]
+                    let point = msm_affine::msm_in_place(&folded.private, sk);
+                    trace("vulkan-cpu-msm-k", started);
                     point
                 },
             );
+            let witness_msms = match early_b2 {
+                Some(work) => (a_and_k(), work.join().expect("prepared CPU G2 query")),
+                None => rayon::join(a_and_k, b2.expect("CPU G2 query")),
+            };
             Ok::<_, String>((quotient_msm.join().expect("Euler quotient GPU work")?, witness_msms))
         })?;
         trace("vulkan-euler-cpu-witness", started);
