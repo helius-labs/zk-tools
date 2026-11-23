@@ -910,6 +910,15 @@ fn add_wide(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
     result
 }
 
+/// Sum three products of canonical residues with one reduction.
+/// For BN254 Fr, 3r < 2^256, so the full sum is below r * 2^256.
+#[cfg(target_os = "android")]
+#[inline(always)]
+pub(crate) fn sum3(a: [[u64; 4]; 3], b: &[[u64; 4]; 3], p: [u64; 4], inv: u64) -> [u64; 4] {
+    let first = add_wide(wide(a[0], &b[0]), wide(a[1], &b[1]));
+    redc(add_wide(first, wide(a[2], &b[2])), p, inv)
+}
+
 /// Montgomery reduction of a 512-bit t < pR, where R = 2^256.
 /// The unreduced result is below 2p.
 #[inline(always)]

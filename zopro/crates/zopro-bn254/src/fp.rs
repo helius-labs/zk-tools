@@ -24,6 +24,16 @@ pub trait FpConfig: 'static + Copy + Send + Sync + Eq + fmt::Debug + Default {
 #[repr(transparent)]
 pub struct Fp<C: FpConfig>(pub [u64; 4], PhantomData<C>);
 
+#[cfg(all(target_os = "android", target_arch = "aarch64", not(no_asm)))]
+impl Fp<crate::FrConfig> {
+    #[doc(hidden)]
+    #[inline(always)]
+    pub fn sum_of_three_products(a: [Self; 3], b: [Self; 3]) -> Self {
+        use crate::FrConfig;
+        Self::from_montgomery(crate::arm64::sum3(a.map(|v| v.0), &b.map(|v| v.0), FrConfig::P, FrConfig::INV))
+    }
+}
+
 impl<C: FpConfig> Fp<C> {
     pub const ZERO: Self = Self([0; 4], PhantomData);
     pub const ONE: Self = Self(C::R, PhantomData);

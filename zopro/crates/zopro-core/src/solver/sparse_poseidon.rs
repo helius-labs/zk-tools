@@ -569,6 +569,20 @@ impl Plan {
         }
         fn dense(s: &mut [Fr; 13], t: usize, a: &[Fr], offset: usize) {
             let mut next = [Fr::ZERO; 13];
+            #[cfg(all(target_os = "android", target_arch = "aarch64", not(no_asm)))]
+            if t == 3 {
+                static SUM3: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+                let enabled = SUM3.get_or_init(|| std::env::var("ZOPRO_ANDROID_SOLVER_SUM3").as_deref() == Ok("1"));
+                if *enabled {
+                    let inputs = [s[0], s[1], s[2]];
+                    for (i, output) in next[..3].iter_mut().enumerate() {
+                        let row = offset + i * 3;
+                        *output = Fr::sum_of_three_products([a[row], a[row + 1], a[row + 2]], inputs);
+                    }
+                    *s = next;
+                    return;
+                }
+            }
             for i in 0..t {
                 if t == 3 {
                     let row = offset + i * 3;
