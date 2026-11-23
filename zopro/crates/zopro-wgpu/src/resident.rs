@@ -1,5 +1,5 @@
 //! Build the Android Euler MSM's ordered bucket runs on the device.
-use super::{Curve, Gpu, GpuSort, Msm, Slot, WORKGROUP, first_shard, profile, spirv_pipeline, storage, uniform};
+use super::{Curve, Gpu, GpuSort, Msm, Slot, WORKGROUP, first_shard, profile, spirv_pipeline, storage, uniform_words};
 use std::path::Path;
 
 const PAIRS_PER_SHARD: usize = 16;
@@ -99,10 +99,10 @@ impl ResidentSort {
         let chunk_arguments = (0..windows.div_ceil(chunk_windows))
             .map(|chunk| {
                 [0, 1, 2, 3].map(|level| {
-                    uniform(
+                    uniform_words(
                         gpu,
-                        [(chunk * chunk_windows) as u32, half_range as u32, stride as u32, level,
-                         first_log, 0, 0, 0],
+                        &[(chunk * chunk_windows) as u32, half_range as u32, stride as u32, level,
+                          first_log, 0, 0, 0],
                     )
                 })
             })
@@ -117,8 +117,9 @@ impl ResidentSort {
             totals: storage(&gpu.device, "resident MSM window totals", windows * 16),
             shard_buckets: storage(&gpu.device, "resident MSM first-stage bucket IDs", windows * stride * 4),
             first_shard,
-            prefix_arguments: uniform(gpu, [n as u32, half_range as u32, windows as u32, stride as u32,
-                                            first_log, 0, 0, 0]),
+            prefix_arguments: uniform_words(
+                gpu, &[n as u32, half_range as u32, windows as u32, stride as u32, first_log, 0, 0, 0],
+            ),
             chunk_arguments,
         })
     }
