@@ -430,10 +430,19 @@ pub(crate) async fn mapped(
     buffer: &wgpu::Buffer,
     submission: Option<wgpu::SubmissionIndex>,
 ) -> Result<(), String> {
+    map_buffer(gpu, buffer, wgpu::MapMode::Read, submission).await
+}
+
+async fn map_buffer(
+    gpu: &Gpu,
+    buffer: &wgpu::Buffer,
+    mode: wgpu::MapMode,
+    submission: Option<wgpu::SubmissionIndex>,
+) -> Result<(), String> {
     let (tx, rx) = futures_channel::oneshot::channel();
     buffer
         .slice(..)
-        .map_async(wgpu::MapMode::Read, move |result| {
+        .map_async(mode, move |result| {
             let _ = tx.send(result);
         });
     #[cfg(not(target_arch = "wasm32"))]
@@ -514,6 +523,13 @@ impl Gpu {
         }
         if caching {
             features |= wgpu::Features::PIPELINE_CACHE;
+        }
+        #[cfg(target_os = "android")]
+        if spirv && info.device_type == wgpu::DeviceType::IntegratedGpu
+            && adapter.features().contains(wgpu::Features::MAPPABLE_PRIMARY_BUFFERS)
+            && std::env::var("ZOPRO_ANDROID_EULER_MAPPED_UPLOAD").as_deref() == Ok("1")
+        {
+            features |= wgpu::Features::MAPPABLE_PRIMARY_BUFFERS;
         }
         let timing =
             profile::wanted() && adapter.features().contains(wgpu::Features::TIMESTAMP_QUERY);

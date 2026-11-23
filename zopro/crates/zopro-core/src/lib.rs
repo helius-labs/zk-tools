@@ -2889,7 +2889,7 @@ impl Key {
                         if let Some(q) = quotient.as_mut() {
                             #[cfg(target_os = "android")]
                             if euler.is_some() {
-                                q.start_euler(&a, &b, (!z_on_gpu).then_some(0));
+                                q.start_euler(&a, &b, (!z_on_gpu).then_some(0))?;
                             } else {
                                 q.start(&a, &b, &c);
                             }
@@ -4511,7 +4511,7 @@ impl Key {
                 } else {
                     Some(0)
                 };
-                quotient.start_euler(a, b, download_from);
+                quotient.start_euler(a, b, download_from)?;
                 if device_sort {
                     if std::env::var("ZOPRO_ANDROID_EULER_DIRECT_SORT").as_deref() == Ok("1") {
                         z.count_from_exclusive(quotient.output());

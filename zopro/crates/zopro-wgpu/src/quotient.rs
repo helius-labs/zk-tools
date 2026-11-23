@@ -69,6 +69,7 @@ pub struct Quotient {
 struct EulerProduct {
     active: usize,
     rows: wgpu::Buffer,
+    mapped_upload: bool,
     degrees: wgpu::Buffer,
     size: wgpu::Buffer,
     weight: wgpu::ComputePipeline,
@@ -532,9 +533,23 @@ impl Quotient {
             !tiled.large && !tiled.packed_roots && tiled.passes.len() > 1
                 && std::env::var("ZOPRO_VULKAN_EULER_FUSED").as_deref() == Ok("1")
         }).map(|tiled| FusedEulerTiles::new(&self.gpu, tiled, active as u32, low as u32));
+        let mapped_upload = device.features().contains(wgpu::Features::MAPPABLE_PRIMARY_BUFFERS);
+        let rows = if mapped_upload {
+            log::info!("ZOPRO_TRACE vulkan-euler mapped input rows");
+            device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("mapped Euler input rows"),
+                size: (2 * active * 32) as u64,
+                usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC
+                    | wgpu::BufferUsages::MAP_WRITE,
+                mapped_at_creation: false,
+            })
+        } else {
+            storage(device, "Euler input rows", 2 * active * 32)
+        };
         let workspace = EulerProduct {
             active,
-            rows: storage(device, "Euler input rows", 2 * active * 32),
+            rows,
+            mapped_upload,
             degrees,
             size: crate::uniform(&self.gpu, [self.n as u32, active as u32, low as u32, 0]),
             weight,
@@ -554,7 +569,12 @@ impl Quotient {
     }
 
     #[cfg(target_os = "android")]
-    pub fn start_euler(&mut self, a: &[Fr], b: &[Fr], download_from: Option<usize>) {
+    pub fn start_euler(
+        &mut self,
+        a: &[Fr],
+        b: &[Fr],
+        download_from: Option<usize>,
+    ) -> Result<(), String> {
         let euler = self.euler.as_ref().expect("prepared Euler workspace");
         let active = euler.active;
         assert_eq!((a.len(), b.len()), (active, active));
@@ -563,8 +583,20 @@ impl Quotient {
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let active_bytes = (active * 32) as u64;
         let domain_bytes = (self.n * 32) as u64;
-        queue.write_buffer(&euler.rows, 0, fr_bytes(a));
-        queue.write_buffer(&euler.rows, active_bytes, fr_bytes(b));
+        if euler.mapped_upload {
+            pollster::block_on(crate::map_buffer(&self.gpu, &euler.rows, wgpu::MapMode::Write, None))?;
+            let mut mapped = euler.rows.slice(..).get_mapped_range_mut();
+            let result = mapped.as_mut().map(|view| {
+                view.slice(..active_bytes as usize).copy_from_slice(fr_bytes(a));
+                view.slice(active_bytes as usize..).copy_from_slice(fr_bytes(b));
+            }).map_err(|error| format!("Euler input map: {error}"));
+            drop(mapped);
+            euler.rows.unmap();
+            result?;
+        } else {
+            queue.write_buffer(&euler.rows, 0, fr_bytes(a));
+            queue.write_buffer(&euler.rows, active_bytes, fr_bytes(b));
+        }
         *self.timer.borrow_mut() = crate::profile::Timer::new(&self.gpu, 4 * self.log_n as usize + 4);
         let mut encoder = device.create_command_encoder(&Default::default());
         let dispatch = |encoder: &mut wgpu::CommandEncoder, label, pipeline: &wgpu::ComputePipeline,
@@ -612,6 +644,7 @@ impl Quotient {
             timer.resolve(&mut encoder);
         }
         self.submission = Some(queue.submit([encoder.finish()]));
+        Ok(())
     }
 
     /// The buffer whose first n - 1 Fr are the submitted quotient's
