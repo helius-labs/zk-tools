@@ -88,6 +88,8 @@ impl Drop for EulerProduct {
 struct TiledFft {
     pipeline: wgpu::ComputePipeline,
     passes: Vec<TilePass>,
+    #[cfg(target_os = "android")]
+    large: bool,
 }
 
 struct TilePass {
@@ -140,6 +142,7 @@ fn quotient_kernel(gpu: &Gpu, entry: &'static str, builtin: &[u8], slots: &[Slot
         let builtin: &[u8] = if std::env::var("ZOPRO_VULKAN_WIDE_FR").as_deref() == Ok("1") {
             match entry {
                 "fr_fft_tile" => include_bytes!("../glsl/out/fr_fft_tile_wide.spv"),
+                "fr_fft_tile_large" => include_bytes!("../glsl/out/fr_fft_tile_large_wide.spv"),
                 "fr_euler_degree" => include_bytes!("../glsl/out/fr_euler_degree_wide.spv"),
                 "fr_euler_product" => include_bytes!("../glsl/out/fr_euler_product_wide.spv"),
                 _ => builtin,
@@ -166,16 +169,23 @@ impl TiledFft {
     fn new(gpu: &Gpu, n: u32) -> Self {
         use Slot::{Read, Uniform, Write};
 
-        let kernel = include_bytes!("../glsl/out/fr_fft_tile.spv");
-        let pipeline = quotient_kernel(gpu, "fr_fft_tile", kernel, &[Write, Read, Uniform]);
+        let large = cfg!(target_os = "android")
+            && std::env::var("ZOPRO_VULKAN_FFT_LARGE_TILE").as_deref() == Ok("1");
+        let (name, kernel): (_, &[u8]) = if large {
+            ("fr_fft_tile_large", include_bytes!("../glsl/out/fr_fft_tile_large.spv"))
+        } else {
+            ("fr_fft_tile", include_bytes!("../glsl/out/fr_fft_tile.spv"))
+        };
+        let pipeline = quotient_kernel(gpu, name, kernel, &[Write, Read, Uniform]);
+        let max_levels = if large { 7 } else { 6 };
         let log_n = n.trailing_zeros();
         let mut first = 0;
         let mut passes = Vec::new();
         while first < log_n {
             let remaining = log_n - first;
-            let levels = remaining.div_ceil(remaining.div_ceil(6));
+            let levels = remaining.div_ceil(remaining.div_ceil(max_levels));
             let stride_log = remaining - levels;
-            let cols_log = (7 - levels).min(stride_log);
+            let cols_log = (max_levels + 1 - levels).min(stride_log);
             let groups = n >> (levels + cols_log);
             let x = groups.min(16384);
             let arguments = [0, 1].map(|forward| {
@@ -188,7 +198,11 @@ impl TiledFft {
             });
             first += levels;
         }
-        Self { pipeline, passes }
+        Self {
+            pipeline, passes,
+            #[cfg(target_os = "android")]
+            large,
+        }
     }
 }
 
@@ -465,7 +479,8 @@ impl Quotient {
         let degrees = storage(device, "Euler degrees", table.len() * 32);
         queue.write_buffer(&degrees, 0, fr_bytes(&table));
         let fused = self.tiled.as_ref().filter(|tiled| {
-            tiled.passes.len() > 1 && std::env::var("ZOPRO_VULKAN_EULER_FUSED").as_deref() == Ok("1")
+            !tiled.large && tiled.passes.len() > 1
+                && std::env::var("ZOPRO_VULKAN_EULER_FUSED").as_deref() == Ok("1")
         }).map(|tiled| FusedEulerTiles::new(&self.gpu, tiled, active as u32, low as u32));
         let workspace = EulerProduct {
             active,

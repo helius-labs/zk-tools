@@ -25,7 +25,11 @@ layout(std430, set = 0, binding = 3) readonly buffer Rows { fr values[]; } rows;
 layout(std430, set = 0, binding = 4) readonly buffer Degrees { fr values[]; } degrees;
 #endif
 
+#ifdef ZOPRO_FFT_LARGE_TILE
+shared fr tile[256];
+#else
 shared fr tile[128];
+#endif
 
 // A tile holds a row group and a small run of adjacent columns.
 // The stride separates consecutive rows within the original vector.
@@ -80,11 +84,19 @@ void main() {
   }
   barrier();
 
+#ifndef ZOPRO_FFT_LARGE_TILE
   const uint column = lane & cols_mask;
   const uint pair = lane >> args.cols_log;
+#endif
   const bool dit = args.forward != 0u;
   for (uint step = 0; step < args.levels; ++step) {
+#ifdef ZOPRO_FFT_LARGE_TILE
+    for (uint butterfly = lane; butterfly < entries / 2u; butterfly += 64u) {
+      const uint column = butterfly & cols_mask;
+      const uint pair = butterfly >> args.cols_log;
+#else
     if (lane < entries / 2u) {
+#endif
       const uint local_level = dit ? args.levels - 1u - step : step;
       const uint gap_log = args.levels - 1u - local_level;
       const uint row0 = ((pair >> gap_log) << (gap_log + 1u)) | (pair & ((1u << gap_log) - 1u));

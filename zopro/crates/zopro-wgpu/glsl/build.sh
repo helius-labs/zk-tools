@@ -15,3 +15,5 @@ done
 for k in fr_fft_tile fr_euler_degree fr_euler_product; do
   "$GLSLC" -O -DZOPRO_VULKAN_WIDE_FR=1 -fshader-stage=compute --target-env=vulkan1.1 "$k.comp" -o "out/${k}_wide.spv"
 done
+"$GLSLC" -O -DZOPRO_FFT_LARGE_TILE=1 -fshader-stage=compute --target-env=vulkan1.1 fr_fft_tile.comp -o out/fr_fft_tile_large.spv
+"$GLSLC" -O -DZOPRO_VULKAN_WIDE_FR=1 -DZOPRO_FFT_LARGE_TILE=1 -fshader-stage=compute --target-env=vulkan1.1 fr_fft_tile.comp -o out/fr_fft_tile_large_wide.spv
