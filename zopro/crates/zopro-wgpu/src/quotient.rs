@@ -94,14 +94,29 @@ struct TilePass {
     groups: [u32; 2],
 }
 
+fn quotient_kernel(gpu: &Gpu, entry: &'static str, builtin: &[u8], slots: &[Slot]) -> wgpu::ComputePipeline {
+    gpu.kernel(entry, || {
+        #[cfg(target_os = "android")]
+        let candidate = std::env::var_os("ZOPRO_VULKAN_QUOTIENT_SPV_DIR")
+            .and_then(|directory| std::fs::read(std::path::PathBuf::from(directory).join(format!("{entry}.spv"))).ok());
+        #[cfg(target_os = "android")]
+        let builtin = match candidate.as_deref() {
+            Some(bytes) => {
+                log::info!("ZOPRO_TRACE quotient override {entry}");
+                bytes
+            }
+            None => builtin,
+        };
+        spirv_pipeline(&gpu.device, gpu.cache(), entry, builtin, slots)
+    })
+}
+
 impl TiledFft {
     fn new(gpu: &Gpu, n: u32) -> Self {
         use Slot::{Read, Uniform, Write};
 
         let kernel = include_bytes!("../glsl/out/fr_fft_tile.spv");
-        let pipeline = gpu.kernel("fr_fft_tile", || {
-            spirv_pipeline(&gpu.device, gpu.cache(), "fr_fft_tile", kernel, &[Write, Read, Uniform])
-        });
+        let pipeline = quotient_kernel(gpu, "fr_fft_tile", kernel, &[Write, Read, Uniform]);
         let log_n = n.trailing_zeros();
         let mut first = 0;
         let mut passes = Vec::new();
@@ -203,7 +218,7 @@ impl Quotient {
                 } else {
                     &[Write, Read, Uniform]
                 };
-                return gpu.kernel(entry, || spirv_pipeline(device, gpu.cache(), entry, kernel, slots));
+                return quotient_kernel(&gpu, entry, kernel, slots);
             }
             gpu.wgsl_kernel(LABEL, FR_SHADER, entry)
         };
@@ -384,9 +399,7 @@ impl Quotient {
         let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
         let pipeline = |entry, kernel| {
             use Slot::{Read, Uniform, Write};
-            self.gpu.kernel(entry, || {
-                spirv_pipeline(device, self.gpu.cache(), entry, kernel, &[Write, Read, Uniform])
-            })
+            quotient_kernel(&self.gpu, entry, kernel, &[Write, Read, Uniform])
         };
         let weight = pipeline("fr_euler_degree", include_bytes!("../glsl/out/fr_euler_degree.spv"));
         let product = pipeline("fr_euler_product", include_bytes!("../glsl/out/fr_euler_product.spv"));
@@ -471,6 +484,16 @@ impl Quotient {
     /// coefficients (for a GPU consumer that skips the read back).
     pub fn output(&self) -> &wgpu::Buffer {
         &self.abc
+    }
+
+    /// Read timestamps without downloading the quotient used by a GPU MSM.
+    #[cfg(target_os = "android")]
+    pub fn finish_device_profile(&mut self) -> Result<(), String> {
+        if let Some(timer) = self.timer.get_mut().take() {
+            let submission = self.submission.clone().expect("submitted quotient timestamps");
+            pollster::block_on(timer.read(&self.gpu, submission))?;
+        }
+        Ok(())
     }
 
     /// The submitted quotient, the first n - 1 coefficients.

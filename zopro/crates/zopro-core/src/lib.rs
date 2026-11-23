@@ -4451,8 +4451,15 @@ impl Key {
                     sort_pool(false).install(|| z.start(&scalars))
                 };
                 let (hz, timing) = z.finish(pending)?;
+                quotient.finish_device_profile()?;
                 gpu_trace("z", timing.sort_ms, timing.gpu_ms);
                 trace("vulkan-euler-h", started);
+                #[cfg(feature = "trace")]
+                if log::log_enabled!(log::Level::Info)
+                    && std::env::var("ZOPRO_WGPU_PROFILE").as_deref() == Ok("1")
+                {
+                    log::info!("ZOPRO_TRACE vulkan-euler-device-profile\n{}", zopro_wgpu::profile::report());
+                }
                 Ok::<_, String>(hz)
             });
             #[cfg(target_arch = "aarch64")]
