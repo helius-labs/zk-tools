@@ -1,0 +1,18 @@
+#version 450
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Sorted { uint values[]; } sorted;
+layout(std430, set = 0, binding = 1) readonly buffer Starts { uint values[]; } starts;
+layout(std430, set = 0, binding = 2) buffer Bands { uint values[]; } bands;
+layout(std430, set = 0, binding = 3) buffer Tags { uint values[]; } tags;
+layout(std140, set = 0, binding = 4) uniform Shards { uint count; uint p1; uint p2; uint p3; } shards;
+layout(std140, set = 0, binding = 5) uniform Geometry { uint shift; uint count; uint p2; uint p3; } args;
+
+void main() {
+  const uint shard = gl_GlobalInvocationID.x;
+  if (shard >= shards.count)
+    return;
+  const uint point = sorted.values[starts.values[shard]] & 0x7fffffffu;
+  const uint band = point >> args.shift;
+  const uint ordinal = atomicAdd(bands.values[band], 1u);
+  tags.values[shard] = (band << 21u) | ordinal;
+}

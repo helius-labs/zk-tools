@@ -19,16 +19,7 @@ impl ResidentSort {
         [n, half_range, windows, chunk_windows]: [usize; 4],
     ) -> Result<Self, String> {
         use Slot::{Read, Uniform, Write};
-        let pipeline = |name, slots: &[Slot]| {
-            let kernel = std::fs::read(path.join(format!("{name}.spv")))
-                .map_err(|error| format!("resident MSM shader {name}: {error}"))?;
-            let result = gpu.kernel(name, || spirv_pipeline(&gpu.device, gpu.cache(), name, &kernel, slots));
-            let _ = gpu.device.poll(wgpu::PollType::Poll);
-            if let Some(failure) = gpu.failure() {
-                return Err(failure.to_owned());
-            }
-            Ok(result)
-        };
+        let pipeline = |name, slots: &[Slot]| load_pipeline(gpu, path, name, slots);
         let prefix = pipeline("msm_resident_prefix", &[Read, Write, Write, Write, Uniform])?;
         let first = pipeline("msm_resident_first", &[Read, Read, Read, Read, Read, Write, Uniform])?;
         let tree = pipeline("msm_resident_tree", &[Read, Read, Read, Read, Write, Uniform])?;
@@ -113,7 +104,23 @@ impl ResidentSort {
     }
 }
 
-fn dispatch(
+pub(super) fn load_pipeline(
+    gpu: &Gpu,
+    path: &Path,
+    name: &'static str,
+    slots: &[Slot],
+) -> Result<wgpu::ComputePipeline, String> {
+    let kernel = std::fs::read(path.join(format!("{name}.spv")))
+        .map_err(|error| format!("Android MSM shader {name}: {error}"))?;
+    let pipeline = gpu.kernel(name, || spirv_pipeline(&gpu.device, gpu.cache(), name, &kernel, slots));
+    let _ = gpu.device.poll(wgpu::PollType::Poll);
+    if let Some(failure) = gpu.failure() {
+        return Err(failure.to_owned());
+    }
+    Ok(pipeline)
+}
+
+pub(super) fn dispatch(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     pipeline: &wgpu::ComputePipeline,

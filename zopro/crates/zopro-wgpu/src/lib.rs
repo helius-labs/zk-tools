@@ -715,6 +715,8 @@ impl Gpu {
 
 #[cfg(target_os = "android")]
 mod resident;
+#[cfg(target_os = "android")]
+mod shard_order;
 
 pub struct Msm<C: Curve> {
     /// Running the pre-compiled kernels, whose bindings are one contiguous
@@ -752,6 +754,8 @@ pub struct Msm<C: Curve> {
     host_buckets: Vec<wgpu::Buffer>,
     #[cfg(target_os = "android")]
     resident_sort: Option<resident::ResidentSort>,
+    #[cfg(target_os = "android")]
+    shard_order: Option<shard_order::ShardOrder>,
     reduce_uniform: wgpu::Buffer,
     counts: Vec<u32>,
     starts: Vec<u32>,
@@ -1109,7 +1113,28 @@ impl Msm<G1Projective> {
             && std::env::var("ZOPRO_VULKAN_SHARD_REPAIR").as_deref() != Ok("1"))
             .then(|| std::env::var_os("ZOPRO_ANDROID_VULKAN_RESIDENT_DIR"))
             .flatten().map(std::path::PathBuf::from);
-        Self::new_with_width(gpu, bases, width, pair_kernel.as_deref(), host_reduce, resident.as_deref())
+        let (mut msm, compile_ms) = Self::new_with_width(
+            gpu, bases, width, pair_kernel.as_deref(), host_reduce, resident.as_deref(),
+        )?;
+        if booth && resident.is_none() && msm.first_repair.is_none()
+            && bases.len() <= 1 << 21 && first_group() == WORKGROUP
+        {
+            if let Some(path) = std::env::var_os("ZOPRO_ANDROID_VULKAN_SHARD_ORDER_DIR") {
+                let path = std::path::Path::new(&path);
+                let device = &msm.gpu.device;
+                let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
+                let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
+                let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+                let order = shard_order::ShardOrder::new(&msm.gpu, path, bases.len(), msm.most);
+                let errors = [memory, internal, validation].map(popped);
+                if let Some(error) = errors.into_iter().flatten().next() {
+                    return Err(format!("Vulkan shard order: {error}"));
+                }
+                msm.shard_order = Some(order?);
+                msm.gpu.save_cache();
+            }
+        }
+        Ok((msm, compile_ms))
     }
 }
 
@@ -1422,6 +1447,8 @@ impl<C: Curve> Msm<C> {
             },
             #[cfg(target_os = "android")]
             resident_sort,
+            #[cfg(target_os = "android")]
+            shard_order: None,
             reduce_uniform: uniform(
                 &gpu,
                 [half as u32, reduce_shape[0] as u32, per_window as u32, 0],
@@ -1561,6 +1588,8 @@ impl<C: Curve> Msm<C> {
                 1 + 4 * chunk_count
             }
             + 1;
+        #[cfg(target_os = "android")]
+        let passes = passes + 3 * chunk_count * usize::from(self.shard_order.is_some());
         let mut timer = profile::Timer::new(&self.gpu, passes);
         if let Some(sort) = &self.gpu_sort {
             #[cfg(target_os = "android")]
@@ -1635,6 +1664,15 @@ impl<C: Curve> Msm<C> {
                     &self.tree_pipeline
                 };
                 let [start, count, dst, params] = &self.levels[chunk][level];
+                #[cfg(target_os = "android")]
+                let order = self.shard_order.as_ref().filter(|_| level == 0);
+                #[cfg(target_os = "android")]
+                let pipeline = if let Some(order) = order {
+                    order.encode(&self.gpu, &mut encoder, [&self.sorted, start, params], *shards, &mut timer);
+                    &order.first
+                } else {
+                    pipeline
+                };
                 let out = if level == last {
                     &self.buckets
                 } else {
@@ -1685,6 +1723,13 @@ impl<C: Curve> Msm<C> {
                     for (i, entry) in entries.iter_mut().enumerate() {
                         entry.binding = i as u32;
                     }
+                }
+                #[cfg(target_os = "android")]
+                if let Some(order) = order {
+                    entries.push(wgpu::BindGroupEntry {
+                        binding: 7,
+                        resource: order.indices.as_entire_binding(),
+                    });
                 }
                 let group0 = device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: None,
