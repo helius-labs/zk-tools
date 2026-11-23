@@ -23,7 +23,7 @@ fn main() {
     let arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
     let os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     let metal_iphone = os == "ios" && std::env::var_os("CARGO_FEATURE_METAL").is_some();
-    let apple_schedule = arch == "aarch64" && (os == "macos" || metal_iphone);
+    let arm_schedule = arch == "aarch64" && (os == "macos" || os == "android" || metal_iphone);
     let features = std::env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_default();
     let ifma8 = std::env::var_os("CARGO_FEATURE_IFMA8").is_some();
     let disabled = std::env::var_os("CARGO_CFG_NO_IFMA").is_some();
@@ -35,13 +35,13 @@ fn main() {
             .all(|needed| features.split(',').any(|feature| feature == *needed));
     for path in ifma_paths {
         println!("cargo::rustc-check-cfg=cfg({path})");
-        if native_ifma || (path == "zopro_bounded_schedule" && apple_schedule) {
+        if native_ifma || (path == "zopro_bounded_schedule" && arm_schedule) {
             println!("cargo::rustc-cfg={path}");
         }
     }
     println!("cargo::rustc-check-cfg=cfg(zopro_sparse_poseidon)");
     if native_ifma
-        || (apple_schedule && std::env::var_os("CARGO_CFG_NO_ASM").is_none())
+        || (arm_schedule && std::env::var_os("CARGO_CFG_NO_ASM").is_none())
     {
         println!("cargo::rustc-cfg=zopro_sparse_poseidon");
     }

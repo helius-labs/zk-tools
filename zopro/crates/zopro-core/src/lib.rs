@@ -1833,10 +1833,18 @@ impl Key {
             let prepared = self.has_gpu()
                 && self.gpu_quotient
                 && can_prepare_large_iphone_schedule(self.domain)
-                && plan.prepare_ios_poseidon();
+                && plan.prepare_bounded_poseidon();
+            #[cfg(all(
+                target_os = "android",
+                target_arch = "aarch64",
+                zopro_bounded_schedule,
+                zopro_sparse_poseidon
+            ))]
+            let prepared = self.domain >= 1 << 18
+                && std::env::var("ZOPRO_ANDROID_BOUNDED_POSEIDON").as_deref() == Ok("1")
+                && plan.prepare_bounded_poseidon();
             #[cfg(not(all(
-                gpu,
-                target_os = "ios",
+                any(all(gpu, target_os = "ios"), target_os = "android"),
                 target_arch = "aarch64",
                 zopro_bounded_schedule,
                 zopro_sparse_poseidon

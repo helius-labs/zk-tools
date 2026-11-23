@@ -273,7 +273,7 @@ impl Scratch {
         for i in 0..n {
             self.parent[i] = find(&mut self.parent, i as u32);
         }
-        if cfg!(all(gpu, target_os = "ios", target_arch = "aarch64"))
+        if cfg!(all(target_arch = "aarch64", any(all(gpu, target_os = "ios"), target_os = "android")))
             && bands <= COUNTED_BANDS
             && self.producer.len() >= n
         {
@@ -392,7 +392,7 @@ pub(super) fn build_with_workspace(
     let pack_tasks = match std::env::var("ZOPRO_SOLVE_PACK_TASKS") {
         Ok(value) => value == "1",
         Err(std::env::VarError::NotPresent) => {
-            cfg!(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios")))
+            cfg!(all(target_arch = "aarch64", any(target_os = "macos", target_os = "ios", target_os = "android")))
                 && plan.n_constraints > crate::preparation::MAX_DOMAIN
         }
         Err(std::env::VarError::NotUnicode(_)) => false,
@@ -440,7 +440,7 @@ pub(super) fn build_with_workspace(
         eprintln!("BOUNDED_SCHEDULE ops={n} values={values} peak_charge={peak_charge} retained_charge={retained} epochs={} refined={}",epochs.len(),refined.len());
     }
     Some(Schedule {
-        #[cfg(all(target_os = "ios", zopro_sparse_poseidon))]
+        #[cfg(all(any(target_os = "ios", target_os = "android"), zopro_sparse_poseidon))]
         poseidon_leaves: false,
         epochs,
         refined,
