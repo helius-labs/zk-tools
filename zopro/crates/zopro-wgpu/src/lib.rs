@@ -1106,7 +1106,14 @@ impl<C: Curve> Msm<C> {
         let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
         let buckets = windows * half;
         let per_window = n.div_ceil(first_shard(spirv.is_some())) + half;
-        let chunk_windows = ((64 << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
+        let chunk_mib = if cfg!(target_os = "android") && spirv.is_some() && C::LABEL == G1_LABEL {
+            std::env::var("ZOPRO_VULKAN_MSM_CHUNK_MIB").ok()
+                .and_then(|value| value.parse::<usize>().ok())
+                .filter(|size| (16..=160).contains(size)).unwrap_or(64)
+        } else {
+            64
+        };
+        let chunk_windows = ((chunk_mib << 20) / (per_window * C::XYZZ_BYTES)).clamp(1, windows);
         let most = chunk_windows * per_window;
         let per_window = half
             .min(

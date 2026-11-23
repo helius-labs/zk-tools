@@ -184,14 +184,28 @@ impl TiledFft {
         };
         let pipeline = quotient_kernel(gpu, name, kernel, &[Write, Read, Uniform]);
         let max_levels = if large { 7 } else { 6 };
+        let tile_bits = if large { 8 } else { 7 };
         let log_n = n.trailing_zeros();
+        let layout = if cfg!(target_os = "android") {
+            std::env::var("ZOPRO_VULKAN_FFT_LEVELS").ok().and_then(|value| {
+                let levels = value.split(',').map(str::parse::<u32>).collect::<Result<Vec<_>, _>>().ok()?;
+                let total = levels.iter().try_fold(0u32, |sum, &level| sum.checked_add(level))?;
+                (total == log_n && levels.iter().all(|level| (1..=tile_bits).contains(level)))
+                    .then_some(levels)
+            })
+        } else {
+            None
+        };
         let mut first = 0;
         let mut passes = Vec::new();
         while first < log_n {
             let remaining = log_n - first;
-            let levels = remaining.div_ceil(remaining.div_ceil(max_levels));
+            let levels = layout.as_ref().map_or_else(
+                || remaining.div_ceil(remaining.div_ceil(max_levels)),
+                |levels| levels[passes.len()],
+            );
             let stride_log = remaining - levels;
-            let cols_log = (max_levels + 1 - levels).min(stride_log);
+            let cols_log = (tile_bits - levels).min(stride_log);
             let groups = n >> (levels + cols_log);
             let x = groups.min(16384);
             let arguments = [0, 1].map(|forward| {
