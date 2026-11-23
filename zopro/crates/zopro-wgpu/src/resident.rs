@@ -54,15 +54,12 @@ impl ResidentSort {
         let repair = if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_REPAIR")
             .is_ok_and(|value| value == "1")
         {
-            if short {
-                return Err("Vulkan loose first-stage repair requires 32-point shards".into());
-            }
             if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_AFFINE_BATCH").as_deref() == Ok("1") {
                 return Err("Vulkan affine pairing and loose first-stage repair are mutually exclusive".into());
             }
             log::info!("ZOPRO_TRACE vulkan-euler-h resident loose repair");
             Some(pipeline(
-                "msm_resident_first_repair",
+                if short { "msm_resident_first_short_repair" } else { "msm_resident_first_repair" },
                 &[Read, Read, Read, Read, Read, Write, Uniform, Read],
             )?)
         } else {
