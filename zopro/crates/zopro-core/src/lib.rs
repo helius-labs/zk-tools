@@ -1529,6 +1529,8 @@ impl Key {
         let wants_c = materialize_c && folded_c.is_none() && !derive_c;
         #[cfg(not(gpu))]
         let wants_c = materialize_c && !derive_c;
+        #[cfg(all(gpu_wgpu, target_os = "android"))]
+        let wants_c = wants_c && !(self.basis_only && self.has_gpu());
         #[cfg(gpu)]
         let mut direct = if omit_b && materialize_c && self.gpu_quotient
             && can_prepare_large_iphone_schedule(self.domain)
@@ -2775,8 +2777,14 @@ impl Key {
             return Ok(out);
         }
         let c = c.ok_or("derived C requires a Metal quotient")?;
+        #[cfg(all(gpu_wgpu, target_os = "android"))]
+        if self.basis_only && public.is_none() {
+            return self.basis_parts(sa, sb, sk, a, b, c, omit_b);
+        }
         #[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
         if let Some(gpu) = &self.gpu {
+            #[cfg(target_os = "android")]
+            let euler = self.lagrange.as_ref().filter(|_| self.basis_only);
             let (sa, sb, sk) = (&*sa, &*sb, &*sk);
             // On a thread of their own: the quotient submitted to the GPU,
             // the MSMs whose scalars are out sorted and queued behind it
@@ -2818,6 +2826,13 @@ impl Key {
                         let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
                         let z_on_gpu = mz.sorts_on_gpu() && quotient.is_some();
                         if let Some(q) = quotient.as_mut() {
+                            #[cfg(target_os = "android")]
+                            if euler.is_some() {
+                                q.start_euler(&a, &b, !z_on_gpu);
+                            } else {
+                                q.start(&a, &b, &c);
+                            }
+                            #[cfg(not(target_os = "android"))]
                             q.start(&a, &b, &c);
                             if z_on_gpu {
                                 mz.count_from(q.output());
@@ -2901,6 +2916,14 @@ impl Key {
                 (Some(gpu), None) => gpu,
                 (None, Some(cpu)) => cpu,
                 (None, None) => unreachable!("a G2 MSM"),
+            };
+            #[cfg(target_os = "android")]
+            let (kr, hz) = if let Some(euler) = euler {
+                let folded = euler.folded.as_ref().expect("prepared Euler query");
+                (kr + folded.public_term(public.expect("folded C public values")),
+                 euler.finish_product(hz))
+            } else {
+                (kr, hz)
             };
             let mut out = Vec::with_capacity(384);
             for p in [ar, bs1, kr, hz] {
@@ -3319,6 +3342,11 @@ impl Key {
     #[cfg(gpu_any)]
     fn cpu_points(&self) -> bool {
         let [a, b, k] = self.lengths;
+        #[cfg(all(gpu_wgpu, target_os = "android"))]
+        if self.basis_only {
+            return self.a.len() == a && self.b.len() == b && self.b2.len() == b
+                && self.lagrange.as_ref().is_some_and(|q| q.euler && q.folded.is_some());
+        }
         self.a.len() == a
             && self.b.len() == b
             && self.k.len() == k
@@ -4323,6 +4351,43 @@ impl Key {
         key.solver = Some(plan);
         Ok(key)
     }
+
+    /// Upload a validated replacement image's folded queries. Its mapped
+    /// CPU basis remains the fallback if the Vulkan device cannot prove.
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
+    #[doc(hidden)]
+    pub fn enable_android_euler_vulkan(&mut self) -> Result<(), String> {
+        if !self.basis_only || self.has_gpu()
+            || std::env::var("ZOPRO_GPU_QUOTIENT").as_deref() == Ok("0")
+        {
+            return Err("Vulkan Euler requires an unused Euler basis".into());
+        }
+        let plan = self.solver.as_ref().ok_or("no prepared solver")?;
+        let queries = self.lagrange.as_ref().filter(|q| q.euler).ok_or("no Euler queries")?;
+        let folded = queries.folded.as_ref().ok_or("no folded Euler query")?;
+        let active = plan.n_constraints;
+        let mut builder = GpuBuilder::open(&self.plan, self.b2.len()).ok_or("no Vulkan GPU")?;
+        builder.quotient.prepare_euler_product(active)?;
+        let points = [&self.a[..], &self.b[..], &folded.private[..], &queries.product[..active]];
+        for (index, bases) in points.into_iter().enumerate() {
+            builder.g1(index, bases)?;
+        }
+        builder.g2(&self.b2)?;
+        let mut gpu = builder.finish();
+        let verdict = selftest::gpu(
+            &mut gpu, &self.plan, &self.a[..self.a.len().min(selftest::HEAD)],
+            &self.b2[..self.b2.len().min(selftest::HEAD)], self.a.len(), self.b.len(),
+        );
+        if !verdict.msm || !verdict.quotient {
+            return Err("Vulkan Euler GPU self-test failed".into());
+        }
+        self.gpu = Some(GpuHold(std::sync::Arc::new(gpu)));
+        self.gpu_quotient = true;
+        #[cfg(feature = "trace")]
+        log::info!("ZOPRO_TRACE vulkan-euler-product rows={active}");
+        Ok(())
+    }
+
     fn basis_parts(
         &self,
         sa: &mut [Fr],

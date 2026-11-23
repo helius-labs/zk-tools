@@ -91,6 +91,14 @@ impl Prover {
         let bytes = (*image).as_ref();
         #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
         if cpu_basis::is_image(bytes) {
+            #[cfg(all(feature = "wgpu", target_os = "android"))]
+            if std::env::var("ZOPRO_ANDROID_EULER_VULKAN").as_deref() == Ok("1") {
+                let mut prover = Self::load_cpu_basis_image(image)?;
+                if let Err(error) = prover.key.enable_android_euler_vulkan() {
+                    log::debug!("Could not use Vulkan for the Euler image: {error}");
+                }
+                return Ok(prover);
+            }
             return Self::load_cpu_basis_image(image);
         }
         if !is_image(bytes) {

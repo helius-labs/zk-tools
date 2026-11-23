@@ -54,13 +54,35 @@ pub struct Quotient {
     reverse_weights: wgpu::Buffer,
     abc: wgpu::Buffer,
     staging: wgpu::Buffer,
+    result_len: usize,
     /// One uniform per distinct (level, kind) of stage: DIF/DIT levels and
     /// the whole-vector passes.
     stages: Vec<wgpu::Buffer>,
     tiled: Option<TiledFft>,
+    #[cfg(target_os = "android")]
+    euler: Option<EulerProduct>,
     whole: wgpu::Buffer,
     /// The submitted transform's pass times, when profiling.
     timer: std::cell::RefCell<Option<crate::profile::Timer>>,
+}
+
+#[cfg(target_os = "android")]
+struct EulerProduct {
+    active: usize,
+    rows: wgpu::Buffer,
+    degrees: wgpu::Buffer,
+    size: wgpu::Buffer,
+    weight: wgpu::ComputePipeline,
+    product: wgpu::ComputePipeline,
+}
+
+#[cfg(target_os = "android")]
+impl Drop for EulerProduct {
+    fn drop(&mut self) {
+        for buffer in [&self.rows, &self.degrees, &self.size] {
+            buffer.destroy();
+        }
+    }
 }
 
 struct TiledFft {
@@ -218,8 +240,11 @@ impl Quotient {
                 usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
                 mapped_at_creation: false,
             }),
+            result_len: n - 1,
             stages,
             tiled,
+            #[cfg(target_os = "android")]
+            euler: None,
             whole: crate::uniform(&gpu, [n as u32, 0, 0, 0]),
             timer: std::cell::RefCell::new(None),
             gpu,
@@ -250,6 +275,7 @@ impl Quotient {
     /// Submits the quotient's transforms; `finish_async` collects them.
     pub fn start(&mut self, a: &[Fr], b: &[Fr], c: &[Fr]) {
         let n = self.n;
+        self.result_len = n - 1;
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let zero = Fr::from(0u64);
         for (vector, source) in [a, b, c].into_iter().enumerate() {
@@ -323,6 +349,101 @@ impl Quotient {
         self.submission = Some(queue.submit([encoder.finish()]));
     }
 
+    /// Use the original domain's Euler derivative and keep only active rows.
+    #[cfg(target_os = "android")]
+    pub fn prepare_euler_product(&mut self, active: usize) -> Result<(), String> {
+        if !self.spirv || !(1..=self.n).contains(&active) {
+            return Err("Euler product requires Vulkan and valid active rows".into());
+        }
+        let (device, queue) = (&self.gpu.device, &self.gpu.queue);
+        let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
+        let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
+        let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+        let pipeline = |entry, kernel| {
+            use Slot::{Read, Uniform, Write};
+            self.gpu.kernel(entry, || {
+                spirv_pipeline(device, self.gpu.cache(), entry, kernel, &[Write, Read, Uniform])
+            })
+        };
+        let weight = pipeline("fr_euler_degree", include_bytes!("../glsl/out/fr_euler_degree.spv"));
+        let product = pipeline("fr_euler_product", include_bytes!("../glsl/out/fr_euler_product.spv"));
+        // Bit reversal distributes over the low and high index slices.
+        let low = 1 << (self.log_n / 2);
+        let degree = |i: usize| Fr::from((i.reverse_bits() >> (usize::BITS - self.log_n)) as u64);
+        let table: Vec<_> = (0..low).map(degree).chain((0..self.n / low).map(|i| degree(i * low))).collect();
+        let degrees = storage(device, "Euler degrees", table.len() * 32);
+        queue.write_buffer(&degrees, 0, fr_bytes(&table));
+        let workspace = EulerProduct {
+            active,
+            rows: storage(device, "Euler input rows", 2 * active * 32),
+            degrees,
+            size: crate::uniform(&self.gpu, [self.n as u32, active as u32, low as u32, 0]),
+            weight,
+            product,
+        };
+        let errors = [memory, internal, validation].map(crate::popped);
+        if let Some(error) = errors.into_iter().flatten().next() {
+            return Err(format!("Euler quotient: {error}"));
+        }
+        if self.gpu.failed() {
+            return Err("Euler quotient: the device reported an error".into());
+        }
+        self.euler = Some(workspace);
+        self.gpu.save_cache();
+        Ok(())
+    }
+
+    #[cfg(target_os = "android")]
+    pub fn start_euler(&mut self, a: &[Fr], b: &[Fr], download: bool) {
+        let euler = self.euler.as_ref().expect("prepared Euler workspace");
+        let active = euler.active;
+        assert_eq!((a.len(), b.len()), (active, active));
+        self.result_len = active;
+        let (device, queue) = (&self.gpu.device, &self.gpu.queue);
+        let active_bytes = (active * 32) as u64;
+        let domain_bytes = (self.n * 32) as u64;
+        queue.write_buffer(&euler.rows, 0, fr_bytes(a));
+        queue.write_buffer(&euler.rows, active_bytes, fr_bytes(b));
+        *self.timer.borrow_mut() = crate::profile::Timer::new(&self.gpu, 4 * self.log_n as usize + 4);
+        let mut encoder = device.create_command_encoder(&Default::default());
+        let dispatch = |encoder: &mut wgpu::CommandEncoder, label, pipeline: &wgpu::ComputePipeline,
+                        values, input: &wgpu::Buffer, count: usize| {
+            let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &pipeline.get_bind_group_layout(0),
+                entries: &[
+                    wgpu::BindGroupEntry { binding: 0, resource: values },
+                    wgpu::BindGroupEntry { binding: 1, resource: input.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 2, resource: euler.size.as_entire_binding() },
+                ],
+            });
+            let mut pass = self.begin(encoder, label);
+            pass.set_pipeline(pipeline);
+            pass.set_bind_group(0, &group, &[]);
+            pass.dispatch_workgroups((count as u32).div_ceil(WORKGROUP), 1, 1);
+        };
+        for vector in 0..2 {
+            let offset = vector * domain_bytes;
+            if active_bytes < domain_bytes {
+                encoder.clear_buffer(&self.abc, offset + active_bytes, Some(domain_bytes - active_bytes));
+            }
+            encoder.copy_buffer_to_buffer(&euler.rows, vector * active_bytes, &self.abc, offset, active_bytes);
+            self.transform(&mut encoder, offset, &self.inverse_roots, true);
+            encoder = crate::flush(&self.gpu, encoder);
+            dispatch(&mut encoder, "fr_euler_degree", &euler.weight, self.vector_binding(offset), &euler.degrees, self.n);
+            self.transform(&mut encoder, offset, &self.roots, false);
+            encoder = crate::flush(&self.gpu, encoder);
+        }
+        dispatch(&mut encoder, "fr_euler_product", &euler.product, self.abc.as_entire_binding(), &euler.rows, active);
+        if download {
+            encoder.copy_buffer_to_buffer(&self.abc, 0, &self.staging, 0, active_bytes);
+        }
+        if let Some(timer) = self.timer.borrow().as_ref() {
+            timer.resolve(&mut encoder);
+        }
+        self.submission = Some(queue.submit([encoder.finish()]));
+    }
+
     /// The buffer whose first n - 1 Fr are the submitted quotient's
     /// coefficients (for a GPU consumer that skips the read back).
     pub fn output(&self) -> &wgpu::Buffer {
@@ -331,7 +452,7 @@ impl Quotient {
 
     /// The submitted quotient, the first n - 1 coefficients.
     pub async fn finish_async(&mut self) -> Result<Vec<Fr>, String> {
-        let n = self.n;
+        let n = self.result_len;
         let submission = self.submission.take();
         crate::mapped(&self.gpu, &self.staging, submission.clone()).await?;
         let timer = self.timer.borrow_mut().take();
@@ -340,14 +461,14 @@ impl Quotient {
         }
         let data = self
             .staging
-            .slice(..)
+            .slice(..(n * 32) as u64)
             .get_mapped_range()
             .map_err(|e| format!("quotient: {e}"))?
             .to_vec();
         self.staging.unmap();
         // SAFETY: n Fr in the kernel's encoding, four u64 limbs each.
         let values: &[Fr] = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const Fr, n) };
-        Ok(values[..n - 1].to_vec())
+        Ok(values.to_vec())
     }
 
     /// A compute pass, timed as `kernel`'s when profiling.
