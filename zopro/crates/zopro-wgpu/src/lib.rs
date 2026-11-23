@@ -1590,12 +1590,16 @@ impl<C: Curve> Msm<C> {
         let resident_passes = self.resident_sort.as_ref().map_or(4, resident::ResidentSort::passes_per_chunk);
         #[cfg(not(target_os = "android"))]
         let resident_passes = 4;
+        #[cfg(target_os = "android")]
+        let resident_prefix_passes = self.resident_sort.as_ref().map_or(1, resident::ResidentSort::prefix_passes);
+        #[cfg(not(target_os = "android"))]
+        let resident_prefix_passes = 1;
         let passes = self.gpu_sort.as_ref().map_or(0, |s| s.slices.len())
             + if host_plans {
                 chunks.iter().map(Vec::len).sum::<usize>()
                     + usize::from(self.first_repair.is_some()) * chunk_count
             } else {
-                1 + resident_passes * chunk_count
+                resident_prefix_passes + resident_passes * chunk_count
             }
             + 1;
         #[cfg(target_os = "android")]
@@ -1609,13 +1613,18 @@ impl<C: Curve> Msm<C> {
             if host_plans {
                 self.gpu.queue.write_buffer(&sort.cursors, 0, bytemuck_cast(&self.starts));
             }
+            let (scatter, cursors) = (&sort.scatter, &sort.cursors);
+            #[cfg(target_os = "android")]
+            let (scatter, cursors) = self.resident_sort.as_ref()
+                .and_then(|resident| resident.partitions.as_ref())
+                .map_or((scatter, cursors), |parts| (&parts.scatter, &parts.counters));
             for (slice, uniform) in sort.slices.iter().enumerate() {
                 let group = self
                     .gpu
                     .device
                     .create_bind_group(&wgpu::BindGroupDescriptor {
                         label: None,
-                        layout: &sort.scatter.get_bind_group_layout(0),
+                        layout: &scatter.get_bind_group_layout(0),
                         entries: &[
                             wgpu::BindGroupEntry {
                                 binding: 0,
@@ -1623,7 +1632,7 @@ impl<C: Curve> Msm<C> {
                             },
                             wgpu::BindGroupEntry {
                                 binding: 1,
-                                resource: sort.cursors.as_entire_binding(),
+                                resource: cursors.as_entire_binding(),
                             },
                             wgpu::BindGroupEntry {
                                 binding: 2,
@@ -1639,7 +1648,7 @@ impl<C: Curve> Msm<C> {
                     Some(timer) => encoder.begin_compute_pass(&timer.pass("msm_scatter")),
                     None => encoder.begin_compute_pass(&Default::default()),
                 };
-                pass.set_pipeline(&sort.scatter);
+                pass.set_pipeline(scatter);
                 pass.set_bind_group(0, &group, &[]);
                 pass.dispatch_workgroups(slice_len(self.n, slice).div_ceil(WORKGROUP), sort.window_groups, 1);
                 drop(pass);
@@ -2140,7 +2149,12 @@ impl<C: Curve> Msm<C> {
         let host_plans = self.plans_on_host();
         let sort = self.gpu_sort.as_mut().expect("the GPU sort");
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
-        encoder.clear_buffer(&sort.counts, 0, None);
+        let (count, counters) = (&sort.count, &sort.counts);
+        #[cfg(target_os = "android")]
+        let (count, counters) = self.resident_sort.as_ref()
+            .and_then(|resident| resident.partitions.as_ref())
+            .map_or((count, counters), |parts| (&parts.count, &parts.counters));
+        encoder.clear_buffer(counters, 0, None);
         if sort.canonicalize.is_some() {
             log::info!("ZOPRO_TRACE vulkan-booth-sort entries={}", self.n);
         }
@@ -2168,7 +2182,7 @@ impl<C: Curve> Msm<C> {
             }
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
-                layout: &sort.count.get_bind_group_layout(0),
+                layout: &count.get_bind_group_layout(0),
                 entries: &[
                     wgpu::BindGroupEntry {
                         binding: 0,
@@ -2176,7 +2190,7 @@ impl<C: Curve> Msm<C> {
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
-                        resource: sort.counts.as_entire_binding(),
+                        resource: counters.as_entire_binding(),
                     },
                     wgpu::BindGroupEntry {
                         binding: 2,
@@ -2189,7 +2203,7 @@ impl<C: Curve> Msm<C> {
                     Some(timer) => encoder.begin_compute_pass(&timer.pass("msm_count")),
                     None => encoder.begin_compute_pass(&Default::default()),
                 };
-                pass.set_pipeline(&sort.count);
+                pass.set_pipeline(count);
                 pass.set_bind_group(0, &group, &[]);
                 pass.dispatch_workgroups(groups, sort.window_groups, 1);
             }

@@ -5,10 +5,18 @@ use std::path::Path;
 const PAIRS_PER_SHARD: usize = 16;
 const AFFINE_BATCH: usize = 128;
 const AFFINE_BYTES: usize = 64;
+const PARTITION_SHIFT: usize = 17;
 
 struct AffineBatch {
     pipeline: wgpu::ComputePipeline,
     pairs: wgpu::Buffer,
+}
+
+pub(super) struct PartitionedSort {
+    pub(super) count: wgpu::ComputePipeline,
+    pub(super) scatter: wgpu::ComputePipeline,
+    pub(super) counters: wgpu::Buffer,
+    aggregate: wgpu::ComputePipeline,
 }
 
 pub(super) struct ResidentSort {
@@ -17,6 +25,7 @@ pub(super) struct ResidentSort {
     tree: wgpu::ComputePipeline,
     affine_batch: Option<AffineBatch>,
     repair: Option<wgpu::ComputePipeline>,
+    pub(super) partitions: Option<PartitionedSort>,
     offsets: wgpu::Buffer,
     totals: wgpu::Buffer,
     shard_buckets: wgpu::Buffer,
@@ -62,10 +71,36 @@ impl ResidentSort {
         if cooperative {
             log::info!("ZOPRO_TRACE vulkan-euler-h cooperative bucket pairs");
         }
-        let prefix = pipeline(
-            if short { "msm_resident_prefix_short" } else { "msm_resident_prefix" },
-            &[Read, Write, Write, Write, Uniform, Write],
-        )?;
+        let partitions = if n > 1 << PARTITION_SHIFT
+            && std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_PARTITIONS").as_deref() == Ok("1")
+        {
+            if short || std::env::var("ZOPRO_VULKAN_GROUPED_BOOTH").as_deref() == Ok("1") {
+                return Err("partitioned Vulkan sorting requires ordinary Booth digits and 32-point shards".into());
+            }
+            let parts = n.div_ceil(1 << PARTITION_SHIFT);
+            let bytes = windows * half_range * parts * size_of::<u32>();
+            let limits = gpu.device.limits();
+            if bytes as u64 > limits.max_buffer_size || bytes > limits.max_storage_buffer_binding_size as usize {
+                return Err("partitioned Vulkan sorting exceeds the device buffer limits".into());
+            }
+            log::info!("ZOPRO_TRACE vulkan-euler-h partitioned sort partitions={parts}");
+            Some(PartitionedSort {
+                count: pipeline("msm_resident_count_partition", &[Read, Write, Uniform])?,
+                scatter: pipeline("msm_resident_scatter_partition", &[Read, Write, Write, Uniform])?,
+                aggregate: pipeline("msm_resident_aggregate_partitions", &[Read, Write, Uniform])?,
+                counters: storage(&gpu.device, "partitioned MSM histogram and cursors", bytes),
+            })
+        } else {
+            None
+        };
+        let prefix = if partitions.is_some() {
+            pipeline("msm_resident_prefix_partition", &[Read, Write, Write, Write, Uniform, Write, Write])?
+        } else {
+            pipeline(
+                if short { "msm_resident_prefix_short" } else { "msm_resident_prefix" },
+                &[Read, Write, Write, Write, Uniform, Write],
+            )?
+        };
         let first_name = if cooperative {
             "msm_resident_first_cooperative"
         } else if short {
@@ -140,6 +175,7 @@ impl ResidentSort {
             tree,
             affine_batch,
             repair,
+            partitions,
             offsets: storage(&gpu.device, "resident MSM bucket offsets", windows * half_range * 16),
             totals: storage(&gpu.device, "resident MSM window totals", windows * 16),
             shard_buckets: storage(&gpu.device, "resident MSM first-stage bucket IDs", windows * stride * 4),
@@ -157,6 +193,10 @@ impl ResidentSort {
         4 + usize::from(self.affine_batch.is_some()) + usize::from(self.repair.is_some())
     }
 
+    pub(super) fn prefix_passes(&self) -> usize {
+        1 + usize::from(self.partitions.is_some())
+    }
+
     pub(super) fn encode_prefix(
         &self,
         msm: &Msm<impl Curve>,
@@ -164,14 +204,24 @@ impl ResidentSort {
         encoder: &mut wgpu::CommandEncoder,
         timer: &mut Option<profile::Timer>,
     ) {
+        let buffers = [
+            &sort.counts, &self.offsets, &sort.cursors, &self.totals,
+            &self.prefix_arguments, &self.shard_buckets,
+            self.partitions.as_ref().map_or(&sort.counts, |parts| &parts.counters),
+        ];
+        if let Some(parts) = &self.partitions {
+            dispatch(
+                &msm.gpu.device, encoder, &parts.aggregate,
+                &[&parts.counters, &sort.counts, &self.prefix_arguments],
+                [(msm.windows * msm.half).div_ceil(WORKGROUP as usize) as u32, 1],
+                timer, "msm_resident_aggregate_partitions",
+            );
+        }
         dispatch(
             &msm.gpu.device,
             encoder,
             &self.prefix,
-            &[
-                &sort.counts, &self.offsets, &sort.cursors, &self.totals,
-                &self.prefix_arguments, &self.shard_buckets,
-            ],
+            &buffers[..6 + usize::from(self.partitions.is_some())],
             [msm.windows as u32, 1],
             timer,
             "msm_resident_prefix",
