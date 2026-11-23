@@ -531,6 +531,22 @@ impl Gpu {
         {
             features |= wgpu::Features::MAPPABLE_PRIMARY_BUFFERS;
         }
+        #[cfg(target_os = "android")]
+        if spirv && std::env::var("ZOPRO_ANDROID_VULKAN_SUBGROUP_FFT").as_deref() == Ok("1") {
+            if !adapter.features().contains(wgpu::Features::SUBGROUP)
+                || info.subgroup_max_size > 64
+            {
+                return Err(format!(
+                    "Vulkan subgroup FFT is unavailable for subgroup sizes {} to {}",
+                    info.subgroup_min_size, info.subgroup_max_size,
+                ));
+            }
+            features |= wgpu::Features::SUBGROUP;
+            log::info!(
+                "ZOPRO_TRACE vulkan-subgroup-fft size {} to {}",
+                info.subgroup_min_size, info.subgroup_max_size,
+            );
+        }
         let timing =
             profile::wanted() && adapter.features().contains(wgpu::Features::TIMESTAMP_QUERY);
         if timing {
