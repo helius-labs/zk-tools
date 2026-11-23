@@ -3,8 +3,12 @@ use super::{BatchInverse, Window, apply_scalar_batch};
 use zopro_bn254::{Affine, CurveConfig};
 
 pub(super) fn enabled() -> bool {
-    std::env::var("ZOPRO_APPLE_BORROW_BATCH").as_deref() != Ok("0")
-        && !crate::simd::cpu_option("ZOPRO_CPU_PACKED")
+    let enabled = if cfg!(target_os = "android") {
+        std::env::var("ZOPRO_ANDROID_LOOSE_G1").as_deref() == Ok("1")
+    } else {
+        std::env::var("ZOPRO_APPLE_BORROW_BATCH").as_deref() != Ok("0")
+    };
+    enabled && !crate::simd::cpu_option("ZOPRO_CPU_PACKED")
         && !crate::simd::cpu_option("ZOPRO_CPU_MASKED_SIGN")
 }
 

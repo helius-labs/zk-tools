@@ -11,7 +11,7 @@ use crate::msm::{BatchAdd, BatchInverse};
 use rayon::prelude::*;
 use zopro_bn254::{Affine, CurveConfig, Field, Fq, Fr, Projective};
 pub(super) mod borrowed_pending;
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64"))]
 mod borrowed_scalar;
 mod grouping;
 mod grouping_cost;
@@ -897,6 +897,12 @@ where
     if borrowed_scalar::enabled() {
         let mut state = borrowed_scalar::Borrowed::new(width, size);
         state.feed(bases, digits);
+        return state.inner;
+    }
+    #[cfg(all(target_os = "android", target_arch = "aarch64"))]
+    if borrowed_scalar::enabled() {
+        let mut state = borrowed_scalar::Borrowed::new(width, size);
+        state.feed_pairs(bases.iter().zip(digits), true);
         return state.inner;
     }
     if crate::simd::cpu_option("ZOPRO_CPU_MASKED_SIGN") {

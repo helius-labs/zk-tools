@@ -1445,7 +1445,7 @@ pub(super) trait BatchInverse: Field {
     }
     /// One coordinate word for ruling out zero or equality. Fields without
     /// a cheap word return zero and take the complete comparison.
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64"))]
     #[inline(always)]
     fn affine_x_word(_x: &Self) -> u64 {
         0
@@ -1497,13 +1497,13 @@ pub(super) trait BatchInverse: Field {
     fn lanes_inverse(value: &Self::Lanes, inverse_norm: &FqBatch) -> Self::Lanes;
 }
 impl BatchInverse for Fq {
-    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    #[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64"))]
     #[inline(always)]
     fn affine_x_word(x: &Self) -> u64 {
         x.0[0]
     }
 
-    #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+    #[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64", not(no_asm)))]
     fn loose_batch<C: CurveConfig<Base = Self>>(
         affine: &mut [Affine<C>],
         busy: &mut [u64],
@@ -1512,7 +1512,13 @@ impl BatchInverse for Fq {
         prefixes: &mut Vec<Self::Product>,
     ) -> bool {
         static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-        if *ENABLED.get_or_init(|| std::env::var("ZOPRO_APPLE_LOOSE_G1").as_deref() != Ok("0")) {
+        if *ENABLED.get_or_init(|| {
+            if cfg!(target_os = "android") {
+                std::env::var("ZOPRO_ANDROID_LOOSE_G1").as_deref() == Ok("1")
+            } else {
+                std::env::var("ZOPRO_APPLE_LOOSE_G1").as_deref() != Ok("0")
+            }
+        }) {
             zopro_bn254::curve::batch_affine_loose(affine, busy, batch, denominators, prefixes);
             return true;
         }

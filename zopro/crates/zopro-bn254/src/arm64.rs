@@ -17,7 +17,7 @@ pub fn multiply(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
 
 /// Inputs are at most 2p and the output is below 2p. Each CIOS row is
 /// bounded by 3p after its carry shift, and p + (2p)^2 / R < 2p.
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "android"))]
 #[inline(always)]
 pub fn multiply_loose(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     multiply_inner::<false>(a, b, p, inv)
@@ -26,7 +26,7 @@ pub fn multiply_loose(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 
 /// Signed incoming y minus the bucket's y, with a bias of p or 2p.
 /// For canonical operands, the result is in (0, 2p] and goes directly
 /// into a loose Montgomery multiplication.
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "android"))]
 #[inline(always)]
 pub fn affine_signed_difference(a: [u64; 4], b: [u64; 4], negative: bool, p: [u64; 4]) -> [u64; 4] {
     let (r0, r1, r2, r3): (u64, u64, u64, u64);
@@ -571,7 +571,7 @@ pub fn add(a: [u64; 4], b: [u64; 4], p: [u64; 4]) -> [u64; 4] {
 }
 
 /// Conditional subtraction for an input below twice the modulus.
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "android"))]
 #[inline(always)]
 pub fn reduce_once(a: [u64; 4], p: [u64; 4]) -> [u64; 4] {
     let (r0, r1, r2, r3): (u64, u64, u64, u64);
@@ -797,7 +797,7 @@ pub fn square(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
 
 /// The square of a value below 2p is below pR, so the Montgomery
 /// reduction's result before normalization is below 2p.
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "android"))]
 #[inline(always)]
 pub fn square_loose(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     square_inner::<false>(a, p, inv)

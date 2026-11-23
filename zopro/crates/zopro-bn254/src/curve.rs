@@ -462,7 +462,7 @@ pub fn msm<C: CurveConfig>(bases: &[Affine<C>], scalars: &[Fr]) -> Projective<C>
 /// Add a batch of signed bases to distinct finite buckets with distinct x
 /// coordinates. Partial products stay below 2p. Normalize only before the
 /// inversion and when producing affine points for the next batch.
-#[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+#[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64", not(no_asm)))]
 #[doc(hidden)]
 pub fn batch_affine_loose<C: CurveConfig<Base = Fq>>(
     affine: &mut [Affine<C>],
