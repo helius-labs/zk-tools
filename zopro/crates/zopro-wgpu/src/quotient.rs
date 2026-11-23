@@ -102,6 +102,8 @@ struct TiledFft {
     large: bool,
     #[cfg(target_os = "android")]
     packed_roots: bool,
+    #[cfg(target_os = "android")]
+    radix_roots: bool,
 }
 
 struct TilePass {
@@ -190,7 +192,7 @@ fn quotient_kernel(gpu: &Gpu, entry: &'static str, builtin: &[u8], slots: &[Slot
 }
 
 impl TiledFft {
-    fn new(gpu: &Gpu, n: u32) -> Self {
+    fn new(gpu: &Gpu, n: u32, _euler: bool) -> Self {
         use Slot::{Read, Uniform, Write};
 
         let large = cfg!(target_os = "android")
@@ -204,9 +206,25 @@ impl TiledFft {
             (true, false) => ("fr_fft_tile_large", include_bytes!("../glsl/out/fr_fft_tile_large.spv")),
             (false, false) => ("fr_fft_tile", include_bytes!("../glsl/out/fr_fft_tile.spv")),
         };
-        let pipeline = quotient_kernel(gpu, name, kernel, &[Write, Read, Uniform]);
         #[cfg(target_os = "android")]
-        let direction = if !large && !packed_roots && gpu.device.features().contains(wgpu::Features::SUBGROUP) {
+        let radix_root_shader = (_euler && !large && !packed_roots
+            && gpu.device.features().contains(wgpu::Features::SUBGROUP)
+            && u64::from(n) * 20 <= u64::from(gpu.device.limits().max_storage_buffer_binding_size))
+            .then(|| std::env::var_os("ZOPRO_ANDROID_FFT_RADIX_ROOTS_SPV"))
+            .flatten().and_then(|path| std::fs::read(path).ok());
+        let ordinary = || quotient_kernel(gpu, name, kernel, &[Write, Read, Uniform]);
+        #[cfg(not(target_os = "android"))]
+        let pipeline = ordinary();
+        #[cfg(target_os = "android")]
+        let pipeline = radix_root_shader.as_deref().map_or_else(ordinary, |shader| {
+            let name = "fr_fft_tile_radix_roots";
+            log::info!("ZOPRO_TRACE quotient radix-13 FFT roots");
+            gpu.kernel(name, || spirv_pipeline(&gpu.device, gpu.cache(), name, shader, &[Write, Read, Uniform]))
+        });
+        #[cfg(target_os = "android")]
+        let direction = if !large && !packed_roots && radix_root_shader.is_none()
+            && gpu.device.features().contains(wgpu::Features::SUBGROUP)
+        {
             std::env::var_os("ZOPRO_ANDROID_FFT_DIRECTION_DIR").and_then(|path| {
                 let path = std::path::PathBuf::from(path);
                 let names = ["fr_fft_tile_dif", "fr_fft_tile_dit"];
@@ -267,6 +285,8 @@ impl TiledFft {
             large,
             #[cfg(target_os = "android")]
             packed_roots,
+            #[cfg(target_os = "android")]
+            radix_roots: radix_root_shader.is_some(),
         }
     }
 
@@ -289,6 +309,27 @@ impl TiledFft {
             }
         }
         packed
+    }
+
+    #[cfg(target_os = "android")]
+    fn radix_root_words(roots: &[Fr]) -> Vec<u32> {
+        const WORD_BITS: usize = 26;
+        const WORD_MASK: u32 = (1 << WORD_BITS) - 1;
+        let mut words = Vec::with_capacity(roots.len() * 10);
+        for root in roots {
+            for index in 0..10 {
+                let bit = index * WORD_BITS;
+                let (word, shift) = (bit / 64, bit % 64);
+                let low = root.0[word] >> shift;
+                let high = if shift + WORD_BITS > 64 && word < 3 {
+                    root.0[word + 1] << (64 - shift)
+                } else {
+                    0
+                };
+                words.push((low | high) as u32 & WORD_MASK);
+            }
+        }
+        words
     }
 }
 
@@ -387,7 +428,7 @@ impl Quotient {
         let [dif, dit, scale, pointwise]: [wgpu::ComputePipeline; 4] =
             pipelines.try_into().expect("four kernels");
         let tiled = if spirv && std::env::var("ZOPRO_VULKAN_FFT_TILE").as_deref() == Ok("1") {
-            Some(TiledFft::new(&gpu, n as u32))
+            Some(TiledFft::new(&gpu, n as u32, monomial_weights.is_none()))
         } else {
             None
         };
@@ -408,6 +449,14 @@ impl Quotient {
             buffer
         };
         let upload_roots = |label: &str, values: &[Fr]| {
+            #[cfg(target_os = "android")]
+            if tiled.as_ref().is_some_and(|tiled| tiled.radix_roots) {
+                let words = TiledFft::radix_root_words(values);
+                let bytes = crate::bytemuck_cast(&words);
+                let buffer = storage(device, label, bytes.len());
+                gpu.queue.write_buffer(&buffer, 0, bytes);
+                return buffer;
+            }
             #[cfg(target_os = "android")]
             if let Some(tiled) = tiled.as_ref().filter(|tiled| tiled.packed_roots) {
                 return upload(label, &tiled.pack_roots(values));
@@ -572,7 +621,7 @@ impl Quotient {
         let degrees = storage(device, "Euler degrees", table.len() * 32);
         queue.write_buffer(&degrees, 0, fr_bytes(&table));
         let fused = self.tiled.as_ref().filter(|tiled| {
-            !tiled.large && !tiled.packed_roots && tiled.passes.len() > 1
+            !tiled.large && !tiled.packed_roots && !tiled.radix_roots && tiled.passes.len() > 1
                 && std::env::var("ZOPRO_VULKAN_EULER_FUSED").as_deref() == Ok("1")
         }).map(|tiled| FusedEulerTiles::new(&self.gpu, tiled, active as u32, low as u32));
         let load_paired = || -> Result<_, String> {
@@ -582,7 +631,7 @@ impl Quotient {
             let directory = std::path::PathBuf::from(directory);
             use Slot::{Read, Uniform, Write};
             let tiled = self.tiled.as_ref().ok_or("paired Euler requires a tiled transform")?;
-            if fused.is_some() || tiled.packed_roots || tiled.large
+            if fused.is_some() || tiled.packed_roots || tiled.radix_roots || tiled.large
                 || self.abc.size() > device.limits().max_storage_buffer_binding_size as u64
             {
                 return Err("paired Euler is incompatible with this quotient workspace".into());
