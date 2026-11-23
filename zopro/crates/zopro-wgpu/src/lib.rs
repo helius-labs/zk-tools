@@ -1074,19 +1074,29 @@ impl Msm<G1Projective> {
         if let Some(width) = width {
             log::info!("ZOPRO_TRACE vulkan-euler-h width={width} entries={}", bases.len());
         }
-        Self::new_with_width(gpu, bases, width)
+        let pair_kernel = if gpu.spirv && bases.len() >= 1 << 18
+            && std::env::var("ZOPRO_ANDROID_EULER_PAIR_REDUCE").as_deref() == Ok("1")
+        {
+            let directory = std::env::var_os("ZOPRO_SPV_DIR").ok_or("missing pair shader directory")?;
+            let path = std::path::PathBuf::from(directory).join("reduce_pairs.spv");
+            Some(std::fs::read(path).map_err(|error| format!("G1 pair reduction shader: {error}"))?)
+        } else {
+            None
+        };
+        Self::new_with_width(gpu, bases, width, pair_kernel.as_deref())
     }
 }
 
 impl<C: Curve> Msm<C> {
     pub fn new(gpu: std::sync::Arc<Gpu>, bases: &[C::Affine]) -> Result<(Self, f64), String> {
-        Self::new_with_width(gpu, bases, None)
+        Self::new_with_width(gpu, bases, None, None)
     }
 
     fn new_with_width(
         gpu: std::sync::Arc<Gpu>,
         bases: &[C::Affine],
         width: Option<usize>,
+        pair_kernel: Option<&[u8]>,
     ) -> Result<(Self, f64), String> {
         let device = &gpu.device;
         let started = Instant::now();
@@ -1128,6 +1138,9 @@ impl<C: Curve> Msm<C> {
                         let fast = repair_kernels.as_ref().filter(|_| index == 0);
                         let (name, kernel) = if let Some((fast, _)) = fast {
                             ("shards_first_fast", fast.as_slice())
+                        } else if let Some(pair) = pair_kernel.filter(|_| index == 2) {
+                            log::info!("ZOPRO_TRACE vulkan-euler-h pair reduction");
+                            ("reduce_pairs", pair)
                         } else {
                             (entry, file.as_deref().unwrap_or(kernels[index]))
                         };
@@ -1192,10 +1205,10 @@ impl<C: Curve> Msm<C> {
                     .unwrap_or(REDUCE_THREADS_PER_WINDOW),
             )
             .max(WORKGROUP as usize);
-        let pairs = spirv.is_some() && C::SPIRV_PAIRS;
+        let pairs = spirv.is_some() && (C::SPIRV_PAIRS || pair_kernel.is_some());
         // The host weighs the pairs: fewer threads per window keep that
         // cheap (ZOPRO_REDUCE_PER_WINDOW still overrides).
-        let per_window = if pairs && std::env::var("ZOPRO_REDUCE_PER_WINDOW").is_err() {
+        let per_window = if pairs && pair_kernel.is_none() && std::env::var("ZOPRO_REDUCE_PER_WINDOW").is_err() {
             per_window.min(PAIRS_PER_WINDOW)
         } else {
             per_window
