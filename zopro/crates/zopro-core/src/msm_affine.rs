@@ -2219,6 +2219,7 @@ mod deferred_window_reference_tests {
 
 #[cfg(any(
     all(target_os = "macos", target_arch = "aarch64"),
+    all(target_os = "android", target_arch = "aarch64"),
     all(
         zopro_g2_horner_buckets,
         target_arch = "x86_64",
@@ -2324,6 +2325,25 @@ pub(super) fn g2_query_exclusive(
     let groups = (grouping && crate::simd::cpu_option("ZOPRO_CPU_DEDUP"))
         .then(|| grouping::groups_with_diversity_check::<zopro_bn254::G2Config>(words))
         .flatten();
+    #[cfg(all(target_os = "android", target_arch = "aarch64"))]
+    if bases.len() >= 1 << 16
+        && std::env::var("ZOPRO_ANDROID_G2_ENDOMORPHISM").as_deref() == Ok("1")
+    {
+        let (bits, partitions) = (14, 2);
+        return match groups {
+            Some(mut groups) => {
+                let points = crate::msm::group_affine(bases, &groups.order, &groups.starts, &groups.counts);
+                #[cfg(feature = "trace")]
+                log::info!("ZOPRO_TRACE android-g2-endomorphism entries={} classes={}", bases.len(), points.len());
+                g2_phi::hb_raw(&points, &mut groups.values, bits, partitions)
+            }
+            None => {
+                #[cfg(feature = "trace")]
+                log::info!("ZOPRO_TRACE android-g2-endomorphism entries={}", bases.len());
+                g2_phi::hb_raw(bases, words, bits, partitions)
+            }
+        };
+    }
     g2_exclusive_with_groups(bases, groups, || words, false)
 }
 
