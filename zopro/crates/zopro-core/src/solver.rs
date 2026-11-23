@@ -595,6 +595,13 @@ pub(crate) struct Solution {
     pub(crate) c: Vec<Fr>,
 }
 
+#[derive(Default)]
+struct SolveStorage<'a> {
+    rows: Option<[OutputRow<'a>; 3]>,
+    wires: Option<Vec<Fr>>,
+    clean_rows: bool,
+}
+
 pub(crate) struct LinearCTerm {
     pub row: usize,
     pub wire: usize,
@@ -1360,7 +1367,7 @@ impl Plan {
         materialize_c: bool,
         pool: Option<&rayon::ThreadPool>,
     ) -> Result<Solution, String> {
-        self.solve_with_storage(witness, domain, slots, materialize_c, pool, None, false)
+        self.solve_with_storage(witness, domain, slots, materialize_c, pool, SolveStorage::default())
     }
 
     #[cfg(gpu)]
@@ -1383,7 +1390,9 @@ impl Plan {
             len: row.len(),
             borrow: core::marker::PhantomData,
         });
-        self.solve_with_storage(witness, domain, slots, materialize_c, None, Some(rows), false)
+        self.solve_with_storage(witness, domain, slots, materialize_c, None, SolveStorage {
+            rows: Some(rows), ..SolveStorage::default()
+        })
     }
 
     /// SAFETY: both pointers remain exclusive disjoint writable regions
@@ -1406,7 +1415,9 @@ impl Plan {
             len,
             borrow: core::marker::PhantomData,
         });
-        self.solve_with_storage(witness, domain, slots, false, None, Some(rows), false)
+        self.solve_with_storage(witness, domain, slots, false, None, SolveStorage {
+            rows: Some(rows), ..SolveStorage::default()
+        })
     }
 
     /// The caller supplies zeroed rows. The buffer owner clears the previous
@@ -1418,9 +1429,12 @@ impl Plan {
         domain: usize,
         slots: &[usize],
         rows: &mut [Vec<Fr>; 2],
+        wires: Option<Vec<Fr>>,
     ) -> Result<Solution, String> {
         let [a, b] = rows;
-        if a.len() != self.n_constraints || b.len() != self.n_constraints || domain < a.len() {
+        if a.len() != self.n_constraints || b.len() != self.n_constraints || domain < a.len()
+            || wires.as_ref().is_some_and(|w| w.len() != self.n_wires + self.n_slots)
+        {
             return Err("invalid recycled Euler evaluation rows".into());
         }
         let empty = core::ptr::NonNull::<Fr>::dangling().as_ptr();
@@ -1429,7 +1443,21 @@ impl Plan {
             len,
             borrow: core::marker::PhantomData,
         });
-        self.solve_with_storage(witness, domain, slots, false, None, Some(rows), true)
+        self.solve_with_storage(witness, domain, slots, false, None, SolveStorage {
+            rows: Some(rows), wires, clean_rows: true,
+        })
+    }
+
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
+    pub(crate) fn clear_euler_wires(&self, wires: &mut Vec<Fr>) {
+        use rayon::prelude::*;
+        // Retained expression slots may still hold values beyond the wires
+        // and selected slots returned to the MSMs. Clear the whole region.
+        wires.resize(self.n_wires + self.n_slots, Fr::ZERO);
+        wires.par_chunks_mut(4096).for_each(|chunk| {
+            chunk.fill(Fr::ZERO);
+            std::hint::black_box(&*chunk);
+        });
     }
 
     fn solve_with_storage(
@@ -1439,15 +1467,16 @@ impl Plan {
         slots: &[usize],
         materialize_c: bool,
         pool: Option<&rayon::ThreadPool>,
-        mut rows: Option<[OutputRow<'_>; 3]>,
-        clean_rows: bool,
+        storage: SolveStorage<'_>,
     ) -> Result<Solution, String> {
         if witness.len() != self.n_inputs - 1 {
             return Err("invalid witness size".into());
         }
         let started = crate::time::Instant::now();
+        let SolveStorage { mut rows, wires, clean_rows } = storage;
         let uninitialized =
             self.use_uninitialized() && *self.definite.get_or_init(|| self.definitely_writes_all());
+        let uninitialized_wires = uninitialized && wires.is_none();
         let row = || {
             if uninitialized {
                 Vec::with_capacity(domain.max(self.n_constraints))
@@ -1457,7 +1486,9 @@ impl Plan {
         };
         let (mut w, (mut a, (mut b, mut c))) = rayon::join(
             || {
-                if uninitialized {
+                if let Some(wires) = wires {
+                    wires
+                } else if uninitialized_wires {
                     Vec::with_capacity(self.n_wires + self.n_slots)
                 } else {
                     crate::zero_frs(self.n_wires + self.n_slots, 0)
@@ -1491,7 +1522,7 @@ impl Plan {
             },
         );
         let started = crate::trace("solve-allocate", started);
-        if uninitialized {
+        if uninitialized_wires {
             let spare = w.spare_capacity_mut();
             spare[0].write(Fr::ONE);
             for (out, value) in spare[1..self.n_inputs].iter_mut().zip(witness) {
@@ -1523,7 +1554,9 @@ impl Plan {
             // On an error above, vector lengths remain zero and no uninitialized
             // field can be observed or dropped. All scheduled writes completed.
             unsafe {
-                w.set_len(self.n_wires + self.n_slots);
+                if uninitialized_wires {
+                    w.set_len(self.n_wires + self.n_slots);
+                }
                 if rows.is_none() {
                     a.set_len(self.n_constraints);
                     b.set_len(self.n_constraints);

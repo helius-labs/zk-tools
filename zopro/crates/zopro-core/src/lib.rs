@@ -372,13 +372,20 @@ struct Gpu {
     #[cfg(target_os = "android")]
     euler_h_tiles: std::sync::Mutex<Vec<(usize, zopro_wgpu::G1Msm)>>,
     #[cfg(target_os = "android")]
-    euler_solver_rows: std::sync::Mutex<Option<[Vec<Fr>; 2]>>,
+    euler_solver_storage: std::sync::Mutex<Option<AndroidEulerSolverStorage>>,
+}
+
+#[cfg(all(gpu_wgpu, target_os = "android"))]
+struct AndroidEulerSolverStorage {
+    rows: [Vec<Fr>; 2],
+    wires: Option<Vec<Fr>>,
 }
 
 #[cfg(all(gpu_wgpu, target_os = "android"))]
 enum AndroidWitnessScalars<'a> {
     Prepared([&'a mut [Fr]; 3], &'a [Fr]),
     Wires(&'a solver::Plan, &'a mut [Fr]),
+    RecycledWires(&'a solver::Plan, &'a mut Vec<Fr>),
 }
 
 #[cfg(all(gpu_wgpu, target_os = "android"))]
@@ -731,7 +738,7 @@ impl GpuBuilder {
             #[cfg(target_os = "android")]
             euler_h_tiles: std::sync::Mutex::new(Vec::new()),
             #[cfg(target_os = "android")]
-            euler_solver_rows: std::sync::Mutex::new(None),
+            euler_solver_storage: std::sync::Mutex::new(None),
         }
     }
 }
@@ -1635,22 +1642,34 @@ impl Key {
         #[cfg(all(gpu_wgpu, target_os = "android"))]
         if !wants_c && std::env::var("ZOPRO_ANDROID_EULER_RECYCLE_ROWS").as_deref() == Ok("1") {
             if let Some(gpu) = self.android_euler_cpu_witness_gpu(omit_b) {
-                if let Ok(mut storage) = gpu.euler_solver_rows.try_lock() {
+                if let Ok(mut storage) = gpu.euler_solver_storage.try_lock() {
                     let reused = storage.is_some();
-                    let mut rows = storage.take().unwrap_or_else(|| {
+                    let mut workspace = storage.take().unwrap_or_else(|| {
                         let row = || zero_frs(plan.n_constraints, plan.n_constraints);
                         let (a, b) = rayon::join(row, row);
-                        [a, b]
+                        AndroidEulerSolverStorage { rows: [a, b], wires: None }
                     });
-                    let solver::Solution { mut w, .. } =
-                        plan.solve_with_clean_euler_rows(&witness, self.domain, slots, &mut rows)?;
+                    let recycle_wires = std::env::var("ZOPRO_ANDROID_EULER_RECYCLE_WIRES").as_deref() == Ok("1");
+                    let wires = workspace.wires.take().filter(|_| recycle_wires);
+                    let wires_reused = wires.is_some();
+                    let solver::Solution { mut w, .. } = plan.solve_with_clean_euler_rows(
+                        &witness, self.domain, slots, &mut workspace.rows, wires,
+                    )?;
                     trace("solve", started);
                     #[cfg(feature = "trace")]
-                    log::info!("ZOPRO_TRACE vulkan-solver recycled evaluation rows reused={reused}");
+                    log::info!("ZOPRO_TRACE vulkan-solver recycled evaluation rows reused={reused} wires={wires_reused}");
+                    let scalars = if recycle_wires {
+                        AndroidWitnessScalars::RecycledWires(plan, &mut w)
+                    } else {
+                        AndroidWitnessScalars::Wires(plan, &mut w)
+                    };
                     let proof = self.android_euler_cpu_witness(
-                        gpu, AndroidEulerRows::Recycled(&mut rows), AndroidWitnessScalars::Wires(plan, &mut w), omit_b,
+                        gpu, AndroidEulerRows::Recycled(&mut workspace.rows), scalars, omit_b,
                     )?;
-                    *storage = Some(rows);
+                    if recycle_wires {
+                        workspace.wires = Some(w);
+                    }
+                    *storage = Some(workspace);
                     return Ok(proof);
                 }
             }
@@ -4830,7 +4849,7 @@ impl Key {
                 }
                 Ok::<_, String>(hz + host_h)
             });
-            let witness_work = || {
+            let witness_work = |scalars: AndroidWitnessScalars<'_>| {
                 // This scope keeps the extracted buffers alive while B2 uses them.
                 let mut extracted = (Vec::new(), Vec::new());
                 std::thread::scope(|witness_scope| {
@@ -4846,6 +4865,7 @@ impl Key {
                             let (public, private) = wires.split_at_mut(plan.n_public);
                             ([extracted.0.as_mut_slice(), extracted.1.as_mut_slice(), private], &*public)
                         }
+                        AndroidWitnessScalars::RecycledWires(..) => unreachable!("borrow recycled wires first"),
                     };
                     let bs1 = if omit_b { G1Projective::IDENTITY } else { msm_g1(&self.b, sb) };
                     let serial = cfg!(target_arch = "aarch64")
@@ -4922,9 +4942,17 @@ impl Key {
                     (ar, bs1, kr, bs2)
                 })
             };
+            let work = || match scalars {
+                AndroidWitnessScalars::RecycledWires(plan, wires) => {
+                    let values = witness_work(AndroidWitnessScalars::Wires(plan, wires));
+                    plan.clear_euler_wires(wires);
+                    values
+                }
+                other => witness_work(other),
+            };
             let (ar, bs1, kr, bs2) = match pools {
-                Some(pools) => pools.witness.install(witness_work),
-                None => witness_work(),
+                Some(pools) => pools.witness.install(work),
+                None => work(),
             };
             let hz = quotient_msm.join().expect("Euler quotient GPU work")?;
             Ok::<_, String>((hz, ar, bs1, kr, bs2))
