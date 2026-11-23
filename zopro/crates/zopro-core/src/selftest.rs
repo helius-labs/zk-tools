@@ -86,6 +86,8 @@ pub(crate) fn gpu(
     b2_head: &[G2Affine],
     n_a: usize,
     n_b: usize,
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
+    probe: Option<&mut zopro_wgpu::G1Msm>,
 ) -> Verdict {
     let mut scalars = vec![Fr::ZERO; n_a.max(n_b)];
     for s in scalars.iter_mut().take(HEAD) {
@@ -96,9 +98,18 @@ pub(crate) fn gpu(
     // Three inputs that tell the kernels apart: one point (a shard and the
     // reduction), one bucket of 64 equal digits (shards and their tree),
     // and random scalars over the head (every window and sign).
-    let g1 = |name: &str, scalars: &[Fr]| {
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
+    let a = match probe {
+        Some(probe) => probe,
+        None => gpu.witness.as_mut().expect("uploaded witness queries")[0].get_mut().unwrap(),
+    };
+    #[allow(unused_mut)]
+    let mut g1 = |name: &str, scalars: &[Fr]| {
         let started = crate::time::Instant::now();
         let cpu = msm_g1(&a_head[..head], &scalars[..head]);
+        #[cfg(all(gpu_wgpu, target_os = "android"))]
+        let got = a.msm(scalars);
+        #[cfg(not(all(gpu_wgpu, target_os = "android")))]
         let got = gpu.a.lock().unwrap().msm(scalars);
         report(name, got.is_ok_and(|(got, _)| got == cpu), started)
     };

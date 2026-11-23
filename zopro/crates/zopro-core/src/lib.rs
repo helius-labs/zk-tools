@@ -353,9 +353,14 @@ struct Gpu {
 }
 #[cfg(gpu_wgpu)]
 struct Gpu {
+    #[cfg(not(target_os = "android"))]
     a: std::sync::Mutex<zopro_wgpu::G1Msm>,
+    #[cfg(not(target_os = "android"))]
     b: std::sync::Mutex<zopro_wgpu::G1Msm>,
+    #[cfg(not(target_os = "android"))]
     k: std::sync::Mutex<zopro_wgpu::G1Msm>,
+    #[cfg(target_os = "android")]
+    witness: Option<[std::sync::Mutex<zopro_wgpu::G1Msm>; 3]>,
     z: std::sync::Mutex<zopro_wgpu::G1Msm>,
     b2: Option<std::sync::Mutex<zopro_wgpu::G2Msm>>,
     b2_cut: usize,
@@ -635,15 +640,24 @@ impl GpuBuilder {
         Ok(cut)
     }
     fn finish(self) -> Gpu {
-        let [a, b, k, z] = self
-            .g1
-            .map(|msm| std::sync::Mutex::new(msm.expect("every G1 vector uploaded")));
+        let [a, b, k, z] = self.g1.map(|msm| msm.map(std::sync::Mutex::new));
+        #[cfg(target_os = "android")]
+        let witness = match (a, b, k) {
+            (Some(a), Some(b), Some(k)) => Some([a, b, k]),
+            (None, None, None) => None,
+            _ => unreachable!("all witness queries use the same backend"),
+        };
         trace("gpu-upload", self.started);
         Gpu {
-            a,
-            b,
-            k,
-            z,
+            #[cfg(not(target_os = "android"))]
+            a: a.expect("uploaded A query"),
+            #[cfg(not(target_os = "android"))]
+            b: b.expect("uploaded B query"),
+            #[cfg(not(target_os = "android"))]
+            k: k.expect("uploaded K query"),
+            #[cfg(target_os = "android")]
+            witness,
+            z: z.expect("uploaded H query"),
             b2: self.b2.map(std::sync::Mutex::new),
             b2_cut: self.b2_cut,
             quotient: std::sync::Mutex::new(self.quotient),
@@ -2119,6 +2133,8 @@ impl Key {
                             &b2_head,
                             lengths[0],
                             lengths[1],
+                            #[cfg(all(gpu_wgpu, target_os = "android"))]
+                            None,
                         );
                         #[cfg(target_arch = "wasm32")]
                         let verdict = {
@@ -2814,7 +2830,7 @@ impl Key {
         #[cfg(all(gpu_wgpu, target_os = "android"))]
         if self.basis_only {
             if let Some(gpu) = self.gpu.as_ref().filter(|g| {
-                g.euler_h_cpu > 0 || (g.b2.is_none() && omit_b && affine_msm()
+                g.witness.is_none() || g.euler_h_cpu > 0 || (g.b2.is_none() && omit_b && affine_msm()
                     && std::env::var("ZOPRO_ANDROID_EULER_CPU_WITNESS").as_deref() == Ok("1"))
             }) {
                 return self.android_euler_cpu_witness(
@@ -2841,9 +2857,13 @@ impl Key {
                 std::thread::scope(|scope| -> Result<_, String> {
                     let gpu_work = scope.spawn(move || -> Result<_, String> {
                         let started = crate::time::Instant::now();
-                        let mut ma = gpu.a.lock().unwrap();
-                        let mut mb = (!omit_b).then(|| gpu.b.lock().unwrap());
-                        let mut mk = gpu.k.lock().unwrap();
+                        #[cfg(target_os = "android")]
+                        let [a_msm, b_msm, k_msm] = gpu.witness.as_ref().expect("uploaded witness queries");
+                        #[cfg(not(target_os = "android"))]
+                        let [a_msm, b_msm, k_msm] = [&gpu.a, &gpu.b, &gpu.k];
+                        let mut ma = a_msm.lock().unwrap();
+                        let mut mb = (!omit_b).then(|| b_msm.lock().unwrap());
+                        let mut mk = k_msm.lock().unwrap();
                         let mut mz = gpu.z.lock().unwrap();
                         // An MSM the GPU sorts is counted first, ahead of
                         // all else on the GPU's queue. When every G1 MSM is,
@@ -4415,12 +4435,23 @@ impl Key {
             .unwrap_or(0.0);
         let h_cpu = (active as f64 * cpu_share) as usize;
         let h_gpu = active - h_cpu;
-        let points = [&self.a[..], &self.b[..], &folded.private[..], &queries.product[..h_gpu]];
-        for (index, bases) in points.into_iter().enumerate() {
-            builder.g1(index, bases)?;
-        }
-        if h_cpu == 0 {
-            builder.g2(&self.b2)?;
+        let cpu_witness = std::env::var("ZOPRO_ANDROID_EULER_CPU_KEYS").as_deref() == Ok("1");
+        let a_head = &self.a[..self.a.len().min(selftest::HEAD)];
+        let mut probe = if cpu_witness {
+            Some(zopro_wgpu::G1Msm::new(builder.gpu.clone(), a_head)?.0)
+        } else {
+            for (index, bases) in [&self.a[..], &self.b[..], &folded.private[..]].into_iter().enumerate() {
+                builder.g1(index, bases)?;
+            }
+            if h_cpu == 0 {
+                builder.g2(&self.b2)?;
+            }
+            None
+        };
+        builder.g1(3, &queries.product[..h_gpu])?;
+        #[cfg(feature = "trace")]
+        if cpu_witness {
+            log::info!("ZOPRO_TRACE vulkan-euler CPU witness queries");
         }
         if std::env::var("ZOPRO_VULKAN_SHARD_REPAIR").as_deref() == Ok("1") {
             let bases = [G1Affine::GENERATOR; 64];
@@ -4436,8 +4467,8 @@ impl Key {
         let mut gpu = builder.finish();
         gpu.euler_h_cpu = h_cpu;
         let verdict = selftest::gpu(
-            &mut gpu, &self.plan, &self.a[..self.a.len().min(selftest::HEAD)],
-            &self.b2[..self.b2.len().min(selftest::HEAD)], self.a.len(), self.b.len(),
+            &mut gpu, &self.plan, a_head, &self.b2[..self.b2.len().min(selftest::HEAD)],
+            if cpu_witness { a_head.len() } else { self.a.len() }, self.b.len(), probe.as_mut(),
         );
         if !verdict.msm || !verdict.quotient {
             return Err("Vulkan Euler GPU self-test failed".into());
