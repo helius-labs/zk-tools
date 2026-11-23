@@ -789,7 +789,7 @@ pub fn wide(a: [u64; 4], b: &[u64; 4]) -> [u64; 8] {
 }
 
 /// Accumulate the off-diagonal products once, double them and add the squares.
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "android"))]
 #[inline(always)]
 pub fn square(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     square_inner::<true>(a, p, inv)
@@ -803,14 +803,14 @@ pub fn square_loose(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     square_inner::<false>(a, p, inv)
 }
 
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "android"))]
 #[inline(always)]
 fn square_inner<const NORMALIZE: bool>(a: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     redc_inner::<NORMALIZE>(square_wide(a), p, inv)
 }
 
 /// Square four limbs using six off-diagonal products and four squares.
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "android"))]
 #[inline(always)]
 fn square_wide(a: [u64; 4]) -> [u64; 8] {
     let (r0, r1, r2, r3, r4, r5, r6, r7): (u64, u64, u64, u64, u64, u64, u64, u64);
@@ -876,14 +876,14 @@ fn square_wide(a: [u64; 4]) -> [u64; 8] {
 
 /// a² + b² with one Montgomery reduction. The inputs are below p,
 /// so the sum of the full squares is below 2p² < pR.
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "android"))]
 #[inline(always)]
 pub fn sum_of_squares(a: [u64; 4], b: [u64; 4], p: [u64; 4], inv: u64) -> [u64; 4] {
     redc(add_wide(square_wide(a), square_wide(b)), p, inv)
 }
 
 /// Sum of two raw squares. The caller bounds the total below 2^512.
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "android"))]
 #[inline(always)]
 fn add_wide(a: [u64; 8], b: [u64; 8]) -> [u64; 8] {
     let mut result = a;

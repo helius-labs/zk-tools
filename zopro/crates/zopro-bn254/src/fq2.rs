@@ -33,7 +33,7 @@ impl Fq2 {
     #[cfg_attr(target_arch = "wasm32", inline(never))]
     #[cfg_attr(not(target_arch = "wasm32"), inline(always))]
     pub fn square(&self) -> Self {
-        #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+        #[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64", not(no_asm)))]
         {
             use crate::{arm64, portable};
             const P: [u64; 4] = FqConfig::P;
@@ -56,7 +56,7 @@ impl Fq2 {
                 Fq::from_montgomery(arm64::multiply(doubled, y, P, INV)),
             )
         }
-        #[cfg(not(all(target_os = "macos", target_arch = "aarch64", not(no_asm))))]
+        #[cfg(not(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64", not(no_asm))))]
         {
             let product = self.c0 * self.c1;
             Self::new((self.c0 + self.c1) * (self.c0 - self.c1), product.double())
@@ -93,14 +93,14 @@ impl Fq2 {
     /// The norm in Fq, c0² + c1².
     #[inline(always)]
     pub fn norm(&self) -> Fq {
-        #[cfg(all(target_os = "macos", target_arch = "aarch64", not(no_asm)))]
+        #[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64", not(no_asm)))]
         return Fq::from_montgomery(crate::arm64::sum_of_squares(
             self.c0.0,
             self.c1.0,
             FqConfig::P,
             FqConfig::INV,
         ));
-        #[cfg(not(all(target_os = "macos", target_arch = "aarch64", not(no_asm))))]
+        #[cfg(not(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64", not(no_asm))))]
         Fq::sum_of_products(&self.c0, &self.c0, &self.c1, &self.c1)
     }
 
