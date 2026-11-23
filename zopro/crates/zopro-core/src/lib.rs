@@ -29,6 +29,8 @@ mod lagrange;
 mod msm;
 #[cfg(not(target_arch = "wasm32"))]
 mod msm_affine;
+#[cfg(all(gpu_wgpu, target_os = "android", feature = "trace"))]
+mod android_euler_row_profile;
 #[cfg(all(
     zopro_g2_horner_buckets,
     target_arch = "x86_64",
@@ -4582,6 +4584,10 @@ impl Key {
                     Some(0)
                 };
                 if let Some([a, b]) = host_rows {
+                    #[cfg(feature = "trace")]
+                    if std::env::var("ZOPRO_ANDROID_EULER_ROW_PROFILE").as_deref() == Ok("1") {
+                        android_euler_row_profile::trace(a, b);
+                    }
                     quotient.start_euler(a, b, download_from)?;
                 } else {
                     quotient.start_prepared_euler(download_from);
