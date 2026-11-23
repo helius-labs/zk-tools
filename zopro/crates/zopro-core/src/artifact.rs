@@ -434,6 +434,31 @@ impl<'a> Artifact<'a> {
         Ok(key)
     }
 
+    #[cfg(all(gpu, target_endian = "little"))]
+    #[doc(hidden)]
+    pub fn metal_euler_key(
+        &self,
+        image: &crate::Image,
+        ranges: [(usize, usize); 5],
+        solver: &[u8],
+        product: (usize, usize),
+        stored_scale: crate::Fr,
+    ) -> Result<Key, String> {
+        let plan = crate::solver::Plan::from_image_with_owner(solver, Some(image))?;
+        let mut key = Key::build_metal_euler(
+            Points::Mapped(image, ranges),
+            self.domain,
+            image,
+            product,
+            stored_scale,
+            plan.n_constraints,
+        )?;
+        if !key.set_solver_plan(Ok(plan)) {
+            return Err("the original image does not supply a compatible solver".into());
+        }
+        Ok(key)
+    }
+
     pub fn verifying_key(&self) -> Result<VerifyingKey, &'static str> {
         VerifyingKey::decode_raw(self.verifying_key)
     }

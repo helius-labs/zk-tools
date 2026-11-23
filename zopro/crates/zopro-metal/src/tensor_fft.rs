@@ -5,6 +5,7 @@ const TILE: usize = 512;
 
 pub(crate) struct TensorFft {
     pipelines: [ComputePipelineState; 2],
+    euler_center: Option<ComputePipelineState>,
     roots: [Buffer; 2],
     weights: [Buffer; 2],
 }
@@ -35,7 +36,7 @@ impl TensorFft {
             if apple10 == objc::runtime::NO {
                 return None;
             }
-            let pipelines = tensor_pipelines(device)?;
+            let (pipelines, euler_center) = tensor_pipelines(device)?;
             let upload = |bytes: &[u8]| {
                 device.new_buffer_with_data(
                     bytes.as_ptr().cast(),
@@ -74,6 +75,7 @@ impl TensorFft {
             });
             Some(Self {
                 pipelines,
+                euler_center,
                 roots,
                 weights,
             })
@@ -98,12 +100,37 @@ impl TensorFft {
             MTLSize::new((TILE / 2) as u64, 1, 1),
         );
     }
+    pub(crate) fn supports_euler_center(&self) -> bool {
+        self.euler_center.is_some()
+    }
+
+    pub(crate) fn encode_euler_center(
+        &self, encoder: &ComputeCommandEncoderRef, values: &Buffer, offset: u64, n: usize,
+        degree_weights: &[Buffer; 2], low_bits: u32, canonical: bool,
+    ) {
+        let pipeline = self.euler_center.as_ref().expect("fused Euler tensor pipeline");
+        encoder.set_compute_pipeline_state(pipeline);
+        encoder.set_buffer(0, Some(values), offset);
+        for (index, (roots, weights)) in self.roots.iter().zip(&self.weights).enumerate() {
+            encoder.set_buffer((2 * index + 1) as u64, Some(roots), 0);
+            encoder.set_buffer((2 * index + 2) as u64, Some(weights), 0);
+        }
+        let options = [32 - n.trailing_zeros(), low_bits, u32::from(canonical), 0];
+        encoder.set_bytes(5, 16, options.as_ptr().cast());
+        encoder.set_buffer(6, Some(&degree_weights[0]), 0);
+        encoder.set_buffer(7, Some(&degree_weights[1]), 0);
+        encoder.dispatch_thread_groups(
+            MTLSize::new((n / TILE) as u64, 1, 1),
+            MTLSize::new((TILE / 2) as u64, 1, 1),
+        );
+    }
 }
 
 #[cfg(tensor_metallib)]
-fn tensor_pipelines(device: &Device) -> Option<[ComputePipelineState; 2]> {
+fn tensor_pipelines(device: &Device) -> Option<([ComputePipelineState; 2], Option<ComputePipelineState>)> {
     use std::sync::OnceLock;
-    static PIPELINES: OnceLock<Option<crate::Shared<[ComputePipelineState; 2]>>> = OnceLock::new();
+    type Pipelines = ([ComputePipelineState; 2], Option<ComputePipelineState>);
+    static PIPELINES: OnceLock<Option<crate::Shared<Pipelines>>> = OnceLock::new();
     PIPELINES
         .get_or_init(|| {
             let data = include_bytes!(concat!(env!("OUT_DIR"), "/zopro_tensor.metallib"));
@@ -115,10 +142,10 @@ fn tensor_pipelines(device: &Device) -> Option<[ComputePipelineState; 2]> {
                     .ok()?;
                 (p.max_total_threads_per_threadgroup() >= (TILE / 2) as u64).then_some(p)
             };
-            Some(crate::Shared([
-                pipeline("fr_dif_tensor9")?,
-                pipeline("fr_dit_tensor9")?,
-            ]))
+            Some(crate::Shared((
+                [pipeline("fr_dif_tensor9")?, pipeline("fr_dit_tensor9")?],
+                pipeline("fr_euler_tensor9"),
+            )))
         })
         .as_ref()
         .map(|p| p.0.clone())

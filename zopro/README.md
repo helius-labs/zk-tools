@@ -118,6 +118,15 @@ regenerate the image for a new key version. Set
 by the preparation allocator. Budget loaded key pages and proof workspace
 separately.
 
+## Metal proving with a prepared Euler image
+
+On Apple platforms, enable the `zopro-prover` crate's `metal` feature.
+Prepare an Euler image with the command above, keep the mapped file
+immutable, and pass it to `Prover::load_euler_metal_image`. The loader
+retains the original solver and verification key. It uses the mapped
+queries on the CPU if Metal is unavailable or a GPU proof fails
+verification.
+
 ## Safety
 
 A GPU can compute wrong results (two iPhones' did, from a threadgroup size

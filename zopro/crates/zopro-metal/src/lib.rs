@@ -312,6 +312,7 @@ pub struct Sorted {
 /// An MSM submitted to the GPU and not yet collected.
 pub struct Pending {
     command: metal::CommandBuffer,
+    host_prefix: Option<(metal::CommandBuffer, usize)>,
     submitted: Instant,
     timings: Timings,
 }
@@ -526,6 +527,7 @@ pub struct Msm<C: Curve> {
     /// `host_buckets`, the buckets this MSM writes directly.
     reduce: Option<ComputePipelineState>,
     host_buckets: Option<Buffer>,
+    host_tail: Option<HostBucketTail>,
     bases: Buffer,
     n: usize,
     sorted: Buffer,
@@ -548,6 +550,11 @@ pub struct Msm<C: Curve> {
     counts: Vec<u32>,
     starts: Vec<u32>,
     _curve: std::marker::PhantomData<C>,
+}
+
+struct HostBucketTail {
+    first_window: usize,
+    buffer: Buffer,
 }
 
 fn shared(device: &metal::DeviceRef, bytes: usize) -> Buffer {
@@ -618,12 +625,28 @@ impl<C: Curve> Drop for Msm<C> {
             if let Some(host) = &self.host_buckets {
                 discard(host);
             }
+            if let Some(tail) = &self.host_tail {
+                discard(&tail.buffer);
+            }
             self.levels.iter().flatten().flatten().for_each(discard);
         })
     }
 }
 
 impl G1Msm {
+    /// Overlap weighted bucket sums on the CPU with the final GPU windows.
+    #[doc(hidden)]
+    pub fn overlap_host_reduction(&mut self) {
+        if cfg!(target_os = "ios")
+            && self.n >= 1 << 20
+            && self.width == 15
+            && self.device.supports_family(metal::MTLGPUFamily::Apple9)
+            && std::env::var("ZOPRO_METAL_EULER_OVERLAP_REDUCE").as_deref() != Ok("0")
+        {
+            self.split_host_buckets();
+        }
+    }
+
     /// Use radix-29 arithmetic for the first level of dense G1 shard sums.
     /// Keep the selected pipeline when the alternate shader is unavailable.
     pub fn select_radix29_shards(&mut self) -> bool {
@@ -635,7 +658,7 @@ impl G1Msm {
         };
         self.first = first;
         if cfg!(target_os = "ios")
-            && self.n == (1 << 21) - 1
+            && ((1 << 20)..=(1 << 21)).contains(&self.n)
             && self.device.supports_family(metal::MTLGPUFamily::Apple9)
         {
             let capacity = self.chunk_windows * (self.n.div_ceil(self.first_shard) + self.half);
@@ -802,6 +825,7 @@ impl<C: Curve> Msm<C> {
                 shard_order: None,
                 tree_pipeline,
                 host_buckets: reduce.is_none().then(|| shared(&device, bucket_bytes)),
+                host_tail: None,
                 reduce,
                 bases: bases_buffer,
                 n,
@@ -809,6 +833,27 @@ impl<C: Curve> Msm<C> {
             },
             compile_ms,
         ))
+    }
+
+    fn split_host_buckets(&mut self) {
+        if self.host_tail.is_some() {
+            return;
+        }
+        let Some(host) = &mut self.host_buckets else {
+            return;
+        };
+        let chunks = self.windows.div_ceil(self.chunk_windows);
+        let first_window = chunks.saturating_sub(4) * self.chunk_windows;
+        if first_window == 0 {
+            return;
+        }
+        let window_bytes = self.half * C::XYZZ_BYTES;
+        discard(host);
+        *host = shared(&self.device, first_window * window_bytes);
+        self.host_tail = Some(HostBucketTail {
+            first_window,
+            buffer: shared(&self.device, (self.windows - first_window) * window_bytes),
+        });
     }
 
     pub fn msm(&mut self, scalars: &[Fr]) -> Result<(C, Timings), String> {
@@ -963,14 +1008,16 @@ impl<C: Curve> Msm<C> {
             })
             .collect();
         let sort_ms = elapsed(started);
-        let command = self.queue.new_command_buffer();
+        let mut command = self.queue.new_command_buffer();
         let scratch = self.scratch.0.lock().unwrap();
         // The host reads its own buckets after completion, while the next
         // command may already be using the shared trees.
         let buckets = self.host_buckets.as_ref().unwrap_or(&scratch.buckets);
+        let mut output_buckets = buckets;
         // Empty buckets stay at infinity.
         let blit = command.new_blit_command_encoder();
-        blit.fill_buffer(buckets, metal::NSRange::new(0, self.bucket_bytes as u64), 0);
+        let bytes = self.host_buckets.as_ref().map_or(self.bucket_bytes as u64, |host| host.length());
+        blit.fill_buffer(buckets, metal::NSRange::new(0, bytes), 0);
         let scatter = digits.and_then(|digits| {
             let scatter = digits.scatter.as_ref()?;
             let bytes = self.starts.len() * 4;
@@ -984,7 +1031,7 @@ impl<C: Curve> Msm<C> {
             Some((scatter, digits, starts, positions))
         });
         blit.end_encoding();
-        let encoder = command.new_compute_command_encoder();
+        let mut encoder = command.new_compute_command_encoder();
         if let Some((scatter, digits, starts, positions)) = scatter {
             scatter.encode(encoder, digits, &starts, &positions, &self.sorted);
         }
@@ -993,7 +1040,21 @@ impl<C: Curve> Msm<C> {
         }
         // Chunks run in order and share the trees; the dispatches of one
         // are complete before the next begins.
+        let mut host_prefix = None;
         for (chunk, levels) in chunks.iter().enumerate() {
+            if let Some(tail) = self.host_tail.as_ref().filter(|tail| chunk * self.chunk_windows == tail.first_window) {
+                encoder.end_encoding();
+                // Only the completed prefix buffer is exposed to the CPU.
+                // The tail uses a separate shared Metal resource.
+                command.commit();
+                host_prefix = Some((command.to_owned(), tail.first_window));
+                command = self.queue.new_command_buffer();
+                output_buckets = &tail.buffer;
+                let blit = command.new_blit_command_encoder();
+                blit.fill_buffer(output_buckets, metal::NSRange::new(0, output_buckets.length()), 0);
+                blit.end_encoding();
+                encoder = command.new_compute_command_encoder();
+            }
             let last = levels.len() - 1;
             for (level, shards) in levels.iter().enumerate() {
                 if *shards == 0 {
@@ -1024,7 +1085,7 @@ impl<C: Curve> Msm<C> {
                 encoder.set_buffer(3, Some(count), 0);
                 encoder.set_buffer(4, Some(dst), 0);
                 let out = if level == last {
-                    buckets
+                    output_buckets
                 } else {
                     &scratch.tree[level % 2]
                 };
@@ -1045,6 +1106,7 @@ impl<C: Curve> Msm<C> {
         command.commit();
         Pending {
             command: command.to_owned(),
+            host_prefix,
             submitted: Instant::now(),
             timings: Timings {
                 sort_ms,
@@ -1088,6 +1150,9 @@ impl<C: Curve> Msm<C> {
             let (mut first_ms, mut tree_ms, mut first_shards, mut tree_shards) =
                 (0.0, 0.0, 0usize, 0usize);
             for (chunk, levels) in chunks.iter().enumerate() {
+                let output_buckets = self.host_tail.as_ref()
+                    .filter(|tail| chunk * self.chunk_windows >= tail.first_window)
+                    .map_or(buckets, |tail| &tail.buffer);
                 let last = levels.len() - 1;
                 for (level, shards) in levels.iter().enumerate() {
                     let pipeline = if level == 0 {
@@ -1108,7 +1173,7 @@ impl<C: Curve> Msm<C> {
                         encoder.set_buffer(3, Some(count), 0);
                         encoder.set_buffer(4, Some(dst), 0);
                         let out = if level == last {
-                            buckets
+                            output_buckets
                         } else {
                             &scratch.tree[level % 2]
                         };
@@ -1167,33 +1232,36 @@ impl<C: Curve> Msm<C> {
     /// Waits for a submitted MSM and combines its window sums.
     pub fn finish(&mut self, pending: Pending) -> Result<(C, Timings), String> {
         let mut timings = pending.timings;
+        let (mut host_sums, prefix_combine_ms) = if let Some((command, windows)) = &pending.host_prefix {
+            if let Err(error) = autoreleasepool(|| completed(command)) {
+                // A fallback may release the shared workspace after this return.
+                let _ = autoreleasepool(|| completed(&pending.command));
+                return Err(error);
+            }
+            let started = Instant::now();
+            let host = self.host_buckets.as_ref().expect("host bucket workspace");
+            let sums = self.reduce_host_windows(host, 0..*windows);
+            log::info!("ZOPRO_TRACE metal-overlap-host-reduce {windows}");
+            (sums, elapsed(started))
+        } else {
+            (Vec::new(), 0.0)
+        };
         autoreleasepool(|| completed(&pending.command))?;
         timings.gpu_ms = elapsed(pending.submitted);
         let started = Instant::now();
         let mut result = C::IDENTITY;
         if let Some(host) = &self.host_buckets {
-            // Each window's sum of m * B_m by running sums, windows in
-            // parallel.
-            let buckets = host.contents() as *const u8 as usize;
-            let (half, xyzz) = (self.half, C::XYZZ_BYTES);
-            let sums: Vec<C> = (0..self.windows)
-                .into_par_iter()
-                .map(|window| {
-                    let at = window * half * xyzz;
-                    // SAFETY: the completed command wrote the window's XYZZ buckets.
-                    let values = unsafe {
-                        std::slice::from_raw_parts((buckets + at) as *const u8, half * xyzz)
-                    };
-                    C::reduce_host_window(values)
-                })
-                .collect();
-            for sum in sums.into_iter().rev() {
+            let (buffer, count) = self.host_tail.as_ref().map_or((host, self.windows), |tail| {
+                (&tail.buffer, self.windows - tail.first_window)
+            });
+            host_sums.extend(self.reduce_host_windows(buffer, 0..count));
+            for sum in host_sums.into_iter().rev() {
                 for _ in 0..self.width {
                     result = result.double();
                 }
                 result += sum;
             }
-            timings.combine_ms = elapsed(started);
+            timings.combine_ms = prefix_combine_ms + elapsed(started);
             return Ok((result, timings));
         }
         let sums = self.sums.contents() as *const u8;
@@ -1214,6 +1282,23 @@ impl<C: Curve> Msm<C> {
         Ok((result, timings))
     }
 
+    /// Each window's sum of m * B_m by running sums, windows in parallel.
+    fn reduce_host_windows(&self, host: &Buffer, windows: std::ops::Range<usize>) -> Vec<C> {
+        let buckets = host.contents() as usize;
+        let window_bytes = self.half * C::XYZZ_BYTES;
+        windows
+            .into_par_iter()
+            .map(|window| {
+                let at = window * window_bytes;
+                // SAFETY: the command that writes this buffer has completed.
+                let values = unsafe {
+                    std::slice::from_raw_parts((buckets + at) as *const u8, window_bytes)
+                };
+                C::reduce_host_window(values)
+            })
+            .collect()
+    }
+
     /// The levels of shards over the sorted runs of a chunk of windows,
     /// written to the chunk's level buffers; returns each level's shard
     /// count. Level 0 splits bucket runs of base points into first_shard;
@@ -1222,6 +1307,8 @@ impl<C: Curve> Msm<C> {
     /// to the bucket's place.
     fn plan(&mut self, chunk: usize, windows: std::ops::Range<usize>) -> Vec<usize> {
         let first_bucket = windows.start * self.half;
+        let bucket_origin = self.host_tail.as_ref().filter(|tail| windows.start >= tail.first_window)
+            .map_or(0, |tail| tail.first_window * self.half);
         let buckets = windows.len() * self.half;
         let mut runs: Vec<(u32, u32)> = self.starts[first_bucket..first_bucket + buckets]
             .iter()
@@ -1268,7 +1355,7 @@ impl<C: Curve> Msm<C> {
                     starts[cursor].write(run_start + at);
                     counts[cursor].write(len);
                     destinations[cursor].write(if last {
-                        (first_bucket + b) as u32
+                        (first_bucket - bucket_origin + b) as u32
                     } else {
                         cursor as u32
                     });
@@ -1554,6 +1641,28 @@ mod tests {
     #[test]
     fn g2_msms_match_the_reference() {
         check::<G2Config>(&[1, 100, 3000]);
+    }
+
+    #[test]
+    fn host_reduction_overlaps_disjoint_gpu_windows() {
+        if metal::Device::system_default().is_none() {
+            return;
+        }
+        let mut rng = StdRng::seed_from_u64(1743);
+        let bases = points::<G1Config>(1025, &mut rng);
+        let values = scalars(bases.len(), true, &mut rng);
+        let expected = zopro_bn254::curve::msm(&bases, &values);
+        let (mut msm, _) = G1Msm::new(&bases).unwrap();
+        if msm.host_buckets.is_none() {
+            return;
+        }
+        msm.chunk_windows = 1;
+        msm.split_host_buckets();
+        let pending = msm.start(&values);
+        assert!(pending.host_prefix.is_some());
+        assert_eq!(msm.finish(pending).unwrap().0, expected);
+        let pending = msm.start(&vec![Fr::ZERO; bases.len()]);
+        assert_eq!(msm.finish(pending).unwrap().0, G1Projective::IDENTITY);
     }
 
     #[test]

@@ -222,12 +222,19 @@ impl Prover {
         points: Points,
         solver_image: Option<&[u8]>,
     ) -> Result<Self, String> {
+        Self::from_artifact_with(artifact, || artifact.key(points, solver_image))
+    }
+
+    fn from_artifact_with(
+        artifact: &Artifact,
+        key: impl FnOnce() -> Result<Key, String>,
+    ) -> Result<Self, String> {
         let names: Vec<String> = artifact
             .input_names()
             .iter()
             .map(|n| (*n).to_owned())
             .collect();
-        let public = artifact.public as usize - 1;
+        let public = artifact.public.checked_sub(1).ok_or("no public constant")? as usize;
         let verifying_key = artifact.verifying_key()?;
         if verifying_key.public_inputs() != public
             || names.len() != public + artifact.secret as usize
@@ -237,7 +244,7 @@ impl Prover {
         Ok(Self {
             #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
             overlap_verification: false,
-            key: artifact.key(points, solver_image)?,
+            key: key()?,
             verifying_key,
             fixed: PreparedFixedPoints::new(artifact.fixed_points()?),
             name: artifact.name.to_owned(),

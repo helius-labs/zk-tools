@@ -400,7 +400,7 @@ pub(crate) struct Plan {
     sums: super::Store<Sum>,
     /// The stored sums' slots, after the wires in the solution's vector.
     n_slots: usize,
-    n_constraints: usize,
+    pub(crate) n_constraints: usize,
     ops: Vec<Op>,
     /// Native dot-product grouping: zero, pairs, or eight lanes.
     fuse_sums: u8,
@@ -1351,7 +1351,10 @@ impl Plan {
         materialize_c: bool,
         rows: [&mut [core::mem::MaybeUninit<Fr>]; 3],
     ) -> Result<Solution, String> {
-        if domain < self.n_constraints || rows.iter().any(|row| row.len() != domain) {
+        let c_valid = rows[2].len() == domain || (!materialize_c && rows[2].is_empty());
+        let ab_valid = rows[0].len() == rows[1].len()
+            && (rows[0].len() == domain || rows[0].len() == self.n_constraints);
+        if domain < self.n_constraints || !ab_valid || !c_valid {
             return Err("invalid Metal evaluation workspace".into());
         }
         self.solve_with_storage(witness, domain, slots, materialize_c, None, Some(rows))
@@ -3154,14 +3157,19 @@ mod tests {
         let (words, coefficients) = small();
         let plan = Plan::new(&encode_words(&words), &coefficients).unwrap();
         let mut rows = [[MaybeUninit::new(Fr::from(100u64)); 4]; 3];
-        for (x, materialize_c) in [(Fr::from(9u64), true), (Fr::from(17u64), false), (Fr::ZERO, true)] {
+        for (x, materialize_c, c_len) in [
+            (Fr::from(9u64), true, 4),
+            (Fr::from(17u64), false, 4),
+            (Fr::from(23u64), false, 0),
+            (Fr::ZERO, true, 4),
+        ] {
             let [a, b, c] = &mut rows;
             let invalid = [x * x + Fr::ONE, x];
-            assert!(plan.solve_with_metal_rows(&invalid, 4, &[], materialize_c, [a, b, c]).is_err());
+            assert!(plan.solve_with_metal_rows(&invalid, 4, &[], materialize_c, [a, b, &mut c[..c_len]]).is_err());
 
             let [a, b, c] = &mut rows;
             let witness = [x * x, x];
-            let solved = plan.solve_with_metal_rows(&witness, 4, &[], materialize_c, [a, b, c]).unwrap();
+            let solved = plan.solve_with_metal_rows(&witness, 4, &[], materialize_c, [a, b, &mut c[..c_len]]).unwrap();
             let reference = plan.solve(&witness).unwrap();
             assert_eq!(solved.w, reference.w);
             assert!(solved.a.is_empty() && solved.b.is_empty() && solved.c.is_empty());

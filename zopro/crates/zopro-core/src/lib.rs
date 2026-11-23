@@ -422,6 +422,28 @@ fn apple_msm_pool(threads: usize) -> Option<&'static rayon::ThreadPool> {
     .as_ref()
 }
 
+#[cfg(gpu)]
+fn euler_g2_pool() -> Option<&'static rayon::ThreadPool> {
+    #[cfg(all(target_os = "ios", target_arch = "aarch64"))]
+    {
+        static POOL: std::sync::OnceLock<Option<rayon::ThreadPool>> = std::sync::OnceLock::new();
+        POOL.get_or_init(|| {
+            let threads = std::env::var("ZOPRO_EXPERIMENT_METAL_EULER_G2_THREADS")
+                .map_or(Some(4), |value| value.parse().ok())?;
+            if !(2..=4).contains(&threads) {
+                return None;
+            }
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .thread_name(|i| format!("zopro-euler-g2-{i}"))
+                .build()
+                .ok()
+        }).as_ref()
+    }
+    #[cfg(not(all(target_os = "ios", target_arch = "aarch64")))]
+    None
+}
+
 /// The share of the G2 MSM's points a wgpu GPU takes (ZOPRO_G2_GPU_SHARE,
 /// else measured best: on an M5 Pro through wgpu, and none with the
 /// pre-compiled kernels, where the OnePlus 13's Adreno is the critical path
@@ -701,7 +723,7 @@ struct GpuBuilder {
 #[cfg(gpu)]
 impl GpuBuilder {
     /// None with ZOPRO_GPU=0 or without a GPU.
-    fn open(plan: &fft::Plan, b2_points: usize) -> Option<Self> {
+    fn open(plan: &fft::Plan, b2_points: usize, euler_basis: bool) -> Option<Self> {
         if std::env::var("ZOPRO_GPU").is_ok_and(|v| v == "0") {
             return None;
         }
@@ -714,7 +736,12 @@ impl GpuBuilder {
                 low_bits: w.low_bits,
             }
         }
-        let quotient = zopro_metal::Quotient::new(
+        let make_quotient = if euler_basis && !cfg!(feature = "fullcheck") {
+            zopro_metal::Quotient::new_euler_workspace
+        } else {
+            zopro_metal::Quotient::new
+        };
+        let quotient = make_quotient(
             plan.size(),
             &roots,
             &inverse_roots,
@@ -1083,6 +1110,10 @@ pub struct Key {
     /// Whether the GPU's quotient agreed with the CPU's at load.
     #[cfg(gpu_any)]
     gpu_quotient: bool,
+    #[cfg(gpu)]
+    metal_euler_scale: Option<Fr>,
+    #[cfg(gpu)]
+    metal_euler_rows: Option<usize>,
     /// Whether the trace build has profiled this key's GPU stages (Metal).
     #[cfg(all(feature = "trace", gpu))]
     profiled: std::sync::atomic::AtomicBool,
@@ -1175,6 +1206,10 @@ impl Key {
             }
             self.gpu = None;
             self.plan.restore_tables();
+            #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
+            if self.basis_only && self.lagrange.as_ref().is_some_and(|queries| queries.euler) {
+                self.plan.prepare_euler_basis();
+            }
         }
         Ok(())
     }
@@ -1436,6 +1471,12 @@ impl Key {
             .as_ref()
             .and_then(|q| q.folded.as_ref())
             .map_or(slots, |folded| &folded.slots);
+        #[cfg(gpu)]
+        let folded_c = self.lagrange.as_ref()
+            .and_then(|queries| queries.folded.as_ref())
+            .filter(|_| self.metal_euler_rows.is_some() && self.gpu_quotient && self.has_gpu());
+        #[cfg(gpu)]
+        let slots = folded_c.map_or(slots, |folded| folded.slots.as_slice());
         let materialize_c = true;
         #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
         let materialize_c = materialize_c
@@ -1478,10 +1519,16 @@ impl Key {
         #[cfg(not(all(target_os = "linux", target_arch = "x86_64")))]
         let instruction_pool = None;
         #[cfg(gpu)]
-        let derive_c = self.gpu_quotient && self.gpu.as_ref().is_some_and(|gpu| gpu.derive_c);
+        let derive_c = folded_c.is_none()
+            && self.gpu_quotient
+            && self.gpu.as_ref().is_some_and(|gpu| gpu.derive_c);
         #[cfg(not(gpu))]
         let derive_c = false;
         let witness = frs(witness);
+        #[cfg(gpu)]
+        let wants_c = materialize_c && folded_c.is_none() && !derive_c;
+        #[cfg(not(gpu))]
+        let wants_c = materialize_c && !derive_c;
         #[cfg(gpu)]
         let mut direct = if omit_b && materialize_c && self.gpu_quotient
             && can_prepare_large_iphone_schedule(self.domain)
@@ -1491,7 +1538,7 @@ impl Key {
             None
         };
         let solve_host = || plan.solve_with_pool(
-            &witness, self.domain, slots, materialize_c && !derive_c, instruction_pool,
+            &witness, self.domain, slots, wants_c, instruction_pool,
         );
         #[cfg(gpu)]
         let solution = match direct.as_mut() {
@@ -1502,7 +1549,7 @@ impl Key {
                 // The previous proof waited for its queued quotient before unlocking.
                 unsafe {
                     q.write_rows(|rows| {
-                        plan.solve_with_metal_rows(&witness, self.domain, slots, !derive_c, rows)
+                        plan.solve_with_metal_rows(&witness, self.domain, slots, wants_c, rows)
                     })?
                 }
             }
@@ -1598,6 +1645,7 @@ impl Key {
         self.compute_parts(
             &mut sa, &mut sb, private, a, b, c, Some(public), omit_b,
             #[cfg(gpu)] direct,
+            #[cfg(gpu)] folded_c,
         )
     }
     pub fn commitment(
@@ -1629,6 +1677,10 @@ impl Key {
         b: &[u8],
         c: &[u8],
     ) -> Result<Vec<u8>, JsError> {
+        #[cfg(gpu)]
+        if self.has_gpu() && self.metal_euler_scale.is_some() {
+            return Err(JsError::new("Euler basis requires the original witness solver"));
+        }
         if sa.len() != self.lengths[0] * 32
             || sb.len() != self.lengths[1] * 32
             || sk.len() != self.lengths[2] * 32
@@ -1643,6 +1695,7 @@ impl Key {
         let (mut sa, mut sb, mut sk) = (frs(sa), frs(sb), frs(sk));
         self.compute_parts(
             &mut sa, &mut sb, &mut sk, frs(a), frs(b), Some(frs(c)), None, false,
+            #[cfg(gpu)] None,
             #[cfg(gpu)] None,
         )
             .map_err(|e| JsError::new(&e))
@@ -1906,18 +1959,45 @@ impl Key {
     /// `new` for hosts outside JavaScript, from either encoding of the
     /// points, with a plain error.
     pub fn build(points: Points, domain_params: &[u8]) -> Result<Key, &'static str> {
-        Self::build_impl(points, domain_params, false)
+        Self::build_impl(points, domain_params, false, #[cfg(gpu)] None)
     }
+
+    #[cfg(all(gpu, target_endian = "little"))]
+    pub(crate) fn build_metal_euler(
+        points: Points,
+        domain_params: &[u8],
+        basis: &Image,
+        product: (usize, usize),
+        stored_scale: Fr,
+        euler_rows: usize,
+    ) -> Result<Key, &'static str> {
+        let product = Store::mapped(basis, product.0, product.1)?;
+        if stored_scale.is_zero() {
+            return Err("Euler basis scale is zero");
+        }
+        Self::build_impl(points, domain_params, false, Some((product, stored_scale, euler_rows)))
+    }
+
     fn build_impl(
         points: Points,
         domain_params: &[u8],
         basis_only: bool,
+        #[cfg(gpu)] alternate_h: Option<(Store<G1Affine>, Fr, usize)>,
     ) -> Result<Key, &'static str> {
         let ([a, b, k, z, _b2_points], [generator, coset, denominator]) =
             points.validate_shape(domain_params)?;
         let domain = z + 1;
         let started = crate::time::Instant::now();
         let plan = fft::Plan::new(domain, generator, coset, denominator);
+        #[cfg(gpu)]
+        let euler_scale = if let Some((product, stored_scale, euler_rows)) = &alternate_h {
+            if product.len() != domain || domain < 8 || !(1..=domain).contains(euler_rows) {
+                return Err("Euler basis does not match the original domain");
+            }
+            Some(stored_scale.inverse().ok_or("zero Euler product scale")?)
+        } else {
+            None
+        };
         trace("plan", started);
         let lengths = [a, b, k];
         // One vector at a time: decoded, handed to the GPU, dropped. A GPU
@@ -1928,10 +2008,15 @@ impl Key {
         let mut gpu = if basis_only {
             None
         } else {
-            GpuBuilder::open(&plan, _b2_points)
+            GpuBuilder::open(&plan, _b2_points, #[cfg(gpu)] alternate_h.is_some())
         };
         #[cfg(not(gpu_any))]
         let mut gpu: Option<()> = None;
+        #[cfg(gpu)]
+        if let Some((_, _, active)) = &alternate_h {
+            let builder = gpu.as_mut().ok_or("Euler basis requires Metal")?;
+            builder.quotient.prepare_euler_product(*active).map_err(|_| "Euler quotient workspace")?;
+        }
         trace("gpu-open", started);
         #[cfg(not(gpu_any))]
         let (upload_g1, upload_g2) = (
@@ -1953,7 +2038,24 @@ impl Key {
             let started = trace("decode+upload-b", started);
             let k = upload_g1(gpu, 2, points.g1(2)?)?;
             let started = trace("decode+upload-k", started);
-            let z = upload_g1(gpu, 3, points.g1(3)?)?;
+            let z = points.g1(3)?;
+            #[cfg(gpu)]
+            let z = match (gpu.as_mut(), &alternate_h) {
+                (Some(builder), Some((product, _, euler_rows))) => {
+                    let product = &product[..*euler_rows];
+                    builder.g1(3, product).map_err(|_| "the GPU could not take the evaluation basis")?;
+                    builder.g1[3].as_mut().expect("Euler basis uploaded").overlap_host_reduction();
+                    #[cfg(feature = "fullcheck")]
+                    {
+                        let msm = builder.g1[3].as_mut().expect("coset basis uploaded");
+                        selftest::full_g1("Euler product", product, |scalars| msm.msm(scalars).map(|r| r.0));
+                    }
+                    z
+                }
+                _ => upload_g1(gpu, 3, z)?,
+            };
+            #[cfg(not(gpu))]
+            let z = upload_g1(gpu, 3, z)?;
             let started = trace("decode+upload-z", started);
             let b2 = points.g2()?;
             let b2_head = b2[..head(b2.len())].to_vec();
@@ -2002,7 +2104,7 @@ impl Key {
                             #[cfg(gpu)]
                             if zopro_metal::prefer_smaller_code() {
                                 trace("gpu-retry-smaller-code", crate::time::Instant::now());
-                                gpu = GpuBuilder::open(&plan, _b2_points);
+                                gpu = GpuBuilder::open(&plan, _b2_points, alternate_h.is_some());
                             }
                             continue;
                         }
@@ -2072,6 +2174,10 @@ impl Key {
             equal_witness: None,
             #[cfg(all(not(target_arch = "wasm32"), target_endian = "little"))]
             lagrange: None,
+            #[cfg(gpu)]
+            metal_euler_scale: euler_scale,
+            #[cfg(gpu)]
+            metal_euler_rows: alternate_h.as_ref().map(|(_, _, rows)| *rows),
         };
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         if !basis_only && !key.has_gpu() {
@@ -2132,6 +2238,49 @@ impl Key {
             solution.w[plan.n_public..].to_vec(),
         ])
     }
+    /// Retain the evaluated basis for CPU fallback on a key loaded directly
+    /// from a replacement image. The original monomial queries are absent.
+    #[cfg(all(gpu, target_endian = "little"))]
+    #[doc(hidden)]
+    pub fn install_euler_basis_fallback(
+        &mut self,
+        image: &Image,
+        product: (usize, usize),
+        private: (usize, usize),
+        public: (usize, usize),
+        slots: Vec<usize>,
+        digest: [u8; 32],
+    ) -> Result<(), String> {
+        let plan = self.solver.as_ref().ok_or("missing Euler solver")?;
+        if self.metal_euler_rows.is_none()
+            || self.basis_only
+            || !self.gpu_quotient
+            || !self.has_gpu()
+            || digest != plan.basis_c_digest()
+            || product.1 / 64 != self.domain
+            || private.1 / 64 != self.lengths[2] + slots.len()
+            || public.1 / 64 != plan.n_public
+        {
+            return Err("Euler basis does not match the prepared solver or backend".into());
+        }
+        let mut selected = std::collections::BTreeSet::new();
+        plan.for_each_c(|_, wire, _| {
+            if wire >= plan.basis_wires() {
+                selected.insert(wire);
+            }
+        });
+        if !selected.into_iter().eq(slots.iter().copied()) {
+            return Err("Euler basis slots do not match the solver".into());
+        }
+        let scale = self.metal_euler_scale.ok_or("missing Euler product scale")?;
+        let mut queries =
+            lagrange::Queries::mapped_basis(image, product, private, public, slots, scale, digest)?;
+        queries.euler = true;
+        self.lagrange = Some(queries);
+        self.basis_only = true;
+        Ok(())
+    }
+
     /// The proof's parts from the solve's MSM scalars, which the CPU's MSMs
     /// take over (natively, as canonical limbs in place), and its a, b, c.
     /// For a validated solver's inputs, Metal can reconstruct missing c.
@@ -2146,6 +2295,7 @@ impl Key {
         public: Option<&[Fr]>,
         omit_b: bool,
         #[cfg(gpu)] preloaded: Option<std::sync::MutexGuard<'_, zopro_metal::Quotient>>,
+        #[cfg(gpu)] folded_c: Option<&lagrange::Folded>,
     ) -> Result<Vec<u8>, String> {
         #[cfg(gpu)]
         if let Some(gpu) = &self.gpu {
@@ -2163,6 +2313,10 @@ impl Key {
             // back (sharing the GPU with them it came back after 179 ms
             // rather than 45 on an M5 Pro, 54 → 1 merge).
             let started = crate::time::Instant::now();
+            let euler_scale = folded_c.and(self.metal_euler_scale);
+            if self.metal_euler_scale.is_some() && euler_scale.is_none() {
+                return Err("the Euler query requires its folded C points".into());
+            }
             let already_written = preloaded.is_some();
             let mut quotient = preloaded.or_else(|| self.gpu_quotient.then(|| gpu.quotient.lock().unwrap()));
             let phone_metal = fast_ios_metal();
@@ -2183,7 +2337,9 @@ impl Key {
             // the final MSM. Without live headroom, read back coefficients.
             let _digit_workspace = if phone_metal && omit_b {
                 digit_width.zip(quotient.as_ref()).and_then(|(width, quotient)| {
-                    preparation::Reservation::analysis(quotient.digit_scatter_workspace(width))
+                    let entries = self.metal_euler_rows
+                        .unwrap_or(self.domain - 1);
+                    preparation::Reservation::analysis(quotient.digit_scatter_workspace_for(width, entries))
                 })
             } else {
                 None
@@ -2197,7 +2353,18 @@ impl Key {
             if narrow_digits && digit_width.is_some() {
                 log::info!("ZOPRO_TRACE metal-small-quotient-digits");
             }
-            let pending = quotient.as_mut().map(|q| match (already_written, c.as_deref(), digit_width) {
+            let pending = quotient.as_mut().map(|q| {
+                if self.metal_euler_rows.is_some() {
+                    #[cfg(feature = "trace")]
+                    log::info!("ZOPRO_TRACE metal-euler-product 1");
+                    return if already_written {
+                        // SAFETY: the solver initialized both shared vectors under this lock.
+                        unsafe { q.start_preloaded_euler_product(digit_width) }
+                    } else {
+                        q.start_euler_product(&a, &b, digit_width)
+                    };
+                }
+                match (already_written, c.as_deref(), digit_width) {
                 // SAFETY: the validated solver initialized the required
                 // vectors under the same lock, including the domain padding.
                 (true, c, width) => unsafe { q.start_preloaded(c.is_none(), width) },
@@ -2208,6 +2375,7 @@ impl Key {
                 }
                 (false, Some(c), Some(width)) => q.start_for_msm(&a, &b, c, width),
                 (false, Some(c), None) => q.start(&a, &b, c),
+                }
             });
             // The submitted quotient owns its input rows. Release any
             // source vectors before preparing the MSMs.
@@ -2226,6 +2394,7 @@ impl Key {
             #[cfg(not(feature = "trace"))]
             let profile = false;
             let ios_group = self.gpu_quotient && phone_metal;
+            let k_bases = folded_c.map_or(&self.k[..], |folded| &folded.private[..]);
             let group = omit_b
                 && (cfg!(all(target_os = "macos", target_arch = "aarch64")) || ios_group)
                 && std::env::var("ZOPRO_METAL_GROUP_WITNESS").as_deref() != Ok("0");
@@ -2280,6 +2449,15 @@ impl Key {
             .then(|| apple_msm_pool(12))
             .flatten();
             let compact_overlap = compact_pool.is_some();
+            let early_pool = (ios_group && self.metal_euler_rows.is_some())
+                .then(euler_g2_pool)
+                .flatten();
+            let early_g2 = early_pool.is_some();
+            #[cfg(feature = "trace")]
+            if let Some(pool) = early_pool {
+                log::info!("ZOPRO_TRACE metal-euler-g2-workers {}", pool.current_num_threads());
+            }
+            let g2_pool = early_pool.or(compact_pool);
             #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
             let borrow_large_g2 = group
                 && wide_apple
@@ -2319,10 +2497,12 @@ impl Key {
                     };
                     let group_k = || {
                         group
-                            .then(|| msm_affine::group_for_metal(&self.k, sk, small_grouping))
+                            .then(|| msm_affine::group_for_metal(k_bases, sk, small_grouping))
                             .flatten()
                     };
-                    let (grouped_a, grouped_k) = if compact_overlap {
+                    let (grouped_a, grouped_k) = if early_g2 {
+                        sort_pool(false).install(|| rayon::join(group_a, group_k))
+                    } else if compact_overlap {
                         sort_pool(true).install(|| rayon::join(group_a, group_k))
                     } else if host_grouped && !(ios_group && self.domain >= (1 << 20)) {
                         rayon::join(group_a, group_k)
@@ -2331,12 +2511,14 @@ impl Key {
                         // scratch headroom when starting the second query.
                         (group_a(), group_k())
                     };
+                    let host_folded_k = folded_c.is_some()
+                        && grouped_k.as_ref().is_none_or(|(points, _, _)| points.len() > self.lengths[2]);
                     // Small compact queries can run alongside the quotient
                     // and Z MSM on Metal, reducing work on the GPU queue.
                     if let (true, Some((a, a_words, _)), Some((k, k_words, _))) =
                         (host_grouped, &grouped_a, &grouped_k)
                     {
-                        if a.len() <= self.a.len() / 4 && k.len() <= self.k.len() / 4 {
+                        if a.len() <= self.a.len() / 4 && k.len() <= k_bases.len() / 4 {
                             #[cfg(all(feature = "trace", target_os = "ios"))]
                             log::info!("ZOPRO_TRACE ios-metal-host-a-k");
                             drop(sorted_tx);
@@ -2358,6 +2540,7 @@ impl Key {
                         // runs. Larger witness queries can delay the GPU
                         // queue if both sorts must finish before submission.
                         if host_grouped
+                            && !host_folded_k
                             && self.domain == (1 << 18)
                             && sb.len() <= self.domain / 8 * 5
                             && (grouped_a.is_some() || grouped_k.is_some())
@@ -2380,6 +2563,7 @@ impl Key {
                         // Rerandomization omits B here. Sort the two independent
                         // witness queries concurrently while the quotient runs.
                         if group
+                            && !host_folded_k
                             && (self.domain == (1 << 15) || medium_apple || parallel_small_sort)
                             && rayon::current_num_threads() >= 16
                             && std::env::var("ZOPRO_METAL_PARALLEL_WITNESS_SORT").as_deref() != Ok("0")
@@ -2394,10 +2578,12 @@ impl Key {
                         }
                         let sorted_a = grouped_a.is_none().then(|| a_msm.sort_now(sa));
                         let sorted_b = (!omit_b).then(|| b_msm.sort_now(sb));
-                        let sorted_k = grouped_k.is_none().then(|| k_msm.sort_now(sk));
+                        let sorted_k = (!host_folded_k && grouped_k.is_none()).then(|| k_msm.sort_now(sk));
                         (sorted_a, sorted_b, sorted_k)
                     };
-                    let (sorted_a, sorted_b, sorted_k) = if compact_overlap {
+                    let (sorted_a, sorted_b, sorted_k) = if early_g2 {
+                        sort_pool(false).install(sort)
+                    } else if compact_overlap {
                         sort_pool(true).install(sort)
                     } else {
                         sort()
@@ -2420,14 +2606,19 @@ impl Key {
                             b2.start(&sb[..gpu.b2_cut])
                         }
                     });
-                    let pk = match sorted_k {
+                    let pk = (!host_folded_k).then(|| match sorted_k {
                         Some(sorted) => k.submit_sorted(sorted),
                         None => {
                             let (points, words, _charge) = grouped_k.as_ref().unwrap();
                             k.start_grouped(points, words)
                         }
-                    };
+                    });
                     drop(witness_submitted_tx);
+                    let host_k = host_folded_k.then(|| {
+                        #[cfg(feature = "trace")]
+                        log::info!("ZOPRO_TRACE metal-folded-c-host-k 1");
+                        msm_g1(k_bases, sk)
+                    });
                     let (ar, t) = a.finish(pa)?;
                     gpu_trace("a", t.sort_ms, t.gpu_ms);
                     let bs1 = if let Some(pb) = pb {
@@ -2445,8 +2636,13 @@ impl Key {
                         }
                         _ => None,
                     };
-                    let (kr, t) = k.finish(pk)?;
-                    gpu_trace("k", t.sort_ms, t.gpu_ms);
+                    let kr = if let Some(pk) = pk {
+                        let (kr, t) = k.finish(pk)?;
+                        gpu_trace("k", t.sort_ms, t.gpu_ms);
+                        kr
+                    } else {
+                        host_k.expect("folded K results")
+                    };
                     Ok((ar, bs1, kr, bs2))
                 });
                 let cut = if gpu_b2.is_some() { gpu.b2_cut } else { 0 };
@@ -2457,8 +2653,12 @@ impl Key {
                         let words = prepare_g2.then(|| {
                             sb[cut..].iter().map(Fr::to_canonical).collect::<Vec<_>>()
                         });
-                        if !compact_overlap {
+                        if !compact_overlap && !early_g2 {
                             let _ = sorted_rx.recv();
+                        }
+                        #[cfg(feature = "trace")]
+                        if early_g2 {
+                            trace("metal-euler-g2-ready", started);
                         }
                         let started = crate::time::Instant::now();
                         let g2 = || {
@@ -2490,7 +2690,7 @@ impl Key {
                                 msm_g2(bases, &sb[cut..])
                             }
                         };
-                        let bs2 = if let Some(pool) = compact_pool {
+                        let bs2 = if let Some(pool) = g2_pool {
                             pool.install(g2)
                         } else {
                             g2()
@@ -2553,6 +2753,9 @@ impl Key {
                     ("k", &gpu.k, sk),
                     ("z", &gpu.z, &h[..]),
                 ] {
+                    if name == "k" && folded_c.is_some() {
+                        continue;
+                    }
                     log::info!(
                         "ZOPRO_TRACE gpu-profile {name} {}",
                         msm.lock().unwrap().profile(scalars)
@@ -2560,6 +2763,11 @@ impl Key {
                 }
             }
             let mut out = Vec::with_capacity(384);
+            let kr = match folded_c {
+                Some(folded) => kr + folded.public_term(public.expect("folded C public values")),
+                None => kr,
+            };
+            let hz = euler_scale.filter(|&scale| scale != Fr::ONE).map_or(hz, |scale| hz * scale);
             for p in [ar, bs1, kr, hz] {
                 output_g1(&mut out, p)
             }
@@ -4042,7 +4250,7 @@ impl Key {
         solver_image: &[u8],
         euler: bool,
     ) -> Result<Self, String> {
-        let mut key = Self::build_impl(points, domain_params, true)?;
+        let mut key = Self::build_impl(points, domain_params, true, #[cfg(gpu)] None)?;
         if stored_scale.is_zero() || key.domain < 8 {
             return Err("invalid CPU basis scale/domain".into());
         }

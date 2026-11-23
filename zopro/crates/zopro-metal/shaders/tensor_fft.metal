@@ -137,3 +137,46 @@ kernel void NAME(device fr_t *values [[buffer(0)]],                             
 
 HYBRID_FFT(fr_dif_tensor9, false)
 HYBRID_FFT(fr_dit_tensor9, true)
+
+inline fr_t fr_weight_tensor_euler(fr_t value, uint index, constant uint4 &options,
+                                   device const fr_t *lows, device const fr_t *highs) {
+  if (options.z != 0) {
+    const uint low = index & ((1u << options.y) - 1);
+    return fr_mul(value, fr_add(lows[low], highs[index >> options.y]));
+  }
+  return fr_mul_euler_degree(value, __builtin_bitreverse32(index) >> options.x);
+}
+
+// The outer inverse passes already put both butterflies in the same
+// 512-point tile. Keep the Euler-weighted coefficients in threadgroup
+// memory between the final inverse pass and the first forward pass.
+kernel void fr_euler_tensor9(device fr_t *values [[buffer(0)]],
+                             device const fr_t *inverse_roots [[buffer(1)]],
+                             device uchar *inverse_weights [[buffer(2)]],
+                             device const fr_t *forward_roots [[buffer(3)]],
+                             device uchar *forward_weights [[buffer(4)]],
+                             constant uint4 &options [[buffer(5)]],
+                             device const fr_t *lows [[buffer(6)]],
+                             device const fr_t *highs [[buffer(7)]],
+                             uint t [[thread_index_in_threadgroup]],
+                             uint lane [[thread_index_in_simdgroup]],
+                             uint simd [[simdgroup_index_in_threadgroup]],
+                             uint group [[threadgroup_position_in_grid]]) {
+  threadgroup fr_t tile[TILE];
+  threadgroup int coefficients[GROUPS * ROWS * 32];
+  const uint start = group * TILE;
+  const uint hi = t + TILE / 2;
+  const uint lo_index = transpose_fft_index(t), hi_index = transpose_fft_index(hi);
+  tile[lo_index] = values[start + t];
+  tile[hi_index] = values[start + hi];
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  upper_fft_levels<false>(tile, inverse_roots, t);
+  tensor_fft_levels<false>(tile, coefficients, inverse_weights, lane, simd);
+  tile[lo_index] = fr_weight_tensor_euler(tile[lo_index], start + t, options, lows, highs);
+  tile[hi_index] = fr_weight_tensor_euler(tile[hi_index], start + hi, options, lows, highs);
+  threadgroup_barrier(mem_flags::mem_threadgroup);
+  tensor_fft_levels<true>(tile, coefficients, forward_weights, lane, simd);
+  upper_fft_levels<true>(tile, forward_roots, t);
+  values[start + t] = tile[lo_index];
+  values[start + hi] = tile[hi_index];
+}
