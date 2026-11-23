@@ -13,6 +13,7 @@ layout(std140, set = 0, binding = 5) uniform Shards {
   uint stride;
   uint level;
 } args;
+layout(std430, set = 0, binding = 6) buffer Buckets { xyzz values[]; } buckets;
 #include "msm_resident_bucket.glsl"
 
 void main() {
@@ -20,9 +21,13 @@ void main() {
   const uint window = args.first_window + relative_window;
   const uint base = window * args.half_range;
   const uint shard = gl_GlobalInvocationID.x;
-  const bool final_level = args.level == 3u;
+  const uvec4 window_info = totals.values[window];
+  const uint depth = window_info.x <= 1024u ? 1u : (window_info.x <= 32768u ? 2u : 3u);
+  if (args.level > depth)
+    return;
+  const bool final_level = args.level == depth;
   const uint next_level = min(args.level + 1u, 3u);
-  if (shard >= (final_level ? args.half_range : totals.values[window][next_level]))
+  if (shard >= (final_level ? args.half_range : window_info[next_level]))
     return;
 
   const uint bucket = final_level ? base + shard
@@ -39,6 +44,8 @@ void main() {
     for (uint i = 1u; i < count; ++i)
       sum = xyzz_add(sum, inputs.values[first + i]);
   }
-  const uint dest = final_level ? bucket : relative_window * args.stride + shard;
-  outputs.values[dest] = sum;
+  if (final_level)
+    buckets.values[bucket] = sum;
+  else
+    outputs.values[relative_window * args.stride + shard] = sum;
 }

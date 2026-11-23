@@ -23,7 +23,7 @@ impl ResidentSort {
         let pipeline = |name, slots: &[Slot]| load_pipeline(gpu, path, name, slots);
         let prefix = pipeline("msm_resident_prefix", &[Read, Write, Write, Write, Uniform, Write])?;
         let first = pipeline("msm_resident_first", &[Read, Read, Read, Read, Read, Write, Uniform, Read])?;
-        let tree = pipeline("msm_resident_tree", &[Read, Read, Read, Read, Write, Uniform])?;
+        let tree = pipeline("msm_resident_tree", &[Read, Read, Read, Read, Write, Uniform, Write])?;
         let stride = n.div_ceil(32) + half_range;
         let chunk_arguments = (0..windows.div_ceil(chunk_windows))
             .map(|chunk| {
@@ -95,13 +95,13 @@ impl ResidentSort {
         for (input, output, arguments, count) in [
             (&msm.tree[0], &msm.tree[1], second, msm.n.div_ceil(1024) + msm.half),
             (&msm.tree[1], &msm.tree[0], third, msm.n.div_ceil(32768) + msm.half),
-            (&msm.tree[0], &msm.buckets, final_level, msm.half),
+            (&msm.tree[0], &msm.tree[1], final_level, msm.half),
         ] {
             dispatch(
                 device,
                 encoder,
                 &self.tree,
-                &[input, &sort.counts, &self.offsets, &self.totals, output, arguments],
+                &[input, &sort.counts, &self.offsets, &self.totals, output, arguments, &msm.buckets],
                 groups(count),
                 timer,
                 "msm_resident_tree",
