@@ -369,6 +369,12 @@ struct Gpu {
     euler_h_cpu: usize,
 }
 
+#[cfg(all(gpu_wgpu, target_os = "android"))]
+enum AndroidWitnessScalars<'a> {
+    Prepared([&'a mut [Fr]; 3], &'a [Fr]),
+    Wires(&'a solver::Plan, &'a mut [Fr]),
+}
+
 /// A separate pool for the final MSM's sort while the global pool evaluates
 /// G2. On large Metal queries the GPU recodes the digits for a four-thread
 /// scatter. The ordinary sort uses two threads. ZOPRO_SORT_THREADS overrides both.
@@ -1597,6 +1603,14 @@ impl Key {
             scope.release_unused(&mut w);
         }
         let started = trace("solve", started);
+        #[cfg(all(gpu_wgpu, target_os = "android"))]
+        if std::env::var("ZOPRO_ANDROID_EULER_EAGER_QUOTIENT").as_deref() == Ok("1") {
+            if let Some(gpu) = self.android_euler_cpu_witness_gpu(omit_b) {
+                return self.android_euler_cpu_witness(
+                    gpu, [&a, &b], AndroidWitnessScalars::Wires(plan, &mut w), omit_b,
+                );
+            }
+        }
         use rayon::prelude::*;
         #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
         {
@@ -2828,15 +2842,13 @@ impl Key {
             return self.basis_parts(sa, sb, sk, a, b, c, omit_b);
         }
         #[cfg(all(gpu_wgpu, target_os = "android"))]
-        if self.basis_only {
-            if let Some(gpu) = self.gpu.as_ref().filter(|g| {
-                g.witness.is_none() || g.euler_h_cpu > 0 || (g.b2.is_none() && omit_b && affine_msm()
-                    && std::env::var("ZOPRO_ANDROID_EULER_CPU_WITNESS").as_deref() == Ok("1"))
-            }) {
-                return self.android_euler_cpu_witness(
-                    gpu, [sa, sb, sk], [&a, &b], public.expect("folded C public values"), omit_b,
-                );
-            }
+        if let Some(gpu) = self.android_euler_cpu_witness_gpu(omit_b) {
+            return self.android_euler_cpu_witness(
+                gpu,
+                [&a, &b],
+                AndroidWitnessScalars::Prepared([sa, sb, sk], public.expect("folded C public values")),
+                omit_b,
+            );
         }
         #[cfg(all(gpu_wgpu, not(target_arch = "wasm32")))]
         if let Some(gpu) = &self.gpu {
@@ -4483,23 +4495,32 @@ impl Key {
     }
 
     #[cfg(all(gpu_wgpu, target_os = "android"))]
+    fn android_euler_cpu_witness_gpu(&self, omit_b: bool) -> Option<&Gpu> {
+        self.gpu.as_deref().filter(|gpu| {
+            self.basis_only
+                && (gpu.witness.is_none() || gpu.euler_h_cpu > 0
+                    || (gpu.b2.is_none() && omit_b && affine_msm()
+                        && std::env::var("ZOPRO_ANDROID_EULER_CPU_WITNESS").as_deref() == Ok("1")))
+        })
+    }
+
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
     fn android_euler_cpu_witness(
         &self,
         gpu: &Gpu,
-        [sa, sb, sk]: [&mut [Fr]; 3],
         [a, b]: [&[Fr]; 2],
-        public: &[Fr],
+        scalars: AndroidWitnessScalars<'_>,
         omit_b: bool,
     ) -> Result<Vec<u8>, String> {
+        use rayon::prelude::*;
+
         let queries = self.lagrange.as_ref().expect("Euler basis");
         let folded = queries.folded.as_ref().expect("folded Euler query");
         let started = crate::time::Instant::now();
-        let bs1 = if omit_b {
-            G1Projective::IDENTITY
-        } else {
-            msm_g1(&self.b, sb)
-        };
-        let (hz, ((ar, kr), bs2)) = std::thread::scope(|scope| {
+        // The early G2 worker can borrow its scalar buffer until the scope
+        // joins, so the backing vectors live outside the proof scope.
+        let mut extracted = (Vec::new(), Vec::new());
+        let (hz, ar, bs1, kr, bs2) = std::thread::scope(|scope| {
             let quotient_msm = scope.spawn(|| {
                 let started = crate::time::Instant::now();
                 let mut z = gpu.z.lock().unwrap();
@@ -4574,6 +4595,20 @@ impl Key {
                 }
                 Ok::<_, String>(hz + host_h)
             });
+            let ([sa, sb, sk], public) = match scalars {
+                AndroidWitnessScalars::Prepared(scalars, public) => (scalars, public),
+                AndroidWitnessScalars::Wires(plan, wires) => {
+                    let started = crate::time::Instant::now();
+                    extracted = rayon::join(
+                        || plan.a_indices.par_iter().map(|&index| wires[index as usize]).collect(),
+                        || plan.b_indices.par_iter().map(|&index| wires[index as usize]).collect(),
+                    );
+                    trace("extract-scalars-overlap", started);
+                    let (public, private) = wires.split_at_mut(plan.n_public);
+                    ([extracted.0.as_mut_slice(), extracted.1.as_mut_slice(), private], &*public)
+                }
+            };
+            let bs1 = if omit_b { G1Projective::IDENTITY } else { msm_g1(&self.b, sb) };
             let serial = cfg!(target_arch = "aarch64")
                 && std::env::var("ZOPRO_ANDROID_EULER_SERIAL_PREP").as_deref() == Ok("1");
             // Admit B2 before either G1 query needs compaction scratch.
@@ -4632,15 +4667,17 @@ impl Key {
                     point
                 },
             );
-            let witness_msms = match early_b2 {
+            let ((ar, kr), bs2) = match early_b2 {
                 Some(work) => (a_and_k(), work.join().expect("prepared CPU G2 query")),
                 None => rayon::join(a_and_k, b2.expect("CPU G2 query")),
             };
-            Ok::<_, String>((quotient_msm.join().expect("Euler quotient GPU work")?, witness_msms))
+            let kr = kr + folded.public_term(public);
+            let hz = quotient_msm.join().expect("Euler quotient GPU work")?;
+            Ok::<_, String>((hz, ar, bs1, kr, bs2))
         })?;
         trace("vulkan-euler-cpu-witness", started);
         let mut out = Vec::with_capacity(384);
-        for point in [ar, bs1, kr + folded.public_term(public), queries.finish_product(hz)] {
+        for point in [ar, bs1, kr, queries.finish_product(hz)] {
             output_g1(&mut out, point);
         }
         output_g2(&mut out, bs2);
