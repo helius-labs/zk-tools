@@ -57,9 +57,58 @@ pub struct Quotient {
     /// One uniform per distinct (level, kind) of stage: DIF/DIT levels and
     /// the whole-vector passes.
     stages: Vec<wgpu::Buffer>,
+    tiled: Option<TiledFft>,
     whole: wgpu::Buffer,
     /// The submitted transform's pass times, when profiling.
     timer: std::cell::RefCell<Option<crate::profile::Timer>>,
+}
+
+struct TiledFft {
+    pipeline: wgpu::ComputePipeline,
+    passes: Vec<TilePass>,
+}
+
+struct TilePass {
+    arguments: [wgpu::Buffer; 2],
+    groups: [u32; 2],
+}
+
+impl TiledFft {
+    fn new(gpu: &Gpu, n: u32) -> Self {
+        use Slot::{Read, Uniform, Write};
+
+        let kernel = include_bytes!("../glsl/out/fr_fft_tile.spv");
+        let pipeline = gpu.kernel("fr_fft_tile", || {
+            spirv_pipeline(&gpu.device, gpu.cache(), "fr_fft_tile", kernel, &[Write, Read, Uniform])
+        });
+        let log_n = n.trailing_zeros();
+        let mut first = 0;
+        let mut passes = Vec::new();
+        while first < log_n {
+            let remaining = log_n - first;
+            let levels = remaining.div_ceil(remaining.div_ceil(6));
+            let stride_log = remaining - levels;
+            let cols_log = (7 - levels).min(stride_log);
+            let groups = n >> (levels + cols_log);
+            let x = groups.min(16384);
+            let arguments = [0, 1].map(|forward| {
+                crate::uniform_words(gpu, &[n, first, levels, stride_log, cols_log, forward, 0, 0])
+            });
+            passes.push(TilePass { arguments, groups: [x, groups / x] });
+            first += levels;
+        }
+        Self { pipeline, passes }
+    }
+}
+
+impl Drop for TiledFft {
+    fn drop(&mut self) {
+        for pass in &self.passes {
+            for buffer in &pass.arguments {
+                buffer.destroy();
+            }
+        }
+    }
 }
 
 /// As the MSMs' buffers: destroyed, not left to a browser's collector.
@@ -124,6 +173,11 @@ impl Quotient {
         }
         let [dif, dit, scale, pointwise]: [wgpu::ComputePipeline; 4] =
             pipelines.try_into().expect("four kernels");
+        let tiled = if spirv && std::env::var("ZOPRO_VULKAN_FFT_TILE").as_deref() == Ok("1") {
+            Some(TiledFft::new(&gpu, n as u32))
+        } else {
+            None
+        };
         for scope in [internal, validation] {
             if let Some(e) = crate::popped(scope) {
                 return Err(format!("kernels: {e}"));
@@ -165,6 +219,7 @@ impl Quotient {
                 mapped_at_creation: false,
             }),
             stages,
+            tiled,
             whole: crate::uniform(&gpu, [n as u32, 0, 0, 0]),
             timer: std::cell::RefCell::new(None),
             gpu,
@@ -324,6 +379,10 @@ impl Quotient {
         roots: &wgpu::Buffer,
         dif: bool,
     ) {
+        if let Some(tiled) = &self.tiled {
+            self.transform_tiled(encoder, offset, roots, dif, tiled);
+            return;
+        }
         let pipeline = if dif { &self.dif } else { &self.dit };
         let levels: Vec<u32> = if dif {
             (0..self.log_n).collect()
@@ -356,6 +415,36 @@ impl Quotient {
             pass.set_pipeline(pipeline);
             pass.set_bind_group(0, &group, &[]);
             pass.dispatch_workgroups((self.n as u32 / 2).div_ceil(WORKGROUP), 1, 1);
+        }
+    }
+
+    fn transform_tiled(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        offset: u64,
+        roots: &wgpu::Buffer,
+        dif: bool,
+        tiled: &TiledFft,
+    ) {
+        for pass in 0..tiled.passes.len() {
+            let index = if dif { pass } else { tiled.passes.len() - 1 - pass };
+            let stage = &tiled.passes[index];
+            let group = self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &tiled.pipeline.get_bind_group_layout(0),
+                entries: &[
+                    wgpu::BindGroupEntry { binding: 0, resource: self.vector_binding(offset) },
+                    wgpu::BindGroupEntry { binding: 1, resource: roots.as_entire_binding() },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: stage.arguments[usize::from(!dif)].as_entire_binding(),
+                    },
+                ],
+            });
+            let mut pass = self.begin(encoder, "fr_fft_tile");
+            pass.set_pipeline(&tiled.pipeline);
+            pass.set_bind_group(0, &group, &[]);
+            pass.dispatch_workgroups(stage.groups[0], stage.groups[1], 1);
         }
     }
 
