@@ -12,7 +12,18 @@ layout(std140, set = 0, binding = 2) uniform Tile {
   uint stride_log;
   uint cols_log;
   uint forward;
+#ifdef ZOPRO_EULER_TILE
+  uint rows_count;
+  uint low;
+  uint vector_index;
+  uint euler_mode;
+#endif
 } args;
+
+#ifdef ZOPRO_EULER_TILE
+layout(std430, set = 0, binding = 3) readonly buffer Rows { fr values[]; } rows;
+layout(std430, set = 0, binding = 4) readonly buffer Degrees { fr values[]; } degrees;
+#endif
 
 shared fr tile[128];
 
@@ -26,13 +37,46 @@ uint tile_index(uint group, uint row, uint column) {
       + (stripe << args.cols_log) + column + (row << args.stride_log);
 }
 
+#ifdef ZOPRO_EULER_TILE
+fr load_value(uint at) {
+  if (args.euler_mode == 0u) {
+    if (at >= args.rows_count)
+      return fr_zero();
+    return rows.values[args.vector_index * args.rows_count + at];
+  }
+  const fr value = values.values[args.vector_index * args.n + at];
+  if (args.euler_mode == 1u) {
+    const fr weight = fr_add(degrees.values[at & (args.low - 1u)],
+                             degrees.values[args.low + at / args.low]);
+    return fr_mul(value, weight);
+  }
+  return value;
+}
+
+void store_value(uint at, fr value) {
+  if (args.euler_mode == 2u) {
+    if (at < args.rows_count) {
+      const fr da_b = fr_mul(values.values[at], rows.values[args.rows_count + at]);
+      const fr a_db = fr_mul(value, rows.values[at]);
+      values.values[at] = fr_add(da_b, a_db);
+    }
+    return;
+  }
+  values.values[args.vector_index * args.n + at] = value;
+}
+#endif
+
 void main() {
   const uint group = gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x;
   const uint lane = gl_LocalInvocationID.x;
   const uint cols_mask = (1u << args.cols_log) - 1u;
   const uint entries = 1u << (args.levels + args.cols_log);
   for (uint index = lane; index < entries; index += 64u) {
+#ifdef ZOPRO_EULER_TILE
+    tile[index] = load_value(tile_index(group, index >> args.cols_log, index & cols_mask));
+#else
     tile[index] = values.values[tile_index(group, index >> args.cols_log, index & cols_mask)];
+#endif
   }
   barrier();
 
@@ -65,6 +109,10 @@ void main() {
   }
 
   for (uint index = lane; index < entries; index += 64u) {
+#ifdef ZOPRO_EULER_TILE
+    store_value(tile_index(group, index >> args.cols_log, index & cols_mask), tile[index]);
+#else
     values.values[tile_index(group, index >> args.cols_log, index & cols_mask)] = tile[index];
+#endif
   }
 }

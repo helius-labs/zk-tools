@@ -8,3 +8,4 @@ for k in shards_first shards_tree reduce_blocks shards_first_g2 shards_tree_g2 r
   "$GLSLC" -O -fshader-stage=compute --target-env=vulkan1.1 "$k.comp" -o "out/$k.spv"
   echo "$k.spv $(stat -f %z "out/$k.spv") bytes"
 done
+"$GLSLC" -O -DZOPRO_EULER_TILE=1 -fshader-stage=compute --target-env=vulkan1.1 fr_fft_tile.comp -o out/fr_fft_tile_euler.spv

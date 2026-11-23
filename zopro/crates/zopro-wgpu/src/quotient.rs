@@ -73,6 +73,7 @@ struct EulerProduct {
     size: wgpu::Buffer,
     weight: wgpu::ComputePipeline,
     product: wgpu::ComputePipeline,
+    fused: Option<FusedEulerTiles>,
 }
 
 #[cfg(target_os = "android")]
@@ -92,6 +93,45 @@ struct TiledFft {
 struct TilePass {
     arguments: [wgpu::Buffer; 2],
     groups: [u32; 2],
+    #[cfg(target_os = "android")]
+    geometry: [u32; 5],
+}
+
+#[cfg(target_os = "android")]
+struct FusedEulerTiles {
+    pipeline: wgpu::ComputePipeline,
+    arguments: [[wgpu::Buffer; 2]; 3],
+}
+
+#[cfg(target_os = "android")]
+impl FusedEulerTiles {
+    fn new(gpu: &Gpu, tiled: &TiledFft, active: u32, low: u32) -> Self {
+        use Slot::{Read, Uniform, Write};
+        let pipeline = quotient_kernel(
+            gpu, "fr_fft_tile_euler", include_bytes!("../glsl/out/fr_fft_tile_euler.spv"),
+            &[Write, Read, Uniform, Read, Read],
+        );
+        let arguments = [0, 1, 2].map(|mode| {
+            let [n, first, levels, stride, cols] = if mode == 1 {
+                tiled.passes.last().expect("Euler tile").geometry
+            } else {
+                tiled.passes[0].geometry
+            };
+            [0, 1].map(|vector| crate::uniform_words(gpu, &[
+                n, first, levels, stride, cols, u32::from(mode != 0), active, low, vector, mode, 0, 0,
+            ]))
+        });
+        Self { pipeline, arguments }
+    }
+}
+
+#[cfg(target_os = "android")]
+impl Drop for FusedEulerTiles {
+    fn drop(&mut self) {
+        for buffer in self.arguments.iter().flatten() {
+            buffer.destroy();
+        }
+    }
 }
 
 fn quotient_kernel(gpu: &Gpu, entry: &'static str, builtin: &[u8], slots: &[Slot]) -> wgpu::ComputePipeline {
@@ -130,7 +170,11 @@ impl TiledFft {
             let arguments = [0, 1].map(|forward| {
                 crate::uniform_words(gpu, &[n, first, levels, stride_log, cols_log, forward, 0, 0])
             });
-            passes.push(TilePass { arguments, groups: [x, groups / x] });
+            passes.push(TilePass {
+                arguments, groups: [x, groups / x],
+                #[cfg(target_os = "android")]
+                geometry: [n, first, levels, stride_log, cols_log],
+            });
             first += levels;
         }
         Self { pipeline, passes }
@@ -409,6 +453,9 @@ impl Quotient {
         let table: Vec<_> = (0..low).map(degree).chain((0..self.n / low).map(|i| degree(i * low))).collect();
         let degrees = storage(device, "Euler degrees", table.len() * 32);
         queue.write_buffer(&degrees, 0, fr_bytes(&table));
+        let fused = self.tiled.as_ref().filter(|tiled| {
+            tiled.passes.len() > 1 && std::env::var("ZOPRO_VULKAN_EULER_FUSED").as_deref() == Ok("1")
+        }).map(|tiled| FusedEulerTiles::new(&self.gpu, tiled, active as u32, low as u32));
         let workspace = EulerProduct {
             active,
             rows: storage(device, "Euler input rows", 2 * active * 32),
@@ -416,6 +463,7 @@ impl Quotient {
             size: crate::uniform(&self.gpu, [self.n as u32, active as u32, low as u32, 0]),
             weight,
             product,
+            fused,
         };
         let errors = [memory, internal, validation].map(crate::popped);
         if let Some(error) = errors.into_iter().flatten().next() {
@@ -458,7 +506,14 @@ impl Quotient {
             pass.set_bind_group(0, &group, &[]);
             pass.dispatch_workgroups((count as u32).div_ceil(WORKGROUP), 1, 1);
         };
-        for vector in 0..2 {
+        for vector in 0..2u64 {
+            if let Some(fused) = euler.fused.as_ref() {
+                self.transform_euler_tiles(&mut encoder, euler, fused, vector as usize, true);
+                encoder = crate::flush(&self.gpu, encoder);
+                self.transform_euler_tiles(&mut encoder, euler, fused, vector as usize, false);
+                encoder = crate::flush(&self.gpu, encoder);
+                continue;
+            }
             let offset = vector * domain_bytes;
             if active_bytes < domain_bytes {
                 encoder.clear_buffer(&self.abc, offset + active_bytes, Some(domain_bytes - active_bytes));
@@ -470,7 +525,9 @@ impl Quotient {
             self.transform(&mut encoder, offset, &self.roots, false);
             encoder = crate::flush(&self.gpu, encoder);
         }
-        dispatch(&mut encoder, "fr_euler_product", &euler.product, self.abc.as_entire_binding(), &euler.rows, active);
+        if euler.fused.is_none() {
+            dispatch(&mut encoder, "fr_euler_product", &euler.product, self.abc.as_entire_binding(), &euler.rows, active);
+        }
         if download {
             encoder.copy_buffer_to_buffer(&self.abc, 0, &self.staging, 0, active_bytes);
         }
@@ -595,21 +652,66 @@ impl Quotient {
     ) {
         for pass in 0..tiled.passes.len() {
             let index = if dif { pass } else { tiled.passes.len() - 1 - pass };
+            self.dispatch_tile(encoder, offset, roots, dif, tiled, &tiled.passes[index]);
+        }
+    }
+
+    fn dispatch_tile(
+        &self, encoder: &mut wgpu::CommandEncoder, offset: u64, roots: &wgpu::Buffer,
+        dif: bool, tiled: &TiledFft, stage: &TilePass,
+    ) {
+        let group = self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: None,
+            layout: &tiled.pipeline.get_bind_group_layout(0),
+            entries: &[
+                wgpu::BindGroupEntry { binding: 0, resource: self.vector_binding(offset) },
+                wgpu::BindGroupEntry { binding: 1, resource: roots.as_entire_binding() },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: stage.arguments[usize::from(!dif)].as_entire_binding(),
+                },
+            ],
+        });
+        let mut pass = self.begin(encoder, "fr_fft_tile");
+        pass.set_pipeline(&tiled.pipeline);
+        pass.set_bind_group(0, &group, &[]);
+        pass.dispatch_workgroups(stage.groups[0], stage.groups[1], 1);
+    }
+
+    #[cfg(target_os = "android")]
+    fn transform_euler_tiles(
+        &self, encoder: &mut wgpu::CommandEncoder, euler: &EulerProduct,
+        fused: &FusedEulerTiles, vector: usize, dif: bool,
+    ) {
+        let tiled = self.tiled.as_ref().expect("Euler transform tiles");
+        let last = tiled.passes.len() - 1;
+        let roots = if dif { &self.inverse_roots } else { &self.roots };
+        let offset = (vector * self.n * 32) as u64;
+        for step in 0..=last {
+            let index = if dif { step } else { last - step };
             let stage = &tiled.passes[index];
+            let mode = match (dif, step, vector) {
+                (true, 0, _) => 0,
+                (false, 0, _) => 1,
+                (false, step, 1) if step == last => 2,
+                _ => {
+                    self.dispatch_tile(encoder, offset, roots, dif, tiled, stage);
+                    continue;
+                }
+            };
             let group = self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
-                layout: &tiled.pipeline.get_bind_group_layout(0),
+                layout: &fused.pipeline.get_bind_group_layout(0),
                 entries: &[
-                    wgpu::BindGroupEntry { binding: 0, resource: self.vector_binding(offset) },
+                    wgpu::BindGroupEntry { binding: 0, resource: self.abc.as_entire_binding() },
                     wgpu::BindGroupEntry { binding: 1, resource: roots.as_entire_binding() },
-                    wgpu::BindGroupEntry {
-                        binding: 2,
-                        resource: stage.arguments[usize::from(!dif)].as_entire_binding(),
-                    },
+                    wgpu::BindGroupEntry { binding: 2, resource: fused.arguments[mode][vector].as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 3, resource: euler.rows.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 4, resource: euler.degrees.as_entire_binding() },
                 ],
             });
-            let mut pass = self.begin(encoder, "fr_fft_tile");
-            pass.set_pipeline(&tiled.pipeline);
+            let mut pass = self.begin(encoder, "fr_fft_tile_euler");
+            pass.set_pipeline(&fused.pipeline);
             pass.set_bind_group(0, &group, &[]);
             pass.dispatch_workgroups(stage.groups[0], stage.groups[1], 1);
         }
