@@ -369,6 +369,8 @@ struct Gpu {
     quotient: std::sync::Mutex<zopro_wgpu::Quotient>,
     #[cfg(target_os = "android")]
     euler_h_cpu: usize,
+    #[cfg(target_os = "android")]
+    euler_h_tiles: Vec<(usize, std::sync::Mutex<zopro_wgpu::G1Msm>)>,
 }
 
 #[cfg(all(gpu_wgpu, target_os = "android"))]
@@ -681,6 +683,8 @@ impl GpuBuilder {
             quotient: std::sync::Mutex::new(self.quotient),
             #[cfg(target_os = "android")]
             euler_h_cpu: 0,
+            #[cfg(target_os = "android")]
+            euler_h_tiles: Vec::new(),
         }
     }
 }
@@ -4503,9 +4507,28 @@ impl Key {
             }
             None
         };
-        builder.g1[3] = Some(zopro_wgpu::G1Msm::new_android_euler(
-            builder.gpu.clone(), &queries.product[..h_gpu],
-        )?.0);
+        let tiles = std::env::var("ZOPRO_ANDROID_EULER_H_TILES").ok()
+            .and_then(|value| value.parse::<usize>().ok())
+            .filter(|&tiles| (2..=8).contains(&tiles) && h_cpu > 0 && h_gpu / tiles >= 1 << 16)
+            .unwrap_or(1);
+        let mut extra_tiles = Vec::with_capacity(tiles - 1);
+        for tile in 0..tiles {
+            let from = h_gpu * tile / tiles;
+            let to = h_gpu * (tile + 1) / tiles;
+            let msm = zopro_wgpu::G1Msm::new_android_euler(builder.gpu.clone(), &queries.product[from..to])?.0;
+            if tiles > 1 && !msm.sorts_on_gpu() {
+                return Err("Vulkan Euler tiles require device sorting".into());
+            }
+            if tile == 0 {
+                builder.g1[3] = Some(msm);
+            } else {
+                extra_tiles.push((from, std::sync::Mutex::new(msm)));
+            }
+        }
+        #[cfg(feature = "trace")]
+        if tiles > 1 {
+            log::info!("ZOPRO_TRACE vulkan-euler-h key tiles={tiles} entries={h_gpu}");
+        }
         #[cfg(feature = "trace")]
         if cpu_witness {
             log::info!("ZOPRO_TRACE vulkan-euler CPU witness queries");
@@ -4541,6 +4564,7 @@ impl Key {
         }
         let mut gpu = builder.finish();
         gpu.euler_h_cpu = h_cpu;
+        gpu.euler_h_tiles = extra_tiles;
         let verdict = selftest::gpu(
             &mut gpu, &self.plan, a_head, &self.b2[..self.b2.len().min(selftest::HEAD)],
             if cpu_witness { a_head.len() } else { self.a.len() }, self.b.len(), probe.as_mut(),
@@ -4610,13 +4634,35 @@ impl Key {
                 } else {
                     quotient.start_prepared_euler(download_from);
                 }
+                let mut tiles = gpu.euler_h_tiles.iter()
+                    .map(|(from, msm)| (*from, msm.lock().unwrap()))
+                    .collect::<Vec<_>>();
                 if device_sort {
-                    if std::env::var("ZOPRO_ANDROID_EULER_DIRECT_SORT").as_deref() == Ok("1") {
+                    if tiles.is_empty() && std::env::var("ZOPRO_ANDROID_EULER_DIRECT_SORT").as_deref() == Ok("1") {
                         z.count_from_exclusive(quotient.output());
                     } else {
                         z.count_from(quotient.output());
                     }
+                    for (from, tile) in &mut tiles {
+                        tile.count_from_index(quotient.output(), *from);
+                    }
                 }
+                let mut finish_gpu = |z: &mut zopro_wgpu::G1Msm, pending| {
+                    if tiles.is_empty() {
+                        return z.finish(pending);
+                    }
+                    let tile_started = crate::time::Instant::now();
+                    let queued = tiles.iter_mut()
+                        .map(|(_, tile)| tile.start_counted()).collect::<Vec<_>>();
+                    let (mut result, mut timing) = z.finish(pending)?;
+                    for ((_, tile), pending) in tiles.iter_mut().zip(queued) {
+                        let (sum, stats) = tile.finish(pending)?;
+                        result += sum;
+                        timing.sort_ms += stats.sort_ms;
+                    }
+                    timing.gpu_ms = tile_started.elapsed().as_secs_f64() * 1000.0;
+                    Ok::<_, String>((result, timing))
+                };
                 let host_h = |scalars: &mut [Fr]| {
                     let started = crate::time::Instant::now();
                     let bases = &queries.product[host_start..len];
@@ -4637,7 +4683,7 @@ impl Key {
                     std::thread::scope(|scope| {
                         let device = scope.spawn(move || {
                             let pending = z.start_counted();
-                            z.finish(pending)
+                            finish_gpu(z, pending)
                         });
                         let mut scalars = quotient.finish()?;
                         let host = host_h(&mut scalars);
@@ -4656,7 +4702,7 @@ impl Key {
                             let z = &mut *z;
                             sort_pool(false).install(|| z.start(device_scalars))
                         };
-                        let result = z.finish(pending)?;
+                        let result = finish_gpu(z, pending)?;
                         let host = host.map_or(G1Projective::IDENTITY, |work| work.join().expect("CPU Euler product"));
                         Ok::<_, String>((result, host))
                     })?

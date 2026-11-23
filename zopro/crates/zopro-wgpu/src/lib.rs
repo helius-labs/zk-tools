@@ -1075,7 +1075,12 @@ impl Msm<G1Projective> {
     ) -> Result<(Self, f64), String> {
         // The host recoder stores i16 digits. Wider signed windows use the
         // Vulkan Booth shaders, which keep the full magnitude in an i32.
-        let booth = gpu.spirv && bases.len() >= 1 << 18
+        let minimum_booth = if std::env::var("ZOPRO_ANDROID_EULER_H_TILES").is_ok() {
+            1 << 16
+        } else {
+            1 << 18
+        };
+        let booth = gpu.spirv && bases.len() >= minimum_booth
             && std::env::var("ZOPRO_GPU_SORT").as_deref() == Ok("1")
             && std::env::var("ZOPRO_VULKAN_BOOTH_SORT").as_deref() == Ok("1");
         let width = booth.then(|| {
@@ -2101,10 +2106,15 @@ impl<C: Curve> Msm<C> {
     /// quotient's output for Z's MSM): copied on the GPU, never through
     /// the host. `start_counted` then runs the MSM.
     pub fn count_from(&mut self, source: &wgpu::Buffer) {
+        self.count_from_index(source, 0);
+    }
+
+    /// Copy this MSM's slice of a GPU scalar vector, then count its buckets.
+    pub fn count_from_index(&mut self, source: &wgpu::Buffer, first: usize) {
         let sort = self.gpu_sort.as_mut().expect("the GPU sort");
         sort.external_scalars = None;
         let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
-        encoder.copy_buffer_to_buffer(source, 0, &sort.scalars, 0, (self.n * 32) as u64);
+        encoder.copy_buffer_to_buffer(source, (first * 32) as u64, &sort.scalars, 0, (self.n * 32) as u64);
         self.submit_count(encoder);
     }
 
