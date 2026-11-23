@@ -1360,7 +1360,7 @@ impl Plan {
         materialize_c: bool,
         pool: Option<&rayon::ThreadPool>,
     ) -> Result<Solution, String> {
-        self.solve_with_storage(witness, domain, slots, materialize_c, pool, None)
+        self.solve_with_storage(witness, domain, slots, materialize_c, pool, None, false)
     }
 
     #[cfg(gpu)]
@@ -1383,7 +1383,7 @@ impl Plan {
             len: row.len(),
             borrow: core::marker::PhantomData,
         });
-        self.solve_with_storage(witness, domain, slots, materialize_c, None, Some(rows))
+        self.solve_with_storage(witness, domain, slots, materialize_c, None, Some(rows), false)
     }
 
     /// SAFETY: both pointers remain exclusive disjoint writable regions
@@ -1406,7 +1406,30 @@ impl Plan {
             len,
             borrow: core::marker::PhantomData,
         });
-        self.solve_with_storage(witness, domain, slots, false, None, Some(rows))
+        self.solve_with_storage(witness, domain, slots, false, None, Some(rows), false)
+    }
+
+    /// The caller supplies zeroed rows. The buffer owner clears the previous
+    /// proof's values after transfer, before making the storage reusable.
+    #[cfg(all(gpu_wgpu, target_os = "android"))]
+    pub(crate) fn solve_with_clean_euler_rows(
+        &self,
+        witness: &[Fr],
+        domain: usize,
+        slots: &[usize],
+        rows: &mut [Vec<Fr>; 2],
+    ) -> Result<Solution, String> {
+        let [a, b] = rows;
+        if a.len() != self.n_constraints || b.len() != self.n_constraints || domain < a.len() {
+            return Err("invalid recycled Euler evaluation rows".into());
+        }
+        let empty = core::ptr::NonNull::<Fr>::dangling().as_ptr();
+        let rows = [(a.as_mut_ptr(), a.len()), (b.as_mut_ptr(), b.len()), (empty, 0)].map(|(start, len)| OutputRow {
+            start,
+            len,
+            borrow: core::marker::PhantomData,
+        });
+        self.solve_with_storage(witness, domain, slots, false, None, Some(rows), true)
     }
 
     fn solve_with_storage(
@@ -1417,6 +1440,7 @@ impl Plan {
         materialize_c: bool,
         pool: Option<&rayon::ThreadPool>,
         mut rows: Option<[OutputRow<'_>; 3]>,
+        clean_rows: bool,
     ) -> Result<Solution, String> {
         if witness.len() != self.n_inputs - 1 {
             return Err("invalid witness size".into());
@@ -1444,18 +1468,20 @@ impl Plan {
                     // The solver overwrites every constraint row on the
                     // audited uninitialized path. Clear the domain padding
                     // as well as any row not covered by that audit.
-                    let from = if uninitialized { self.n_constraints } else { 0 };
-                    rayon::join(
-                        || a.clear_from(from),
-                        || rayon::join(
-                            || b.clear_from(from),
-                            || {
-                                if materialize_c {
-                                    c.clear_from(from);
-                                }
-                            },
-                        ),
-                    );
+                    if !clean_rows {
+                        let from = if uninitialized { self.n_constraints } else { 0 };
+                        rayon::join(
+                            || a.clear_from(from),
+                            || rayon::join(
+                                || b.clear_from(from),
+                                || {
+                                    if materialize_c {
+                                        c.clear_from(from);
+                                    }
+                                },
+                            ),
+                        );
+                    }
                     (Vec::new(), (Vec::new(), Vec::new()))
                 } else {
                     rayon::join(row, || {

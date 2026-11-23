@@ -371,6 +371,8 @@ struct Gpu {
     euler_h_cpu: usize,
     #[cfg(target_os = "android")]
     euler_h_tiles: std::sync::Mutex<Vec<(usize, zopro_wgpu::G1Msm)>>,
+    #[cfg(target_os = "android")]
+    euler_solver_rows: std::sync::Mutex<Option<[Vec<Fr>; 2]>>,
 }
 
 #[cfg(all(gpu_wgpu, target_os = "android"))]
@@ -382,6 +384,7 @@ enum AndroidWitnessScalars<'a> {
 #[cfg(all(gpu_wgpu, target_os = "android"))]
 enum AndroidEulerRows<'a> {
     Host([&'a [Fr]; 2]),
+    Recycled(&'a mut [Vec<Fr>; 2]),
     Device {
         z: &'a mut zopro_wgpu::G1Msm,
         quotient: &'a mut zopro_wgpu::Quotient,
@@ -727,6 +730,8 @@ impl GpuBuilder {
             euler_h_cpu: 0,
             #[cfg(target_os = "android")]
             euler_h_tiles: std::sync::Mutex::new(Vec::new()),
+            #[cfg(target_os = "android")]
+            euler_solver_rows: std::sync::Mutex::new(None),
         }
     }
 }
@@ -1627,6 +1632,29 @@ impl Key {
         let wants_c = materialize_c && !derive_c;
         #[cfg(all(gpu_wgpu, target_os = "android"))]
         let wants_c = wants_c && !(self.basis_only && self.has_gpu());
+        #[cfg(all(gpu_wgpu, target_os = "android"))]
+        if !wants_c && std::env::var("ZOPRO_ANDROID_EULER_RECYCLE_ROWS").as_deref() == Ok("1") {
+            if let Some(gpu) = self.android_euler_cpu_witness_gpu(omit_b) {
+                if let Ok(mut storage) = gpu.euler_solver_rows.try_lock() {
+                    let reused = storage.is_some();
+                    let mut rows = storage.take().unwrap_or_else(|| {
+                        let row = || zero_frs(plan.n_constraints, plan.n_constraints);
+                        let (a, b) = rayon::join(row, row);
+                        [a, b]
+                    });
+                    let solver::Solution { mut w, .. } =
+                        plan.solve_with_clean_euler_rows(&witness, self.domain, slots, &mut rows)?;
+                    trace("solve", started);
+                    #[cfg(feature = "trace")]
+                    log::info!("ZOPRO_TRACE vulkan-solver recycled evaluation rows reused={reused}");
+                    let proof = self.android_euler_cpu_witness(
+                        gpu, AndroidEulerRows::Recycled(&mut rows), AndroidWitnessScalars::Wires(plan, &mut w), omit_b,
+                    )?;
+                    *storage = Some(rows);
+                    return Ok(proof);
+                }
+            }
+        }
         #[cfg(all(gpu_wgpu, target_os = "android"))]
         if !wants_c && std::env::var("ZOPRO_ANDROID_EULER_DIRECT_ROWS").as_deref() == Ok("1") {
             if let Some(gpu) = self.android_euler_cpu_witness_gpu(omit_b) {
@@ -4669,11 +4697,19 @@ impl Key {
                 let started = crate::time::Instant::now();
                 let mut owned_z;
                 let mut owned_quotient;
+                let mut recycled = None;
                 let (z, quotient, len, host_rows) = match rows {
                     AndroidEulerRows::Host([a, b]) => {
                         owned_z = gpu.z.lock().unwrap();
                         owned_quotient = gpu.quotient.lock().unwrap();
                         (&mut *owned_z, &mut *owned_quotient, a.len(), Some([a, b]))
+                    }
+                    AndroidEulerRows::Recycled(rows) => {
+                        owned_z = gpu.z.lock().unwrap();
+                        owned_quotient = gpu.quotient.lock().unwrap();
+                        let len = rows[0].len();
+                        recycled = Some(rows);
+                        (&mut *owned_z, &mut *owned_quotient, len, None)
                     }
                     AndroidEulerRows::Device { z, quotient, rows } => (z, quotient, rows, None),
                 };
@@ -4684,6 +4720,9 @@ impl Key {
                 } else {
                     Some(0)
                 };
+                let host_rows = host_rows.or_else(|| recycled.as_ref().map(|rows| {
+                    [rows[0].as_slice(), rows[1].as_slice()]
+                }));
                 if let Some([a, b]) = host_rows {
                     #[cfg(feature = "trace")]
                     if std::env::var("ZOPRO_ANDROID_EULER_ROW_PROFILE").as_deref() == Ok("1") {
@@ -4704,6 +4743,15 @@ impl Key {
                     for (from, tile) in tiles.iter_mut() {
                         tile.count_from_index(quotient.output(), *from);
                     }
+                }
+                if let Some([a, b]) = recycled {
+                    // Both mapped upload and Queue::write_buffer copy the
+                    // input before returning. The GPU now owns its copy.
+                    let clear = |row: &mut Vec<Fr>| {
+                        row.fill(Fr::ZERO);
+                        std::hint::black_box(row.as_slice());
+                    };
+                    rayon::join(|| clear(a), || clear(b));
                 }
                 let mut finish_gpu = |z: &mut zopro_wgpu::G1Msm, pending| {
                     if tiles.is_empty() {
