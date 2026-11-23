@@ -47,7 +47,13 @@ void main() {
   const uint lane = gl_SubgroupID * gl_SubgroupSize + gl_SubgroupInvocationID;
   const uint butterflies = 1u << (args.levels + args.cols_log - 1u);
   const bool enabled = lane < butterflies;
+#ifdef ZOPRO_FFT_DIT
+  const bool dit = true;
+#elif defined(ZOPRO_FFT_DIF)
+  const bool dit = false;
+#else
   const bool dit = args.forward != 0u;
+#endif
   uint gap = 1u << (args.cols_log + (dit ? 0u : args.levels - 1u));
   fr a = fr_zero();
   fr b = fr_zero();

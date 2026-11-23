@@ -97,6 +97,8 @@ struct TiledFft {
     pipeline: wgpu::ComputePipeline,
     passes: Vec<TilePass>,
     #[cfg(target_os = "android")]
+    direction: Option<[wgpu::ComputePipeline; 2]>,
+    #[cfg(target_os = "android")]
     large: bool,
     #[cfg(target_os = "android")]
     packed_roots: bool,
@@ -203,6 +205,25 @@ impl TiledFft {
             (false, false) => ("fr_fft_tile", include_bytes!("../glsl/out/fr_fft_tile.spv")),
         };
         let pipeline = quotient_kernel(gpu, name, kernel, &[Write, Read, Uniform]);
+        #[cfg(target_os = "android")]
+        let direction = if !large && !packed_roots && gpu.device.features().contains(wgpu::Features::SUBGROUP) {
+            std::env::var_os("ZOPRO_ANDROID_FFT_DIRECTION_DIR").and_then(|path| {
+                let path = std::path::PathBuf::from(path);
+                let names = ["fr_fft_tile_dif", "fr_fft_tile_dit"];
+                let inverse = std::fs::read(path.join(format!("{}.spv", names[0]))).ok()?;
+                let forward = std::fs::read(path.join(format!("{}.spv", names[1]))).ok()?;
+                log::info!("ZOPRO_TRACE quotient direction-specific FFT kernels");
+                Some(std::array::from_fn(|index| {
+                    let bytes = if index == 0 { &inverse } else { &forward };
+                    gpu.kernel(names[index], || {
+                        spirv_pipeline(&gpu.device, gpu.cache(), names[index], bytes,
+                            &[Write, Read, Uniform])
+                    })
+                }))
+            })
+        } else {
+            None
+        };
         let max_levels = if large { 7 } else { 6 };
         let tile_bits = if large { 8 } else { 7 };
         let log_n = n.trailing_zeros();
@@ -240,6 +261,8 @@ impl TiledFft {
         }
         Self {
             pipeline, passes,
+            #[cfg(target_os = "android")]
+            direction,
             #[cfg(target_os = "android")]
             large,
             #[cfg(target_os = "android")]
@@ -913,9 +936,14 @@ impl Quotient {
         &self, encoder: &mut wgpu::CommandEncoder, offset: u64, roots: &wgpu::Buffer,
         dif: bool, tiled: &TiledFft, stage: &TilePass,
     ) {
+        let pipeline = &tiled.pipeline;
+        #[cfg(target_os = "android")]
+        let pipeline = tiled.direction.as_ref().map_or(pipeline, |directions| {
+            &directions[usize::from(!dif)]
+        });
         let group = self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: None,
-            layout: &tiled.pipeline.get_bind_group_layout(0),
+            layout: &pipeline.get_bind_group_layout(0),
             entries: &[
                 wgpu::BindGroupEntry { binding: 0, resource: self.vector_binding(offset) },
                 wgpu::BindGroupEntry { binding: 1, resource: roots.as_entire_binding() },
@@ -926,7 +954,7 @@ impl Quotient {
             ],
         });
         let mut pass = self.begin(encoder, "fr_fft_tile");
-        pass.set_pipeline(&tiled.pipeline);
+        pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &group, &[]);
         pass.dispatch_workgroups(stage.groups[0], stage.groups[1], 1);
     }
