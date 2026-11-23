@@ -4486,6 +4486,25 @@ impl Key {
         let queries = self.lagrange.as_ref().filter(|q| q.euler).ok_or("no Euler queries")?;
         let folded = queries.folded.as_ref().ok_or("no folded Euler query")?;
         let active = plan.n_constraints;
+        #[cfg(target_arch = "aarch64")]
+        if std::env::var("ZOPRO_ANDROID_EULER_PREPARED_EQUAL").as_deref() == Ok("1") {
+            let started = crate::time::Instant::now();
+            let estimate = plan.preparation_peak();
+            self.equal_witness = preparation::Reservation::acquire(self.domain, estimate)
+                .and_then(|reservation| {
+                    let groups = plan.equal_wire_groups();
+                    let mut prepared = msm_affine::PreparedEqualWitness::new(
+                        &self.a, &self.b, &self.b2, &plan.a_indices, &plan.b_indices, &groups, plan.value_count(),
+                    )?;
+                    let indices = plan.private_value_indices(&folded.slots);
+                    prepared.prepare_k(&folded.private, &indices, &groups, plan.value_count(), true);
+                    prepared.reservation = Some(reservation);
+                    Some(prepared)
+                });
+            #[cfg(feature = "trace")]
+            log::info!("ZOPRO_TRACE android-equal-witness loaded={}", self.equal_witness.is_some());
+            trace("android-prepare-equal-witness", started);
+        }
         let mut builder = GpuBuilder::open(&self.plan, self.b2.len(), Some(active))
             .ok_or("no Vulkan GPU for the Euler quotient")?;
         let cpu_share = std::env::var("ZOPRO_ANDROID_EULER_CPU_H_SHARE").ok()
@@ -4736,8 +4755,10 @@ impl Key {
             // Admit B2 before either G1 query needs compaction scratch.
             // Each preparation returns its scratch credit before the next.
             #[cfg(target_arch = "aarch64")]
-            let prepared_b2 = (serial && self.exclusive_g2_grouping)
-                .then(|| msm_affine::prepare_android_query(&self.b2, sb)).flatten();
+            let prepared_b2 = (serial && self.exclusive_g2_grouping).then(|| {
+                self.equal_witness.as_ref().and_then(|plan| plan.android_b2(&self.b2, sb))
+                    .or_else(|| msm_affine::prepare_android_query(&self.b2, sb))
+            }).flatten();
             let b2 = move || {
                 let started = crate::time::Instant::now();
                 let raw = || msm_affine::g2_query_exclusive(
@@ -4757,8 +4778,10 @@ impl Key {
             };
             #[cfg(target_arch = "aarch64")]
             let (prepared_a, prepared_k) = if serial {
-                let a = msm_affine::prepare_android_query(&self.a, sa);
-                let k = msm_affine::prepare_android_query(&folded.private, sk);
+                let a = self.equal_witness.as_ref().and_then(|plan| plan.android_a(&self.a, sa))
+                    .or_else(|| msm_affine::prepare_android_query(&self.a, sa));
+                let k = self.equal_witness.as_ref().and_then(|plan| plan.android_folded_k(&folded.private, sk))
+                    .or_else(|| msm_affine::prepare_android_query(&folded.private, sk));
                 (a, k)
             } else {
                 (None, None)

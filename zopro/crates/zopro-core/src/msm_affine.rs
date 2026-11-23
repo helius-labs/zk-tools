@@ -461,6 +461,18 @@ fn compact_point_groups<C: CurveConfig>(
 where
     C::Base: BatchInverse,
 {
+    compact_point_groups_with_sums(bases, groups, None)
+}
+
+#[cfg(any(gpu, all(gpu_wgpu, target_os = "android", target_arch = "aarch64")))]
+fn compact_point_groups_with_sums<C: CurveConfig>(
+    bases: &[Affine<C>],
+    groups: ScalarGroups,
+    sums: Option<&[Affine<C>]>,
+) -> CompactedQuery<C>
+where
+    C::Base: BatchInverse,
+{
     let ScalarGroups {
         values,
         order,
@@ -469,7 +481,10 @@ where
         _reservation: reservation,
         ..
     } = groups;
-    let points = crate::msm::group_affine(bases, &order, &starts, &counts);
+    let points = match sums {
+        Some(sums) => crate::msm::group_affine_prepared(bases, sums, &order, &starts, &counts),
+        None => crate::msm::group_affine(bases, &order, &starts, &counts),
+    };
     drop((order, starts, counts));
     // Release compaction scratch credit before the other queries start.
     #[cfg(any(target_os = "ios", all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64")))]
@@ -1489,6 +1504,8 @@ impl EqualLayout {
             scalars.push(input[index as usize]);
             sources.push(index);
         }
+        #[cfg(all(gpu_wgpu, target_os = "android", target_arch = "aarch64", feature = "trace"))]
+        log::info!("ZOPRO_TRACE android-equal-witness selected={} original={}", scalars.len(), self.n);
         if scalars.len() == self.n {
             return None;
         }
@@ -1661,6 +1678,47 @@ impl PreparedEqualWitness {
         }
         msm_in_place(bases, scalars)
     }
+    #[cfg(all(gpu_wgpu, target_os = "android", target_arch = "aarch64"))]
+    fn android_compact<C: CurveConfig>(
+        bases: &[Affine<C>],
+        scalars: &[Fr],
+        layout: &EqualLayout,
+        sums: &[Affine<C>],
+    ) -> Option<CompactedQuery<C>>
+    where
+        C::Base: BatchInverse,
+    {
+        let started = crate::time::Instant::now();
+        let grouped = layout.source_groups(scalars)?;
+        let compacted = compact_point_groups_with_sums(bases, grouped, Some(sums));
+        crate::trace("android-compact-prepared-query", started);
+        Some(compacted)
+    }
+
+    #[cfg(all(gpu_wgpu, target_os = "android", target_arch = "aarch64"))]
+    pub(super) fn android_a(
+        &self, bases: &[zopro_bn254::G1Affine], scalars: &[Fr],
+    ) -> Option<CompactedQuery<zopro_bn254::G1Config>> {
+        let (layout, sums) = self.a.as_ref()?;
+        Self::android_compact(bases, scalars, layout, sums)
+    }
+
+    #[cfg(all(gpu_wgpu, target_os = "android", target_arch = "aarch64"))]
+    pub(super) fn android_b2(
+        &self, bases: &[zopro_bn254::G2Affine], scalars: &[Fr],
+    ) -> Option<CompactedQuery<zopro_bn254::G2Config>> {
+        let (layout, _, sums) = self.b.as_ref()?;
+        Self::android_compact(bases, scalars, layout, sums)
+    }
+
+    #[cfg(all(gpu_wgpu, target_os = "android", target_arch = "aarch64"))]
+    pub(super) fn android_folded_k(
+        &self, bases: &[zopro_bn254::G1Affine], scalars: &[Fr],
+    ) -> Option<CompactedQuery<zopro_bn254::G1Config>> {
+        let (true, (layout, sums)) = self.k.as_ref()? else { return None };
+        Self::android_compact(bases, scalars, layout, sums)
+    }
+
     pub(super) fn msms_b(
         &self,
         bases: &[zopro_bn254::G1Affine],
