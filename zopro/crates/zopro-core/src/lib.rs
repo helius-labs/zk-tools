@@ -4517,30 +4517,50 @@ impl Key {
                         z.count_from(quotient.output());
                     }
                 }
-                let mut scalars = if download_from.is_some() { quotient.finish()? } else { Vec::new() };
-                let gpu_readback = if device_sort { 0 } else { host_start };
-                let (device_scalars, cpu_scalars) = scalars.split_at_mut(gpu_readback);
-                let ((hz, timing), host_h) = std::thread::scope(|scope| {
-                    let host_h = (!cpu_scalars.is_empty()).then(|| scope.spawn(|| {
-                        let started = crate::time::Instant::now();
-                        let bases = &queries.product[host_start..a.len()];
-                        #[cfg(target_arch = "aarch64")]
-                        let result = msm_affine::android_euler_h(bases, cpu_scalars);
-                        #[cfg(not(target_arch = "aarch64"))]
-                        let result = msm_affine::msm_in_place(bases, cpu_scalars);
-                        trace("vulkan-cpu-msm-h", started);
-                        result
-                    }));
-                    let pending = if device_sort {
-                        z.start_counted()
-                    } else {
-                        let z = &mut *z;
-                        sort_pool(false).install(|| z.start(device_scalars))
-                    };
-                    let result = z.finish(pending)?;
-                    let host_h = host_h.map_or(G1Projective::IDENTITY, |work| work.join().expect("CPU Euler product"));
-                    Ok::<_, String>((result, host_h))
-                })?;
+                let host_h = |scalars: &mut [Fr]| {
+                    let started = crate::time::Instant::now();
+                    let bases = &queries.product[host_start..a.len()];
+                    #[cfg(target_arch = "aarch64")]
+                    let result = msm_affine::android_euler_h(bases, scalars);
+                    #[cfg(not(target_arch = "aarch64"))]
+                    let result = msm_affine::msm_in_place(bases, scalars);
+                    trace("vulkan-cpu-msm-h", started);
+                    result
+                };
+                let concurrent_readback = device_sort && download_from.is_some()
+                    && std::env::var("ZOPRO_ANDROID_EULER_OVERLAP_READBACK").as_deref() == Ok("1");
+                let ((hz, timing), host_h) = if concurrent_readback {
+                    // The quotient and histogram each own a staging buffer.
+                    // Read the CPU tail as the GPU proof thread waits for its
+                    // histogram, then let both sides compute the product MSM.
+                    let z = &mut *z;
+                    std::thread::scope(|scope| {
+                        let device = scope.spawn(move || {
+                            let pending = z.start_counted();
+                            z.finish(pending)
+                        });
+                        let mut scalars = quotient.finish()?;
+                        let host = host_h(&mut scalars);
+                        let gpu = device.join().expect("GPU Euler product")?;
+                        Ok::<_, String>((gpu, host))
+                    })?
+                } else {
+                    let mut scalars = if download_from.is_some() { quotient.finish()? } else { Vec::new() };
+                    let gpu_readback = if device_sort { 0 } else { host_start };
+                    let (device_scalars, cpu_scalars) = scalars.split_at_mut(gpu_readback);
+                    std::thread::scope(|scope| {
+                        let host = (!cpu_scalars.is_empty()).then(|| scope.spawn(|| host_h(cpu_scalars)));
+                        let pending = if device_sort {
+                            z.start_counted()
+                        } else {
+                            let z = &mut *z;
+                            sort_pool(false).install(|| z.start(device_scalars))
+                        };
+                        let result = z.finish(pending)?;
+                        let host = host.map_or(G1Projective::IDENTITY, |work| work.join().expect("CPU Euler product"));
+                        Ok::<_, String>((result, host))
+                    })?
+                };
                 quotient.finish_device_profile()?;
                 gpu_trace("z", timing.sort_ms, timing.gpu_ms);
                 trace("vulkan-euler-h", started);

@@ -639,16 +639,24 @@ impl Quotient {
         if let (Some(timer), Some(submission)) = (timer, submission) {
             timer.read(&self.gpu, submission).await?;
         }
+        let field_bytes = std::mem::size_of::<Fr>();
+        let bytes = n * field_bytes;
         let data = self
             .staging
-            .slice(..(n * 32) as u64)
+            .slice(..bytes as u64)
             .get_mapped_range()
-            .map_err(|e| format!("quotient: {e}"))?
-            .to_vec();
+            .map_err(|e| format!("quotient: {e}"))?;
+        let mut values = Vec::<Fr>::with_capacity(n);
+        // SAFETY: the kernel encodes each Fr as four native u64 limbs. Copying
+        // bytes needs no alignment from the mapped view. The destination is an
+        // aligned allocation for n Fr, initialized by the copy before set_len.
+        unsafe {
+            std::ptr::copy_nonoverlapping(data.as_ptr(), values.as_mut_ptr().cast(), bytes);
+            values.set_len(n);
+        }
+        drop(data);
         self.staging.unmap();
-        // SAFETY: n Fr in the kernel's encoding, four u64 limbs each.
-        let values: &[Fr] = unsafe { std::slice::from_raw_parts(data.as_ptr() as *const Fr, n) };
-        Ok(values.to_vec())
+        Ok(values)
     }
 
     /// A compute pass, timed as `kernel`'s when profiling.
