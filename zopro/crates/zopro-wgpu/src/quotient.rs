@@ -105,7 +105,8 @@ struct TilePass {
 #[cfg(target_os = "android")]
 struct FusedEulerTiles {
     pipeline: wgpu::ComputePipeline,
-    arguments: [[wgpu::Buffer; 2]; 3],
+    midpoint: Option<wgpu::ComputePipeline>,
+    arguments: [[wgpu::Buffer; 2]; 4],
 }
 
 #[cfg(target_os = "android")]
@@ -116,8 +117,19 @@ impl FusedEulerTiles {
             gpu, "fr_fft_tile_euler", include_bytes!("../glsl/out/fr_fft_tile_euler.spv"),
             &[Write, Read, Uniform, Read, Read],
         );
-        let arguments = [0, 1, 2].map(|mode| {
-            let [n, first, levels, stride, cols] = if mode == 1 {
+        let midpoint = gpu.device.features().contains(wgpu::Features::SUBGROUP)
+            .then(|| std::env::var_os("ZOPRO_VULKAN_EULER_MIDPOINT_SPV"))
+            .flatten()
+            .and_then(|path| std::fs::read(path).ok())
+            .map(|kernel| {
+                log::info!("ZOPRO_TRACE vulkan-euler subgroup midpoint");
+                gpu.kernel("fr_euler_midpoint", || {
+                    spirv_pipeline(&gpu.device, gpu.cache(), "fr_euler_midpoint", &kernel,
+                        &[Write, Read, Uniform, Read, Read])
+                })
+            });
+        let arguments = [0, 1, 2, 3].map(|mode| {
+            let [n, first, levels, stride, cols] = if mode == 1 || mode == 3 {
                 tiled.passes.last().expect("Euler tile").geometry
             } else {
                 tiled.passes[0].geometry
@@ -126,7 +138,7 @@ impl FusedEulerTiles {
                 n, first, levels, stride, cols, u32::from(mode != 0), active, low, vector, mode, 0, 0,
             ]))
         });
-        Self { pipeline, arguments }
+        Self { pipeline, midpoint, arguments }
     }
 }
 
@@ -808,7 +820,11 @@ impl Quotient {
         for step in 0..=last {
             let index = if dif { step } else { last - step };
             let stage = &tiled.passes[index];
+            if !dif && step == 0 && fused.midpoint.is_some() {
+                continue;
+            }
             let mode = match (dif, step, vector) {
+                (true, step, _) if step == last && fused.midpoint.is_some() => 3,
                 (true, 0, _) => 0,
                 (false, 0, _) => 1,
                 (false, step, 1) if step == last => 2,
@@ -817,19 +833,25 @@ impl Quotient {
                     continue;
                 }
             };
+            let (pipeline, auxiliary, label) = if mode == 3 {
+                (fused.midpoint.as_ref().expect("Euler midpoint pipeline"),
+                 &self.roots, "fr_euler_midpoint")
+            } else {
+                (&fused.pipeline, &euler.rows, "fr_fft_tile_euler")
+            };
             let group = self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: None,
-                layout: &fused.pipeline.get_bind_group_layout(0),
+                layout: &pipeline.get_bind_group_layout(0),
                 entries: &[
                     wgpu::BindGroupEntry { binding: 0, resource: self.abc.as_entire_binding() },
                     wgpu::BindGroupEntry { binding: 1, resource: roots.as_entire_binding() },
                     wgpu::BindGroupEntry { binding: 2, resource: fused.arguments[mode][vector].as_entire_binding() },
-                    wgpu::BindGroupEntry { binding: 3, resource: euler.rows.as_entire_binding() },
+                    wgpu::BindGroupEntry { binding: 3, resource: auxiliary.as_entire_binding() },
                     wgpu::BindGroupEntry { binding: 4, resource: euler.degrees.as_entire_binding() },
                 ],
             });
-            let mut pass = self.begin(encoder, "fr_fft_tile_euler");
-            pass.set_pipeline(&fused.pipeline);
+            let mut pass = self.begin(encoder, label);
+            pass.set_pipeline(pipeline);
             pass.set_bind_group(0, &group, &[]);
             pass.dispatch_workgroups(stage.groups[0], stage.groups[1], 1);
         }
