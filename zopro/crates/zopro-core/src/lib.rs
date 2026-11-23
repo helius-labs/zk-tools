@@ -4422,6 +4422,17 @@ impl Key {
         if h_cpu == 0 {
             builder.g2(&self.b2)?;
         }
+        if std::env::var("ZOPRO_VULKAN_SHARD_REPAIR").as_deref() == Ok("1") {
+            let bases = [G1Affine::GENERATOR; 64];
+            let scalars = [Fr::from(5u64); 64];
+            let mut probe = zopro_wgpu::G1Msm::new(builder.gpu.clone(), &bases)?.0;
+            let expected = G1Affine::GENERATOR * Fr::from(320u64);
+            if probe.msm(&scalars)?.0 != expected {
+                return Err("Vulkan G1 shard repair failed its repeated-point check".into());
+            }
+            #[cfg(feature = "trace")]
+            log::info!("ZOPRO_TRACE vulkan-shard-repair repeated-point check passed");
+        }
         let mut gpu = builder.finish();
         gpu.euler_h_cpu = h_cpu;
         let verdict = selftest::gpu(

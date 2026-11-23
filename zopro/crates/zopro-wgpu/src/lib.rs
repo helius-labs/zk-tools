@@ -690,6 +690,7 @@ pub struct Msm<C: Curve> {
     windows: usize,
     n: usize,
     first: wgpu::ComputePipeline,
+    first_repair: Option<wgpu::ComputePipeline>,
     tree_pipeline: wgpu::ComputePipeline,
     reduce_blocks: wgpu::ComputePipeline,
     /// Buckets per reduction thread and threads per window.
@@ -1025,6 +1026,20 @@ impl<C: Curve> Msm<C> {
         let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
         let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
         let spirv = if gpu.spirv { C::SPIRV } else { None };
+        let repair_kernels = if cfg!(target_os = "android") && spirv.is_some()
+            && C::LABEL == G1_LABEL
+            && std::env::var("ZOPRO_VULKAN_SHARD_REPAIR").as_deref() == Ok("1")
+        {
+            if first_group() != WORKGROUP {
+                return Err("the repair shader requires 64 invocations per workgroup".into());
+            }
+            let dir = std::env::var_os("ZOPRO_SPV_DIR").ok_or("missing repair shader directory")?;
+            let dir = std::path::PathBuf::from(dir);
+            let read = |name| std::fs::read(dir.join(name)).map_err(|e| format!("{name}: {e}"));
+            Some((read("shards_first_fast.spv")?, read("shards_first_repair.spv")?))
+        } else {
+            None
+        };
         // After each kernel: a driver that refuses one leaves the device
         // failed, and nothing else must be asked of it.
         let mut pipelines = Vec::with_capacity(4);
@@ -1041,9 +1056,14 @@ impl<C: Curve> Msm<C> {
                         if file.is_some() {
                             log::info!("ZOPRO_TRACE kernel {entry} from ZOPRO_SPV_DIR");
                         }
-                        let kernel = file.as_deref().unwrap_or(kernels[index]);
-                        gpu.kernel(entry, || {
-                            spirv_pipeline(device, gpu.cache(), entry, kernel, msm_slots(index))
+                        let fast = repair_kernels.as_ref().filter(|_| index == 0);
+                        let (name, kernel) = if let Some((fast, _)) = fast {
+                            ("shards_first_fast", fast.as_slice())
+                        } else {
+                            (entry, file.as_deref().unwrap_or(kernels[index]))
+                        };
+                        gpu.kernel(name, || {
+                            spirv_pipeline(device, gpu.cache(), name, kernel, msm_slots(index))
                         })
                     }
                 }
@@ -1061,6 +1081,11 @@ impl<C: Curve> Msm<C> {
         }
         let [first, tree_pipeline, reduce_blocks]: [wgpu::ComputePipeline; 3] =
             pipelines.try_into().expect("three kernels");
+        let first_repair = repair_kernels.as_ref().map(|(_, repair)| {
+            gpu.kernel("shards_first_repair", || {
+                spirv_pipeline(device, gpu.cache(), "shards_first_repair", repair, msm_slots(0))
+            })
+        });
         for scope in [internal, validation] {
             if let Some(e) = popped(scope) {
                 return Err(format!("kernels: {e}"));
@@ -1223,6 +1248,7 @@ impl<C: Curve> Msm<C> {
             windows,
             n,
             first,
+            first_repair,
             tree_pipeline,
             reduce_blocks,
             reduce_shape,
@@ -1354,6 +1380,7 @@ impl<C: Curve> Msm<C> {
             .collect();
         let passes = self.gpu_sort.as_ref().map_or(0, |s| s.slices.len())
             + chunks.iter().map(Vec::len).sum::<usize>()
+            + usize::from(self.first_repair.is_some()) * chunks.len()
             + 1;
         let mut timer = profile::Timer::new(&self.gpu, passes);
         if let Some(sort) = &self.gpu_sort {
@@ -1496,6 +1523,22 @@ impl<C: Curve> Msm<C> {
                 let group = if level == 0 { first_group() } else { WORKGROUP };
                 pass.dispatch_workgroups((*shards as u32).div_ceil(group), 1, 1);
                 drop(pass);
+                if let Some(repair) = self.first_repair.as_ref().filter(|_| level == 0) {
+                    // Flagged shards hold an out-of-field marker. Repair each
+                    // before the tree (or the final reduction) consumes it.
+                    let binding = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                        label: None,
+                        layout: &repair.get_bind_group_layout(0),
+                        entries: &entries,
+                    });
+                    let mut pass = match timer.as_mut() {
+                        Some(timer) => encoder.begin_compute_pass(&timer.pass("shards_first_repair")),
+                        None => encoder.begin_compute_pass(&Default::default()),
+                    };
+                    pass.set_pipeline(repair);
+                    pass.set_bind_group(0, &binding, &[]);
+                    pass.dispatch_workgroups((*shards as u32).div_ceil(group), 1, 1);
+                }
                 if let Some(stages) = profile.as_mut() {
                     encoder =
                         stages.cut(device, queue, encoder, format!("c{chunk}l{level}x{shards}"));
