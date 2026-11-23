@@ -2403,6 +2403,30 @@ impl Plan {
                 return Ok(());
             }
         };
+        #[cfg(target_os = "android")]
+        let euler_fast = v.c.is_null() && {
+            static ENABLED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+            *ENABLED.get_or_init(|| std::env::var("ZOPRO_ANDROID_SOLVER_DIRECT_MUL").as_deref() == Ok("1"))
+        };
+        #[cfg(not(target_os = "android"))]
+        let euler_fast = false;
+        if euler_fast && step.sums().is_empty() {
+            if let ([Expression::Wire(a), Expression::Wire(b), Expression::Zero], Some(assignment)) =
+                (&step.expressions, &step.assignment)
+            {
+                if assignment.side() == 2 && assignment.coefficient() == 1 {
+                    let left = get(*a as usize);
+                    let right = get(*b as usize);
+                    set(assignment.wire(), left * right);
+                    // SAFETY: the schedule gives each constraint its own row.
+                    unsafe {
+                        v.a.add(step.constraint()).write(left);
+                        v.b.add(step.constraint()).write(right);
+                    }
+                    return Ok(());
+                }
+            }
+        }
         let mut slot = self.n_wires + step.first_slot();
         let mut chain = Fr::ZERO;
         let sums = &self.sums[step.sums()];
@@ -2507,8 +2531,15 @@ impl Plan {
                     _ => term * self.inverses.get(assignment.inverse),
                 },
             );
-        } else if values[0] * values[1] != values[2] {
-            return Err(fail());
+        } else {
+            let satisfied = if euler_fast && values[2].is_zero() {
+                values[0].is_zero() || values[1].is_zero()
+            } else {
+                values[0] * values[1] == values[2]
+            };
+            if !satisfied {
+                return Err(fail());
+            }
         }
         // SAFETY: each constraint's row is written by its own op only.
         unsafe {
