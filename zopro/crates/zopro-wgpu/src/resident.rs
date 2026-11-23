@@ -232,6 +232,18 @@ pub(super) fn dispatch(
     timer: &mut Option<profile::Timer>,
     label: &'static str,
 ) {
+    dispatch_grid(device, encoder, pipeline, buffers, [groups[0], groups[1], 1], timer, label);
+}
+
+pub(super) fn dispatch_grid(
+    device: &wgpu::Device,
+    encoder: &mut wgpu::CommandEncoder,
+    pipeline: &wgpu::ComputePipeline,
+    buffers: &[&wgpu::Buffer],
+    groups: [u32; 3],
+    timer: &mut Option<profile::Timer>,
+    label: &'static str,
+) {
     let entries: Vec<_> = buffers.iter().enumerate().map(|(binding, buffer)| {
         wgpu::BindGroupEntry { binding: binding as u32, resource: buffer.as_entire_binding() }
     }).collect();
@@ -246,5 +258,5 @@ pub(super) fn dispatch(
     };
     pass.set_pipeline(pipeline);
     pass.set_bind_group(0, &group, &[]);
-    pass.dispatch_workgroups(groups[0], groups[1], 1);
+    pass.dispatch_workgroups(groups[0], groups[1], groups[2]);
 }

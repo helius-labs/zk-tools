@@ -75,6 +75,13 @@ struct EulerProduct {
     weight: wgpu::ComputePipeline,
     product: wgpu::ComputePipeline,
     fused: Option<FusedEulerTiles>,
+    paired: Option<PairedEulerTiles>,
+}
+
+#[cfg(target_os = "android")]
+struct PairedEulerTiles {
+    both: Option<(wgpu::ComputePipeline, wgpu::ComputePipeline)>,
+    last: wgpu::ComputePipeline,
 }
 
 #[cfg(target_os = "android")]
@@ -545,6 +552,31 @@ impl Quotient {
             !tiled.large && !tiled.packed_roots && tiled.passes.len() > 1
                 && std::env::var("ZOPRO_VULKAN_EULER_FUSED").as_deref() == Ok("1")
         }).map(|tiled| FusedEulerTiles::new(&self.gpu, tiled, active as u32, low as u32));
+        let load_paired = || -> Result<_, String> {
+            let Some(directory) = std::env::var_os("ZOPRO_ANDROID_VULKAN_PAIRED_EULER_DIR") else {
+                return Ok(None);
+            };
+            let directory = std::path::PathBuf::from(directory);
+            use Slot::{Read, Uniform, Write};
+            let tiled = self.tiled.as_ref().ok_or("paired Euler requires a tiled transform")?;
+            if fused.is_some() || tiled.packed_roots
+                || self.abc.size() > device.limits().max_storage_buffer_binding_size as u64
+            {
+                return Err("paired Euler is incompatible with this quotient workspace".into());
+            }
+            let load = |name, slots: &[Slot]| crate::resident::load_pipeline(&self.gpu, &directory, name, slots);
+            let last = load("fr_euler_last_product", &[Write, Read, Uniform, Read, Uniform])?;
+            let both = if std::env::var("ZOPRO_ANDROID_VULKAN_PAIRED_EULER").as_deref() == Ok("1") {
+                let tile = load("fr_euler_pair_tile", &[Write, Read, Uniform])?;
+                let degree = load("fr_euler_pair_degree", &[Write, Read, Uniform])?;
+                Some((tile, degree))
+            } else {
+                None
+            };
+            log::info!("ZOPRO_TRACE vulkan-euler last tile product paired={}", both.is_some());
+            Ok(Some(PairedEulerTiles { both, last }))
+        };
+        let paired = load_paired();
         let mapped_upload = device.features().contains(wgpu::Features::MAPPABLE_PRIMARY_BUFFERS);
         let rows = if mapped_upload {
             log::info!("ZOPRO_TRACE vulkan-euler mapped input rows");
@@ -567,6 +599,7 @@ impl Quotient {
             weight,
             product,
             fused,
+            paired: None,
         };
         let errors = [memory, internal, validation].map(crate::popped);
         if let Some(error) = errors.into_iter().flatten().next() {
@@ -575,6 +608,8 @@ impl Quotient {
         if self.gpu.failed() {
             return Err("Euler quotient: the device reported an error".into());
         }
+        let mut workspace = workspace;
+        workspace.paired = paired?;
         self.euler = Some(workspace);
         self.gpu.save_cache();
         Ok(())
@@ -683,27 +718,60 @@ impl Quotient {
             pass.set_bind_group(0, &group, &[]);
             pass.dispatch_workgroups((count as u32).div_ceil(WORKGROUP), 1, 1);
         };
-        for vector in 0..2u64 {
-            if let Some(fused) = euler.fused.as_ref() {
-                self.transform_euler_tiles(&mut encoder, euler, fused, vector as usize, true);
-                encoder = crate::flush(&self.gpu, encoder);
-                self.transform_euler_tiles(&mut encoder, euler, fused, vector as usize, false);
-                encoder = crate::flush(&self.gpu, encoder);
-                continue;
+        if let Some(PairedEulerTiles { both: Some((tile, degree)), .. }) = &euler.paired {
+            let tiled = self.tiled.as_ref().expect("paired quotient tiles");
+            for vector in 0..2u64 {
+                let offset = vector * domain_bytes;
+                if active_bytes < domain_bytes {
+                    encoder.clear_buffer(&self.abc, offset + active_bytes, Some(domain_bytes - active_bytes));
+                }
+                encoder.copy_buffer_to_buffer(&euler.rows, vector * active_bytes, &self.abc, offset, active_bytes);
             }
-            let offset = vector * domain_bytes;
-            if active_bytes < domain_bytes {
-                encoder.clear_buffer(&self.abc, offset + active_bytes, Some(domain_bytes - active_bytes));
+            for stage in &tiled.passes {
+                self.dispatch_euler_pair(&mut encoder, tile, stage, true);
             }
-            encoder.copy_buffer_to_buffer(&euler.rows, vector * active_bytes, &self.abc, offset, active_bytes);
-            self.transform(&mut encoder, offset, &self.inverse_roots, true);
             encoder = crate::flush(&self.gpu, encoder);
-            dispatch(&mut encoder, "fr_euler_degree", &euler.weight, self.vector_binding(offset), &euler.degrees, self.n);
-            self.transform(&mut encoder, offset, &self.roots, false);
-            encoder = crate::flush(&self.gpu, encoder);
-        }
-        if euler.fused.is_none() {
-            dispatch(&mut encoder, "fr_euler_product", &euler.product, self.abc.as_entire_binding(), &euler.rows, active);
+            crate::resident::dispatch_grid(
+                device, &mut encoder, degree, &[&self.abc, &euler.degrees, &euler.size],
+                [(self.n as u32).div_ceil(WORKGROUP), 1, 2],
+                &mut *self.timer.borrow_mut(), "fr_euler_pair_degree",
+            );
+            for stage in tiled.passes.iter().skip(1).rev() {
+                self.dispatch_euler_pair(&mut encoder, tile, stage, false);
+            }
+            self.dispatch_tile(&mut encoder, 0, &self.roots, false, tiled, &tiled.passes[0]);
+            self.dispatch_euler_last(&mut encoder, euler, &tiled.passes[0]);
+        } else {
+            for vector in 0..2u64 {
+                if let Some(fused) = euler.fused.as_ref() {
+                    self.transform_euler_tiles(&mut encoder, euler, fused, vector as usize, true);
+                    encoder = crate::flush(&self.gpu, encoder);
+                    self.transform_euler_tiles(&mut encoder, euler, fused, vector as usize, false);
+                    encoder = crate::flush(&self.gpu, encoder);
+                    continue;
+                }
+                let offset = vector * domain_bytes;
+                if active_bytes < domain_bytes {
+                    encoder.clear_buffer(&self.abc, offset + active_bytes, Some(domain_bytes - active_bytes));
+                }
+                encoder.copy_buffer_to_buffer(&euler.rows, vector * active_bytes, &self.abc, offset, active_bytes);
+                self.transform(&mut encoder, offset, &self.inverse_roots, true);
+                encoder = crate::flush(&self.gpu, encoder);
+                dispatch(&mut encoder, "fr_euler_degree", &euler.weight, self.vector_binding(offset), &euler.degrees, self.n);
+                if vector == 1 && euler.paired.is_some() {
+                    let tiled = self.tiled.as_ref().expect("last quotient tile");
+                    for stage in tiled.passes.iter().skip(1).rev() {
+                        self.dispatch_tile(&mut encoder, offset, &self.roots, false, tiled, stage);
+                    }
+                    self.dispatch_euler_last(&mut encoder, euler, &tiled.passes[0]);
+                } else {
+                    self.transform(&mut encoder, offset, &self.roots, false);
+                }
+                encoder = crate::flush(&self.gpu, encoder);
+            }
+            if euler.fused.is_none() && euler.paired.is_none() {
+                dispatch(&mut encoder, "fr_euler_product", &euler.product, self.abc.as_entire_binding(), &euler.rows, active);
+            }
         }
         if let Some(first) = download_from {
             encoder.copy_buffer_to_buffer(&self.abc, (first * 32) as u64, &self.staging, 0, (self.result_len * 32) as u64);
@@ -861,6 +929,33 @@ impl Quotient {
         pass.set_pipeline(&tiled.pipeline);
         pass.set_bind_group(0, &group, &[]);
         pass.dispatch_workgroups(stage.groups[0], stage.groups[1], 1);
+    }
+
+    #[cfg(target_os = "android")]
+    fn dispatch_euler_pair(
+        &self, encoder: &mut wgpu::CommandEncoder, pipeline: &wgpu::ComputePipeline,
+        stage: &TilePass, dif: bool,
+    ) {
+        let roots = if dif { &self.inverse_roots } else { &self.roots };
+        crate::resident::dispatch_grid(
+            &self.gpu.device, encoder, pipeline,
+            &[&self.abc, roots, &stage.arguments[usize::from(!dif)]],
+            [stage.groups[0], stage.groups[1], 2],
+            &mut *self.timer.borrow_mut(), "fr_euler_pair_tile",
+        );
+    }
+
+    #[cfg(target_os = "android")]
+    fn dispatch_euler_last(
+        &self, encoder: &mut wgpu::CommandEncoder, euler: &EulerProduct, stage: &TilePass,
+    ) {
+        let pipeline = &euler.paired.as_ref().expect("last quotient tile").last;
+        crate::resident::dispatch_grid(
+            &self.gpu.device, encoder, pipeline,
+            &[&self.abc, &self.roots, &stage.arguments[1], &euler.rows, &euler.size],
+            [stage.groups[0], stage.groups[1], 1],
+            &mut *self.timer.borrow_mut(), "fr_euler_last_product",
+        );
     }
 
     #[cfg(target_os = "android")]
