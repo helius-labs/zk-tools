@@ -360,6 +360,8 @@ struct Gpu {
     b2: Option<std::sync::Mutex<zopro_wgpu::G2Msm>>,
     b2_cut: usize,
     quotient: std::sync::Mutex<zopro_wgpu::Quotient>,
+    #[cfg(target_os = "android")]
+    euler_h_cpu: usize,
 }
 
 /// A separate pool for the final MSM's sort while the global pool evaluates
@@ -645,6 +647,8 @@ impl GpuBuilder {
             b2: self.b2.map(std::sync::Mutex::new),
             b2_cut: self.b2_cut,
             quotient: std::sync::Mutex::new(self.quotient),
+            #[cfg(target_os = "android")]
+            euler_h_cpu: 0,
         }
     }
 }
@@ -2808,12 +2812,13 @@ impl Key {
             return self.basis_parts(sa, sb, sk, a, b, c, omit_b);
         }
         #[cfg(all(gpu_wgpu, target_os = "android"))]
-        if omit_b && affine_msm() && self.basis_only
-            && std::env::var("ZOPRO_ANDROID_EULER_CPU_WITNESS").as_deref() == Ok("1")
-        {
-            if let Some(gpu) = self.gpu.as_ref().filter(|g| g.b2.is_none()) {
+        if self.basis_only {
+            if let Some(gpu) = self.gpu.as_ref().filter(|g| {
+                g.euler_h_cpu > 0 || (g.b2.is_none() && omit_b && affine_msm()
+                    && std::env::var("ZOPRO_ANDROID_EULER_CPU_WITNESS").as_deref() == Ok("1"))
+            }) {
                 return self.android_euler_cpu_witness(
-                    gpu, [sa, sb, sk], [&a, &b], public.expect("folded C public values"),
+                    gpu, [sa, sb, sk], [&a, &b], public.expect("folded C public values"), omit_b,
                 );
             }
         }
@@ -2864,7 +2869,7 @@ impl Key {
                         if let Some(q) = quotient.as_mut() {
                             #[cfg(target_os = "android")]
                             if euler.is_some() {
-                                q.start_euler(&a, &b, !z_on_gpu);
+                                q.start_euler(&a, &b, (!z_on_gpu).then_some(0));
                             } else {
                                 q.start(&a, &b, &c);
                             }
@@ -4404,12 +4409,21 @@ impl Key {
         let active = plan.n_constraints;
         let mut builder = GpuBuilder::open(&self.plan, self.b2.len(), Some(active))
             .ok_or("no Vulkan GPU for the Euler quotient")?;
-        let points = [&self.a[..], &self.b[..], &folded.private[..], &queries.product[..active]];
+        let cpu_share = std::env::var("ZOPRO_ANDROID_EULER_CPU_H_SHARE").ok()
+            .and_then(|value| value.parse::<f64>().ok())
+            .filter(|share| (0.0..=0.5).contains(share))
+            .unwrap_or(0.0);
+        let h_cpu = (active as f64 * cpu_share) as usize;
+        let h_gpu = active - h_cpu;
+        let points = [&self.a[..], &self.b[..], &folded.private[..], &queries.product[..h_gpu]];
         for (index, bases) in points.into_iter().enumerate() {
             builder.g1(index, bases)?;
         }
-        builder.g2(&self.b2)?;
+        if h_cpu == 0 {
+            builder.g2(&self.b2)?;
+        }
         let mut gpu = builder.finish();
+        gpu.euler_h_cpu = h_cpu;
         let verdict = selftest::gpu(
             &mut gpu, &self.plan, &self.a[..self.a.len().min(selftest::HEAD)],
             &self.b2[..self.b2.len().min(selftest::HEAD)], self.a.len(), self.b.len(),
@@ -4431,30 +4445,58 @@ impl Key {
         [sa, sb, sk]: [&mut [Fr]; 3],
         [a, b]: [&[Fr]; 2],
         public: &[Fr],
+        omit_b: bool,
     ) -> Result<Vec<u8>, String> {
         let queries = self.lagrange.as_ref().expect("Euler basis");
         let folded = queries.folded.as_ref().expect("folded Euler query");
         let started = crate::time::Instant::now();
+        let bs1 = if omit_b {
+            G1Projective::IDENTITY
+        } else {
+            msm_g1(&self.b, sb)
+        };
         let (hz, ((ar, kr), bs2)) = std::thread::scope(|scope| {
             let quotient_msm = scope.spawn(|| {
                 let started = crate::time::Instant::now();
                 let mut z = gpu.z.lock().unwrap();
                 let mut quotient = gpu.quotient.lock().unwrap();
                 let device_sort = z.sorts_on_gpu();
-                quotient.start_euler(a, b, !device_sort);
-                let pending = if device_sort {
+                let host_start = a.len() - gpu.euler_h_cpu;
+                let download_from = if device_sort {
+                    (gpu.euler_h_cpu != 0).then_some(host_start)
+                } else {
+                    Some(0)
+                };
+                quotient.start_euler(a, b, download_from);
+                if device_sort {
                     if std::env::var("ZOPRO_ANDROID_EULER_DIRECT_SORT").as_deref() == Ok("1") {
                         z.count_from_exclusive(quotient.output());
                     } else {
                         z.count_from(quotient.output());
                     }
-                    z.start_counted()
-                } else {
-                    let scalars = quotient.finish()?;
-                    let z = &mut *z;
-                    sort_pool(false).install(|| z.start(&scalars))
-                };
-                let (hz, timing) = z.finish(pending)?;
+                }
+                let mut scalars = if download_from.is_some() { quotient.finish()? } else { Vec::new() };
+                let gpu_readback = if device_sort { 0 } else { host_start };
+                let (device_scalars, cpu_scalars) = scalars.split_at_mut(gpu_readback);
+                let ((hz, timing), host_h) = std::thread::scope(|scope| {
+                    let host_h = (!cpu_scalars.is_empty()).then(|| scope.spawn(|| {
+                        let started = crate::time::Instant::now();
+                        let result = msm_affine::msm_in_place(
+                            &queries.product[host_start..a.len()], cpu_scalars,
+                        );
+                        trace("vulkan-cpu-msm-h", started);
+                        result
+                    }));
+                    let pending = if device_sort {
+                        z.start_counted()
+                    } else {
+                        let z = &mut *z;
+                        sort_pool(false).install(|| z.start(device_scalars))
+                    };
+                    let result = z.finish(pending)?;
+                    let host_h = host_h.map_or(G1Projective::IDENTITY, |work| work.join().expect("CPU Euler product"));
+                    Ok::<_, String>((result, host_h))
+                })?;
                 quotient.finish_device_profile()?;
                 gpu_trace("z", timing.sort_ms, timing.gpu_ms);
                 trace("vulkan-euler-h", started);
@@ -4464,7 +4506,7 @@ impl Key {
                 {
                     log::info!("ZOPRO_TRACE vulkan-euler-device-profile\n{}", zopro_wgpu::profile::report());
                 }
-                Ok::<_, String>(hz)
+                Ok::<_, String>(hz + host_h)
             });
             #[cfg(target_arch = "aarch64")]
             let (prepared_a, prepared_b2, prepared_k) = if std::env::var("ZOPRO_ANDROID_EULER_SERIAL_PREP").as_deref() == Ok("1") {
@@ -4521,7 +4563,7 @@ impl Key {
         })?;
         trace("vulkan-euler-cpu-witness", started);
         let mut out = Vec::with_capacity(384);
-        for point in [ar, G1Projective::IDENTITY, kr + folded.public_term(public), queries.finish_product(hz)] {
+        for point in [ar, bs1, kr + folded.public_term(public), queries.finish_product(hz)] {
             output_g1(&mut out, point);
         }
         output_g2(&mut out, bs2);

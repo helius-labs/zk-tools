@@ -478,11 +478,12 @@ impl Quotient {
     }
 
     #[cfg(target_os = "android")]
-    pub fn start_euler(&mut self, a: &[Fr], b: &[Fr], download: bool) {
+    pub fn start_euler(&mut self, a: &[Fr], b: &[Fr], download_from: Option<usize>) {
         let euler = self.euler.as_ref().expect("prepared Euler workspace");
         let active = euler.active;
         assert_eq!((a.len(), b.len()), (active, active));
-        self.result_len = active;
+        assert!(download_from.is_none_or(|first| first < active));
+        self.result_len = active - download_from.unwrap_or(active);
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         let active_bytes = (active * 32) as u64;
         let domain_bytes = (self.n * 32) as u64;
@@ -528,8 +529,8 @@ impl Quotient {
         if euler.fused.is_none() {
             dispatch(&mut encoder, "fr_euler_product", &euler.product, self.abc.as_entire_binding(), &euler.rows, active);
         }
-        if download {
-            encoder.copy_buffer_to_buffer(&self.abc, 0, &self.staging, 0, active_bytes);
+        if let Some(first) = download_from {
+            encoder.copy_buffer_to_buffer(&self.abc, (first * 32) as u64, &self.staging, 0, (self.result_len * 32) as u64);
         }
         if let Some(timer) = self.timer.borrow().as_ref() {
             timer.resolve(&mut encoder);
