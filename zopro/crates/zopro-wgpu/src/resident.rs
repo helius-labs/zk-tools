@@ -22,6 +22,7 @@ pub(super) struct ResidentSort {
     shard_buckets: wgpu::Buffer,
     first_shard: usize,
     first_lanes_per_shard: usize,
+    first_group: u32,
     prefix_arguments: wgpu::Buffer,
     chunk_arguments: Vec<[wgpu::Buffer; 4]>,
 }
@@ -39,6 +40,22 @@ impl ResidentSort {
         let first_log = first_shard.trailing_zeros();
         let repair_requested = std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_REPAIR").as_deref() == Ok("1");
         let cooperative = std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_COOPERATIVE").as_deref() == Ok("1");
+        let custom_group = match std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_FIRST_GROUP").as_deref() {
+            Ok("32") => Some((32, "msm_resident_first_wg32", "msm_resident_first_repair_wg32")),
+            Ok("128") => Some((128, "msm_resident_first_wg128", "msm_resident_first_repair_wg128")),
+            _ => None,
+        };
+        let first_group = custom_group.map_or(WORKGROUP, |(size, _, _)| size);
+        if custom_group.is_some() {
+            let limits = gpu.device.limits();
+            if short || cooperative || !repair_requested
+                || first_group > limits.max_compute_workgroup_size_x
+                || first_group > limits.max_compute_invocations_per_workgroup
+            {
+                return Err("custom Vulkan bucket workgroups require supported 32-point loose repair".into());
+            }
+            log::info!("ZOPRO_TRACE vulkan-euler-h first workgroup={first_group}");
+        }
         if cooperative && (short || !repair_requested || !gpu.device.features().contains(wgpu::Features::SUBGROUP)) {
             return Err("cooperative Vulkan buckets require subgroup shuffles and 32-point repair".into());
         }
@@ -56,6 +73,7 @@ impl ResidentSort {
         } else {
             "msm_resident_first"
         };
+        let first_name = custom_group.map_or(first_name, |(_, first, _)| first);
         let first = pipeline(first_name, &[Read, Read, Read, Read, Read, Write, Uniform, Read])?;
         let tree = pipeline(
             if short { "msm_resident_tree_short" } else { "msm_resident_tree" },
@@ -69,8 +87,9 @@ impl ResidentSort {
                 return Err("Vulkan affine pairing and loose first-stage repair are mutually exclusive".into());
             }
             log::info!("ZOPRO_TRACE vulkan-euler-h resident loose repair");
+            let name = if short { "msm_resident_first_short_repair" } else { "msm_resident_first_repair" };
             Some(pipeline(
-                if short { "msm_resident_first_short_repair" } else { "msm_resident_first_repair" },
+                custom_group.map_or(name, |(_, _, repair)| repair),
                 &[Read, Read, Read, Read, Read, Write, Uniform, Read],
             )?)
         } else {
@@ -126,6 +145,7 @@ impl ResidentSort {
             shard_buckets: storage(&gpu.device, "resident MSM first-stage bucket IDs", windows * stride * 4),
             first_shard,
             first_lanes_per_shard: if cooperative { 2 } else { 1 },
+            first_group,
             prefix_arguments: uniform_words(
                 gpu, &[n as u32, half_range as u32, windows as u32, stride as u32, first_log, 0, 0, 0],
             ),
@@ -168,6 +188,7 @@ impl ResidentSort {
     ) {
         let window_count = (msm.windows - chunk * msm.chunk_windows).min(msm.chunk_windows) as u32;
         let groups = |points: usize| [points.div_ceil(WORKGROUP as usize) as u32, window_count];
+        let first_groups = |points: usize| [points.div_ceil(self.first_group as usize) as u32, window_count];
         let device = &msm.gpu.device;
         let [first, second, third, final_level] = &self.chunk_arguments[chunk];
         let points = msm.n.div_ceil(self.first_shard) + msm.half;
@@ -195,11 +216,11 @@ impl ResidentSort {
         ];
         dispatch(
             device, encoder, &self.first, &first_buffers,
-            groups(points * self.first_lanes_per_shard), timer, "msm_resident_first",
+            first_groups(points * self.first_lanes_per_shard), timer, "msm_resident_first",
         );
         if let Some(repair) = &self.repair {
             dispatch(
-                device, encoder, repair, &first_buffers, groups(points), timer, "msm_resident_first_repair",
+                device, encoder, repair, &first_buffers, first_groups(points), timer, "msm_resident_first_repair",
             );
         }
         for (input, output, arguments, count) in [
