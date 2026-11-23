@@ -559,7 +559,7 @@ impl Quotient {
             let directory = std::path::PathBuf::from(directory);
             use Slot::{Read, Uniform, Write};
             let tiled = self.tiled.as_ref().ok_or("paired Euler requires a tiled transform")?;
-            if fused.is_some() || tiled.packed_roots
+            if fused.is_some() || tiled.packed_roots || tiled.large
                 || self.abc.size() > device.limits().max_storage_buffer_binding_size as u64
             {
                 return Err("paired Euler is incompatible with this quotient workspace".into());

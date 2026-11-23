@@ -403,7 +403,7 @@ fn android_euler_pools() -> Option<&'static AndroidEulerPools> {
         let (witness, quotient) = spec.split_once('/')?;
         let witness: usize = witness.parse().ok()?;
         let quotient: usize = quotient.parse().ok()?;
-        if !(1..=8).contains(&witness) || !(1..=8).contains(&quotient) || witness + quotient > 8 {
+        if !(2..=7).contains(&witness) || !(1..=6).contains(&quotient) || witness + quotient > 8 {
             return None;
         }
         let build = |name, threads| rayon::ThreadPoolBuilder::new()
@@ -4714,7 +4714,7 @@ impl Key {
                 let host_h = |scalars: &mut [Fr]| {
                     let started = crate::time::Instant::now();
                     let bases = &queries.product[host_start..len];
-                    let work = || {
+                    let mut work = || {
                         #[cfg(target_arch = "aarch64")]
                         return msm_affine::android_euler_h(bases, scalars);
                         #[cfg(not(target_arch = "aarch64"))]
