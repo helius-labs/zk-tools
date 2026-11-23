@@ -12,3 +12,6 @@ done
 for k in msm_count_booth msm_scatter_booth; do
   "$GLSLC" -O -DZOPRO_BOOTH_GROUPED=1 -fshader-stage=compute --target-env=vulkan1.1 "$k.comp" -o "out/${k}_grouped.spv"
 done
+for k in fr_fft_tile fr_euler_degree fr_euler_product; do
+  "$GLSLC" -O -DZOPRO_VULKAN_WIDE_FR=1 -fshader-stage=compute --target-env=vulkan1.1 "$k.comp" -o "out/${k}_wide.spv"
+done

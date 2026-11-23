@@ -137,6 +137,17 @@ impl Drop for FusedEulerTiles {
 fn quotient_kernel(gpu: &Gpu, entry: &'static str, builtin: &[u8], slots: &[Slot]) -> wgpu::ComputePipeline {
     gpu.kernel(entry, || {
         #[cfg(target_os = "android")]
+        let builtin: &[u8] = if std::env::var("ZOPRO_VULKAN_WIDE_FR").as_deref() == Ok("1") {
+            match entry {
+                "fr_fft_tile" => include_bytes!("../glsl/out/fr_fft_tile_wide.spv"),
+                "fr_euler_degree" => include_bytes!("../glsl/out/fr_euler_degree_wide.spv"),
+                "fr_euler_product" => include_bytes!("../glsl/out/fr_euler_product_wide.spv"),
+                _ => builtin,
+            }
+        } else {
+            builtin
+        };
+        #[cfg(target_os = "android")]
         let candidate = std::env::var_os("ZOPRO_VULKAN_QUOTIENT_SPV_DIR")
             .and_then(|directory| std::fs::read(std::path::PathBuf::from(directory).join(format!("{entry}.spv"))).ok());
         #[cfg(target_os = "android")]

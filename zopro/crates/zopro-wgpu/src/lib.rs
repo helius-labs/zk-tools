@@ -503,7 +503,9 @@ impl Gpu {
         if spirv {
             features |= wgpu::Features::PASSTHROUGH_SHADERS;
         }
-        if spirv && std::env::var("ZOPRO_VULKAN_WIDE_FP").as_deref() == Ok("1") {
+        if spirv && (std::env::var("ZOPRO_VULKAN_WIDE_FP").as_deref() == Ok("1")
+            || (cfg!(target_os = "android") && std::env::var("ZOPRO_VULKAN_WIDE_FR").as_deref() == Ok("1")))
+        {
             let int64 = wgpu::Features::SHADER_INT64;
             if !adapter.features().contains(int64) {
                 return Err("Vulkan shaderInt64 is unavailable".into());
