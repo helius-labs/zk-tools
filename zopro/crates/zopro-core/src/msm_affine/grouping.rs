@@ -34,6 +34,12 @@ where
     if scalars.len() >= crate::msm::apple_class_tiles::MIN_BASES {
         return apple_large::group::<C>(scalars);
     }
+    #[cfg(all(target_os = "android", target_arch = "aarch64"))]
+    if crate::simd::cpu_option("ZOPRO_CPU_DEDUP") {
+        if let Some(groups) = group_bounded_android::<C>(scalar_words(scalars)) {
+            return Some(canonicalize::<false>(groups));
+        }
+    }
     group_witness_inner::<false, false>(scalars, None, grouping_cost::peak_for::<C>, false)
 }
 
@@ -212,8 +218,39 @@ pub(super) fn groups_with_diversity_check<C: CurveConfig>(
 where
     C::Base: crate::msm::BatchInverse,
 {
+    #[cfg(all(target_os = "android", target_arch = "aarch64"))]
+    if let Some(groups) = group_bounded_android::<C>(scalars) {
+        return Some(groups);
+    }
     let zero_aware = std::env::var("ZOPRO_CPU_ZERO_AWARE_GROUPS").as_deref() == Ok("1");
     group_with_gate::<true, false>(scalars, zero_aware, None, grouping_cost::peak_for::<C>, false)
+}
+
+#[cfg(all(target_os = "android", target_arch = "aarch64"))]
+fn group_bounded_android<C: CurveConfig>(scalars: &[[u64; 4]]) -> Option<ScalarGroups>
+where
+    C::Base: crate::msm::BatchInverse,
+{
+    let n = scalars.len();
+    if !((1 << 18)..u32::MAX as usize).contains(&n)
+        || std::env::var("ZOPRO_ANDROID_BOUNDED_CLASSES").as_deref() != Ok("1")
+    {
+        return None;
+    }
+    let (sample, _) = sample_with_cutoff(scalars, true, 80)?;
+    // The sample screens out obviously diverse inputs. A query with tens of
+    // thousands of classes can still have a mostly unique sample. Scan all
+    // values and stop before adding a class over the cap.
+    let limit = n / 6;
+    let capacity = (sample.len() * 128).min(limit);
+    let reservation = grouping_cost::reserve(n, grouping_cost::bounded_classes::<C>(n, limit))?;
+    let mut classes = vec![u32::MAX; n];
+    let (values, counts) = classify_up_to(
+        scalars, &mut classes, capacity, limit, ahash::RandomState::new(),
+    )?;
+    #[cfg(feature = "trace")]
+    log::info!("ZOPRO_TRACE android-bounded-classes entries={n} classes={} limit={limit}", values.len());
+    Some(assemble_groups(classes, values, counts, reservation))
 }
 
 type GroupSample<'a> = std::collections::HashSet<&'a [u64; 4], ahash::RandomState>;
@@ -415,6 +452,17 @@ fn classify_nonzero(
     capacity: usize,
     state: impl std::hash::BuildHasher,
 ) -> (Vec<[u64; 4]>, Vec<usize>) {
+    classify_up_to(scalars, classes, capacity, usize::MAX, state)
+        .expect("the unlimited classifier accepts every class")
+}
+
+fn classify_up_to(
+    scalars: &[[u64; 4]],
+    classes: &mut [u32],
+    capacity: usize,
+    limit: usize,
+    state: impl std::hash::BuildHasher,
+) -> Option<(Vec<[u64; 4]>, Vec<usize>)> {
     use hashbrown::{hash_table::Entry, HashTable};
 
     let mut table = HashTable::<u32>::with_capacity(capacity);
@@ -424,25 +472,27 @@ fn classify_nonzero(
         if *scalar == [0; 4] {
             continue;
         }
-        let index = match table.entry(
-            state.hash_one(scalar),
-            |&index| values[index as usize] == *scalar,
-            |&index| state.hash_one(&values[index as usize]),
-        ) {
-            Entry::Occupied(entry) => *entry.get(),
-            Entry::Vacant(entry) => {
-                // The caller bounds the total input length below u32::MAX.
-                let index = values.len() as u32;
-                values.push(*scalar);
-                counts.push(0);
-                entry.insert(index);
-                index
+        let hash = state.hash_one(scalar);
+        let equal = |&index: &u32| values[index as usize] == *scalar;
+        let index = if values.len() == limit {
+            *table.find(hash, equal)?
+        } else {
+            match table.entry(hash, equal, |&index| state.hash_one(&values[index as usize])) {
+                Entry::Occupied(entry) => *entry.get(),
+                Entry::Vacant(entry) => {
+                    // The caller bounds the total input length below u32::MAX.
+                    let index = values.len() as u32;
+                    values.push(*scalar);
+                    counts.push(0);
+                    entry.insert(index);
+                    index
+                }
             }
         };
         *class = index;
         counts[index as usize] += 1;
     }
-    (values, counts)
+    Some((values, counts))
 }
 
 #[cfg(test)]

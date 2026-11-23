@@ -32,17 +32,32 @@ pub(super) fn limits<C: CurveConfig>(n: usize, u: usize) -> Option<(usize, usize
 where
     C::Base: BatchInverse,
 {
+    limits_with_class_cap::<C>(n, u, n)
+}
+
+#[cfg(all(target_os = "android", target_arch = "aarch64"))]
+pub(super) fn bounded_classes<C: CurveConfig>(n: usize, cap: usize) -> Option<usize>
+where
+    C::Base: BatchInverse,
+{
+    Some(limits_with_class_cap::<C>(n, cap, cap)?.0)
+}
+
+fn limits_with_class_cap<C: CurveConfig>(n: usize, u: usize, cap: usize) -> Option<(usize, usize)>
+where
+    C::Base: BatchInverse,
+{
     let sample = hash_table::<&[u64; 4]>(n.min(2048))?;
-    let values = vector::<[u64; 4]>(n, true)?;
-    let counts = vector::<usize>(n, true)?;
+    let values = vector::<[u64; 4]>(cap, true)?;
+    let counts = vector::<usize>(cap, true)?;
     let build = add(
-        add(add(hash_table::<([u64; 4], u32)>(n)?, values)?, counts)?,
+        add(add(hash_table::<([u64; 4], u32)>(cap)?, values)?, counts)?,
         vector::<u32>(n, false)?,
     )?;
     let lists = add(
         add(
             add(add(values, counts)?, vector::<u32>(n, false)?)?,
-            mul(vector::<usize>(add(n, 1)?, false)?, 2)?,
+            mul(vector::<usize>(add(cap, 1)?, false)?, 2)?,
         )?,
         vector::<u32>(n, false)?,
     )?;
