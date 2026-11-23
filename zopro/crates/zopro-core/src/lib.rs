@@ -4521,6 +4521,24 @@ impl Key {
             #[cfg(feature = "trace")]
             log::info!("ZOPRO_TRACE vulkan-shard-repair repeated-point check passed");
         }
+        if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_REPAIR_CHECK").as_deref() == Ok("1") {
+            let size = 1 << 18;
+            let bases: Vec<_> = (0..size)
+                .map(|i| if i % 11 == 0 { G1Affine::IDENTITY } else { G1Affine::GENERATOR })
+                .collect();
+            let scalars: Vec<_> = (0..size)
+                .map(|i| if i % 7 == 0 { -Fr::from(5u64) } else { Fr::from(5u64) })
+                .collect();
+            let expected: Fr = scalars.iter().enumerate()
+                .filter(|(i, _)| i % 11 != 0)
+                .fold(Fr::ZERO, |sum, (_, value)| sum + *value);
+            let mut probe = zopro_wgpu::G1Msm::new_android_euler(builder.gpu.clone(), &bases)?.0;
+            if probe.msm(&scalars)?.0 != G1Affine::GENERATOR * expected {
+                return Err("Vulkan resident shard repair failed its signed repeated-point check".into());
+            }
+            #[cfg(feature = "trace")]
+            log::info!("ZOPRO_TRACE vulkan resident shard repair repeated-point check passed");
+        }
         let mut gpu = builder.finish();
         gpu.euler_h_cpu = h_cpu;
         let verdict = selftest::gpu(

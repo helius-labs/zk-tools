@@ -17,6 +17,7 @@ pub(super) struct ResidentSort {
     first: wgpu::ComputePipeline,
     tree: wgpu::ComputePipeline,
     affine_batch: Option<AffineBatch>,
+    repair: Option<wgpu::ComputePipeline>,
     offsets: wgpu::Buffer,
     totals: wgpu::Buffer,
     shard_buckets: wgpu::Buffer,
@@ -35,6 +36,21 @@ impl ResidentSort {
         let prefix = pipeline("msm_resident_prefix", &[Read, Write, Write, Write, Uniform, Write])?;
         let first = pipeline("msm_resident_first", &[Read, Read, Read, Read, Read, Write, Uniform, Read])?;
         let tree = pipeline("msm_resident_tree", &[Read, Read, Read, Read, Write, Uniform, Write])?;
+        let repair = if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_REPAIR")
+            .is_ok_and(|value| value == "1")
+        {
+            if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_AFFINE_BATCH").as_deref() == Ok("1") {
+                return Err("Vulkan affine pairing and loose first-stage repair are mutually exclusive".into());
+            }
+            log::info!("ZOPRO_TRACE vulkan-euler-h resident loose repair");
+            Some(pipeline(
+                "msm_resident_first_repair",
+                &[Read, Read, Read, Read, Read, Write, Uniform, Read],
+            )?)
+        } else {
+            None
+        };
+
         let stride = n.div_ceil(32) + half_range;
         let affine_batch = if std::env::var("ZOPRO_ANDROID_VULKAN_RESIDENT_AFFINE_BATCH")
             .is_ok_and(|value| value == "1")
@@ -74,6 +90,7 @@ impl ResidentSort {
             first,
             tree,
             affine_batch,
+            repair,
             offsets: storage(&gpu.device, "resident MSM bucket offsets", windows * half_range * 16),
             totals: storage(&gpu.device, "resident MSM window totals", windows * 16),
             shard_buckets: storage(&gpu.device, "resident MSM first-stage bucket IDs", windows * stride * 4),
@@ -83,7 +100,7 @@ impl ResidentSort {
     }
 
     pub(super) fn passes_per_chunk(&self) -> usize {
-        4 + usize::from(self.affine_batch.is_some())
+        4 + usize::from(self.affine_batch.is_some()) + usize::from(self.repair.is_some())
     }
 
     pub(super) fn encode_prefix(
@@ -138,18 +155,18 @@ impl ResidentSort {
             &msm.bases
         };
 
+        let first_buffers = [
+            bases, &msm.sorted, &sort.counts, &self.offsets,
+            &self.totals, &msm.tree[0], first, &self.shard_buckets,
+        ];
         dispatch(
-            device,
-            encoder,
-            &self.first,
-            &[
-                bases, &msm.sorted, &sort.counts, &self.offsets,
-                &self.totals, &msm.tree[0], first, &self.shard_buckets,
-            ],
-            groups(points),
-            timer,
-            "msm_resident_first",
+            device, encoder, &self.first, &first_buffers, groups(points), timer, "msm_resident_first",
         );
+        if let Some(repair) = &self.repair {
+            dispatch(
+                device, encoder, repair, &first_buffers, groups(points), timer, "msm_resident_first_repair",
+            );
+        }
         for (input, output, arguments, count) in [
             (&msm.tree[0], &msm.tree[1], second, msm.n.div_ceil(1024) + msm.half),
             (&msm.tree[1], &msm.tree[0], third, msm.n.div_ceil(32768) + msm.half),
