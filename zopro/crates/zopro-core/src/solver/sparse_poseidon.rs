@@ -461,6 +461,38 @@ impl Plan {
         if std::env::var("ZOPRO_CPU_POSEIDON_TRACE").as_deref() == Ok("1") {
             eprintln!("POSEIDON_SPANS {counts:?}");
         }
+        #[cfg(all(target_os = "android", feature = "trace"))]
+        if std::env::var("ZOPRO_ANDROID_POSEIDON_WAVES").as_deref() == Ok("1") {
+            let mut totals = [0usize; 14];
+            for (epoch_id, epoch) in s.epochs.iter().enumerate() {
+                let mut waves = Vec::<usize>::new();
+                for task in epoch.iter().filter(|task| self.poseidon_task(task)) {
+                    let mut pos = 0;
+                    let mut wave = 0;
+                    while pos < task.len() {
+                        let width = (task[pos] >> 28) as usize;
+                        if width == 0 {
+                            pos += 1;
+                            continue;
+                        }
+                        totals[width] += 1;
+                        if width == 3 {
+                            if waves.len() <= wave {
+                                waves.push(0);
+                            }
+                            waves[wave] += 1;
+                            wave += 1;
+                        }
+                        let (partial, _) = parameters(width);
+                        pos += 3 * (7 * width + partial);
+                    }
+                }
+                if !waves.is_empty() {
+                    log::info!("ZOPRO_TRACE android-poseidon-waves epoch={epoch_id} width=3 waves={waves:?}");
+                }
+            }
+            log::info!("ZOPRO_TRACE android-poseidon-widths {totals:?}");
+        }
         counts.into_iter().any(|count| count != 0)
     }
     #[inline(always)]
@@ -487,8 +519,20 @@ impl Plan {
                 pos += 1;
             } else {
                 let (partial, a) = parameters(t);
+                #[cfg(all(target_os = "android", target_arch = "aarch64", not(no_asm)))]
+                {
+                    static SPECIALIZED: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+                    let enabled = SPECIALIZED.get_or_init(|| {
+                        std::env::var("ZOPRO_ANDROID_POSEIDON_WIDTH3").as_deref() == Ok("1")
+                    });
+                    if t == 3 && *enabled {
+                        unsafe { self.run_poseidon::<3>(&task[pos..], t, partial, a, v)? };
+                        pos += 3 * (7 * t + partial);
+                        continue;
+                    }
+                }
                 unsafe {
-                    self.run_poseidon(&task[pos..], t, partial, a, v)?;
+                    self.run_poseidon::<0>(&task[pos..], t, partial, a, v)?;
                 }
                 pos += 3 * (7 * t + partial);
             }
@@ -545,7 +589,7 @@ impl Plan {
         }
         fifth
     }
-    unsafe fn run_poseidon(
+    unsafe fn run_poseidon<const WIDTH: usize>(
         &self,
         task: &[u32],
         t: usize,
@@ -553,6 +597,8 @@ impl Plan {
         a: &[Fr],
         v: View,
     ) -> Result<(), String> {
+        let t = if WIDTH == 0 { t } else { WIDTH };
+        let partial = if WIDTH == 3 { 57 } else { partial };
         for &id in &task[..3 * t] {
             unsafe {
                 self.run(&self.ops[(id & INDEX) as usize], v)?;
@@ -610,13 +656,24 @@ impl Plan {
         c += 1;
         for r in 0..partial {
             let offset = sparse + r * (2 * t - 1);
-            let mut rest = if r + 1 < partial {
+            let constant = if r + 1 < partial {
                 let z = a[c];
                 c += 1;
                 z
             } else {
                 Fr::ZERO
             };
+            #[cfg(all(target_os = "android", target_arch = "aarch64", not(no_asm)))]
+            if WIDTH == 3 {
+                let head = unsafe { self.emit_poseidon(task, t, partial, k, x, v) };
+                k += 1;
+                let coefficients = [a[offset], a[offset + 1], a[offset + 2]];
+                x = constant + Fr::sum_of_three_products(coefficients, [head, s[1], s[2]]);
+                s[1] += a[offset + 3] * head;
+                s[2] += a[offset + 4] * head;
+                continue;
+            }
+            let mut rest = constant;
             if t == 3 {
                 rest += Fr::sum_of_products(&a[offset + 1], &s[1], &a[offset + 2], &s[2]);
             } else {
