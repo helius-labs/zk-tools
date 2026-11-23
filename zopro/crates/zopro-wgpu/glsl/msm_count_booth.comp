@@ -33,7 +33,7 @@ void main() {
   if (digit != 0) {
     uint bucket = window * sort.half_range + uint(abs(digit)) - 1u;
 #ifdef ZOPRO_BOOTH_PARTITIONS
-    bucket = bucket * partition_count(sort.n) + (i >> PARTITION_SHIFT);
+    bucket += (i >> PARTITION_SHIFT) * sort.windows * sort.half_range;
 #endif
     atomicAdd(counts.values[bucket], 1u);
   }

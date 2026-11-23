@@ -66,7 +66,7 @@ void main() {
     const uint parts = partition_count(args.n);
     uint cursor = start.x;
     for (uint part = 0u; part < parts; ++part) {
-      const uint offset = index * parts + part;
+      const uint offset = part * args.windows * args.half_range + index;
       const uint entries = partitions.values[offset];
       partitions.values[offset] = cursor;
       cursor += entries;

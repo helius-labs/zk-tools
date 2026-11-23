@@ -19,6 +19,6 @@ void main() {
   const uint parts = partition_count(args.n);
   uint count = 0u;
   for (uint part = 0u; part < parts; ++part)
-    count += partitions.values[bucket * parts + part];
+    count += partitions.values[part * args.windows * args.half_range + bucket];
   histogram.values[bucket] = count;
 }
