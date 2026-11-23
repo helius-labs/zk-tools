@@ -214,6 +214,8 @@ pub struct Pending {
     timer: Option<profile::Timer>,
     #[cfg(target_os = "android")]
     bucket_submissions: Vec<wgpu::SubmissionIndex>,
+    #[cfg(target_os = "android")]
+    resident_count_profile: Option<(wgpu::SubmissionIndex, profile::Timer)>,
 }
 
 /// Per-kernel GPU times from timestamp queries, where the device has them
@@ -711,6 +713,9 @@ impl Gpu {
     }
 }
 
+#[cfg(target_os = "android")]
+mod resident;
+
 pub struct Msm<C: Curve> {
     /// Running the pre-compiled kernels, whose bindings are one contiguous
     /// set each (see `spirv_pipeline`).
@@ -745,6 +750,8 @@ pub struct Msm<C: Curve> {
     /// windows while Vulkan writes subsequent windows.
     #[cfg(target_os = "android")]
     host_buckets: Vec<wgpu::Buffer>,
+    #[cfg(target_os = "android")]
+    resident_sort: Option<resident::ResidentSort>,
     reduce_uniform: wgpu::Buffer,
     counts: Vec<u32>,
     starts: Vec<u32>,
@@ -1097,13 +1104,22 @@ impl Msm<G1Projective> {
         if host_reduce {
             log::info!("ZOPRO_TRACE vulkan-euler-h host bucket reduction");
         }
-        Self::new_with_width(gpu, bases, width, pair_kernel.as_deref(), host_reduce)
+        let resident = (booth && bases.len() <= 1 << 21 && first_shard(true) == 32
+            && first_group() == WORKGROUP
+            && std::env::var("ZOPRO_VULKAN_SHARD_REPAIR").as_deref() != Ok("1"))
+            .then(|| std::env::var_os("ZOPRO_ANDROID_VULKAN_RESIDENT_DIR"))
+            .flatten().map(std::path::PathBuf::from);
+        Self::new_with_width(gpu, bases, width, pair_kernel.as_deref(), host_reduce, resident.as_deref())
     }
 }
 
 impl<C: Curve> Msm<C> {
     pub fn new(gpu: std::sync::Arc<Gpu>, bases: &[C::Affine]) -> Result<(Self, f64), String> {
-        Self::new_with_width(gpu, bases, None, None, #[cfg(target_os = "android")] false)
+        Self::new_with_width(
+            gpu, bases, None, None,
+            #[cfg(target_os = "android")] false,
+            #[cfg(target_os = "android")] None,
+        )
     }
 
     fn new_with_width(
@@ -1112,6 +1128,7 @@ impl<C: Curve> Msm<C> {
         width: Option<usize>,
         pair_kernel: Option<&[u8]>,
         #[cfg(target_os = "android")] host_reduce: bool,
+        #[cfg(target_os = "android")] resident_dir: Option<&std::path::Path>,
     ) -> Result<(Self, f64), String> {
         let device = &gpu.device;
         let started = Instant::now();
@@ -1341,6 +1358,22 @@ impl<C: Curve> Msm<C> {
             gpu.save_cache();
         }
         let memory = device.push_error_scope(wgpu::ErrorFilter::OutOfMemory);
+        #[cfg(target_os = "android")]
+        let resident_sort = if let Some(path) = resident_dir {
+            let validation = device.push_error_scope(wgpu::ErrorFilter::Validation);
+            let internal = device.push_error_scope(wgpu::ErrorFilter::Internal);
+            let result = resident::ResidentSort::new(&gpu, path, [n, half, windows, chunk_windows]);
+            let errors = [internal, validation].map(popped);
+            if let Some(error) = errors.into_iter().flatten().next() {
+                return Err(format!("resident sorting: {error}"));
+            }
+            let plan = result?;
+            gpu.save_cache();
+            log::info!("ZOPRO_TRACE vulkan-euler-h resident bucket planning");
+            Some(plan)
+        } else {
+            None
+        };
         let bases_buffer = storage(device, "bases", raw.len());
         gpu.queue.write_buffer(&bases_buffer, 0, &raw);
         let msm = Self {
@@ -1387,6 +1420,8 @@ impl<C: Curve> Msm<C> {
             } else {
                 Vec::new()
             },
+            #[cfg(target_os = "android")]
+            resident_sort,
             reduce_uniform: uniform(
                 &gpu,
                 [half as u32, reduce_shape[0] as u32, per_window as u32, 0],
@@ -1434,7 +1469,9 @@ impl<C: Curve> Msm<C> {
         if self.gpu_sort.is_some() {
             self.count_once(scalars);
             #[cfg(not(target_arch = "wasm32"))]
-            self.read_counts();
+            if self.plans_on_host() {
+                self.read_counts();
+            }
         } else {
             self.sort_on_host(scalars);
         }
@@ -1456,11 +1493,20 @@ impl<C: Curve> Msm<C> {
         let started = Instant::now();
         if self.gpu_sort.is_some() {
             self.count_once(scalars);
-            self.read_counts_async().await;
+            if self.plans_on_host() {
+                self.read_counts_async().await;
+            }
         } else {
             self.sort_on_host(scalars);
         }
         self.submit_sorted(started)
+    }
+
+    fn plans_on_host(&self) -> bool {
+        #[cfg(target_os = "android")]
+        return self.resident_sort.is_none();
+        #[cfg(not(target_os = "android"))]
+        true
     }
 
     /// Submits the counting unless `count`/`count_from` already did.
@@ -1491,21 +1537,39 @@ impl<C: Curve> Msm<C> {
         let mut profile = std::env::var("ZOPRO_WGPU_STAGES")
             .is_ok_and(|v| v == "1")
             .then(Stages::default);
-        let chunks: Vec<Vec<usize>> = (0..self.windows.div_ceil(self.chunk_windows))
-            .map(|chunk| {
+        let chunk_count = self.windows.div_ceil(self.chunk_windows);
+        let host_plans = self.plans_on_host();
+        let chunks: Vec<Vec<usize>> = if host_plans {
+            (0..chunk_count).map(|chunk| {
                 let first = chunk * self.chunk_windows;
                 self.plan(chunk, first..(first + self.chunk_windows).min(self.windows))
-            })
-            .collect();
+            }).collect()
+        } else {
+            Vec::new()
+        };
+        #[cfg(target_os = "android")]
+        let resident_count_profile = (!host_plans).then(|| {
+            let sort = self.gpu_sort.as_mut().expect("resident GPU sort");
+            let counts = sort.counted.take().expect("submitted resident histogram");
+            sort.count_timer.take().map(|timer| (counts, timer))
+        }).flatten();
         let passes = self.gpu_sort.as_ref().map_or(0, |s| s.slices.len())
-            + chunks.iter().map(Vec::len).sum::<usize>()
-            + usize::from(self.first_repair.is_some()) * chunks.len()
+            + if host_plans {
+                chunks.iter().map(Vec::len).sum::<usize>()
+                    + usize::from(self.first_repair.is_some()) * chunk_count
+            } else {
+                1 + 4 * chunk_count
+            }
             + 1;
         let mut timer = profile::Timer::new(&self.gpu, passes);
         if let Some(sort) = &self.gpu_sort {
-            self.gpu
-                .queue
-                .write_buffer(&sort.cursors, 0, bytemuck_cast(&self.starts));
+            #[cfg(target_os = "android")]
+            if let Some(resident) = &self.resident_sort {
+                resident.encode_prefix(self, sort, &mut encoder, &mut timer);
+            }
+            if host_plans {
+                self.gpu.queue.write_buffer(&sort.cursors, 0, bytemuck_cast(&self.starts));
+            }
             for (slice, uniform) in sort.slices.iter().enumerate() {
                 let group = self
                     .gpu
@@ -1556,8 +1620,14 @@ impl<C: Curve> Msm<C> {
         encoder.clear_buffer(&self.buckets, 0, None);
         #[cfg(target_os = "android")]
         let mut bucket_submissions = Vec::with_capacity(self.host_buckets.len());
-        for (chunk, levels) in chunks.iter().enumerate() {
-            let last = levels.len() - 1;
+        for chunk in 0..chunk_count {
+            #[cfg(target_os = "android")]
+            if let Some(resident) = &self.resident_sort {
+                let sort = self.gpu_sort.as_ref().expect("resident GPU sort");
+                resident.encode_chunk(self, sort, chunk, &mut encoder, &mut timer);
+            }
+            let levels = chunks.get(chunk).map(Vec::as_slice).unwrap_or(&[]);
+            let last = levels.len().saturating_sub(1);
             for (level, shards) in levels.iter().enumerate() {
                 let pipeline = if level == 0 {
                     &self.first
@@ -1689,7 +1759,10 @@ impl<C: Curve> Msm<C> {
             if let Some(sort) = &mut self.gpu_sort {
                 sort.external_scalars = None;
             }
-            return Pending { submitted: started, timings, submission, timer, bucket_submissions };
+            return Pending {
+                submitted: started, timings, submission, timer,
+                bucket_submissions, resident_count_profile,
+            };
         }
         {
             let group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -1741,6 +1814,8 @@ impl<C: Curve> Msm<C> {
             timer,
             #[cfg(target_os = "android")]
             bucket_submissions,
+            #[cfg(target_os = "android")]
+            resident_count_profile,
         }
     }
 
@@ -1752,6 +1827,12 @@ impl<C: Curve> Msm<C> {
 
     /// As `finish`, yielding while the GPU works: the browser's way.
     pub async fn finish_async(&mut self, pending: Pending) -> Result<(C, Timings), String> {
+        #[cfg(target_os = "android")]
+        let mut pending = pending;
+        #[cfg(target_os = "android")]
+        if let Some((submission, timer)) = pending.resident_count_profile.take() {
+            timer.read(&self.gpu, submission).await?;
+        }
         #[cfg(target_os = "android")]
         if !pending.bucket_submissions.is_empty() {
             return self.finish_host_buckets(pending).await;
@@ -1996,6 +2077,7 @@ impl<C: Curve> Msm<C> {
     /// The counting passes after what `encoder` holds, submitted a slice
     /// at a time.
     fn submit_count(&mut self, mut encoder: wgpu::CommandEncoder) {
+        let host_plans = self.plans_on_host();
         let sort = self.gpu_sort.as_mut().expect("the GPU sort");
         let (device, queue) = (&self.gpu.device, &self.gpu.queue);
         encoder.clear_buffer(&sort.counts, 0, None);
@@ -2053,7 +2135,9 @@ impl<C: Curve> Msm<C> {
             }
             encoder = flush(&self.gpu, encoder);
         }
-        encoder.copy_buffer_to_buffer(&sort.counts, 0, &sort.counts_staging, 0, sort.counts.size());
+        if host_plans {
+            encoder.copy_buffer_to_buffer(&sort.counts, 0, &sort.counts_staging, 0, sort.counts.size());
+        }
         if let Some(timer) = &timer {
             timer.resolve(&mut encoder);
         }

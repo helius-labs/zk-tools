@@ -1,0 +1,44 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+#include "field.glsl"
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Input { xyzz values[]; } inputs;
+layout(std430, set = 0, binding = 1) readonly buffer Histogram { uint values[]; } histogram;
+layout(std430, set = 0, binding = 2) readonly buffer Offsets { uvec4 values[]; } offsets;
+layout(std430, set = 0, binding = 3) readonly buffer Totals { uvec4 values[]; } totals;
+layout(std430, set = 0, binding = 4) buffer Output { xyzz values[]; } outputs;
+layout(std140, set = 0, binding = 5) uniform Shards {
+  uint first_window;
+  uint half_range;
+  uint stride;
+  uint level;
+} args;
+#include "msm_resident_bucket.glsl"
+
+void main() {
+  const uint relative_window = gl_WorkGroupID.y;
+  const uint window = args.first_window + relative_window;
+  const uint base = window * args.half_range;
+  const uint shard = gl_GlobalInvocationID.x;
+  const bool final_level = args.level == 3u;
+  const uint next_level = min(args.level + 1u, 3u);
+  if (shard >= (final_level ? args.half_range : totals.values[window][next_level]))
+    return;
+
+  const uint bucket = final_level ? base + shard
+      : bucket_for(base, args.half_range, next_level, shard);
+  const uvec4 start = offsets.values[bucket];
+  const uint offset = final_level ? 0u : (shard - start[next_level]) * 32u;
+  const uint first = relative_window * args.stride + start[args.level] + offset;
+  uint count = bucket_length(histogram.values[bucket], args.level) - offset;
+  if (!final_level)
+    count = min(count, 32u);
+  xyzz sum = xyzz_infinity();
+  if (count != 0u) {
+    sum = inputs.values[first];
+    for (uint i = 1u; i < count; ++i)
+      sum = xyzz_add(sum, inputs.values[first + i]);
+  }
+  const uint dest = final_level ? bucket : relative_window * args.stride + shard;
+  outputs.values[dest] = sum;
+}

@@ -1,0 +1,51 @@
+#version 450
+// One workgroup scans each signed Booth window. Every bucket gets the
+// exclusive start of its scalars and its partial sums at three shard levels.
+layout(local_size_x = 64) in;
+layout(std430, set = 0, binding = 0) readonly buffer Histogram { uint values[]; } histogram;
+layout(std430, set = 0, binding = 1) buffer Offsets { uvec4 values[]; } offsets;
+layout(std430, set = 0, binding = 2) buffer Cursors { uint values[]; } cursors;
+layout(std430, set = 0, binding = 3) buffer Totals { uvec4 values[]; } totals;
+layout(std140, set = 0, binding = 4) uniform Geometry {
+  uint n;
+  uint half_range;
+  uint windows;
+  uint pad;
+} args;
+
+shared uvec4 partials[64];
+
+uvec4 lengths(uint count) {
+  return uvec4(count, (count + 31u) >> 5u, (count + 1023u) >> 10u,
+               (count + 32767u) >> 15u);
+}
+
+void main() {
+  const uint window = gl_WorkGroupID.x;
+  const uint lane = gl_LocalInvocationID.x;
+  const uint block = (args.half_range + 63u) / 64u;
+  const uint first = lane * block;
+  const uint end = min(first + block, args.half_range);
+  const uint base = window * args.half_range;
+  uvec4 length = uvec4(0u);
+  for (uint bucket = first; bucket < end; ++bucket)
+    length += lengths(histogram.values[base + bucket]);
+  partials[lane] = length;
+  barrier();
+  for (uint step = 1u; step < 64u; step <<= 1u) {
+    const uvec4 previous = lane >= step ? partials[lane - step] : uvec4(0u);
+    barrier();
+    partials[lane] += previous;
+    barrier();
+  }
+  uvec4 start = lane == 0u ? uvec4(0u) : partials[lane - 1u];
+  if (lane == 63u)
+    totals.values[window] = start + length;
+  start.x += window * args.n;
+  for (uint bucket = first; bucket < end; ++bucket) {
+    const uint index = base + bucket;
+    offsets.values[index] = start;
+    cursors.values[index] = start.x;
+    start += lengths(histogram.values[index]);
+  }
+}
