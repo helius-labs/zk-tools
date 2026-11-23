@@ -105,16 +105,34 @@ void main() {
       const uint right = (row1 << args.cols_log) | column;
       const uint level = args.first + local_level;
       const uint gap = args.n >> (level + 1u);
+#ifdef ZOPRO_FFT_PACKED_ROOTS
+      const uint phase = tile_index(group, row0, column) & (gap - 1u);
+      const uint stride_mask = (1u << args.stride_log) - 1u;
+      const uint root = (args.n - (args.n >> level))
+          + ((phase & stride_mask) << gap_log) + (phase >> args.stride_log);
+      const bool nontrivial_root = phase != 0u;
+#else
       const uint power = (tile_index(group, row0, column) & (gap - 1u)) << level;
+#endif
 
       const fr u = tile[left];
       fr v = tile[right];
+#ifdef ZOPRO_FFT_PACKED_ROOTS
+      if (dit && nontrivial_root)
+        v = fr_mul(v, roots.values[root]);
+#else
       if (dit && power != 0u)
         v = fr_mul(v, roots.values[power]);
+#endif
       tile[left] = fr_add(u, v);
       fr difference = fr_sub(u, v);
+#ifdef ZOPRO_FFT_PACKED_ROOTS
+      if (!dit && nontrivial_root)
+        difference = fr_mul(difference, roots.values[root]);
+#else
       if (!dit && power != 0u)
         difference = fr_mul(difference, roots.values[power]);
+#endif
       tile[right] = difference;
     }
     barrier();

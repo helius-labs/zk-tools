@@ -90,6 +90,8 @@ struct TiledFft {
     passes: Vec<TilePass>,
     #[cfg(target_os = "android")]
     large: bool,
+    #[cfg(target_os = "android")]
+    packed_roots: bool,
 }
 
 struct TilePass {
@@ -171,10 +173,14 @@ impl TiledFft {
 
         let large = cfg!(target_os = "android")
             && std::env::var("ZOPRO_VULKAN_FFT_LARGE_TILE").as_deref() == Ok("1");
-        let (name, kernel): (_, &[u8]) = if large {
-            ("fr_fft_tile_large", include_bytes!("../glsl/out/fr_fft_tile_large.spv"))
-        } else {
-            ("fr_fft_tile", include_bytes!("../glsl/out/fr_fft_tile.spv"))
+        let packed_roots = cfg!(target_os = "android")
+            && std::env::var("ZOPRO_VULKAN_FFT_PACKED_ROOTS").as_deref() == Ok("1")
+            && std::env::var("ZOPRO_VULKAN_WIDE_FR").as_deref() == Ok("1");
+        let (name, kernel): (_, &[u8]) = match (large, packed_roots) {
+            (true, true) => ("fr_fft_tile_large_roots_packed", include_bytes!("../glsl/out/fr_fft_tile_large_roots_packed.spv")),
+            (false, true) => ("fr_fft_tile_roots_packed", include_bytes!("../glsl/out/fr_fft_tile_roots_packed.spv")),
+            (true, false) => ("fr_fft_tile_large", include_bytes!("../glsl/out/fr_fft_tile_large.spv")),
+            (false, false) => ("fr_fft_tile", include_bytes!("../glsl/out/fr_fft_tile.spv")),
         };
         let pipeline = quotient_kernel(gpu, name, kernel, &[Write, Read, Uniform]);
         let max_levels = if large { 7 } else { 6 };
@@ -202,7 +208,30 @@ impl TiledFft {
             pipeline, passes,
             #[cfg(target_os = "android")]
             large,
+            #[cfg(target_os = "android")]
+            packed_roots,
         }
+    }
+
+    /// Store each stage's roots in the order a tile's rows and columns use.
+    /// The stages need n/2 + n/4 + ... + 1 values in either direction.
+    #[cfg(target_os = "android")]
+    fn pack_roots(&self, roots: &[Fr]) -> Vec<Fr> {
+        let mut packed = Vec::with_capacity(2 * roots.len() - 1);
+        for pass in &self.passes {
+            let [n, first, levels, stride_log, _] = pass.geometry;
+            for local in 0..levels {
+                let level = first + local;
+                let row_bits = levels - 1 - local;
+                let row_mask = (1 << row_bits) - 1;
+                let gap = n >> (level + 1);
+                packed.extend((0..gap).map(|index| {
+                    let phase = (index >> row_bits) | ((index & row_mask) << stride_log);
+                    roots[(phase << level) as usize]
+                }));
+            }
+        }
+        packed
     }
 }
 
@@ -321,6 +350,13 @@ impl Quotient {
             gpu.queue.write_buffer(&buffer, 0, fr_bytes(values));
             buffer
         };
+        let upload_roots = |label: &str, values: &[Fr]| {
+            #[cfg(target_os = "android")]
+            if let Some(tiled) = tiled.as_ref().filter(|tiled| tiled.packed_roots) {
+                return upload(label, &tiled.pack_roots(values));
+            }
+            upload(label, values)
+        };
         let log_n = n.trailing_zeros();
         let stages = (0..log_n)
             .map(|level| crate::uniform(&gpu, [n as u32, level, log_n - 1 - level, 0]))
@@ -334,8 +370,8 @@ impl Quotient {
             pointwise,
             n,
             log_n,
-            roots: upload("roots", roots),
-            inverse_roots: upload("inverse roots", inverse_roots),
+            roots: upload_roots("roots", roots),
+            inverse_roots: upload_roots("inverse roots", inverse_roots),
             monomial_weights: monomial_weights.map(|[forward, reverse]| {
                 [upload("forward weights", forward), upload("reverse weights", reverse)]
             }),
@@ -479,7 +515,7 @@ impl Quotient {
         let degrees = storage(device, "Euler degrees", table.len() * 32);
         queue.write_buffer(&degrees, 0, fr_bytes(&table));
         let fused = self.tiled.as_ref().filter(|tiled| {
-            !tiled.large && tiled.passes.len() > 1
+            !tiled.large && !tiled.packed_roots && tiled.passes.len() > 1
                 && std::env::var("ZOPRO_VULKAN_EULER_FUSED").as_deref() == Ok("1")
         }).map(|tiled| FusedEulerTiles::new(&self.gpu, tiled, active as u32, low as u32));
         let workspace = EulerProduct {
