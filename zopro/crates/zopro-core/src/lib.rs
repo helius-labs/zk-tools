@@ -4448,7 +4448,9 @@ impl Key {
             }
             None
         };
-        builder.g1(3, &queries.product[..h_gpu])?;
+        builder.g1[3] = Some(zopro_wgpu::G1Msm::new_android_euler(
+            builder.gpu.clone(), &queries.product[..h_gpu],
+        )?.0);
         #[cfg(feature = "trace")]
         if cpu_witness {
             log::info!("ZOPRO_TRACE vulkan-euler CPU witness queries");

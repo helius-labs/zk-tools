@@ -1017,8 +1017,45 @@ pub(crate) fn bytemuck_cast(values: &[u32]) -> &[u8] {
     unsafe { std::slice::from_raw_parts(values.as_ptr() as *const u8, values.len() * 4) }
 }
 
+#[cfg(target_os = "android")]
+impl Msm<G1Projective> {
+    pub fn new_android_euler(
+        gpu: std::sync::Arc<Gpu>,
+        bases: &[G1Affine],
+    ) -> Result<(Self, f64), String> {
+        // The host recoder stores i16 digits. Wider signed windows use the
+        // Vulkan Booth shaders, which keep the full magnitude in an i32.
+        let booth = gpu.spirv && bases.len() >= 1 << 18
+            && std::env::var("ZOPRO_GPU_SORT").as_deref() == Ok("1")
+            && std::env::var("ZOPRO_VULKAN_BOOTH_SORT").as_deref() == Ok("1");
+        let width = booth.then(|| {
+            let limits = gpu.device.limits();
+            std::env::var("ZOPRO_ANDROID_EULER_H_GPU_WIDTH").ok()
+                .and_then(|value| value.parse::<usize>().ok())
+                .filter(|&width| (13..=17).contains(&width))
+                .filter(|&width| {
+                    let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
+                    let bytes = (windows * (1 << (width - 1)) * <G1Projective as Curve>::XYZZ_BYTES) as u64;
+                    bytes <= limits.max_buffer_size && bytes <= limits.max_storage_buffer_binding_size as u64
+                })
+        }).flatten();
+        if let Some(width) = width {
+            log::info!("ZOPRO_TRACE vulkan-euler-h width={width} entries={}", bases.len());
+        }
+        Self::new_with_width(gpu, bases, width)
+    }
+}
+
 impl<C: Curve> Msm<C> {
     pub fn new(gpu: std::sync::Arc<Gpu>, bases: &[C::Affine]) -> Result<(Self, f64), String> {
+        Self::new_with_width(gpu, bases, None)
+    }
+
+    fn new_with_width(
+        gpu: std::sync::Arc<Gpu>,
+        bases: &[C::Affine],
+        width: Option<usize>,
+    ) -> Result<(Self, f64), String> {
         let device = &gpu.device;
         let started = Instant::now();
         // A driver that cannot build a kernel (a phone's refused to link one)
@@ -1101,7 +1138,7 @@ impl<C: Curve> Msm<C> {
             C::encode(p, &mut raw);
         }
         let n = bases.len();
-        let width = width_for(n);
+        let width = width.unwrap_or_else(|| width_for(n));
         let half = 1 << (width - 1);
         let windows = (Fr::MODULUS_BITS as usize + 1).div_ceil(width);
         let buckets = windows * half;
