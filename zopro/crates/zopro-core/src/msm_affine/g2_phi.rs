@@ -227,7 +227,7 @@ fn window_offsets<const N: usize>(widths: [usize; N]) -> [(usize, usize); N] {
 
 /// Overlapping Booth digits telescope at variable radix boundaries too:
 /// the new digit adds the preceding window's sign bit as its carry.
-#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+#[cfg(all(any(target_os = "macos", target_os = "android"), target_arch = "aarch64"))]
 #[inline(always)]
 fn component_digit_at(s: &[u64; 4], high: bool, offset: usize, width: usize) -> i16 {
     let i = 2 * usize::from(high);
@@ -523,6 +523,21 @@ pub(super) fn quotient_g1_msm(
 
     assert_eq!(bases.len(), short.len());
     const BITS: usize = 13;
+    #[cfg(target_os = "android")]
+    if let Some(widths) = std::env::var("ZOPRO_ANDROID_H_GLV_WIDTHS").ok().and_then(|value| {
+        let widths = value.split(',').map(str::parse::<usize>).collect::<Result<Vec<_>, _>>().ok()?;
+        if !widths.iter().all(|width| (7..=15).contains(width)) || widths.len() > 19 {
+            return None;
+        }
+        let total = widths.iter().sum::<usize>();
+        ((127..=133).contains(&total) && total - widths.last()? < 127).then_some(widths)
+    }) {
+        let parts = std::env::var("ZOPRO_ANDROID_H_GLV_PARTS").ok()
+            .and_then(|value| value.parse::<usize>().ok())
+            .filter(|parts| (1..=4).contains(parts))
+            .unwrap_or(2);
+        return android_mixed_g1_msm(bases, short, &widths, parts);
+    }
     let mid = bases.len().div_ceil(2);
     let size = batch_size(BITS);
     let sums: Vec<_> = (0..127usize.div_ceil(BITS))
@@ -555,6 +570,57 @@ pub(super) fn quotient_g1_msm(
     let mut result = G1Projective::IDENTITY;
     for sum in sums.into_iter().rev() {
         for _ in 0..BITS {
+            result = result.double();
+        }
+        result += sum;
+    }
+    result
+}
+
+#[cfg(all(target_os = "android", target_arch = "aarch64"))]
+fn android_mixed_g1_msm(
+    bases: &[zopro_bn254::G1Affine],
+    short: &[[u64; 4]],
+    widths: &[usize],
+    parts: usize,
+) -> zopro_bn254::G1Projective {
+    use zopro_bn254::G1Projective;
+
+    let windows: Vec<_> = widths.iter().scan(0, |offset, &width| {
+        let window = (*offset, width);
+        *offset += width;
+        Some(window)
+    }).collect();
+    let loose = super::borrowed_scalar::enabled();
+    let chunk = bases.len().div_ceil(parts);
+    let sums: Vec<_> = windows.par_iter().map(|&(offset, width)| {
+        let fill = |part: usize| {
+            let start = part * chunk;
+            let end = (start + chunk).min(bases.len());
+            let points = &bases[start..end];
+            let words = &short[start..end];
+            let mut state = super::borrowed_scalar::Borrowed::new(width, batch_size(width));
+            let digits = |high| words.iter().map(move |word| component_digit_at(word, high, offset, width));
+            state.feed_pairs(points.iter().zip(digits(true)), loose);
+            for point in &mut state.inner.affine {
+                point.x *= G1_BETA;
+            }
+            for point in &mut state.inner.projective {
+                point.x *= G1_BETA;
+            }
+            state.feed_pairs(points.iter().zip(digits(false)), loose);
+            affine_buckets(state.inner)
+        };
+        let mut buckets: Vec<_> = (0..parts).into_par_iter().map(fill).collect();
+        let mut combined = buckets.remove(0);
+        for part in buckets {
+            merge_buckets(&mut combined, &part);
+        }
+        crate::msm::weighted_affine(&combined)
+    }).collect();
+    let mut result = G1Projective::IDENTITY;
+    for (sum, &width) in sums.into_iter().zip(widths).rev() {
+        for _ in 0..width {
             result = result.double();
         }
         result += sum;
