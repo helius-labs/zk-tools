@@ -2792,25 +2792,29 @@ impl Key {
                 std::thread::scope(|scope| -> Result<_, String> {
                     let gpu_work = scope.spawn(move || -> Result<_, String> {
                         let started = crate::time::Instant::now();
-                        let (mut ma, mut mb, mut mk, mut mz) = (
-                            gpu.a.lock().unwrap(),
-                            gpu.b.lock().unwrap(),
-                            gpu.k.lock().unwrap(),
-                            gpu.z.lock().unwrap(),
-                        );
+                        let mut ma = gpu.a.lock().unwrap();
+                        let mut mb = (!omit_b).then(|| gpu.b.lock().unwrap());
+                        let mut mk = gpu.k.lock().unwrap();
+                        let mut mz = gpu.z.lock().unwrap();
                         // An MSM the GPU sorts is counted first, ahead of
                         // all else on the GPU's queue. When every G1 MSM is,
                         // the CPU's G2 MSM waits for no sort; when Z's is
                         // and the quotient is on the GPU too, Z's scalars
                         // never leave it: the GPU counts them from the
                         // quotient's output, ahead of the other MSMs.
-                        for (msm, scalars) in [(&mut ma, sa), (&mut mb, sb), (&mut mk, sk)] {
+                        let queries = [
+                            Some((&mut *ma, sa)),
+                            mb.as_deref_mut().map(|msm| (msm, sb)),
+                            Some((&mut *mk, sk)),
+                        ];
+                        for (msm, scalars) in queries.into_iter().flatten() {
                             if msm.sorts_on_gpu() {
                                 msm.count(scalars);
                             }
                         }
-                        let host_sorts =
-                            !(ma.sorts_on_gpu() && mb.sorts_on_gpu() && mk.sorts_on_gpu());
+                        let host_sorts = !(ma.sorts_on_gpu()
+                            && mb.as_ref().is_none_or(|msm| msm.sorts_on_gpu())
+                            && mk.sorts_on_gpu());
                         let mut quotient = self.gpu_quotient.then(|| gpu.quotient.lock().unwrap());
                         let z_on_gpu = mz.sorts_on_gpu() && quotient.is_some();
                         if let Some(q) = quotient.as_mut() {
@@ -2823,7 +2827,9 @@ impl Key {
                         if !host_sorts {
                             sorted_tx = None;
                         }
-                        let (pa, pb, pk) = (ma.start(sa), mb.start(sb), mk.start(sk));
+                        let pa = ma.start(sa);
+                        let pb = mb.as_mut().map(|msm| msm.start(sb));
+                        let pk = mk.start(sk);
                         let mut b2 = gpu.b2.as_ref().map(|b2| b2.lock().unwrap());
                         let pb2 = b2.as_mut().map(|b2| b2.start(&sb[..cut]));
                         drop(sorted_tx);
@@ -2850,8 +2856,15 @@ impl Key {
                         drop(quotient);
                         let (ar, t) = ma.finish(pa)?;
                         gpu_trace("a", t.sort_ms, t.gpu_ms);
-                        let (bs1, t) = mb.finish(pb)?;
-                        gpu_trace("b", t.sort_ms, t.gpu_ms);
+                        let bs1 = if let Some((msm, pending)) = mb.as_mut().zip(pb) {
+                            let (point, timing) = msm.finish(pending)?;
+                            gpu_trace("b", timing.sort_ms, timing.gpu_ms);
+                            point
+                        } else {
+                            #[cfg(feature = "trace")]
+                            log::info!("ZOPRO_TRACE vulkan-omit-b1");
+                            G1Projective::IDENTITY
+                        };
                         let (kr, t) = mk.finish(pk)?;
                         gpu_trace("k", t.sort_ms, t.gpu_ms);
                         let gpu_b2 = match (b2.as_mut(), pb2) {
@@ -2868,7 +2881,17 @@ impl Key {
                     });
                     let _ = sorted_rx.recv();
                     let started = crate::time::Instant::now();
-                    let cpu_b2 = (cut < sb.len()).then(|| msm_g2(self.cpu_b2(cut), &sb[cut..]));
+                    let cpu_b2 = (cut < sb.len()).then(|| {
+                        let bases = self.cpu_b2(cut);
+                        let scalars = &sb[cut..];
+                        if omit_b && affine_msm() {
+                            let mut words: Vec<_> = scalars.iter().map(Fr::to_canonical).collect();
+                            return msm_affine::g2_query_exclusive(
+                                bases, &mut words, self.exclusive_g2_grouping,
+                            );
+                        }
+                        msm_g2(bases, scalars)
+                    });
                     trace("cpu-msm-b2", started);
                     Ok((gpu_work.join().expect("gpu work")?, cpu_b2))
                 })?;
@@ -4110,6 +4133,10 @@ impl Key {
         }
         #[cfg(gpu)]
         if fast_ios_metal() {
+            return true;
+        }
+        #[cfg(all(gpu_wgpu, target_os = "android"))]
+        if std::env::var("ZOPRO_WGPU_RERANDOMIZED").as_deref() == Ok("1") {
             return true;
         }
         cfg!(all(gpu, target_os = "macos", target_arch = "aarch64"))
