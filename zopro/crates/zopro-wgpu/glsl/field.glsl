@@ -8,6 +8,9 @@
 // (13 % off the OnePlus 13's bucket accumulation).
 // Copyright (c) 2026 Helius Blockchain Technologies, Inc.
 #extension GL_EXT_control_flow_attributes : require
+#ifdef ZOPRO_VULKAN_WIDE_FP
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#endif
 struct fp { uint l0, l1, l2, l3, l4, l5, l6, l7; };
 const uint Q0 = 0xd87cfd47u;
 const uint Q1 = 0x3c208c16u;
@@ -67,6 +70,75 @@ fp fp_sub(fp a, fp b) {
   d7 = uaddCarry(d7, Q7 & mask, c1); d7 = uaddCarry(d7, c, c2); c = c1 + c2;
   return fp(d0, d1, d2, d3, d4, d5, d6, d7);
 }
+#ifdef ZOPRO_VULKAN_WIDE_FP
+fp fp_mul(fp a, fp b) {
+  // Interleave the ordinary product and Montgomery reduction.
+  uint t0 = 0u, t1 = 0u, t2 = 0u, t3 = 0u;
+  uint t4 = 0u, t5 = 0u, t6 = 0u, t7 = 0u;
+  [[dont_unroll]] for (uint j = 0u; j < 8u; ++j) {
+    uint bj;
+    switch (j) {
+      case 0u: bj = b.l0; break;
+      case 1u: bj = b.l1; break;
+      case 2u: bj = b.l2; break;
+      case 3u: bj = b.l3; break;
+      case 4u: bj = b.l4; break;
+      case 5u: bj = b.l5; break;
+      case 6u: bj = b.l6; break;
+      default: bj = b.l7; break;
+    }
+    uint64_t product = uint64_t(a.l0) * bj + t0;
+    t0 = uint(product);
+    product >>= 32;
+    const uint m = t0 * FP_INV;
+    uint64_t reduction = (uint64_t(m) * Q0 + t0) >> 32;
+    product += uint64_t(a.l1) * bj + t1;
+    t1 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q1 + t1;
+    t0 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l2) * bj + t2;
+    t2 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q2 + t2;
+    t1 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l3) * bj + t3;
+    t3 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q3 + t3;
+    t2 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l4) * bj + t4;
+    t4 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q4 + t4;
+    t3 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l5) * bj + t5;
+    t5 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q5 + t5;
+    t4 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l6) * bj + t6;
+    t6 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q6 + t6;
+    t5 = uint(reduction);
+    reduction >>= 32;
+    product += uint64_t(a.l7) * bj + t7;
+    t7 = uint(product);
+    product >>= 32;
+    reduction += uint64_t(m) * Q7 + t7;
+    t6 = uint(reduction);
+    reduction >>= 32;
+    t7 = uint(product + reduction);
+  }
+  return fp_reduce_once(t0, t1, t2, t3, t4, t5, t6, t7);
+}
+#else
 fp fp_mul(fp a, fp b) {
   // The unrolled rounds of field_gen.glsl as a loop over b's limbs: an
   // eighth of the code, for shader compilers that take minutes over the
@@ -104,6 +176,7 @@ fp fp_mul(fp a, fp b) {
   }
   return fp_reduce_once(t0, t1, t2, t3, t4, t5, t6, t7);
 }
+#endif
 
 fp fp_square(fp a) {
   // a^2 with the cross products a_i a_j (i < j) computed once and
