@@ -1,0 +1,113 @@
+name: spr-prover
+
+on:
+  pull_request:
+    paths:
+      - "clients/spr-prover/**"
+      - ".github/workflows/spr-prover.yml"
+  push:
+    branches: [main]
+    paths:
+      - "clients/spr-prover/**"
+      - ".github/workflows/spr-prover.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spr-prover-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: clients/spr-prover
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: clients/spr-prover/package-lock.json
+      # runtime.lock.json pins the zopro revision this client builds.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2025-11-15
+          targets: wasm32-unknown-unknown
+          components: rust-src
+      - run: cargo install wasm-bindgen-cli --version 0.2.128 --locked
+      - run: npm ci
+      - run: npm run setup
+      - run: npm run check
+      - run: npm run test:node
+        timeout-minutes: 10
+      - run: npm run test:browser
+        env:
+          CHROME_NO_SANDBOX: "1"
+      - uses: actions/cache@v5
+        with:
+          path: clients/spr-prover/target/chrome-for-testing
+          key: spr-prover-chrome-${{ runner.os }}-${{ hashFiles('clients/spr-prover/scripts/test-packed-consumer.mjs') }}
+      - run: npm run test:consumer
+        env:
+          CHROME_NO_SANDBOX: "1"
+      - name: Read the protocol SDK pin
+        id: protocol-sdk
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from "node:fs";
+          const pin = JSON.parse(readFileSync("upstream.lock.json", "utf8"));
+          const repository = new URL(pin.repository).pathname.slice(1).replace(/\.git$/, "");
+          appendFileSync(process.env.GITHUB_OUTPUT, `repository=${repository}\nrevision=${pin.revision}\n`);
+          NODE
+      - uses: actions/checkout@v6
+        with:
+          repository: ${{ steps.protocol-sdk.outputs.repository }}
+          ref: ${{ steps.protocol-sdk.outputs.revision }}
+          path: target/protocol-sdk
+      - name: Build the pinned protocol SDK
+        working-directory: target/protocol-sdk
+        run: |
+          npm ci --workspace @heliuslabs/spr
+          npm pack --workspace @heliuslabs/spr --pack-destination "$RUNNER_TEMP" --json > "$RUNNER_TEMP/protocol-sdk-pack.json"
+      - name: Check wallet compatibility with the pinned SDK
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { readFileSync } from "node:fs";
+          const pin = JSON.parse(readFileSync("upstream.lock.json", "utf8"));
+          const [packed] = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/protocol-sdk-pack.json`, "utf8"));
+          assert.equal(packed.name, "@heliuslabs/spr");
+          assert.equal(packed.version, pin.sdk);
+          NODE
+          archive="$(node -p 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))[0].filename' "$RUNNER_TEMP/protocol-sdk-pack.json")"
+          npm install --no-save --package-lock=false "$RUNNER_TEMP/$archive"
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { readFileSync } from "node:fs";
+          import { findPackageJSON } from "node:module";
+          const pin = JSON.parse(readFileSync("upstream.lock.json", "utf8"));
+          const walletPackage = findPackageJSON("@heliuslabs/spr", new URL("./examples/wallet/package.json", import.meta.url));
+          assert.equal(walletPackage, findPackageJSON("@heliuslabs/spr", import.meta.url));
+          const installed = JSON.parse(readFileSync(walletPackage, "utf8"));
+          assert.equal(installed.name, "@heliuslabs/spr");
+          assert.equal(installed.version, pin.sdk);
+          NODE
+          npm run typecheck --workspace @zolana/wallet-example
+          npm test --workspace @zolana/wallet-example
+          npm run build --workspace @zolana/wallet-example
+
+  upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: clients/spr-prover/package-lock.json
+      - run: npm ci
+      - run: bash scripts/check-upstream.sh
