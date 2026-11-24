@@ -157,6 +157,10 @@ S25, and 43 to 76 % on iPhones 12, 15 and 17 Pro with Metal.
 
 ## Building
 
+The [JavaScript package](packages/spr-prover/README.md) builds `zopro-spr`
+for both Node and browsers, with the same API and single or multithreaded
+CPU proving. Its worker hosts use Node `worker_threads` or browser workers.
+
 Native: `cargo build --release`. Browser: `CARGO_PROFILE_RELEASE_LTO=false
 cargo rustc --release --target wasm32-unknown-unknown --crate-type cdylib
 --features wgpu` in `crates/zopro-prover` (or `crates/zopro-spr` for
